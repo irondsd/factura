@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f4efe3;
+  --card: #fdfbf4;
+  --ink: #211d16;
+  --muted: #857b67;
+  --line: #ddd2bb;
+  --accent: #d9480f;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --font-display: var(--font-fraunces);
+  --font-mono: var(--font-plex-mono);
+}
+
+body {
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--line) 0.75px, transparent 0.75px);
+  background-size: 22px 22px;
+  color: var(--ink);
+  font-family: var(--font-plex-mono), monospace;
+}
+
+/* Torn-receipt zigzag along the bottom edge */
+.receipt-edge {
+  --zz: 11px;
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
+    50% / var(--zz) 100%;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
+    50% / var(--zz) 100%;
+}
+
+/* Ledger ruling behind extracted text */
+.ruled {
+  line-height: 1.75rem;
+  background-image: repeating-linear-gradient(
+    transparent 0 calc(1.75rem - 1px),
+    rgb(33 29 22 / 0.08) calc(1.75rem - 1px) 1.75rem
+  );
+}
