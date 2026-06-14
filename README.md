@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Factura
 
-## Getting Started
+Drop utility-bill PDFs, get a ledger: totals per property and month, missing-bill
+detection, per-vendor history. PDFs are parsed in the browser (pdf.js); only the
+extracted text is stored — original files are never uploaded or kept.
 
-First, run the development server:
+## Stack
+
+Next.js (App Router) · tRPC · Drizzle ORM · Postgres (Docker) · Tailwind.
+
+## Run it
 
 ```bash
+cp env.example .env        # adjust if needed
+docker compose up -d       # Postgres 17 on localhost:5433
+npm install
+npm run db:push            # create schema
+npm run db:seed            # local user + vendors
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## How it works
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Drop a PDF anywhere** on the dashboard. The browser extracts text, the server
+  runs vendor parsers (`src/parsers/`) and saves the bill.
+- **Accounts** link a vendor account number to a property. The first bill from an
+  unknown account asks which property it belongs to — once. Address variants
+  (street + number) pre-select the answer.
+- **Review inbox** catches unrecognized vendors and failed parses; fill fields
+  manually or fix the parser and hit **Reparse** (Playground page) — raw text is
+  stored, so bills re-extract without re-dropping files.
+- **Playground** (`/debug`) parses a PDF without saving — use it to grab fixture
+  text when adding a new vendor parser.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Adding a vendor parser
 
-## Learn More
+1. Drop a bill on `/debug`, copy the raw text, sanitize it (names, addresses,
+   account numbers), save as `src/parsers/__fixtures__/<vendor>.txt`.
+2. Implement `VendorParser` in `src/parsers/<vendor>.ts`, register it in
+   `registry.ts`, add a seed entry for the vendor, write a test.
+3. `npm test`, then **Reparse all bills** to backfill.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`samples/` and `docs/` are gitignored — they may contain personal data.

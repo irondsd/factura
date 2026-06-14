@@ -20,12 +20,96 @@
   --font-mono: var(--font-plex-mono);
 }
 
+/* ── Design-system tokens ─────────────────────────────────────────────────────
+   The full Factura token set from the design handoff, declared at :root so the
+   inline-styled screen/components (ported from the prototype) can resolve every
+   var(--…). @theme inline above only feeds Tailwind utilities, not runtime vars,
+   so the families/scales/effects are re-declared here. */
+:root {
+  /* Families */
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-body: var(--font-mono);
+
+  /* Accent tints + semantic aliases */
+  --accent-soft: color-mix(in srgb, var(--accent) 5%, var(--card));
+  --accent-line: color-mix(in srgb, var(--accent) 55%, transparent);
+  --surface-page: var(--paper);
+  --surface-card: var(--card);
+  --surface-inset: var(--paper);
+  --surface-invert: var(--ink);
+  --text-body: var(--ink);
+  --text-muted: var(--muted);
+  --text-accent: var(--accent);
+  --text-on-invert: var(--paper);
+  --border-default: var(--line);
+  --border-strong: var(--ink);
+  --border-accent: var(--accent);
+
+  /* Type scale */
+  --text-micro: 11px;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --text-4xl: 36px;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  --leading-tight: 1.15;
+  --leading-snug: 1.4;
+  --leading-normal: 1.6;
+  --leading-ledger: 1.75rem;
+
+  --tracking-tight: -0.01em;
+  --tracking-label: 0.18em;
+  --tracking-label-wide: 0.2em;
+  --tracking-label-wider: 0.25em;
+  --tracking-label-widest: 0.3em;
+
+  /* Spacing + layout */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --container-narrow: 42rem;
+  --container: 56rem;
+  --receipt-foot: 16px;
+
+  /* Borders, radii, shadows, motion */
+  --border-hair: 1px;
+  --border-emphasis: 2px;
+  --radius-none: 0;
+  --radius-md: 8px;
+  --radius-full: 9999px;
+  --shadow-pop: 0 10px 30px -12px rgb(33 29 22 / 0.25);
+  --shadow-receipt: 0 1px 0 var(--line), 0 8px 24px -12px rgb(33 29 22 / 0.25);
+  --ring-accent: 0 0 0 2px var(--accent);
+  --ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 150ms;
+  --transition-colors: color var(--dur) var(--ease-standard),
+    background-color var(--dur) var(--ease-standard),
+    border-color var(--dur) var(--ease-standard);
+}
+
 body {
   background-color: var(--paper);
   background-image: radial-gradient(var(--line) 0.75px, transparent 0.75px);
   background-size: 22px 22px;
   color: var(--ink);
-  font-family: var(--font-plex-mono), monospace;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
 }
 
 /* Torn-receipt zigzag along the bottom edge */
@@ -44,4 +128,46 @@ body {
     transparent 0 calc(1.75rem - 1px),
     rgb(33 29 22 / 0.08) calc(1.75rem - 1px) 1.75rem
   );
+}
+
+/* ── Hover / focus helpers (inline styles can't express :hover) ───────────── */
+.fx-link:hover,
+.fd-btn--outline:hover {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+.fd-btn--ghost:hover {
+  color: var(--accent) !important;
+}
+.fx-navlink:hover,
+.fx-pdf-link:hover {
+  color: var(--ink) !important;
+}
+.fx-reparse:hover,
+.fx-google:hover {
+  border-color: var(--accent) !important;
+}
+.fx-avatar:hover {
+  background: var(--accent) !important;
+}
+.fx-x:hover {
+  color: var(--accent) !important;
+}
+.fx-row:hover td {
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+.fd-input:focus,
+.fd-select:focus {
+  border-color: var(--accent) !important;
+}
+
+@keyframes fd-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, IBM_Plex_Mono } from "next/font/google";
+import { AppShell } from "@/components/app/AppShell";
+import { Providers } from "./providers";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -15,8 +17,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Factura — bill parser",
-  description: "Drop a utility bill PDF, get its text back. Iteration 01.",
+  title: "Factura — bill ledger",
+  description:
+    "Drop utility bill PDFs, get a ledger: totals, missing bills, per-vendor history.",
 };
 
 export default function RootLayout({
@@ -29,7 +32,11 @@ export default function RootLayout({
       lang="en"
       className={`${fraunces.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Providers>
+          <AppShell>{children}</AppShell>
+        </Providers>
+      </body>
     </html>
   );
 }

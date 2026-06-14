@@ -1,239 +1,266 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import Link from "next/link";
+import { useApp } from "@/components/app/context";
+import {
+  ChartCard,
+  Delta,
+  Display,
+  DonutFx,
+  Eyebrow,
+  Legend,
+  SparklineFx,
+  StackedBarsFx,
+} from "@/components/charts";
+import {
+  formatMoney,
+  formatMonth,
+  formatMonthShort,
+  formatUSD,
+} from "@/lib/format";
+import { trpc } from "@/lib/trpc";
 
-type ParsedBill = {
-  id: string;
-  name: string;
-  size: number;
-  droppedAt: string;
-  status: "parsing" | "done" | "error";
-  text?: string;
-  error?: string;
-};
+export default function OverviewPage() {
+  const { propertyId, currency } = useApp();
+  const overview = trpc.insights.overview.useQuery({ propertyId, currency });
 
-function formatSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+  if (!overview.data) {
+    return (
+      <div
+        style={{
+          maxWidth: "64rem",
+          margin: "0 auto",
+          padding: "32px 20px",
+          fontFamily: "var(--font-mono)",
+          fontSize: 13,
+          color: "var(--muted)",
+        }}
+      >
+        Reading the fine print…
+      </div>
+    );
+  }
 
-export default function Home() {
-  const [bills, setBills] = useState<ParsedBill[]>([]);
-  const [dragging, setDragging] = useState(false);
-  const dragDepth = useRef(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleFiles = useCallback(async (files: Iterable<File>) => {
-    for (const file of files) {
-      const id = crypto.randomUUID();
-      const entry: ParsedBill = {
-        id,
-        name: file.name,
-        size: file.size,
-        droppedAt: new Date().toLocaleTimeString(),
-        status: "parsing",
-      };
-      setBills((prev) => [entry, ...prev]);
-
-      const isPdf =
-        file.type === "application/pdf" ||
-        file.name.toLowerCase().endsWith(".pdf");
-      if (!isPdf) {
-        setBills((prev) =>
-          prev.map((b) =>
-            b.id === id
-              ? { ...b, status: "error", error: "Not a PDF file." }
-              : b,
-          ),
-        );
-        continue;
-      }
-
-      try {
-        const { default: pdfToText } = await import("react-pdftotext");
-        const text = await pdfToText(file);
-        setBills((prev) =>
-          prev.map((b) => (b.id === id ? { ...b, status: "done", text } : b)),
-        );
-      } catch (err) {
-        setBills((prev) =>
-          prev.map((b) =>
-            b.id === id
-              ? {
-                  ...b,
-                  status: "error",
-                  error: err instanceof Error ? err.message : String(err),
-                }
-              : b,
-          ),
-        );
-      }
-    }
-  }, []);
-
-  const onDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      dragDepth.current = 0;
-      setDragging(false);
-      handleFiles(e.dataTransfer.files);
-    },
-    [handleFiles],
-  );
+  const d = overview.data;
+  const vendorById = new Map(d.vendors.map((v) => [v.id, v]));
+  const pending = d.billsExpected - d.billsIn;
+  const moneySym = currency === "USD" ? "US$" : "AR$";
+  const shareTotal = d.share.reduce((a, s) => a + s.value, 0) || 1;
+  const slices = d.share.map((s) => {
+    const v = vendorById.get(s.vendorId);
+    return {
+      label: v?.displayName ?? "—",
+      value: s.value,
+      color: v?.color ?? "var(--muted)",
+    };
+  });
 
   return (
-    <div className="flex flex-1 flex-col items-center px-4 py-12 sm:py-16">
-      <main className="w-full max-w-2xl">
-        <p className="text-[11px] uppercase tracking-[0.3em] text-muted">
-          Factura · utility bill parser · iteration 01
-        </p>
-        <h1 className="mt-3 font-display text-5xl font-semibold tracking-tight sm:text-6xl">
-          Drop a bill.
-          <br />
-          Read it back.
-        </h1>
-        <p className="mt-4 max-w-md text-sm leading-6 text-muted">
-          Electric, gas, water — toss the PDF below and see what text we can
-          pull out of it. Parsing happens entirely in your browser.
-        </p>
-
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label="Drop a PDF bill here or press Enter to browse"
-          onClick={() => inputRef.current?.click()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
-          }}
-          onDragEnter={(e) => {
-            e.preventDefault();
-            dragDepth.current += 1;
-            setDragging(true);
-          }}
-          onDragLeave={() => {
-            dragDepth.current -= 1;
-            if (dragDepth.current <= 0) setDragging(false);
-          }}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={onDrop}
-          className={`mt-10 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed px-6 py-16 text-center transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-            dragging
-              ? "scale-[1.01] border-accent bg-accent/5"
-              : "border-ink/30 bg-card/60 hover:border-ink/60"
-          }`}
-        >
-          <svg
-            width="36"
-            height="44"
-            viewBox="0 0 36 44"
-            fill="none"
-            aria-hidden="true"
-            className={dragging ? "text-accent" : "text-ink/70"}
-          >
-            <path
-              d="M2 2h22l10 10v30H2V2Z"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M24 2v10h10"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M9 22h18M9 28h18M9 34h12"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-          </svg>
-          <p className="text-sm font-medium">
-            {dragging ? "Let go — we’ve got it" : "Drop your PDF bill here"}
-          </p>
-          <p className="text-xs text-muted">or click to browse · multiple files welcome</p>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="application/pdf"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              if (e.target.files) handleFiles(e.target.files);
-              e.target.value = "";
+    <div style={{ maxWidth: "64rem", margin: "0 auto", padding: "32px 20px 80px" }}>
+      {/* hero */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: 16,
+        }}
+      >
+        <div>
+          <Eyebrow>
+            {d.property ? d.property.nickname : "All properties"} ·{" "}
+            {formatMonth(d.month)} so far
+          </Eyebrow>
+          <div style={{ marginTop: 8 }}>
+            <Display size={44}>
+              {formatMoney(
+                currency === "USD" ? d.thisMonthUsd : d.thisMonthTotal,
+                currency,
+              )}
+            </Display>
+          </div>
+          <p
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 13,
+              color: "var(--muted)",
+              margin: "8px 0 0",
             }}
-          />
+          >
+            {d.billsIn} of {d.billsExpected} bills in
+            {currency === "ARS" && d.thisMonthUsd > 0 && (
+              <span> · ≈ {formatUSD(d.thisMonthUsd)}</span>
+            )}
+            {pending > 0 && <span> · {pending} awaiting</span>}
+          </p>
         </div>
+        <Link
+          href="/insights"
+          className="fx-link"
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            textTransform: "uppercase",
+            letterSpacing: "0.18em",
+            border: "1px solid var(--line)",
+            padding: "9px 14px",
+            color: "var(--ink)",
+            textDecoration: "none",
+            transition: "var(--transition-colors)",
+          }}
+        >
+          See all insights ›
+        </Link>
+      </div>
 
-        <section className="mt-12 flex flex-col gap-8">
-          {bills.map((bill, i) => (
-            <article
-              key={bill.id}
-              className="receipt-edge border border-line bg-card pb-8 shadow-[0_1px_0_var(--line),0_8px_24px_-12px_rgb(33_29_22/0.25)]"
-            >
-              <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-dashed border-line px-5 py-4">
-                <span className="text-xs text-accent">
-                  №{String(bills.length - i).padStart(3, "0")}
-                </span>
-                <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">
-                  {bill.name}
-                </h2>
-                <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted">
-                  {bill.status === "done" && bill.text !== undefined && (
-                    <button
-                      onClick={() => navigator.clipboard.writeText(bill.text!)}
-                      className="cursor-pointer underline decoration-dotted underline-offset-4 hover:text-accent"
-                    >
-                      Copy
-                    </button>
-                  )}
-                  <button
-                    onClick={() =>
-                      setBills((prev) => prev.filter((b) => b.id !== bill.id))
-                    }
-                    aria-label={`Remove ${bill.name}`}
-                    className="cursor-pointer hover:text-accent"
-                  >
-                    ✕
-                  </button>
+      {/* awaiting model */}
+      {d.awaiting.length > 0 && (
+        <div style={{ marginTop: 28 }}>
+          <Eyebrow style={{ marginBottom: 12 }}>This month</Eyebrow>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(184px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {d.awaiting.map((a) => (
+              <div
+                key={a.accountId}
+                style={{
+                  border: "1px solid var(--line)",
+                  background: "var(--card)",
+                  padding: "12px 14px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span
+                    style={{ width: 9, height: 9, background: a.vendor.color, display: "inline-block" }}
+                  />
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 500 }}>
+                    {a.vendor.displayName}
+                  </span>
                 </div>
-              </header>
+                {a.received ? (
+                  <>
+                    <p
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontWeight: 600,
+                        fontSize: 18,
+                        margin: "10px 0 0",
+                        letterSpacing: "-0.01em",
+                      }}
+                    >
+                      {formatMoney(currency === "USD" ? a.usd : a.amount, currency)}
+                    </p>
+                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", margin: "3px 0 0" }}>
+                      received · in ledger
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)", margin: "10px 0 0", lineHeight: 1.5 }}>
+                      last{" "}
+                      {a.lastPeriod
+                        ? `${formatMonthShort(a.lastPeriod)} ${a.lastPeriod.slice(0, 4)}`
+                        : "—"}
+                      {a.lastAmount != null && <span> · {formatMoney(a.lastAmount, "ARS")}</span>}
+                    </p>
+                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, margin: "4px 0 0", color: "var(--accent)" }}>
+                      △ awaiting
+                    </p>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-              <p className="px-5 pt-3 text-[11px] uppercase tracking-wider text-muted">
-                {formatSize(bill.size)} · dropped {bill.droppedAt}
-                {bill.status === "done" &&
-                  ` · ${bill.text!.length.toLocaleString()} chars`}
-              </p>
-
-              {bill.status === "parsing" && (
-                <p className="animate-pulse px-5 py-6 text-sm text-muted">
-                  Reading the fine print…
-                </p>
+      {/* where the money goes + trend */}
+      <div
+        style={{
+          marginTop: 28,
+          display: "grid",
+          gridTemplateColumns: "minmax(280px, 1fr) minmax(360px, 1.4fr)",
+          gap: 16,
+          alignItems: "start",
+        }}
+      >
+        <ChartCard title="Where the money goes" caption="Last 12 complete months">
+          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+            <DonutFx slices={slices} centerLabel={moneySym} centerSub="by vendor" />
+            <div style={{ display: "flex", flexDirection: "column", gap: 9, flex: 1 }}>
+              {slices.map((s) => (
+                <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <span style={{ width: 10, height: 10, background: s.color, display: "inline-block", flex: "none" }} />
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, flex: 1 }}>{s.label}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 500 }}>
+                    {Math.round((s.value / shareTotal) * 100)}%
+                  </span>
+                </div>
+              ))}
+              {slices.length === 0 && (
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>
+                  No complete months yet.
+                </span>
               )}
+            </div>
+          </div>
+        </ChartCard>
 
-              {bill.status === "error" && (
-                <p className="px-5 py-6 text-sm text-accent">
-                  Couldn’t parse this one: {bill.error}
-                </p>
-              )}
+        <ChartCard title="Monthly spend" caption={`Stacked by vendor · ${currency}`}>
+          <StackedBarsFx
+            months={d.months}
+            stacks={d.series.map((s) => s.byVendor)}
+            vendors={d.vendors}
+            currency={currency}
+            completeFlags={d.completeFlags}
+            height={210}
+          />
+          <Legend
+            items={d.vendors.map((v) => ({ label: v.displayName, color: v.color }))}
+            style={{ marginTop: 12 }}
+          />
+        </ChartCard>
+      </div>
 
-              {bill.status === "done" && (
-                <pre className="ruled mx-5 mt-3 max-h-96 overflow-auto whitespace-pre-wrap font-mono text-[13px]">
-                  {bill.text!.trim() === ""
-                    ? "(no text found — this PDF may be a scanned image)"
-                    : bill.text}
-                </pre>
-              )}
-            </article>
-          ))}
-        </section>
-
-        <footer className="mt-16 border-t border-line pt-4 text-[11px] uppercase tracking-wider text-muted">
-          Files never leave this page — parsed locally with pdf.js
-        </footer>
-      </main>
+      {/* per-vendor sparklines */}
+      {d.perVendor.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <ChartCard title="Per-vendor trend" caption={`Spend over the last 12 months · ${currency}`}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+              {d.perVendor.map((pv) => (
+                <div
+                  key={pv.vendor.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "8px 0",
+                    borderTop: "1px solid color-mix(in srgb, var(--line) 60%, transparent)",
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <span style={{ width: 8, height: 8, background: pv.vendor.color, display: "inline-block" }} />
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, whiteSpace: "nowrap" }}>
+                        {pv.vendor.displayName}
+                      </span>
+                    </div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                      {formatMoney(pv.last, currency)} <Delta pct={pv.pct} style={{ marginLeft: 4 }} />
+                    </div>
+                  </div>
+                  <SparklineFx values={pv.values} color={pv.vendor.color} />
+                </div>
+              ))}
+            </div>
+          </ChartCard>
+        </div>
+      )}
     </div>
   );
 }
