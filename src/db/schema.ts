@@ -1,6 +1,7 @@
 import {
   boolean,
   date,
+  index,
   integer,
   jsonb,
   numeric,
@@ -158,4 +159,39 @@ export const bills = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [uniqueIndex("bill_text_hash_idx").on(t.userId, t.textHash)],
+);
+
+/** App-wide parser presets (the config-driven engine). Not user-scoped: every
+ * user shares the same presets, and anyone signed in can create/edit/delete
+ * them for now. `body` holds the engine definition (detect/captures/compute/
+ * validations/roles/custom); `bills.parserKey` references `slug` and `version`
+ * drives reparse. */
+export const parserConfigs = pgTable("parser_configs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  version: integer("version").notNull().default(1),
+  vendorSlug: text("vendor_slug").notNull(),
+  displayName: text("display_name").notNull(),
+  category: vendorCategory("category").notNull(),
+  body: jsonb("body").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+/** Bills the user has attached to a parser preset (by slug) as regression
+ * samples in the builder — re-tested when the parser is later edited. Per-user
+ * (not app-wide) so bill text, which is personal data, never crosses users. */
+export const parserSamples = pgTable(
+  "parser_samples",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    fileName: text("file_name"),
+    rawText: text("raw_text").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("parser_sample_slug_idx").on(t.userId, t.slug)],
 );

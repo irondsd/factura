@@ -1,10 +1,12 @@
 import { createHash } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import type { db as Db } from "@/db";
-import { bills, properties, vendorAccounts, vendors } from "@/db/schema";
+import { bills, properties, vendorAccounts } from "@/db/schema";
+import { runConfig, selectConfig } from "@/parsers/engine/evaluate";
+import { ParseError } from "@/parsers/engine/types";
 import { normalize } from "@/parsers/normalize";
-import { findParser } from "@/parsers/registry";
-import { ParseError, type ParsedBillFields } from "@/parsers/types";
+import { ensureVendor } from "./defaults";
+import { loadParserConfigs, resultToColumns, resultToExtra } from "./parsers";
 
 export type IngestResult =
   | { outcome: "duplicate"; billId: string }
@@ -17,7 +19,6 @@ export type IngestResult =
       vendorName: string;
       accountNumber: string;
       suggestedPropertyId: string | null;
-      fields: ParsedBillFields;
     }
   | {
       outcome: "parsed";
@@ -68,7 +69,8 @@ export async function ingestBill(
   if (existing) return { outcome: "duplicate", billId: existing.id };
 
   const text = normalize(input.rawText);
-  const parser = findParser(text);
+  const configs = await loadParserConfigs(db);
+  const config = selectConfig(configs, text);
 
   const base = {
     userId,
@@ -78,7 +80,7 @@ export async function ingestBill(
     textHash,
   };
 
-  if (!parser) {
+  if (!config) {
     const [bill] = await db
       .insert(bills)
       .values({ ...base, status: "needs_review" })
@@ -86,13 +88,13 @@ export async function ingestBill(
     return { outcome: "unrecognized", billId: bill.id };
   }
 
-  const vendor = await db.query.vendors.findFirst({
-    where: and(eq(vendors.userId, userId), eq(vendors.slug, parser.vendorSlug)),
-  });
+  // A matched preset always has a vendor; create the user's vendor row if this
+  // is the first time they see this preset.
+  const vendor = await ensureVendor(db, userId, config.vendor);
 
-  let fields: ParsedBillFields;
+  let result;
   try {
-    fields = parser.parse(text);
+    result = runConfig(config, text);
   } catch (err) {
     const message = err instanceof ParseError ? err.message : String(err);
     const [bill] = await db
@@ -100,52 +102,37 @@ export async function ingestBill(
       .values({
         ...base,
         status: "needs_review",
-        vendorId: vendor?.id,
-        parserKey: parser.key,
-        parserVersion: String(parser.version),
+        vendorId: vendor.id,
+        parserKey: config.slug,
+        parserVersion: String(config.version),
         extra: { parseError: message },
       })
       .returning();
     return {
       outcome: "parse_failed",
       billId: bill.id,
-      vendorName: vendor?.displayName ?? parser.key,
+      vendorName: vendor.displayName,
       error: message,
     };
   }
 
   const billValues = {
     ...base,
-    vendorId: vendor?.id,
-    period: fields.period,
-    totalAmount: String(fields.totalAmount),
-    dueDate: fields.dueDate,
-    extraordinaryAmount:
-      fields.extraordinaryAmount !== undefined
-        ? String(fields.extraordinaryAmount)
-        : null,
-    consumptionValue:
-      fields.consumption !== undefined ? String(fields.consumption.value) : null,
-    consumptionUnit: fields.consumption?.unit ?? null,
-    parserKey: parser.key,
-    parserVersion: String(parser.version),
-    extra: {
-      ...fields.extra,
-      periodLabel: fields.periodLabel,
-      accountNumber: fields.accountNumber,
-    },
+    vendorId: vendor.id,
+    ...resultToColumns(result),
+    parserKey: config.slug,
+    parserVersion: String(config.version),
+    extra: resultToExtra(result),
   };
 
-  const account = vendor
-    ? await db.query.vendorAccounts.findFirst({
-        where: and(
-          eq(vendorAccounts.vendorId, vendor.id),
-          eq(vendorAccounts.accountNumber, fields.accountNumber),
-        ),
-      })
-    : undefined;
+  const account = await db.query.vendorAccounts.findFirst({
+    where: and(
+      eq(vendorAccounts.vendorId, vendor.id),
+      eq(vendorAccounts.accountNumber, result.identity),
+    ),
+  });
 
-  if (!vendor || !account) {
+  if (!account) {
     // First bill from this account: save it, ask the user which property once.
     const props = await db.query.properties.findMany({
       where: eq(properties.userId, userId),
@@ -158,18 +145,17 @@ export async function ingestBill(
     return {
       outcome: "unknown_account",
       billId: bill.id,
-      vendorId: vendor?.id ?? "",
-      vendorName: vendor?.displayName ?? parser.key,
-      accountNumber: fields.accountNumber,
+      vendorId: vendor.id,
+      vendorName: vendor.displayName,
+      accountNumber: result.identity,
       suggestedPropertyId,
-      fields,
     };
   }
 
   const periodTwin = await db.query.bills.findFirst({
     where: and(
       eq(bills.accountId, account.id),
-      eq(bills.period, fields.period),
+      eq(bills.period, result.period),
     ),
   });
 
@@ -188,8 +174,8 @@ export async function ingestBill(
     billId: bill.id,
     vendorName: vendor.displayName,
     propertyId: account.propertyId,
-    period: fields.period,
-    totalAmount: fields.totalAmount,
+    period: result.period,
+    totalAmount: result.amount,
     periodDuplicate: Boolean(periodTwin),
   };
 }

@@ -106,19 +106,27 @@ function monthlySeries(
   });
 }
 
-/** A month is "complete" when every active account has a parsed bill that
- * period — used to avoid charting half-arrived months. */
-function completeFlagsFor(
-  months: string[],
-  accounts: { id: string }[],
-  parsed: EnrichedBill[],
-) {
+/** A month is "complete" when every vendor that has started billing has a
+ * parsed bill that period. Keyed on vendor (not account) so an administrator
+ * handover — two successive accounts merged under one vendor — reads as one
+ * continuous stream. A vendor isn't "expected" before its first-ever bill, so
+ * adding a new vendor mid-range doesn't retroactively mark older months
+ * incomplete. */
+function completeFlagsFor(months: string[], parsed: EnrichedBill[]) {
+  const firstMonthByVendor = new Map<string, string>();
+  for (const b of parsed) {
+    if (!b.vendorId || !b.period) continue;
+    const m = b.period.slice(0, 7);
+    const prev = firstMonthByVendor.get(b.vendorId);
+    if (!prev || m < prev) firstMonthByVendor.set(b.vendorId, m);
+  }
+  const vendorIds = [...firstMonthByVendor.keys()];
   return months.map((m) => {
-    const period = `${m}-01`;
-    if (accounts.length === 0) return false;
-    return accounts.every((a) =>
-      parsed.some((b) => b.accountId === a.id && b.period === period),
-    );
+    if (vendorIds.length === 0) return false;
+    return vendorIds.every((vid) => {
+      if (m < firstMonthByVendor.get(vid)!) return true; // not yet expected
+      return parsed.some((b) => b.vendorId === vid && b.period === `${m}-01`);
+    });
   });
 }
 
@@ -182,7 +190,7 @@ export const insightsRouter = router({
 
       const months = monthList(now, 12);
       const series = monthlySeries(months, parsed, currency);
-      const completeFlags = completeFlagsFor(months, accounts, parsed);
+      const completeFlags = completeFlagsFor(months, parsed);
 
       // Vendor share over complete months only.
       const share: Record<string, number> = {};
@@ -242,11 +250,10 @@ export const insightsRouter = router({
       const { propertyId, currency, range } = input;
       const months = monthList(nowMonth(), range);
       const parsed = await loadParsed(ctx.db, ctx.userId, propertyId);
-      const accounts = await loadActiveAccounts(ctx.db, ctx.userId, propertyId);
       const allVendors = await ctx.db.query.vendors.findMany({
         where: eq(vendors.userId, ctx.userId),
       });
-      const completeFlags = completeFlagsFor(months, accounts, parsed);
+      const completeFlags = completeFlagsFor(months, parsed);
 
       const series = monthlySeries(months, parsed, currency);
       const arsSeries = monthlySeries(months, parsed, "ARS");

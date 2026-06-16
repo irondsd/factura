@@ -66,7 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={value}>
       <TopBar user={session.user} />
-      {children}
+      <main className="w-full">{children}</main>
       <DropOverlay onToast={showToast} />
       <BillDrawer
         billId={openBillId}

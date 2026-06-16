@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatARS, formatMonth } from "@/lib/format";
@@ -14,6 +15,10 @@ type PendingConfirm = {
 /** Global drag-and-drop: drop a PDF anywhere to upload + ingest it. The file is
  * stored to S3 (when configured) and its extracted text saved to the ledger. */
 export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
+  // The builder page has its own dropzone (drop bills to test against), so the
+  // global ingest-on-drop must stand down there.
+  const pathname = usePathname();
+  const disabled = pathname?.startsWith("/builder") ?? false;
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmQueue, setConfirmQueue] = useState<PendingConfirm[]>([]);
@@ -113,6 +118,7 @@ export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
   );
 
   useEffect(() => {
+    if (disabled) return;
     const onDragEnter = (e: DragEvent) => {
       if (!e.dataTransfer?.types.includes("Files")) return;
       e.preventDefault();
@@ -141,7 +147,9 @@ export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
       window.removeEventListener("dragover", onDragOver);
       window.removeEventListener("drop", onDrop);
     };
-  }, [handleFiles]);
+  }, [handleFiles, disabled]);
+
+  if (disabled) return null;
 
   const current = confirmQueue[0];
 

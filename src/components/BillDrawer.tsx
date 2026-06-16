@@ -1,8 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { type CSSProperties, useState } from "react";
 import { Delta } from "@/components/charts/primitives";
-import { Button, Input, Select } from "@/components/ui";
+import { Badge, Button, Input, Select } from "@/components/ui";
 import { formatMonth, formatMonthShort } from "@/lib/format";
 import { trpc } from "@/lib/trpc";
 
@@ -12,9 +13,16 @@ type Draft = {
   period: string;
   totalAmount: string;
   dueDate: string;
-  consumptionValue: string;
-  extraordinaryAmount: string;
 };
+
+/** Render an engine custom field (string | number | {value,unit}). */
+function formatCustom(v: unknown): string {
+  if (v && typeof v === "object" && "value" in v) {
+    const q = v as { value: number; unit?: string };
+    return `${q.value}${q.unit ? ` ${q.unit}` : ""}`;
+  }
+  return String(v);
+}
 
 const flabel: CSSProperties = {
   fontFamily: "var(--font-mono)",
@@ -34,6 +42,7 @@ export function BillDrawer({
   onClose: () => void;
   onToast: (text: string) => void;
 }) {
+  const router = useRouter();
   const utils = trpc.useUtils();
   const billQuery = trpc.bills.get.useQuery(
     { id: billId! },
@@ -41,6 +50,7 @@ export function BillDrawer({
   );
   const vendors = trpc.vendors.list.useQuery();
   const properties = trpc.properties.list.useQuery();
+  const parsers = trpc.parsers.list.useQuery();
 
   const updateBill = trpc.bills.update.useMutation();
   const deleteBill = trpc.bills.delete.useMutation();
@@ -64,8 +74,6 @@ export function BillDrawer({
       period: bill.period ? bill.period.slice(0, 7) : "",
       totalAmount: bill.totalAmount ?? "",
       dueDate: bill.dueDate ?? "",
-      consumptionValue: bill.consumptionValue ?? "",
-      extraordinaryAmount: bill.extraordinaryAmount ?? "",
     });
   }
 
@@ -77,17 +85,37 @@ export function BillDrawer({
   };
 
   const vendor = vendors.data?.find((v) => v.id === bill?.vendorId);
-  const draftVendor = vendors.data?.find((v) => v.id === draft?.vendorId) ?? vendor;
   const review = bill?.status === "needs_review";
   const extra = (bill?.extra ?? {}) as Record<string, unknown>;
   const parseError = extra.parseError as string | undefined;
-  const hasUnit =
-    draftVendor?.category === "electricity" ||
-    draftVendor?.category === "gas" ||
-    draftVendor?.category === "water";
-  const consumptionUnit =
-    draftVendor?.category === "electricity" ? ("kWh" as const) : ("m3" as const);
-  const isExpensas = draftVendor?.category === "expensas";
+  const customFields = (extra.fields ?? {}) as Record<string, unknown>;
+
+  // The three flavors of needs_review, each with a different primary action.
+  const reviewKind: "unrecognized" | "parse_failed" | "needs_home" | null =
+    !review
+      ? null
+      : !bill?.parserKey
+        ? "unrecognized"
+        : parseError
+          ? "parse_failed"
+          : "needs_home";
+
+  const parser = parsers.data?.find((p) => p.slug === bill?.parserKey);
+  const reviewLabel =
+    reviewKind === "unrecognized"
+      ? "Needs review · no parser recognized this bill"
+      : reviewKind === "parse_failed"
+        ? `Needs review · ${parseError ?? "parser failed"}`
+        : reviewKind === "needs_home"
+          ? "Needs review · pick a property"
+          : "Edit bill";
+
+  const openBuilder = () => {
+    if (!bill) return;
+    const params = new URLSearchParams({ bill: bill.id });
+    if (bill.parserKey) params.set("parser", bill.parserKey);
+    router.push(`/builder?${params.toString()}`);
+  };
 
   const save = async () => {
     if (!bill || !draft) return;
@@ -98,15 +126,6 @@ export function BillDrawer({
       period: draft.period ? `${draft.period}-01` : undefined,
       totalAmount: draft.totalAmount ? Number(draft.totalAmount) : undefined,
       dueDate: draft.dueDate || undefined,
-      ...(hasUnit && draft.consumptionValue
-        ? {
-            consumptionValue: Number(draft.consumptionValue),
-            consumptionUnit,
-          }
-        : {}),
-      ...(isExpensas && draft.extraordinaryAmount
-        ? { extraordinaryAmount: Number(draft.extraordinaryAmount) }
-        : {}),
     });
     onToast("Bill updated · ledger recalculated");
     utils.invalidate();
@@ -208,7 +227,7 @@ export function BillDrawer({
                     margin: 0,
                   }}
                 >
-                  {review ? "Needs review · " + (parseError ?? "") : "Edit bill"}
+                  {reviewLabel}
                 </p>
                 <h2
                   style={{
@@ -304,25 +323,84 @@ export function BillDrawer({
                 <span style={flabel}>Amount (ARS)</span>
                 <Input type="number" value={draft.totalAmount} onChange={(e) => setDraft({ ...draft, totalAmount: e.target.value })} />
               </label>
-              {hasUnit && (
-                <label style={field}>
-                  <span style={flabel}>Consumption ({consumptionUnit})</span>
-                  <Input
-                    type="number"
-                    value={draft.consumptionValue}
-                    onChange={(e) => setDraft({ ...draft, consumptionValue: e.target.value })}
-                  />
-                </label>
-              )}
-              {isExpensas && (
-                <label style={field}>
-                  <span style={flabel}>Extraordinarias</span>
-                  <Input
-                    type="number"
-                    value={draft.extraordinaryAmount}
-                    onChange={(e) => setDraft({ ...draft, extraordinaryAmount: e.target.value })}
-                  />
-                </label>
+            </div>
+
+            {/* parser-extracted custom fields (read-only) */}
+            {Object.keys(customFields).length > 0 && (
+              <div style={{ padding: "0 24px 4px" }}>
+                <p style={{ ...flabel, marginBottom: 6 }}>Extracted fields</p>
+                <div
+                  style={{
+                    border: "1px solid var(--line)",
+                    background: "var(--paper)",
+                  }}
+                >
+                  {Object.entries(customFields).map(([k, v], i) => (
+                    <div
+                      key={k}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        padding: "8px 12px",
+                        borderTop: i === 0 ? "none" : "1px dashed var(--line)",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 12,
+                      }}
+                    >
+                      <span style={{ color: "var(--muted)" }}>{k}</span>
+                      <span>{formatCustom(v)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* parser used + builder entry */}
+            <div style={{ padding: "16px 24px 4px" }}>
+              <p style={{ ...flabel, marginBottom: 6 }}>Parser</p>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  border: "1px solid var(--line)",
+                  padding: "10px 12px",
+                  background: "var(--paper)",
+                }}
+              >
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, flex: 1 }}>
+                  {bill.parserKey ? (
+                    <>
+                      {parser?.displayName ?? bill.parserKey}
+                      {parser ? (
+                        bill.parserVersion && (
+                          <span style={{ color: "var(--muted)" }}> · v{bill.parserVersion}</span>
+                        )
+                      ) : (
+                        <span style={{ color: "var(--muted)" }}> · not a saved parser</span>
+                      )}
+                    </>
+                  ) : (
+                    <span style={{ color: "var(--muted)" }}>No parser recognized this bill</span>
+                  )}
+                </span>
+                {reviewKind === "needs_home" ? (
+                  <Badge tone="neutral">parsed OK</Badge>
+                ) : (
+                  <Button size="sm" onClick={openBuilder}>
+                    {parser
+                      ? reviewKind === "parse_failed"
+                        ? "Fix parser"
+                        : "Edit parser"
+                      : "Set up a parser"}
+                  </Button>
+                )}
+              </div>
+              {reviewKind === "needs_home" && (
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)", margin: "8px 0 0" }}>
+                  Parsed cleanly — just choose a property above and save.
+                </p>
               )}
             </div>
 

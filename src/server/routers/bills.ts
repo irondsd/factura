@@ -2,11 +2,14 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { db as Db } from "@/db";
-import { bills, vendorAccounts, vendors } from "@/db/schema";
+import { bills, vendorAccounts } from "@/db/schema";
+import { runConfig, selectConfig } from "@/parsers/engine/evaluate";
+import type { ParserConfig } from "@/parsers/engine/types";
 import { normalize } from "@/parsers/normalize";
-import { findParser } from "@/parsers/registry";
+import { ensureVendor } from "../defaults";
 import { billRateDate, usdRateLookup } from "../fx";
 import { ingestBill } from "../ingest";
+import { loadParserConfigs, resultToColumns, resultToExtra } from "../parsers";
 import {
   isStorageConfigured,
   presignDownload,
@@ -26,63 +29,37 @@ async function reparseSingle(
   db: typeof Db,
   userId: string,
   bill: BillRow,
+  configs: ParserConfig[],
 ): Promise<boolean> {
   const text = normalize(bill.rawText);
-  const parser = findParser(text);
-  if (!parser) return false;
+  const config = selectConfig(configs, text);
+  if (!config) return false;
 
-  let fields;
+  let result;
   try {
-    fields = parser.parse(text);
+    result = runConfig(config, text);
   } catch {
     return false;
   }
 
-  // Bills ingested before this parser existed have no vendor yet — resolve it
-  // from the parser, exactly like ingest does.
-  const vendorId =
-    bill.vendorId ??
-    (
-      await db.query.vendors.findFirst({
-        where: and(
-          eq(vendors.userId, userId),
-          eq(vendors.slug, parser.vendorSlug),
-        ),
-      })
-    )?.id;
-  const account = vendorId
-    ? await db.query.vendorAccounts.findFirst({
-        where: and(
-          eq(vendorAccounts.vendorId, vendorId),
-          eq(vendorAccounts.accountNumber, fields.accountNumber),
-        ),
-      })
-    : undefined;
+  // Bills ingested before this preset existed have no vendor yet — resolve (and
+  // lazily create) it from the preset, exactly like ingest does.
+  const vendor = await ensureVendor(db, userId, config.vendor);
+  const account = await db.query.vendorAccounts.findFirst({
+    where: and(
+      eq(vendorAccounts.vendorId, vendor.id),
+      eq(vendorAccounts.accountNumber, result.identity),
+    ),
+  });
 
   await db
     .update(bills)
     .set({
-      vendorId,
-      period: fields.period,
-      totalAmount: String(fields.totalAmount),
-      dueDate: fields.dueDate,
-      extraordinaryAmount:
-        fields.extraordinaryAmount !== undefined
-          ? String(fields.extraordinaryAmount)
-          : null,
-      consumptionValue:
-        fields.consumption !== undefined
-          ? String(fields.consumption.value)
-          : null,
-      consumptionUnit: fields.consumption?.unit ?? null,
-      parserKey: parser.key,
-      parserVersion: String(parser.version),
-      extra: {
-        ...(bill.extra as Record<string, unknown>),
-        periodLabel: fields.periodLabel,
-        accountNumber: fields.accountNumber,
-        parseError: undefined,
-      },
+      vendorId: vendor.id,
+      ...resultToColumns(result),
+      parserKey: config.slug,
+      parserVersion: String(config.version),
+      extra: { ...resultToExtra(result), parseError: undefined },
       // Keep manual property assignment unless the account resolves.
       ...(account
         ? {
@@ -137,6 +114,25 @@ export const billsRouter = router({
         columns: { rawText: false },
       }),
     ),
+
+  /** Distinct vendors that actually have bills (optionally for one property) —
+   * drives the ledger's vendor filter tabs, independent of account rows. */
+  vendorsPresent: protectedProcedure
+    .input(z.object({ propertyId: z.string().uuid().optional() }))
+    .query(async ({ ctx, input }) => {
+      const rows = await ctx.db
+        .selectDistinct({ vendorId: bills.vendorId })
+        .from(bills)
+        .where(
+          and(
+            eq(bills.userId, ctx.userId),
+            input.propertyId ? eq(bills.propertyId, input.propertyId) : undefined,
+          ),
+        );
+      return rows
+        .map((r) => r.vendorId)
+        .filter((id): id is string => id !== null);
+    }),
 
   /** Paginated ledger for the Bills screen: review-needed first, then newest
    * period; USD-enriched. */
@@ -272,10 +268,43 @@ export const billsRouter = router({
         consumptionValue,
         ...rest
       } = input;
+
+      // Assigning a property to a parsed-but-unlinked bill should also create the
+      // vendor account, so the rest of that account's bills resolve on their own.
+      let accountId: string | undefined;
+      if (input.propertyId) {
+        const bill = await ctx.db.query.bills.findFirst({
+          where: and(eq(bills.id, id), eq(bills.userId, ctx.userId)),
+        });
+        const accountNumber = (bill?.extra as Record<string, unknown> | undefined)
+          ?.accountNumber as string | undefined;
+        if (bill && bill.vendorId && !bill.accountId && accountNumber) {
+          let account = await ctx.db.query.vendorAccounts.findFirst({
+            where: and(
+              eq(vendorAccounts.vendorId, bill.vendorId),
+              eq(vendorAccounts.accountNumber, accountNumber),
+            ),
+          });
+          if (!account) {
+            [account] = await ctx.db
+              .insert(vendorAccounts)
+              .values({
+                userId: ctx.userId,
+                vendorId: bill.vendorId,
+                propertyId: input.propertyId,
+                accountNumber,
+              })
+              .returning();
+          }
+          accountId = account.id;
+        }
+      }
+
       const [updated] = await ctx.db
         .update(bills)
         .set({
           ...rest,
+          ...(accountId ? { accountId } : {}),
           ...(totalAmount !== undefined
             ? { totalAmount: String(totalAmount) }
             : {}),
@@ -358,20 +387,26 @@ export const billsRouter = router({
   /** Re-run current parsers over stored raw text for every bill. Backfills new
    * fields and rescues needs_review bills after parser improvements. */
   reparse: protectedProcedure.mutation(async ({ ctx }) => {
+    const configs = await loadParserConfigs(ctx.db);
     const all = await ctx.db.query.bills.findMany({
       where: eq(bills.userId, ctx.userId),
     });
     let updated = 0;
     for (const bill of all) {
       const text = normalize(bill.rawText);
-      const parser = findParser(text);
-      if (!parser) continue;
+      const config = selectConfig(configs, text);
+      if (!config) continue;
       const isStale =
         bill.status === "needs_review" ||
-        bill.parserKey !== parser.key ||
-        Number(bill.parserVersion ?? 0) < parser.version;
+        bill.parserKey !== config.slug ||
+        Number(bill.parserVersion ?? 0) < config.version;
       if (!isStale) continue;
-      if (await reparseSingle(ctx.db, ctx.userId, bill)) updated++;
+      // One malformed bill must not abort the whole batch.
+      try {
+        if (await reparseSingle(ctx.db, ctx.userId, bill, configs)) updated++;
+      } catch {
+        // leave it as-is; surfaced individually via the drawer's reparse
+      }
     }
     return { scanned: all.length, updated };
   }),
@@ -384,7 +419,8 @@ export const billsRouter = router({
         where: and(eq(bills.id, input.id), eq(bills.userId, ctx.userId)),
       });
       if (!bill) throw new TRPCError({ code: "NOT_FOUND" });
-      const updated = await reparseSingle(ctx.db, ctx.userId, bill);
+      const configs = await loadParserConfigs(ctx.db);
+      const updated = await reparseSingle(ctx.db, ctx.userId, bill, configs);
       return { updated };
     }),
 
@@ -401,10 +437,13 @@ export const billsRouter = router({
         .update(bills)
         .set({ rawText: input.rawText })
         .where(and(eq(bills.id, bill.id), eq(bills.userId, ctx.userId)));
-      const updated = await reparseSingle(ctx.db, ctx.userId, {
-        ...bill,
-        rawText: input.rawText,
-      });
+      const configs = await loadParserConfigs(ctx.db);
+      const updated = await reparseSingle(
+        ctx.db,
+        ctx.userId,
+        { ...bill, rawText: input.rawText },
+        configs,
+      );
       return { updated };
     }),
 

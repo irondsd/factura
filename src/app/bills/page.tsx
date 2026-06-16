@@ -23,23 +23,20 @@ export default function BillsPage() {
   }
 
   const vendors = trpc.vendors.list.useQuery();
-  const accounts = trpc.accounts.list.useQuery();
   const properties = trpc.properties.list.useQuery();
+  const vendorsPresent = trpc.bills.vendorsPresent.useQuery({ propertyId });
   const paged = trpc.bills.listPaged.useQuery({
     propertyId,
     vendorId: vendorId === "all" ? undefined : vendorId,
     page,
   });
 
+  // Tabs reflect vendors that actually have bills (for the current property),
+  // so a vendor shows up as soon as a bill is filed under it.
   const vendorsHere = useMemo(() => {
-    if (!vendors.data || !accounts.data) return [];
-    const ids = new Set(
-      accounts.data
-        .filter((a) => !propertyId || a.propertyId === propertyId)
-        .map((a) => a.vendorId),
-    );
-    return vendors.data.filter((v) => ids.has(v.id));
-  }, [vendors.data, accounts.data, propertyId]);
+    const ids = new Set(vendorsPresent.data ?? []);
+    return (vendors.data ?? []).filter((v) => ids.has(v.id));
+  }, [vendors.data, vendorsPresent.data]);
 
   const vendorById = useMemo(
     () => new Map((vendors.data ?? []).map((v) => [v.id, v])),
