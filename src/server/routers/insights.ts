@@ -3,7 +3,9 @@ import { z } from "zod";
 import type { db as Db } from "@/db";
 import { bills, properties, vendorAccounts, vendors } from "@/db/schema";
 import { vendorColor } from "@/lib/vendorColors";
+import type { FieldType } from "@/parsers/engine/types";
 import { billRateDate, usdRateLookup } from "../fx";
+import { loadParserConfigs } from "../parsers";
 import { protectedProcedure, router } from "../trpc";
 
 const currencyInput = z.enum(["ARS", "USD"]);
@@ -53,6 +55,21 @@ async function loadParsed(
 const amountIn = (b: EnrichedBill, currency: "ARS" | "USD") =>
   currency === "USD" ? b.usdAmount : b.totalAmount !== null ? Number(b.totalAmount) : null;
 
+type CustomVal = number | string | { value: number; unit?: string };
+
+/** Read a parser-extracted custom field off a bill as a number, or null when
+ * absent / non-numeric (e.g. a string field). Quantities are stored as
+ * `{ value, unit }`, money/number as a bare number — see resultToExtra. */
+function readCustom(b: EnrichedBill, name: string): number | null {
+  const fields = (b.extra as { fields?: Record<string, CustomVal> } | null)
+    ?.fields;
+  const v = fields?.[name];
+  if (v == null) return null;
+  if (typeof v === "number") return v;
+  if (typeof v === "object" && "value" in v) return Number(v.value);
+  return null;
+}
+
 /** Active accounts for the scope (drives expected/awaiting + completeness). */
 async function loadActiveAccounts(
   db: typeof Db,
@@ -75,12 +92,6 @@ function vendorMeta(v: VendorRow) {
     id: v.id,
     displayName: v.displayName,
     category: v.category,
-    unit:
-      v.category === "electricity"
-        ? "kWh"
-        : v.category === "gas" || v.category === "water"
-          ? "m³"
-          : null,
     color: vendorColor(v),
   };
 }
@@ -292,7 +303,11 @@ export const insightsRouter = router({
       };
     }),
 
-  /** Insights single vendor: spend, consumption, effective unit-price lens. */
+  /** Insights single vendor: spend plus one series per parser-extracted custom
+   * field (consumption, surcharge, extraordinaria, data usage, …). Vendor-
+   * agnostic: the fields and their units come entirely from the parser config,
+   * not from any hardcoded category knowledge. Quantity fields also get an
+   * effective unit-price lens (amount ÷ quantity), rebased ARS vs USD. */
   vendorDetail: protectedProcedure
     .input(
       z.object({
@@ -318,31 +333,68 @@ export const insightsRouter = router({
         const b = byMonth(m);
         return b ? amountIn(b, currency) : null;
       });
-      const consumption = months.map((m) => {
-        const b = byMonth(m);
-        return b?.consumptionValue != null ? Number(b.consumptionValue) : null;
-      });
 
-      // Effective unit price = total / consumption, rebased ARS vs USD.
-      const arsUnit = months.map((m) => {
-        const b = byMonth(m);
-        if (!b || b.totalAmount == null || !b.consumptionValue) return null;
-        return Number(b.totalAmount) / Number(b.consumptionValue);
-      });
-      const usdUnit = months.map((m, i) => {
-        const b = byMonth(m);
-        if (arsUnit[i] == null || b?.usdAmount == null || !b.consumptionValue)
-          return null;
-        return b.usdAmount / Number(b.consumptionValue);
-      });
+      // Field metadata (type + unit) comes from the parser config(s) these bills
+      // were produced by — a vendor may merge several parsers, so union them in
+      // first-seen order.
+      const configs = await loadParserConfigs(ctx.db);
+      const slugs = new Set(
+        parsed.map((b) => b.parserKey).filter((s): s is string => Boolean(s)),
+      );
+      const fieldMeta = new Map<string, { type: FieldType; unit: string | null }>();
+      for (const c of configs) {
+        if (!slugs.has(c.slug)) continue;
+        for (const cf of c.custom ?? []) {
+          if (!fieldMeta.has(cf.name))
+            fieldMeta.set(cf.name, { type: cf.type, unit: cf.unit ?? null });
+        }
+      }
 
-      const meta = vendorMeta(vendor);
-      return {
-        vendor: meta,
-        months,
-        spend,
-        consumption,
-        unitPrice: { arsIdx: rebase(arsUnit), usdIdx: rebase(usdUnit) },
-      };
+      const fields = [...fieldMeta.entries()]
+        .filter(
+          ([name, m]) =>
+            m.type !== "string" &&
+            m.type !== "date" &&
+            parsed.some((b) => readCustom(b, name) !== null),
+        )
+        .map(([name, m]) => {
+          const isMoney = m.type === "money";
+          const values = months.map((mm) => {
+            const b = byMonth(mm);
+            const raw = b ? readCustom(b, name) : null;
+            if (raw == null) return null;
+            // Money fields follow the selected currency; quantities/numbers are
+            // kept in their native unit.
+            if (isMoney && currency === "USD") {
+              return b!.totalAmount != null && b!.usdAmount != null
+                ? raw * (b!.usdAmount / Number(b!.totalAmount))
+                : null;
+            }
+            return raw;
+          });
+
+          let unitPrice:
+            | { arsIdx: (number | null)[]; usdIdx: (number | null)[] }
+            | undefined;
+          if (m.type === "quantity") {
+            const ars = months.map((mm) => {
+              const b = byMonth(mm);
+              const q = b ? readCustom(b, name) : null;
+              return b && b.totalAmount != null && q
+                ? Number(b.totalAmount) / q
+                : null;
+            });
+            const usd = months.map((mm) => {
+              const b = byMonth(mm);
+              const q = b ? readCustom(b, name) : null;
+              return b && b.usdAmount != null && q ? b.usdAmount / q : null;
+            });
+            unitPrice = { arsIdx: rebase(ars), usdIdx: rebase(usd) };
+          }
+
+          return { name, type: m.type, unit: m.unit, isMoney, values, unitPrice };
+        });
+
+      return { vendor: vendorMeta(vendor), months, spend, fields };
     }),
 });

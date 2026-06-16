@@ -141,12 +141,6 @@ export const bills = pgTable(
     totalAmount: numeric("total_amount", { precision: 12, scale: 2 }),
     currency: text("currency").notNull().default("ARS"),
     dueDate: date("due_date"),
-    extraordinaryAmount: numeric("extraordinary_amount", {
-      precision: 12,
-      scale: 2,
-    }),
-    consumptionValue: numeric("consumption_value", { precision: 12, scale: 3 }),
-    consumptionUnit: text("consumption_unit"),
     status: billStatus("status").notNull().default("needs_review"),
     fileName: text("file_name"),
     /** S3 object key of the stored original PDF (null = text-only / no upload). */

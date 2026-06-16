@@ -104,7 +104,6 @@ export default function BillsPage() {
             <th style={th}>Period</th>
             <th style={th}>Vendor</th>
             {!propertyId && <th style={th}>Property</th>}
-            <th style={th}>Consumption</th>
             <th style={{ ...th, textAlign: "right" }}>Amount</th>
             <th style={{ ...th, textAlign: "right" }}>USD</th>
             <th style={th}></th>
@@ -136,9 +135,6 @@ export default function BillsPage() {
                   </span>
                 </td>
                 {!propertyId && <td style={{ ...td, color: "var(--muted)" }}>{propName(b.propertyId)}</td>}
-                <td style={{ ...td, color: "var(--muted)" }}>
-                  {b.consumptionValue ? `${Number(b.consumptionValue)} ${b.consumptionUnit}` : "—"}
-                </td>
                 <td style={{ ...td, textAlign: "right", fontWeight: 500 }}>
                   {review ? <Badge>needs review</Badge> : formatARS(b.totalAmount)}
                 </td>
@@ -151,7 +147,7 @@ export default function BillsPage() {
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={7} style={{ ...td, textAlign: "center", color: "var(--muted)", padding: "28px 0" }}>
+              <td colSpan={6} style={{ ...td, textAlign: "center", color: "var(--muted)", padding: "28px 0" }}>
                 No bills yet — drop a PDF anywhere.
               </td>
             </tr>

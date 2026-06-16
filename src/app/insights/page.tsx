@@ -11,7 +11,6 @@ import {
   Legend,
   LineChartFx,
   Segmented,
-  SeasonBarsFx,
   StackedBarsFx,
 } from "@/components/charts";
 import { formatMoney } from "@/lib/format";
@@ -212,6 +211,9 @@ function AllVendorsCharts({
   );
 }
 
+type VendorDetail = NonNullable<RouterOutputs["insights"]["vendorDetail"]>;
+type CustomFieldSeries = VendorDetail["fields"][number];
+
 function SingleVendorCharts({
   propertyId,
   vendorId,
@@ -223,7 +225,6 @@ function SingleVendorCharts({
   currency: "ARS" | "USD";
   range: Range;
 }) {
-  const [metric, setMetric] = useState<"cost" | "consumption">("cost");
   const detail = trpc.insights.vendorDetail.useQuery({ propertyId, vendorId, currency, range });
   const d = detail.data;
 
@@ -236,121 +237,103 @@ function SingleVendorCharts({
   }
 
   const vendor = d.vendor;
-  const hasUnit = Boolean(vendor.unit);
   const knownSpend = d.spend.filter((x): x is number => x != null);
   const pct =
     knownSpend.length > 1
       ? ((knownSpend[knownSpend.length - 1] - knownSpend[0]) / knownSpend[0]) * 100
       : null;
-  const knownC = d.consumption.filter((x): x is number => x != null);
-  const pctC =
-    knownC.length > 1 ? ((knownC[knownC.length - 1] - knownC[0]) / knownC[0]) * 100 : null;
-  const showConsumption = hasUnit && metric === "consumption";
-
-  const seasonColor = (month: string) => {
-    const mm = Number(month.split("-")[1]);
-    if (vendor.category === "gas" && [6, 7, 8].includes(mm)) return "var(--accent)";
-    if (vendor.category === "electricity" && [12, 1, 2].includes(mm)) return "var(--accent)";
-    return vendor.color;
-  };
 
   return (
     <>
       <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginTop: 18 }}>
-        <Display size={28}>
-          {showConsumption
-            ? `${knownC[knownC.length - 1] ?? "—"} ${vendor.unit}`
-            : formatMoney(knownSpend[knownSpend.length - 1] ?? null, currency)}
-        </Display>
+        <Display size={28}>{formatMoney(knownSpend[knownSpend.length - 1] ?? null, currency)}</Display>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>
-          latest · <Delta pct={showConsumption ? pctC : pct} /> over range
+          latest · <Delta pct={pct} /> over range
         </span>
       </div>
 
-      <ChartCard
-        title={`${vendor.displayName} — ${showConsumption ? "consumption" : "spend"} over time`}
-        caption={showConsumption ? (vendor.unit ?? "") : currency}
-        style={{ marginTop: 14 }}
-        action={
-          hasUnit ? (
-            <Segmented
-              options={[
-                { value: "cost", label: "Cost" },
-                { value: "consumption", label: "Use" },
-              ]}
-              value={metric}
-              onChange={setMetric}
-            />
-          ) : null
-        }
-      >
+      <ChartCard title={`${vendor.displayName} — spend over time`} caption={currency} style={{ marginTop: 14 }}>
         <LineChartFx
           months={d.months}
-          currency={showConsumption ? "UNIT" : currency}
-          series={[
-            {
-              label: vendor.displayName,
-              color: vendor.color,
-              values: showConsumption ? d.consumption : d.spend,
-            },
-          ]}
+          currency={currency}
+          series={[{ label: vendor.displayName, color: vendor.color, values: d.spend }]}
           height={210}
         />
       </ChartCard>
 
-      {hasUnit && (
-        <div
-          style={{
-            marginTop: 16,
-            display: "grid",
-            gridTemplateColumns: showConsumption ? "1fr" : "1fr 1fr",
-            gap: 16,
-            alignItems: "start",
-          }}
-        >
-          {!showConsumption && (
-            <ChartCard
-              title={`Consumption · ${vendor.unit}`}
-              caption={vendor.category === "gas" ? "Winter heating spikes (orange)" : "Summer A/C spikes (orange)"}
-            >
-              <SeasonBarsFx
-                months={d.months}
-                values={d.consumption}
-                color={vendor.color}
-                colorFor={seasonColor}
-                unit={vendor.unit}
-                height={190}
-              />
-            </ChartCard>
-          )}
-          <ChartCard title={`Price per ${vendor.unit}`} caption="Rebased to 100 — ARS vs USD">
-            <LineChartFx
-              months={d.months}
-              currency="IDX"
-              series={[
-                { label: `ARS / ${vendor.unit}`, color: "var(--accent)", values: d.unitPrice.arsIdx },
-                { label: `USD / ${vendor.unit}`, color: USD_LINE, values: d.unitPrice.usdIdx, dashed: true },
-              ]}
-              height={190}
-            />
-            <Legend
-              style={{ marginTop: 10 }}
-              items={[
-                { label: `ARS / ${vendor.unit}`, color: "var(--accent)" },
-                { label: `USD / ${vendor.unit}`, color: USD_LINE },
-              ]}
-            />
-          </ChartCard>
-        </div>
-      )}
+      {/* One section per parser-extracted custom field — fully vendor-agnostic. */}
+      {d.fields.map((f) => (
+        <CustomFieldCharts key={f.name} field={f} months={d.months} color={vendor.color} currency={currency} />
+      ))}
 
-      {!hasUnit && (
+      {d.fields.length === 0 && (
         <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)", margin: "16px 2px 0", lineHeight: 1.6 }}>
-          {vendor.category === "expensas"
-            ? "Expensas have no metered consumption; spikes are usually extraordinarias (special assessments) — open a bill to see the breakdown."
-            : "A flat monthly plan — the climb is inflation, not usage."}
+          This parser extracts no extra fields beyond the amount — the climb is
+          inflation, not usage. Add fields like consumption or surcharges in the
+          parser builder to chart them here.
         </p>
       )}
     </>
+  );
+}
+
+/** Render a single custom field: its monthly series, plus a price-per-unit lens
+ * for quantity fields (kWh, m³, GB, …). */
+function CustomFieldCharts({
+  field,
+  months,
+  color,
+  currency,
+}: {
+  field: CustomFieldSeries;
+  months: string[];
+  color: string;
+  currency: "ARS" | "USD";
+}) {
+  const isQuantity = field.type === "quantity";
+  // Money fields follow the currency toggle; quantities/numbers show raw values.
+  const lineCurrency = field.isMoney ? currency : "UNIT";
+  const caption = field.unit ?? (field.isMoney ? currency : "");
+
+  return (
+    <div
+      style={{
+        marginTop: 16,
+        display: "grid",
+        gridTemplateColumns: isQuantity && field.unitPrice ? "1fr 1fr" : "1fr",
+        gap: 16,
+        alignItems: "start",
+      }}
+    >
+      <ChartCard title={`${field.name}${field.unit ? ` · ${field.unit}` : ""}`} caption={caption}>
+        <LineChartFx
+          months={months}
+          currency={lineCurrency}
+          series={[{ label: field.name, color, values: field.values }]}
+          height={190}
+        />
+      </ChartCard>
+
+      {isQuantity && field.unitPrice && (
+        <ChartCard title={`Price per ${field.unit || "unit"}`} caption="Rebased to 100 — ARS vs USD">
+          <LineChartFx
+            months={months}
+            currency="IDX"
+            series={[
+              { label: `ARS / ${field.unit || "unit"}`, color: "var(--accent)", values: field.unitPrice.arsIdx },
+              { label: `USD / ${field.unit || "unit"}`, color: USD_LINE, values: field.unitPrice.usdIdx, dashed: true },
+            ]}
+            height={190}
+          />
+          <Legend
+            style={{ marginTop: 10 }}
+            items={[
+              { label: `ARS / ${field.unit || "unit"}`, color: "var(--accent)" },
+              { label: `USD / ${field.unit || "unit"}`, color: USD_LINE },
+            ]}
+          />
+        </ChartCard>
+      )}
+    </div>
   );
 }

@@ -255,19 +255,10 @@ export const billsRouter = router({
         period: period.optional(),
         totalAmount: z.number().nonnegative().optional(),
         dueDate: isoDate.optional(),
-        extraordinaryAmount: z.number().nonnegative().nullable().optional(),
-        consumptionValue: z.number().nonnegative().nullable().optional(),
-        consumptionUnit: z.enum(["kWh", "m3"]).nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const {
-        id,
-        totalAmount,
-        extraordinaryAmount,
-        consumptionValue,
-        ...rest
-      } = input;
+      const { id, totalAmount, ...rest } = input;
 
       // Assigning a property to a parsed-but-unlinked bill should also create the
       // vendor account, so the rest of that account's bills resolve on their own.
@@ -307,20 +298,6 @@ export const billsRouter = router({
           ...(accountId ? { accountId } : {}),
           ...(totalAmount !== undefined
             ? { totalAmount: String(totalAmount) }
-            : {}),
-          ...(extraordinaryAmount !== undefined
-            ? {
-                extraordinaryAmount:
-                  extraordinaryAmount === null
-                    ? null
-                    : String(extraordinaryAmount),
-              }
-            : {}),
-          ...(consumptionValue !== undefined
-            ? {
-                consumptionValue:
-                  consumptionValue === null ? null : String(consumptionValue),
-              }
             : {}),
           status: "parsed",
         })

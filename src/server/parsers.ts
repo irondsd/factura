@@ -27,23 +27,15 @@ export async function loadParserConfigs(db: typeof Db): Promise<ParserConfig[]> 
   return rows.map(rowToConfig);
 }
 
-/** Bridge the engine's flexible result to the bills table's typed columns. The
- * four roles map to their columns; the well-known custom fields `consumption`
- * and `extraordinary` keep populating their legacy columns for the current UI,
- * while the full `custom` map is preserved in `bills.extra.fields`. */
+/** Bridge the engine's flexible result to the bills table's typed columns. Only
+ * the vendor-agnostic roles land in dedicated columns; every custom field —
+ * consumption, extraordinaria, data usage, whatever the parser defines — lives
+ * in `bills.extra.fields` (see `resultToExtra`). */
 export function resultToColumns(result: ParsedResult) {
-  const consumption = result.custom.consumption;
-  const extraordinary = result.custom.extraordinary;
-  const hasConsumption =
-    consumption !== undefined && typeof consumption === "object";
   return {
     period: result.period,
     totalAmount: String(result.amount),
     dueDate: result.dueDate,
-    extraordinaryAmount:
-      typeof extraordinary === "number" ? String(extraordinary) : null,
-    consumptionValue: hasConsumption ? String(consumption.value) : null,
-    consumptionUnit: hasConsumption ? consumption.unit : null,
   };
 }
 

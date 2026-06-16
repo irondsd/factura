@@ -7,6 +7,7 @@ import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Badge, Button, Input, Select } from "@/components/ui";
 import { detectScore, runConfig } from "@/parsers/engine/evaluate";
 import { applyTransforms } from "@/parsers/engine/transforms";
+import { addMonths as addMonthsClient } from "@/parsers/helpers";
 import type {
   ParsedResult,
   ParserConfig,
@@ -54,6 +55,7 @@ function toTransformOp(v: string): TransformOp {
 }
 
 type Sig = { pattern: string; flags: string };
+type PeriodMode = "date" | "parts";
 type FieldRow = {
   id: string;
   role: Role | "custom";
@@ -65,6 +67,16 @@ type FieldRow = {
   flags: string;
   group: string;
   transforms: string[];
+  // ── period role only ──
+  // "date": `pattern` captures a whole date (transforms pick the format).
+  // "parts": `pattern` captures the month, `year*` the year; combined via
+  // dateFromParts. `monthShift` shifts the result ±N months (addMonths).
+  periodMode: PeriodMode;
+  monthIsName: boolean;
+  yearPattern: string;
+  yearFlags: string;
+  yearGroup: string;
+  monthShift: number;
 };
 
 function emptyField(role: FieldRow["role"]): FieldRow {
@@ -79,11 +91,53 @@ function emptyField(role: FieldRow["role"]): FieldRow {
     flags: "i",
     group: "1",
     transforms: [],
+    periodMode: "date",
+    monthIsName: false,
+    yearPattern: "",
+    yearFlags: "i",
+    yearGroup: "1",
+    monthShift: 0,
   };
 }
 
 function fieldKey(f: FieldRow): string {
   return f.role === "custom" ? `f_${f.name || "field"}` : f.role;
+}
+
+/** A regex group spec is a number ("1") or a named group. */
+function groupOf(s: string): number | string {
+  return /^\d+$/.test(s.trim()) ? Number(s.trim()) : s.trim();
+}
+
+/** Month names → number, 3-letter-keyed (Spanish + English), lowercased. The
+ * period builder feeds this to the engine's `lookup` transform. */
+const MONTH_LOOKUP: Record<string, number> = {
+  jan: 1, ene: 1, feb: 2, mar: 3, abr: 4, apr: 4, may: 5, jun: 6,
+  jul: 7, ago: 8, aug: 8, sep: 9, set: 9, oct: 10, nov: 11, dic: 12, dec: 12,
+};
+
+/** True once the row has the regex(es) it needs to extract anything. */
+function fieldIncomplete(f: FieldRow): boolean {
+  if (f.role === "period" && f.periodMode === "parts")
+    return !f.pattern.trim() || !f.yearPattern.trim();
+  return !f.pattern.trim();
+}
+
+/** The capture(s) a row contributes — drives live highlighting. */
+function fieldCaptureItems(
+  f: FieldRow,
+): { key: string; pattern: string; flags?: string; group: number | string }[] {
+  if (f.role === "period" && f.periodMode === "parts") {
+    const out: { key: string; pattern: string; flags?: string; group: number | string }[] = [];
+    if (f.pattern.trim())
+      out.push({ key: "p_month", pattern: f.pattern, flags: f.flags, group: groupOf(f.group) });
+    if (f.yearPattern.trim())
+      out.push({ key: "p_year", pattern: f.yearPattern, flags: f.yearFlags, group: groupOf(f.yearGroup) });
+    return out;
+  }
+  if (!f.pattern.trim()) return [];
+  const key = f.role === "period" ? "p_date" : fieldKey(f);
+  return [{ key, pattern: f.pattern, flags: f.flags, group: groupOf(f.group) }];
 }
 
 /** Run one field's regex + transforms against text, independent of whether the
@@ -93,7 +147,7 @@ function extractFieldValue(text: string, f: FieldRow): string | undefined {
   try {
     const m = new RegExp(f.pattern, f.flags || undefined).exec(text);
     if (!m) return undefined;
-    const g = /^\d+$/.test(f.group.trim()) ? Number(f.group.trim()) : f.group.trim();
+    const g = groupOf(f.group);
     const raw = typeof g === "number" ? m[g] : m.groups?.[g];
     if (raw === undefined) return undefined;
     const v = applyTransforms(raw, f.transforms.map(toTransformOp));
@@ -103,7 +157,108 @@ function extractFieldValue(text: string, f: FieldRow): string | undefined {
   }
 }
 
+function matchGroup(
+  text: string,
+  pattern: string,
+  flags: string,
+  group: string,
+): string | undefined {
+  if (!pattern.trim() || !text) return undefined;
+  const m = new RegExp(pattern, flags || undefined).exec(text);
+  if (!m) return undefined;
+  const g = groupOf(group);
+  return typeof g === "number" ? m[g] : m.groups?.[g];
+}
+
+/** Live value for the period row, mirroring generatePeriod's engine output. */
+function extractPeriodValue(text: string, f: FieldRow): string | undefined {
+  try {
+    if (f.periodMode === "parts") {
+      const mRaw = matchGroup(text, f.pattern, f.flags, f.group);
+      const yRaw = matchGroup(text, f.yearPattern, f.yearFlags, f.yearGroup);
+      if (mRaw === undefined || yRaw === undefined) return undefined;
+      const month = f.monthIsName
+        ? MONTH_LOOKUP[mRaw.slice(0, 3).toLowerCase()]
+        : parseInt(mRaw, 10);
+      const year = parseInt(yRaw, 10);
+      if (!month || Number.isNaN(year)) return undefined;
+      const iso = `${year}-${String(month).padStart(2, "0")}-01`;
+      return f.monthShift ? addMonthsClient(iso, f.monthShift) : iso;
+    }
+    const v = extractFieldValue(text, f);
+    if (v === undefined) return undefined;
+    return f.monthShift ? addMonthsClient(v, f.monthShift) : v;
+  } catch {
+    return undefined;
+  }
+}
+
 type Body = Omit<ParserConfig, "slug" | "version" | "vendor">;
+type Compute = NonNullable<Body["compute"]>;
+
+/** Emit the captures + compute steps for the period role from its structured
+ * editor state. "date" mode optionally shifts a captured date; "parts" mode
+ * builds a date from a month (number or name) and a year, then optionally
+ * shifts. addMonths snaps to the 1st and rolls the year, so shifts are safe
+ * across December/January. */
+function generatePeriod(f: FieldRow): {
+  captures: Body["captures"];
+  compute: Compute;
+  rule: { sources: string[] };
+} {
+  const captures: Body["captures"] = [];
+  const compute: Compute = [];
+
+  if (f.periodMode === "parts") {
+    captures.push({
+      pattern: f.pattern,
+      flags: f.flags || undefined,
+      outputs: {
+        p_month: {
+          group: groupOf(f.group),
+          transform: f.monthIsName
+            ? ["lowercase", { slice: 3 }, { lookup: MONTH_LOOKUP }]
+            : ["toInt"],
+        },
+      },
+    });
+    captures.push({
+      pattern: f.yearPattern,
+      flags: f.yearFlags || undefined,
+      outputs: { p_year: { group: groupOf(f.yearGroup), transform: ["toInt"] } },
+    });
+    if (f.monthShift) {
+      compute.push({
+        name: "p_parts",
+        dateFromParts: { year: "p_year", month: "p_month", day: 1 },
+      });
+      compute.push({ name: "period", addMonths: { date: "p_parts", delta: f.monthShift } });
+    } else {
+      compute.push({
+        name: "period",
+        dateFromParts: { year: "p_year", month: "p_month", day: 1 },
+      });
+    }
+    return { captures, compute, rule: { sources: ["period"] } };
+  }
+
+  // date mode
+  captures.push({
+    pattern: f.pattern,
+    flags: f.flags || undefined,
+    outputs: {
+      p_date: {
+        group: groupOf(f.group),
+        transform: f.transforms.length ? f.transforms.map(toTransformOp) : undefined,
+      },
+    },
+  });
+  if (f.monthShift) {
+    compute.push({ name: "period", addMonths: { date: "p_date", delta: f.monthShift } });
+    return { captures, compute, rule: { sources: ["period"] } };
+  }
+  return { captures, compute, rule: { sources: ["p_date"] } };
+}
 
 /** Assemble the engine body from the structured Fields editor. `incomplete`
  * (vs `error`) means the user simply hasn't filled everything in yet — not a
@@ -116,21 +271,26 @@ function assembleSimple(
   const captures: Body["captures"] = [];
   const roles = {} as Body["roles"];
   const custom: NonNullable<Body["custom"]> = [];
+  const compute: Compute = [];
 
   // Empty fields aren't an error — just not done yet.
-  if (fields.some((f) => !f.pattern.trim())) return { incomplete: true };
+  if (fields.some(fieldIncomplete)) return { incomplete: true };
 
   for (const f of fields) {
+    if (f.role === "period") {
+      const g = generatePeriod(f);
+      captures.push(...g.captures);
+      compute.push(...g.compute);
+      roles.period = g.rule;
+      continue;
+    }
     const key = fieldKey(f);
-    const group = /^\d+$/.test(f.group.trim())
-      ? Number(f.group.trim())
-      : f.group.trim();
     captures.push({
       pattern: f.pattern,
       flags: f.flags || undefined,
       outputs: {
         [key]: {
-          group,
+          group: groupOf(f.group),
           transform: f.transforms.length
             ? f.transforms.map(toTransformOp)
             : undefined,
@@ -164,6 +324,7 @@ function assembleSimple(
           : undefined,
       },
       captures,
+      compute: compute.length ? compute : undefined,
       roles,
       custom: custom.length ? custom : undefined,
     },
@@ -203,16 +364,23 @@ function fieldsToBodyDraft(fields: FieldRow[]): Partial<Body> {
   const captures: Body["captures"] = [];
   const roles: Partial<Body["roles"]> = {};
   const custom: NonNullable<Body["custom"]> = [];
+  const compute: Compute = [];
   for (const f of fields) {
-    if (!f.pattern.trim()) continue;
+    if (fieldIncomplete(f)) continue;
+    if (f.role === "period") {
+      const g = generatePeriod(f);
+      captures.push(...g.captures);
+      compute.push(...g.compute);
+      roles.period = g.rule;
+      continue;
+    }
     if (f.role === "custom" && !f.name.trim()) continue; // would orphan its capture
     const key = fieldKey(f);
-    const group = /^\d+$/.test(f.group.trim()) ? Number(f.group.trim()) : f.group.trim();
     captures.push({
       pattern: f.pattern,
       flags: f.flags || undefined,
       outputs: {
-        [key]: { group, transform: f.transforms.length ? f.transforms.map(toTransformOp) : undefined },
+        [key]: { group: groupOf(f.group), transform: f.transforms.length ? f.transforms.map(toTransformOp) : undefined },
       },
     });
     if (f.role === "custom") {
@@ -224,7 +392,12 @@ function fieldsToBodyDraft(fields: FieldRow[]): Partial<Body> {
       roles[f.role] = { sources: [key] };
     }
   }
-  return { captures, roles: roles as Body["roles"], custom: custom.length ? custom : undefined };
+  return {
+    captures,
+    compute: compute.length ? compute : undefined,
+    roles: roles as Body["roles"],
+    custom: custom.length ? custom : undefined,
+  };
 }
 
 // ── Reverse mapping (body -> Fields) ──────────────────────────────────────────
@@ -251,13 +424,96 @@ function reverseTransforms(ops: TransformOp[] | undefined): string[] | null {
   return out;
 }
 
+type OutEntry = {
+  cap: { pattern: string; flags?: string };
+  group: number | string;
+  transform?: TransformOp[];
+};
+
+function periodDateRow(e: OutEntry, shift: number): FieldRow | null {
+  const t = reverseTransforms(e.transform);
+  if (!t) return null;
+  return {
+    ...emptyField("period"),
+    periodMode: "date",
+    monthShift: shift,
+    pattern: e.cap.pattern,
+    flags: e.cap.flags ?? "",
+    group: String(e.group),
+    transforms: t,
+  };
+}
+
+function periodPartsRow(monthE: OutEntry, yearE: OutEntry, shift: number): FieldRow {
+  const monthIsName = (monthE.transform ?? []).some(
+    (op) => typeof op === "object" && "lookup" in op,
+  );
+  return {
+    ...emptyField("period"),
+    periodMode: "parts",
+    monthShift: shift,
+    monthIsName,
+    pattern: monthE.cap.pattern,
+    flags: monthE.cap.flags ?? "",
+    group: String(monthE.group),
+    yearPattern: yearE.cap.pattern,
+    yearFlags: yearE.cap.flags ?? "",
+    yearGroup: String(yearE.group),
+  };
+}
+
+/** Match the exact compute shapes `generatePeriod` emits, back into a period
+ * row. Returns null for any other compute (those configs stay JSON-only). */
+function recognizePeriodCompute(
+  compute: Compute,
+  sourceKey: string,
+  outMap: Map<string, OutEntry>,
+): { row: FieldRow; usedKeys: string[] } | null {
+  const a = compute[0];
+  const b = compute[1];
+  // date mode + shift: [{ name: source, addMonths: { date: K, delta } }]
+  if (compute.length === 1 && a.name === sourceKey && "addMonths" in a) {
+    const e = outMap.get(a.addMonths.date);
+    if (!e) return null;
+    const row = periodDateRow(e, a.addMonths.delta);
+    return row ? { row, usedKeys: [a.addMonths.date] } : null;
+  }
+  // parts mode, no shift: [{ name: source, dateFromParts: { year, month, day:1 } }]
+  if (
+    compute.length === 1 &&
+    a.name === sourceKey &&
+    "dateFromParts" in a &&
+    a.dateFromParts.day === 1
+  ) {
+    const yE = outMap.get(a.dateFromParts.year);
+    const mE = outMap.get(a.dateFromParts.month);
+    if (!yE || !mE) return null;
+    return { row: periodPartsRow(mE, yE, 0), usedKeys: [a.dateFromParts.year, a.dateFromParts.month] };
+  }
+  // parts mode + shift: dateFromParts named S, then addMonths over S named source
+  if (
+    compute.length === 2 &&
+    "dateFromParts" in a &&
+    a.dateFromParts.day === 1 &&
+    "addMonths" in b &&
+    b.name === sourceKey &&
+    b.addMonths.date === a.name
+  ) {
+    const yE = outMap.get(a.dateFromParts.year);
+    const mE = outMap.get(a.dateFromParts.month);
+    if (!yE || !mE) return null;
+    return {
+      row: periodPartsRow(mE, yE, b.addMonths.delta),
+      usedKeys: [a.dateFromParts.year, a.dateFromParts.month],
+    };
+  }
+  return null;
+}
+
 function bodyToFields(body: Partial<Body>): FieldRow[] | null {
-  if (body.region || body.compute?.length || body.validations?.length) return null;
+  if (body.region || body.validations?.length) return null;
   const captures = body.captures ?? [];
-  const outMap = new Map<
-    string,
-    { cap: (typeof captures)[number]; group: number | string; transform?: TransformOp[] }
-  >();
+  const outMap = new Map<string, OutEntry>();
   for (const cap of captures) {
     const entries = Object.entries(cap.outputs);
     if (entries.length !== 1) return null; // barcode-style multi-output
@@ -266,9 +522,34 @@ function bodyToFields(body: Partial<Body>): FieldRow[] | null {
   }
 
   const used = new Set<string>();
-  const fields: FieldRow[] = [];
 
+  // Period may derive through compute steps. Recognize the period-builder shapes
+  // (and the legacy "sourced straight from a capture" form); bail on anything
+  // else so complex configs open in the JSON editor.
+  const periodSources = body.roles?.period?.sources;
+  if (!periodSources || periodSources.length !== 1) return null;
+  const compute = (body.compute ?? []) as Compute;
+  let periodRow: FieldRow;
+  if (compute.length === 0) {
+    const e = outMap.get(periodSources[0]);
+    if (!e) return null;
+    const row = periodDateRow(e, 0);
+    if (!row) return null;
+    periodRow = row;
+    used.add(periodSources[0]);
+  } else {
+    const r = recognizePeriodCompute(compute, periodSources[0], outMap);
+    if (!r) return null;
+    periodRow = r.row;
+    for (const k of r.usedKeys) used.add(k);
+  }
+
+  const fields: FieldRow[] = [];
   for (const role of ROLES) {
+    if (role === "period") {
+      fields.push(periodRow);
+      continue;
+    }
     const rule = body.roles?.[role];
     if (!rule) {
       fields.push(emptyField(role)); // not mapped yet — still a simple draft
@@ -280,9 +561,11 @@ function bodyToFields(body: Partial<Body>): FieldRow[] | null {
     const t = reverseTransforms(e.transform);
     if (!t) return null;
     fields.push({
-      id: crypto.randomUUID(), role, name: role, type: "money", unit: "",
-      includeWhen: "", pattern: e.cap.pattern, flags: e.cap.flags ?? "",
-      group: String(e.group), transforms: t,
+      ...emptyField(role),
+      pattern: e.cap.pattern,
+      flags: e.cap.flags ?? "",
+      group: String(e.group),
+      transforms: t,
     });
     used.add(rule.sources[0]);
   }
@@ -293,9 +576,15 @@ function bodyToFields(body: Partial<Body>): FieldRow[] | null {
     const t = reverseTransforms(e.transform);
     if (!t) return null;
     fields.push({
-      id: crypto.randomUUID(), role: "custom", name: cf.name, type: cf.type,
-      unit: cf.unit ?? "", includeWhen: cf.includeWhen ?? "",
-      pattern: e.cap.pattern, flags: e.cap.flags ?? "", group: String(e.group), transforms: t,
+      ...emptyField("custom"),
+      name: cf.name,
+      type: cf.type,
+      unit: cf.unit ?? "",
+      includeWhen: cf.includeWhen ?? "",
+      pattern: e.cap.pattern,
+      flags: e.cap.flags ?? "",
+      group: String(e.group),
+      transforms: t,
     });
     used.add(cf.source);
   }
@@ -514,11 +803,7 @@ function Builder() {
     if (!activeText) return [];
     const items: { key: string; pattern: string; flags?: string; group: number | string }[] = [];
     if (mode === "simple") {
-      for (const f of fields) {
-        if (!f.pattern.trim()) continue;
-        const group = /^\d+$/.test(f.group.trim()) ? Number(f.group.trim()) : f.group.trim();
-        items.push({ key: fieldKey(f), pattern: f.pattern, flags: f.flags, group });
-      }
+      for (const f of fields) items.push(...fieldCaptureItems(f));
     } else if (assembled.body) {
       for (const cap of assembled.body.captures ?? []) {
         for (const [key, out] of Object.entries(cap.outputs)) {
@@ -857,19 +1142,28 @@ function Builder() {
 
                 {mode === "simple" ? (
                   <>
-                    {fields.map((f) => (
-                      <FieldEditor
-                        key={f.id}
-                        field={f}
-                        onChange={(nf) => setFields(fields.map((x) => (x.id === f.id ? nf : x)))}
-                        onRemove={
-                          f.role === "custom"
-                            ? () => setFields(fields.filter((x) => x.id !== f.id))
-                            : undefined
-                        }
-                        value={extractFieldValue(activeText, f)}
-                      />
-                    ))}
+                    {fields.map((f) =>
+                      f.role === "period" ? (
+                        <PeriodEditor
+                          key={f.id}
+                          field={f}
+                          onChange={(nf) => setFields(fields.map((x) => (x.id === f.id ? nf : x)))}
+                          value={extractPeriodValue(activeText, f)}
+                        />
+                      ) : (
+                        <FieldEditor
+                          key={f.id}
+                          field={f}
+                          onChange={(nf) => setFields(fields.map((x) => (x.id === f.id ? nf : x)))}
+                          onRemove={
+                            f.role === "custom"
+                              ? () => setFields(fields.filter((x) => x.id !== f.id))
+                              : undefined
+                          }
+                          value={extractFieldValue(activeText, f)}
+                        />
+                      ),
+                    )}
                     <Button size="sm" variant="outline" onClick={() => setFields([...fields, emptyField("custom")])}>
                       + Add custom field
                     </Button>
@@ -995,9 +1289,16 @@ function FieldEditor({
           </Field>
           {field.type === "quantity" && (
             <Field label="Unit">
-              <Input value={field.unit} placeholder="kWh" onChange={(e) => onChange({ ...field, unit: e.target.value })} />
+              <Input value={field.unit} placeholder="kWh, m³, GB…" onChange={(e) => onChange({ ...field, unit: e.target.value })} />
             </Field>
           )}
+          <Field label="Only when (optional)">
+            <Input
+              value={field.includeWhen}
+              placeholder="e.g. f_extra > 0 — leave blank to always keep"
+              onChange={(e) => onChange({ ...field, includeWhen: e.target.value })}
+            />
+          </Field>
         </Grid>
       )}
 
@@ -1007,27 +1308,123 @@ function FieldEditor({
         <Input value={field.group} placeholder="1" style={{ width: 56, flex: "none" }} title="capture group (number or name)" onChange={(e) => onChange({ ...field, group: e.target.value })} />
       </div>
 
-      <div style={{ marginTop: 8 }}>
-        <span style={miniLabel}>Transforms</span>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4, alignItems: "center" }}>
-          {field.transforms.map((t, i) => (
-            <span key={i} style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-              <Select
-                value={t}
-                style={{ width: "auto" }}
-                onChange={(e) => onChange({ ...field, transforms: field.transforms.map((x, j) => (j === i ? e.target.value : x)) })}
-              >
-                {TRANSFORMS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </Select>
-              <button onClick={() => onChange({ ...field, transforms: field.transforms.filter((_, j) => j !== i) })} style={xBtn}>✕</button>
-            </span>
-          ))}
-          <Button size="sm" variant="outline" onClick={() => onChange({ ...field, transforms: [...field.transforms, TRANSFORMS[0].value] })}>
-            + transform
-          </Button>
-        </div>
+      <TransformsEditor
+        transforms={field.transforms}
+        onChange={(t) => onChange({ ...field, transforms: t })}
+      />
+    </div>
+  );
+}
+
+/** The ordered transform-pipeline picker, shared by custom fields and the
+ * period builder's "whole date" mode. */
+function TransformsEditor({
+  transforms,
+  onChange,
+}: {
+  transforms: string[];
+  onChange: (t: string[]) => void;
+}) {
+  return (
+    <div style={{ marginTop: 8 }}>
+      <span style={miniLabel}>Transforms</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4, alignItems: "center" }}>
+        {transforms.map((t, i) => (
+          <span key={i} style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+            <Select
+              value={t}
+              style={{ width: "auto" }}
+              onChange={(e) => onChange(transforms.map((x, j) => (j === i ? e.target.value : x)))}
+            >
+              {TRANSFORMS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+            <button onClick={() => onChange(transforms.filter((_, j) => j !== i))} style={xBtn}>✕</button>
+          </span>
+        ))}
+        <Button size="sm" variant="outline" onClick={() => onChange([...transforms, TRANSFORMS[0].value])}>
+          + transform
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** The period role's structured editor: a captured date (with format
+ * transforms) or month + year parts, either way optionally shifted ±N months.
+ * Generates dateFromParts / addMonths under the hood (see generatePeriod). */
+function PeriodEditor({
+  field,
+  onChange,
+  value,
+}: {
+  field: FieldRow;
+  onChange: (f: FieldRow) => void;
+  value?: string;
+}) {
+  const isParts = field.periodMode === "parts";
+  return (
+    <div style={{ border: "1px solid var(--line)", padding: 12, marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, flex: 1 }}>
+          {ROLE_LABEL.period}
+        </span>
+        {value !== undefined ? <Badge>{value}</Badge> : <Badge tone="neutral">no match</Badge>}
+      </div>
+
+      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+        <button onClick={() => onChange({ ...field, periodMode: "date" })} style={tabStyle(!isParts)}>
+          Whole date
+        </button>
+        <button onClick={() => onChange({ ...field, periodMode: "parts" })} style={tabStyle(isParts)}>
+          Month + year
+        </button>
+      </div>
+
+      {isParts ? (
+        <>
+          <span style={miniLabel}>Month</span>
+          <div style={{ display: "flex", gap: 6, marginTop: 4, marginBottom: 8 }}>
+            <Input value={field.pattern} placeholder="regex with a (month group)" onChange={(e) => onChange({ ...field, pattern: e.target.value })} />
+            <Input value={field.flags} placeholder="i" style={{ width: 48, flex: "none" }} onChange={(e) => onChange({ ...field, flags: e.target.value })} />
+            <Input value={field.group} placeholder="1" style={{ width: 56, flex: "none" }} onChange={(e) => onChange({ ...field, group: e.target.value })} />
+          </div>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 10, cursor: "pointer", ...miniLabel }}>
+            <input
+              type="checkbox"
+              checked={field.monthIsName}
+              onChange={(e) => onChange({ ...field, monthIsName: e.target.checked })}
+            />
+            Month is a name (Ene / February)
+          </label>
+          <span style={miniLabel}>Year</span>
+          <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+            <Input value={field.yearPattern} placeholder="regex with a (year group)" onChange={(e) => onChange({ ...field, yearPattern: e.target.value })} />
+            <Input value={field.yearFlags} placeholder="i" style={{ width: 48, flex: "none" }} onChange={(e) => onChange({ ...field, yearFlags: e.target.value })} />
+            <Input value={field.yearGroup} placeholder="1" style={{ width: 56, flex: "none" }} onChange={(e) => onChange({ ...field, yearGroup: e.target.value })} />
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ display: "flex", gap: 6 }}>
+            <Input value={field.pattern} placeholder="regex with a (date group)" onChange={(e) => onChange({ ...field, pattern: e.target.value })} />
+            <Input value={field.flags} placeholder="i" style={{ width: 48, flex: "none" }} onChange={(e) => onChange({ ...field, flags: e.target.value })} />
+            <Input value={field.group} placeholder="1" style={{ width: 56, flex: "none" }} onChange={(e) => onChange({ ...field, group: e.target.value })} />
+          </div>
+          <TransformsEditor transforms={field.transforms} onChange={(t) => onChange({ ...field, transforms: t })} />
+        </>
+      )}
+
+      <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <span style={miniLabel}>Shift months</span>
+        <Input
+          type="number"
+          value={String(field.monthShift)}
+          style={{ width: 72, flex: "none" }}
+          onChange={(e) => onChange({ ...field, monthShift: Math.trunc(Number(e.target.value) || 0) })}
+        />
+        <span style={{ ...hint, margin: 0 }}>−1 = previous month · +1 = next · rolls the year</span>
       </div>
     </div>
   );

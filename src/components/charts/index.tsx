@@ -147,55 +147,6 @@ export function StackedBarsFx({
   );
 }
 
-/** Single-series bars with optional per-bar (seasonal) coloring. */
-export function SeasonBarsFx({
-  months,
-  values,
-  color,
-  colorFor,
-  currency = "ARS",
-  unit,
-  height = 190,
-}: {
-  months: string[];
-  values: (number | null)[];
-  color: string;
-  colorFor?: (month: string) => string;
-  currency?: string;
-  unit?: string | null;
-  height?: number;
-}) {
-  const data = months.map((m, i) => ({ month: m, value: values[i] ?? 0 }));
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid stroke={AXIS} strokeDasharray="2 3" vertical={false} />
-        <XAxis
-          dataKey="month"
-          tickFormatter={formatMonthShort}
-          tick={tickStyle}
-          axisLine={{ stroke: AXIS }}
-          tickLine={false}
-          interval="preserveStartEnd"
-          minTickGap={20}
-        />
-        <YAxis
-          width={48}
-          tick={tickStyle}
-          axisLine={false}
-          tickLine={false}
-          tickFormatter={(v: number) => (unit ? String(Math.round(v)) : abbrev(v, currency))}
-        />
-        <Bar dataKey="value" isAnimationActive={false}>
-          {data.map((d, i) => (
-            <Cell key={i} fill={colorFor ? colorFor(d.month) : color} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
 /** Vendor-share donut with a Fraunces center label. */
 export function DonutFx({
   slices,
