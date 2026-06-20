@@ -4,20 +4,19 @@ import { signIn, useSession } from "next-auth/react";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { BillDrawer } from "@/components/BillDrawer";
 import { DropOverlay } from "@/components/DropOverlay";
-import { AppContext, type Currency } from "./context";
+import { AppContext } from "./context";
 import { TopBar } from "./TopBar";
 import { Welcome } from "./Welcome";
 
 type Toast = { id: string; text: string };
 
 /** Auth gate + chrome for every page: shows the Welcome/Google screen when
- * signed out, otherwise the top bar, the shared property/currency filters, the
- * global bill-editor drawer, and a toast region. */
+ * signed out, otherwise the top bar, the shared property filter, the global
+ * bill-editor drawer, and a toast region. */
 export function AppShell({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
 
   const [propertyId, setPropertyId] = useState<string | undefined>(undefined);
-  const [currency, setCurrency] = useState<Currency>("ARS");
   const [openBillId, setOpenBillId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -30,13 +29,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       propertyId,
-      currency,
       setPropertyId,
-      setCurrency,
       openBill: setOpenBillId,
       showToast,
     }),
-    [propertyId, currency, showToast],
+    [propertyId, showToast],
   );
 
   if (status === "loading") {

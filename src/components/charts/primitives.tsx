@@ -1,6 +1,8 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { type CSSProperties, type ReactNode, useState } from "react";
+
+export type ChartCurrency = "ARS" | "USD";
 
 // Small presentational helpers shared across the insight screens, ported from
 // the design prototype's ui.jsx.
@@ -176,6 +178,59 @@ export function Segmented<T extends string | number>({
       })}
     </span>
   );
+}
+
+/** Compact ARS/USD switch for a chart's top-right corner. */
+export function CurrencyToggle({
+  value,
+  onChange,
+  style,
+}: {
+  value: ChartCurrency;
+  onChange: (v: ChartCurrency) => void;
+  style?: CSSProperties;
+}) {
+  return (
+    <span
+      style={{ display: "inline-flex", border: "1px solid var(--line)", ...style }}
+    >
+      {(["ARS", "USD"] as const).map((c) => {
+        const active = c === value;
+        return (
+          <button
+            key={c}
+            type="button"
+            onClick={() => onChange(c)}
+            aria-pressed={active}
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 10,
+              letterSpacing: "0.12em",
+              padding: "3px 7px",
+              border: "none",
+              cursor: "pointer",
+              transition: "var(--transition-colors)",
+              background: active ? "var(--ink)" : "transparent",
+              color: active ? "var(--paper)" : "var(--muted)",
+            }}
+          >
+            {c}
+          </button>
+        );
+      })}
+    </span>
+  );
+}
+
+/** Per-chart currency state + its toggle element, ready for ChartCard's `action`
+ * slot. Defaults to ARS; each chart keeps its own independent state. */
+export function useChartCurrency(initial: ChartCurrency = "ARS") {
+  const [currency, setCurrency] = useState<ChartCurrency>(initial);
+  return {
+    currency,
+    setCurrency,
+    toggle: <CurrencyToggle value={currency} onChange={setCurrency} />,
+  };
 }
 
 /** Trend delta chip: ▲ up (accent, "bad" for spend) / ▼ down / · flat. */

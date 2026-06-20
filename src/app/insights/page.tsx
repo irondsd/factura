@@ -12,6 +12,7 @@ import {
   LineChartFx,
   Segmented,
   StackedBarsFx,
+  useChartCurrency,
 } from "@/components/charts";
 import { formatMoney } from "@/lib/format";
 import { type RouterOutputs, trpc } from "@/lib/trpc";
@@ -21,11 +22,11 @@ type Range = 12 | 24;
 const USD_LINE = "#4a4034";
 
 export default function InsightsPage() {
-  const { propertyId, currency } = useApp();
+  const { propertyId } = useApp();
   const [vendorId, setVendorId] = useState<string>("all");
   const [range, setRange] = useState<Range>(12);
 
-  const series = trpc.insights.series.useQuery({ propertyId, currency, range });
+  const series = trpc.insights.series.useQuery({ propertyId, range });
 
   const vendorsHere = series.data?.vendors ?? [];
 
@@ -80,12 +81,11 @@ export default function InsightsPage() {
       </div>
 
       {vendorId === "all" ? (
-        <AllVendorsCharts data={series.data} currency={currency} />
+        <AllVendorsCharts data={series.data} />
       ) : (
         <SingleVendorCharts
           propertyId={propertyId}
           vendorId={vendorId}
-          currency={currency}
           range={range}
         />
       )}
@@ -131,13 +131,9 @@ function VendorTab({
 
 type SeriesData = RouterOutputs["insights"]["series"];
 
-function AllVendorsCharts({
-  data,
-  currency,
-}: {
-  data: SeriesData | undefined;
-  currency: "ARS" | "USD";
-}) {
+function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
+  const bars = useChartCurrency();
+  const donut = useChartCurrency();
   if (!data) {
     return (
       <p style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--muted)", marginTop: 20 }}>
@@ -146,20 +142,21 @@ function AllVendorsCharts({
     );
   }
   const vendorById = new Map(data.vendors.map((v) => [v.id, v]));
-  const shareTotal = data.share.reduce((a, s) => a + s.value, 0) || 1;
-  const slices = data.share.map((s) => {
+  const donutShare = data.byCurrency[donut.currency].share;
+  const shareTotal = donutShare.reduce((a, s) => a + s.value, 0) || 1;
+  const slices = donutShare.map((s) => {
     const v = vendorById.get(s.vendorId);
     return { label: v?.displayName ?? "—", value: s.value, color: v?.color ?? "var(--muted)" };
   });
 
   return (
     <>
-      <ChartCard title="Total spend over time" caption={`Stacked by vendor · ${currency}`} style={{ marginTop: 16 }}>
+      <ChartCard title="Total spend over time" caption="Stacked by vendor" action={bars.toggle} style={{ marginTop: 16 }}>
         <StackedBarsFx
           months={data.months}
-          stacks={data.series.map((s) => s.byVendor)}
+          stacks={data.byCurrency[bars.currency].series.map((s) => s.byVendor)}
           vendors={data.vendors}
-          currency={currency}
+          currency={bars.currency}
           completeFlags={data.completeFlags}
           height={230}
         />
@@ -167,9 +164,9 @@ function AllVendorsCharts({
       </ChartCard>
 
       <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(360px, 1.5fr)", gap: 16, alignItems: "start" }}>
-        <ChartCard title="Vendor share" caption="Where it goes, in range">
+        <ChartCard title="Vendor share" caption="Where it goes, in range" action={donut.toggle}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <DonutFx slices={slices} centerLabel={currency === "USD" ? "US$" : "AR$"} centerSub="total" />
+            <DonutFx slices={slices} centerLabel={donut.currency === "USD" ? "US$" : "AR$"} centerSub="total" />
             <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
               {slices.map((s) => (
                 <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -217,15 +214,14 @@ type CustomFieldSeries = VendorDetail["fields"][number];
 function SingleVendorCharts({
   propertyId,
   vendorId,
-  currency,
   range,
 }: {
   propertyId?: string;
   vendorId: string;
-  currency: "ARS" | "USD";
   range: Range;
 }) {
-  const detail = trpc.insights.vendorDetail.useQuery({ propertyId, vendorId, currency, range });
+  const detail = trpc.insights.vendorDetail.useQuery({ propertyId, vendorId, range });
+  const spend = useChartCurrency();
   const d = detail.data;
 
   if (!d) {
@@ -237,7 +233,8 @@ function SingleVendorCharts({
   }
 
   const vendor = d.vendor;
-  const knownSpend = d.spend.filter((x): x is number => x != null);
+  const spendValues = d.spend[spend.currency];
+  const knownSpend = spendValues.filter((x): x is number => x != null);
   const pct =
     knownSpend.length > 1
       ? ((knownSpend[knownSpend.length - 1] - knownSpend[0]) / knownSpend[0]) * 100
@@ -246,24 +243,24 @@ function SingleVendorCharts({
   return (
     <>
       <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginTop: 18 }}>
-        <Display size={28}>{formatMoney(knownSpend[knownSpend.length - 1] ?? null, currency)}</Display>
+        <Display size={28}>{formatMoney(knownSpend[knownSpend.length - 1] ?? null, spend.currency)}</Display>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>
           latest · <Delta pct={pct} /> over range
         </span>
       </div>
 
-      <ChartCard title={`${vendor.displayName} — spend over time`} caption={currency} style={{ marginTop: 14 }}>
+      <ChartCard title={`${vendor.displayName} — spend over time`} action={spend.toggle} style={{ marginTop: 14 }}>
         <LineChartFx
           months={d.months}
-          currency={currency}
-          series={[{ label: vendor.displayName, color: vendor.color, values: d.spend }]}
+          currency={spend.currency}
+          series={[{ label: vendor.displayName, color: vendor.color, values: spendValues }]}
           height={210}
         />
       </ChartCard>
 
       {/* One section per parser-extracted custom field — fully vendor-agnostic. */}
       {d.fields.map((f) => (
-        <CustomFieldCharts key={f.name} field={f} months={d.months} color={vendor.color} currency={currency} />
+        <CustomFieldCharts key={f.name} field={f} months={d.months} color={vendor.color} />
       ))}
 
       {d.fields.length === 0 && (
@@ -283,17 +280,21 @@ function CustomFieldCharts({
   field,
   months,
   color,
-  currency,
 }: {
   field: CustomFieldSeries;
   months: string[];
   color: string;
-  currency: "ARS" | "USD";
 }) {
+  const money = useChartCurrency();
   const isQuantity = field.type === "quantity";
-  // Money fields follow the currency toggle; quantities/numbers show raw values.
-  const lineCurrency = field.isMoney ? currency : "UNIT";
-  const caption = field.unit ?? (field.isMoney ? currency : "");
+  // Money fields follow their own currency toggle; quantities/numbers show raw
+  // values in their native unit.
+  const lineCurrency = field.isMoney ? money.currency : "UNIT";
+  const values =
+    field.isMoney && money.currency === "USD"
+      ? (field.valuesUsd ?? field.values)
+      : field.values;
+  const caption = field.unit ?? "";
 
   return (
     <div
@@ -305,11 +306,15 @@ function CustomFieldCharts({
         alignItems: "start",
       }}
     >
-      <ChartCard title={`${field.name}${field.unit ? ` · ${field.unit}` : ""}`} caption={caption}>
+      <ChartCard
+        title={`${field.name}${field.unit ? ` · ${field.unit}` : ""}`}
+        caption={caption}
+        action={field.isMoney ? money.toggle : undefined}
+      >
         <LineChartFx
           months={months}
           currency={lineCurrency}
-          series={[{ label: field.name, color, values: field.values }]}
+          series={[{ label: field.name, color, values }]}
           height={190}
         />
       </ChartCard>

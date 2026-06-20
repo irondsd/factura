@@ -11,6 +11,7 @@ import {
   Legend,
   SparklineFx,
   StackedBarsFx,
+  useChartCurrency,
 } from "@/components/charts";
 import {
   formatMoney,
@@ -21,8 +22,11 @@ import {
 import { trpc } from "@/lib/trpc";
 
 export default function OverviewPage() {
-  const { propertyId, currency } = useApp();
-  const overview = trpc.insights.overview.useQuery({ propertyId, currency });
+  const { propertyId } = useApp();
+  const overview = trpc.insights.overview.useQuery({ propertyId });
+  const donut = useChartCurrency();
+  const bars = useChartCurrency();
+  const trend = useChartCurrency();
 
   if (!overview.data) {
     return (
@@ -44,9 +48,10 @@ export default function OverviewPage() {
   const d = overview.data;
   const vendorById = new Map(d.vendors.map((v) => [v.id, v]));
   const pending = d.billsExpected - d.billsIn;
-  const moneySym = currency === "USD" ? "US$" : "AR$";
-  const shareTotal = d.share.reduce((a, s) => a + s.value, 0) || 1;
-  const slices = d.share.map((s) => {
+  const donutShare = d.byCurrency[donut.currency].share;
+  const moneySym = donut.currency === "USD" ? "US$" : "AR$";
+  const shareTotal = donutShare.reduce((a, s) => a + s.value, 0) || 1;
+  const slices = donutShare.map((s) => {
     const v = vendorById.get(s.vendorId);
     return {
       label: v?.displayName ?? "—",
@@ -73,12 +78,7 @@ export default function OverviewPage() {
             {formatMonth(d.month)} so far
           </Eyebrow>
           <div style={{ marginTop: 8 }}>
-            <Display size={44}>
-              {formatMoney(
-                currency === "USD" ? d.thisMonthUsd : d.thisMonthTotal,
-                currency,
-              )}
-            </Display>
+            <Display size={44}>{formatMoney(d.thisMonthTotal, "ARS")}</Display>
           </div>
           <p
             style={{
@@ -89,9 +89,7 @@ export default function OverviewPage() {
             }}
           >
             {d.billsIn} of {d.billsExpected} bills in
-            {currency === "ARS" && d.thisMonthUsd > 0 && (
-              <span> · ≈ {formatUSD(d.thisMonthUsd)}</span>
-            )}
+            {d.thisMonthUsd > 0 && <span> · ≈ {formatUSD(d.thisMonthUsd)}</span>}
             {pending > 0 && <span> · {pending} awaiting</span>}
           </p>
         </div>
@@ -153,7 +151,7 @@ export default function OverviewPage() {
                         letterSpacing: "-0.01em",
                       }}
                     >
-                      {formatMoney(currency === "USD" ? a.usd : a.amount, currency)}
+                      {formatMoney(a.amount, "ARS")}
                     </p>
                     <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", margin: "3px 0 0" }}>
                       received · in ledger
@@ -189,7 +187,11 @@ export default function OverviewPage() {
           alignItems: "start",
         }}
       >
-        <ChartCard title="Where the money goes" caption="Last 12 complete months">
+        <ChartCard
+          title="Where the money goes"
+          caption="Last 12 complete months"
+          action={donut.toggle}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
             <DonutFx slices={slices} centerLabel={moneySym} centerSub="by vendor" />
             <div style={{ display: "flex", flexDirection: "column", gap: 9, flex: 1 }}>
@@ -211,12 +213,12 @@ export default function OverviewPage() {
           </div>
         </ChartCard>
 
-        <ChartCard title="Monthly spend" caption={`Stacked by vendor · ${currency}`}>
+        <ChartCard title="Monthly spend" caption="Stacked by vendor" action={bars.toggle}>
           <StackedBarsFx
             months={d.months}
-            stacks={d.series.map((s) => s.byVendor)}
+            stacks={d.byCurrency[bars.currency].series.map((s) => s.byVendor)}
             vendors={d.vendors}
-            currency={currency}
+            currency={bars.currency}
             completeFlags={d.completeFlags}
             height={210}
           />
@@ -228,11 +230,15 @@ export default function OverviewPage() {
       </div>
 
       {/* per-vendor sparklines */}
-      {d.perVendor.length > 0 && (
+      {d.byCurrency[trend.currency].perVendor.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <ChartCard title="Per-vendor trend" caption={`Spend over the last 12 months · ${currency}`}>
+          <ChartCard
+            title="Per-vendor trend"
+            caption="Spend over the last 12 months"
+            action={trend.toggle}
+          >
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
-              {d.perVendor.map((pv) => (
+              {d.byCurrency[trend.currency].perVendor.map((pv) => (
                 <div
                   key={pv.vendor.id}
                   style={{
@@ -251,7 +257,7 @@ export default function OverviewPage() {
                       </span>
                     </div>
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
-                      {formatMoney(pv.last, currency)} <Delta pct={pv.pct} style={{ marginLeft: 4 }} />
+                      {formatMoney(pv.last, trend.currency)} <Delta pct={pv.pct} style={{ marginLeft: 4 }} />
                     </div>
                   </div>
                   <SparklineFx values={pv.values} color={pv.vendor.color} />

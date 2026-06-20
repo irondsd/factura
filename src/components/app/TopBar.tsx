@@ -16,7 +16,7 @@ const NAV = [
 
 export function TopBar({ user }: { user: Session["user"] }) {
   const pathname = usePathname();
-  const { propertyId, currency, setPropertyId, setCurrency } = useApp();
+  const { propertyId, setPropertyId } = useApp();
   const properties = trpc.properties.list.useQuery();
 
   const onProfile = pathname === "/profile";
@@ -100,16 +100,6 @@ export function TopBar({ user }: { user: Session["user"] }) {
               options={propOptions}
               value={propValue}
               onChange={(v) => setPropertyId(v === "all" ? undefined : v)}
-            />
-          )}
-          {!onProfile && (
-            <Segmented
-              options={[
-                { value: "ARS", label: "ARS" },
-                { value: "USD", label: "USD" },
-              ]}
-              value={currency}
-              onChange={(v) => setCurrency(v)}
             />
           )}
           <Link

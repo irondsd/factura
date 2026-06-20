@@ -8,7 +8,7 @@ import { billRateDate, usdRateLookup } from "../fx";
 import { loadUserConfigs } from "../registry";
 import { protectedProcedure, router } from "../trpc";
 
-const currencyInput = z.enum(["ARS", "USD"]);
+type Currency = "ARS" | "USD";
 
 /** "YYYY-MM" list ending at `end`, length `n` (oldest → newest). */
 function monthList(end: string, n: number): string[] {
@@ -52,7 +52,7 @@ async function loadParsed(
   });
 }
 
-const amountIn = (b: EnrichedBill, currency: "ARS" | "USD") =>
+const amountIn = (b: EnrichedBill, currency: Currency) =>
   currency === "USD" ? b.usdAmount : b.totalAmount !== null ? Number(b.totalAmount) : null;
 
 type CustomVal = number | string | { value: number; unit?: string };
@@ -100,7 +100,7 @@ function vendorMeta(v: VendorRow) {
 function monthlySeries(
   months: string[],
   parsed: EnrichedBill[],
-  currency: "ARS" | "USD",
+  currency: Currency,
 ) {
   return months.map((m) => {
     const period = `${m}-01`;
@@ -147,17 +147,65 @@ function rebase(vals: (number | null)[]): (number | null)[] {
   return vals.map((v) => (v == null || !first ? null : (v / first) * 100));
 }
 
+type MonthSeries = ReturnType<typeof monthlySeries>;
+type VendorHere = ReturnType<typeof vendorMeta>;
+
+/** Vendor share over complete months, sorted high → low. */
+function shareList(series: MonthSeries, completeFlags: boolean[], vendors: VendorHere[]) {
+  const share: Record<string, number> = {};
+  series.forEach((s, i) => {
+    if (!completeFlags[i]) return;
+    for (const [vid, amt] of Object.entries(s.byVendor))
+      share[vid] = (share[vid] ?? 0) + amt;
+  });
+  return vendors
+    .filter((v) => share[v.id])
+    .map((v) => ({ vendorId: v.id, value: share[v.id] }))
+    .sort((a, b) => b.value - a.value);
+}
+
+/** Per-vendor 12-month line + % delta from first to last known value. */
+function perVendorTrend(series: MonthSeries, vendors: VendorHere[]) {
+  return vendors.map((v) => {
+    const values = series.map((s) => s.byVendor[v.id] ?? null);
+    const known = values.filter((x): x is number => x != null);
+    const first = known[0];
+    const lastV = known[known.length - 1];
+    const pct = first ? ((lastV - first) / first) * 100 : null;
+    return { vendor: v, values, last: lastV ?? null, pct };
+  });
+}
+
+/** Both-currency view of a month range: stacked series, share, per-vendor trend.
+ * Returned for both ARS and USD so each chart can toggle currency client-side
+ * without a refetch. */
+function currencyViews(
+  months: string[],
+  parsed: EnrichedBill[],
+  completeFlags: boolean[],
+  vendors: VendorHere[],
+) {
+  const build = (currency: Currency) => {
+    const series = monthlySeries(months, parsed, currency);
+    return {
+      series,
+      share: shareList(series, completeFlags, vendors),
+      perVendor: perVendorTrend(series, vendors),
+    };
+  };
+  return { ARS: build("ARS"), USD: build("USD") };
+}
+
 export const insightsRouter = router({
   /** Overview screen: this-month snapshot + last-12 trend + vendor share. */
   overview: protectedProcedure
     .input(
       z.object({
         propertyId: z.string().uuid().optional(),
-        currency: currencyInput.default("ARS"),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { propertyId, currency } = input;
+      const { propertyId } = input;
       const now = nowMonth();
       const parsed = await loadParsed(ctx.db, ctx.userId, propertyId);
       const accounts = await loadActiveAccounts(ctx.db, ctx.userId, propertyId);
@@ -200,16 +248,7 @@ export const insightsRouter = router({
       const thisMonthUsd = received.reduce((s, a) => s + (a.usd ?? 0), 0);
 
       const months = monthList(now, 12);
-      const series = monthlySeries(months, parsed, currency);
       const completeFlags = completeFlagsFor(months, parsed);
-
-      // Vendor share over complete months only.
-      const share: Record<string, number> = {};
-      series.forEach((s, i) => {
-        if (!completeFlags[i]) return;
-        for (const [vid, amt] of Object.entries(s.byVendor))
-          share[vid] = (share[vid] ?? 0) + amt;
-      });
 
       const presentVendorIds = new Set(
         parsed.map((b) => b.vendorId).filter((x): x is string => Boolean(x)),
@@ -218,15 +257,9 @@ export const insightsRouter = router({
         .filter((v) => presentVendorIds.has(v.id))
         .map(vendorMeta);
 
-      // Per-vendor 12-month sparkline + % delta.
-      const perVendor = vendorsHere.map((v) => {
-        const values = series.map((s) => s.byVendor[v.id] ?? null);
-        const known = values.filter((x): x is number => x != null);
-        const first = known[0];
-        const lastV = known[known.length - 1];
-        const pct = first ? ((lastV - first) / first) * 100 : null;
-        return { vendor: v, values, last: lastV ?? null, pct };
-      });
+      // Stacked series, vendor share and per-vendor trend in both currencies so
+      // each chart can switch ARS/USD client-side without a refetch.
+      const byCurrency = currencyViews(months, parsed, completeFlags, vendorsHere);
 
       return {
         property: property ? { id: property.id, nickname: property.nickname } : null,
@@ -237,14 +270,9 @@ export const insightsRouter = router({
         billsExpected: awaiting.length,
         awaiting,
         months,
-        series,
         completeFlags,
         vendors: vendorsHere,
-        share: vendorsHere
-          .filter((v) => share[v.id])
-          .map((v) => ({ vendorId: v.id, value: share[v.id] }))
-          .sort((a, b) => b.value - a.value),
-        perVendor,
+        byCurrency,
       };
     }),
 
@@ -253,12 +281,11 @@ export const insightsRouter = router({
     .input(
       z.object({
         propertyId: z.string().uuid().optional(),
-        currency: currencyInput.default("ARS"),
         range: z.union([z.literal(12), z.literal(24)]).default(12),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { propertyId, currency, range } = input;
+      const { propertyId, range } = input;
       const months = monthList(nowMonth(), range);
       const parsed = await loadParsed(ctx.db, ctx.userId, propertyId);
       const allVendors = await ctx.db.query.vendors.findMany({
@@ -266,22 +293,16 @@ export const insightsRouter = router({
       });
       const completeFlags = completeFlagsFor(months, parsed);
 
-      const series = monthlySeries(months, parsed, currency);
-      const arsSeries = monthlySeries(months, parsed, "ARS");
-      const usdSeries = monthlySeries(months, parsed, "USD");
       const arsIdx = rebase(
-        arsSeries.map((s, i) => (completeFlags[i] ? s.total : null)),
+        monthlySeries(months, parsed, "ARS").map((s, i) =>
+          completeFlags[i] ? s.total : null,
+        ),
       );
       const usdIdx = rebase(
-        usdSeries.map((s, i) => (completeFlags[i] ? s.total : null)),
+        monthlySeries(months, parsed, "USD").map((s, i) =>
+          completeFlags[i] ? s.total : null,
+        ),
       );
-
-      const share: Record<string, number> = {};
-      series.forEach((s, i) => {
-        if (!completeFlags[i]) return;
-        for (const [vid, amt] of Object.entries(s.byVendor))
-          share[vid] = (share[vid] ?? 0) + amt;
-      });
 
       const presentVendorIds = new Set(
         parsed.map((b) => b.vendorId).filter((x): x is string => Boolean(x)),
@@ -290,15 +311,13 @@ export const insightsRouter = router({
         .filter((v) => presentVendorIds.has(v.id))
         .map(vendorMeta);
 
+      const byCurrency = currencyViews(months, parsed, completeFlags, vendorsHere);
+
       return {
         months,
-        series,
         completeFlags,
         vendors: vendorsHere,
-        share: vendorsHere
-          .filter((v) => share[v.id])
-          .map((v) => ({ vendorId: v.id, value: share[v.id] }))
-          .sort((a, b) => b.value - a.value),
+        byCurrency,
         inflation: { arsIdx, usdIdx },
       };
     }),
@@ -313,12 +332,11 @@ export const insightsRouter = router({
       z.object({
         propertyId: z.string().uuid().optional(),
         vendorId: z.string().uuid(),
-        currency: currencyInput.default("ARS"),
         range: z.union([z.literal(12), z.literal(24)]).default(12),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { propertyId, vendorId, currency, range } = input;
+      const { propertyId, vendorId, range } = input;
       const months = monthList(nowMonth(), range);
       const vendor = await ctx.db.query.vendors.findFirst({
         where: and(eq(vendors.id, vendorId), eq(vendors.userId, ctx.userId)),
@@ -329,10 +347,12 @@ export const insightsRouter = router({
       );
       const byMonth = (m: string) => parsed.find((b) => b.period === `${m}-01`);
 
-      const spend = months.map((m) => {
-        const b = byMonth(m);
-        return b ? amountIn(b, currency) : null;
-      });
+      const spendIn = (currency: Currency) =>
+        months.map((m) => {
+          const b = byMonth(m);
+          return b ? amountIn(b, currency) : null;
+        });
+      const spend = { ARS: spendIn("ARS"), USD: spendIn("USD") };
 
       // Field metadata (type + unit) comes from the parser config(s) these bills
       // were produced by — a vendor may merge several parsers, so union them in
@@ -359,19 +379,23 @@ export const insightsRouter = router({
         )
         .map(([name, m]) => {
           const isMoney = m.type === "money";
+          // Native values: ARS pesos for money, raw unit for quantities/numbers.
           const values = months.map((mm) => {
             const b = byMonth(mm);
-            const raw = b ? readCustom(b, name) : null;
-            if (raw == null) return null;
-            // Money fields follow the selected currency; quantities/numbers are
-            // kept in their native unit.
-            if (isMoney && currency === "USD") {
-              return b!.totalAmount != null && b!.usdAmount != null
-                ? raw * (b!.usdAmount / Number(b!.totalAmount))
-                : null;
-            }
-            return raw;
+            return b ? readCustom(b, name) : null;
           });
+          // Money fields also get a USD-converted copy so the chart can toggle;
+          // quantity/number fields are currency-independent.
+          const valuesUsd = isMoney
+            ? months.map((mm, i) => {
+                const b = byMonth(mm);
+                const raw = values[i];
+                if (raw == null || !b) return null;
+                return b.totalAmount != null && b.usdAmount != null
+                  ? raw * (b.usdAmount / Number(b.totalAmount))
+                  : null;
+              })
+            : undefined;
 
           let unitPrice:
             | { arsIdx: (number | null)[]; usdIdx: (number | null)[] }
@@ -392,7 +416,7 @@ export const insightsRouter = router({
             unitPrice = { arsIdx: rebase(ars), usdIdx: rebase(usd) };
           }
 
-          return { name, type: m.type, unit: m.unit, isMoney, values, unitPrice };
+          return { name, type: m.type, unit: m.unit, isMoney, values, valuesUsd, unitPrice };
         });
 
       return { vendor: vendorMeta(vendor), months, spend, fields };
