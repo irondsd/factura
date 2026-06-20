@@ -1,17 +1,24 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import type { db as Db } from "@/db";
-import { bills, vendorAccounts } from "@/db/schema";
+import { bills } from "@/db/schema";
 import { runConfig, selectConfig } from "@/parsers/engine/evaluate";
 import type { ParserConfig } from "@/parsers/engine/types";
 import { normalize } from "@/parsers/normalize";
 import { ensureVendor } from "../defaults";
 import { billRateDate, usdRateLookup } from "../fx";
-import { ingestBill } from "../ingest";
 import {
-  assertOwnsProperty,
-  assertOwnsVendor,
+  fileBillIntoProperty,
+  findAccountMatch,
+  ingestBill,
+  vendorMetaExtra,
+  vendorMetaFromExtra,
+} from "../ingest";
+import {
+  accessibleProperties,
+  assertMember,
+  assertMemberVendor,
   RAW_TEXT_MAX,
 } from "../ownership";
 import { resultToColumns, resultToExtra } from "../parsers";
@@ -28,12 +35,40 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 type BillRow = typeof bills.$inferSelect;
 
+/** SQL predicate for the bills a user may see: any bill filed into an apartment
+ * they belong to, plus their own still-unfiled inbox uploads. */
+function billsScope(propertyIds: string[], userId: string) {
+  const inbox = and(isNull(bills.propertyId), eq(bills.createdBy, userId));
+  return propertyIds.length
+    ? or(inArray(bills.propertyId, propertyIds), inbox)
+    : inbox;
+}
+
+/** Load one bill if the caller can access it, else 404. */
+async function loadAccessibleBill(
+  db: typeof Db,
+  userId: string,
+  propertyIds: string[],
+  billId: string,
+): Promise<BillRow> {
+  const bill = await db.query.bills.findFirst({ where: eq(bills.id, billId) });
+  if (!bill) throw new TRPCError({ code: "NOT_FOUND" });
+  const ok = bill.propertyId
+    ? propertyIds.includes(bill.propertyId)
+    : bill.createdBy === userId;
+  if (!ok) throw new TRPCError({ code: "NOT_FOUND" });
+  return bill;
+}
+
 /** Re-run the user's parsers over one bill's stored raw text and write the
- * parsed fields back. Shared by the per-user bulk reparse and the per-bill
- * drawer actions. Returns true when the bill was updated. */
+ * parsed fields back. A matched account files the bill into its apartment; an
+ * already-filed bill keeps its apartment (vendor materialized there); an unfiled
+ * bill with no known account stays in the inbox with the vendor deferred.
+ * Returns true when the bill was updated. */
 async function reparseSingle(
   db: typeof Db,
   userId: string,
+  accessible: string[],
   bill: BillRow,
   configs: ParserConfig[],
 ): Promise<boolean> {
@@ -48,36 +83,59 @@ async function reparseSingle(
     return false;
   }
 
-  // Bills ingested before this preset existed have no vendor yet — resolve (and
-  // lazily create) it from the preset, exactly like ingest does.
-  const vendor = await ensureVendor(db, userId, config.vendor);
-  const account = await db.query.vendorAccounts.findFirst({
-    where: and(
-      eq(vendorAccounts.vendorId, vendor.id),
-      eq(vendorAccounts.accountNumber, result.identity),
-    ),
-  });
+  const common = {
+    ...resultToColumns(result),
+    parserKey: config.slug,
+    parserVersion: String(config.version),
+  };
 
+  const match = await findAccountMatch(
+    db,
+    accessible,
+    config.vendor.slug,
+    result.identity,
+  );
+  if (match) {
+    await db
+      .update(bills)
+      .set({
+        ...common,
+        vendorId: match.vendorId,
+        accountId: match.accountId,
+        propertyId: match.propertyId,
+        extra: resultToExtra(result),
+        status: "parsed",
+      })
+      .where(eq(bills.id, bill.id));
+    return true;
+  }
+
+  if (bill.propertyId) {
+    // Filed already, but no matching account row — keep it in its apartment and
+    // materialize the vendor there.
+    const vendor = await ensureVendor(db, bill.propertyId, config.vendor);
+    await db
+      .update(bills)
+      .set({
+        ...common,
+        vendorId: vendor.id,
+        extra: resultToExtra(result),
+        status: "parsed",
+      })
+      .where(eq(bills.id, bill.id));
+    return true;
+  }
+
+  // Inbox, unknown account: refresh fields, keep the vendor deferred.
   await db
     .update(bills)
     .set({
-      vendorId: vendor.id,
-      ...resultToColumns(result),
-      parserKey: config.slug,
-      parserVersion: String(config.version),
-      extra: { ...resultToExtra(result), parseError: undefined },
-      // Keep manual property assignment unless the account resolves.
-      ...(account
-        ? {
-            accountId: account.id,
-            propertyId: account.propertyId,
-            status: "parsed" as const,
-          }
-        : bill.propertyId
-          ? { status: "parsed" as const }
-          : {}),
+      ...common,
+      vendorId: null,
+      extra: { ...resultToExtra(result), ...vendorMetaExtra(config) },
+      status: "needs_review",
     })
-    .where(and(eq(bills.id, bill.id), eq(bills.userId, userId)));
+    .where(eq(bills.id, bill.id));
   return true;
 }
 
@@ -114,33 +172,37 @@ export const billsRouter = router({
         limit: z.number().int().min(1).max(200).default(50),
       }),
     )
-    .query(({ ctx, input }) =>
-      ctx.db.query.bills.findMany({
+    .query(async ({ ctx, input }) => {
+      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      if (input.propertyId && !ids.includes(input.propertyId)) return [];
+      const scope = input.propertyId
+        ? eq(bills.propertyId, input.propertyId)
+        : billsScope(ids, ctx.userId);
+      return ctx.db.query.bills.findMany({
         where: and(
-          eq(bills.userId, ctx.userId),
+          scope,
           input.status ? eq(bills.status, input.status) : undefined,
-          input.propertyId ? eq(bills.propertyId, input.propertyId) : undefined,
         ),
         orderBy: [desc(bills.createdAt)],
         limit: input.limit,
         columns: { rawText: false },
-      }),
-    ),
+      });
+    }),
 
   /** Distinct vendors that actually have bills (optionally for one property) —
    * drives the ledger's vendor filter tabs, independent of account rows. */
   vendorsPresent: protectedProcedure
     .input(z.object({ propertyId: z.string().uuid().optional() }))
     .query(async ({ ctx, input }) => {
+      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      if (input.propertyId && !ids.includes(input.propertyId)) return [];
+      const scope = input.propertyId
+        ? eq(bills.propertyId, input.propertyId)
+        : billsScope(ids, ctx.userId);
       const rows = await ctx.db
         .selectDistinct({ vendorId: bills.vendorId })
         .from(bills)
-        .where(
-          and(
-            eq(bills.userId, ctx.userId),
-            input.propertyId ? eq(bills.propertyId, input.propertyId) : undefined,
-          ),
-        );
+        .where(scope);
       return rows
         .map((r) => r.vendorId)
         .filter((id): id is string => id !== null);
@@ -158,10 +220,15 @@ export const billsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
+      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      if (input.propertyId && !ids.includes(input.propertyId))
+        return { rows: [], total: 0, page: 0, pageCount: 1 };
+      const scope = input.propertyId
+        ? eq(bills.propertyId, input.propertyId)
+        : billsScope(ids, ctx.userId);
       const rows = await ctx.db.query.bills.findMany({
         where: and(
-          eq(bills.userId, ctx.userId),
-          input.propertyId ? eq(bills.propertyId, input.propertyId) : undefined,
+          scope,
           input.vendorId ? eq(bills.vendorId, input.vendorId) : undefined,
         ),
         columns: { rawText: false },
@@ -199,10 +266,8 @@ export const billsRouter = router({
   get: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const bill = await ctx.db.query.bills.findFirst({
-        where: and(eq(bills.id, input.id), eq(bills.userId, ctx.userId)),
-      });
-      if (!bill) throw new TRPCError({ code: "NOT_FOUND" });
+      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const bill = await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
       const downloadUrl =
         bill.storageKey && isStorageConfigured()
           ? await presignDownload(bill.storageKey)
@@ -214,20 +279,17 @@ export const billsRouter = router({
         arsPct: number | null;
         usdPct: number | null;
       } | null = null;
-      if (bill.period && bill.vendorId) {
+      if (bill.period && bill.vendorId && bill.propertyId) {
         // `period` is a Postgres `date` column, so the comparison value must be
         // a full YYYY-MM-DD — `2023-03` would fail to cast and 500 the query.
         const [y, m, day] = bill.period.split("-");
         const prevPeriod = `${Number(y) - 1}-${m}-${day}`;
         const prev = await ctx.db.query.bills.findFirst({
           where: and(
-            eq(bills.userId, ctx.userId),
             eq(bills.status, "parsed"),
             eq(bills.vendorId, bill.vendorId),
+            eq(bills.propertyId, bill.propertyId),
             eq(bills.period, prevPeriod),
-            bill.propertyId
-              ? eq(bills.propertyId, bill.propertyId)
-              : undefined,
           ),
         });
         if (prev?.totalAmount && bill.totalAmount) {
@@ -257,7 +319,10 @@ export const billsRouter = router({
       return { ...bill, downloadUrl, yoy };
     }),
 
-  /** Manual fill from the editor drawer / review inbox. */
+  /** Manual fill from the editor drawer / review inbox. Assigning a property to
+   * a parsed-but-unfiled bill that carries a vendor identity also materializes
+   * its vendor + account, so the rest of that account's bills resolve on their
+   * own. */
   update: protectedProcedure
     .input(
       z.object({
@@ -270,63 +335,51 @@ export const billsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, totalAmount, ...rest } = input;
+      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const bill = await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
 
-      // Referenced vendor/property must belong to the caller, or a bill could be
-      // pointed at another user's catalog rows.
-      if (input.vendorId) await assertOwnsVendor(ctx.db, ctx.userId, input.vendorId);
+      // Filing is a member action; vendor must live in an accessible apartment.
       if (input.propertyId)
-        await assertOwnsProperty(ctx.db, ctx.userId, input.propertyId);
+        await assertMember(ctx.db, ctx.userId, input.propertyId);
+      if (input.vendorId)
+        await assertMemberVendor(ctx.db, ctx.userId, input.vendorId);
 
-      // Assigning a property to a parsed-but-unlinked bill should also create the
-      // vendor account, so the rest of that account's bills resolve on their own.
-      let accountId: string | undefined;
-      if (input.propertyId) {
-        const bill = await ctx.db.query.bills.findFirst({
-          where: and(eq(bills.id, id), eq(bills.userId, ctx.userId)),
-        });
-        const accountNumber = (bill?.extra as Record<string, unknown> | undefined)
-          ?.accountNumber as string | undefined;
-        if (bill && bill.vendorId && !bill.accountId && accountNumber) {
-          let account = await ctx.db.query.vendorAccounts.findFirst({
-            where: and(
-              eq(vendorAccounts.vendorId, bill.vendorId),
-              eq(vendorAccounts.accountNumber, accountNumber),
-            ),
-          });
-          if (!account) {
-            [account] = await ctx.db
-              .insert(vendorAccounts)
-              .values({
-                userId: ctx.userId,
-                vendorId: bill.vendorId,
-                propertyId: input.propertyId,
-                accountNumber,
-              })
-              .returning();
-          }
-          accountId = account.id;
-        }
+      const { id, totalAmount, vendorId, propertyId, ...rest } = input;
+
+      // Parsed/unknown-account bill being filed: materialize vendor + account
+      // from the identity the parser stashed on `extra`.
+      const extra = (bill.extra ?? {}) as Record<string, unknown>;
+      const meta = vendorMetaFromExtra(extra);
+      const accountNumber = extra.accountNumber as string | undefined;
+      if (propertyId && !bill.accountId && meta && accountNumber) {
+        await fileBillIntoProperty(
+          ctx.db,
+          bill.id,
+          propertyId,
+          meta,
+          accountNumber,
+        );
       }
 
       const [updated] = await ctx.db
         .update(bills)
         .set({
           ...rest,
-          ...(accountId ? { accountId } : {}),
+          ...(vendorId ? { vendorId } : {}),
+          ...(propertyId ? { propertyId } : {}),
           ...(totalAmount !== undefined
             ? { totalAmount: String(totalAmount) }
             : {}),
           status: "parsed",
         })
-        .where(and(eq(bills.id, id), eq(bills.userId, ctx.userId)))
+        .where(eq(bills.id, id))
         .returning();
       if (!updated) throw new TRPCError({ code: "NOT_FOUND" });
       return updated;
     }),
 
-  /** One-click answer to "new account NNN — which property?" Creates the
-   * account and finalizes the bill; the question is never asked again. */
+  /** One-click answer to "new account NNN — which property?" Materializes the
+   * apartment's vendor + account and finalizes the bill; never asked again. */
   confirmAccount: protectedProcedure
     .input(
       z.object({
@@ -336,56 +389,40 @@ export const billsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await assertOwnsProperty(ctx.db, ctx.userId, input.propertyId);
-      const bill = await ctx.db.query.bills.findFirst({
-        where: and(eq(bills.id, input.billId), eq(bills.userId, ctx.userId)),
-      });
-      if (!bill?.vendorId) throw new TRPCError({ code: "NOT_FOUND" });
-      const accountNumber = (bill.extra as Record<string, unknown>)
-        .accountNumber as string | undefined;
-      if (!accountNumber)
+      await assertMember(ctx.db, ctx.userId, input.propertyId);
+      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const bill = await loadAccessibleBill(
+        ctx.db,
+        ctx.userId,
+        ids,
+        input.billId,
+      );
+      const extra = (bill.extra ?? {}) as Record<string, unknown>;
+      const meta = vendorMetaFromExtra(extra);
+      const accountNumber = extra.accountNumber as string | undefined;
+      if (!meta || !accountNumber)
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Bill has no extracted account number",
         });
-
-      let account = await ctx.db.query.vendorAccounts.findFirst({
-        where: and(
-          eq(vendorAccounts.vendorId, bill.vendorId),
-          eq(vendorAccounts.accountNumber, accountNumber),
-        ),
-      });
-      if (!account) {
-        [account] = await ctx.db
-          .insert(vendorAccounts)
-          .values({
-            userId: ctx.userId,
-            vendorId: bill.vendorId,
-            propertyId: input.propertyId,
-            accountNumber,
-            label: input.label,
-          })
-          .returning();
-      }
-
-      const [updated] = await ctx.db
-        .update(bills)
-        .set({
-          accountId: account.id,
-          propertyId: account.propertyId,
-          status: "parsed",
-        })
-        .where(and(eq(bills.id, bill.id), eq(bills.userId, ctx.userId)))
-        .returning();
+      const { updated } = await fileBillIntoProperty(
+        ctx.db,
+        bill.id,
+        input.propertyId,
+        meta,
+        accountNumber,
+        input.label,
+      );
       return updated;
     }),
 
-  /** Re-run current parsers over stored raw text for every bill. Backfills new
-   * fields and rescues needs_review bills after parser improvements. */
+  /** Re-run current parsers over stored raw text for every accessible bill.
+   * Backfills new fields and rescues needs_review bills after parser changes. */
   reparse: protectedProcedure.mutation(async ({ ctx }) => {
     const configs = await loadUserConfigs(ctx.db, ctx.userId);
+    const ids = await accessibleProperties(ctx.db, ctx.userId);
     const all = await ctx.db.query.bills.findMany({
-      where: eq(bills.userId, ctx.userId),
+      where: billsScope(ids, ctx.userId),
     });
     let updated = 0;
     for (const bill of all) {
@@ -399,7 +436,7 @@ export const billsRouter = router({
       if (!isStale) continue;
       // One malformed bill must not abort the whole batch.
       try {
-        if (await reparseSingle(ctx.db, ctx.userId, bill, configs)) updated++;
+        if (await reparseSingle(ctx.db, ctx.userId, ids, bill, configs)) updated++;
       } catch {
         // leave it as-is; surfaced individually via the drawer's reparse
       }
@@ -411,12 +448,16 @@ export const billsRouter = router({
   reparseText: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const bill = await ctx.db.query.bills.findFirst({
-        where: and(eq(bills.id, input.id), eq(bills.userId, ctx.userId)),
-      });
-      if (!bill) throw new TRPCError({ code: "NOT_FOUND" });
+      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const bill = await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
       const configs = await loadUserConfigs(ctx.db, ctx.userId);
-      const updated = await reparseSingle(ctx.db, ctx.userId, bill, configs);
+      const updated = await reparseSingle(
+        ctx.db,
+        ctx.userId,
+        ids,
+        bill,
+        configs,
+      );
       return { updated };
     }),
 
@@ -427,18 +468,17 @@ export const billsRouter = router({
       z.object({ id: z.string().uuid(), rawText: z.string().min(20).max(RAW_TEXT_MAX) }),
     )
     .mutation(async ({ ctx, input }) => {
-      const bill = await ctx.db.query.bills.findFirst({
-        where: and(eq(bills.id, input.id), eq(bills.userId, ctx.userId)),
-      });
-      if (!bill) throw new TRPCError({ code: "NOT_FOUND" });
+      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const bill = await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
       await ctx.db
         .update(bills)
         .set({ rawText: input.rawText })
-        .where(and(eq(bills.id, bill.id), eq(bills.userId, ctx.userId)));
+        .where(eq(bills.id, bill.id));
       const configs = await loadUserConfigs(ctx.db, ctx.userId);
       const updated = await reparseSingle(
         ctx.db,
         ctx.userId,
+        ids,
         { ...bill, rawText: input.rawText },
         configs,
       );
@@ -448,9 +488,9 @@ export const billsRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .delete(bills)
-        .where(and(eq(bills.id, input.id), eq(bills.userId, ctx.userId)));
+      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
+      await ctx.db.delete(bills).where(eq(bills.id, input.id));
       return { ok: true };
     }),
 });

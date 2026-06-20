@@ -54,6 +54,7 @@ export default function OverviewPage() {
   const slices = donutShare.map((s) => {
     const v = vendorById.get(s.vendorId);
     return {
+      id: s.vendorId,
       label: v?.displayName ?? "—",
       value: s.value,
       color: v?.color ?? "var(--muted)",
@@ -196,7 +197,7 @@ export default function OverviewPage() {
             <DonutFx slices={slices} centerLabel={moneySym} centerSub="by vendor" />
             <div style={{ display: "flex", flexDirection: "column", gap: 9, flex: 1 }}>
               {slices.map((s) => (
-                <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
                   <span style={{ width: 10, height: 10, background: s.color, display: "inline-block", flex: "none" }} />
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, flex: 1 }}>{s.label}</span>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 500 }}>
@@ -223,7 +224,7 @@ export default function OverviewPage() {
             height={210}
           />
           <Legend
-            items={d.vendors.map((v) => ({ label: v.displayName, color: v.color }))}
+            items={d.vendors.map((v) => ({ id: v.id, label: v.displayName, color: v.color }))}
             style={{ marginTop: 12 }}
           />
         </ChartCard>

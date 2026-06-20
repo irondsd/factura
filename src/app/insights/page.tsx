@@ -146,7 +146,7 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
   const shareTotal = donutShare.reduce((a, s) => a + s.value, 0) || 1;
   const slices = donutShare.map((s) => {
     const v = vendorById.get(s.vendorId);
-    return { label: v?.displayName ?? "—", value: s.value, color: v?.color ?? "var(--muted)" };
+    return { id: s.vendorId, label: v?.displayName ?? "—", value: s.value, color: v?.color ?? "var(--muted)" };
   });
 
   return (
@@ -160,7 +160,7 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
           completeFlags={data.completeFlags}
           height={230}
         />
-        <Legend items={data.vendors.map((v) => ({ label: v.displayName, color: v.color }))} style={{ marginTop: 12 }} />
+        <Legend items={data.vendors.map((v) => ({ id: v.id, label: v.displayName, color: v.color }))} style={{ marginTop: 12 }} />
       </ChartCard>
 
       <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(360px, 1.5fr)", gap: 16, alignItems: "start" }}>
@@ -169,7 +169,7 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
             <DonutFx slices={slices} centerLabel={donut.currency === "USD" ? "US$" : "AR$"} centerSub="total" />
             <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
               {slices.map((s) => (
-                <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ width: 10, height: 10, background: s.color, display: "inline-block" }} />
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, flex: 1 }}>{s.label}</span>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 500 }}>

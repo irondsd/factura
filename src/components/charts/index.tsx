@@ -284,7 +284,9 @@ export function DonutFx({
   centerLabel,
   centerSub,
 }: {
-  slices: { label: string; value: number; color: string }[];
+  // `id` keeps Cell keys unique when slices share a label (same vendor name in
+  // different apartments); falls back to label otherwise.
+  slices: { label: string; value: number; color: string; id?: string }[];
   size?: number;
   thickness?: number;
   centerLabel?: string;
@@ -308,7 +310,7 @@ export function DonutFx({
         isAnimationActive={false}
       >
         {slices.map((s) => (
-          <Cell key={s.label} fill={s.color} />
+          <Cell key={s.id ?? s.label} fill={s.color} />
         ))}
         {centerLabel && (
           <Label

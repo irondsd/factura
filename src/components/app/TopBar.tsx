@@ -11,7 +11,7 @@ const NAV = [
   { href: "/", label: "Overview" },
   { href: "/insights", label: "Insights" },
   { href: "/bills", label: "Bills" },
-  { href: "/profile", label: "Profile" },
+  { href: "/apartments", label: "Apartments" },
 ];
 
 export function TopBar({ user }: { user: Session["user"] }) {
@@ -19,7 +19,8 @@ export function TopBar({ user }: { user: Session["user"] }) {
   const { propertyId, setPropertyId } = useApp();
   const properties = trpc.properties.list.useQuery();
 
-  const onProfile = pathname === "/profile";
+  // The apartment switcher is meaningless on the management pages.
+  const onProfile = pathname === "/profile" || pathname === "/apartments";
   const propValue = propertyId ?? "all";
   const propOptions = [
     { value: "all", label: "All" },

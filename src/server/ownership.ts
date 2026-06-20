@@ -1,37 +1,67 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import type { db as Db } from "@/db";
-import { properties, vendors } from "@/db/schema";
+import { propertyMembers, vendors } from "@/db/schema";
+import { OWNED_APARTMENT_LIMIT } from "@/lib/limits";
+
+export { OWNED_APARTMENT_LIMIT };
 
 /** Max accepted length of extracted bill text (~50 pages). Caps a single
  * client-supplied blob so one upload can't exhaust storage or stall the
  * synchronous parser. Shared by every procedure that accepts `rawText`. */
 export const RAW_TEXT_MAX = 200_000;
 
-/** Throw unless `id` names a property owned by `userId`. Use before writing a
- * client-supplied propertyId onto another row, so a bill/account can't be
- * pointed at a property the caller doesn't own. */
-export async function assertOwnsProperty(
+/** The property ids the user can access — every apartment they own or were
+ * invited into. The basis for all domain scoping: queries filter
+ * `propertyId IN (these)` instead of the old per-user `userId` match. */
+export async function accessibleProperties(
   db: typeof Db,
   userId: string,
-  id: string,
-): Promise<void> {
-  const row = await db.query.properties.findFirst({
-    where: and(eq(properties.id, id), eq(properties.userId, userId)),
-    columns: { id: true },
+): Promise<string[]> {
+  const rows = await db.query.propertyMembers.findMany({
+    where: eq(propertyMembers.userId, userId),
+    columns: { propertyId: true },
   });
-  if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Property not found" });
+  return rows.map((r) => r.propertyId);
 }
 
-/** Throw unless `id` names a vendor owned by `userId`. */
-export async function assertOwnsVendor(
+/** Throw unless `userId` is a member of `propertyId`; when `requiredRole` is
+ * "owner", also require the owner role. Returns the membership row. Use before
+ * any read or write scoped to a single apartment. */
+export async function assertMember(
   db: typeof Db,
   userId: string,
-  id: string,
-): Promise<void> {
-  const row = await db.query.vendors.findFirst({
-    where: and(eq(vendors.id, id), eq(vendors.userId, userId)),
-    columns: { id: true },
+  propertyId: string,
+  requiredRole?: "owner",
+): Promise<typeof propertyMembers.$inferSelect> {
+  const row = await db.query.propertyMembers.findFirst({
+    where: and(
+      eq(propertyMembers.propertyId, propertyId),
+      eq(propertyMembers.userId, userId),
+    ),
   });
-  if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Vendor not found" });
+  if (!row)
+    throw new TRPCError({ code: "NOT_FOUND", message: "Apartment not found" });
+  if (requiredRole === "owner" && row.role !== "owner")
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only the apartment owner can do that",
+    });
+  return row;
+}
+
+/** Throw unless `vendorId` belongs to an apartment the caller can access. Use
+ * before pointing a bill at a client-supplied vendor. */
+export async function assertMemberVendor(
+  db: typeof Db,
+  userId: string,
+  vendorId: string,
+): Promise<void> {
+  const vendor = await db.query.vendors.findFirst({
+    where: eq(vendors.id, vendorId),
+    columns: { propertyId: true },
+  });
+  if (!vendor)
+    throw new TRPCError({ code: "NOT_FOUND", message: "Vendor not found" });
+  await assertMember(db, userId, vendor.propertyId);
 }

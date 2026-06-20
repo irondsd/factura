@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -24,6 +25,8 @@ export const vendorCategory = pgEnum("vendor_category", [
 ]);
 
 export const billStatus = pgEnum("bill_status", ["parsed", "needs_review"]);
+
+export const memberRole = pgEnum("member_role", ["owner", "member"]);
 
 // ── Auth.js (NextAuth) tables ───────────────────────────────────────────────
 // Column *property* names (id, emailVerified, userId, …) must match what the
@@ -77,6 +80,8 @@ export const verificationTokens = pgTable(
 );
 
 // ── Domain tables ───────────────────────────────────────────────────────────
+// A property (apartment) is the unit of sharing. `userId` is the original
+// creator (informational); access is governed entirely by `propertyMembers`.
 export const properties = pgTable("properties", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
@@ -87,24 +92,64 @@ export const properties = pgTable("properties", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const vendors = pgTable("vendors", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id),
-  slug: text("slug").notNull(),
-  displayName: text("display_name").notNull(),
-  category: vendorCategory("category").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+/** Who can access an apartment and at what level. The owner is just a row with
+ * role='owner'. This is the single source of truth for authorization — every
+ * domain query scopes to the set of properties the caller is a member of. */
+export const propertyMembers = pgTable(
+  "property_members",
+  {
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: memberRole("role").notNull().default("member"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.propertyId, t.userId] })],
+);
+
+/** Pending invitations, claimed when the invitee next signs in with a matching
+ * Google email (no token needed — email match is the claim). Row present =
+ * pending; deleted on accept or revoke. */
+export const propertyInvites = pgTable(
+  "property_invites",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    role: memberRole("role").notNull().default("member"),
+    invitedBy: uuid("invited_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("property_invite_email_idx").on(t.propertyId, t.email)],
+);
+
+// Vendors belong to an apartment (per-apartment display name/colour), not a user.
+export const vendors = pgTable(
+  "vendors",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    displayName: text("display_name").notNull(),
+    category: vendorCategory("category").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("vendor_property_slug_idx").on(t.propertyId, t.slug)],
+);
 
 export const vendorAccounts = pgTable(
   "vendor_accounts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id),
     vendorId: uuid("vendor_id")
       .notNull()
       .references(() => vendors.id),
@@ -131,7 +176,9 @@ export const bills = pgTable(
   "bills",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    // Who uploaded the bill. Access is by property membership, not this column;
+    // an unfiled bill (propertyId null) is visible only to its creator's inbox.
+    createdBy: uuid("created_by")
       .notNull()
       .references(() => users.id),
     accountId: uuid("account_id").references(() => vendorAccounts.id),
@@ -152,7 +199,16 @@ export const bills = pgTable(
     extra: jsonb("extra").notNull().default({}),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("bill_text_hash_idx").on(t.userId, t.textHash)],
+  // Dedup is per-apartment once a bill is filed (either member re-uploading the
+  // same bill collapses), and per-uploader while it sits unfiled in the inbox.
+  (t) => [
+    uniqueIndex("bill_property_text_hash_idx")
+      .on(t.propertyId, t.textHash)
+      .where(sql`${t.propertyId} is not null`),
+    uniqueIndex("bill_inbox_text_hash_idx")
+      .on(t.createdBy, t.textHash)
+      .where(sql`${t.propertyId} is null`),
+  ],
 );
 
 /** A parser "package": one owner's mutable working copy (`body` = the engine

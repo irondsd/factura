@@ -48,7 +48,15 @@ export function BillDrawer({
     { id: billId! },
     { enabled: Boolean(billId) },
   );
-  const vendors = trpc.vendors.list.useQuery();
+  const [closing, setClosing] = useState(false);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [syncedId, setSyncedId] = useState<string | null>(null);
+
+  // Vendors belong to an apartment, so scope the picker to the bill's chosen
+  // property (all accessible vendors until one is chosen).
+  const vendors = trpc.vendors.list.useQuery(
+    draft?.propertyId ? { propertyId: draft.propertyId } : undefined,
+  );
   const properties = trpc.properties.list.useQuery();
   const parsers = trpc.parsers.list.useQuery();
 
@@ -56,10 +64,6 @@ export function BillDrawer({
   const deleteBill = trpc.bills.delete.useMutation();
   const reparseText = trpc.bills.reparseText.useMutation();
   const reparseFile = trpc.bills.reparseFile.useMutation();
-
-  const [closing, setClosing] = useState(false);
-  const [draft, setDraft] = useState<Draft | null>(null);
-  const [syncedId, setSyncedId] = useState<string | null>(null);
 
   const bill = billQuery.data;
 
@@ -87,6 +91,9 @@ export function BillDrawer({
   const vendor = vendors.data?.find((v) => v.id === bill?.vendorId);
   const review = bill?.status === "needs_review";
   const extra = (bill?.extra ?? {}) as Record<string, unknown>;
+  // Unfiled bills have no vendor row yet — the parser stashed the name on extra.
+  const vendorLabel =
+    vendor?.displayName ?? (extra.vendorName as string | undefined) ?? "Unrecognized";
   const parseError = extra.parseError as string | undefined;
   const customFields = (extra.fields ?? {}) as Record<string, unknown>;
 
@@ -238,7 +245,7 @@ export function BillDrawer({
                     letterSpacing: "-0.01em",
                   }}
                 >
-                  {vendor ? vendor.displayName : "Unrecognized"}
+                  {vendorLabel}
                   {bill.period ? " · " + formatMonth(bill.period) : ""}
                 </h2>
                 <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", margin: "4px 0 0" }}>

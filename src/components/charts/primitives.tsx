@@ -265,14 +265,16 @@ export function Legend({
   items,
   style,
 }: {
-  items: { label: string; color: string }[];
+  // `id` makes the key unique when two entries share a label (e.g. the same
+  // vendor name across different apartments); falls back to label otherwise.
+  items: { label: string; color: string; id?: string }[];
   style?: CSSProperties;
 }) {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 18px", ...style }}>
       {items.map((it) => (
         <span
-          key={it.label}
+          key={it.id ?? it.label}
           style={{
             display: "inline-flex",
             alignItems: "center",

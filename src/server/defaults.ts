@@ -1,29 +1,37 @@
 import { and, eq } from "drizzle-orm";
 import type { db as Db } from "@/db";
-import { parserConfigs, parserVersions, vendors } from "@/db/schema";
+import {
+  parserConfigs,
+  parserVersions,
+  properties,
+  propertyMembers,
+  vendors,
+} from "@/db/schema";
 import { ENGINE_CONFIGS } from "@/parsers/engine/configs";
 import { rowToConfig } from "./parsers";
 import { ensureSystemUser } from "./registry";
 
 type VendorRow = typeof vendors.$inferSelect;
+type PropertyRow = typeof properties.$inferSelect;
 type Category = (typeof vendors.category.enumValues)[number];
 
-/** Get the user's vendor for a slug, creating it from preset metadata if it
- * doesn't exist yet. Lets new presets attach bills without a separate setup
- * step. Idempotent. */
+/** Get an apartment's vendor for a slug, creating it from preset metadata if it
+ * doesn't exist yet. Vendors belong to a property, so this is the single point
+ * where a bill being *filed* into an apartment materializes its vendor row.
+ * Idempotent per (propertyId, slug). */
 export async function ensureVendor(
   db: typeof Db,
-  userId: string,
+  propertyId: string,
   vendor: { slug: string; displayName: string; category: string },
 ): Promise<VendorRow> {
   const existing = await db.query.vendors.findFirst({
-    where: and(eq(vendors.userId, userId), eq(vendors.slug, vendor.slug)),
+    where: and(eq(vendors.propertyId, propertyId), eq(vendors.slug, vendor.slug)),
   });
   if (existing) return existing;
   const [created] = await db
     .insert(vendors)
     .values({
-      userId,
+      propertyId,
       slug: vendor.slug,
       displayName: vendor.displayName,
       category: vendor.category as Category,
@@ -32,14 +40,13 @@ export async function ensureVendor(
   return created;
 }
 
-/** Seed a freshly-created user with one vendor per distinct verified-preset
- * vendor, so the Profile page has something to show immediately. Only verified
- * (official) packages are used — these are the ones the user auto-adopts on
- * sign-up. Presets created later are back-filled lazily by ensureVendor on first
- * matching bill. Idempotent. */
-export async function seedUserVendors(
+/** Seed a freshly-created apartment with one vendor per distinct verified-preset
+ * vendor, so its vendor list and account assignment work immediately. Presets
+ * created later are back-filled lazily by ensureVendor on first matching bill.
+ * Idempotent. */
+export async function seedPropertyVendors(
   db: typeof Db,
-  userId: string,
+  propertyId: string,
 ): Promise<void> {
   const configs = await db.query.parserConfigs.findMany({
     where: eq(parserConfigs.verified, true),
@@ -48,12 +55,32 @@ export async function seedUserVendors(
   for (const c of configs) {
     if (seen.has(c.vendorSlug)) continue;
     seen.add(c.vendorSlug);
-    await ensureVendor(db, userId, {
+    await ensureVendor(db, propertyId, {
       slug: c.vendorSlug,
       displayName: c.displayName,
       category: c.category,
     });
   }
+}
+
+/** Create an apartment owned by `userId`: the property row, the owner
+ * membership, and its seeded vendors. Shared by sign-up (the default "Home")
+ * and the apartments page. */
+export async function createApartmentForUser(
+  db: typeof Db,
+  userId: string,
+  nickname: string,
+  addressVariants: string[] = [],
+): Promise<PropertyRow> {
+  const [property] = await db
+    .insert(properties)
+    .values({ userId, nickname, addressVariants })
+    .returning();
+  await db
+    .insert(propertyMembers)
+    .values({ propertyId: property.id, userId, role: "owner" });
+  await seedPropertyVendors(db, property.id);
+  return property;
 }
 
 /** Seed the official parser set from the built-in engine configs: owned by the

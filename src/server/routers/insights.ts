@@ -1,12 +1,25 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { db as Db } from "@/db";
 import { bills, properties, vendorAccounts, vendors } from "@/db/schema";
 import { vendorColor } from "@/lib/vendorColors";
 import type { FieldType } from "@/parsers/engine/types";
 import { billRateDate, usdRateLookup } from "../fx";
+import { accessibleProperties } from "../ownership";
 import { loadUserConfigs } from "../registry";
 import { protectedProcedure, router } from "../trpc";
+
+/** Resolve the property ids an insights query should cover: a single requested
+ * apartment (when the caller is a member) or all the caller's apartments. */
+async function resolveScope(
+  db: typeof Db,
+  userId: string,
+  propertyId?: string,
+): Promise<string[]> {
+  const accessible = await accessibleProperties(db, userId);
+  if (propertyId) return accessible.includes(propertyId) ? [propertyId] : [];
+  return accessible;
+}
 
 type Currency = "ARS" | "USD";
 
@@ -27,17 +40,16 @@ function nowMonth(): string {
 
 type EnrichedBill = typeof bills.$inferSelect & { usdAmount: number | null };
 
-/** All parsed bills for the user (optionally one property), USD-enriched. */
+/** All parsed bills across the given apartments, USD-enriched. */
 async function loadParsed(
   db: typeof Db,
-  userId: string,
-  propertyId?: string,
+  scopeIds: string[],
 ): Promise<EnrichedBill[]> {
+  if (scopeIds.length === 0) return [];
   const rows = await db.query.bills.findMany({
     where: and(
-      eq(bills.userId, userId),
+      inArray(bills.propertyId, scopeIds),
       eq(bills.status, "parsed"),
-      propertyId ? eq(bills.propertyId, propertyId) : undefined,
     ),
     columns: { rawText: false },
   });
@@ -71,17 +83,21 @@ function readCustom(b: EnrichedBill, name: string): number | null {
 }
 
 /** Active accounts for the scope (drives expected/awaiting + completeness). */
-async function loadActiveAccounts(
-  db: typeof Db,
-  userId: string,
-  propertyId?: string,
-) {
+async function loadActiveAccounts(db: typeof Db, scopeIds: string[]) {
+  if (scopeIds.length === 0) return [];
   return db.query.vendorAccounts.findMany({
     where: and(
-      eq(vendorAccounts.userId, userId),
+      inArray(vendorAccounts.propertyId, scopeIds),
       eq(vendorAccounts.active, true),
-      propertyId ? eq(vendorAccounts.propertyId, propertyId) : undefined,
     ),
+  });
+}
+
+/** Vendors across the given apartments. */
+async function loadVendors(db: typeof Db, scopeIds: string[]) {
+  if (scopeIds.length === 0) return [];
+  return db.query.vendors.findMany({
+    where: inArray(vendors.propertyId, scopeIds),
   });
 }
 
@@ -207,20 +223,17 @@ export const insightsRouter = router({
     .query(async ({ ctx, input }) => {
       const { propertyId } = input;
       const now = nowMonth();
-      const parsed = await loadParsed(ctx.db, ctx.userId, propertyId);
-      const accounts = await loadActiveAccounts(ctx.db, ctx.userId, propertyId);
-      const allVendors = await ctx.db.query.vendors.findMany({
-        where: eq(vendors.userId, ctx.userId),
-      });
+      const scopeIds = await resolveScope(ctx.db, ctx.userId, propertyId);
+      const parsed = await loadParsed(ctx.db, scopeIds);
+      const accounts = await loadActiveAccounts(ctx.db, scopeIds);
+      const allVendors = await loadVendors(ctx.db, scopeIds);
       const vendorById = new Map(allVendors.map((v) => [v.id, v]));
-      const property = propertyId
-        ? await ctx.db.query.properties.findFirst({
-            where: and(
-              eq(properties.id, propertyId),
-              eq(properties.userId, ctx.userId),
-            ),
-          })
-        : null;
+      const property =
+        propertyId && scopeIds.length
+          ? await ctx.db.query.properties.findFirst({
+              where: eq(properties.id, propertyId),
+            })
+          : null;
 
       // Awaiting model: each active account either has a bill this month, or
       // we show its last received bill (calm, not "missing").
@@ -287,10 +300,9 @@ export const insightsRouter = router({
     .query(async ({ ctx, input }) => {
       const { propertyId, range } = input;
       const months = monthList(nowMonth(), range);
-      const parsed = await loadParsed(ctx.db, ctx.userId, propertyId);
-      const allVendors = await ctx.db.query.vendors.findMany({
-        where: eq(vendors.userId, ctx.userId),
-      });
+      const scopeIds = await resolveScope(ctx.db, ctx.userId, propertyId);
+      const parsed = await loadParsed(ctx.db, scopeIds);
+      const allVendors = await loadVendors(ctx.db, scopeIds);
       const completeFlags = completeFlagsFor(months, parsed);
 
       const arsIdx = rebase(
@@ -338,11 +350,13 @@ export const insightsRouter = router({
     .query(async ({ ctx, input }) => {
       const { propertyId, vendorId, range } = input;
       const months = monthList(nowMonth(), range);
+      const scopeIds = await resolveScope(ctx.db, ctx.userId, propertyId);
       const vendor = await ctx.db.query.vendors.findFirst({
-        where: and(eq(vendors.id, vendorId), eq(vendors.userId, ctx.userId)),
+        where: eq(vendors.id, vendorId),
       });
-      if (!vendor) return null;
-      const parsed = (await loadParsed(ctx.db, ctx.userId, propertyId)).filter(
+      // Vendor must live in one of the apartments in scope.
+      if (!vendor || !scopeIds.includes(vendor.propertyId)) return null;
+      const parsed = (await loadParsed(ctx.db, scopeIds)).filter(
         (b) => b.vendorId === vendorId,
       );
       const byMonth = (m: string) => parsed.find((b) => b.period === `${m}-01`);

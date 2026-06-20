@@ -292,7 +292,7 @@ export const parsersRouter = router({
     .query(async ({ ctx, input }) => {
       const probe = { detect: input.detect } as ParserConfig;
       const userBills = await ctx.db.query.bills.findMany({
-        where: eq(bills.userId, ctx.userId),
+        where: eq(bills.createdBy, ctx.userId),
         orderBy: [desc(bills.createdAt)],
       });
       const collisions: { id: string; fileName: string | null; parserKey: string | null }[] =
@@ -317,7 +317,7 @@ export const parsersRouter = router({
       const [row] = await ctx.db
         .select({ n: count() })
         .from(bills)
-        .where(and(eq(bills.userId, ctx.userId), eq(bills.parserKey, input.slug)));
+        .where(and(eq(bills.createdBy, ctx.userId), eq(bills.parserKey, input.slug)));
       return { count: row?.n ?? 0 };
     }),
 
