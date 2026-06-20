@@ -12,6 +12,7 @@ function asStoredRow(config: (typeof ENGINE_CONFIGS)[number]) {
   const { slug, version, vendor, ...body } = config;
   return {
     id: "00000000-0000-0000-0000-000000000000",
+    ownerId: "00000000-0000-0000-0000-000000000000",
     slug,
     version,
     vendorSlug: vendor.slug,
@@ -19,6 +20,7 @@ function asStoredRow(config: (typeof ENGINE_CONFIGS)[number]) {
     category: vendor.category as never,
     // Round-trip through JSON to mimic the jsonb column exactly.
     body: JSON.parse(JSON.stringify(body)),
+    verified: true,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

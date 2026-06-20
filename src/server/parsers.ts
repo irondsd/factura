@@ -1,4 +1,3 @@
-import type { db as Db } from "@/db";
 import { parserConfigs } from "@/db/schema";
 import type { ParsedResult, ParserConfig } from "@/parsers/engine/types";
 
@@ -18,13 +17,6 @@ export function rowToConfig(row: ParserConfigRow): ParserConfig {
     },
     ...(row.body as object),
   } as ParserConfig;
-}
-
-/** Load and compile every preset. Cheap enough to call per request; can be
- * cached later if the table grows large. */
-export async function loadParserConfigs(db: typeof Db): Promise<ParserConfig[]> {
-  const rows = await db.query.parserConfigs.findMany();
-  return rows.map(rowToConfig);
 }
 
 /** Bridge the engine's flexible result to the bills table's typed columns. Only

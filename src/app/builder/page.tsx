@@ -677,6 +677,9 @@ function Builder() {
 
   const [mode, setMode] = useState<"simple" | "advanced">("simple");
   const [existingId, setExistingId] = useState<string | null>(null);
+  // False when the loaded parser is adopted/official (not owned): saving forks
+  // it into a new owned copy rather than editing the original (which would 404).
+  const [editingOwn, setEditingOwn] = useState(true);
   const [slug, setSlug] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [vendorSlug, setVendorSlug] = useState("");
@@ -702,12 +705,23 @@ function Builder() {
       (billQuery.data?.parserKey &&
         presets.data.find((p) => p.slug === billQuery.data!.parserKey));
     if (preset) {
-      setExistingId(preset.id);
+      // Only an owned parser is edited in place; an adopted/official one is
+      // forked on save, so leave existingId null and flag it.
+      if (preset.editable) setExistingId(preset.id);
+      else setEditingOwn(false);
       setSlug(preset.slug);
       setDisplayName(preset.displayName);
       setVendorSlug(preset.vendorSlug);
       setCategory(preset.category as Category);
-      const body = preset.body as Body;
+      // Adopted rows carry a full ParserConfig in `body` (slug/vendor/version
+      // included); own rows carry just the definition. Strip the metadata so
+      // both normalize to a definition Body.
+      const { slug: _bs, vendor: _bv, version: _bvn, ...bodyRest } =
+        preset.body as Record<string, unknown>;
+      void _bs;
+      void _bv;
+      void _bvn;
+      const body = bodyRest as Body;
       setSigs(
         body.detect?.allOf?.length
           ? body.detect.allOf.map((s) => ({ pattern: s.pattern, flags: s.flags ?? "" }))
@@ -910,18 +924,20 @@ function Builder() {
       definition: assembled.body,
     };
     try {
-      // Upsert by slug: a previous attempt may have saved the preset before a
-      // later step failed, so "create" would wrongly hit a slug conflict.
+      // Upsert by slug, but only against parsers you OWN: a previous attempt may
+      // have saved before a later step failed (avoid a false slug conflict),
+      // while an adopted parser with the same slug must be forked, not updated.
       let id = existingId;
       if (!id) {
         const list = await utils.parsers.list.fetch();
-        id = list.find((p) => p.slug === slug)?.id ?? null;
+        id = list.find((p) => p.slug === slug && p.editable)?.id ?? null;
       }
       if (id) {
         await updateParser.mutateAsync({ ...input, id });
       } else {
         const created = await createParser.mutateAsync(input);
         setExistingId(created.id);
+        setEditingOwn(true);
       }
       const res = await reparse.mutateAsync();
       showToast(`Parser saved · reparsed ${res.updated} bill(s)`);
@@ -1217,7 +1233,7 @@ function Builder() {
           {/* finish */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <Button variant="solid" size="lg" disabled={!canFinish || createParser.isPending || updateParser.isPending || reparse.isPending} onClick={finish}>
-              {existingId ? "Save & reparse" : "Finish"}
+              {!editingOwn ? "Fork & save" : existingId ? "Save & reparse" : "Finish"}
             </Button>
             {slug && usage.data && usage.data.count > 0 && (
               <span style={hint}>

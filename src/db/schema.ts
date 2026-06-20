@@ -155,22 +155,77 @@ export const bills = pgTable(
   (t) => [uniqueIndex("bill_text_hash_idx").on(t.userId, t.textHash)],
 );
 
-/** App-wide parser presets (the config-driven engine). Not user-scoped: every
- * user shares the same presets, and anyone signed in can create/edit/delete
- * them for now. `body` holds the engine definition (detect/captures/compute/
- * validations/roles/custom); `bills.parserKey` references `slug` and `version`
- * drives reparse. */
-export const parserConfigs = pgTable("parser_configs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  slug: text("slug").notNull().unique(),
-  version: integer("version").notNull().default(1),
-  vendorSlug: text("vendor_slug").notNull(),
-  displayName: text("display_name").notNull(),
-  category: vendorCategory("category").notNull(),
-  body: jsonb("body").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+/** A parser "package": one owner's mutable working copy (`body` = the engine
+ * definition draft) plus its identity. Detection is no longer global — a user
+ * only ever runs their OWN packages plus the published versions they've adopted
+ * (see `parserAdoptions`), so a careless or hostile package can't affect anyone
+ * who hasn't deliberately adopted it. Only the owner may edit. `verified` marks
+ * the maintainer-owned official set that every new user auto-adopts. `version`
+ * is a monotonic draft revision (bumped on every edit) that drives the owner's
+ * own reparse; published snapshots live in `parserVersions`. */
+export const parserConfigs = pgTable(
+  "parser_configs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    version: integer("version").notNull().default(1),
+    vendorSlug: text("vendor_slug").notNull(),
+    displayName: text("display_name").notNull(),
+    category: vendorCategory("category").notNull(),
+    body: jsonb("body").notNull(),
+    verified: boolean("verified").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  // Slugs are namespaced per owner: two users may each have an "edesur" (e.g. a
+  // fork). `bills.parserKey` stays unambiguous because a user can't adopt two
+  // packages with the same slug (enforced in adoptPackage).
+  (t) => [uniqueIndex("parser_config_owner_slug_idx").on(t.ownerId, t.slug)],
+);
+
+/** Immutable published snapshot of a package. Publishing freezes the owner's
+ * current draft (full engine ParserConfig incl. metadata) into `config` so
+ * adopters keep running exactly what they pinned even after the owner keeps
+ * editing or unpublishes. `version` mirrors the package's draft revision at
+ * publish time, so a newer publish always has a higher number — that's what
+ * makes an adopter's upgrade reparse their bills. */
+export const parserVersions = pgTable(
+  "parser_versions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    configId: uuid("config_id")
+      .notNull()
+      .references(() => parserConfigs.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    config: jsonb("config").notNull(),
+    publishedAt: timestamp("published_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("parser_version_config_idx").on(t.configId, t.version)],
+);
+
+/** Which published version each user runs for a given package. Adoption is the
+ * opt-in boundary: a package only enters a user's detection set once they adopt
+ * it. The pinned `versionId` never changes silently — upgrading is an explicit
+ * re-adopt of a newer version. */
+export const parserAdoptions = pgTable(
+  "parser_adoptions",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    configId: uuid("config_id")
+      .notNull()
+      .references(() => parserConfigs.id, { onDelete: "cascade" }),
+    versionId: uuid("version_id")
+      .notNull()
+      .references(() => parserVersions.id, { onDelete: "cascade" }),
+    adoptedAt: timestamp("adopted_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.configId] })],
+);
 
 /** Bills the user has attached to a parser preset (by slug) as regression
  * samples in the builder — re-tested when the parser is later edited. Per-user

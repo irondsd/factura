@@ -9,6 +9,7 @@ import {
   verificationTokens,
 } from "@/db/schema";
 import { seedUserVendors } from "./defaults";
+import { adoptVerifiedDefaults } from "./registry";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db, {
@@ -27,10 +28,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   events: {
-    // First sign-in: give the new account the default Buenos Aires vendors so
-    // the Profile page and parsers have something to attach bills to.
+    // First sign-in: give the new account the default Buenos Aires vendors and
+    // auto-adopt the verified official parsers, so the Profile page has vendors
+    // and uploads detect common bills without any setup.
     async createUser({ user }) {
-      if (user.id) await seedUserVendors(db, user.id);
+      if (user.id) {
+        await seedUserVendors(db, user.id);
+        await adoptVerifiedDefaults(db, user.id);
+      }
     },
   },
 });

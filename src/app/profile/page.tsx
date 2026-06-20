@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { type CSSProperties, useState } from "react";
 import { useApp } from "@/components/app/context";
@@ -9,6 +10,7 @@ import { vendorColor } from "@/lib/vendorColors";
 import { trpc } from "@/lib/trpc";
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { data: session } = useSession();
   const { showToast } = useApp();
   const utils = trpc.useUtils();
@@ -252,6 +254,18 @@ export default function ProfilePage() {
           </div>
         ))}
       </div>
+
+      {/* parsers — link out to the dedicated library (power-user surface) */}
+      <h2 style={sectionTitle}>
+        <Eyebrow>Parsers</Eyebrow>
+      </h2>
+      <p style={help}>
+        Parsers turn bill PDFs into structured data. Manage your own, publish
+        them, or adopt others&apos; — most people never need to touch this.
+      </p>
+      <Button variant="outline" onClick={() => router.push("/parsers")}>
+        Manage parsers →
+      </Button>
     </div>
   );
 }

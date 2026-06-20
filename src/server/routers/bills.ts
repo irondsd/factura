@@ -9,7 +9,13 @@ import { normalize } from "@/parsers/normalize";
 import { ensureVendor } from "../defaults";
 import { billRateDate, usdRateLookup } from "../fx";
 import { ingestBill } from "../ingest";
-import { loadParserConfigs, resultToColumns, resultToExtra } from "../parsers";
+import {
+  assertOwnsProperty,
+  assertOwnsVendor,
+  RAW_TEXT_MAX,
+} from "../ownership";
+import { resultToColumns, resultToExtra } from "../parsers";
+import { loadUserConfigs } from "../registry";
 import {
   isStorageConfigured,
   presignDownload,
@@ -22,9 +28,9 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 type BillRow = typeof bills.$inferSelect;
 
-/** Re-run current parsers over one bill's stored raw text and write the parsed
- * fields back. Shared by the global reparse and the per-bill drawer actions.
- * Returns true when the bill was updated. */
+/** Re-run the user's parsers over one bill's stored raw text and write the
+ * parsed fields back. Shared by the per-user bulk reparse and the per-bill
+ * drawer actions. Returns true when the bill was updated. */
 async function reparseSingle(
   db: typeof Db,
   userId: string,
@@ -88,11 +94,17 @@ export const billsRouter = router({
     .input(
       z.object({
         fileName: z.string(),
-        rawText: z.string().min(20),
+        rawText: z.string().min(20).max(RAW_TEXT_MAX),
         storageKey: z.string().optional(),
       }),
     )
-    .mutation(({ ctx, input }) => ingestBill(ctx.db, ctx.userId, input)),
+    .mutation(({ ctx, input }) => {
+      // A client-supplied storageKey must live in the caller's own namespace,
+      // or `get` could later presign a download of another user's object.
+      if (input.storageKey && !input.storageKey.startsWith(`bills/${ctx.userId}/`))
+        throw new TRPCError({ code: "FORBIDDEN" });
+      return ingestBill(ctx.db, ctx.userId, input);
+    }),
 
   list: protectedProcedure
     .input(
@@ -260,6 +272,12 @@ export const billsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { id, totalAmount, ...rest } = input;
 
+      // Referenced vendor/property must belong to the caller, or a bill could be
+      // pointed at another user's catalog rows.
+      if (input.vendorId) await assertOwnsVendor(ctx.db, ctx.userId, input.vendorId);
+      if (input.propertyId)
+        await assertOwnsProperty(ctx.db, ctx.userId, input.propertyId);
+
       // Assigning a property to a parsed-but-unlinked bill should also create the
       // vendor account, so the rest of that account's bills resolve on their own.
       let accountId: string | undefined;
@@ -318,6 +336,7 @@ export const billsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertOwnsProperty(ctx.db, ctx.userId, input.propertyId);
       const bill = await ctx.db.query.bills.findFirst({
         where: and(eq(bills.id, input.billId), eq(bills.userId, ctx.userId)),
       });
@@ -356,7 +375,7 @@ export const billsRouter = router({
           propertyId: account.propertyId,
           status: "parsed",
         })
-        .where(eq(bills.id, bill.id))
+        .where(and(eq(bills.id, bill.id), eq(bills.userId, ctx.userId)))
         .returning();
       return updated;
     }),
@@ -364,7 +383,7 @@ export const billsRouter = router({
   /** Re-run current parsers over stored raw text for every bill. Backfills new
    * fields and rescues needs_review bills after parser improvements. */
   reparse: protectedProcedure.mutation(async ({ ctx }) => {
-    const configs = await loadParserConfigs(ctx.db);
+    const configs = await loadUserConfigs(ctx.db, ctx.userId);
     const all = await ctx.db.query.bills.findMany({
       where: eq(bills.userId, ctx.userId),
     });
@@ -396,7 +415,7 @@ export const billsRouter = router({
         where: and(eq(bills.id, input.id), eq(bills.userId, ctx.userId)),
       });
       if (!bill) throw new TRPCError({ code: "NOT_FOUND" });
-      const configs = await loadParserConfigs(ctx.db);
+      const configs = await loadUserConfigs(ctx.db, ctx.userId);
       const updated = await reparseSingle(ctx.db, ctx.userId, bill, configs);
       return { updated };
     }),
@@ -404,7 +423,9 @@ export const billsRouter = router({
   /** Drawer "From the file" path: the client re-extracts text from the stored
    * PDF (pdf.js), we replace the stored text and re-run the parser. */
   reparseFile: protectedProcedure
-    .input(z.object({ id: z.string().uuid(), rawText: z.string().min(20) }))
+    .input(
+      z.object({ id: z.string().uuid(), rawText: z.string().min(20).max(RAW_TEXT_MAX) }),
+    )
     .mutation(async ({ ctx, input }) => {
       const bill = await ctx.db.query.bills.findFirst({
         where: and(eq(bills.id, input.id), eq(bills.userId, ctx.userId)),
@@ -414,7 +435,7 @@ export const billsRouter = router({
         .update(bills)
         .set({ rawText: input.rawText })
         .where(and(eq(bills.id, bill.id), eq(bills.userId, ctx.userId)));
-      const configs = await loadParserConfigs(ctx.db);
+      const configs = await loadUserConfigs(ctx.db, ctx.userId);
       const updated = await reparseSingle(
         ctx.db,
         ctx.userId,

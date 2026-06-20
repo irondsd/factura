@@ -9,6 +9,7 @@
     "lint": "eslint",
     "db:push": "dotenv -e .env.local drizzle-kit push",
     "db:seed": "dotenv -e .env.local tsx src/db/seed.ts",
+    "db:migrate-parser-owners": "dotenv -e .env.local tsx src/db/migrate-parser-owners.ts",
     "db:studio": "dotenv -e .env.local drizzle-kit studio",
     "test": "vitest run"
   },

@@ -5,7 +5,7 @@ import { bills, properties, vendorAccounts, vendors } from "@/db/schema";
 import { vendorColor } from "@/lib/vendorColors";
 import type { FieldType } from "@/parsers/engine/types";
 import { billRateDate, usdRateLookup } from "../fx";
-import { loadParserConfigs } from "../parsers";
+import { loadUserConfigs } from "../registry";
 import { protectedProcedure, router } from "../trpc";
 
 const currencyInput = z.enum(["ARS", "USD"]);
@@ -337,7 +337,7 @@ export const insightsRouter = router({
       // Field metadata (type + unit) comes from the parser config(s) these bills
       // were produced by — a vendor may merge several parsers, so union them in
       // first-seen order.
-      const configs = await loadParserConfigs(ctx.db);
+      const configs = await loadUserConfigs(ctx.db, ctx.userId);
       const slugs = new Set(
         parsed.map((b) => b.parserKey).filter((s): s is string => Boolean(s)),
       );

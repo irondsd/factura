@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { properties, vendorAccounts, vendors } from "@/db/schema";
+import { assertOwnsProperty, assertOwnsVendor } from "../ownership";
 import { protectedProcedure, router } from "../trpc";
 
 export const propertiesRouter = router({
@@ -109,6 +110,8 @@ export const accountsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertOwnsVendor(ctx.db, ctx.userId, input.vendorId);
+      await assertOwnsProperty(ctx.db, ctx.userId, input.propertyId);
       const [created] = await ctx.db
         .insert(vendorAccounts)
         .values({ ...input, userId: ctx.userId })
@@ -127,6 +130,8 @@ export const accountsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...rest } = input;
+      if (input.propertyId)
+        await assertOwnsProperty(ctx.db, ctx.userId, input.propertyId);
       const [updated] = await ctx.db
         .update(vendorAccounts)
         .set(rest)

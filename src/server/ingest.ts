@@ -6,7 +6,8 @@ import { runConfig, selectConfig } from "@/parsers/engine/evaluate";
 import { ParseError } from "@/parsers/engine/types";
 import { normalize } from "@/parsers/normalize";
 import { ensureVendor } from "./defaults";
-import { loadParserConfigs, resultToColumns, resultToExtra } from "./parsers";
+import { resultToColumns, resultToExtra } from "./parsers";
+import { loadUserConfigs } from "./registry";
 
 export type IngestResult =
   | { outcome: "duplicate"; billId: string }
@@ -69,7 +70,8 @@ export async function ingestBill(
   if (existing) return { outcome: "duplicate", billId: existing.id };
 
   const text = normalize(input.rawText);
-  const configs = await loadParserConfigs(db);
+  // Only the user's own + adopted parsers — never the global pool.
+  const configs = await loadUserConfigs(db, userId);
   const config = selectConfig(configs, text);
 
   const base = {
