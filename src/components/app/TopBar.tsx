@@ -11,7 +11,6 @@ const NAV = [
   { href: "/", label: "Overview" },
   { href: "/insights", label: "Insights" },
   { href: "/bills", label: "Bills" },
-  { href: "/apartments", label: "Apartments" },
 ];
 
 export function TopBar({ user }: { user: Session["user"] }) {
