@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import {
   Bar,
   BarChart,
@@ -11,10 +12,11 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { formatMonthShort } from "@/lib/format";
+import { formatMonth, formatMonthShort, formatMoney } from "@/lib/format";
 
 export * from "./primitives";
 
@@ -31,6 +33,118 @@ function abbrev(v: number, currency: string): string {
   if (v >= 1_000_000) return "$" + (v / 1_000_000).toFixed(1) + "M";
   if (v >= 1000) return "$" + Math.round(v / 1000) + "k";
   return "$" + Math.round(v);
+}
+
+/** Exact value for tooltips — money for ARS/USD, plain rounded for index/unit lenses. */
+function formatExact(v: number, currency: string): string {
+  if (currency === "IDX" || currency === "UNIT") return String(Math.round(v));
+  return formatMoney(v, currency === "USD" ? "USD" : "ARS");
+}
+
+const tooltipBox: CSSProperties = {
+  background: "var(--card)",
+  border: "1px solid var(--line)",
+  padding: "8px 10px",
+  fontFamily: "var(--font-mono)",
+  fontSize: 11,
+  color: "var(--ink)",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+};
+
+const tooltipHeader: CSSProperties = {
+  textTransform: "uppercase",
+  letterSpacing: "0.14em",
+  color: "var(--muted)",
+  marginBottom: 6,
+};
+
+type TipPayload = {
+  name?: string | number;
+  value?: number | string | readonly (string | number)[];
+  color?: string;
+  dataKey?: string | number | ((obj: unknown) => unknown);
+};
+
+/** Stacked-bar tooltip: every vendor's exact amount for the hovered month + total. */
+function StackTooltip({
+  active,
+  payload,
+  label,
+  currency,
+  vendorNames,
+}: {
+  active?: boolean;
+  payload?: readonly TipPayload[];
+  label?: string | number;
+  currency: string;
+  vendorNames: Record<string, string>;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const rows = payload.filter((p) => Number(p.value) > 0);
+  if (rows.length === 0) return null;
+  const total = rows.reduce((a, p) => a + Number(p.value), 0);
+  return (
+    <div style={tooltipBox}>
+      <div style={tooltipHeader}>{typeof label === "string" ? formatMonth(label) : ""}</div>
+      {rows.map((p) => (
+        <div
+          key={String(p.dataKey)}
+          style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}
+        >
+          <span style={{ width: 8, height: 8, background: p.color, display: "inline-block", flexShrink: 0 }} />
+          <span style={{ flex: 1, color: "var(--muted)" }}>
+            {vendorNames[String(p.dataKey)] ?? String(p.dataKey)}
+          </span>
+          <span style={{ fontWeight: 500 }}>{formatExact(Number(p.value), currency)}</span>
+        </div>
+      ))}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 16,
+          marginTop: 7,
+          paddingTop: 6,
+          borderTop: "1px solid var(--line)",
+        }}
+      >
+        <span style={{ color: "var(--muted)" }}>Total</span>
+        <span style={{ fontWeight: 600 }}>{formatExact(total, currency)}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Single/multi-series line tooltip: exact value per series for the hovered month. */
+function LineTooltip({
+  active,
+  payload,
+  label,
+  currency,
+}: {
+  active?: boolean;
+  payload?: readonly TipPayload[];
+  label?: string | number;
+  currency: string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const rows = payload.filter((p) => p.value != null);
+  if (rows.length === 0) return null;
+  return (
+    <div style={tooltipBox}>
+      <div style={tooltipHeader}>{typeof label === "string" ? formatMonth(label) : ""}</div>
+      {rows.map((p) => (
+        <div
+          key={String(p.dataKey)}
+          style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3 }}
+        >
+          <span style={{ width: 8, height: 8, background: p.color, display: "inline-block", flexShrink: 0 }} />
+          <span style={{ flex: 1, color: "var(--muted)" }}>{String(p.name)}</span>
+          <span style={{ fontWeight: 500 }}>{formatExact(Number(p.value), currency)}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 type LineSeries = {
@@ -77,6 +191,11 @@ export function LineChartFx({
           tickLine={false}
           tickFormatter={(v: number) => abbrev(v, currency)}
         />
+        <Tooltip
+          cursor={{ stroke: AXIS, strokeDasharray: "3 3" }}
+          isAnimationActive={false}
+          content={(props) => <LineTooltip {...props} currency={currency} />}
+        />
         {series.map((s) => (
           <Line
             key={s.label}
@@ -106,12 +225,15 @@ export function StackedBarsFx({
 }: {
   months: string[];
   stacks: Record<string, number>[];
-  vendors: { id: string; color: string }[];
+  vendors: { id: string; color: string; displayName?: string }[];
   currency?: string;
   completeFlags?: boolean[];
   height?: number;
 }) {
   const data = months.map((m, i) => ({ month: m, ...stacks[i] }));
+  const vendorNames = Object.fromEntries(
+    vendors.map((v) => [v.id, v.displayName ?? v.id]),
+  );
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -131,6 +253,13 @@ export function StackedBarsFx({
           axisLine={false}
           tickLine={false}
           tickFormatter={(v: number) => abbrev(v, currency)}
+        />
+        <Tooltip
+          cursor={{ fill: "var(--line)", fillOpacity: 0.3 }}
+          isAnimationActive={false}
+          content={(props) => (
+            <StackTooltip {...props} currency={currency} vendorNames={vendorNames} />
+          )}
         />
         {vendors.map((v) => (
           <Bar key={v.id} dataKey={v.id} stackId="a" fill={v.color} isAnimationActive={false}>
