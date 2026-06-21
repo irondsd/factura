@@ -121,6 +121,9 @@ export function BillDrawer({
     if (!bill) return;
     const params = new URLSearchParams({ bill: bill.id });
     if (bill.parserKey) params.set("parser", bill.parserKey);
+    // The drawer lives in the app shell and survives the route change, so close
+    // it explicitly instead of leaving it open over the builder page.
+    close();
     router.push(`/builder?${params.toString()}`);
   };
 
@@ -291,7 +294,7 @@ export function BillDrawer({
             )}
 
             {/* editable fields */}
-            <div style={{ padding: "20px 24px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div className="fx-stack-sm" style={{ padding: "20px 24px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <label style={field}>
                 <span style={flabel}>Vendor</span>
                 <Select value={draft.vendorId} onChange={(e) => setDraft({ ...draft, vendorId: e.target.value })}>

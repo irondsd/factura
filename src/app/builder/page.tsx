@@ -962,7 +962,7 @@ function Builder() {
         </Button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 0.9fr) minmax(0, 1.1fr)", gap: 24, marginTop: 22 }}>
+      <div className="fx-stack-sm" style={{ display: "grid", gridTemplateColumns: "minmax(0, 0.9fr) minmax(0, 1.1fr)", gap: 24, marginTop: 22 }}>
         {/* ── Left: the bill text + test bills ── */}
         <div>
           <Label>Bill text</Label>
@@ -1527,7 +1527,7 @@ function Section({ title, children, dim }: { title: string; children: React.Reac
 }
 
 function Grid({ children }: { children: React.ReactNode }) {
-  return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{children}</div>;
+  return <div className="fx-stack-sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{children}</div>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

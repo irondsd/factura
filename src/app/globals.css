@@ -161,6 +161,50 @@ body {
   border-color: var(--accent) !important;
 }
 
+/* ── Responsive: mobile adaptations ───────────────────────────────────────────
+   These leave the desktop layout untouched and only kick in at ≤768px. The
+   screens are inline-styled, so the media query overrides the inline grid/flex
+   values with !important. */
+
+/* Desktop nav + controls: flex on desktop, hidden on mobile (see media query). */
+.fx-desktop-only {
+  display: flex;
+}
+
+/* Shown only on mobile (burger button + its menu); hidden on desktop. */
+.fx-mobile-only {
+  display: none;
+}
+
+/* Horizontal-scroll wrapper for tables too wide to shrink on phones. */
+.fx-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  /* Collapse multi-column chart / field grids into a single stack. */
+  .fx-stack-sm {
+    grid-template-columns: 1fr !important;
+  }
+  /* Let donut + legend rows wrap rather than crushing the chart. */
+  .fx-wrap-sm {
+    flex-wrap: wrap !important;
+  }
+  /* Header: hide the inline nav + controls, reveal the burger and its menu. */
+  .fx-desktop-only {
+    display: none !important;
+  }
+  .fx-mobile-only {
+    display: flex !important;
+  }
+}
+
+.fx-burger:hover {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
 @keyframes fd-toast-in {
   from {
     opacity: 0;

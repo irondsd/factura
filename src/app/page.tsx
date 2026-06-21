@@ -180,6 +180,7 @@ export default function OverviewPage() {
 
       {/* where the money goes + trend */}
       <div
+        className="fx-stack-sm"
         style={{
           marginTop: 28,
           display: "grid",
@@ -193,7 +194,7 @@ export default function OverviewPage() {
           caption="Last 12 complete months"
           action={donut.toggle}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <div className="fx-wrap-sm" style={{ display: "flex", alignItems: "center", gap: 18 }}>
             <DonutFx slices={slices} centerLabel={moneySym} centerSub="by vendor" />
             <div style={{ display: "flex", flexDirection: "column", gap: 9, flex: 1 }}>
               {slices.map((s) => (

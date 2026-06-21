@@ -163,9 +163,9 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
         <Legend items={data.vendors.map((v) => ({ id: v.id, label: v.displayName, color: v.color }))} style={{ marginTop: 12 }} />
       </ChartCard>
 
-      <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(360px, 1.5fr)", gap: 16, alignItems: "start" }}>
+      <div className="fx-stack-sm" style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(360px, 1.5fr)", gap: 16, alignItems: "start" }}>
         <ChartCard title="Vendor share" caption="Where it goes, in range" action={donut.toggle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div className="fx-wrap-sm" style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <DonutFx slices={slices} centerLabel={donut.currency === "USD" ? "US$" : "AR$"} centerSub="total" />
             <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
               {slices.map((s) => (
@@ -298,6 +298,7 @@ function CustomFieldCharts({
 
   return (
     <div
+      className="fx-stack-sm"
       style={{
         marginTop: 16,
         display: "grid",

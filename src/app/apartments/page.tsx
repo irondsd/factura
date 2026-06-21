@@ -6,7 +6,7 @@ import { useApp } from "@/components/app/context";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Button, Checkbox, Input } from "@/components/ui";
 import { OWNED_APARTMENT_LIMIT } from "@/lib/limits";
-import { vendorColor } from "@/lib/vendorColors";
+import { FALLBACK_COLOR, vendorColorMap } from "@/lib/vendorColors";
 import { trpc } from "@/lib/trpc";
 
 export default function ApartmentsPage() {
@@ -17,6 +17,10 @@ export default function ApartmentsPage() {
   const apartments = trpc.properties.list.useQuery();
   const vendors = trpc.vendors.list.useQuery();
   const accounts = trpc.accounts.list.useQuery();
+  const vendorColors = useMemo(
+    () => vendorColorMap(vendors.data ?? []),
+    [vendors.data],
+  );
 
   const invalidate = () => utils.invalidate();
   const toastErr = (err: { message: string }) => showToast(`✕ ${err.message}`);
@@ -232,10 +236,10 @@ export default function ApartmentsPage() {
             {aptVendors.length > 0 && (
               <>
                 <p style={subhead}>Vendors</p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div className="fx-stack-sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   {aptVendors.map((v) => (
                     <div key={v.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ width: 9, height: 9, background: vendorColor(v), flex: "none" }} />
+                      <span style={{ width: 9, height: 9, background: vendorColors.get(v.id) ?? FALLBACK_COLOR, flex: "none" }} />
                       <Input
                         defaultValue={v.displayName}
                         onBlur={(e) => {

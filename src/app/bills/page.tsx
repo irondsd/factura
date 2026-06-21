@@ -5,7 +5,7 @@ import { useApp } from "@/components/app/context";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Badge } from "@/components/ui";
 import { formatARS, formatMonthShort, formatUSD } from "@/lib/format";
-import { vendorColor } from "@/lib/vendorColors";
+import { FALLBACK_COLOR, vendorColorMap } from "@/lib/vendorColors";
 import { trpc } from "@/lib/trpc";
 
 export default function BillsPage() {
@@ -40,6 +40,10 @@ export default function BillsPage() {
 
   const vendorById = useMemo(
     () => new Map((vendors.data ?? []).map((v) => [v.id, v])),
+    [vendors.data],
+  );
+  const vendorColors = useMemo(
+    () => vendorColorMap(vendors.data ?? []),
     [vendors.data],
   );
   const vendorName = (id: string | null) =>
@@ -91,14 +95,15 @@ export default function BillsPage() {
           <FilterTab
             key={v.id}
             label={v.displayName}
-            color={vendorColor(v)}
+            color={vendorColors.get(v.id) ?? FALLBACK_COLOR}
             active={vendorId === v.id}
             onClick={() => setVendorId(v.id)}
           />
         ))}
       </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 16 }}>
+      <div className="fx-scroll-x" style={{ marginTop: 16 }}>
+      <table style={{ width: "100%", minWidth: 440, borderCollapse: "collapse" }}>
         <thead>
           <tr>
             <th style={th}>Period</th>
@@ -126,7 +131,7 @@ export default function BillsPage() {
                         style={{
                           width: 8,
                           height: 8,
-                          background: vendorColor(vendorById.get(b.vendorId)!),
+                          background: vendorColors.get(b.vendorId) ?? FALLBACK_COLOR,
                           display: "inline-block",
                         }}
                       />
@@ -154,6 +159,7 @@ export default function BillsPage() {
           )}
         </tbody>
       </table>
+      </div>
 
       {/* pagination */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 18 }}>
