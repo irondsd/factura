@@ -2,19 +2,31 @@
 
 import type {
   ButtonHTMLAttributes,
-  CSSProperties,
   InputHTMLAttributes,
   ReactNode,
   SelectHTMLAttributes,
 } from "react";
+import { cn } from "@/lib/cn";
 
 // Factura's design-system primitives — square corners, mono uppercase labels,
 // hairline borders, one accent. Ported from the design bundle.
 
+const BTN_BASE =
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none border border-transparent font-mono text-micro uppercase tracking-label leading-none cursor-pointer transition-colors";
+const BTN_SIZES: Record<string, string> = {
+  sm: "py-1.5 px-2.5",
+  md: "py-2 px-3",
+  lg: "py-2.5 px-4 text-xs",
+};
+const BTN_VARIANTS: Record<string, string> = {
+  solid: "bg-ink text-paper border-ink",
+  outline: "bg-transparent text-ink border-line hover:border-accent hover:text-accent",
+  ghost: "bg-transparent text-muted hover:text-accent",
+};
+
 export function Button({
   variant = "outline",
   size = "md",
-  style,
   className,
   children,
   ...props
@@ -22,90 +34,33 @@ export function Button({
   variant?: "solid" | "outline" | "ghost";
   size?: "sm" | "md" | "lg";
 }) {
-  const base: CSSProperties = {
-    fontFamily: "var(--font-mono)",
-    textTransform: "uppercase",
-    letterSpacing: "var(--tracking-label)",
-    fontSize: "var(--text-micro)",
-    lineHeight: 1,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "var(--space-2)",
-    cursor: "pointer",
-    borderRadius: 0,
-    border: "1px solid transparent",
-    transition: "var(--transition-colors)",
-    whiteSpace: "nowrap",
-  };
-  const sizes: Record<string, CSSProperties> = {
-    sm: { padding: "6px 10px" },
-    md: { padding: "8px 12px" },
-    lg: { padding: "10px 16px", fontSize: "var(--text-xs)" },
-  };
-  const variants: Record<string, CSSProperties> = {
-    solid: {
-      background: "var(--ink)",
-      color: "var(--paper)",
-      borderColor: "var(--ink)",
-    },
-    outline: {
-      background: "transparent",
-      color: "var(--ink)",
-      borderColor: "var(--line)",
-    },
-    ghost: { background: "transparent", color: "var(--muted)" },
-  };
   return (
     <button
       {...props}
-      className={`fd-btn fd-btn--${variant} ${className ?? ""}`}
-      style={{ ...base, ...sizes[size], ...variants[variant], ...style }}
+      className={cn(BTN_BASE, BTN_SIZES[size], BTN_VARIANTS[variant], className)}
     >
       {children}
     </button>
   );
 }
 
-const fieldBase: CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: "var(--text-sm)",
-  color: "var(--ink)",
-  background: "var(--paper)",
-  border: "1px solid var(--line)",
-  borderRadius: 0,
-  padding: "8px 12px",
-  outline: "none",
-  transition: "var(--transition-colors)",
-  boxSizing: "border-box",
-};
+const FIELD_BASE =
+  "font-mono text-sm text-ink bg-paper border border-line rounded-none py-2 px-3 outline-none transition-colors box-border focus:border-accent";
 
 export function Input({
-  style,
   className,
   ...props
 }: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className={`fd-input ${className ?? ""}`}
-      style={{ ...fieldBase, width: "100%", ...style }}
-    />
-  );
+  return <input {...props} className={cn(FIELD_BASE, "w-full", className)} />;
 }
 
 export function Select({
-  style,
   className,
   children,
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select
-      {...props}
-      className={`fd-input fd-select ${className ?? ""}`}
-      style={{ ...fieldBase, cursor: "pointer", ...style }}
-    >
+    <select {...props} className={cn(FIELD_BASE, "cursor-pointer", className)}>
       {children}
     </select>
   );
@@ -113,26 +68,20 @@ export function Select({
 
 export function Checkbox({
   label,
-  style,
+  className,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { label?: ReactNode }) {
   return (
     <label
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "var(--space-2)",
-        fontFamily: "var(--font-mono)",
-        fontSize: "var(--text-xs)",
-        color: "var(--ink)",
-        cursor: "pointer",
-        ...style,
-      }}
+      className={cn(
+        "inline-flex items-center gap-2 font-mono text-xs text-ink cursor-pointer",
+        className,
+      )}
     >
       <input
         type="checkbox"
         {...props}
-        style={{ accentColor: "var(--accent)", width: 14, height: 14, cursor: "pointer" }}
+        className="h-3.5 w-3.5 cursor-pointer accent-accent"
       />
       {label}
     </label>
@@ -142,28 +91,19 @@ export function Checkbox({
 export function Badge({
   tone = "accent",
   children,
-  style,
+  className,
 }: {
   tone?: "accent" | "neutral";
   children: ReactNode;
-  style?: CSSProperties;
+  className?: string;
 }) {
-  const color = tone === "neutral" ? "var(--muted)" : "var(--accent)";
-  const border = tone === "neutral" ? "var(--line)" : "var(--accent)";
   return (
     <span
-      style={{
-        display: "inline-block",
-        fontFamily: "var(--font-mono)",
-        fontSize: 10,
-        textTransform: "uppercase",
-        letterSpacing: "var(--tracking-label)",
-        color,
-        border: `1px solid ${border}`,
-        padding: "2px 6px",
-        lineHeight: 1.2,
-        ...style,
-      }}
+      className={cn(
+        "inline-block font-mono text-[10px] uppercase tracking-label border py-0.5 px-1.5 leading-[1.2]",
+        tone === "neutral" ? "text-muted border-line" : "text-accent border-accent",
+        className,
+      )}
     >
       {children}
     </span>

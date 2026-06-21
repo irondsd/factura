@@ -14,7 +14,7 @@ export function BurgerButton({
       aria-label={open ? "Close menu" : "Open menu"}
       aria-expanded={open}
       onClick={onToggle}
-      className={`fx-mobile-only ${styles.button}`}
+      className={`flex md:hidden ${styles.button}`}
     >
       <svg
         className={styles.icon}

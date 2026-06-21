@@ -14,6 +14,7 @@ import type {
   TransformOp,
 } from "@/parsers/engine/types";
 import { normalize } from "@/parsers/normalize";
+import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 
 const CATEGORIES = [
@@ -638,11 +639,7 @@ function HighlightedText({ text, spans }: { text: string; spans: Span[] }) {
       <mark
         key={i}
         title={s.key}
-        style={{
-          background: "color-mix(in srgb, var(--accent) 26%, transparent)",
-          color: "var(--ink)",
-          padding: "0 1px",
-        }}
+        className="bg-[color-mix(in_srgb,var(--accent)_26%,transparent)] text-ink px-px"
       >
         {text.slice(s.start, s.end)}
       </mark>,
@@ -949,11 +946,11 @@ function Builder() {
   };
 
   return (
-    <div style={{ maxWidth: "80rem", margin: "0 auto", padding: "28px 20px 80px" }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+    <div className="mx-auto max-w-[80rem] px-5 pt-7 pb-20">
+      <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <div>
           <Eyebrow>Parser builder {existingId ? "· editing" : "· new"}</Eyebrow>
-          <Display size={30} style={{ display: "block", marginTop: 6 }}>
+          <Display size={30} className="block mt-1.5">
             {displayName || "Untitled parser"}
           </Display>
         </div>
@@ -962,17 +959,17 @@ function Builder() {
         </Button>
       </div>
 
-      <div className="fx-stack-sm" style={{ display: "grid", gridTemplateColumns: "minmax(0, 0.9fr) minmax(0, 1.1fr)", gap: 24, marginTop: 22 }}>
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-6 mt-[22px]">
         {/* ── Left: the bill text + test bills ── */}
         <div>
           <Label>Bill text</Label>
           {bills.length > 1 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
+            <div className="flex flex-wrap gap-1 mb-2">
               {bills.map((b, i) => (
                 <button
                   key={i}
                   onClick={() => setActiveIdx(i)}
-                  style={tabStyle(i === activeIdx)}
+                  className={tabClass(i === activeIdx)}
                   title={b.name}
                 >
                   {b.name.length > 18 ? `${b.name.slice(0, 16)}…` : b.name}
@@ -980,30 +977,16 @@ function Builder() {
               ))}
             </div>
           )}
-          <pre
-            className="ruled"
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 12,
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              margin: 0,
-              background: "var(--paper)",
-              border: "1px solid var(--line)",
-              padding: "10px 12px",
-              height: "58vh",
-              overflowY: "auto",
-            }}
-          >
+          <pre className="ruled font-mono text-xs whitespace-pre-wrap break-words bg-paper border border-line py-2.5 px-3 h-[58vh] overflow-y-auto">
             {activeText ? <HighlightedText text={activeText} spans={spans} /> : "Drop a PDF to start."}
           </pre>
 
           <DropZone onFiles={dropFiles} />
 
           {slug && (
-            <div style={{ marginTop: 12 }}>
+            <div className="mt-3">
               <Label>Saved samples ({samples.data?.length ?? 0})</Label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <div className="flex flex-wrap gap-1.5">
                 {(samples.data ?? []).map((s) => (
                   <button
                     key={s.id}
@@ -1014,7 +997,7 @@ function Builder() {
                         return next;
                       })
                     }
-                    style={tabStyle(false)}
+                    className={tabClass(false)}
                   >
                     {s.fileName ?? "sample"} ↺
                   </button>
@@ -1043,7 +1026,7 @@ function Builder() {
         </div>
 
         {/* ── Right: the editor ── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div className="flex flex-col gap-5">
           {/* metadata */}
           <Section title="Parser">
             <Grid>
@@ -1055,7 +1038,7 @@ function Builder() {
                   value={slug}
                   placeholder="aguas-andinas"
                   onChange={(e) => setSlug(e.target.value)}
-                  style={slug && !slugValid ? { borderColor: "var(--accent)" } : undefined}
+                  className={cn(slug && !slugValid && "border-accent")}
                 />
               </Field>
               <Field label="Vendor (charts group by this)">
@@ -1100,7 +1083,7 @@ function Builder() {
               )}
             </Grid>
             {!knownVendor && (
-              <p style={{ ...hint, margin: "8px 0 0" }}>
+              <p className={`${hint} mt-2`}>
                 Point a second parser at an existing vendor to merge them — e.g. an
                 old and new administrator both filed under one “Expensas”.
               </p>
@@ -1109,7 +1092,7 @@ function Builder() {
 
           {/* step 1 — detection */}
           <Section title="1 · Recognize the bill">
-            <p style={hint}>
+            <p className={`${hint} mb-2.5`}>
               Patterns that uniquely identify this vendor. All must appear in the
               text, and they must not match any of your other bills.
             </p>
@@ -1125,7 +1108,7 @@ function Builder() {
               + Add signature
             </Button>
 
-            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+            <div className="mt-3 flex flex-col gap-1.5">
               <StatusLine ok={matchesCurrent} text={matchesCurrent ? "Matches this bill" : "Does not match this bill yet"} />
               <StatusLine
                 ok={collisionList.length === 0}
@@ -1141,10 +1124,10 @@ function Builder() {
           {/* step 2 — extraction */}
           <Section title="2 · Extract the data" dim={!gatePassed}>
             {!gatePassed ? (
-              <p style={hint}>Finish step 1 to unlock extraction.</p>
+              <p className={`${hint} mb-2.5`}>Finish step 1 to unlock extraction.</p>
             ) : (
               <>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                <div className="flex items-center gap-1.5 mb-3">
                   <ModeTab active={mode === "simple"} disabled={!simpleConvertible} onClick={switchToSimple}>
                     Fields
                   </ModeTab>
@@ -1152,7 +1135,7 @@ function Builder() {
                     Advanced (JSON)
                   </ModeTab>
                   {!simpleConvertible && (
-                    <span style={{ ...hint, margin: 0 }}>uses advanced features — JSON only</span>
+                    <span className={hint}>uses advanced features — JSON only</span>
                   )}
                 </div>
 
@@ -1186,7 +1169,7 @@ function Builder() {
                   </>
                 ) : (
                   <>
-                    <p style={hint}>
+                    <p className={`${hint} mb-2.5`}>
                       The full extraction body (captures, compute, validations,
                       roles, custom). For barcodes and derived periods.
                     </p>
@@ -1194,25 +1177,16 @@ function Builder() {
                       value={advanced}
                       onChange={(e) => setAdvanced(e.target.value)}
                       spellCheck={false}
-                      style={{
-                        width: "100%",
-                        minHeight: 280,
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 12,
-                        background: "var(--paper)",
-                        border: "1px solid var(--line)",
-                        padding: "10px 12px",
-                        resize: "vertical",
-                      }}
+                      className="w-full min-h-[280px] font-mono text-xs bg-paper border border-line py-2.5 px-3 resize-y"
                     />
                   </>
                 )}
 
                 {/* preview */}
-                <div style={{ marginTop: 14 }}>
+                <div className="mt-[14px]">
                   <Label>Preview</Label>
                   {assembled.incomplete ? (
-                    <p style={hint}>
+                    <p className={`${hint} mb-2.5`}>
                       Add a regex to every field — each value previews live above
                       and highlights in the bill text.
                     </p>
@@ -1223,7 +1197,7 @@ function Builder() {
                   ) : preview?.result ? (
                     <PreviewBox result={preview.result} />
                   ) : (
-                    <p style={hint}>Define fields to see the result.</p>
+                    <p className={`${hint} mb-2.5`}>Define fields to see the result.</p>
                   )}
                 </div>
               </>
@@ -1231,12 +1205,12 @@ function Builder() {
           </Section>
 
           {/* finish */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div className="flex items-center gap-3 flex-wrap">
             <Button variant="solid" size="lg" disabled={!canFinish || createParser.isPending || updateParser.isPending || reparse.isPending} onClick={finish}>
               {!editingOwn ? "Fork & save" : existingId ? "Save & reparse" : "Finish"}
             </Button>
             {slug && usage.data && usage.data.count > 0 && (
-              <span style={hint}>
+              <span className={hint}>
                 Saving re-runs this parser against {usage.data.count} existing bill(s).
               </span>
             )}
@@ -1250,13 +1224,13 @@ function Builder() {
 // ── Small components ──────────────────────────────────────────────────────────
 function SigRow({ sig, onChange, onRemove }: { sig: Sig; onChange: (s: Sig) => void; onRemove?: () => void }) {
   return (
-    <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+    <div className="flex gap-1.5 mb-1.5">
       <Input
         value={sig.pattern}
         placeholder="e.g. AGUAS ANDINAS"
         onChange={(e) => onChange({ ...sig, pattern: e.target.value })}
       />
-      <Input value={sig.flags} placeholder="i" style={{ width: 56, flex: "none" }} onChange={(e) => onChange({ ...sig, flags: e.target.value })} />
+      <Input value={sig.flags} placeholder="i" className="w-14 flex-none" onChange={(e) => onChange({ ...sig, flags: e.target.value })} />
       {onRemove && (
         <Button size="sm" variant="ghost" onClick={onRemove}>✕</Button>
       )}
@@ -1277,9 +1251,9 @@ function FieldEditor({
 }) {
   const isCustom = field.role === "custom";
   return (
-    <div style={{ border: "1px solid var(--line)", padding: 12, marginBottom: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, flex: 1 }}>
+    <div className="border border-line p-3 mb-2.5">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="font-mono text-xs font-semibold flex-1">
           {field.role === "custom" ? (
             <Input value={field.name} placeholder="field name (e.g. consumption)" onChange={(e) => onChange({ ...field, name: e.target.value })} />
           ) : (
@@ -1318,10 +1292,10 @@ function FieldEditor({
         </Grid>
       )}
 
-      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+      <div className="flex gap-1.5 mt-2">
         <Input value={field.pattern} placeholder="regex with a (capture group)" onChange={(e) => onChange({ ...field, pattern: e.target.value })} />
-        <Input value={field.flags} placeholder="i" style={{ width: 48, flex: "none" }} onChange={(e) => onChange({ ...field, flags: e.target.value })} />
-        <Input value={field.group} placeholder="1" style={{ width: 56, flex: "none" }} title="capture group (number or name)" onChange={(e) => onChange({ ...field, group: e.target.value })} />
+        <Input value={field.flags} placeholder="i" className="w-12 flex-none" onChange={(e) => onChange({ ...field, flags: e.target.value })} />
+        <Input value={field.group} placeholder="1" className="w-14 flex-none" title="capture group (number or name)" onChange={(e) => onChange({ ...field, group: e.target.value })} />
       </div>
 
       <TransformsEditor
@@ -1342,21 +1316,21 @@ function TransformsEditor({
   onChange: (t: string[]) => void;
 }) {
   return (
-    <div style={{ marginTop: 8 }}>
-      <span style={miniLabel}>Transforms</span>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4, alignItems: "center" }}>
+    <div className="mt-2">
+      <span className={miniLabel}>Transforms</span>
+      <div className="flex flex-wrap gap-1.5 mt-1 items-center">
         {transforms.map((t, i) => (
-          <span key={i} style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+          <span key={i} className="inline-flex gap-1 items-center">
             <Select
               value={t}
-              style={{ width: "auto" }}
+              className="w-auto"
               onChange={(e) => onChange(transforms.map((x, j) => (j === i ? e.target.value : x)))}
             >
               {TRANSFORMS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </Select>
-            <button onClick={() => onChange(transforms.filter((_, j) => j !== i))} style={xBtn}>✕</button>
+            <button onClick={() => onChange(transforms.filter((_, j) => j !== i))} className={xBtn}>✕</button>
           </span>
         ))}
         <Button size="sm" variant="outline" onClick={() => onChange([...transforms, TRANSFORMS[0].value])}>
@@ -1381,32 +1355,32 @@ function PeriodEditor({
 }) {
   const isParts = field.periodMode === "parts";
   return (
-    <div style={{ border: "1px solid var(--line)", padding: 12, marginBottom: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, flex: 1 }}>
+    <div className="border border-line p-3 mb-2.5">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="font-mono text-xs font-semibold flex-1">
           {ROLE_LABEL.period}
         </span>
         {value !== undefined ? <Badge>{value}</Badge> : <Badge tone="neutral">no match</Badge>}
       </div>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-        <button onClick={() => onChange({ ...field, periodMode: "date" })} style={tabStyle(!isParts)}>
+      <div className="flex gap-1.5 mb-2.5">
+        <button onClick={() => onChange({ ...field, periodMode: "date" })} className={tabClass(!isParts)}>
           Whole date
         </button>
-        <button onClick={() => onChange({ ...field, periodMode: "parts" })} style={tabStyle(isParts)}>
+        <button onClick={() => onChange({ ...field, periodMode: "parts" })} className={tabClass(isParts)}>
           Month + year
         </button>
       </div>
 
       {isParts ? (
         <>
-          <span style={miniLabel}>Month</span>
-          <div style={{ display: "flex", gap: 6, marginTop: 4, marginBottom: 8 }}>
+          <span className={miniLabel}>Month</span>
+          <div className="flex gap-1.5 mt-1 mb-2">
             <Input value={field.pattern} placeholder="regex with a (month group)" onChange={(e) => onChange({ ...field, pattern: e.target.value })} />
-            <Input value={field.flags} placeholder="i" style={{ width: 48, flex: "none" }} onChange={(e) => onChange({ ...field, flags: e.target.value })} />
-            <Input value={field.group} placeholder="1" style={{ width: 56, flex: "none" }} onChange={(e) => onChange({ ...field, group: e.target.value })} />
+            <Input value={field.flags} placeholder="i" className="w-12 flex-none" onChange={(e) => onChange({ ...field, flags: e.target.value })} />
+            <Input value={field.group} placeholder="1" className="w-14 flex-none" onChange={(e) => onChange({ ...field, group: e.target.value })} />
           </div>
-          <label style={{ display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 10, cursor: "pointer", ...miniLabel }}>
+          <label className={cn("inline-flex items-center gap-1.5 mb-2.5 cursor-pointer", miniLabel)}>
             <input
               type="checkbox"
               checked={field.monthIsName}
@@ -1414,33 +1388,33 @@ function PeriodEditor({
             />
             Month is a name (Ene / February)
           </label>
-          <span style={miniLabel}>Year</span>
-          <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+          <span className={miniLabel}>Year</span>
+          <div className="flex gap-1.5 mt-1">
             <Input value={field.yearPattern} placeholder="regex with a (year group)" onChange={(e) => onChange({ ...field, yearPattern: e.target.value })} />
-            <Input value={field.yearFlags} placeholder="i" style={{ width: 48, flex: "none" }} onChange={(e) => onChange({ ...field, yearFlags: e.target.value })} />
-            <Input value={field.yearGroup} placeholder="1" style={{ width: 56, flex: "none" }} onChange={(e) => onChange({ ...field, yearGroup: e.target.value })} />
+            <Input value={field.yearFlags} placeholder="i" className="w-12 flex-none" onChange={(e) => onChange({ ...field, yearFlags: e.target.value })} />
+            <Input value={field.yearGroup} placeholder="1" className="w-14 flex-none" onChange={(e) => onChange({ ...field, yearGroup: e.target.value })} />
           </div>
         </>
       ) : (
         <>
-          <div style={{ display: "flex", gap: 6 }}>
+          <div className="flex gap-1.5">
             <Input value={field.pattern} placeholder="regex with a (date group)" onChange={(e) => onChange({ ...field, pattern: e.target.value })} />
-            <Input value={field.flags} placeholder="i" style={{ width: 48, flex: "none" }} onChange={(e) => onChange({ ...field, flags: e.target.value })} />
-            <Input value={field.group} placeholder="1" style={{ width: 56, flex: "none" }} onChange={(e) => onChange({ ...field, group: e.target.value })} />
+            <Input value={field.flags} placeholder="i" className="w-12 flex-none" onChange={(e) => onChange({ ...field, flags: e.target.value })} />
+            <Input value={field.group} placeholder="1" className="w-14 flex-none" onChange={(e) => onChange({ ...field, group: e.target.value })} />
           </div>
           <TransformsEditor transforms={field.transforms} onChange={(t) => onChange({ ...field, transforms: t })} />
         </>
       )}
 
-      <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span style={miniLabel}>Shift months</span>
+      <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+        <span className={miniLabel}>Shift months</span>
         <Input
           type="number"
           value={String(field.monthShift)}
-          style={{ width: 72, flex: "none" }}
+          className="w-[72px] flex-none"
           onChange={(e) => onChange({ ...field, monthShift: Math.trunc(Number(e.target.value) || 0) })}
         />
-        <span style={{ ...hint, margin: 0 }}>−1 = previous month · +1 = next · rolls the year</span>
+        <span className={hint}>−1 = previous month · +1 = next · rolls the year</span>
       </div>
     </div>
   );
@@ -1460,17 +1434,10 @@ function DropZone({ onFiles }: { onFiles: (f: FileList) => void }) {
         setOver(false);
         if (e.dataTransfer.files.length) onFiles(e.dataTransfer.files);
       }}
-      style={{
-        marginTop: 8,
-        border: `1px dashed ${over ? "var(--accent)" : "var(--line)"}`,
-        padding: "12px",
-        textAlign: "center",
-        fontFamily: "var(--font-mono)",
-        fontSize: 11,
-        textTransform: "uppercase",
-        letterSpacing: "0.12em",
-        color: "var(--muted)",
-      }}
+      className={cn(
+        "mt-2 border border-dashed p-3 text-center font-mono text-micro uppercase tracking-[0.12em] text-muted",
+        over ? "border-accent" : "border-line",
+      )}
     >
       Drop another bill of this type to test against
     </div>
@@ -1489,10 +1456,16 @@ function PreviewBox({ result }: { result: ParsedResult }) {
     ),
   ];
   return (
-    <div style={{ border: "1px solid var(--line)", background: "var(--paper)" }}>
+    <div className="border border-line bg-paper">
       {rows.map(([k, v], i) => (
-        <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "7px 12px", borderTop: i === 0 ? "none" : "1px dashed var(--line)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
-          <span style={{ color: "var(--muted)" }}>{k}</span>
+        <div
+          key={k}
+          className={cn(
+            "flex justify-between gap-3 py-[7px] px-3 font-mono text-xs",
+            i === 0 ? "" : "border-t border-dashed border-line",
+          )}
+        >
+          <span className="text-muted">{k}</span>
           <span>{v}</span>
         </div>
       ))}
@@ -1502,7 +1475,7 @@ function PreviewBox({ result }: { result: ParsedResult }) {
 
 function ErrorBox({ text }: { text: string }) {
   return (
-    <div style={{ border: "1px solid var(--accent)", color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 6%, transparent)", padding: "10px 12px", fontFamily: "var(--font-mono)", fontSize: 12 }}>
+    <div className="border border-accent text-accent bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] py-2.5 px-3 font-mono text-xs">
       {text}
     </div>
   );
@@ -1510,8 +1483,8 @@ function ErrorBox({ text }: { text: string }) {
 
 function StatusLine({ ok, text }: { ok: boolean; text: string }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: "var(--font-mono)", fontSize: 12, color: ok ? "var(--ink)" : "var(--muted)" }}>
-      <span style={{ width: 8, height: 8, background: ok ? "var(--accent)" : "var(--line)", display: "inline-block", flex: "none" }} />
+    <span className={cn("inline-flex items-center gap-2 font-mono text-xs", ok ? "text-ink" : "text-muted")}>
+      <span className={cn("w-2 h-2 inline-block flex-none", ok ? "bg-accent" : "bg-line")} />
       {text}
     </span>
   );
@@ -1519,28 +1492,28 @@ function StatusLine({ ok, text }: { ok: boolean; text: string }) {
 
 function Section({ title, children, dim }: { title: string; children: React.ReactNode; dim?: boolean }) {
   return (
-    <section style={{ border: "1px solid var(--line)", padding: 16, opacity: dim ? 0.55 : 1, pointerEvents: dim ? "none" : "auto", transition: "opacity 200ms" }}>
-      <h3 style={{ fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.18em", color: "var(--accent)", margin: "0 0 12px" }}>{title}</h3>
+    <section className={cn("border border-line p-4 transition-opacity duration-200", dim ? "opacity-55 pointer-events-none" : "opacity-100")}>
+      <h3 className="font-mono text-micro uppercase tracking-label text-accent mb-3">{title}</h3>
       {children}
     </section>
   );
 }
 
 function Grid({ children }: { children: React.ReactNode }) {
-  return <div className="fx-stack-sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{children}</div>;
+  return <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      <span style={miniLabel}>{label}</span>
+    <label className="flex flex-col gap-[5px]">
+      <span className={miniLabel}>{label}</span>
       {children}
     </label>
   );
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <p style={{ ...miniLabel, marginBottom: 6 }}>{children}</p>;
+  return <p className={`${miniLabel} mb-1.5`}>{children}</p>;
 }
 
 function ModeTab({
@@ -1558,50 +1531,26 @@ function ModeTab({
     <button
       onClick={onClick}
       disabled={disabled}
-      style={{ ...tabStyle(active), opacity: disabled ? 0.4 : 1, cursor: disabled ? "not-allowed" : "pointer" }}
+      className={cn(tabClass(active), "disabled:opacity-40 disabled:cursor-not-allowed")}
     >
       {children}
     </button>
   );
 }
 
-const miniLabel: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: 10,
-  textTransform: "uppercase",
-  letterSpacing: "0.14em",
-  color: "var(--muted)",
-};
+const miniLabel = "font-mono text-[10px] uppercase tracking-[0.14em] text-muted";
 
-const hint: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: 11.5,
-  color: "var(--muted)",
-  lineHeight: 1.6,
-  margin: "0 0 10px",
-};
+// Hint text — the block-level spacing (mb-2.5) is added per-use so it can be
+// dropped where the hint sits inline.
+const hint = "font-mono text-[11.5px] text-muted leading-[1.6]";
 
-const xBtn: React.CSSProperties = {
-  border: "none",
-  background: "none",
-  cursor: "pointer",
-  color: "var(--muted)",
-  fontSize: 12,
-};
+const xBtn = "border-none bg-transparent cursor-pointer text-muted text-xs";
 
-function tabStyle(active: boolean): React.CSSProperties {
-  return {
-    fontFamily: "var(--font-mono)",
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: "0.1em",
-    padding: "5px 10px",
-    cursor: "pointer",
-    border: "1px solid " + (active ? "var(--ink)" : "var(--line)"),
-    background: active ? "var(--ink)" : "transparent",
-    color: active ? "var(--paper)" : "var(--muted)",
-    transition: "var(--transition-colors)",
-  };
+function tabClass(active: boolean): string {
+  return cn(
+    "font-mono text-micro uppercase tracking-[0.1em] py-[5px] px-2.5 cursor-pointer border transition-colors",
+    active ? "border-ink bg-ink text-paper" : "border-line bg-transparent text-muted",
+  );
 }
 
 export default function BuilderPage() {

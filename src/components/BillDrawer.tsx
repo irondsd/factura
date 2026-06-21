@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type CSSProperties, useState } from "react";
+import { useState } from "react";
 import { Delta } from "@/components/charts/primitives";
 import { Badge, Button, Input, Select } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import { formatMonth, formatMonthShort } from "@/lib/format";
 import { trpc } from "@/lib/trpc";
 
@@ -24,14 +25,8 @@ function formatCustom(v: unknown): string {
   return String(v);
 }
 
-const flabel: CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: 10,
-  textTransform: "uppercase",
-  letterSpacing: "0.14em",
-  color: "var(--muted)",
-};
-const field: CSSProperties = { display: "flex", flexDirection: "column", gap: 5 };
+const flabel = "font-mono text-[10px] uppercase tracking-[0.14em] text-muted";
+const field = "flex flex-col gap-[5px]";
 
 export function BillDrawer({
   billId,
@@ -177,89 +172,49 @@ export function BillDrawer({
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 70,
-        display: "flex",
-        justifyContent: "flex-end",
-      }}
-    >
+    <div className="fixed inset-0 z-[70] flex justify-end">
       <div
         onClick={close}
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "color-mix(in srgb, var(--ink) 28%, transparent)",
-          opacity: closing ? 0 : 1,
-          transition: "opacity 240ms",
-        }}
+        className={cn(
+          "absolute inset-0 bg-[color-mix(in_srgb,var(--ink)_28%,transparent)] transition-opacity duration-[240ms]",
+          closing ? "opacity-0" : "opacity-100",
+        )}
       />
       <div
-        style={{
-          position: "relative",
-          width: "min(460px, 92vw)",
-          height: "100%",
-          background: "var(--card)",
-          borderLeft: "1px solid var(--line)",
-          boxShadow: "var(--shadow-pop)",
-          overflowY: "auto",
-          transform: closing ? "translateX(100%)" : "translateX(0)",
-          transition: "transform 240ms cubic-bezier(0.2,0,0.2,1)",
-        }}
+        className={cn(
+          "relative w-[min(460px,92vw)] h-full bg-card border-l border-line shadow-pop overflow-y-auto transition-transform duration-[240ms] ease-[cubic-bezier(0.2,0,0.2,1)]",
+          closing ? "translate-x-full" : "translate-x-0",
+        )}
       >
         {!bill || !draft ? (
-          <div style={{ padding: 24, fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--muted)" }}>
+          <div className="p-6 font-mono text-[13px] text-muted">
             Reading the fine print…
           </div>
         ) : (
           <>
             {/* header */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "space-between",
-                gap: 12,
-                padding: "22px 24px 16px",
-                borderBottom: "1px dashed var(--line)",
-              }}
-            >
+            <div className="flex items-start justify-between gap-3 pt-[22px] px-6 pb-4 border-b border-dashed border-line">
               <div>
                 <p
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 10,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.22em",
-                    color: review ? "var(--accent)" : "var(--muted)",
-                    margin: 0,
-                  }}
+                  className={cn(
+                    "font-mono text-[10px] uppercase tracking-[0.22em]",
+                    review ? "text-accent" : "text-muted",
+                  )}
                 >
                   {reviewLabel}
                 </p>
-                <h2
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontWeight: 600,
-                    fontSize: 22,
-                    margin: "8px 0 0",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
+                <h2 className="font-display font-semibold text-[22px] mt-2 tracking-tight">
                   {vendorLabel}
                   {bill.period ? " · " + formatMonth(bill.period) : ""}
                 </h2>
-                <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", margin: "4px 0 0" }}>
+                <p className="font-mono text-micro text-muted mt-1">
                   {bill.fileName}
                 </p>
               </div>
               <button
                 onClick={close}
                 aria-label="Close"
-                className="fx-x"
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 16, lineHeight: 1 }}
+                className="bg-transparent border-none cursor-pointer text-muted text-base leading-none transition-colors hover:text-accent"
               >
                 ✕
               </button>
@@ -267,25 +222,15 @@ export function BillDrawer({
 
             {/* yoy context */}
             {bill.yoy && (
-              <div
-                style={{
-                  margin: "16px 24px 0",
-                  padding: "10px 14px",
-                  border: "1px solid var(--line)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  flexWrap: "wrap",
-                }}
-              >
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)" }}>
+              <div className="mt-4 mx-6 py-2.5 px-[14px] border border-line flex items-center gap-2.5 flex-wrap">
+                <span className="font-mono text-micro text-muted">
                   vs {formatMonthShort(bill.yoy.prevPeriod)} {bill.yoy.prevPeriod.slice(0, 4)}:
                 </span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>
+                <span className="font-mono text-xs">
                   <Delta pct={bill.yoy.arsPct} /> in ARS
                 </span>
                 {bill.yoy.usdPct != null && (
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>
+                  <span className="font-mono text-xs text-muted">
                     · {bill.yoy.usdPct > 0 ? "+" : ""}
                     {bill.yoy.usdPct.toFixed(0)}% in USD
                   </span>
@@ -294,9 +239,9 @@ export function BillDrawer({
             )}
 
             {/* editable fields */}
-            <div className="fx-stack-sm" style={{ padding: "20px 24px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <label style={field}>
-                <span style={flabel}>Vendor</span>
+            <div className="py-5 px-6 grid grid-cols-1 md:grid-cols-2 gap-[14px]">
+              <label className={field}>
+                <span className={flabel}>Vendor</span>
                 <Select value={draft.vendorId} onChange={(e) => setDraft({ ...draft, vendorId: e.target.value })}>
                   <option value="" disabled>
                     Vendor
@@ -308,8 +253,8 @@ export function BillDrawer({
                   ))}
                 </Select>
               </label>
-              <label style={field}>
-                <span style={flabel}>Property</span>
+              <label className={field}>
+                <span className={flabel}>Property</span>
                 <Select value={draft.propertyId} onChange={(e) => setDraft({ ...draft, propertyId: e.target.value })}>
                   <option value="" disabled>
                     Property
@@ -321,44 +266,34 @@ export function BillDrawer({
                   ))}
                 </Select>
               </label>
-              <label style={field}>
-                <span style={flabel}>Period</span>
+              <label className={field}>
+                <span className={flabel}>Period</span>
                 <Input type="month" value={draft.period} onChange={(e) => setDraft({ ...draft, period: e.target.value })} />
               </label>
-              <label style={field}>
-                <span style={flabel}>Due date</span>
+              <label className={field}>
+                <span className={flabel}>Due date</span>
                 <Input type="date" value={draft.dueDate} onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })} />
               </label>
-              <label style={field}>
-                <span style={flabel}>Amount (ARS)</span>
+              <label className={field}>
+                <span className={flabel}>Amount (ARS)</span>
                 <Input type="number" value={draft.totalAmount} onChange={(e) => setDraft({ ...draft, totalAmount: e.target.value })} />
               </label>
             </div>
 
             {/* parser-extracted custom fields (read-only) */}
             {Object.keys(customFields).length > 0 && (
-              <div style={{ padding: "0 24px 4px" }}>
-                <p style={{ ...flabel, marginBottom: 6 }}>Extracted fields</p>
-                <div
-                  style={{
-                    border: "1px solid var(--line)",
-                    background: "var(--paper)",
-                  }}
-                >
+              <div className="px-6 pb-1">
+                <p className={cn(flabel, "mb-1.5")}>Extracted fields</p>
+                <div className="border border-line bg-paper">
                   {Object.entries(customFields).map(([k, v], i) => (
                     <div
                       key={k}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        padding: "8px 12px",
-                        borderTop: i === 0 ? "none" : "1px dashed var(--line)",
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 12,
-                      }}
+                      className={cn(
+                        "flex justify-between gap-3 py-2 px-3 font-mono text-xs",
+                        i === 0 ? "" : "border-t border-dashed border-line",
+                      )}
                     >
-                      <span style={{ color: "var(--muted)" }}>{k}</span>
+                      <span className="text-muted">{k}</span>
                       <span>{formatCustom(v)}</span>
                     </div>
                   ))}
@@ -367,32 +302,23 @@ export function BillDrawer({
             )}
 
             {/* parser used + builder entry */}
-            <div style={{ padding: "16px 24px 4px" }}>
-              <p style={{ ...flabel, marginBottom: 6 }}>Parser</p>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  border: "1px solid var(--line)",
-                  padding: "10px 12px",
-                  background: "var(--paper)",
-                }}
-              >
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, flex: 1 }}>
+            <div className="pt-4 px-6 pb-1">
+              <p className={cn(flabel, "mb-1.5")}>Parser</p>
+              <div className="flex items-center gap-2.5 border border-line py-2.5 px-3 bg-paper">
+                <span className="font-mono text-xs flex-1">
                   {bill.parserKey ? (
                     <>
                       {parser?.displayName ?? bill.parserKey}
                       {parser ? (
                         bill.parserVersion && (
-                          <span style={{ color: "var(--muted)" }}> · v{bill.parserVersion}</span>
+                          <span className="text-muted"> · v{bill.parserVersion}</span>
                         )
                       ) : (
-                        <span style={{ color: "var(--muted)" }}> · not a saved parser</span>
+                        <span className="text-muted"> · not a saved parser</span>
                       )}
                     </>
                   ) : (
-                    <span style={{ color: "var(--muted)" }}>No parser recognized this bill</span>
+                    <span className="text-muted">No parser recognized this bill</span>
                   )}
                 </span>
                 {reviewKind === "needs_home" ? (
@@ -408,95 +334,52 @@ export function BillDrawer({
                 )}
               </div>
               {reviewKind === "needs_home" && (
-                <p style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)", margin: "8px 0 0" }}>
+                <p className="font-mono text-[10.5px] text-muted mt-2">
                   Parsed cleanly — just choose a property above and save.
                 </p>
               )}
             </div>
 
             {/* original file */}
-            <div style={{ padding: "0 24px 4px" }}>
-              <p style={{ ...flabel, marginBottom: 6 }}>Original file</p>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  border: "1px solid var(--line)",
-                  padding: "10px 12px",
-                  background: "var(--paper)",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 12,
-                    flex: 1,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+            <div className="px-6 pb-1">
+              <p className={cn(flabel, "mb-1.5")}>Original file</p>
+              <div className="flex items-center gap-2.5 border border-line py-2.5 px-3 bg-paper">
+                <span className="font-mono text-xs flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                   {bill.fileName ?? "(pasted text)"}
-                  <span style={{ color: "var(--muted)" }}> · PDF</span>
+                  <span className="text-muted"> · PDF</span>
                 </span>
                 {bill.downloadUrl ? (
                   <a
                     href={bill.downloadUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="fx-pdf-link"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 11,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                      color: "var(--accent)",
-                      textDecorationLine: "underline",
-                      textDecorationStyle: "dotted",
-                      textUnderlineOffset: 3,
-                      whiteSpace: "nowrap",
-                    }}
+                    className="font-mono text-micro uppercase tracking-[0.1em] text-accent underline decoration-dotted underline-offset-[3px] whitespace-nowrap transition-colors hover:text-ink"
                   >
                     View PDF ›
                   </a>
                 ) : (
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)" }}>
+                  <span className="font-mono text-micro text-muted">
                     not stored
                   </span>
                 )}
               </div>
-              <p style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)", margin: "8px 0 0" }}>
+              <p className="font-mono text-[10.5px] text-muted mt-2">
                 Stored securely (S3) alongside the extracted text below.
               </p>
             </div>
 
             {/* raw text */}
-            <div style={{ padding: "16px 24px 4px" }}>
-              <p style={{ ...flabel, marginBottom: 6 }}>Extracted text</p>
-              <pre
-                className="ruled"
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 12.5,
-                  whiteSpace: "pre-wrap",
-                  color: "var(--ink)",
-                  margin: 0,
-                  background: "var(--paper)",
-                  border: "1px solid var(--line)",
-                  padding: "4px 12px 10px",
-                  maxHeight: 240,
-                  overflowY: "auto",
-                }}
-              >
+            <div className="pt-4 px-6 pb-1">
+              <p className={cn(flabel, "mb-1.5")}>Extracted text</p>
+              <pre className="ruled font-mono text-[12.5px] whitespace-pre-wrap text-ink bg-paper border border-line pt-1 px-3 pb-2.5 max-h-[240px] overflow-y-auto">
                 {bill.rawText}
               </pre>
             </div>
 
             {/* reparse — two paths */}
-            <div style={{ padding: "12px 24px 20px" }}>
-              <p style={{ ...flabel, marginBottom: 8 }}>Reparse</p>
-              <div style={{ display: "flex", gap: 8 }}>
+            <div className="pt-3 px-6 pb-5">
+              <p className={cn(flabel, "mb-2")}>Reparse</p>
+              <div className="flex gap-2">
                 <ReparseOption
                   title="From the file"
                   caption="Re-reads the stored PDF — use when the text extractor improves"
@@ -513,21 +396,11 @@ export function BillDrawer({
             </div>
 
             {/* footer */}
-            <div
-              style={{
-                position: "sticky",
-                bottom: 0,
-                display: "flex",
-                gap: 8,
-                padding: "14px 24px",
-                borderTop: "1px solid var(--line)",
-                background: "var(--card)",
-              }}
-            >
+            <div className="sticky bottom-0 flex gap-2 py-3.5 px-6 border-t border-line bg-card">
               <Button variant="solid" onClick={save} disabled={updateBill.isPending}>
                 Save changes
               </Button>
-              <Button variant="ghost" style={{ marginLeft: "auto" }} onClick={remove} disabled={deleteBill.isPending}>
+              <Button variant="ghost" className="ml-auto" onClick={remove} disabled={deleteBill.isPending}>
                 Delete
               </Button>
             </div>
@@ -553,22 +426,15 @@ function ReparseOption({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="fx-reparse"
-      style={{
-        flex: 1,
-        textAlign: "left",
-        cursor: disabled ? "not-allowed" : "pointer",
-        background: "transparent",
-        border: "1px solid var(--line)",
-        padding: "10px 12px",
-        transition: "var(--transition-colors)",
-        opacity: disabled ? 0.5 : 1,
-      }}
+      className={cn(
+        "flex-1 text-left bg-transparent border border-line py-2.5 px-3 transition-colors hover:border-accent",
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer opacity-100",
+      )}
     >
-      <span style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 500, color: "var(--ink)" }}>
+      <span className="block font-mono text-xs font-medium text-ink">
         {title}
       </span>
-      <span style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)", marginTop: 4, lineHeight: 1.5 }}>
+      <span className="block font-mono text-[10.5px] text-muted mt-1 leading-[1.5]">
         {caption}
       </span>
     </button>

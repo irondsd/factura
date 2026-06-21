@@ -18,6 +18,41 @@
   --color-accent: var(--accent);
   --font-display: var(--font-fraunces);
   --font-mono: var(--font-plex-mono);
+
+  /* Custom design tokens not covered by Tailwind defaults. (The default spacing
+     scale 1=4px…4=16px already matches --space-*, and text-xs/sm/base/lg/xl/2xl
+     match the --text-* scale, so only these extras need registering.) */
+  --text-micro: 11px;
+  --tracking-tight: -0.01em;
+  --tracking-label: 0.18em;
+  --tracking-label-wide: 0.2em;
+  --tracking-label-wider: 0.25em;
+  --tracking-label-widest: 0.3em;
+  --radius-md: 8px;
+  --shadow-pop: 0 10px 30px -12px rgb(33 29 22 / 0.25);
+  --shadow-receipt: 0 1px 0 var(--line), 0 8px 24px -12px rgb(33 29 22 / 0.25);
+}
+
+/* ── Shared component classes ─────────────────────────────────────────────────
+   The motifs copied across nearly every screen, expressed once. */
+@layer components {
+  /* Mono uppercase label — eyebrows, section labels, table headers. */
+  .fd-label {
+    @apply font-mono text-micro uppercase tracking-label text-muted;
+  }
+  /* Ledger / receipt surface. */
+  .fd-card {
+    @apply bg-card border border-line;
+  }
+  /* Ledger table header + cell. */
+  .fd-th {
+    @apply text-left font-mono text-micro font-medium uppercase text-muted pt-0 px-0 pb-[10px];
+    letter-spacing: 0.08em;
+  }
+  .fd-td {
+    @apply font-mono text-[13px] py-3 px-0;
+    border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  }
 }
 
 /* ── Design-system tokens ─────────────────────────────────────────────────────
@@ -128,76 +163,6 @@ body {
     transparent 0 calc(1.75rem - 1px),
     rgb(33 29 22 / 0.08) calc(1.75rem - 1px) 1.75rem
   );
-}
-
-/* ── Hover / focus helpers (inline styles can't express :hover) ───────────── */
-.fx-link:hover,
-.fd-btn--outline:hover {
-  border-color: var(--accent) !important;
-  color: var(--accent) !important;
-}
-.fd-btn--ghost:hover {
-  color: var(--accent) !important;
-}
-.fx-navlink:hover,
-.fx-pdf-link:hover {
-  color: var(--ink) !important;
-}
-.fx-reparse:hover,
-.fx-google:hover {
-  border-color: var(--accent) !important;
-}
-.fx-avatar:hover {
-  background: var(--accent) !important;
-}
-.fx-x:hover {
-  color: var(--accent) !important;
-}
-.fx-row:hover td {
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
-}
-.fd-input:focus,
-.fd-select:focus {
-  border-color: var(--accent) !important;
-}
-
-/* ── Responsive: mobile adaptations ───────────────────────────────────────────
-   These leave the desktop layout untouched and only kick in at ≤768px. The
-   screens are inline-styled, so the media query overrides the inline grid/flex
-   values with !important. */
-
-/* Desktop nav + controls: flex on desktop, hidden on mobile (see media query). */
-.fx-desktop-only {
-  display: flex;
-}
-
-/* Shown only on mobile (burger button + its menu); hidden on desktop. */
-.fx-mobile-only {
-  display: none;
-}
-
-/* Horizontal-scroll wrapper for tables too wide to shrink on phones. */
-.fx-scroll-x {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-@media (max-width: 768px) {
-  /* Collapse multi-column chart / field grids into a single stack. */
-  .fx-stack-sm {
-    grid-template-columns: 1fr !important;
-  }
-  /* Let donut + legend rows wrap rather than crushing the chart. */
-  .fx-wrap-sm {
-    flex-wrap: wrap !important;
-  }
-  /* Header: hide the inline nav + controls, reveal the burger and its menu. */
-  .fx-desktop-only {
-    display: none !important;
-  }
-  .fx-mobile-only {
-    display: flex !important;
-  }
 }
 
 @keyframes fd-toast-in {

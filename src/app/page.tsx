@@ -30,16 +30,7 @@ export default function OverviewPage() {
 
   if (!overview.data) {
     return (
-      <div
-        style={{
-          maxWidth: "64rem",
-          margin: "0 auto",
-          padding: "32px 20px",
-          fontFamily: "var(--font-mono)",
-          fontSize: 13,
-          color: "var(--muted)",
-        }}
-      >
+      <div className="mx-auto max-w-[64rem] px-5 py-8 font-mono text-[13px] text-muted">
         Reading the fine print…
       </div>
     );
@@ -62,33 +53,18 @@ export default function OverviewPage() {
   });
 
   return (
-    <div style={{ maxWidth: "64rem", margin: "0 auto", padding: "32px 20px 80px" }}>
+    <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
       {/* hero */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "flex-end",
-          justifyContent: "space-between",
-          gap: 16,
-        }}
-      >
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Eyebrow>
             {d.property ? d.property.nickname : "All properties"} ·{" "}
             {formatMonth(d.month)} so far
           </Eyebrow>
-          <div style={{ marginTop: 8 }}>
+          <div className="mt-2">
             <Display size={44}>{formatMoney(d.thisMonthTotal, "ARS")}</Display>
           </div>
-          <p
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 13,
-              color: "var(--muted)",
-              margin: "8px 0 0",
-            }}
-          >
+          <p className="font-mono text-[13px] text-muted mt-2">
             {d.billsIn} of {d.billsExpected} bills in
             {d.thisMonthUsd > 0 && <span> · ≈ {formatUSD(d.thisMonthUsd)}</span>}
             {pending > 0 && <span> · {pending} awaiting</span>}
@@ -96,18 +72,7 @@ export default function OverviewPage() {
         </div>
         <Link
           href="/insights"
-          className="fx-link"
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            textTransform: "uppercase",
-            letterSpacing: "0.18em",
-            border: "1px solid var(--line)",
-            padding: "9px 14px",
-            color: "var(--ink)",
-            textDecoration: "none",
-            transition: "var(--transition-colors)",
-          }}
+          className="font-mono text-micro uppercase tracking-label border border-line py-[9px] px-[14px] text-ink no-underline transition-colors hover:border-accent hover:text-accent"
         >
           See all insights ›
         </Link>
@@ -115,59 +80,42 @@ export default function OverviewPage() {
 
       {/* awaiting model */}
       {d.awaiting.length > 0 && (
-        <div style={{ marginTop: 28 }}>
-          <Eyebrow style={{ marginBottom: 12 }}>This month</Eyebrow>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(184px, 1fr))",
-              gap: 12,
-            }}
-          >
+        <div className="mt-7">
+          <Eyebrow className="mb-3">This month</Eyebrow>
+          <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(184px,1fr))]">
             {d.awaiting.map((a) => (
               <div
                 key={a.accountId}
-                style={{
-                  border: "1px solid var(--line)",
-                  background: "var(--card)",
-                  padding: "12px 14px",
-                }}
+                className="border border-line bg-card py-3 px-[14px]"
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div className="flex items-center gap-2">
                   <span
-                    style={{ width: 9, height: 9, background: a.vendor.color, display: "inline-block" }}
+                    className="inline-block w-[9px] h-[9px]"
+                    style={{ background: a.vendor.color }}
                   />
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 500 }}>
+                  <span className="font-mono text-[13px] font-medium">
                     {a.vendor.displayName}
                   </span>
                 </div>
                 {a.received ? (
                   <>
-                    <p
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontWeight: 600,
-                        fontSize: 18,
-                        margin: "10px 0 0",
-                        letterSpacing: "-0.01em",
-                      }}
-                    >
+                    <p className="font-display font-semibold text-lg mt-2.5 tracking-tight">
                       {formatMoney(a.amount, "ARS")}
                     </p>
-                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", margin: "3px 0 0" }}>
+                    <p className="font-mono text-micro text-muted mt-[3px]">
                       received · in ledger
                     </p>
                   </>
                 ) : (
                   <>
-                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)", margin: "10px 0 0", lineHeight: 1.5 }}>
+                    <p className="font-mono text-xs text-muted mt-2.5 leading-[1.5]">
                       last{" "}
                       {a.lastPeriod
                         ? `${formatMonthShort(a.lastPeriod)} ${a.lastPeriod.slice(0, 4)}`
                         : "—"}
                       {a.lastAmount != null && <span> · {formatMoney(a.lastAmount, "ARS")}</span>}
                     </p>
-                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, margin: "4px 0 0", color: "var(--accent)" }}>
+                    <p className="font-mono text-micro mt-1 text-accent">
                       △ awaiting
                     </p>
                   </>
@@ -179,35 +127,29 @@ export default function OverviewPage() {
       )}
 
       {/* where the money goes + trend */}
-      <div
-        className="fx-stack-sm"
-        style={{
-          marginTop: 28,
-          display: "grid",
-          gridTemplateColumns: "minmax(280px, 1fr) minmax(360px, 1.4fr)",
-          gap: 16,
-          alignItems: "start",
-        }}
-      >
+      <div className="mt-7 grid grid-cols-1 md:grid-cols-[minmax(280px,1fr)_minmax(360px,1.4fr)] gap-4 items-start">
         <ChartCard
           title="Where the money goes"
           caption="Last 12 complete months"
           action={donut.toggle}
         >
-          <div className="fx-wrap-sm" style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <div className="flex flex-wrap items-center gap-[18px] md:flex-nowrap">
             <DonutFx slices={slices} centerLabel={moneySym} centerSub="by vendor" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 9, flex: 1 }}>
+            <div className="flex flex-col gap-[9px] flex-1">
               {slices.map((s) => (
-                <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                  <span style={{ width: 10, height: 10, background: s.color, display: "inline-block", flex: "none" }} />
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, flex: 1 }}>{s.label}</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 500 }}>
+                <div key={s.id} className="flex items-center gap-[9px]">
+                  <span
+                    className="inline-block w-2.5 h-2.5 flex-none"
+                    style={{ background: s.color }}
+                  />
+                  <span className="font-mono text-xs flex-1">{s.label}</span>
+                  <span className="font-mono text-xs font-medium">
                     {Math.round((s.value / shareTotal) * 100)}%
                   </span>
                 </div>
               ))}
               {slices.length === 0 && (
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>
+                <span className="font-mono text-xs text-muted">
                   No complete months yet.
                 </span>
               )}
@@ -226,40 +168,37 @@ export default function OverviewPage() {
           />
           <Legend
             items={d.vendors.map((v) => ({ id: v.id, label: v.displayName, color: v.color }))}
-            style={{ marginTop: 12 }}
+            className="mt-3"
           />
         </ChartCard>
       </div>
 
       {/* per-vendor sparklines */}
       {d.byCurrency[trend.currency].perVendor.length > 0 && (
-        <div style={{ marginTop: 16 }}>
+        <div className="mt-4">
           <ChartCard
             title="Per-vendor trend"
             caption="Spend over the last 12 months"
             action={trend.toggle}
           >
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+            <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
               {d.byCurrency[trend.currency].perVendor.map((pv) => (
                 <div
                   key={pv.vendor.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "8px 0",
-                    borderTop: "1px solid color-mix(in srgb, var(--line) 60%, transparent)",
-                  }}
+                  className="flex items-center gap-3 py-2 border-t border-[color-mix(in_srgb,var(--line)_60%,transparent)]"
                 >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <span style={{ width: 8, height: 8, background: pv.vendor.color, display: "inline-block" }} />
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, whiteSpace: "nowrap" }}>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-[7px]">
+                      <span
+                        className="inline-block w-2 h-2"
+                        style={{ background: pv.vendor.color }}
+                      />
+                      <span className="font-mono text-xs whitespace-nowrap">
                         {pv.vendor.displayName}
                       </span>
                     </div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
-                      {formatMoney(pv.last, trend.currency)} <Delta pct={pv.pct} style={{ marginLeft: 4 }} />
+                    <div className="font-mono text-micro text-muted mt-1">
+                      {formatMoney(pv.last, trend.currency)} <Delta pct={pv.pct} className="ml-1" />
                     </div>
                   </div>
                   <SparklineFx values={pv.values} color={pv.vendor.color} />

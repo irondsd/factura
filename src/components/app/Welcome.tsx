@@ -4,95 +4,28 @@
 // a real "Continue with Google" button. Ported from the design prototype.
 export function Welcome({ onLogin }: { onLogin: () => void }) {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "40px 20px",
-        textAlign: "center",
-      }}
-    >
-      <div
-        className="receipt-edge"
-        style={{
-          background: "var(--card)",
-          border: "1px solid var(--line)",
-          padding: "40px 44px 56px",
-          maxWidth: 420,
-          width: "100%",
-        }}
-      >
-        <span
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 600,
-            fontSize: 34,
-            letterSpacing: "-0.01em",
-          }}
-        >
-          Factura<span style={{ color: "var(--accent)" }}>.</span>
+    <div className="flex min-h-screen flex-col items-center justify-center px-5 py-10 text-center">
+      <div className="receipt-edge bg-card border border-line pt-10 px-11 pb-14 w-full max-w-[420px]">
+        <span className="font-display font-semibold text-[34px] tracking-tight">
+          Factura<span className="text-accent">.</span>
         </span>
-        <p
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 14,
-            color: "var(--muted)",
-            lineHeight: 1.6,
-            margin: "16px 0 0",
-          }}
-        >
+        <p className="font-mono text-sm text-muted leading-[1.6] mt-4">
           Drop a bill, get a ledger. Your utilities — quietly accounted for, and
           yours alone.
         </p>
         <button
           onClick={onLogin}
-          className="fx-google"
-          style={{
-            marginTop: 28,
-            width: "100%",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 12,
-            fontFamily: "var(--font-mono)",
-            fontSize: 13,
-            color: "var(--ink)",
-            background: "var(--paper)",
-            border: "1px solid var(--line)",
-            padding: "12px 16px",
-            cursor: "pointer",
-            transition: "var(--transition-colors)",
-          }}
+          className="mt-7 inline-flex w-full items-center justify-center gap-3 font-mono text-[13px] text-ink bg-paper border border-line py-3 px-4 cursor-pointer transition-colors hover:border-accent"
         >
           <GoogleG />
           Continue with Google
         </button>
-        <p
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10.5,
-            color: "var(--muted)",
-            margin: "20px 0 0",
-            lineHeight: 1.6,
-          }}
-        >
+        <p className="font-mono text-[10.5px] text-muted leading-[1.6] mt-5">
           Bills are scoped to your account. Parsed text and PDFs are private to
           you.
         </p>
       </div>
-      <p
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10.5,
-          textTransform: "uppercase",
-          letterSpacing: "0.2em",
-          color: "var(--muted)",
-          marginTop: 24,
-        }}
-      >
+      <p className="font-mono text-[10.5px] uppercase tracking-label-wide text-muted mt-6">
         Parsed locally · stored securely
       </p>
     </div>
@@ -101,7 +34,7 @@ export function Welcome({ onLogin }: { onLogin: () => void }) {
 
 function GoogleG() {
   return (
-    <svg viewBox="0 0 18 18" width="17" height="17" aria-hidden="true" style={{ flex: "none" }}>
+    <svg viewBox="0 0 18 18" width="17" height="17" aria-hidden="true" className="flex-none">
       <path
         fill="#4285F4"
         d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"

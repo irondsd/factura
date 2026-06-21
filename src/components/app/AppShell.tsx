@@ -38,19 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (status === "loading") {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "var(--font-mono)",
-          fontSize: 12,
-          textTransform: "uppercase",
-          letterSpacing: "0.2em",
-          color: "var(--muted)",
-        }}
-      >
+      <div className="flex min-h-screen items-center justify-center font-mono text-xs uppercase tracking-label-wide text-muted">
         Reading the fine print…
       </div>
     );
@@ -71,20 +59,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         onToast={showToast}
       />
       {toasts.length > 0 && (
-        <div style={{ position: "fixed", right: 16, bottom: 16, zIndex: 80, display: "flex", flexDirection: "column", gap: 8, width: 300 }}>
+        <div className="fixed right-4 bottom-4 z-[80] flex w-[300px] flex-col gap-2">
           {toasts.map((t) => (
             <div
               key={t.id}
-              className="receipt-edge"
-              style={{
-                background: "var(--card)",
-                border: "1px solid var(--line)",
-                padding: "12px 16px 20px",
-                fontFamily: "var(--font-mono)",
-                fontSize: 14,
-                boxShadow: "var(--shadow-pop)",
-                animation: "fd-toast-in 180ms cubic-bezier(0.2,0,0.2,1)",
-              }}
+              className="receipt-edge bg-card border border-line pt-3 px-4 pb-5 font-mono text-sm shadow-pop animate-[fd-toast-in_180ms_cubic-bezier(0.2,0,0.2,1)]"
             >
               {t.text}
             </div>

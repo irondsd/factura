@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { Session } from "next-auth";
 import { useState } from "react";
 import { Segmented } from "@/components/charts/primitives";
+import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 import { BurgerButton } from "./BurgerButton";
 import { useApp } from "./context";
@@ -52,17 +53,10 @@ export function TopBar({ user }: { user: Session["user"] }) {
       <Link
         key={l.href}
         href={l.href}
-        className="fx-navlink"
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          textTransform: "uppercase",
-          letterSpacing: "0.18em",
-          color: active ? "var(--accent)" : "var(--muted)",
-          textDecorationLine: active ? "underline" : "none",
-          textDecorationStyle: "dotted",
-          textUnderlineOffset: 4,
-        }}
+        className={cn(
+          "font-mono text-micro uppercase tracking-label underline-offset-4 decoration-dotted transition-colors hover:text-ink",
+          active ? "text-accent underline" : "text-muted no-underline",
+        )}
       >
         {l.label}
       </Link>
@@ -71,70 +65,28 @@ export function TopBar({ user }: { user: Session["user"] }) {
 
   const avatarCircle = (
     <span
-      className="fx-avatar"
-      style={{
-        width: 30,
-        height: 30,
-        borderRadius: "50%",
-        flex: "none",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: onProfile ? "var(--accent)" : "var(--ink)",
-        color: "var(--paper)",
-        fontFamily: "var(--font-mono)",
-        fontSize: 11,
-        fontWeight: 500,
-        transition: "var(--transition-colors)",
-      }}
+      className={cn(
+        "inline-flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full text-paper font-mono text-micro font-medium transition-colors hover:bg-accent",
+        onProfile ? "bg-accent" : "bg-ink",
+      )}
     >
       {initials}
     </span>
   );
 
   return (
-    <header
-      style={{
-        borderBottom: "1px solid var(--line)",
-        background: "color-mix(in srgb, var(--card) 72%, transparent)",
-        backdropFilter: "blur(6px)",
-        position: "sticky",
-        top: 0,
-        zIndex: 50,
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "64rem",
-          margin: "0 auto",
-          padding: "12px 20px",
-          display: "flex",
-          alignItems: "center",
-          gap: 20,
-        }}
-      >
+    <header className="sticky top-0 z-50 border-b border-line bg-[color-mix(in_srgb,var(--card)_72%,transparent)] backdrop-blur-[6px]">
+      <div className="mx-auto flex max-w-[64rem] items-center gap-5 py-3 px-5">
         <Link
           href="/"
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 600,
-            fontSize: 20,
-            letterSpacing: "-0.01em",
-            color: "var(--ink)",
-            textDecoration: "none",
-          }}
+          className="font-display font-semibold text-xl tracking-tight text-ink no-underline"
         >
-          Factura<span style={{ color: "var(--accent)" }}>.</span>
+          Factura<span className="text-accent">.</span>
         </Link>
 
         {/* Desktop: inline nav + property picker + avatar */}
-        <nav className="fx-desktop-only" style={{ gap: 16 }}>
-          {NAV.map(navLink)}
-        </nav>
-        <div
-          className="fx-desktop-only"
-          style={{ marginLeft: "auto", alignItems: "center", gap: 10 }}
-        >
+        <nav className="hidden gap-4 md:flex">{NAV.map(navLink)}</nav>
+        <div className="ml-auto hidden items-center gap-2.5 md:flex">
           {!onProfile && (
             <Segmented
               options={propOptions}
@@ -156,17 +108,8 @@ export function TopBar({ user }: { user: Session["user"] }) {
 
       {/* Mobile menu: nav links, property picker, profile */}
       {menuOpen && (
-        <div
-          className="fx-mobile-only"
-          style={{
-            flexDirection: "column",
-            gap: 4,
-            padding: "8px 20px 18px",
-            borderTop: "1px solid var(--line)",
-            background: "var(--card)",
-          }}
-        >
-          <nav style={{ display: "flex", flexDirection: "column" }}>
+        <div className="flex flex-col gap-1 border-t border-line bg-card pt-2 px-5 pb-[18px] md:hidden">
+          <nav className="flex flex-col">
             {NAV.map((l) => {
               const active = pathname === l.href;
               return (
@@ -174,17 +117,10 @@ export function TopBar({ user }: { user: Session["user"] }) {
                   key={l.href}
                   href={l.href}
                   onClick={() => setMenuOpen(false)}
-                  className="fx-navlink"
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 13,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.18em",
-                    padding: "12px 0",
-                    color: active ? "var(--accent)" : "var(--muted)",
-                    textDecoration: "none",
-                    borderBottom: "1px dashed var(--line)",
-                  }}
+                  className={cn(
+                    "font-mono text-[13px] uppercase tracking-label py-3 no-underline border-b border-dashed border-line transition-colors hover:text-ink",
+                    active ? "text-accent" : "text-muted",
+                  )}
                 >
                   {l.label}
                 </Link>
@@ -193,20 +129,11 @@ export function TopBar({ user }: { user: Session["user"] }) {
           </nav>
 
           {!onProfile && (
-            <div style={{ marginTop: 14 }}>
-              <p
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 10,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.2em",
-                  color: "var(--muted)",
-                  margin: "0 0 8px",
-                }}
-              >
+            <div className="mt-[14px]">
+              <p className="font-mono text-[10px] uppercase tracking-label-wide text-muted mb-2">
                 Apartment
               </p>
-              <div className="fx-scroll-x" style={{ paddingBottom: 2 }}>
+              <div className="overflow-x-auto [-webkit-overflow-scrolling:touch] pb-0.5">
                 <Segmented
                   options={propOptions}
                   value={propValue}
@@ -219,18 +146,10 @@ export function TopBar({ user }: { user: Session["user"] }) {
           <Link
             href="/profile"
             onClick={() => setMenuOpen(false)}
-            style={{
-              marginTop: 16,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-              textDecoration: "none",
-            }}
+            className="mt-4 inline-flex items-center gap-2.5 no-underline"
           >
             {avatarCircle}
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--ink)" }}>
-              {name}
-            </span>
+            <span className="font-mono text-[13px] text-ink">{name}</span>
           </Link>
         </div>
       )}

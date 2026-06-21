@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { type CSSProperties } from "react";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Button } from "@/components/ui";
 
@@ -20,57 +19,25 @@ export default function ProfilePage() {
     .join("")
     .toUpperCase();
 
-  const sectionTitle: CSSProperties = { marginTop: 40, marginBottom: 4 };
-  const help: CSSProperties = {
-    fontFamily: "var(--font-mono)",
-    fontSize: 12,
-    color: "var(--muted)",
-    margin: "0 0 12px",
-    maxWidth: 520,
-    lineHeight: 1.6,
-  };
-  const row: CSSProperties = {
-    display: "flex",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: 12,
-    border: "1px solid var(--line)",
-    background: "var(--card)",
-    padding: 12,
-  };
+  const help = "font-mono text-xs text-muted mb-3 max-w-[520px] leading-[1.6]";
 
   return (
-    <div style={{ maxWidth: "52rem", margin: "0 auto", padding: "32px 20px 80px" }}>
+    <div className="mx-auto max-w-[52rem] px-5 pt-8 pb-20">
       <Eyebrow>Profile</Eyebrow>
-      <Display size={34} style={{ display: "block", marginTop: 6 }}>
+      <Display size={34} className="block mt-1.5">
         Your setup
       </Display>
 
       {/* account identity */}
-      <div style={{ ...row, marginTop: 22, padding: 16, gap: 16 }}>
-        <span
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: "50%",
-            background: "var(--ink)",
-            color: "var(--paper)",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontFamily: "var(--font-mono)",
-            fontSize: 14,
-            fontWeight: 500,
-            flex: "none",
-          }}
-        >
+      <div className="mt-[22px] flex flex-wrap items-center gap-4 border border-line bg-card p-4">
+        <span className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-full bg-ink text-paper font-mono text-sm font-medium">
           {initials}
         </span>
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 18, margin: 0, letterSpacing: "-0.01em" }}>
+        <div className="flex-1 min-w-[160px]">
+          <p className="font-display font-semibold text-lg tracking-tight">
             {name}
           </p>
-          <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)", margin: "2px 0 0" }}>
+          <p className="font-mono text-xs text-muted mt-0.5">
             {user?.email}
             {user?.email ? " · " : ""}via Google
           </p>
@@ -81,10 +48,10 @@ export default function ProfilePage() {
       </div>
 
       {/* apartments — manage on the dedicated page */}
-      <h2 style={sectionTitle}>
+      <h2 className="mt-10 mb-1">
         <Eyebrow>Apartments</Eyebrow>
       </h2>
-      <p style={help}>
+      <p className={help}>
         Your apartments hold their bills, vendors and accounts. Invite a partner
         or flatmate so they can see and add bills too.
       </p>
@@ -93,10 +60,10 @@ export default function ProfilePage() {
       </Button>
 
       {/* parsers — link out to the dedicated library (power-user surface) */}
-      <h2 style={sectionTitle}>
+      <h2 className="mt-10 mb-1">
         <Eyebrow>Parsers</Eyebrow>
       </h2>
-      <p style={help}>
+      <p className={help}>
         Parsers turn bill PDFs into structured data. Manage your own, publish
         them, or adopt others&apos; — most people never need to touch this.
       </p>

@@ -14,6 +14,7 @@ import {
   StackedBarsFx,
   useChartCurrency,
 } from "@/components/charts";
+import { cn } from "@/lib/cn";
 import { formatMoney } from "@/lib/format";
 import { type RouterOutputs, trpc } from "@/lib/trpc";
 
@@ -31,19 +32,11 @@ export default function InsightsPage() {
   const vendorsHere = series.data?.vendors ?? [];
 
   return (
-    <div style={{ maxWidth: "64rem", margin: "0 auto", padding: "32px 20px 80px" }}>
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "flex-end",
-          justifyContent: "space-between",
-          gap: 14,
-        }}
-      >
+    <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
+      <div className="flex flex-wrap items-end justify-between gap-[14px]">
         <div>
           <Eyebrow>Insights</Eyebrow>
-          <Display size={34} style={{ display: "block", marginTop: 6 }}>
+          <Display size={34} className="block mt-1.5">
             How your bills move
           </Display>
         </div>
@@ -58,16 +51,7 @@ export default function InsightsPage() {
       </div>
 
       {/* vendor filter */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 6,
-          marginTop: 18,
-          borderBottom: "1px solid var(--line)",
-          paddingBottom: 12,
-        }}
-      >
+      <div className="flex flex-wrap gap-1.5 mt-[18px] border-b border-line pb-3">
         <VendorTab label="All vendors" active={vendorId === "all"} onClick={() => setVendorId("all")} />
         {vendorsHere.map((v) => (
           <VendorTab
@@ -107,23 +91,12 @@ function VendorTab({
   return (
     <button
       onClick={onClick}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 7,
-        fontFamily: "var(--font-mono)",
-        fontSize: 11,
-        textTransform: "uppercase",
-        letterSpacing: "0.12em",
-        padding: "5px 11px",
-        cursor: "pointer",
-        border: "1px solid " + (active ? "var(--ink)" : "transparent"),
-        background: active ? "var(--ink)" : "transparent",
-        color: active ? "var(--paper)" : "var(--muted)",
-        transition: "var(--transition-colors)",
-      }}
+      className={cn(
+        "inline-flex items-center gap-[7px] font-mono text-micro uppercase tracking-[0.12em] py-[5px] px-[11px] cursor-pointer border transition-colors",
+        active ? "border-ink bg-ink text-paper" : "border-transparent bg-transparent text-muted",
+      )}
     >
-      {color && <span style={{ width: 8, height: 8, background: color, display: "inline-block" }} />}
+      {color && <span className="inline-block w-2 h-2" style={{ background: color }} />}
       {label}
     </button>
   );
@@ -136,7 +109,7 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
   const donut = useChartCurrency();
   if (!data) {
     return (
-      <p style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--muted)", marginTop: 20 }}>
+      <p className="font-mono text-[13px] text-muted mt-5">
         Reading the fine print…
       </p>
     );
@@ -151,7 +124,7 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
 
   return (
     <>
-      <ChartCard title="Total spend over time" caption="Stacked by vendor" action={bars.toggle} style={{ marginTop: 16 }}>
+      <ChartCard title="Total spend over time" caption="Stacked by vendor" action={bars.toggle} className="mt-4">
         <StackedBarsFx
           months={data.months}
           stacks={data.byCurrency[bars.currency].series.map((s) => s.byVendor)}
@@ -160,19 +133,19 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
           completeFlags={data.completeFlags}
           height={230}
         />
-        <Legend items={data.vendors.map((v) => ({ id: v.id, label: v.displayName, color: v.color }))} style={{ marginTop: 12 }} />
+        <Legend items={data.vendors.map((v) => ({ id: v.id, label: v.displayName, color: v.color }))} className="mt-3" />
       </ChartCard>
 
-      <div className="fx-stack-sm" style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(360px, 1.5fr)", gap: 16, alignItems: "start" }}>
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-[minmax(280px,1fr)_minmax(360px,1.5fr)] gap-4 items-start">
         <ChartCard title="Vendor share" caption="Where it goes, in range" action={donut.toggle}>
-          <div className="fx-wrap-sm" style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div className="flex flex-wrap items-center gap-4 md:flex-nowrap">
             <DonutFx slices={slices} centerLabel={donut.currency === "USD" ? "US$" : "AR$"} centerSub="total" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+            <div className="flex flex-col gap-2 flex-1">
               {slices.map((s) => (
-                <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 10, height: 10, background: s.color, display: "inline-block" }} />
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, flex: 1 }}>{s.label}</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 500 }}>
+                <div key={s.id} className="flex items-center gap-2">
+                  <span className="inline-block w-2.5 h-2.5" style={{ background: s.color }} />
+                  <span className="font-mono text-xs flex-1">{s.label}</span>
+                  <span className="font-mono text-xs font-medium">
                     {Math.round((s.value / shareTotal) * 100)}%
                   </span>
                 </div>
@@ -192,13 +165,13 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
             height={200}
           />
           <Legend
-            style={{ marginTop: 12 }}
+            className="mt-3"
             items={[
               { label: "What you pay (ARS)", color: "var(--accent)" },
               { label: "Real cost (USD blue)", color: USD_LINE },
             ]}
           />
-          <p style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--muted)", margin: "12px 0 0", lineHeight: 1.6 }}>
+          <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6]">
             Pesos climb with inflation; in dollars your real cost is far flatter.
             The gap is the peso losing value — not you using more.
           </p>
@@ -226,7 +199,7 @@ function SingleVendorCharts({
 
   if (!d) {
     return (
-      <p style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--muted)", marginTop: 20 }}>
+      <p className="font-mono text-[13px] text-muted mt-5">
         Reading the fine print…
       </p>
     );
@@ -242,14 +215,14 @@ function SingleVendorCharts({
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginTop: 18 }}>
+      <div className="flex items-baseline gap-[14px] mt-[18px]">
         <Display size={28}>{formatMoney(knownSpend[knownSpend.length - 1] ?? null, spend.currency)}</Display>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>
+        <span className="font-mono text-xs text-muted">
           latest · <Delta pct={pct} /> over range
         </span>
       </div>
 
-      <ChartCard title={`${vendor.displayName} — spend over time`} action={spend.toggle} style={{ marginTop: 14 }}>
+      <ChartCard title={`${vendor.displayName} — spend over time`} action={spend.toggle} className="mt-[14px]">
         <LineChartFx
           months={d.months}
           currency={spend.currency}
@@ -264,7 +237,7 @@ function SingleVendorCharts({
       ))}
 
       {d.fields.length === 0 && (
-        <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)", margin: "16px 2px 0", lineHeight: 1.6 }}>
+        <p className="font-mono text-xs text-muted mt-4 mx-0.5 leading-[1.6]">
           This parser extracts no extra fields beyond the amount — the climb is
           inflation, not usage. Add fields like consumption or surcharges in the
           parser builder to chart them here.
@@ -298,14 +271,10 @@ function CustomFieldCharts({
 
   return (
     <div
-      className="fx-stack-sm"
-      style={{
-        marginTop: 16,
-        display: "grid",
-        gridTemplateColumns: isQuantity && field.unitPrice ? "1fr 1fr" : "1fr",
-        gap: 16,
-        alignItems: "start",
-      }}
+      className={cn(
+        "mt-4 grid grid-cols-1 gap-4 items-start",
+        isQuantity && field.unitPrice && "md:grid-cols-2",
+      )}
     >
       <ChartCard
         title={`${field.name}${field.unit ? ` · ${field.unit}` : ""}`}
@@ -332,7 +301,7 @@ function CustomFieldCharts({
             height={190}
           />
           <Legend
-            style={{ marginTop: 10 }}
+            className="mt-2.5"
             items={[
               { label: `ARS / ${field.unit || "unit"}`, color: "var(--accent)" },
               { label: `USD / ${field.unit || "unit"}`, color: USD_LINE },

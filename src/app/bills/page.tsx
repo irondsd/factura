@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useApp } from "@/components/app/context";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Badge } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import { formatARS, formatMonthShort, formatUSD } from "@/lib/format";
 import { FALLBACK_COLOR, vendorColorMap } from "@/lib/vendorColors";
 import { trpc } from "@/lib/trpc";
@@ -51,45 +52,19 @@ export default function BillsPage() {
   const propName = (id: string | null) =>
     properties.data?.find((p) => p.id === id)?.nickname ?? "—";
 
-  const th: React.CSSProperties = {
-    textAlign: "left",
-    padding: "0 0 10px",
-    fontFamily: "var(--font-mono)",
-    fontSize: 11,
-    fontWeight: 500,
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    color: "var(--muted)",
-  };
-  const td: React.CSSProperties = {
-    padding: "12px 0",
-    fontSize: 13,
-    fontFamily: "var(--font-mono)",
-    borderTop: "1px solid color-mix(in srgb, var(--line) 60%, transparent)",
-  };
-
   const d = paged.data;
   const rows = d?.rows ?? [];
   const pageCount = d?.pageCount ?? 1;
   const safePage = d?.page ?? 0;
 
   return (
-    <div style={{ maxWidth: "64rem", margin: "0 auto", padding: "32px 20px 80px" }}>
+    <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
       <Eyebrow>Bills · {propertyId ? propName(propertyId) : "All properties"}</Eyebrow>
-      <Display size={34} style={{ display: "block", marginTop: 6 }}>
+      <Display size={34} className="block mt-1.5">
         The ledger
       </Display>
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 6,
-          marginTop: 18,
-          borderBottom: "1px solid var(--line)",
-          paddingBottom: 12,
-        }}
-      >
+      <div className="flex flex-wrap gap-1.5 mt-[18px] border-b border-line pb-3">
         <FilterTab label="All vendors" active={vendorId === "all"} onClick={() => setVendorId("all")} />
         {vendorsHere.map((v) => (
           <FilterTab
@@ -102,57 +77,57 @@ export default function BillsPage() {
         ))}
       </div>
 
-      <div className="fx-scroll-x" style={{ marginTop: 16 }}>
-      <table style={{ width: "100%", minWidth: 440, borderCollapse: "collapse" }}>
+      <div className="overflow-x-auto [-webkit-overflow-scrolling:touch] mt-4">
+      <table className="w-full min-w-[440px] border-collapse">
         <thead>
           <tr>
-            <th style={th}>Period</th>
-            <th style={th}>Vendor</th>
-            {!propertyId && <th style={th}>Property</th>}
-            <th style={{ ...th, textAlign: "right" }}>Amount</th>
-            <th style={{ ...th, textAlign: "right" }}>USD</th>
-            <th style={th}></th>
+            <th className="fd-th">Period</th>
+            <th className="fd-th">Vendor</th>
+            {!propertyId && <th className="fd-th">Property</th>}
+            <th className="fd-th text-right">Amount</th>
+            <th className="fd-th text-right">USD</th>
+            <th className="fd-th"></th>
           </tr>
         </thead>
         <tbody>
           {rows.map((b) => {
             const review = b.status === "needs_review";
             return (
-              <tr key={b.id} className="fx-row" onClick={() => openBill(b.id)} style={{ cursor: "pointer" }}>
-                <td style={{ ...td, color: review ? "var(--accent)" : "var(--ink)" }}>
+              <tr
+                key={b.id}
+                onClick={() => openBill(b.id)}
+                className="cursor-pointer [&:hover>td]:bg-[color-mix(in_srgb,var(--accent)_4%,transparent)]"
+              >
+                <td className={cn("fd-td", review ? "text-accent" : "text-ink")}>
                   {b.period
                     ? `${formatMonthShort(b.period)} ${b.period.slice(0, 4)}`
                     : b.fileName ?? "—"}
                 </td>
-                <td style={td}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+                <td className="fd-td">
+                  <span className="inline-flex items-center gap-[7px]">
                     {b.vendorId && vendorById.get(b.vendorId) && (
                       <span
-                        style={{
-                          width: 8,
-                          height: 8,
-                          background: vendorColors.get(b.vendorId) ?? FALLBACK_COLOR,
-                          display: "inline-block",
-                        }}
+                        className="inline-block w-2 h-2"
+                        style={{ background: vendorColors.get(b.vendorId) ?? FALLBACK_COLOR }}
                       />
                     )}
                     {vendorName(b.vendorId)}
                   </span>
                 </td>
-                {!propertyId && <td style={{ ...td, color: "var(--muted)" }}>{propName(b.propertyId)}</td>}
-                <td style={{ ...td, textAlign: "right", fontWeight: 500 }}>
+                {!propertyId && <td className="fd-td text-muted">{propName(b.propertyId)}</td>}
+                <td className="fd-td text-right font-medium">
                   {review ? <Badge>needs review</Badge> : formatARS(b.totalAmount)}
                 </td>
-                <td style={{ ...td, textAlign: "right", color: "var(--muted)" }}>
+                <td className="fd-td text-right text-muted">
                   {review ? "—" : formatUSD(b.usdAmount)}
                 </td>
-                <td style={{ ...td, textAlign: "right", color: "var(--muted)" }}>›</td>
+                <td className="fd-td text-right text-muted">›</td>
               </tr>
             );
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={6} style={{ ...td, textAlign: "center", color: "var(--muted)", padding: "28px 0" }}>
+              <td colSpan={6} className="fd-td text-center text-muted py-7">
                 No bills yet — drop a PDF anywhere.
               </td>
             </tr>
@@ -162,20 +137,20 @@ export default function BillsPage() {
       </div>
 
       {/* pagination */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 18, gap: 12, flexWrap: "wrap" }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--muted)" }}>
+      <div className="flex items-center justify-between mt-[18px] gap-3 flex-wrap">
+        <span className="font-mono text-micro uppercase tracking-[0.08em] text-muted">
           {d?.total ?? 0} bills · page {safePage + 1} of {pageCount}
         </span>
         {/* Prev/Next + a 5-page window. The labels collapse to bare arrows on mobile. */}
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div className="flex gap-1 flex-wrap justify-end">
           <PageBtn disabled={safePage === 0} onClick={() => setPage(safePage - 1)} aria-label="Previous page">
-            ‹<span className="fx-desktop-only">Prev</span>
+            ‹<span className="hidden md:inline">Prev</span>
           </PageBtn>
           {pageWindow(safePage, pageCount).map((item, idx) => (
             <PageNum key={typeof item === "number" ? item : `gap-${idx}`} item={item} active={item === safePage} onClick={setPage} />
           ))}
           <PageBtn disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)} aria-label="Next page">
-            <span className="fx-desktop-only">Next</span>›
+            <span className="hidden md:inline">Next</span>›
           </PageBtn>
         </div>
       </div>
@@ -213,27 +188,19 @@ function FilterTab({
   return (
     <button
       onClick={onClick}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 7,
-        fontFamily: "var(--font-mono)",
-        fontSize: 11,
-        textTransform: "uppercase",
-        letterSpacing: "0.12em",
-        padding: "5px 11px",
-        cursor: "pointer",
-        border: "1px solid " + (active ? "var(--ink)" : "transparent"),
-        background: active ? "var(--ink)" : "transparent",
-        color: active ? "var(--paper)" : "var(--muted)",
-        transition: "var(--transition-colors)",
-      }}
+      className={cn(
+        "inline-flex items-center gap-[7px] font-mono text-micro uppercase tracking-[0.12em] py-[5px] px-[11px] cursor-pointer border transition-colors",
+        active ? "border-ink bg-ink text-paper" : "border-transparent bg-transparent text-muted",
+      )}
     >
-      {color && <span style={{ width: 8, height: 8, background: color, display: "inline-block" }} />}
+      {color && <span className="inline-block w-2 h-2" style={{ background: color }} />}
       {label}
     </button>
   );
 }
+
+const PAGENUM_BASE =
+  "font-mono text-micro w-7 h-7 inline-flex items-center justify-center";
 
 function PageNum({
   item,
@@ -244,29 +211,17 @@ function PageNum({
   active: boolean;
   onClick: (page: number) => void;
 }) {
-  const base: React.CSSProperties = {
-    fontFamily: "var(--font-mono)",
-    fontSize: 11,
-    width: 28,
-    height: 28,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-  };
   if (item === "…") {
-    return <span style={{ ...base, color: "var(--muted)" }}>…</span>;
+    return <span className={cn(PAGENUM_BASE, "text-muted")}>…</span>;
   }
   return (
     <button
       onClick={() => onClick(item)}
-      style={{
-        ...base,
-        cursor: "pointer",
-        border: "1px solid " + (active ? "var(--ink)" : "var(--line)"),
-        background: active ? "var(--ink)" : "transparent",
-        color: active ? "var(--paper)" : "var(--muted)",
-        transition: "var(--transition-colors)",
-      }}
+      className={cn(
+        PAGENUM_BASE,
+        "cursor-pointer border transition-colors",
+        active ? "border-ink bg-ink text-paper" : "border-line bg-transparent text-muted",
+      )}
     >
       {item + 1}
     </button>
@@ -288,22 +243,12 @@ function PageBtn({
       onClick={onClick}
       disabled={disabled}
       {...rest}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        fontFamily: "var(--font-mono)",
-        fontSize: 11,
-        textTransform: "uppercase",
-        letterSpacing: "0.08em",
-        padding: "0 10px",
-        height: 28,
-        cursor: disabled ? "not-allowed" : "pointer",
-        border: "1px solid var(--line)",
-        background: "transparent",
-        color: disabled ? "color-mix(in srgb, var(--muted) 45%, transparent)" : "var(--ink)",
-        transition: "var(--transition-colors)",
-      }}
+      className={cn(
+        "inline-flex items-center gap-1.5 font-mono text-micro uppercase tracking-[0.08em] px-2.5 h-7 border border-line bg-transparent transition-colors",
+        disabled
+          ? "cursor-not-allowed text-[color-mix(in_srgb,var(--muted)_45%,transparent)]"
+          : "cursor-pointer text-ink",
+      )}
     >
       {children}
     </button>

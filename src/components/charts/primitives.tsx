@@ -1,6 +1,7 @@
 "use client";
 
-import { type CSSProperties, type ReactNode, useState } from "react";
+import { type ReactNode, useState } from "react";
+import { cn } from "@/lib/cn";
 
 export type ChartCurrency = "ARS" | "USD";
 
@@ -13,63 +14,33 @@ export function ChartCard({
   action,
   children,
   pad = 20,
-  style,
+  className,
 }: {
   title?: ReactNode;
   caption?: ReactNode;
   action?: ReactNode;
   children: ReactNode;
   pad?: number;
-  style?: CSSProperties;
+  className?: string;
 }) {
   return (
     <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line)",
-        padding: pad,
-        // Recharts' ResponsiveContainer renders a fixed-width SVG, which would
-        // otherwise pin a grid track's auto-minimum and stop `1fr` from
-        // distributing width — collapsing the card. minWidth:0 frees the track.
-        minWidth: 0,
-        ...style,
-      }}
+      // Recharts' ResponsiveContainer renders a fixed-width SVG, which would
+      // otherwise pin a grid track's auto-minimum and stop `1fr` from
+      // distributing width — collapsing the card. min-w-0 frees the track.
+      className={cn("bg-card border border-line min-w-0", className)}
+      style={{ padding: pad }}
     >
       {(title || action) && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-            gap: 12,
-            marginBottom: 14,
-          }}
-        >
+        <div className="flex items-baseline justify-between gap-3 mb-[14px]">
           <div>
             {title && (
-              <p
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.2em",
-                  color: "var(--muted)",
-                  margin: 0,
-                }}
-              >
+              <p className="font-mono text-micro uppercase tracking-label-wide text-muted">
                 {title}
               </p>
             )}
             {caption && (
-              <p
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 12,
-                  color: "var(--muted)",
-                  margin: "4px 0 0",
-                  opacity: 0.85,
-                }}
-              >
+              <p className="font-mono text-xs text-muted mt-1 opacity-85">
                 {caption}
               </p>
             )}
@@ -85,23 +56,19 @@ export function ChartCard({
 export function Eyebrow({
   children,
   tone = "muted",
-  style,
+  className,
 }: {
   children: ReactNode;
   tone?: "muted" | "accent";
-  style?: CSSProperties;
+  className?: string;
 }) {
   return (
     <p
-      style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: 11,
-        textTransform: "uppercase",
-        letterSpacing: "0.22em",
-        color: tone === "accent" ? "var(--accent)" : "var(--muted)",
-        margin: 0,
-        ...style,
-      }}
+      className={cn(
+        "font-mono text-micro uppercase tracking-[0.22em]",
+        tone === "accent" ? "text-accent" : "text-muted",
+        className,
+      )}
     >
       {children}
     </p>
@@ -111,22 +78,16 @@ export function Eyebrow({
 export function Display({
   children,
   size = 30,
-  style,
+  className,
 }: {
   children: ReactNode;
   size?: number;
-  style?: CSSProperties;
+  className?: string;
 }) {
   return (
     <span
-      style={{
-        fontFamily: "var(--font-display)",
-        fontWeight: 600,
-        fontSize: size,
-        letterSpacing: "-0.01em",
-        color: "var(--ink)",
-        ...style,
-      }}
+      className={cn("font-display font-semibold tracking-tight text-ink", className)}
+      style={{ fontSize: size }}
     >
       {children}
     </span>
@@ -142,35 +103,25 @@ export function Segmented<T extends string | number>({
   options,
   value,
   onChange,
-  style,
+  className,
 }: {
   options: SegmentedOption<T>[];
   value: T;
   onChange: (v: T) => void;
-  style?: CSSProperties;
+  className?: string;
 }) {
   return (
-    <span
-      style={{ display: "inline-flex", border: "1px solid var(--line)", ...style }}
-    >
+    <span className={cn("inline-flex border border-line", className)}>
       {options.map((o) => {
         const active = o.value === value;
         return (
           <button
             key={String(o.value)}
             onClick={() => onChange(o.value)}
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              textTransform: "uppercase",
-              letterSpacing: "0.14em",
-              padding: "5px 11px",
-              border: "none",
-              cursor: "pointer",
-              transition: "var(--transition-colors)",
-              background: active ? "var(--ink)" : "transparent",
-              color: active ? "var(--paper)" : "var(--muted)",
-            }}
+            className={cn(
+              "font-mono text-micro uppercase tracking-[0.14em] py-[5px] px-[11px] border-none cursor-pointer transition-colors",
+              active ? "bg-ink text-paper" : "bg-transparent text-muted",
+            )}
           >
             {o.label}
           </button>
@@ -184,16 +135,14 @@ export function Segmented<T extends string | number>({
 export function CurrencyToggle({
   value,
   onChange,
-  style,
+  className,
 }: {
   value: ChartCurrency;
   onChange: (v: ChartCurrency) => void;
-  style?: CSSProperties;
+  className?: string;
 }) {
   return (
-    <span
-      style={{ display: "inline-flex", border: "1px solid var(--line)", ...style }}
-    >
+    <span className={cn("inline-flex border border-line", className)}>
       {(["ARS", "USD"] as const).map((c) => {
         const active = c === value;
         return (
@@ -202,17 +151,10 @@ export function CurrencyToggle({
             type="button"
             onClick={() => onChange(c)}
             aria-pressed={active}
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 10,
-              letterSpacing: "0.12em",
-              padding: "3px 7px",
-              border: "none",
-              cursor: "pointer",
-              transition: "var(--transition-colors)",
-              background: active ? "var(--ink)" : "transparent",
-              color: active ? "var(--paper)" : "var(--muted)",
-            }}
+            className={cn(
+              "font-mono text-[10px] tracking-[0.12em] py-[3px] px-[7px] border-none cursor-pointer transition-colors",
+              active ? "bg-ink text-paper" : "bg-transparent text-muted",
+            )}
           >
             {c}
           </button>
@@ -236,25 +178,22 @@ export function useChartCurrency(initial: ChartCurrency = "ARS") {
 /** Trend delta chip: ▲ up (accent, "bad" for spend) / ▼ down / · flat. */
 export function Delta({
   pct,
-  style,
+  className,
 }: {
   pct: number | null | undefined;
-  style?: CSSProperties;
+  className?: string;
 }) {
   if (pct == null || !isFinite(pct)) return null;
   const up = pct > 0.5;
   const down = pct < -0.5;
   const glyph = up ? "▲" : down ? "▼" : "·";
-  const color = up ? "var(--accent)" : "var(--muted)";
   return (
     <span
-      style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: 11,
-        color,
-        letterSpacing: "0.02em",
-        ...style,
-      }}
+      className={cn(
+        "font-mono text-micro tracking-[0.02em]",
+        up ? "text-accent" : "text-muted",
+        className,
+      )}
     >
       {glyph} {Math.abs(pct).toFixed(0)}%
     </span>
@@ -263,29 +202,23 @@ export function Delta({
 
 export function Legend({
   items,
-  style,
+  className,
 }: {
   // `id` makes the key unique when two entries share a label (e.g. the same
   // vendor name across different apartments); falls back to label otherwise.
   items: { label: string; color: string; id?: string }[];
-  style?: CSSProperties;
+  className?: string;
 }) {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 18px", ...style }}>
+    <div className={cn("flex flex-wrap gap-x-[18px] gap-y-2", className)}>
       {items.map((it) => (
         <span
           key={it.id ?? it.label}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            color: "var(--muted)",
-          }}
+          className="inline-flex items-center gap-[7px] font-mono text-micro text-muted"
         >
           <span
-            style={{ width: 10, height: 10, background: it.color, display: "inline-block" }}
+            className="inline-block w-2.5 h-2.5"
+            style={{ background: it.color }}
           />
           {it.label}
         </span>

@@ -1,13 +1,23 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { type CSSProperties, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "@/components/app/context";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Button, Checkbox, Input } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import { OWNED_APARTMENT_LIMIT } from "@/lib/limits";
 import { FALLBACK_COLOR, vendorColorMap } from "@/lib/vendorColors";
 import { trpc } from "@/lib/trpc";
+
+const help = "font-mono text-xs text-muted mb-[14px] max-w-[540px] leading-[1.6]";
+const card = "border border-line bg-card p-[18px] mb-4";
+const subhead =
+  "font-mono text-[10px] uppercase tracking-[0.16em] text-muted mt-[18px] mb-2";
+const row =
+  "flex flex-wrap items-center gap-2.5 py-2 border-t border-dashed border-line";
+const iconX =
+  "ml-auto bg-transparent border-none text-muted cursor-pointer transition-colors hover:text-accent";
 
 export default function ApartmentsPage() {
   const { data: session } = useSession();
@@ -48,44 +58,13 @@ export default function ApartmentsPage() {
   const parseVariants = (s: string) =>
     s.split(",").map((x) => x.trim()).filter((x) => x.length >= 4);
 
-  const help: CSSProperties = {
-    fontFamily: "var(--font-mono)",
-    fontSize: 12,
-    color: "var(--muted)",
-    margin: "0 0 14px",
-    maxWidth: 540,
-    lineHeight: 1.6,
-  };
-  const card: CSSProperties = {
-    border: "1px solid var(--line)",
-    background: "var(--card)",
-    padding: 18,
-    marginBottom: 16,
-  };
-  const subhead: CSSProperties = {
-    fontFamily: "var(--font-mono)",
-    fontSize: 10,
-    textTransform: "uppercase",
-    letterSpacing: "0.16em",
-    color: "var(--muted)",
-    margin: "18px 0 8px",
-  };
-  const row: CSSProperties = {
-    display: "flex",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: 10,
-    padding: "8px 0",
-    borderTop: "1px dashed var(--line)",
-  };
-
   return (
-    <div style={{ maxWidth: "52rem", margin: "0 auto", padding: "32px 20px 80px" }}>
+    <div className="mx-auto max-w-[52rem] px-5 pt-8 pb-20">
       <Eyebrow>Apartments</Eyebrow>
-      <Display size={34} style={{ display: "block", marginTop: 6 }}>
+      <Display size={34} className="block mt-1.5">
         Your apartments
       </Display>
-      <p style={{ ...help, marginTop: 14 }}>
+      <p className={`${help} mt-[14px]`}>
         Each apartment holds its own bills, vendors and accounts. Invite someone
         (a partner, a flatmate) and they&rsquo;ll see and add bills here too. You
         can own up to {OWNED_APARTMENT_LIMIT} apartments; ones shared with you
@@ -100,9 +79,9 @@ export default function ApartmentsPage() {
           aptVendors.find((v) => v.id === id)?.displayName ?? "—";
 
         return (
-          <div key={apt.id} style={card}>
+          <div key={apt.id} className={card}>
             {/* header */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div className="flex items-center gap-3 flex-wrap">
               {isOwner ? (
                 <Input
                   defaultValue={apt.nickname}
@@ -110,27 +89,22 @@ export default function ApartmentsPage() {
                     if (e.target.value.trim() && e.target.value !== apt.nickname)
                       updateApt.mutate({ id: apt.id, nickname: e.target.value.trim() });
                   }}
-                  style={{ width: 180, fontWeight: 600, fontSize: 16 }}
+                  className="w-[180px] font-semibold text-base"
                 />
               ) : (
-                <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 18 }}>
+                <span className="font-display font-semibold text-lg">
                   {apt.nickname}
                 </span>
               )}
               <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 10,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.14em",
-                  color: isOwner ? "var(--accent)" : "var(--muted)",
-                  border: "1px solid var(--line)",
-                  padding: "2px 8px",
-                }}
+                className={cn(
+                  "font-mono text-[10px] uppercase tracking-[0.14em] border border-line py-0.5 px-2",
+                  isOwner ? "text-accent" : "text-muted",
+                )}
               >
                 {apt.role}
               </span>
-              <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+              <div className="ml-auto flex gap-2">
                 {isOwner ? (
                   <Button
                     variant="ghost"
@@ -170,21 +144,21 @@ export default function ApartmentsPage() {
                 onBlur={(e) =>
                   updateApt.mutate({ id: apt.id, addressVariants: parseVariants(e.target.value) })
                 }
-                style={{ width: "100%", marginTop: 10 }}
+                className="mt-2.5"
               />
             )}
 
             {/* members */}
-            <p style={subhead}>People</p>
+            <p className={subhead}>People</p>
             {apt.members.map((m) => (
-              <div key={m.userId} style={row}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 500 }}>
+              <div key={m.userId} className={row}>
+                <span className="font-mono text-[13px] font-medium">
                   {m.name ?? m.email}
                   {m.email.toLowerCase() === myEmail && (
-                    <span style={{ color: "var(--muted)" }}> · you</span>
+                    <span className="text-muted"> · you</span>
                   )}
                 </span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)" }}>
+                <span className="font-mono text-micro text-muted">
                   {m.email} · {m.role}
                 </span>
                 {isOwner && m.email.toLowerCase() !== myEmail && (
@@ -196,8 +170,7 @@ export default function ApartmentsPage() {
                         { onSuccess: () => showToast("Member removed"), onError: toastErr },
                       )
                     }
-                    className="fx-x"
-                    style={{ marginLeft: "auto", background: "none", border: "none", color: "var(--muted)", cursor: "pointer" }}
+                    className={iconX}
                   >
                     ✕
                   </button>
@@ -205,9 +178,9 @@ export default function ApartmentsPage() {
               </div>
             ))}
             {apt.invites.map((inv) => (
-              <div key={inv.id} style={row}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}>{inv.email}</span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)" }}>
+              <div key={inv.id} className={row}>
+                <span className="font-mono text-[13px]">{inv.email}</span>
+                <span className="font-mono text-micro text-accent">
                   invited · pending
                 </span>
                 {isOwner && (
@@ -219,8 +192,7 @@ export default function ApartmentsPage() {
                         { onSuccess: () => showToast("Invite revoked"), onError: toastErr },
                       )
                     }
-                    className="fx-x"
-                    style={{ marginLeft: "auto", background: "none", border: "none", color: "var(--muted)", cursor: "pointer" }}
+                    className={iconX}
                   >
                     ✕
                   </button>
@@ -235,18 +207,21 @@ export default function ApartmentsPage() {
             {/* vendors */}
             {aptVendors.length > 0 && (
               <>
-                <p style={subhead}>Vendors</p>
-                <div className="fx-stack-sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <p className={subhead}>Vendors</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {aptVendors.map((v) => (
-                    <div key={v.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ width: 9, height: 9, background: vendorColors.get(v.id) ?? FALLBACK_COLOR, flex: "none" }} />
+                    <div key={v.id} className="flex items-center gap-2">
+                      <span
+                        className="w-[9px] h-[9px] flex-none"
+                        style={{ background: vendorColors.get(v.id) ?? FALLBACK_COLOR }}
+                      />
                       <Input
                         defaultValue={v.displayName}
                         onBlur={(e) => {
                           if (e.target.value.trim() && e.target.value !== v.displayName)
                             updateVendor.mutate({ id: v.id, displayName: e.target.value.trim() });
                         }}
-                        style={{ flex: 1, fontWeight: 600 }}
+                        className="flex-1 font-semibold"
                       />
                     </div>
                   ))}
@@ -257,13 +232,13 @@ export default function ApartmentsPage() {
             {/* accounts */}
             {aptAccounts.length > 0 && (
               <>
-                <p style={subhead}>Accounts</p>
+                <p className={subhead}>Accounts</p>
                 {aptAccounts.map((a) => (
-                  <div key={a.id} style={row}>
-                    <span style={{ width: 130, fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 13 }}>
+                  <div key={a.id} className={row}>
+                    <span className="w-[130px] font-mono font-semibold text-[13px]">
                       {vendorName(a.vendorId)}
                     </span>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>
+                    <span className="font-mono text-xs text-muted">
                       №{a.accountNumber}
                     </span>
                     {isOwner && (
@@ -282,8 +257,7 @@ export default function ApartmentsPage() {
                             { onError: toastErr },
                           )
                         }
-                        className="fx-x"
-                        style={{ marginLeft: "auto", background: "none", border: "none", color: "var(--muted)", cursor: "pointer" }}
+                        className={iconX}
                       >
                         ✕
                       </button>
@@ -297,13 +271,13 @@ export default function ApartmentsPage() {
       })}
 
       {/* add apartment */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 8 }}>
+      <div className="flex flex-wrap gap-3 mt-2">
         <Input
           value={newNickname}
           onChange={(e) => setNewNickname(e.target.value)}
           placeholder="New apartment nickname"
           disabled={atLimit}
-          style={{ width: 220 }}
+          className="w-[220px]"
         />
         <Button
           variant="outline"
@@ -320,7 +294,7 @@ export default function ApartmentsPage() {
           Add apartment
         </Button>
         {atLimit && (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", alignSelf: "center" }}>
+          <span className="font-mono text-micro text-muted self-center">
             You&rsquo;ve reached the limit of {OWNED_APARTMENT_LIMIT} owned apartments.
           </span>
         )}
@@ -333,7 +307,7 @@ function InviteForm({ onInvite }: { onInvite: (email: string) => void }) {
   const [email, setEmail] = useState("");
   return (
     <form
-      style={{ display: "flex", gap: 8, marginTop: 10 }}
+      className="flex gap-2 mt-2.5"
       onSubmit={(e) => {
         e.preventDefault();
         if (!email.trim()) return;
@@ -346,7 +320,7 @@ function InviteForm({ onInvite }: { onInvite: (email: string) => void }) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Invite by email"
-        style={{ flex: 1, maxWidth: 280 }}
+        className="flex-1 max-w-[280px]"
       />
       <Button type="submit" variant="outline">
         Invite

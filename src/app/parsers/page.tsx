@@ -1,40 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type CSSProperties } from "react";
 import { useApp } from "@/components/app/context";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Badge, Button } from "@/components/ui";
 import { trpc } from "@/lib/trpc";
 
-const parserRow: CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  gap: 10,
-  border: "1px solid var(--line)",
-  background: "var(--card)",
-  padding: "10px 12px",
-};
-const parserMeta: CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: 12,
-  color: "var(--muted)",
-};
-const sectionTitle: CSSProperties = { marginTop: 40, marginBottom: 4 };
-const help: CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: 12,
-  color: "var(--muted)",
-  margin: "0 0 12px",
-  maxWidth: 520,
-  lineHeight: 1.6,
-};
-const nameStyle: CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontWeight: 600,
-  fontSize: 14,
-};
+const parserRow =
+  "flex flex-wrap items-center gap-2.5 border border-line bg-card py-2.5 px-3";
+const parserMeta = "font-mono text-xs text-muted";
+const sectionTitle = "mt-10 mb-1";
+const help = "font-mono text-xs text-muted mb-3 max-w-[520px] leading-[1.6]";
+const nameStyle = "font-mono font-semibold text-sm";
 
 /** Parser library + registry: manage your own parsers (edit / publish / delete),
  * the official/community ones you've adopted (update / fork / remove), and
@@ -108,11 +85,11 @@ export default function ParsersPage() {
   };
 
   return (
-    <div style={{ maxWidth: "52rem", margin: "0 auto", padding: "32px 20px 80px" }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+    <div className="mx-auto max-w-[52rem] px-5 pt-8 pb-20">
+      <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <div>
           <Eyebrow>Parsers</Eyebrow>
-          <Display size={34} style={{ display: "block", marginTop: 6 }}>
+          <Display size={34} className="block mt-1.5">
             Parser library
           </Display>
         </div>
@@ -121,27 +98,27 @@ export default function ParsersPage() {
         </Button>
       </div>
 
-      <h2 style={sectionTitle}>
+      <h2 className={sectionTitle}>
         <Eyebrow>Your parsers</Eyebrow>
       </h2>
-      <p style={help}>
+      <p className={help}>
         Parsers you own. Editing affects only your bills until you publish a
         version others can adopt.
       </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div className="flex flex-col gap-2">
         {own.length === 0 && (
-          <p style={parserMeta}>
+          <p className={parserMeta}>
             None yet — fork an official parser below, or build one from a bill.
           </p>
         )}
         {own.map((p) => {
           const st = ownStatus(p);
           return (
-            <div key={p.id} style={parserRow}>
-              <span style={nameStyle}>{p.displayName}</span>
-              <span style={parserMeta}>{p.slug}</span>
+            <div key={p.id} className={parserRow}>
+              <span className={nameStyle}>{p.displayName}</span>
+              <span className={parserMeta}>{p.slug}</span>
               <Badge tone={st.canPublish ? "neutral" : "accent"}>{st.label}</Badge>
-              <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+              <div className="ml-auto flex gap-1.5">
                 <Button size="sm" onClick={() => router.push(`/builder?parser=${p.slug}`)}>
                   Edit
                 </Button>
@@ -173,25 +150,25 @@ export default function ParsersPage() {
         })}
       </div>
 
-      <h2 style={sectionTitle}>
+      <h2 className={sectionTitle}>
         <Eyebrow>Adopted parsers</Eyebrow>
       </h2>
-      <p style={help}>
+      <p className={help}>
         Published parsers you run. Fork one to customize it for your own bills.
       </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {adopted.length === 0 && <p style={parserMeta}>None adopted.</p>}
+      <div className="flex flex-col gap-2">
+        {adopted.length === 0 && <p className={parserMeta}>None adopted.</p>}
         {adopted.map((p) => {
           const upstream = browseByConfig.get(p.id);
           const updatable = upstream != null && upstream.version > p.version;
           return (
-            <div key={p.id} style={parserRow}>
-              <span style={nameStyle}>{p.displayName}</span>
-              <span style={parserMeta}>
+            <div key={p.id} className={parserRow}>
+              <span className={nameStyle}>{p.displayName}</span>
+              <span className={parserMeta}>
                 {p.slug} · v{p.version}
               </span>
               {upstream?.verified && <Badge tone="accent">official</Badge>}
-              <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+              <div className="ml-auto flex gap-1.5">
                 {updatable && (
                   <Button
                     size="sm"
@@ -229,16 +206,16 @@ export default function ParsersPage() {
         })}
       </div>
 
-      <h2 style={sectionTitle}>
+      <h2 className={sectionTitle}>
         <Eyebrow>Browse registry</Eyebrow>
       </h2>
-      <p style={help}>Published parsers from other users. Adopt one to detect its vendor.</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {registry.length === 0 && <p style={parserMeta}>Nothing new to adopt.</p>}
+      <p className={help}>Published parsers from other users. Adopt one to detect its vendor.</p>
+      <div className="flex flex-col gap-2">
+        {registry.length === 0 && <p className={parserMeta}>Nothing new to adopt.</p>}
         {registry.map((b) => (
-          <div key={b.configId} style={parserRow}>
-            <span style={nameStyle}>{b.displayName}</span>
-            <span style={parserMeta}>
+          <div key={b.configId} className={parserRow}>
+            <span className={nameStyle}>{b.displayName}</span>
+            <span className={parserMeta}>
               {b.slug} · v{b.version}
             </span>
             {b.verified && <Badge tone="accent">official</Badge>}
@@ -246,7 +223,7 @@ export default function ParsersPage() {
               size="sm"
               variant="solid"
               disabled={busy}
-              style={{ marginLeft: "auto" }}
+              className="ml-auto"
               onClick={() =>
                 withReparse(
                   () => adopt.mutateAsync({ configId: b.configId }),

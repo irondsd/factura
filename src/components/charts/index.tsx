@@ -1,6 +1,5 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import {
   Bar,
   BarChart,
@@ -41,22 +40,10 @@ function formatExact(v: number, currency: string): string {
   return formatMoney(v, currency === "USD" ? "USD" : "ARS");
 }
 
-const tooltipBox: CSSProperties = {
-  background: "var(--card)",
-  border: "1px solid var(--line)",
-  padding: "8px 10px",
-  fontFamily: "var(--font-mono)",
-  fontSize: 11,
-  color: "var(--ink)",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-};
+const tooltipBox =
+  "bg-card border border-line py-2 px-2.5 font-mono text-micro text-ink shadow-[0_2px_8px_rgba(0,0,0,0.08)]";
 
-const tooltipHeader: CSSProperties = {
-  textTransform: "uppercase",
-  letterSpacing: "0.14em",
-  color: "var(--muted)",
-  marginBottom: 6,
-};
+const tooltipHeader = "uppercase tracking-[0.14em] text-muted mb-1.5";
 
 type TipPayload = {
   name?: string | number;
@@ -84,32 +71,20 @@ function StackTooltip({
   if (rows.length === 0) return null;
   const total = rows.reduce((a, p) => a + Number(p.value), 0);
   return (
-    <div style={tooltipBox}>
-      <div style={tooltipHeader}>{typeof label === "string" ? formatMonth(label) : ""}</div>
+    <div className={tooltipBox}>
+      <div className={tooltipHeader}>{typeof label === "string" ? formatMonth(label) : ""}</div>
       {rows.map((p) => (
-        <div
-          key={String(p.dataKey)}
-          style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}
-        >
-          <span style={{ width: 8, height: 8, background: p.color, display: "inline-block", flexShrink: 0 }} />
-          <span style={{ flex: 1, color: "var(--muted)" }}>
+        <div key={String(p.dataKey)} className="flex items-center gap-2 mt-[3px]">
+          <span className="w-2 h-2 inline-block shrink-0" style={{ background: p.color }} />
+          <span className="flex-1 text-muted">
             {vendorNames[String(p.dataKey)] ?? String(p.dataKey)}
           </span>
-          <span style={{ fontWeight: 500 }}>{formatExact(Number(p.value), currency)}</span>
+          <span className="font-medium">{formatExact(Number(p.value), currency)}</span>
         </div>
       ))}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 16,
-          marginTop: 7,
-          paddingTop: 6,
-          borderTop: "1px solid var(--line)",
-        }}
-      >
-        <span style={{ color: "var(--muted)" }}>Total</span>
-        <span style={{ fontWeight: 600 }}>{formatExact(total, currency)}</span>
+      <div className="flex justify-between gap-4 mt-[7px] pt-1.5 border-t border-line">
+        <span className="text-muted">Total</span>
+        <span className="font-semibold">{formatExact(total, currency)}</span>
       </div>
     </div>
   );
@@ -131,16 +106,13 @@ function LineTooltip({
   const rows = payload.filter((p) => p.value != null);
   if (rows.length === 0) return null;
   return (
-    <div style={tooltipBox}>
-      <div style={tooltipHeader}>{typeof label === "string" ? formatMonth(label) : ""}</div>
+    <div className={tooltipBox}>
+      <div className={tooltipHeader}>{typeof label === "string" ? formatMonth(label) : ""}</div>
       {rows.map((p) => (
-        <div
-          key={String(p.dataKey)}
-          style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3 }}
-        >
-          <span style={{ width: 8, height: 8, background: p.color, display: "inline-block", flexShrink: 0 }} />
-          <span style={{ flex: 1, color: "var(--muted)" }}>{String(p.name)}</span>
-          <span style={{ fontWeight: 500 }}>{formatExact(Number(p.value), currency)}</span>
+        <div key={String(p.dataKey)} className="flex items-center gap-2.5 mt-[3px]">
+          <span className="w-2 h-2 inline-block shrink-0" style={{ background: p.color }} />
+          <span className="flex-1 text-muted">{String(p.name)}</span>
+          <span className="font-medium">{formatExact(Number(p.value), currency)}</span>
         </div>
       ))}
     </div>
