@@ -8,55 +8,55 @@
 // Warm/muted earthy palette. Order matters only as the base sequence; each
 // apartment shuffles it with its own seed.
 export const VENDOR_PALETTE: string[] = [
-  "#d9480f", // burnt orange
-  "#c98a1a", // amber
-  "#7d8471", // sage
-  "#4a4034", // dark earth
-  "#6b5a45", // lighter earth
-  "#5f7470", // slate teal
-  "#9a8c74", // taupe
-  "#a8501f", // rust
-  "#8a6d3b", // ochre
-  "#6f7d52", // olive
-  "#9c6b4f", // terracotta
-  "#807356", // khaki
-  "#b08968", // clay
-  "#5c6b5d", // moss
-];
+  '#d9480f', // burnt orange
+  '#c98a1a', // amber
+  '#7d8471', // sage
+  '#9a8c74', // taupe
+  '#6b5a45', // lighter earth
+  '#5f7470', // slate teal
+  '#4a4034', // dark earth
+  '#a8501f', // rust
+  '#8a6d3b', // ochre
+  '#6f7d52', // olive
+  '#9c6b4f', // terracotta
+  '#807356', // khaki
+  '#b08968', // clay
+  '#5c6b5d', // moss
+]
 
-export const FALLBACK_COLOR = "var(--muted)";
+export const FALLBACK_COLOR = 'var(--muted)'
 
 /** Deterministic 32-bit string hash (FNV-1a style). */
 function hashString(s: string): number {
-  let h = 2166136261;
+  let h = 2166136261
   for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
   }
-  return h >>> 0;
+  return h >>> 0
 }
 
 /** Mulberry32 PRNG — small, deterministic, seeded. */
 function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
+  let a = seed >>> 0
   return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+    a |= 0
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
 }
 
 /** Return a copy of `arr` shuffled deterministically from `seed`. */
 function seededShuffle<T>(arr: T[], seed: number): T[] {
-  const out = arr.slice();
-  const rand = mulberry32(seed);
+  const out = arr.slice()
+  const rand = mulberry32(seed)
   for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
+    const j = Math.floor(rand() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
   }
-  return out;
+  return out
 }
 
 /**
@@ -68,25 +68,25 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
 export function vendorColorMap(
   vendors: { id: string; propertyId: string; createdAt?: Date | string }[],
 ): Map<string, string> {
-  const byProperty = new Map<string, typeof vendors>();
+  const byProperty = new Map<string, typeof vendors>()
   for (const v of vendors) {
-    const list = byProperty.get(v.propertyId);
-    if (list) list.push(v);
-    else byProperty.set(v.propertyId, [v]);
+    const list = byProperty.get(v.propertyId)
+    if (list) list.push(v)
+    else byProperty.set(v.propertyId, [v])
   }
 
-  const colors = new Map<string, string>();
+  const colors = new Map<string, string>()
   for (const [propertyId, list] of byProperty) {
-    const palette = seededShuffle(VENDOR_PALETTE, hashString(propertyId));
+    const palette = seededShuffle(VENDOR_PALETTE, hashString(propertyId))
     const ordered = list.slice().sort((a, b) => {
-      const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      if (at !== bt) return at - bt;
-      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-    });
+      const at = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      if (at !== bt) return at - bt
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+    })
     ordered.forEach((v, i) => {
-      colors.set(v.id, palette[i % palette.length]);
-    });
+      colors.set(v.id, palette[i % palette.length])
+    })
   }
-  return colors;
+  return colors
 }
