@@ -6,6 +6,7 @@ import type { Session } from "next-auth";
 import { useState } from "react";
 import { Segmented } from "@/components/charts/primitives";
 import { trpc } from "@/lib/trpc";
+import { BurgerButton } from "./BurgerButton";
 import { useApp } from "./context";
 
 const NAV = [
@@ -147,39 +148,10 @@ export function TopBar({ user }: { user: Session["user"] }) {
         </div>
 
         {/* Mobile: burger only */}
-        <button
-          type="button"
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-          aria-expanded={menuOpen}
-          className="fx-mobile-only fx-burger"
-          onClick={() => setMenuOpen((o) => !o)}
-          style={{
-            marginLeft: "auto",
-            width: 38,
-            height: 34,
-            alignItems: "center",
-            justifyContent: "center",
-            background: "transparent",
-            border: "1px solid var(--line)",
-            color: "var(--ink)",
-            cursor: "pointer",
-            transition: "var(--transition-colors)",
-          }}
-        >
-          {menuOpen ? (
-            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M3 3 L13 13 M13 3 L3 13" stroke="currentColor" strokeWidth="1.5" />
-            </svg>
-          ) : (
-            <svg width="18" height="16" viewBox="0 0 18 16" aria-hidden="true">
-              <path
-                d="M1 3 H17 M1 8 H17 M1 13 H17"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-            </svg>
-          )}
-        </button>
+        <BurgerButton
+          open={menuOpen}
+          onToggle={() => setMenuOpen((o) => !o)}
+        />
       </div>
 
       {/* Mobile menu: nav links, property picker, profile */}

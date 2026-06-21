@@ -200,11 +200,6 @@ body {
   }
 }
 
-.fx-burger:hover {
-  border-color: var(--accent) !important;
-  color: var(--accent) !important;
-}
-
 @keyframes fd-toast-in {
   from {
     opacity: 0;

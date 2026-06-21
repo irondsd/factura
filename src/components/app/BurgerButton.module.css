@@ -1,0 +1,45 @@
+/* Mobile menu toggle. Display (show on mobile / hide on desktop) is handled by
+   the shared `.fx-mobile-only` utility; everything button-specific lives here. */
+.button {
+  margin-left: auto;
+  width: 38px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  transition: var(--transition-colors);
+}
+.button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Animated burger ↔ close icon: three bars that morph. The middle bar fades
+   while the outer two slide to centre and rotate into an X. Driven entirely by
+   the button's aria-expanded attribute. */
+.icon rect {
+  fill: currentColor;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.18s ease;
+}
+.button[aria-expanded="true"] .top {
+  transform: translateY(6px) rotate(45deg);
+}
+.button[aria-expanded="true"] .mid {
+  opacity: 0;
+  transform: scaleX(0.2);
+}
+.button[aria-expanded="true"] .bot {
+  transform: translateY(-6px) rotate(-45deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .icon rect {
+    transition: none;
+  }
+}
