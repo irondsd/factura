@@ -162,40 +162,41 @@ export default function BillsPage() {
       </div>
 
       {/* pagination */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 18, gap: 12, flexWrap: "wrap" }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--muted)" }}>
           {d?.total ?? 0} bills · page {safePage + 1} of {pageCount}
         </span>
-        <div style={{ display: "flex", gap: 4 }}>
-          <PageBtn disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
-            ‹ Prev
+        {/* Prev/Next + a 5-page window. The labels collapse to bare arrows on mobile. */}
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <PageBtn disabled={safePage === 0} onClick={() => setPage(safePage - 1)} aria-label="Previous page">
+            ‹<span className="fx-desktop-only">Prev</span>
           </PageBtn>
-          {Array.from({ length: pageCount }, (_, i) => (
-            <button
-              key={i}
-              onClick={() => setPage(i)}
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                width: 28,
-                height: 28,
-                cursor: "pointer",
-                border: "1px solid " + (i === safePage ? "var(--ink)" : "var(--line)"),
-                background: i === safePage ? "var(--ink)" : "transparent",
-                color: i === safePage ? "var(--paper)" : "var(--muted)",
-                transition: "var(--transition-colors)",
-              }}
-            >
-              {i + 1}
-            </button>
+          {pageWindow(safePage, pageCount).map((item, idx) => (
+            <PageNum key={typeof item === "number" ? item : `gap-${idx}`} item={item} active={item === safePage} onClick={setPage} />
           ))}
-          <PageBtn disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}>
-            Next ›
+          <PageBtn disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)} aria-label="Next page">
+            <span className="fx-desktop-only">Next</span>›
           </PageBtn>
         </div>
       </div>
     </div>
   );
+}
+
+// Condensed page list: always the first and last page, plus the current one
+// and its immediate neighbours (5 numbers total), with "…" filling any gaps.
+// The item count stays fixed regardless of how many pages exist, so the
+// control never overflows — e.g. "1 2 3 4 5 … 17" or "1 … 8 9 10 … 17".
+function pageWindow(current: number, count: number): (number | "…")[] {
+  const range = (start: number, end: number) =>
+    Array.from({ length: end - start + 1 }, (_, i) => start + i);
+
+  if (count <= 7) return range(0, count - 1);
+
+  const last = count - 1;
+  if (current <= 3) return [...range(0, 4), "…", last];
+  if (current >= last - 3) return [0, "…", ...range(last - 4, last)];
+  return [0, "…", current - 1, current, current + 1, "…", last];
 }
 
 function FilterTab({
@@ -234,20 +235,63 @@ function FilterTab({
   );
 }
 
+function PageNum({
+  item,
+  active,
+  onClick,
+}: {
+  item: number | "…";
+  active: boolean;
+  onClick: (page: number) => void;
+}) {
+  const base: React.CSSProperties = {
+    fontFamily: "var(--font-mono)",
+    fontSize: 11,
+    width: 28,
+    height: 28,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+  if (item === "…") {
+    return <span style={{ ...base, color: "var(--muted)" }}>…</span>;
+  }
+  return (
+    <button
+      onClick={() => onClick(item)}
+      style={{
+        ...base,
+        cursor: "pointer",
+        border: "1px solid " + (active ? "var(--ink)" : "var(--line)"),
+        background: active ? "var(--ink)" : "transparent",
+        color: active ? "var(--paper)" : "var(--muted)",
+        transition: "var(--transition-colors)",
+      }}
+    >
+      {item + 1}
+    </button>
+  );
+}
+
 function PageBtn({
   disabled,
   onClick,
   children,
+  ...rest
 }: {
   disabled: boolean;
   onClick: () => void;
   children: React.ReactNode;
-}) {
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
+      {...rest}
       style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
         fontFamily: "var(--font-mono)",
         fontSize: 11,
         textTransform: "uppercase",
