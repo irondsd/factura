@@ -56,6 +56,7 @@ export async function assertMemberVendor(
   db: typeof Db,
   userId: string,
   vendorId: string,
+  requiredRole?: "owner",
 ): Promise<void> {
   const vendor = await db.query.vendors.findFirst({
     where: eq(vendors.id, vendorId),
@@ -63,5 +64,5 @@ export async function assertMemberVendor(
   });
   if (!vendor)
     throw new TRPCError({ code: "NOT_FOUND", message: "Vendor not found" });
-  await assertMember(db, userId, vendor.propertyId);
+  await assertMember(db, userId, vendor.propertyId, requiredRole);
 }

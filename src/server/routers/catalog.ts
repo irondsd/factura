@@ -9,6 +9,7 @@ import {
   vendorAccounts,
   vendors,
 } from "@/db/schema";
+import { VENDOR_COLOR_NAMES } from "@/lib/vendorColors";
 import { createApartmentForUser } from "../defaults";
 import {
   accessibleProperties,
@@ -271,17 +272,23 @@ export const vendorsRouter = router({
 
   update: protectedProcedure
     .input(
-      z.object({
-        id: z.string().uuid(),
-        displayName: z.string().min(1).max(40),
-      }),
+      z
+        .object({
+          id: z.string().uuid(),
+          displayName: z.string().min(1).max(40).optional(),
+          color: z.enum(VENDOR_COLOR_NAMES).optional(),
+        })
+        .refine((v) => v.displayName !== undefined || v.color !== undefined, {
+          message: "Nothing to update",
+        }),
     )
     .mutation(async ({ ctx, input }) => {
-      await assertMemberVendor(ctx.db, ctx.userId, input.id);
+      await assertMemberVendor(ctx.db, ctx.userId, input.id, "owner");
+      const { id, ...rest } = input;
       const [updated] = await ctx.db
         .update(vendors)
-        .set({ displayName: input.displayName })
-        .where(eq(vendors.id, input.id))
+        .set(rest)
+        .where(eq(vendors.id, id))
         .returning();
       return updated;
     }),

@@ -2,7 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { db as Db } from "@/db";
 import { bills, properties, vendorAccounts, vendors } from "@/db/schema";
-import { FALLBACK_COLOR, vendorColorMap } from "@/lib/vendorColors";
+import { vendorColorVar } from "@/lib/vendorColors";
 import type { FieldType } from "@/parsers/engine/types";
 import { billRateDate, usdRateLookup } from "../fx";
 import { accessibleProperties } from "../ownership";
@@ -103,12 +103,12 @@ async function loadVendors(db: typeof Db, scopeIds: string[]) {
 
 type VendorRow = typeof vendors.$inferSelect;
 
-function vendorMeta(v: VendorRow, colors: Map<string, string>) {
+function vendorMeta(v: VendorRow) {
   return {
     id: v.id,
     displayName: v.displayName,
     category: v.category,
-    color: colors.get(v.id) ?? FALLBACK_COLOR,
+    color: vendorColorVar(v.color),
   };
 }
 
@@ -227,7 +227,6 @@ export const insightsRouter = router({
       const parsed = await loadParsed(ctx.db, scopeIds);
       const accounts = await loadActiveAccounts(ctx.db, scopeIds);
       const allVendors = await loadVendors(ctx.db, scopeIds);
-      const vendorColors = vendorColorMap(allVendors);
       const vendorById = new Map(allVendors.map((v) => [v.id, v]));
       const property =
         propertyId && scopeIds.length
@@ -249,7 +248,7 @@ export const insightsRouter = router({
         const last = past[0];
         return {
           accountId: a.id,
-          vendor: vendorMeta(v, vendorColors),
+          vendor: vendorMeta(v),
           received: Boolean(thisMonth),
           amount: thisMonth?.totalAmount != null ? Number(thisMonth.totalAmount) : null,
           usd: thisMonth?.usdAmount ?? null,
@@ -269,7 +268,7 @@ export const insightsRouter = router({
       );
       const vendorsHere = allVendors
         .filter((v) => presentVendorIds.has(v.id))
-        .map((v) => vendorMeta(v, vendorColors));
+        .map((v) => vendorMeta(v));
 
       // Stacked series, vendor share and per-vendor trend in both currencies so
       // each chart can switch ARS/USD client-side without a refetch.
@@ -304,7 +303,6 @@ export const insightsRouter = router({
       const scopeIds = await resolveScope(ctx.db, ctx.userId, propertyId);
       const parsed = await loadParsed(ctx.db, scopeIds);
       const allVendors = await loadVendors(ctx.db, scopeIds);
-      const vendorColors = vendorColorMap(allVendors);
       const completeFlags = completeFlagsFor(months, parsed);
 
       const arsIdx = rebase(
@@ -323,7 +321,7 @@ export const insightsRouter = router({
       );
       const vendorsHere = allVendors
         .filter((v) => presentVendorIds.has(v.id))
-        .map((v) => vendorMeta(v, vendorColors));
+        .map((v) => vendorMeta(v));
 
       const byCurrency = currencyViews(months, parsed, completeFlags, vendorsHere);
 
@@ -358,11 +356,6 @@ export const insightsRouter = router({
       });
       // Vendor must live in one of the apartments in scope.
       if (!vendor || !scopeIds.includes(vendor.propertyId)) return null;
-      // Color is assigned per-apartment, so build the map from this vendor's
-      // apartment to match what the other charts show.
-      const vendorColors = vendorColorMap(
-        await loadVendors(ctx.db, [vendor.propertyId]),
-      );
       const parsed = (await loadParsed(ctx.db, scopeIds)).filter(
         (b) => b.vendorId === vendorId,
       );
@@ -440,6 +433,6 @@ export const insightsRouter = router({
           return { name, type: m.type, unit: m.unit, isMoney, values, valuesUsd, unitPrice };
         });
 
-      return { vendor: vendorMeta(vendor, vendorColors), months, spend, fields };
+      return { vendor: vendorMeta(vendor), months, spend, fields };
     }),
 });

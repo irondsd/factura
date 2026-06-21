@@ -7,7 +7,44 @@
   --muted: #857b67;
   --line: #ddd2bb;
   --accent: #d9480f;
+
+  /* Vendor palette — warm/muted earthy hues. Vendors store a color by *name*
+     (see lib/vendorColors); these vars and the .vbg-* utilities below are the
+     single source for the actual hex. Keep the name list in lib/vendorColors in
+     sync with the names here. */
+  --vendor-burnt-orange: #d9480f;
+  --vendor-amber: #c98a1a;
+  --vendor-sage: #7d8471;
+  --vendor-taupe: #9a8c74;
+  --vendor-earth: #6b5a45;
+  --vendor-slate-teal: #5f7470;
+  --vendor-dark-earth: #4a4034;
+  --vendor-rust: #a8501f;
+  --vendor-ochre: #8a6d3b;
+  --vendor-olive: #6f7d52;
+  --vendor-terracotta: #9c6b4f;
+  --vendor-khaki: #807356;
+  --vendor-clay: #b08968;
+  --vendor-moss: #5c6b5d;
 }
+
+/* Background utilities for vendor swatches/dots — apply by name, no inline
+   style. The fallback mirrors vendorColorVar's unknown-name path. */
+.vbg-fallback { background: var(--muted); }
+.vbg-burnt-orange { background: var(--vendor-burnt-orange); }
+.vbg-amber { background: var(--vendor-amber); }
+.vbg-sage { background: var(--vendor-sage); }
+.vbg-taupe { background: var(--vendor-taupe); }
+.vbg-earth { background: var(--vendor-earth); }
+.vbg-slate-teal { background: var(--vendor-slate-teal); }
+.vbg-dark-earth { background: var(--vendor-dark-earth); }
+.vbg-rust { background: var(--vendor-rust); }
+.vbg-ochre { background: var(--vendor-ochre); }
+.vbg-olive { background: var(--vendor-olive); }
+.vbg-terracotta { background: var(--vendor-terracotta); }
+.vbg-khaki { background: var(--vendor-khaki); }
+.vbg-clay { background: var(--vendor-clay); }
+.vbg-moss { background: var(--vendor-moss); }
 
 @theme inline {
   --color-paper: var(--paper);

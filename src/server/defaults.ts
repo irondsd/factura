@@ -8,6 +8,7 @@ import {
   vendors,
 } from "@/db/schema";
 import { ENGINE_CONFIGS } from "@/parsers/engine/configs";
+import { pickVendorColor } from "@/lib/vendorColors";
 import { rowToConfig } from "./parsers";
 import { ensureSystemUser } from "./registry";
 
@@ -28,6 +29,11 @@ export async function ensureVendor(
     where: and(eq(vendors.propertyId, propertyId), eq(vendors.slug, vendor.slug)),
   });
   if (existing) return existing;
+  // Assign a random color, avoiding ones already used in this apartment.
+  const siblings = await db.query.vendors.findMany({
+    where: eq(vendors.propertyId, propertyId),
+    columns: { color: true },
+  });
   const [created] = await db
     .insert(vendors)
     .values({
@@ -35,6 +41,7 @@ export async function ensureVendor(
       slug: vendor.slug,
       displayName: vendor.displayName,
       category: vendor.category as Category,
+      color: pickVendorColor(siblings.map((s) => s.color)),
     })
     .returning();
   return created;

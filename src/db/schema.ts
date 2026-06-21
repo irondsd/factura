@@ -141,6 +141,9 @@ export const vendors = pgTable(
     slug: text("slug").notNull(),
     displayName: text("display_name").notNull(),
     category: vendorCategory("category").notNull(),
+    // A color *name* from the vendor palette (see lib/vendorColors). Assigned
+    // randomly on creation, user-editable. Hex values live in CSS, not here.
+    color: text("color").notNull().default("taupe"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [uniqueIndex("vendor_property_slug_idx").on(t.propertyId, t.slug)],

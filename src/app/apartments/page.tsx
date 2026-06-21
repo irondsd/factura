@@ -5,9 +5,9 @@ import { useMemo, useState } from "react";
 import { useApp } from "@/components/app/context";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Button, Checkbox, Input } from "@/components/ui";
+import { VendorColorPicker } from "@/components/VendorColorPicker";
 import { cn } from "@/lib/cn";
 import { OWNED_APARTMENT_LIMIT } from "@/lib/limits";
-import { FALLBACK_COLOR, vendorColorMap } from "@/lib/vendorColors";
 import { trpc } from "@/lib/trpc";
 
 const help = "font-mono text-xs text-muted mb-[14px] max-w-[540px] leading-[1.6]";
@@ -27,10 +27,6 @@ export default function ApartmentsPage() {
   const apartments = trpc.properties.list.useQuery();
   const vendors = trpc.vendors.list.useQuery();
   const accounts = trpc.accounts.list.useQuery();
-  const vendorColors = useMemo(
-    () => vendorColorMap(vendors.data ?? []),
-    [vendors.data],
-  );
 
   const invalidate = () => utils.invalidate();
   const toastErr = (err: { message: string }) => showToast(`✕ ${err.message}`);
@@ -211,18 +207,28 @@ export default function ApartmentsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {aptVendors.map((v) => (
                     <div key={v.id} className="flex items-center gap-2">
-                      <span
-                        className="w-[9px] h-[9px] flex-none"
-                        style={{ background: vendorColors.get(v.id) ?? FALLBACK_COLOR }}
+                      <VendorColorPicker
+                        value={v.color}
+                        onChange={
+                          isOwner
+                            ? (color) => updateVendor.mutate({ id: v.id, color })
+                            : undefined
+                        }
                       />
-                      <Input
-                        defaultValue={v.displayName}
-                        onBlur={(e) => {
-                          if (e.target.value.trim() && e.target.value !== v.displayName)
-                            updateVendor.mutate({ id: v.id, displayName: e.target.value.trim() });
-                        }}
-                        className="flex-1 font-semibold"
-                      />
+                      {isOwner ? (
+                        <Input
+                          defaultValue={v.displayName}
+                          onBlur={(e) => {
+                            if (e.target.value.trim() && e.target.value !== v.displayName)
+                              updateVendor.mutate({ id: v.id, displayName: e.target.value.trim() });
+                          }}
+                          className="flex-1 font-semibold"
+                        />
+                      ) : (
+                        <span className="flex-1 font-mono text-[13px] font-semibold">
+                          {v.displayName}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>

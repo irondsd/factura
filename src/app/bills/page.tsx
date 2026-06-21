@@ -6,7 +6,7 @@ import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Badge } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { formatARS, formatMonthShort, formatUSD } from "@/lib/format";
-import { FALLBACK_COLOR, vendorColorMap } from "@/lib/vendorColors";
+import { vendorColorClass } from "@/lib/vendorColors";
 import { trpc } from "@/lib/trpc";
 
 export default function BillsPage() {
@@ -43,10 +43,6 @@ export default function BillsPage() {
     () => new Map((vendors.data ?? []).map((v) => [v.id, v])),
     [vendors.data],
   );
-  const vendorColors = useMemo(
-    () => vendorColorMap(vendors.data ?? []),
-    [vendors.data],
-  );
   const vendorName = (id: string | null) =>
     id ? vendorById.get(id)?.displayName ?? "—" : "unrecognized";
   const propName = (id: string | null) =>
@@ -70,7 +66,7 @@ export default function BillsPage() {
           <FilterTab
             key={v.id}
             label={v.displayName}
-            color={vendorColors.get(v.id) ?? FALLBACK_COLOR}
+            colorClass={vendorColorClass(v.color)}
             active={vendorId === v.id}
             onClick={() => setVendorId(v.id)}
           />
@@ -107,8 +103,10 @@ export default function BillsPage() {
                   <span className="inline-flex items-center gap-[7px]">
                     {b.vendorId && vendorById.get(b.vendorId) && (
                       <span
-                        className="inline-block w-2 h-2"
-                        style={{ background: vendorColors.get(b.vendorId) ?? FALLBACK_COLOR }}
+                        className={cn(
+                          "inline-block w-2 h-2",
+                          vendorColorClass(vendorById.get(b.vendorId)?.color),
+                        )}
                       />
                     )}
                     {vendorName(b.vendorId)}
@@ -176,12 +174,12 @@ function pageWindow(current: number, count: number): (number | "…")[] {
 
 function FilterTab({
   label,
-  color,
+  colorClass,
   active,
   onClick,
 }: {
   label: string;
-  color?: string;
+  colorClass?: string;
   active: boolean;
   onClick: () => void;
 }) {
@@ -193,7 +191,7 @@ function FilterTab({
         active ? "border-ink bg-ink text-paper" : "border-transparent bg-transparent text-muted",
       )}
     >
-      {color && <span className="inline-block w-2 h-2" style={{ background: color }} />}
+      {colorClass && <span className={cn("inline-block w-2 h-2", colorClass)} />}
       {label}
     </button>
   );
