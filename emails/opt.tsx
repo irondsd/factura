@@ -20,15 +20,14 @@ export function WelcomeEmail({ code }: WelcomeEmailProps) {
       title="Welcome."
     >
       <Text style={styles.text}>Hi there!</Text>
-      <Text style={styles.text}>
-        Here’s your Factura verification code:
-      </Text>
+      <Text style={styles.text}>Here&apos;s your Factura verification code:</Text>
 
       <Section
         style={{
           marginTop: "24px",
           border: `1px solid ${C.line}`,
           backgroundColor: C.paper,
+          textAlign: "center",
         }}
       >
         <Text
@@ -43,10 +42,10 @@ export function WelcomeEmail({ code }: WelcomeEmailProps) {
         </Text>
       </Section>
 
-       <Text style={{...styles.voice, marginTop: "24px"}}>
+      <Text style={{ ...styles.voice, marginTop: "24px" }}>
         This code expires in 10 minutes.
       </Text>
-       <Text style={styles.voice}>
+      <Text style={styles.voice}>
         If you didn&apos;t request this code, no action is needed.
       </Text>
     </FacturaEmail>
