@@ -14,6 +14,7 @@
 
 import type { ReactElement } from "react";
 import { Resend } from "resend";
+import { OtpEmail } from "../../emails/opt";
 import { ShareInviteEmail } from "../../emails/share-invite";
 import { WelcomeEmail } from "../../emails/welcome";
 
@@ -70,6 +71,24 @@ export function sendWelcomeEmail(opts: { to: string; name?: string | null }) {
       ledgerUrl: `${baseUrl()}/`,
     }),
   });
+}
+
+/** One-time sign-in code. Unlike the other helpers this one is *not*
+ * best-effort: the email IS the sign-in, so a failed send must surface as an
+ * error rather than silently stranding the user. In local dev / CI (no
+ * RESEND_API_KEY) we log the code to the server console so sign-in still works
+ * without a mail provider. */
+export async function sendOtpEmail(opts: { to: string; code: string }) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn(`[email] RESEND_API_KEY unset — OTP for ${opts.to}: ${opts.code}`);
+    return;
+  }
+  const sent = await send({
+    to: opts.to,
+    subject: "Your Factura sign-in code",
+    react: OtpEmail({ code: opts.code }),
+  });
+  if (!sent) throw new Error("Failed to send sign-in code");
 }
 
 /** Shared-property invite — fired when an owner invites someone by email.
