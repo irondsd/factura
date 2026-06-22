@@ -188,15 +188,21 @@ export default function PropertiesPage() {
                 {isOwner ? (
                   <Button
                     variant="ghost"
-                    onClick={() =>
+                    onClick={() => {
+                      if (
+                        !confirm(
+                          `Delete "${apt.nickname}"? This permanently removes the property along with all its bills, vendors and accounts. This cannot be undone.`,
+                        )
+                      )
+                        return;
                       deleteApt.mutate(
                         { id: apt.id },
                         {
                           onSuccess: () => showToast("Property removed"),
                           onError: toastErr,
                         },
-                      )
-                    }
+                      );
+                    }}
                   >
                     Delete
                   </Button>

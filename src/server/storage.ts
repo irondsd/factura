@@ -1,4 +1,5 @@
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -65,4 +66,10 @@ export async function presignDownload(key: string): Promise<string> {
     new GetObjectCommand({ Bucket: BUCKET, Key: key }),
     { expiresIn: 300 },
   );
+}
+
+/** Remove a stored PDF. Idempotent — S3 DeleteObject succeeds on a missing
+ * key, so a bill whose object is already gone stays deletable. */
+export async function deleteObject(key: string): Promise<void> {
+  await client().send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
 }

@@ -24,6 +24,7 @@ import {
 import { resultToColumns, resultToExtra } from "../parsers";
 import { loadUserConfigs } from "../registry";
 import {
+  deleteObject,
   isStorageConfigured,
   presignDownload,
   presignUpload,
@@ -496,7 +497,11 @@ export const billsRouter = router({
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const ids = await accessibleProperties(ctx.db, ctx.userId);
-      await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
+      const bill = await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
+      // Drop the stored PDF first: if storage is unreachable this throws and
+      // leaves the DB row intact, so we never orphan the object in the bucket.
+      if (bill.storageKey && isStorageConfigured())
+        await deleteObject(bill.storageKey);
       await ctx.db.delete(bills).where(eq(bills.id, input.id));
       return { ok: true };
     }),
