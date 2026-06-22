@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useMemo, useState } from "react";
 import { useApp } from "@/components/app/context";
 import { Display, Eyebrow } from "@/components/charts/primitives";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button, Checkbox, Input } from "@/components/ui";
 import { VendorColorPicker } from "@/components/VendorColorPicker";
 import { cn } from "@/lib/cn";
@@ -67,6 +68,10 @@ export default function PropertiesPage() {
   });
 
   const [newNickname, setNewNickname] = useState("");
+  const [deletingApt, setDeletingApt] = useState<{
+    id: string;
+    nickname: string;
+  } | null>(null);
   const myEmail = session?.user?.email?.toLowerCase() ?? "";
 
   const ownedCount = useMemo(
@@ -188,21 +193,9 @@ export default function PropertiesPage() {
                 {isOwner ? (
                   <Button
                     variant="ghost"
-                    onClick={() => {
-                      if (
-                        !confirm(
-                          `Delete "${apt.nickname}"? This permanently removes the property along with all its bills, vendors and accounts. This cannot be undone.`,
-                        )
-                      )
-                        return;
-                      deleteApt.mutate(
-                        { id: apt.id },
-                        {
-                          onSuccess: () => showToast("Property removed"),
-                          onError: toastErr,
-                        },
-                      );
-                    }}
+                    onClick={() =>
+                      setDeletingApt({ id: apt.id, nickname: apt.nickname })
+                    }
                   >
                     Delete
                   </Button>
@@ -432,6 +425,43 @@ export default function PropertiesPage() {
           </span>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deletingApt}
+        eyebrow="Delete property"
+        title="This can't be undone"
+        description={
+          deletingApt ? (
+            <>
+              <span className="font-semibold text-ink">
+                {deletingApt.nickname}
+              </span>{" "}
+              and all of its bills, vendors and accounts will be permanently
+              removed.
+            </>
+          ) : null
+        }
+        confirmLabel="Delete property"
+        busyLabel="Deleting…"
+        busy={deleteApt.isPending}
+        onConfirm={() => {
+          if (!deletingApt) return;
+          deleteApt.mutate(
+            { id: deletingApt.id },
+            {
+              onSuccess: () => {
+                showToast("Property removed");
+                setDeletingApt(null);
+              },
+              onError: (err) => {
+                toastErr(err);
+                setDeletingApt(null);
+              },
+            },
+          );
+        }}
+        onCancel={() => setDeletingApt(null)}
+      />
     </div>
   );
 }

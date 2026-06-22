@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Delta } from "@/components/charts/primitives";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Badge, Button, Input, Select } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { formatMonth, formatMonthShort } from "@/lib/format";
@@ -468,42 +469,17 @@ export function BillDrawer({
         )}
       </div>
 
-      {confirmingDelete && bill && (
-        <div className="absolute inset-0 z-[80] flex items-center justify-center p-6">
-          <div
-            onClick={() => !deleteBill.isPending && setConfirmingDelete(false)}
-            className="absolute inset-0 bg-[color-mix(in_srgb,var(--ink)_28%,transparent)]"
-          />
-          <div className="relative w-[min(360px,92vw)] bg-card border border-line shadow-pop p-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
-              Delete bill
-            </p>
-            <h3 className="font-display font-semibold text-[19px] mt-2 tracking-tight">
-              This can&apos;t be undone
-            </h3>
-            <p className="text-sm text-muted mt-2">
-              The bill and its stored PDF will be permanently removed.
-            </p>
-            <div className="flex gap-2 mt-5">
-              <Button
-                variant="solid"
-                onClick={remove}
-                disabled={deleteBill.isPending}
-              >
-                {deleteBill.isPending ? "Deleting…" : "Delete bill"}
-              </Button>
-              <Button
-                variant="ghost"
-                className="ml-auto"
-                onClick={() => setConfirmingDelete(false)}
-                disabled={deleteBill.isPending}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={confirmingDelete && !!bill}
+        eyebrow="Delete bill"
+        title="This can't be undone"
+        description="The bill and its stored PDF will be permanently removed."
+        confirmLabel="Delete bill"
+        busyLabel="Deleting…"
+        busy={deleteBill.isPending}
+        onConfirm={remove}
+        onCancel={() => setConfirmingDelete(false)}
+      />
     </div>
   );
 }
