@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import {
+  bills,
   properties,
   propertyInvites,
   propertyMembers,
@@ -12,6 +13,7 @@ import {
 import { VENDOR_COLOR_NAMES } from "@/lib/vendorColors";
 import { createPropertyForUser } from "../defaults";
 import { sendShareInviteEmail } from "../email";
+import { deleteObject, isStorageConfigured } from "../storage";
 import {
   accessibleProperties,
   assertMember,
@@ -124,14 +126,41 @@ export const propertiesRouter = router({
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       await assertMember(ctx.db, ctx.userId, input.id, "owner");
-      try {
-        await ctx.db.delete(properties).where(eq(properties.id, input.id));
-      } catch {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Property has linked accounts or bills",
-        });
+
+      // None of bills/accounts/vendors cascade from `properties` at the DB
+      // level, so removing a property means tearing its contents down by hand,
+      // in FK-safe order, inside one transaction. Members and invites *do*
+      // cascade on the final property delete.
+      const deletedBills = await ctx.db.transaction(async (tx) => {
+        const removed = await tx
+          .delete(bills)
+          .where(eq(bills.propertyId, input.id))
+          .returning({ storageKey: bills.storageKey });
+        await tx
+          .delete(vendorAccounts)
+          .where(eq(vendorAccounts.propertyId, input.id));
+        await tx.delete(vendors).where(eq(vendors.propertyId, input.id));
+        await tx.delete(properties).where(eq(properties.id, input.id));
+        return removed;
+      });
+
+      const storageKeys = deletedBills
+        .map((b) => b.storageKey)
+        .filter((k): k is string => !!k);
+
+      // Best-effort cleanup of stored PDFs after the rows are gone. The DB is
+      // the source of truth; a storage hiccup orphans an object but mustn't
+      // resurrect a half-deleted property.
+      if (isStorageConfigured()) {
+        for (const key of storageKeys) {
+          try {
+            await deleteObject(key);
+          } catch {
+            // leave the orphan; nothing else to do
+          }
+        }
       }
+
       return { ok: true };
     }),
 
