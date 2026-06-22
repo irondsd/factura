@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# react-email (generated preview app + exported html)
+.react-email
+.email-out
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
