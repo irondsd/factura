@@ -14,6 +14,7 @@ export type ShareInviteEmailProps = {
   property?: string;
   access?: string;
   acceptUrl?: string;
+  /** Optional — when omitted, the "Decline" line is hidden. */
   declineUrl?: string;
 };
 
@@ -23,7 +24,7 @@ export function ShareInviteEmail({
   property = "Your property",
   access = "Can view & add bills",
   acceptUrl = "https://example.com/invite/accept",
-  declineUrl = "https://example.com/invite/decline",
+  declineUrl,
 }: ShareInviteEmailProps) {
   return (
     <FacturaEmail
@@ -57,12 +58,14 @@ export function ShareInviteEmail({
           Accept invitation
         </Button>
       </Section>
-      <Text style={{ ...styles.voice, margin: "14px 0 0" }}>
-        Didn't expect this?{" "}
-        <Link href={declineUrl} style={styles.accentLink}>
-          Decline
-        </Link>
-      </Text>
+      {declineUrl ? (
+        <Text style={{ ...styles.voice, margin: "14px 0 0" }}>
+          Didn&apos;t expect this?{" "}
+          <Link href={declineUrl} style={styles.accentLink}>
+            Decline
+          </Link>
+        </Text>
+      ) : null}
     </FacturaEmail>
   );
 }
@@ -73,6 +76,7 @@ ShareInviteEmail.PreviewProps = {
   inviter: "Tomás Rey",
   property: "Av. Córdoba 1247 · 4B",
   access: "Can view & add bills",
+  declineUrl: "https://example.com/invite/decline",
 } satisfies ShareInviteEmailProps;
 
 export default ShareInviteEmail;

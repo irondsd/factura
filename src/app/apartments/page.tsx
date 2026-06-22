@@ -25,6 +25,7 @@ export default function ApartmentsPage() {
   const utils = trpc.useUtils();
 
   const apartments = trpc.properties.list.useQuery();
+  const pendingInvites = trpc.properties.pendingInvites.useQuery();
   const vendors = trpc.vendors.list.useQuery();
   const accounts = trpc.accounts.list.useQuery();
 
@@ -38,6 +39,8 @@ export default function ApartmentsPage() {
   const revokeInvite = trpc.properties.revokeInvite.useMutation({ onSuccess: invalidate });
   const removeMember = trpc.properties.removeMember.useMutation({ onSuccess: invalidate });
   const leave = trpc.properties.leave.useMutation({ onSuccess: invalidate });
+  const acceptInvite = trpc.properties.acceptInvite.useMutation({ onSuccess: invalidate });
+  const declineInvite = trpc.properties.declineInvite.useMutation({ onSuccess: invalidate });
   const updateVendor = trpc.vendors.update.useMutation({ onSuccess: invalidate });
   const updateAccount = trpc.accounts.update.useMutation({ onSuccess: invalidate });
   const deleteAccount = trpc.accounts.delete.useMutation({ onSuccess: invalidate });
@@ -66,6 +69,47 @@ export default function ApartmentsPage() {
         can own up to {OWNED_APARTMENT_LIMIT} apartments; ones shared with you
         don&rsquo;t count.
       </p>
+
+      {/* pending invitations addressed to this user */}
+      {(pendingInvites.data ?? []).length > 0 && (
+        <div className={card}>
+          <p className={subhead + " mt-0"}>Pending invitations</p>
+          {(pendingInvites.data ?? []).map((inv) => (
+            <div key={inv.id} className={row}>
+              <span className="font-mono text-[13px] font-medium">
+                {inv.property}
+              </span>
+              <span className="font-mono text-micro text-muted">
+                shared by {inv.inviter} · {inv.role}
+              </span>
+              <div className="ml-auto flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    acceptInvite.mutate(
+                      { id: inv.id },
+                      { onSuccess: () => showToast("Invitation accepted"), onError: toastErr },
+                    )
+                  }
+                >
+                  Accept
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() =>
+                    declineInvite.mutate(
+                      { id: inv.id },
+                      { onSuccess: () => showToast("Invitation declined"), onError: toastErr },
+                    )
+                  }
+                >
+                  Decline
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {(apartments.data ?? []).map((apt) => {
         const isOwner = apt.role === "owner";

@@ -26,7 +26,8 @@ export function WelcomeEmail({
       <Text style={styles.text}>Hi {name},</Text>
       <Text style={styles.text}>
         Your ledger is set up and waiting. Drop a utility-bill PDF anywhere on
-        the dashboard — we'll read the fine print, pull the amount and period,
+        the dashboard — we&apos;ll read the fine print, pull the amount and
+        period,
         and keep a running total per property.
       </Text>
       <Text style={{ ...styles.text, margin: "0 0 8px" }}>

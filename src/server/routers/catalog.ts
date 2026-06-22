@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { VENDOR_COLOR_NAMES } from "@/lib/vendorColors";
 import { createApartmentForUser } from "../defaults";
+import { sendShareInviteEmail } from "../email";
 import {
   accessibleProperties,
   assertMember,
@@ -148,7 +149,7 @@ export const propertiesRouter = router({
 
       const me = await ctx.db.query.users.findFirst({
         where: eq(users.id, ctx.userId),
-        columns: { email: true },
+        columns: { email: true, name: true },
       });
       if (me?.email?.toLowerCase() === email)
         throw new TRPCError({ code: "BAD_REQUEST", message: "That's you" });
@@ -176,6 +177,18 @@ export const propertiesRouter = router({
         .insert(propertyInvites)
         .values({ propertyId: input.propertyId, email, invitedBy: ctx.userId })
         .onConflictDoNothing();
+
+      // Notify the invitee. Best-effort — never blocks/fails the invite, which
+      // is claimed on their next sign-in regardless.
+      const property = await ctx.db.query.properties.findFirst({
+        where: eq(properties.id, input.propertyId),
+        columns: { nickname: true },
+      });
+      await sendShareInviteEmail({
+        to: email,
+        inviter: me?.name?.trim() || me?.email || "Someone",
+        property: property?.nickname ?? "a property",
+      });
       return { ok: true };
     }),
 
@@ -229,6 +242,69 @@ export const propertiesRouter = router({
         );
       return { ok: true };
     }),
+
+  /** Invitations addressed to the caller's email, awaiting accept/decline.
+   * Invites are no longer auto-claimed on sign-in — the user decides here. */
+  pendingInvites: protectedProcedure.query(async ({ ctx }) => {
+    const me = await ctx.db.query.users.findFirst({
+      where: eq(users.id, ctx.userId),
+      columns: { email: true },
+    });
+    const email = me?.email?.toLowerCase();
+    if (!email) return [];
+
+    const invites = await ctx.db.query.propertyInvites.findMany({
+      where: eq(propertyInvites.email, email),
+    });
+    if (invites.length === 0) return [];
+
+    const inviterIds = [
+      ...new Set(invites.map((i) => i.invitedBy).filter((id): id is string => !!id)),
+    ];
+    const [props, inviters] = await Promise.all([
+      ctx.db.query.properties.findMany({
+        where: inArray(properties.id, invites.map((i) => i.propertyId)),
+        columns: { id: true, nickname: true },
+      }),
+      inviterIds.length
+        ? ctx.db.query.users.findMany({
+            where: inArray(users.id, inviterIds),
+            columns: { id: true, name: true, email: true },
+          })
+        : Promise.resolve([]),
+    ]);
+    const nicknameById = new Map(props.map((p) => [p.id, p.nickname]));
+    const inviterById = new Map(inviters.map((u) => [u.id, u.name ?? u.email]));
+
+    return invites.map((i) => ({
+      id: i.id,
+      role: i.role,
+      property: nicknameById.get(i.propertyId) ?? "Apartment",
+      inviter: (i.invitedBy && inviterById.get(i.invitedBy)) || "Someone",
+    }));
+  }),
+
+  /** Caller accepts an invite addressed to them: become a member, drop the invite. */
+  acceptInvite: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const invite = await assertOwnInvite(ctx.db, ctx.userId, input.id);
+      await ctx.db
+        .insert(propertyMembers)
+        .values({ propertyId: invite.propertyId, userId: ctx.userId, role: invite.role })
+        .onConflictDoNothing();
+      await ctx.db.delete(propertyInvites).where(eq(propertyInvites.id, invite.id));
+      return { ok: true };
+    }),
+
+  /** Caller declines an invite addressed to them: drop it (re-invitable later). */
+  declineInvite: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const invite = await assertOwnInvite(ctx.db, ctx.userId, input.id);
+      await ctx.db.delete(propertyInvites).where(eq(propertyInvites.id, invite.id));
+      return { ok: true };
+    }),
 });
 
 /** Throw if removing `userId` from `propertyId` would leave it with no owner. */
@@ -250,6 +326,28 @@ async function assertLeavesAnOwner(
       code: "CONFLICT",
       message: "You're the only owner — delete the apartment instead",
     });
+}
+
+/** Load an invite by id and assert it's addressed to this user's email. */
+async function assertOwnInvite(
+  db: Parameters<typeof assertMember>[0],
+  userId: string,
+  inviteId: string,
+) {
+  const invite = await db.query.propertyInvites.findFirst({
+    where: eq(propertyInvites.id, inviteId),
+  });
+  if (!invite) throw new TRPCError({ code: "NOT_FOUND" });
+  const me = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { email: true },
+  });
+  if (!me?.email || me.email.toLowerCase() !== invite.email.toLowerCase())
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "This invitation isn't addressed to you",
+    });
+  return invite;
 }
 
 export const vendorsRouter = router({
