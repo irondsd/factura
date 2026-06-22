@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { BillDrawer } from "@/components/BillDrawer";
@@ -15,6 +16,7 @@ type Toast = { id: string; text: string };
  * bill-editor drawer, and a toast region. */
 export function AppShell({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
+  const pathname = usePathname();
 
   const [propertyId, setPropertyId] = useState<string | undefined>(undefined);
   const [openBillId, setOpenBillId] = useState<string | null>(null);
@@ -45,6 +47,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   if (!session?.user) {
+    // /login is a public page (the email sign-in flow) — render it instead of
+    // the auth gate so signed-out users can reach it.
+    if (pathname === "/login") return <>{children}</>;
     return <Welcome onLogin={() => signIn("google")} />;
   }
 

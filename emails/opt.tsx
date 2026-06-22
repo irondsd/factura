@@ -1,5 +1,5 @@
 /**
- * Email 0 — Registration / OPT.
+ * Email 0 — One-time password (email sign-in).
  * Renders through the shared <FacturaEmail> shell; only the content swaps.
  */
 
@@ -7,11 +7,11 @@ import { Section, Text } from "@react-email/components";
 import * as React from "react";
 import { C, FacturaEmail, styles } from "./components/factura-email";
 
-export type WelcomeEmailProps = {
+export type OtpEmailProps = {
   code?: string;
 };
 
-export function WelcomeEmail({ code }: WelcomeEmailProps) {
+export function OtpEmail({ code }: OtpEmailProps) {
   return (
     <FacturaEmail
       preheader="Use this code to sign in to your account."
@@ -53,8 +53,8 @@ export function WelcomeEmail({ code }: WelcomeEmailProps) {
 }
 
 // Preview defaults for `email dev`.
-WelcomeEmail.PreviewProps = {
+OtpEmail.PreviewProps = {
   code: "123456",
-} satisfies WelcomeEmailProps;
+} satisfies OtpEmailProps;
 
-export default WelcomeEmail;
+export default OtpEmail;

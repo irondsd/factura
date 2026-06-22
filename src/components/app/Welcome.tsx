@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 // Auth gate shown on every page when signed out: wordmark, one-line pitch, and
 // a real "Continue with Google" button. Ported from the design prototype.
 export function Welcome({ onLogin }: { onLogin: () => void }) {
@@ -20,6 +22,12 @@ export function Welcome({ onLogin }: { onLogin: () => void }) {
           <GoogleG />
           Continue with Google
         </button>
+        <Link
+          href="/login"
+          className="mt-3 inline-flex w-full items-center justify-center gap-3 font-mono text-[13px] text-muted py-3 px-4 cursor-pointer transition-colors hover:text-accent"
+        >
+          Sign in with email
+        </Link>
         <p className="font-mono text-[10.5px] text-muted leading-[1.6] mt-5">
           Bills are scoped to your account. Parsed text and PDFs are private to
           you.
