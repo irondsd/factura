@@ -52,34 +52,36 @@ type TipPayload = {
   dataKey?: string | number | ((obj: unknown) => unknown);
 };
 
+type Segment = { name: string; value: number; color: string };
+
 /** Stacked-bar tooltip: every vendor's exact amount for the hovered month + total. */
 function StackTooltip({
   active,
   payload,
   label,
   currency,
-  vendorNames,
 }: {
   active?: boolean;
   payload?: readonly TipPayload[];
   label?: string | number;
   currency: string;
-  vendorNames: Record<string, string>;
 }) {
   if (!active || !payload || payload.length === 0) return null;
-  const rows = payload.filter((p) => Number(p.value) > 0);
-  if (rows.length === 0) return null;
-  const total = rows.reduce((a, p) => a + Number(p.value), 0);
+  // Each slot Bar carries the whole month's row; read the sorted segments off it.
+  const row = (payload[0] as { payload?: { _segments?: Segment[] } }).payload;
+  const segments = (row?._segments ?? [])
+    .filter((s) => s.value > 0)
+    .sort((a, b) => b.value - a.value);
+  if (segments.length === 0) return null;
+  const total = segments.reduce((a, s) => a + s.value, 0);
   return (
     <div className={tooltipBox}>
       <div className={tooltipHeader}>{typeof label === "string" ? formatMonth(label) : ""}</div>
-      {rows.map((p) => (
-        <div key={String(p.dataKey)} className="flex items-center gap-2 mt-[3px]">
-          <span className="w-2 h-2 inline-block shrink-0" style={{ background: p.color }} />
-          <span className="flex-1 text-muted">
-            {vendorNames[String(p.dataKey)] ?? String(p.dataKey)}
-          </span>
-          <span className="font-medium">{formatExact(Number(p.value), currency)}</span>
+      {segments.map((s) => (
+        <div key={s.name} className="flex items-center gap-2 mt-[3px]">
+          <span className="w-2 h-2 inline-block shrink-0" style={{ background: s.color }} />
+          <span className="flex-1 text-muted">{s.name}</span>
+          <span className="font-medium">{formatExact(s.value, currency)}</span>
         </div>
       ))}
       <div className="flex justify-between gap-4 mt-[7px] pt-1.5 border-t border-line">
@@ -186,7 +188,16 @@ export function LineChartFx({
   );
 }
 
-/** Monthly totals stacked by vendor; incomplete months are dimmed. */
+/**
+ * Within-bar segment order. Vendors are ranked once by their total spend across
+ * the whole period, and that single ranking fixes the stack order for every month
+ * — so segments stay put month to month instead of shuffling. Flip this var:
+ *   "desc" — biggest vendor (by period total) at the bottom
+ *   "asc"  — biggest vendor at the top
+ */
+const SEGMENT_SORT: "desc" | "asc" = "desc";
+
+/** Monthly totals stacked by vendor, ranked by period total; incomplete months are dimmed. */
 export function StackedBarsFx({
   months,
   stacks,
@@ -202,10 +213,27 @@ export function StackedBarsFx({
   completeFlags?: boolean[];
   height?: number;
 }) {
-  const data = months.map((m, i) => ({ month: m, ...stacks[i] }));
-  const vendorNames = Object.fromEntries(
-    vendors.map((v) => [v.id, v.displayName ?? v.id]),
-  );
+  // Rank vendors once by their summed spend over the whole period, then use that
+  // order for every bar. Recharts draws the first <Bar> at the bottom of the stack,
+  // so "desc" (biggest first) puts the biggest vendor on the bottom.
+  const periodTotal = (id: string) => stacks.reduce((a, s) => a + (s[id] ?? 0), 0);
+  const orderedVendors = [...vendors].sort((a, b) => {
+    const diff = periodTotal(b.id) - periodTotal(a.id);
+    return SEGMENT_SORT === "desc" ? diff : -diff;
+  });
+  // Each row carries its segments (in stack order) for the tooltip.
+  const data = months.map((m, i) => {
+    const stack = stacks[i];
+    const _segments: Segment[] = orderedVendors.map((v) => ({
+      name: v.displayName ?? v.id,
+      value: stack[v.id] ?? 0,
+      color: v.color,
+    }));
+    const row: Record<string, number | string | Segment[]> = { month: m, _segments };
+    for (const v of orderedVendors) row[v.id] = stack[v.id] ?? 0;
+    return row;
+  });
+  const complete = (i: number) => !completeFlags || completeFlags[i];
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -229,17 +257,12 @@ export function StackedBarsFx({
         <Tooltip
           cursor={{ fill: "var(--line)", fillOpacity: 0.3 }}
           isAnimationActive={false}
-          content={(props) => (
-            <StackTooltip {...props} currency={currency} vendorNames={vendorNames} />
-          )}
+          content={(props) => <StackTooltip {...props} currency={currency} />}
         />
-        {vendors.map((v) => (
+        {orderedVendors.map((v) => (
           <Bar key={v.id} dataKey={v.id} stackId="a" fill={v.color} isAnimationActive={false}>
             {data.map((_, i) => (
-              <Cell
-                key={i}
-                fillOpacity={completeFlags && !completeFlags[i] ? 0.4 : 1}
-              />
+              <Cell key={i} fillOpacity={complete(i) ? 1 : 0.4} />
             ))}
           </Bar>
         ))}
