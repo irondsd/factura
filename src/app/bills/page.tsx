@@ -44,7 +44,7 @@ export default function BillsPage() {
     [vendors.data],
   );
   const vendorName = (id: string | null) =>
-    id ? vendorById.get(id)?.displayName ?? "—" : "unrecognized";
+    id ? (vendorById.get(id)?.displayName ?? "—") : "unrecognized";
   const propName = (id: string | null) =>
     properties.data?.find((p) => p.id === id)?.nickname ?? "—";
 
@@ -55,13 +55,19 @@ export default function BillsPage() {
 
   return (
     <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
-      <Eyebrow>Bills · {propertyId ? propName(propertyId) : "All properties"}</Eyebrow>
+      <Eyebrow>
+        Bills · {propertyId ? propName(propertyId) : "All properties"}
+      </Eyebrow>
       <Display size={34} className="block mt-1.5">
         The ledger
       </Display>
 
       <div className="flex flex-wrap gap-1.5 mt-[18px] border-b border-line pb-3">
-        <FilterTab label="All vendors" active={vendorId === "all"} onClick={() => setVendorId("all")} />
+        <FilterTab
+          label="All vendors"
+          active={vendorId === "all"}
+          onClick={() => setVendorId("all")}
+        />
         {vendorsHere.map((v) => (
           <FilterTab
             key={v.id}
@@ -74,64 +80,74 @@ export default function BillsPage() {
       </div>
 
       <div className="overflow-x-auto [-webkit-overflow-scrolling:touch] mt-4">
-      <table className="w-full min-w-[440px] border-collapse">
-        <thead>
-          <tr>
-            <th className="fd-th">Period</th>
-            <th className="fd-th">Vendor</th>
-            {!propertyId && <th className="fd-th">Property</th>}
-            <th className="fd-th text-right">Amount</th>
-            <th className="fd-th text-right">USD</th>
-            <th className="fd-th"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((b) => {
-            const review = b.status === "needs_review";
-            return (
-              <tr
-                key={b.id}
-                onClick={() => openBill(b.id)}
-                className="cursor-pointer [&:hover>td]:bg-[color-mix(in_srgb,var(--accent)_4%,transparent)]"
-              >
-                <td className={cn("fd-td", review ? "text-accent" : "text-ink")}>
-                  {b.period
-                    ? `${formatMonthShort(b.period)} ${b.period.slice(0, 4)}`
-                    : b.fileName ?? "—"}
-                </td>
-                <td className="fd-td">
-                  <span className="inline-flex items-center gap-[7px]">
-                    {b.vendorId && vendorById.get(b.vendorId) && (
-                      <span
-                        className={cn(
-                          "inline-block w-2 h-2",
-                          vendorColorClass(vendorById.get(b.vendorId)?.color),
-                        )}
-                      />
-                    )}
-                    {vendorName(b.vendorId)}
-                  </span>
-                </td>
-                {!propertyId && <td className="fd-td text-muted">{propName(b.propertyId)}</td>}
-                <td className="fd-td text-right font-medium">
-                  {review ? <Badge>needs review</Badge> : formatARS(b.totalAmount)}
-                </td>
-                <td className="fd-td text-right text-muted">
-                  {review ? "—" : formatUSD(b.usdAmount)}
-                </td>
-                <td className="fd-td text-right text-muted">›</td>
-              </tr>
-            );
-          })}
-          {rows.length === 0 && (
+        <table className="w-full min-w-[440px] border-collapse">
+          <thead>
             <tr>
-              <td colSpan={6} className="fd-td text-center text-muted py-7">
-                No bills yet — drop a PDF anywhere.
-              </td>
+              <th className="fd-th">Period</th>
+              <th className="fd-th">Vendor</th>
+              {!propertyId && <th className="fd-th">Property</th>}
+              <th className="fd-th text-right">Amount</th>
+              <th className="fd-th text-right">USD</th>
+              <th className="fd-th"></th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((b) => {
+              const review = b.status === "needs_review";
+              return (
+                <tr
+                  key={b.id}
+                  onClick={() => openBill(b.id)}
+                  className="cursor-pointer [&:hover>td]:bg-[color-mix(in_srgb,var(--accent)_4%,transparent)]"
+                >
+                  <td
+                    className={cn("fd-td", review ? "text-accent" : "text-ink")}
+                  >
+                    {b.period
+                      ? `${formatMonthShort(b.period)} ${b.period.slice(0, 4)}`
+                      : (b.fileName ?? "—")}
+                  </td>
+                  <td className="fd-td">
+                    <span className="inline-flex items-center gap-[7px]">
+                      {b.vendorId && vendorById.get(b.vendorId) && (
+                        <span
+                          className={cn(
+                            "inline-block w-2 h-2",
+                            vendorColorClass(vendorById.get(b.vendorId)?.color),
+                          )}
+                        />
+                      )}
+                      {vendorName(b.vendorId)}
+                    </span>
+                  </td>
+                  {!propertyId && (
+                    <td className="fd-td text-muted">
+                      {propName(b.propertyId)}
+                    </td>
+                  )}
+                  <td className="fd-td text-right font-medium">
+                    {review ? (
+                      <Badge>needs review</Badge>
+                    ) : (
+                      formatARS(b.totalAmount)
+                    )}
+                  </td>
+                  <td className="fd-td text-right text-muted">
+                    {review ? "—" : formatUSD(b.usdAmount)}
+                  </td>
+                  <td className="fd-td text-right text-muted">›</td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={6} className="fd-td text-center text-muted py-7">
+                  No bills yet — drop a PDF anywhere.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* pagination */}
@@ -141,13 +157,26 @@ export default function BillsPage() {
         </span>
         {/* Prev/Next + a 5-page window. The labels collapse to bare arrows on mobile. */}
         <div className="flex gap-1 flex-wrap justify-end">
-          <PageBtn disabled={safePage === 0} onClick={() => setPage(safePage - 1)} aria-label="Previous page">
+          <PageBtn
+            disabled={safePage === 0}
+            onClick={() => setPage(safePage - 1)}
+            aria-label="Previous page"
+          >
             ‹<span className="hidden md:inline">Prev</span>
           </PageBtn>
           {pageWindow(safePage, pageCount).map((item, idx) => (
-            <PageNum key={typeof item === "number" ? item : `gap-${idx}`} item={item} active={item === safePage} onClick={setPage} />
+            <PageNum
+              key={typeof item === "number" ? item : `gap-${idx}`}
+              item={item}
+              active={item === safePage}
+              onClick={setPage}
+            />
           ))}
-          <PageBtn disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)} aria-label="Next page">
+          <PageBtn
+            disabled={safePage >= pageCount - 1}
+            onClick={() => setPage(safePage + 1)}
+            aria-label="Next page"
+          >
             <span className="hidden md:inline">Next</span>›
           </PageBtn>
         </div>
@@ -188,10 +217,14 @@ function FilterTab({
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-[7px] font-mono text-micro uppercase tracking-[0.12em] py-[5px] px-[11px] cursor-pointer border transition-colors",
-        active ? "border-ink bg-ink text-paper" : "border-transparent bg-transparent text-muted",
+        active
+          ? "border-ink bg-ink text-paper"
+          : "border-transparent bg-transparent text-muted",
       )}
     >
-      {colorClass && <span className={cn("inline-block w-2 h-2", colorClass)} />}
+      {colorClass && (
+        <span className={cn("inline-block w-2 h-2", colorClass)} />
+      )}
       {label}
     </button>
   );
@@ -218,7 +251,9 @@ function PageNum({
       className={cn(
         PAGENUM_BASE,
         "cursor-pointer border transition-colors",
-        active ? "border-ink bg-ink text-paper" : "border-line bg-transparent text-muted",
+        active
+          ? "border-ink bg-ink text-paper"
+          : "border-line bg-transparent text-muted",
       )}
     >
       {item + 1}

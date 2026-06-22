@@ -76,10 +76,15 @@ function StackTooltip({
   const total = segments.reduce((a, s) => a + s.value, 0);
   return (
     <div className={tooltipBox}>
-      <div className={tooltipHeader}>{typeof label === "string" ? formatMonth(label) : ""}</div>
+      <div className={tooltipHeader}>
+        {typeof label === "string" ? formatMonth(label) : ""}
+      </div>
       {segments.map((s) => (
         <div key={s.name} className="flex items-center gap-2 mt-[3px]">
-          <span className="w-2 h-2 inline-block shrink-0" style={{ background: s.color }} />
+          <span
+            className="w-2 h-2 inline-block shrink-0"
+            style={{ background: s.color }}
+          />
           <span className="flex-1 text-muted">{s.name}</span>
           <span className="font-medium">{formatExact(s.value, currency)}</span>
         </div>
@@ -109,12 +114,22 @@ function LineTooltip({
   if (rows.length === 0) return null;
   return (
     <div className={tooltipBox}>
-      <div className={tooltipHeader}>{typeof label === "string" ? formatMonth(label) : ""}</div>
+      <div className={tooltipHeader}>
+        {typeof label === "string" ? formatMonth(label) : ""}
+      </div>
       {rows.map((p) => (
-        <div key={String(p.dataKey)} className="flex items-center gap-2.5 mt-[3px]">
-          <span className="w-2 h-2 inline-block shrink-0" style={{ background: p.color }} />
+        <div
+          key={String(p.dataKey)}
+          className="flex items-center gap-2.5 mt-[3px]"
+        >
+          <span
+            className="w-2 h-2 inline-block shrink-0"
+            style={{ background: p.color }}
+          />
           <span className="flex-1 text-muted">{String(p.name)}</span>
-          <span className="font-medium">{formatExact(Number(p.value), currency)}</span>
+          <span className="font-medium">
+            {formatExact(Number(p.value), currency)}
+          </span>
         </div>
       ))}
     </div>
@@ -178,7 +193,12 @@ export function LineChartFx({
             stroke={s.color}
             strokeWidth={2}
             strokeDasharray={s.dashed ? "5 4" : undefined}
-            dot={{ r: 2.4, fill: "var(--card)", stroke: s.color, strokeWidth: 1.5 }}
+            dot={{
+              r: 2.4,
+              fill: "var(--card)",
+              stroke: s.color,
+              strokeWidth: 1.5,
+            }}
             connectNulls={false}
             isAnimationActive={false}
           />
@@ -216,7 +236,8 @@ export function StackedBarsFx({
   // Rank vendors once by their summed spend over the whole period, then use that
   // order for every bar. Recharts draws the first <Bar> at the bottom of the stack,
   // so "desc" (biggest first) puts the biggest vendor on the bottom.
-  const periodTotal = (id: string) => stacks.reduce((a, s) => a + (s[id] ?? 0), 0);
+  const periodTotal = (id: string) =>
+    stacks.reduce((a, s) => a + (s[id] ?? 0), 0);
   const orderedVendors = [...vendors].sort((a, b) => {
     const diff = periodTotal(b.id) - periodTotal(a.id);
     return SEGMENT_SORT === "desc" ? diff : -diff;
@@ -229,7 +250,10 @@ export function StackedBarsFx({
       value: stack[v.id] ?? 0,
       color: v.color,
     }));
-    const row: Record<string, number | string | Segment[]> = { month: m, _segments };
+    const row: Record<string, number | string | Segment[]> = {
+      month: m,
+      _segments,
+    };
     for (const v of orderedVendors) row[v.id] = stack[v.id] ?? 0;
     return row;
   });
@@ -260,7 +284,13 @@ export function StackedBarsFx({
           content={(props) => <StackTooltip {...props} currency={currency} />}
         />
         {orderedVendors.map((v) => (
-          <Bar key={v.id} dataKey={v.id} stackId="a" fill={v.color} isAnimationActive={false}>
+          <Bar
+            key={v.id}
+            dataKey={v.id}
+            stackId="a"
+            fill={v.color}
+            isAnimationActive={false}
+          >
             {data.map((_, i) => (
               <Cell key={i} fillOpacity={complete(i) ? 1 : 0.4} />
             ))}
@@ -280,7 +310,7 @@ export function DonutFx({
   centerSub,
 }: {
   // `id` keeps Cell keys unique when slices share a label (same vendor name in
-  // different apartments); falls back to label otherwise.
+  // different properties); falls back to label otherwise.
   slices: { label: string; value: number; color: string; id?: string }[];
   size?: number;
   thickness?: number;
@@ -311,7 +341,9 @@ export function DonutFx({
           <Label
             position="center"
             content={(props) => {
-              const vb = props.viewBox as { cx?: number; cy?: number } | undefined;
+              const vb = props.viewBox as
+                | { cx?: number; cy?: number }
+                | undefined;
               const cx = vb?.cx ?? size / 2;
               const cy = vb?.cy ?? size / 2;
               return (
@@ -370,7 +402,12 @@ export function SparklineFx({
   const data = values.map((v, i) => ({ i, v }));
   const lastIdx = values.length - 1;
   return (
-    <LineChart width={width} height={height} data={data} margin={{ top: 3, right: 3, bottom: 3, left: 3 }}>
+    <LineChart
+      width={width}
+      height={height}
+      data={data}
+      margin={{ top: 3, right: 3, bottom: 3, left: 3 }}
+    >
       <Line
         type="linear"
         dataKey="v"
@@ -378,7 +415,12 @@ export function SparklineFx({
         strokeWidth={1.5}
         connectNulls
         isAnimationActive={false}
-        dot={(props: { cx?: number; cy?: number; index?: number; value?: number | null }) =>
+        dot={(props: {
+          cx?: number;
+          cy?: number;
+          index?: number;
+          value?: number | null;
+        }) =>
           props.index === lastIdx && props.value != null && props.cx != null ? (
             <circle key="last" cx={props.cx} cy={props.cy} r={2} fill={color} />
           ) : (

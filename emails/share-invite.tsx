@@ -1,5 +1,5 @@
 /**
- * Email 2 — Shared apartment / accept invite.
+ * Email 2 — Shared property / accept invite.
  * Same shell as the welcome email — adds a ledger-style detail block and a
  * secondary "decline" line.
  */

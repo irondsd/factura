@@ -18,7 +18,23 @@ type Token =
   | { t: "id"; v: string }
   | { t: "op"; v: string };
 
-const OPS = ["<=", ">=", "==", "!=", "<", ">", "+", "-", "*", "/", "%", "(", ")", "?", ":"];
+const OPS = [
+  "<=",
+  ">=",
+  "==",
+  "!=",
+  "<",
+  ">",
+  "+",
+  "-",
+  "*",
+  "/",
+  "%",
+  "(",
+  ")",
+  "?",
+  ":",
+];
 
 function tokenize(src: string): Token[] {
   const tokens: Token[] = [];
@@ -93,7 +109,10 @@ function parse(tokens: Token[]): Node {
 
   function comparison(): Node {
     let a = additive();
-    while (peek()?.t === "op" && ["<", ">", "<=", ">=", "==", "!="].includes(peek().v as string)) {
+    while (
+      peek()?.t === "op" &&
+      ["<", ">", "<=", ">=", "==", "!="].includes(peek().v as string)
+    ) {
       const op = eat().v as string;
       a = { k: "bin", op, a, b: additive() };
     }

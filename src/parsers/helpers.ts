@@ -68,8 +68,19 @@ export function assertAmountsAgree(
 }
 
 const ES_MONTHS: Record<string, string> = {
-  ene: "01", feb: "02", mar: "03", abr: "04", may: "05", jun: "06",
-  jul: "07", ago: "08", sep: "09", set: "09", oct: "10", nov: "11", dic: "12",
+  ene: "01",
+  feb: "02",
+  mar: "03",
+  abr: "04",
+  may: "05",
+  jun: "06",
+  jul: "07",
+  ago: "08",
+  sep: "09",
+  set: "09",
+  oct: "10",
+  nov: "11",
+  dic: "12",
 };
 
 /** "Jun. 2026" / "Junio 2026" -> "2026-06-01" */

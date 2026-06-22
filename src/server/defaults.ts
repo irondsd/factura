@@ -16,9 +16,9 @@ type VendorRow = typeof vendors.$inferSelect;
 type PropertyRow = typeof properties.$inferSelect;
 type Category = (typeof vendors.category.enumValues)[number];
 
-/** Get an apartment's vendor for a slug, creating it from preset metadata if it
+/** Get an property's vendor for a slug, creating it from preset metadata if it
  * doesn't exist yet. Vendors belong to a property, so this is the single point
- * where a bill being *filed* into an apartment materializes its vendor row.
+ * where a bill being *filed* into an property materializes its vendor row.
  * Idempotent per (propertyId, slug). */
 export async function ensureVendor(
   db: typeof Db,
@@ -26,10 +26,13 @@ export async function ensureVendor(
   vendor: { slug: string; displayName: string; category: string },
 ): Promise<VendorRow> {
   const existing = await db.query.vendors.findFirst({
-    where: and(eq(vendors.propertyId, propertyId), eq(vendors.slug, vendor.slug)),
+    where: and(
+      eq(vendors.propertyId, propertyId),
+      eq(vendors.slug, vendor.slug),
+    ),
   });
   if (existing) return existing;
-  // Assign a random color, avoiding ones already used in this apartment.
+  // Assign a random color, avoiding ones already used in this property.
   const siblings = await db.query.vendors.findMany({
     where: eq(vendors.propertyId, propertyId),
     columns: { color: true },
@@ -47,7 +50,7 @@ export async function ensureVendor(
   return created;
 }
 
-/** Seed a freshly-created apartment with one vendor per distinct verified-preset
+/** Seed a freshly-created property with one vendor per distinct verified-preset
  * vendor, so its vendor list and account assignment work immediately. Presets
  * created later are back-filled lazily by ensureVendor on first matching bill.
  * Idempotent. */
@@ -70,10 +73,10 @@ export async function seedPropertyVendors(
   }
 }
 
-/** Create an apartment owned by `userId`: the property row, the owner
+/** Create an property owned by `userId`: the property row, the owner
  * membership, and its seeded vendors. Shared by sign-up (the default "Home")
- * and the apartments page. */
-export async function createApartmentForUser(
+ * and the property page. */
+export async function createPropertyForUser(
   db: typeof Db,
   userId: string,
   nickname: string,

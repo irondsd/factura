@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
     "db:push": "dotenv -e .env.local drizzle-kit push",
     "db:seed": "dotenv -e .env.local tsx src/db/seed.ts",
     "db:studio": "dotenv -e .env.local drizzle-kit studio",

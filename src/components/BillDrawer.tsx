@@ -47,7 +47,7 @@ export function BillDrawer({
   const [draft, setDraft] = useState<Draft | null>(null);
   const [syncedId, setSyncedId] = useState<string | null>(null);
 
-  // Vendors belong to an apartment, so scope the picker to the bill's chosen
+  // Vendors belong to an property, so scope the picker to the bill's chosen
   // property (all accessible vendors until one is chosen).
   const vendors = trpc.vendors.list.useQuery(
     draft?.propertyId ? { propertyId: draft.propertyId } : undefined,
@@ -88,7 +88,9 @@ export function BillDrawer({
   const extra = (bill?.extra ?? {}) as Record<string, unknown>;
   // Unfiled bills have no vendor row yet — the parser stashed the name on extra.
   const vendorLabel =
-    vendor?.displayName ?? (extra.vendorName as string | undefined) ?? "Unrecognized";
+    vendor?.displayName ??
+    (extra.vendorName as string | undefined) ??
+    "Unrecognized";
   const parseError = extra.parseError as string | undefined;
   const customFields = (extra.fields ?? {}) as Record<string, unknown>;
 
@@ -161,7 +163,9 @@ export function BillDrawer({
       const blob = await fetch(bill.downloadUrl).then((r) => r.blob());
       const { default: pdfToText } = await import("react-pdftotext");
       const rawText = await pdfToText(
-        new File([blob], bill.fileName ?? "bill.pdf", { type: "application/pdf" }),
+        new File([blob], bill.fileName ?? "bill.pdf", {
+          type: "application/pdf",
+        }),
       );
       await reparseFile.mutateAsync({ id: bill.id, rawText });
       onToast("Reparsed from the stored PDF · ledger recalculated");
@@ -224,7 +228,8 @@ export function BillDrawer({
             {bill.yoy && (
               <div className="mt-4 mx-6 py-2.5 px-[14px] border border-line flex items-center gap-2.5 flex-wrap">
                 <span className="font-mono text-micro text-muted">
-                  vs {formatMonthShort(bill.yoy.prevPeriod)} {bill.yoy.prevPeriod.slice(0, 4)}:
+                  vs {formatMonthShort(bill.yoy.prevPeriod)}{" "}
+                  {bill.yoy.prevPeriod.slice(0, 4)}:
                 </span>
                 <span className="font-mono text-xs">
                   <Delta pct={bill.yoy.arsPct} /> in ARS
@@ -242,7 +247,12 @@ export function BillDrawer({
             <div className="py-5 px-6 grid grid-cols-1 md:grid-cols-2 gap-[14px]">
               <label className={field}>
                 <span className={flabel}>Vendor</span>
-                <Select value={draft.vendorId} onChange={(e) => setDraft({ ...draft, vendorId: e.target.value })}>
+                <Select
+                  value={draft.vendorId}
+                  onChange={(e) =>
+                    setDraft({ ...draft, vendorId: e.target.value })
+                  }
+                >
                   <option value="" disabled>
                     Vendor
                   </option>
@@ -255,7 +265,12 @@ export function BillDrawer({
               </label>
               <label className={field}>
                 <span className={flabel}>Property</span>
-                <Select value={draft.propertyId} onChange={(e) => setDraft({ ...draft, propertyId: e.target.value })}>
+                <Select
+                  value={draft.propertyId}
+                  onChange={(e) =>
+                    setDraft({ ...draft, propertyId: e.target.value })
+                  }
+                >
                   <option value="" disabled>
                     Property
                   </option>
@@ -268,15 +283,33 @@ export function BillDrawer({
               </label>
               <label className={field}>
                 <span className={flabel}>Period</span>
-                <Input type="month" value={draft.period} onChange={(e) => setDraft({ ...draft, period: e.target.value })} />
+                <Input
+                  type="month"
+                  value={draft.period}
+                  onChange={(e) =>
+                    setDraft({ ...draft, period: e.target.value })
+                  }
+                />
               </label>
               <label className={field}>
                 <span className={flabel}>Due date</span>
-                <Input type="date" value={draft.dueDate} onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })} />
+                <Input
+                  type="date"
+                  value={draft.dueDate}
+                  onChange={(e) =>
+                    setDraft({ ...draft, dueDate: e.target.value })
+                  }
+                />
               </label>
               <label className={field}>
                 <span className={flabel}>Amount (ARS)</span>
-                <Input type="number" value={draft.totalAmount} onChange={(e) => setDraft({ ...draft, totalAmount: e.target.value })} />
+                <Input
+                  type="number"
+                  value={draft.totalAmount}
+                  onChange={(e) =>
+                    setDraft({ ...draft, totalAmount: e.target.value })
+                  }
+                />
               </label>
             </div>
 
@@ -311,14 +344,22 @@ export function BillDrawer({
                       {parser?.displayName ?? bill.parserKey}
                       {parser ? (
                         bill.parserVersion && (
-                          <span className="text-muted"> · v{bill.parserVersion}</span>
+                          <span className="text-muted">
+                            {" "}
+                            · v{bill.parserVersion}
+                          </span>
                         )
                       ) : (
-                        <span className="text-muted"> · not a saved parser</span>
+                        <span className="text-muted">
+                          {" "}
+                          · not a saved parser
+                        </span>
                       )}
                     </>
                   ) : (
-                    <span className="text-muted">No parser recognized this bill</span>
+                    <span className="text-muted">
+                      No parser recognized this bill
+                    </span>
                   )}
                 </span>
                 {reviewKind === "needs_home" ? (
@@ -397,10 +438,19 @@ export function BillDrawer({
 
             {/* footer */}
             <div className="sticky bottom-0 flex gap-2 py-3.5 px-6 border-t border-line bg-card">
-              <Button variant="solid" onClick={save} disabled={updateBill.isPending}>
+              <Button
+                variant="solid"
+                onClick={save}
+                disabled={updateBill.isPending}
+              >
                 Save changes
               </Button>
-              <Button variant="ghost" className="ml-auto" onClick={remove} disabled={deleteBill.isPending}>
+              <Button
+                variant="ghost"
+                className="ml-auto"
+                onClick={remove}
+                disabled={deleteBill.isPending}
+              >
                 Delete
               </Button>
             </div>
@@ -428,7 +478,9 @@ function ReparseOption({
       disabled={disabled}
       className={cn(
         "flex-1 text-left bg-transparent border border-line py-2.5 px-3 transition-colors hover:border-accent",
-        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer opacity-100",
+        disabled
+          ? "cursor-not-allowed opacity-50"
+          : "cursor-pointer opacity-100",
       )}
     >
       <span className="block font-mono text-xs font-medium text-ink">

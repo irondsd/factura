@@ -68,8 +68,18 @@ const computeStep = z.union([
 ]);
 
 const validation = z.union([
-  z.object({ type: z.literal("agree"), a: z.string(), b: z.string(), label: z.string() }),
-  z.object({ type: z.literal("equals"), a: z.string(), b: z.string(), label: z.string() }),
+  z.object({
+    type: z.literal("agree"),
+    a: z.string(),
+    b: z.string(),
+    label: z.string(),
+  }),
+  z.object({
+    type: z.literal("equals"),
+    a: z.string(),
+    b: z.string(),
+    label: z.string(),
+  }),
   z.object({
     type: z.literal("lineContainsAll"),
     linePattern: z.string(),

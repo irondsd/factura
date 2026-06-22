@@ -28,7 +28,10 @@ function asStoredRow(config: (typeof ENGINE_CONFIGS)[number]) {
 
 function fixture(name: string): string {
   return normalize(
-    readFileSync(join(__dirname, "..", "parsers", "__fixtures__", `${name}.txt`), "utf8"),
+    readFileSync(
+      join(__dirname, "..", "parsers", "__fixtures__", `${name}.txt`),
+      "utf8",
+    ),
   );
 }
 

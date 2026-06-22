@@ -88,9 +88,7 @@ async function runConfigsExcept(
   const ownRows = await db.query.parserConfigs.findMany({
     where: eq(parserConfigs.ownerId, userId),
   });
-  const own = ownRows
-    .filter((r) => r.id !== exceptConfigId)
-    .map(rowToConfig);
+  const own = ownRows.filter((r) => r.id !== exceptConfigId).map(rowToConfig);
 
   const adoptions = await db.query.parserAdoptions.findMany({
     where: eq(parserAdoptions.userId, userId),
@@ -118,7 +116,8 @@ export async function assertOwnsPackage(
   const row = await db.query.parserConfigs.findFirst({
     where: and(eq(parserConfigs.id, id), eq(parserConfigs.ownerId, userId)),
   });
-  if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Parser not found" });
+  if (!row)
+    throw new TRPCError({ code: "NOT_FOUND", message: "Parser not found" });
   return row;
 }
 
@@ -167,7 +166,8 @@ export async function adoptPackage(
   const pkg = await db.query.parserConfigs.findFirst({
     where: eq(parserConfigs.id, configId),
   });
-  if (!pkg) throw new TRPCError({ code: "NOT_FOUND", message: "Parser not found" });
+  if (!pkg)
+    throw new TRPCError({ code: "NOT_FOUND", message: "Parser not found" });
   if (pkg.ownerId === userId)
     throw new TRPCError({
       code: "BAD_REQUEST",

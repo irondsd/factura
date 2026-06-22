@@ -35,14 +35,18 @@ export default function ParsersPage() {
   type OwnItem = Extract<ListItem, { editable: true }>;
   const items: ListItem[] = list.data ?? [];
   const own = items.filter((p): p is OwnItem => p.editable);
-  const adopted = items.filter((p): p is Exclude<ListItem, OwnItem> => !p.editable);
+  const adopted = items.filter(
+    (p): p is Exclude<ListItem, OwnItem> => !p.editable,
+  );
   const adoptedIds = new Set(adopted.map((p) => p.id));
   const browseByConfig = new Map(
     (browse.data ?? []).map((b) => [b.configId, b]),
   );
   // browse already excludes packages you own; drop the ones you've adopted to
   // get the "new to you" registry.
-  const registry = (browse.data ?? []).filter((b) => !adoptedIds.has(b.configId));
+  const registry = (browse.data ?? []).filter(
+    (b) => !adoptedIds.has(b.configId),
+  );
 
   const busy =
     reparse.isPending || adopt.isPending || unadopt.isPending || del.isPending;
@@ -81,7 +85,10 @@ export default function ParsersPage() {
       return { label: "Unpublished", canPublish: true };
     if (p.latestPublishedVersion < p.version)
       return { label: "Unpublished changes", canPublish: true };
-    return { label: `Published v${p.latestPublishedVersion}`, canPublish: false };
+    return {
+      label: `Published v${p.latestPublishedVersion}`,
+      canPublish: false,
+    };
   };
 
   return (
@@ -117,9 +124,14 @@ export default function ParsersPage() {
             <div key={p.id} className={parserRow}>
               <span className={nameStyle}>{p.displayName}</span>
               <span className={parserMeta}>{p.slug}</span>
-              <Badge tone={st.canPublish ? "neutral" : "accent"}>{st.label}</Badge>
+              <Badge tone={st.canPublish ? "neutral" : "accent"}>
+                {st.label}
+              </Badge>
               <div className="ml-auto flex gap-1.5">
-                <Button size="sm" onClick={() => router.push(`/builder?parser=${p.slug}`)}>
+                <Button
+                  size="sm"
+                  onClick={() => router.push(`/builder?parser=${p.slug}`)}
+                >
                   Edit
                 </Button>
                 {st.canPublish && (
@@ -137,9 +149,16 @@ export default function ParsersPage() {
                   variant="ghost"
                   disabled={busy}
                   onClick={() => {
-                    if (!confirm(`Delete parser "${p.displayName}"? This can't be undone.`))
+                    if (
+                      !confirm(
+                        `Delete parser "${p.displayName}"? This can't be undone.`,
+                      )
+                    )
                       return;
-                    withReparse(() => del.mutateAsync({ id: p.id }), "Parser deleted");
+                    withReparse(
+                      () => del.mutateAsync({ id: p.id }),
+                      "Parser deleted",
+                    );
                   }}
                 >
                   Delete
@@ -184,7 +203,10 @@ export default function ParsersPage() {
                     Update to v{upstream.version}
                   </Button>
                 )}
-                <Button size="sm" onClick={() => router.push(`/builder?parser=${p.slug}`)}>
+                <Button
+                  size="sm"
+                  onClick={() => router.push(`/builder?parser=${p.slug}`)}
+                >
                   Fork
                 </Button>
                 <Button
@@ -209,9 +231,13 @@ export default function ParsersPage() {
       <h2 className={sectionTitle}>
         <Eyebrow>Browse registry</Eyebrow>
       </h2>
-      <p className={help}>Published parsers from other users. Adopt one to detect its vendor.</p>
+      <p className={help}>
+        Published parsers from other users. Adopt one to detect its vendor.
+      </p>
       <div className="flex flex-col gap-2">
-        {registry.length === 0 && <p className={parserMeta}>Nothing new to adopt.</p>}
+        {registry.length === 0 && (
+          <p className={parserMeta}>Nothing new to adopt.</p>
+        )}
         {registry.map((b) => (
           <div key={b.configId} className={parserRow}>
             <span className={nameStyle}>{b.displayName}</span>

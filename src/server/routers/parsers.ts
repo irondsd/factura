@@ -269,7 +269,11 @@ export const parsersRouter = router({
    * Reports whether detection matched and what extraction produced — the live
    * preview / "test against a new bill" backend. */
   test: protectedProcedure
-    .input(configInputSchema.extend({ rawText: z.string().min(20).max(RAW_TEXT_MAX) }))
+    .input(
+      configInputSchema.extend({
+        rawText: z.string().min(20).max(RAW_TEXT_MAX),
+      }),
+    )
     .mutation(({ input }) => {
       const { rawText, ...configInput } = input;
       const text = normalize(rawText);
@@ -288,22 +292,31 @@ export const parsersRouter = router({
    * OTHER bills? Step 2 is only unlocked when this is empty. Runs against the
    * user's own bills only — no cross-user data is read. */
   detectCollisions: protectedProcedure
-    .input(z.object({ detect: detectSchema, excludeSlug: z.string().optional() }))
+    .input(
+      z.object({ detect: detectSchema, excludeSlug: z.string().optional() }),
+    )
     .query(async ({ ctx, input }) => {
       const probe = { detect: input.detect } as ParserConfig;
       const userBills = await ctx.db.query.bills.findMany({
         where: eq(bills.createdBy, ctx.userId),
         orderBy: [desc(bills.createdAt)],
       });
-      const collisions: { id: string; fileName: string | null; parserKey: string | null }[] =
-        [];
+      const collisions: {
+        id: string;
+        fileName: string | null;
+        parserKey: string | null;
+      }[] = [];
       for (const b of userBills) {
         // Only bills already claimed by a *different* parser are conflicts.
         // Unrecognized bills (no parserKey) — including the one being built
         // from — are valid targets, not collisions.
         if (!b.parserKey || b.parserKey === input.excludeSlug) continue;
         if (detectScore(probe, normalize(b.rawText)) !== null) {
-          collisions.push({ id: b.id, fileName: b.fileName, parserKey: b.parserKey });
+          collisions.push({
+            id: b.id,
+            fileName: b.fileName,
+            parserKey: b.parserKey,
+          });
         }
       }
       return collisions;
@@ -317,7 +330,9 @@ export const parsersRouter = router({
       const [row] = await ctx.db
         .select({ n: count() })
         .from(bills)
-        .where(and(eq(bills.createdBy, ctx.userId), eq(bills.parserKey, input.slug)));
+        .where(
+          and(eq(bills.createdBy, ctx.userId), eq(bills.parserKey, input.slug)),
+        );
       return { count: row?.n ?? 0 };
     }),
 

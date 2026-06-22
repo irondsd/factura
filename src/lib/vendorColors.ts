@@ -30,7 +30,9 @@ export const DEFAULT_VENDOR_COLOR: VendorColorName = "taupe";
 
 const NAME_SET: ReadonlySet<string> = new Set(VENDOR_COLOR_NAMES);
 
-export function isVendorColorName(s: string | null | undefined): s is VendorColorName {
+export function isVendorColorName(
+  s: string | null | undefined,
+): s is VendorColorName {
   return s != null && NAME_SET.has(s);
 }
 
@@ -47,7 +49,7 @@ export function vendorColorClass(name: string | null | undefined): string {
 }
 
 /** Pick a random color name, preferring one not already in `used` so vendors in
- * the same apartment don't collide until the palette is exhausted. */
+ * the same property don't collide until the palette is exhausted. */
 export function pickVendorColor(used: Iterable<string> = []): VendorColorName {
   const taken = new Set(used);
   const free = VENDOR_COLOR_NAMES.filter((n) => !taken.has(n));

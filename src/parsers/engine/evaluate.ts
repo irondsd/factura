@@ -79,7 +79,9 @@ function runCompute(step: ComputeStep, scope: Scope): ScopeValue {
     const d = scope[step.datePart.date];
     if (d === undefined) return undefined;
     const s = String(d);
-    const at = { year: [0, 4], month: [5, 7], day: [8, 10] }[step.datePart.part];
+    const at = { year: [0, 4], month: [5, 7], day: [8, 10] }[
+      step.datePart.part
+    ];
     return Number(s.slice(at[0], at[1]));
   }
   if ("dateFromParts" in step) {
@@ -139,7 +141,9 @@ function runValidation(v: Validation, scope: Scope, text: string): void {
     const b = scope[v.b];
     if (a === undefined || b === undefined) return;
     if (String(a) !== String(b)) {
-      throw new ParseError(`${v.label}: "${a}" vs "${b}" disagree — needs review`);
+      throw new ParseError(
+        `${v.label}: "${a}" vs "${b}" disagree — needs review`,
+      );
     }
     return;
   }
@@ -151,9 +155,13 @@ function runValidation(v: Validation, scope: Scope, text: string): void {
     .map((ref) => scope[ref])
     .filter((x): x is ScopeValue => x !== undefined)
     .map(String);
-  const confirmed = lines.some((line) => needles.every((n) => line.includes(n)));
+  const confirmed = lines.some((line) =>
+    needles.every((n) => line.includes(n)),
+  );
   if (!confirmed) {
-    throw new ParseError(`${v.label}: no line confirms the values — needs review`);
+    throw new ParseError(
+      `${v.label}: no line confirms the values — needs review`,
+    );
   }
 }
 
@@ -169,7 +177,10 @@ function resolveRole(rule: FieldRule, scope: Scope, name: string): ScopeValue {
     const first = nums[0];
     if (
       first !== undefined &&
-      nums.some((n) => n === undefined || Math.round(n * 100) !== Math.round(first * 100))
+      nums.some(
+        (n) =>
+          n === undefined || Math.round(n * 100) !== Math.round(first * 100),
+      )
     ) {
       throw new ParseError(`${name}: sources disagree — needs review`);
     }
@@ -179,14 +190,21 @@ function resolveRole(rule: FieldRule, scope: Scope, name: string): ScopeValue {
 
 /** Run a config against already-normalized bill text. Throws ParseError on a
  * failed validation or an unresolvable role (→ caller routes to review). */
-export function runConfig(config: ParserConfig, normalizedText: string): ParsedResult {
+export function runConfig(
+  config: ParserConfig,
+  normalizedText: string,
+): ParsedResult {
   // Region slice (captures only); detection already ran on the full text.
   let text = normalizedText;
   if (config.region?.before) {
-    text = text.split(new RegExp(config.region.before, config.region.flags ?? "i"))[0];
+    text = text.split(
+      new RegExp(config.region.before, config.region.flags ?? "i"),
+    )[0];
   }
   if (config.region?.after) {
-    const parts = text.split(new RegExp(config.region.after, config.region.flags ?? "i"));
+    const parts = text.split(
+      new RegExp(config.region.after, config.region.flags ?? "i"),
+    );
     text = parts.length > 1 ? parts.slice(1).join("") : text;
   }
 
@@ -211,7 +229,9 @@ export function runConfig(config: ParserConfig, normalizedText: string): ParsedR
     runValidation(v, scope, text);
   }
 
-  const identity = String(resolveRole(config.roles.identity, scope, "identity"));
+  const identity = String(
+    resolveRole(config.roles.identity, scope, "identity"),
+  );
   const amount = num(resolveRole(config.roles.amount, scope, "amount"));
   const period = String(resolveRole(config.roles.period, scope, "period"));
   const dueDate = String(resolveRole(config.roles.dueDate, scope, "dueDate"));
@@ -225,13 +245,23 @@ export function runConfig(config: ParserConfig, normalizedText: string): ParsedR
   }
   if (!identity) throw new ParseError("Account / unique ID is empty");
   if (!isIsoDate(period)) {
-    throw new ParseError(`Period "${period}" isn't a valid date (expected YYYY-MM-DD)`);
+    throw new ParseError(
+      `Period "${period}" isn't a valid date (expected YYYY-MM-DD)`,
+    );
   }
   if (!isIsoDate(dueDate)) {
-    throw new ParseError(`Due date "${dueDate}" isn't a valid date (expected YYYY-MM-DD)`);
+    throw new ParseError(
+      `Due date "${dueDate}" isn't a valid date (expected YYYY-MM-DD)`,
+    );
   }
 
-  const result: ParsedResult = { identity, amount, period, dueDate, custom: {} };
+  const result: ParsedResult = {
+    identity,
+    amount,
+    period,
+    dueDate,
+    custom: {},
+  };
 
   for (const field of config.custom ?? []) {
     if (field.includeWhen && !evalExpr(field.includeWhen, scope)) continue;

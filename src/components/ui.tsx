@@ -20,7 +20,8 @@ const BTN_SIZES: Record<string, string> = {
 };
 const BTN_VARIANTS: Record<string, string> = {
   solid: "bg-ink text-paper border-ink",
-  outline: "bg-transparent text-ink border-line hover:border-accent hover:text-accent",
+  outline:
+    "bg-transparent text-ink border-line hover:border-accent hover:text-accent",
   ghost: "bg-transparent text-muted hover:text-accent",
 };
 
@@ -37,7 +38,12 @@ export function Button({
   return (
     <button
       {...props}
-      className={cn(BTN_BASE, BTN_SIZES[size], BTN_VARIANTS[variant], className)}
+      className={cn(
+        BTN_BASE,
+        BTN_SIZES[size],
+        BTN_VARIANTS[variant],
+        className,
+      )}
     >
       {children}
     </button>
@@ -101,7 +107,9 @@ export function Badge({
     <span
       className={cn(
         "inline-block font-mono text-[10px] uppercase tracking-label border py-0.5 px-1.5 leading-[1.2]",
-        tone === "neutral" ? "text-muted border-line" : "text-accent border-accent",
+        tone === "neutral"
+          ? "text-muted border-line"
+          : "text-accent border-accent",
         className,
       )}
     >

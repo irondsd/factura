@@ -56,7 +56,9 @@ describe("mergeConfigSets", () => {
 
 describe("hasSlugCollision", () => {
   it("flags a slug already present in the set", () => {
-    expect(hasSlugCollision([cfg("edesur"), cfg("metrogas")], "edesur")).toBe(true);
+    expect(hasSlugCollision([cfg("edesur"), cfg("metrogas")], "edesur")).toBe(
+      true,
+    );
   });
 
   it("allows a slug not in the set", () => {

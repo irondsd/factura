@@ -16,7 +16,7 @@ npm run email      # live preview at http://localhost:3001
   and a `<DetailRow>` helper. New emails compose through this shell — only the
   content swaps.
 - **`welcome.tsx`** — `WelcomeEmail`, registration / welcome.
-- **`share-invite.tsx`** — `ShareInviteEmail`, shared-apartment invite (adds a
+- **`share-invite.tsx`** — `ShareInviteEmail`, shared-property invite (adds a
   ledger-style detail block + decline link).
 
 Each template file has a default export (picked up by the preview server) and a

@@ -80,7 +80,7 @@ export const verificationTokens = pgTable(
 );
 
 // ── Domain tables ───────────────────────────────────────────────────────────
-// A property (apartment) is the unit of sharing. `userId` is the original
+// A property (property) is the unit of sharing. `userId` is the original
 // creator (informational); access is governed entirely by `propertyMembers`.
 export const properties = pgTable("properties", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -92,7 +92,7 @@ export const properties = pgTable("properties", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-/** Who can access an apartment and at what level. The owner is just a row with
+/** Who can access an property and at what level. The owner is just a row with
  * role='owner'. This is the single source of truth for authorization — every
  * domain query scopes to the set of properties the caller is a member of. */
 export const propertyMembers = pgTable(
@@ -130,7 +130,7 @@ export const propertyInvites = pgTable(
   (t) => [uniqueIndex("property_invite_email_idx").on(t.propertyId, t.email)],
 );
 
-// Vendors belong to an apartment (per-apartment display name/colour), not a user.
+// Vendors belong to an property (per-property display name/colour), not a user.
 export const vendors = pgTable(
   "vendors",
   {
@@ -164,7 +164,9 @@ export const vendorAccounts = pgTable(
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("vendor_account_number_idx").on(t.vendorId, t.accountNumber)],
+  (t) => [
+    uniqueIndex("vendor_account_number_idx").on(t.vendorId, t.accountNumber),
+  ],
 );
 
 /** Daily ARS->USD blue rates from api.argentinadatos.com, fetched once and
@@ -202,7 +204,7 @@ export const bills = pgTable(
     extra: jsonb("extra").notNull().default({}),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  // Dedup is per-apartment once a bill is filed (either member re-uploading the
+  // Dedup is per-property once a bill is filed (either member re-uploading the
   // same bill collapses), and per-uploader while it sits unfiled in the inbox.
   (t) => [
     uniqueIndex("bill_property_text_hash_idx")

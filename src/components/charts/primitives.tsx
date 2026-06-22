@@ -86,7 +86,10 @@ export function Display({
 }) {
   return (
     <span
-      className={cn("font-display font-semibold tracking-tight text-ink", className)}
+      className={cn(
+        "font-display font-semibold tracking-tight text-ink",
+        className,
+      )}
       style={{ fontSize: size }}
     >
       {children}
@@ -205,7 +208,7 @@ export function Legend({
   className,
 }: {
   // `id` makes the key unique when two entries share a label (e.g. the same
-  // vendor name across different apartments); falls back to label otherwise.
+  // vendor name across different properties); falls back to label otherwise.
   items: { label: string; color: string; id?: string }[];
   className?: string;
 }) {

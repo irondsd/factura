@@ -34,7 +34,13 @@ export function Welcome({ onLogin }: { onLogin: () => void }) {
 
 function GoogleG() {
   return (
-    <svg viewBox="0 0 18 18" width="17" height="17" aria-hidden="true" className="flex-none">
+    <svg
+      viewBox="0 0 18 18"
+      width="17"
+      height="17"
+      aria-hidden="true"
+      className="flex-none"
+    >
       <path
         fill="#4285F4"
         d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"

@@ -47,16 +47,16 @@ export default function ProfilePage() {
         </Button>
       </div>
 
-      {/* apartments — manage on the dedicated page */}
+      {/* properties — manage on the dedicated page */}
       <h2 className="mt-10 mb-1">
-        <Eyebrow>Apartments</Eyebrow>
+        <Eyebrow>properties</Eyebrow>
       </h2>
       <p className={help}>
-        Your apartments hold their bills, vendors and accounts. Invite a partner
+        Your properties hold their bills, vendors and accounts. Invite a partner
         or flatmate so they can see and add bills too.
       </p>
-      <Button variant="outline" onClick={() => router.push("/apartments")}>
-        Manage apartments →
+      <Button variant="outline" onClick={() => router.push("/properties")}>
+        Manage properties →
       </Button>
 
       {/* parsers — link out to the dedicated library (power-user surface) */}

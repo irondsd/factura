@@ -27,8 +27,7 @@ export function WelcomeEmail({
       <Text style={styles.text}>
         Your ledger is set up and waiting. Drop a utility-bill PDF anywhere on
         the dashboard — we&apos;ll read the fine print, pull the amount and
-        period,
-        and keep a running total per property.
+        period, and keep a running total per property.
       </Text>
       <Text style={{ ...styles.text, margin: "0 0 8px" }}>
         Original files never leave your machine. Only the extracted text is

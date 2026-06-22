@@ -30,8 +30,8 @@ export function TopBar({ user }: { user: Session["user"] }) {
     setMenuOpen(false);
   }
 
-  // The apartment switcher is meaningless on the management pages.
-  const onProfile = pathname === "/profile" || pathname === "/apartments";
+  // The property switcher is meaningless on the management pages.
+  const onProfile = pathname === "/profile" || pathname === "/properties";
   const propValue = propertyId ?? "all";
   const propOptions = [
     { value: "all", label: "All" },
@@ -100,10 +100,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
         </div>
 
         {/* Mobile: burger only */}
-        <BurgerButton
-          open={menuOpen}
-          onToggle={() => setMenuOpen((o) => !o)}
-        />
+        <BurgerButton open={menuOpen} onToggle={() => setMenuOpen((o) => !o)} />
       </div>
 
       {/* Mobile menu: nav links, property picker, profile */}
@@ -131,7 +128,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
           {!onProfile && (
             <div className="mt-[14px]">
               <p className="font-mono text-[10px] uppercase tracking-label-wide text-muted mb-2">
-                Apartment
+                Property
               </p>
               <div className="overflow-x-auto [-webkit-overflow-scrolling:touch] pb-0.5">
                 <Segmented

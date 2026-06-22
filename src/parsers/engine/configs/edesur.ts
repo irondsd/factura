@@ -47,7 +47,10 @@ export const edesurConfig: ParserConfig = {
         "Periodo liquidado (?<half>1er|2do) tramo del bim\\.?\\s*(?<bim>\\d{1,2})\\/(?<year>\\d{4})",
       flags: "i",
       outputs: {
-        tramoHalf: { group: "half", transform: [{ lookup: { "1er": 1, "2do": 2 } }] },
+        tramoHalf: {
+          group: "half",
+          transform: [{ lookup: { "1er": 1, "2do": 2 } }],
+        },
         tramoBim: { group: "bim", transform: ["toInt"] },
         tramoYear: { group: "year", transform: ["toInt"] },
       },
@@ -76,7 +79,10 @@ export const edesurConfig: ParserConfig = {
       dateFromParts: { year: "tramoYear", month: "tramoMonth", day: 1 },
     },
     // Monthly: a December bill is due in January of the next year
-    { name: "simpleYear", expr: "simpleMonth > dueMonth ? dueYear - 1 : dueYear" },
+    {
+      name: "simpleYear",
+      expr: "simpleMonth > dueMonth ? dueYear - 1 : dueYear",
+    },
     {
       name: "simplePeriod",
       dateFromParts: { year: "simpleYear", month: "simpleMonth", day: 1 },

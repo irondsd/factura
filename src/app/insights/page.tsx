@@ -52,7 +52,11 @@ export default function InsightsPage() {
 
       {/* vendor filter */}
       <div className="flex flex-wrap gap-1.5 mt-[18px] border-b border-line pb-3">
-        <VendorTab label="All vendors" active={vendorId === "all"} onClick={() => setVendorId("all")} />
+        <VendorTab
+          label="All vendors"
+          active={vendorId === "all"}
+          onClick={() => setVendorId("all")}
+        />
         {vendorsHere.map((v) => (
           <VendorTab
             key={v.id}
@@ -93,10 +97,14 @@ function VendorTab({
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-[7px] font-mono text-micro uppercase tracking-[0.12em] py-[5px] px-[11px] cursor-pointer border transition-colors",
-        active ? "border-ink bg-ink text-paper" : "border-transparent bg-transparent text-muted",
+        active
+          ? "border-ink bg-ink text-paper"
+          : "border-transparent bg-transparent text-muted",
       )}
     >
-      {color && <span className="inline-block w-2 h-2" style={{ background: color }} />}
+      {color && (
+        <span className="inline-block w-2 h-2" style={{ background: color }} />
+      )}
       {label}
     </button>
   );
@@ -119,12 +127,22 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
   const shareTotal = donutShare.reduce((a, s) => a + s.value, 0) || 1;
   const slices = donutShare.map((s) => {
     const v = vendorById.get(s.vendorId);
-    return { id: s.vendorId, label: v?.displayName ?? "—", value: s.value, color: v?.color ?? "var(--muted)" };
+    return {
+      id: s.vendorId,
+      label: v?.displayName ?? "—",
+      value: s.value,
+      color: v?.color ?? "var(--muted)",
+    };
   });
 
   return (
     <>
-      <ChartCard title="Total spend over time" caption="Stacked by vendor" action={bars.toggle} className="mt-4">
+      <ChartCard
+        title="Total spend over time"
+        caption="Stacked by vendor"
+        action={bars.toggle}
+        className="mt-4"
+      >
         <StackedBarsFx
           months={data.months}
           stacks={data.byCurrency[bars.currency].series.map((s) => s.byVendor)}
@@ -133,17 +151,35 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
           completeFlags={data.completeFlags}
           height={230}
         />
-        <Legend items={data.vendors.map((v) => ({ id: v.id, label: v.displayName, color: v.color }))} className="mt-3" />
+        <Legend
+          items={data.vendors.map((v) => ({
+            id: v.id,
+            label: v.displayName,
+            color: v.color,
+          }))}
+          className="mt-3"
+        />
       </ChartCard>
 
       <div className="mt-4 grid grid-cols-1 md:grid-cols-[minmax(280px,1fr)_minmax(360px,1.5fr)] gap-4 items-start">
-        <ChartCard title="Vendor share" caption="Where it goes, in range" action={donut.toggle}>
+        <ChartCard
+          title="Vendor share"
+          caption="Where it goes, in range"
+          action={donut.toggle}
+        >
           <div className="flex flex-wrap items-center gap-4 md:flex-nowrap">
-            <DonutFx slices={slices} centerLabel={donut.currency === "USD" ? "US$" : "AR$"} centerSub="total" />
+            <DonutFx
+              slices={slices}
+              centerLabel={donut.currency === "USD" ? "US$" : "AR$"}
+              centerSub="total"
+            />
             <div className="flex flex-col gap-2 flex-1">
               {slices.map((s) => (
                 <div key={s.id} className="flex items-center gap-2">
-                  <span className="inline-block w-2.5 h-2.5" style={{ background: s.color }} />
+                  <span
+                    className="inline-block w-2.5 h-2.5"
+                    style={{ background: s.color }}
+                  />
                   <span className="font-mono text-xs flex-1">{s.label}</span>
                   <span className="font-mono text-xs font-medium">
                     {Math.round((s.value / shareTotal) * 100)}%
@@ -154,13 +190,25 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
           </div>
         </ChartCard>
 
-        <ChartCard title="Inflation lens" caption="Same spend, rebased to 100 — pesos vs the dollar cost">
+        <ChartCard
+          title="Inflation lens"
+          caption="Same spend, rebased to 100 — pesos vs the dollar cost"
+        >
           <LineChartFx
             months={data.months}
             currency="IDX"
             series={[
-              { label: "What you pay (ARS)", color: "var(--accent)", values: data.inflation.arsIdx },
-              { label: "Real cost (USD)", color: USD_LINE, values: data.inflation.usdIdx, dashed: true },
+              {
+                label: "What you pay (ARS)",
+                color: "var(--accent)",
+                values: data.inflation.arsIdx,
+              },
+              {
+                label: "Real cost (USD)",
+                color: USD_LINE,
+                values: data.inflation.usdIdx,
+                dashed: true,
+              },
             ]}
             height={200}
           />
@@ -172,8 +220,8 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
             ]}
           />
           <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6]">
-            Pesos climb with inflation; in dollars your real cost is far flatter.
-            The gap is the peso losing value — not you using more.
+            Pesos climb with inflation; in dollars your real cost is far
+            flatter. The gap is the peso losing value — not you using more.
           </p>
         </ChartCard>
       </div>
@@ -193,7 +241,11 @@ function SingleVendorCharts({
   vendorId: string;
   range: Range;
 }) {
-  const detail = trpc.insights.vendorDetail.useQuery({ propertyId, vendorId, range });
+  const detail = trpc.insights.vendorDetail.useQuery({
+    propertyId,
+    vendorId,
+    range,
+  });
   const spend = useChartCurrency();
   const d = detail.data;
 
@@ -210,30 +262,51 @@ function SingleVendorCharts({
   const knownSpend = spendValues.filter((x): x is number => x != null);
   const pct =
     knownSpend.length > 1
-      ? ((knownSpend[knownSpend.length - 1] - knownSpend[0]) / knownSpend[0]) * 100
+      ? ((knownSpend[knownSpend.length - 1] - knownSpend[0]) / knownSpend[0]) *
+        100
       : null;
 
   return (
     <>
       <div className="flex items-baseline gap-[14px] mt-[18px]">
-        <Display size={28}>{formatMoney(knownSpend[knownSpend.length - 1] ?? null, spend.currency)}</Display>
+        <Display size={28}>
+          {formatMoney(
+            knownSpend[knownSpend.length - 1] ?? null,
+            spend.currency,
+          )}
+        </Display>
         <span className="font-mono text-xs text-muted">
           latest · <Delta pct={pct} /> over range
         </span>
       </div>
 
-      <ChartCard title={`${vendor.displayName} — spend over time`} action={spend.toggle} className="mt-[14px]">
+      <ChartCard
+        title={`${vendor.displayName} — spend over time`}
+        action={spend.toggle}
+        className="mt-[14px]"
+      >
         <LineChartFx
           months={d.months}
           currency={spend.currency}
-          series={[{ label: vendor.displayName, color: vendor.color, values: spendValues }]}
+          series={[
+            {
+              label: vendor.displayName,
+              color: vendor.color,
+              values: spendValues,
+            },
+          ]}
           height={210}
         />
       </ChartCard>
 
       {/* One section per parser-extracted custom field — fully vendor-agnostic. */}
       {d.fields.map((f) => (
-        <CustomFieldCharts key={f.name} field={f} months={d.months} color={vendor.color} />
+        <CustomFieldCharts
+          key={f.name}
+          field={f}
+          months={d.months}
+          color={vendor.color}
+        />
       ))}
 
       {d.fields.length === 0 && (
@@ -290,20 +363,35 @@ function CustomFieldCharts({
       </ChartCard>
 
       {isQuantity && field.unitPrice && (
-        <ChartCard title={`Price per ${field.unit || "unit"}`} caption="Rebased to 100 — ARS vs USD">
+        <ChartCard
+          title={`Price per ${field.unit || "unit"}`}
+          caption="Rebased to 100 — ARS vs USD"
+        >
           <LineChartFx
             months={months}
             currency="IDX"
             series={[
-              { label: `ARS / ${field.unit || "unit"}`, color: "var(--accent)", values: field.unitPrice.arsIdx },
-              { label: `USD / ${field.unit || "unit"}`, color: USD_LINE, values: field.unitPrice.usdIdx, dashed: true },
+              {
+                label: `ARS / ${field.unit || "unit"}`,
+                color: "var(--accent)",
+                values: field.unitPrice.arsIdx,
+              },
+              {
+                label: `USD / ${field.unit || "unit"}`,
+                color: USD_LINE,
+                values: field.unitPrice.usdIdx,
+                dashed: true,
+              },
             ]}
             height={190}
           />
           <Legend
             className="mt-2.5"
             items={[
-              { label: `ARS / ${field.unit || "unit"}`, color: "var(--accent)" },
+              {
+                label: `ARS / ${field.unit || "unit"}`,
+                color: "var(--accent)",
+              },
               { label: `USD / ${field.unit || "unit"}`, color: USD_LINE },
             ]}
           />

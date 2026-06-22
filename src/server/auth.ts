@@ -2,13 +2,8 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { db } from "@/db";
-import {
-  authAccounts,
-  sessions,
-  users,
-  verificationTokens,
-} from "@/db/schema";
-import { createApartmentForUser } from "./defaults";
+import { authAccounts, sessions, users, verificationTokens } from "@/db/schema";
+import { createPropertyForUser } from "./defaults";
 import { sendWelcomeEmail } from "./email";
 import { adoptVerifiedDefaults } from "./registry";
 
@@ -29,14 +24,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   events: {
-    // First sign-in: give the new account a default "Home" apartment (with its
+    // First sign-in: give the new account a default "Home" property (with its
     // seeded Buenos Aires vendors) so they can file bills immediately, and
     // auto-adopt the verified official parsers so uploads detect common bills.
     async createUser({ user }) {
       if (user.id) {
-        await createApartmentForUser(db, user.id, "Home");
+        await createPropertyForUser(db, user.id, "Home");
         await adoptVerifiedDefaults(db, user.id);
-        if (user.email) await sendWelcomeEmail({ to: user.email, name: user.name });
+        if (user.email)
+          await sendWelcomeEmail({ to: user.email, name: user.name });
       }
     },
   },

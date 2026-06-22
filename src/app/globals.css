@@ -30,21 +30,51 @@
 
 /* Background utilities for vendor swatches/dots — apply by name, no inline
    style. The fallback mirrors vendorColorVar's unknown-name path. */
-.vbg-fallback { background: var(--muted); }
-.vbg-burnt-orange { background: var(--vendor-burnt-orange); }
-.vbg-amber { background: var(--vendor-amber); }
-.vbg-sage { background: var(--vendor-sage); }
-.vbg-taupe { background: var(--vendor-taupe); }
-.vbg-earth { background: var(--vendor-earth); }
-.vbg-slate-teal { background: var(--vendor-slate-teal); }
-.vbg-dark-earth { background: var(--vendor-dark-earth); }
-.vbg-rust { background: var(--vendor-rust); }
-.vbg-ochre { background: var(--vendor-ochre); }
-.vbg-olive { background: var(--vendor-olive); }
-.vbg-terracotta { background: var(--vendor-terracotta); }
-.vbg-khaki { background: var(--vendor-khaki); }
-.vbg-clay { background: var(--vendor-clay); }
-.vbg-moss { background: var(--vendor-moss); }
+.vbg-fallback {
+  background: var(--muted);
+}
+.vbg-burnt-orange {
+  background: var(--vendor-burnt-orange);
+}
+.vbg-amber {
+  background: var(--vendor-amber);
+}
+.vbg-sage {
+  background: var(--vendor-sage);
+}
+.vbg-taupe {
+  background: var(--vendor-taupe);
+}
+.vbg-earth {
+  background: var(--vendor-earth);
+}
+.vbg-slate-teal {
+  background: var(--vendor-slate-teal);
+}
+.vbg-dark-earth {
+  background: var(--vendor-dark-earth);
+}
+.vbg-rust {
+  background: var(--vendor-rust);
+}
+.vbg-ochre {
+  background: var(--vendor-ochre);
+}
+.vbg-olive {
+  background: var(--vendor-olive);
+}
+.vbg-terracotta {
+  background: var(--vendor-terracotta);
+}
+.vbg-khaki {
+  background: var(--vendor-khaki);
+}
+.vbg-clay {
+  background: var(--vendor-clay);
+}
+.vbg-moss {
+  background: var(--vendor-moss);
+}
 
 @theme inline {
   --color-paper: var(--paper);
@@ -169,7 +199,8 @@
   --ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
   --dur-fast: 120ms;
   --dur: 150ms;
-  --transition-colors: color var(--dur) var(--ease-standard),
+  --transition-colors:
+    color var(--dur) var(--ease-standard),
     background-color var(--dur) var(--ease-standard),
     border-color var(--dur) var(--ease-standard);
 }
@@ -187,9 +218,19 @@ body {
 /* Torn-receipt zigzag along the bottom edge */
 .receipt-edge {
   --zz: 11px;
-  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
+  -webkit-mask: conic-gradient(
+      from -45deg at bottom,
+      #0000,
+      #000 1deg 89deg,
+      #0000 90deg
+    )
     50% / var(--zz) 100%;
-  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
+  mask: conic-gradient(
+      from -45deg at bottom,
+      #0000,
+      #000 1deg 89deg,
+      #0000 90deg
+    )
     50% / var(--zz) 100%;
 }
 

@@ -15,10 +15,7 @@ import { ParseError } from "./types";
 
 function fixture(name: string): string {
   return normalize(
-    readFileSync(
-      join(__dirname, "..", "__fixtures__", `${name}.txt`),
-      "utf8",
-    ),
+    readFileSync(join(__dirname, "..", "__fixtures__", `${name}.txt`), "utf8"),
   );
 }
 
@@ -68,7 +65,9 @@ describe("detection (step 1)", () => {
   }
 
   it("returns undefined for unknown text", () => {
-    expect(selectConfig(ENGINE_CONFIGS, "Some random shop receipt 123")).toBeUndefined();
+    expect(
+      selectConfig(ENGINE_CONFIGS, "Some random shop receipt 123"),
+    ).toBeUndefined();
   });
 
   it("has unique slugs", () => {
@@ -108,12 +107,18 @@ describe("edesur (barcode + dual period dialect)", () => {
     const base = fixture("edesur");
     const t1 = runConfig(
       edesurConfig,
-      base.replace("Periodo liquidado 5", "Periodo liquidado 1er tramo del bim. 03/2025"),
+      base.replace(
+        "Periodo liquidado 5",
+        "Periodo liquidado 1er tramo del bim. 03/2025",
+      ),
     );
     expect(t1.period).toBe("2025-05-01");
     const t2 = runConfig(
       edesurConfig,
-      base.replace("Periodo liquidado 5", "Periodo liquidado 2do tramo del bim. 03/2025"),
+      base.replace(
+        "Periodo liquidado 5",
+        "Periodo liquidado 2do tramo del bim. 03/2025",
+      ),
     );
     expect(t2.period).toBe("2025-06-01");
   });
@@ -174,7 +179,9 @@ describe("mda expensas (composite identity, extraordinarias)", () => {
       'CALLE ADMIN 100 "PB - C", CABA',
       "CALLE ADMIN 46 - 4° B, CABA",
     );
-    expect(runConfig(mdaExpensasConfig, tricky).identity).toBe("30-88888888-9:4A");
+    expect(runConfig(mdaExpensasConfig, tricky).identity).toBe(
+      "30-88888888-9:4A",
+    );
   });
 
   it("parses the post-payment recibo the same as a cupón", () => {
@@ -188,7 +195,10 @@ describe("mda expensas (composite identity, extraordinarias)", () => {
 });
 
 describe("dominijanni expensas (region slice, arrears)", () => {
-  const r = runConfig(dominijanniExpensasConfig, fixture("dominijanni-expensas"));
+  const r = runConfig(
+    dominijanniExpensasConfig,
+    fixture("dominijanni-expensas"),
+  );
 
   it("reads the current aviso, not the embedded prior receipt", () => {
     expect(r.identity).toBe("30-99999999-5:0016");

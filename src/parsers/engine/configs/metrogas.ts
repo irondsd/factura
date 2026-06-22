@@ -27,7 +27,9 @@ export const metrogasConfig: ParserConfig = {
       pattern:
         "PERIODO DE LIQUIDACI[ÓO]N:\\s*(\\d{2}\\/\\d{2}\\/\\d{4}) A (\\d{2}\\/\\d{2}\\/\\d{4})",
       flags: "i",
-      outputs: { period: { group: 1, transform: [{ parseDate: "DMY" }, "monthOf"] } },
+      outputs: {
+        period: { group: 1, transform: [{ parseDate: "DMY" }, "monthOf"] },
+      },
     },
     {
       pattern: "CONSUMO A FACTURAR[^:]*:\\s*([\\d.,]+)",
@@ -43,5 +45,7 @@ export const metrogasConfig: ParserConfig = {
     dueDate: { sources: ["due"] },
   },
 
-  custom: [{ name: "consumption", source: "consumo", type: "quantity", unit: "m3" }],
+  custom: [
+    { name: "consumption", source: "consumo", type: "quantity", unit: "m3" },
+  ],
 };

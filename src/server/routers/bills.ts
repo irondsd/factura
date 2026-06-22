@@ -35,7 +35,7 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 type BillRow = typeof bills.$inferSelect;
 
-/** SQL predicate for the bills a user may see: any bill filed into an apartment
+/** SQL predicate for the bills a user may see: any bill filed into an property
  * they belong to, plus their own still-unfiled inbox uploads. */
 function billsScope(propertyIds: string[], userId: string) {
   const inbox = and(isNull(bills.propertyId), eq(bills.createdBy, userId));
@@ -61,8 +61,8 @@ async function loadAccessibleBill(
 }
 
 /** Re-run the user's parsers over one bill's stored raw text and write the
- * parsed fields back. A matched account files the bill into its apartment; an
- * already-filed bill keeps its apartment (vendor materialized there); an unfiled
+ * parsed fields back. A matched account files the bill into its property; an
+ * already-filed bill keeps its property (vendor materialized there); an unfiled
  * bill with no known account stays in the inbox with the vendor deferred.
  * Returns true when the bill was updated. */
 async function reparseSingle(
@@ -111,7 +111,7 @@ async function reparseSingle(
   }
 
   if (bill.propertyId) {
-    // Filed already, but no matching account row — keep it in its apartment and
+    // Filed already, but no matching account row — keep it in its property and
     // materialize the vendor there.
     const vendor = await ensureVendor(db, bill.propertyId, config.vendor);
     await db
@@ -159,7 +159,10 @@ export const billsRouter = router({
     .mutation(({ ctx, input }) => {
       // A client-supplied storageKey must live in the caller's own namespace,
       // or `get` could later presign a download of another user's object.
-      if (input.storageKey && !input.storageKey.startsWith(`bills/${ctx.userId}/`))
+      if (
+        input.storageKey &&
+        !input.storageKey.startsWith(`bills/${ctx.userId}/`)
+      )
         throw new TRPCError({ code: "FORBIDDEN" });
       return ingestBill(ctx.db, ctx.userId, input);
     }),
@@ -338,7 +341,7 @@ export const billsRouter = router({
       const ids = await accessibleProperties(ctx.db, ctx.userId);
       const bill = await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
 
-      // Filing is a member action; vendor must live in an accessible apartment.
+      // Filing is a member action; vendor must live in an accessible property.
       if (input.propertyId)
         await assertMember(ctx.db, ctx.userId, input.propertyId);
       if (input.vendorId)
@@ -379,7 +382,7 @@ export const billsRouter = router({
     }),
 
   /** One-click answer to "new account NNN — which property?" Materializes the
-   * apartment's vendor + account and finalizes the bill; never asked again. */
+   * property's vendor + account and finalizes the bill; never asked again. */
   confirmAccount: protectedProcedure
     .input(
       z.object({
@@ -436,7 +439,8 @@ export const billsRouter = router({
       if (!isStale) continue;
       // One malformed bill must not abort the whole batch.
       try {
-        if (await reparseSingle(ctx.db, ctx.userId, ids, bill, configs)) updated++;
+        if (await reparseSingle(ctx.db, ctx.userId, ids, bill, configs))
+          updated++;
       } catch {
         // leave it as-is; surfaced individually via the drawer's reparse
       }
@@ -465,7 +469,10 @@ export const billsRouter = router({
    * PDF (pdf.js), we replace the stored text and re-run the parser. */
   reparseFile: protectedProcedure
     .input(
-      z.object({ id: z.string().uuid(), rawText: z.string().min(20).max(RAW_TEXT_MAX) }),
+      z.object({
+        id: z.string().uuid(),
+        rawText: z.string().min(20).max(RAW_TEXT_MAX),
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const ids = await accessibleProperties(ctx.db, ctx.userId);

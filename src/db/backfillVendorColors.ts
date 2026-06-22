@@ -4,7 +4,7 @@ import { db } from "./index";
 import { vendors } from "./schema";
 
 /** One-time backfill: assign every existing vendor a random palette color,
- * distinct within its apartment where possible. New vendors get a color at
+ * distinct within its property where possible. New vendors get a color at
  * creation (see ensureVendor), so this only matters for rows that predate the
  * `color` column. Run with `dotenv -e .env.local tsx src/db/backfillVendorColors.ts`. */
 async function main() {

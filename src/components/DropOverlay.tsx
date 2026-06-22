@@ -83,7 +83,9 @@ export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
             case "parsed":
               onToast(
                 `${result.vendorName} · ${formatMonth(result.period)} · ${formatARS(result.totalAmount)}` +
-                  (result.periodDuplicate ? " — △ period already had a bill" : ""),
+                  (result.periodDuplicate
+                    ? " — △ period already had a bill"
+                    : ""),
               );
               break;
             case "duplicate":
@@ -93,7 +95,9 @@ export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
               onToast(`△ ${file.name}: vendor not recognized — sent to review`);
               break;
             case "parse_failed":
-              onToast(`△ ${result.vendorName}: parsing failed — sent to review`);
+              onToast(
+                `△ ${result.vendorName}: parsing failed — sent to review`,
+              );
               break;
             case "unknown_account":
               setConfirmQueue((q) => [
@@ -108,7 +112,9 @@ export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
               break;
           }
         } catch (err) {
-          onToast(`✕ ${file.name}: ${err instanceof Error ? err.message : String(err)}`);
+          onToast(
+            `✕ ${file.name}: ${err instanceof Error ? err.message : String(err)}`,
+          );
         }
       }
       setBusy(false);

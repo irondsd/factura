@@ -2,8 +2,19 @@ import type { ParserConfig } from "../types";
 
 /** 3-letter Spanish month key -> MM, for the "Vencimiento: Jun. 2026" label. */
 const SPANISH_MONTHS: Record<string, string> = {
-  ene: "01", feb: "02", mar: "03", abr: "04", may: "05", jun: "06",
-  jul: "07", ago: "08", sep: "09", set: "09", oct: "10", nov: "11", dic: "12",
+  ene: "01",
+  feb: "02",
+  mar: "03",
+  abr: "04",
+  may: "05",
+  jun: "06",
+  jul: "07",
+  ago: "08",
+  sep: "09",
+  set: "09",
+  oct: "10",
+  nov: "11",
+  dic: "12",
 };
 
 /**
@@ -15,7 +26,11 @@ const SPANISH_MONTHS: Record<string, string> = {
  */
 export const mdaExpensasConfig: ParserConfig = {
   slug: "mda-expensas",
-  vendor: { slug: "mda-expensas", displayName: "Expensas MDA", category: "expensas" },
+  vendor: {
+    slug: "mda-expensas",
+    displayName: "Expensas MDA",
+    category: "expensas",
+  },
   version: 1,
   detect: {
     allOf: [
@@ -49,7 +64,8 @@ export const mdaExpensasConfig: ParserConfig = {
       },
     },
     {
-      pattern: "1er Vencimiento\\s+(\\d{2}\\/\\d{2}\\/\\d{4})\\s+\\$\\s*([\\d.,]+)",
+      pattern:
+        "1er Vencimiento\\s+(\\d{2}\\/\\d{2}\\/\\d{4})\\s+\\$\\s*([\\d.,]+)",
       flags: "i",
       outputs: {
         due: { group: 1, transform: [{ parseDate: "DMY" }] },
@@ -64,7 +80,10 @@ export const mdaExpensasConfig: ParserConfig = {
     {
       pattern: "Vencimiento:\\s*(?<mon>[A-Za-z]{3,12})\\.?\\s*(?<year>\\d{4})",
       outputs: {
-        monMM: { group: "mon", transform: ["lowercase", { slice: 3 }, { lookup: SPANISH_MONTHS }] },
+        monMM: {
+          group: "mon",
+          transform: ["lowercase", { slice: 3 }, { lookup: SPANISH_MONTHS }],
+        },
         monYear: { group: "year", transform: ["toInt"] },
       },
     },
@@ -74,7 +93,10 @@ export const mdaExpensasConfig: ParserConfig = {
     { name: "unitNum", coalesce: ["unitNumA", "unitNumB"] },
     { name: "unitLetter", coalesce: ["unitLetterA", "unitLetterB"] },
     { name: "identity", template: "{cuit}:{unitNum}{unitLetter}" },
-    { name: "periodFromLabel", dateFromParts: { year: "monYear", month: "monMM", day: 1 } },
+    {
+      name: "periodFromLabel",
+      dateFromParts: { year: "monYear", month: "monMM", day: 1 },
+    },
     { name: "periodFromDue", addMonths: { date: "due", delta: 0 } },
     { name: "period", coalesce: ["periodFromLabel", "periodFromDue"] },
   ],

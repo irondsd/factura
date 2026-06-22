@@ -7,10 +7,11 @@ import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Button, Checkbox, Input } from "@/components/ui";
 import { VendorColorPicker } from "@/components/VendorColorPicker";
 import { cn } from "@/lib/cn";
-import { OWNED_APARTMENT_LIMIT } from "@/lib/limits";
+import { OWNED_PROPERTY_LIMIT } from "@/lib/limits";
 import { trpc } from "@/lib/trpc";
 
-const help = "font-mono text-xs text-muted mb-[14px] max-w-[540px] leading-[1.6]";
+const help =
+  "font-mono text-xs text-muted mb-[14px] max-w-[540px] leading-[1.6]";
 const card = "border border-line bg-card p-[18px] mb-4";
 const subhead =
   "font-mono text-[10px] uppercase tracking-[0.16em] text-muted mt-[18px] mb-2";
@@ -19,12 +20,12 @@ const row =
 const iconX =
   "ml-auto bg-transparent border-none text-muted cursor-pointer transition-colors hover:text-accent";
 
-export default function ApartmentsPage() {
+export default function PropertiesPage() {
   const { data: session } = useSession();
   const { showToast } = useApp();
   const utils = trpc.useUtils();
 
-  const apartments = trpc.properties.list.useQuery();
+  const properties = trpc.properties.list.useQuery();
   const pendingInvites = trpc.properties.pendingInvites.useQuery();
   const vendors = trpc.vendors.list.useQuery();
   const accounts = trpc.accounts.list.useQuery();
@@ -32,42 +33,65 @@ export default function ApartmentsPage() {
   const invalidate = () => utils.invalidate();
   const toastErr = (err: { message: string }) => showToast(`✕ ${err.message}`);
 
-  const createApt = trpc.properties.create.useMutation({ onSuccess: invalidate });
-  const updateApt = trpc.properties.update.useMutation({ onSuccess: invalidate });
-  const deleteApt = trpc.properties.delete.useMutation({ onSuccess: invalidate });
+  const createApt = trpc.properties.create.useMutation({
+    onSuccess: invalidate,
+  });
+  const updateApt = trpc.properties.update.useMutation({
+    onSuccess: invalidate,
+  });
+  const deleteApt = trpc.properties.delete.useMutation({
+    onSuccess: invalidate,
+  });
   const invite = trpc.properties.invite.useMutation({ onSuccess: invalidate });
-  const revokeInvite = trpc.properties.revokeInvite.useMutation({ onSuccess: invalidate });
-  const removeMember = trpc.properties.removeMember.useMutation({ onSuccess: invalidate });
+  const revokeInvite = trpc.properties.revokeInvite.useMutation({
+    onSuccess: invalidate,
+  });
+  const removeMember = trpc.properties.removeMember.useMutation({
+    onSuccess: invalidate,
+  });
   const leave = trpc.properties.leave.useMutation({ onSuccess: invalidate });
-  const acceptInvite = trpc.properties.acceptInvite.useMutation({ onSuccess: invalidate });
-  const declineInvite = trpc.properties.declineInvite.useMutation({ onSuccess: invalidate });
-  const updateVendor = trpc.vendors.update.useMutation({ onSuccess: invalidate });
-  const updateAccount = trpc.accounts.update.useMutation({ onSuccess: invalidate });
-  const deleteAccount = trpc.accounts.delete.useMutation({ onSuccess: invalidate });
+  const acceptInvite = trpc.properties.acceptInvite.useMutation({
+    onSuccess: invalidate,
+  });
+  const declineInvite = trpc.properties.declineInvite.useMutation({
+    onSuccess: invalidate,
+  });
+  const updateVendor = trpc.vendors.update.useMutation({
+    onSuccess: invalidate,
+  });
+  const updateAccount = trpc.accounts.update.useMutation({
+    onSuccess: invalidate,
+  });
+  const deleteAccount = trpc.accounts.delete.useMutation({
+    onSuccess: invalidate,
+  });
 
   const [newNickname, setNewNickname] = useState("");
   const myEmail = session?.user?.email?.toLowerCase() ?? "";
 
   const ownedCount = useMemo(
-    () => (apartments.data ?? []).filter((a) => a.role === "owner").length,
-    [apartments.data],
+    () => (properties.data ?? []).filter((a) => a.role === "owner").length,
+    [properties.data],
   );
-  const atLimit = ownedCount >= OWNED_APARTMENT_LIMIT;
+  const atLimit = ownedCount >= OWNED_PROPERTY_LIMIT;
 
   const parseVariants = (s: string) =>
-    s.split(",").map((x) => x.trim()).filter((x) => x.length >= 4);
+    s
+      .split(",")
+      .map((x) => x.trim())
+      .filter((x) => x.length >= 4);
 
   return (
     <div className="mx-auto max-w-[52rem] px-5 pt-8 pb-20">
-      <Eyebrow>Apartments</Eyebrow>
+      <Eyebrow>Properties</Eyebrow>
       <Display size={34} className="block mt-1.5">
-        Your apartments
+        Your properties
       </Display>
       <p className={`${help} mt-[14px]`}>
-        Each apartment holds its own bills, vendors and accounts. Invite someone
-        (a partner, a flatmate) and they&rsquo;ll see and add bills here too. You
-        can own up to {OWNED_APARTMENT_LIMIT} apartments; ones shared with you
-        don&rsquo;t count.
+        Each property holds its own bills, vendors and accounts. Invite someone
+        (a partner, a flatmate) and they&rsquo;ll see and add bills here too.
+        You can own up to {OWNED_PROPERTY_LIMIT} properties; ones shared with
+        you don&rsquo;t count.
       </p>
 
       {/* pending invitations addressed to this user */}
@@ -88,7 +112,10 @@ export default function ApartmentsPage() {
                   onClick={() =>
                     acceptInvite.mutate(
                       { id: inv.id },
-                      { onSuccess: () => showToast("Invitation accepted"), onError: toastErr },
+                      {
+                        onSuccess: () => showToast("Invitation accepted"),
+                        onError: toastErr,
+                      },
                     )
                   }
                 >
@@ -99,7 +126,10 @@ export default function ApartmentsPage() {
                   onClick={() =>
                     declineInvite.mutate(
                       { id: inv.id },
-                      { onSuccess: () => showToast("Invitation declined"), onError: toastErr },
+                      {
+                        onSuccess: () => showToast("Invitation declined"),
+                        onError: toastErr,
+                      },
                     )
                   }
                 >
@@ -111,10 +141,14 @@ export default function ApartmentsPage() {
         </div>
       )}
 
-      {(apartments.data ?? []).map((apt) => {
+      {(properties.data ?? []).map((apt) => {
         const isOwner = apt.role === "owner";
-        const aptVendors = (vendors.data ?? []).filter((v) => v.propertyId === apt.id);
-        const aptAccounts = (accounts.data ?? []).filter((a) => a.propertyId === apt.id);
+        const aptVendors = (vendors.data ?? []).filter(
+          (v) => v.propertyId === apt.id,
+        );
+        const aptAccounts = (accounts.data ?? []).filter(
+          (a) => a.propertyId === apt.id,
+        );
         const vendorName = (id: string) =>
           aptVendors.find((v) => v.id === id)?.displayName ?? "—";
 
@@ -126,8 +160,14 @@ export default function ApartmentsPage() {
                 <Input
                   defaultValue={apt.nickname}
                   onBlur={(e) => {
-                    if (e.target.value.trim() && e.target.value !== apt.nickname)
-                      updateApt.mutate({ id: apt.id, nickname: e.target.value.trim() });
+                    if (
+                      e.target.value.trim() &&
+                      e.target.value !== apt.nickname
+                    )
+                      updateApt.mutate({
+                        id: apt.id,
+                        nickname: e.target.value.trim(),
+                      });
                   }}
                   className="w-[180px] font-semibold text-base"
                 />
@@ -152,7 +192,7 @@ export default function ApartmentsPage() {
                       deleteApt.mutate(
                         { id: apt.id },
                         {
-                          onSuccess: () => showToast("Apartment removed"),
+                          onSuccess: () => showToast("Property removed"),
                           onError: toastErr,
                         },
                       )
@@ -166,7 +206,10 @@ export default function ApartmentsPage() {
                     onClick={() =>
                       leave.mutate(
                         { propertyId: apt.id },
-                        { onSuccess: () => showToast("Left apartment"), onError: toastErr },
+                        {
+                          onSuccess: () => showToast("Left property"),
+                          onError: toastErr,
+                        },
                       )
                     }
                   >
@@ -182,7 +225,10 @@ export default function ApartmentsPage() {
                 defaultValue={apt.addressVariants.join(", ")}
                 placeholder="Address variants, comma-separated (street + number)"
                 onBlur={(e) =>
-                  updateApt.mutate({ id: apt.id, addressVariants: parseVariants(e.target.value) })
+                  updateApt.mutate({
+                    id: apt.id,
+                    addressVariants: parseVariants(e.target.value),
+                  })
                 }
                 className="mt-2.5"
               />
@@ -207,7 +253,10 @@ export default function ApartmentsPage() {
                     onClick={() =>
                       removeMember.mutate(
                         { propertyId: apt.id, userId: m.userId },
-                        { onSuccess: () => showToast("Member removed"), onError: toastErr },
+                        {
+                          onSuccess: () => showToast("Member removed"),
+                          onError: toastErr,
+                        },
                       )
                     }
                     className={iconX}
@@ -229,7 +278,10 @@ export default function ApartmentsPage() {
                     onClick={() =>
                       revokeInvite.mutate(
                         { id: inv.id },
-                        { onSuccess: () => showToast("Invite revoked"), onError: toastErr },
+                        {
+                          onSuccess: () => showToast("Invite revoked"),
+                          onError: toastErr,
+                        },
                       )
                     }
                     className={iconX}
@@ -239,10 +291,19 @@ export default function ApartmentsPage() {
                 )}
               </div>
             ))}
-            {isOwner && <InviteForm onInvite={(email) => invite.mutate(
-              { propertyId: apt.id, email },
-              { onSuccess: () => showToast("Invitation sent"), onError: toastErr },
-            )} />}
+            {isOwner && (
+              <InviteForm
+                onInvite={(email) =>
+                  invite.mutate(
+                    { propertyId: apt.id, email },
+                    {
+                      onSuccess: () => showToast("Invitation sent"),
+                      onError: toastErr,
+                    },
+                  )
+                }
+              />
+            )}
 
             {/* vendors */}
             {aptVendors.length > 0 && (
@@ -255,7 +316,8 @@ export default function ApartmentsPage() {
                         value={v.color}
                         onChange={
                           isOwner
-                            ? (color) => updateVendor.mutate({ id: v.id, color })
+                            ? (color) =>
+                                updateVendor.mutate({ id: v.id, color })
                             : undefined
                         }
                       />
@@ -263,8 +325,14 @@ export default function ApartmentsPage() {
                         <Input
                           defaultValue={v.displayName}
                           onBlur={(e) => {
-                            if (e.target.value.trim() && e.target.value !== v.displayName)
-                              updateVendor.mutate({ id: v.id, displayName: e.target.value.trim() });
+                            if (
+                              e.target.value.trim() &&
+                              e.target.value !== v.displayName
+                            )
+                              updateVendor.mutate({
+                                id: v.id,
+                                displayName: e.target.value.trim(),
+                              });
                           }}
                           className="flex-1 font-semibold"
                         />
@@ -295,7 +363,12 @@ export default function ApartmentsPage() {
                       <Checkbox
                         label="expected monthly"
                         checked={a.active}
-                        onChange={(e) => updateAccount.mutate({ id: a.id, active: e.target.checked })}
+                        onChange={(e) =>
+                          updateAccount.mutate({
+                            id: a.id,
+                            active: e.target.checked,
+                          })
+                        }
                       />
                     )}
                     {isOwner && (
@@ -320,12 +393,12 @@ export default function ApartmentsPage() {
         );
       })}
 
-      {/* add apartment */}
+      {/* add property */}
       <div className="flex flex-wrap gap-3 mt-2">
         <Input
           value={newNickname}
           onChange={(e) => setNewNickname(e.target.value)}
-          placeholder="New apartment nickname"
+          placeholder="New property nickname"
           disabled={atLimit}
           className="w-[220px]"
         />
@@ -336,16 +409,20 @@ export default function ApartmentsPage() {
             if (!newNickname.trim()) return;
             createApt.mutate(
               { nickname: newNickname.trim(), addressVariants: [] },
-              { onSuccess: () => showToast("Apartment added"), onError: toastErr },
+              {
+                onSuccess: () => showToast("Property added"),
+                onError: toastErr,
+              },
             );
             setNewNickname("");
           }}
         >
-          Add apartment
+          Add property
         </Button>
         {atLimit && (
           <span className="font-mono text-micro text-muted self-center">
-            You&rsquo;ve reached the limit of {OWNED_APARTMENT_LIMIT} owned apartments.
+            You&rsquo;ve reached the limit of {OWNED_PROPERTY_LIMIT} owned
+            properties.
           </span>
         )}
       </div>

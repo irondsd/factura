@@ -24,7 +24,8 @@ export function VendorColorPicker({
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     document.addEventListener("mousedown", onDoc);
@@ -36,7 +37,11 @@ export function VendorColorPicker({
   }, [open]);
 
   if (!onChange) {
-    return <span className={cn("w-[9px] h-[9px] flex-none", vendorColorClass(value))} />;
+    return (
+      <span
+        className={cn("w-[9px] h-[9px] flex-none", vendorColorClass(value))}
+      />
+    );
   }
 
   return (
@@ -66,7 +71,9 @@ export function VendorColorPicker({
               }}
               className={cn(
                 "w-4 h-4 cursor-pointer p-0 border",
-                value === name ? "border-ink" : "border-transparent hover:border-line",
+                value === name
+                  ? "border-ink"
+                  : "border-transparent hover:border-line",
                 vendorColorClass(name),
               )}
             />

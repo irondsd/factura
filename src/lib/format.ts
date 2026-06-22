@@ -37,9 +37,7 @@ export function formatMoney(
   currency: "ARS" | "USD",
 ): string {
   if (value === null || value === undefined) return "—";
-  return currency === "USD"
-    ? formatUSD(value)
-    : arsWhole.format(Number(value));
+  return currency === "USD" ? formatUSD(value) : arsWhole.format(Number(value));
 }
 
 const monthFmt = new Intl.DateTimeFormat("en", {

@@ -12,43 +12,51 @@
  *   AUTH_URL         — app base URL, reused for links (falls back to :4000)
  */
 
-import type { ReactElement } from 'react'
-import { Resend } from 'resend'
-import { ShareInviteEmail } from '../../emails/share-invite'
-import { WelcomeEmail } from '../../emails/welcome'
+import type { ReactElement } from "react";
+import { Resend } from "resend";
+import { ShareInviteEmail } from "../../emails/share-invite";
+import { WelcomeEmail } from "../../emails/welcome";
 
-const FROM = process.env.EMAIL_FROM ?? 'Factura <onboarding@resend.dev>'
+const FROM = process.env.EMAIL_FROM ?? "Factura <onboarding@resend.dev>";
 
 /** Absolute base URL for links inside emails. */
 function baseUrl(): string {
-  return (process.env.AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:4000').replace(/\/$/, '')
+  return (
+    process.env.AUTH_URL ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "http://localhost:4000"
+  ).replace(/\/$/, "");
 }
 
-let client: Resend | null = null
+let client: Resend | null = null;
 function resend(): Resend | null {
-  const key = process.env.RESEND_API_KEY
-  if (!key) return null
-  client ??= new Resend(key)
-  return client
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return null;
+  client ??= new Resend(key);
+  return client;
 }
 
 /** Send via Resend, swallowing/​logging any failure. Returns whether it sent. */
-async function send(opts: { to: string; subject: string; react: ReactElement }): Promise<boolean> {
-  const r = resend()
+async function send(opts: {
+  to: string;
+  subject: string;
+  react: ReactElement;
+}): Promise<boolean> {
+  const r = resend();
   if (!r) {
-    console.warn(`[email] RESEND_API_KEY unset — skipped "${opts.subject}"`)
-    return false
+    console.warn(`[email] RESEND_API_KEY unset — skipped "${opts.subject}"`);
+    return false;
   }
   try {
-    const { error } = await r.emails.send({ from: FROM, ...opts })
+    const { error } = await r.emails.send({ from: FROM, ...opts });
     if (error) {
-      console.error(`[email] send failed "${opts.subject}":`, error)
-      return false
+      console.error(`[email] send failed "${opts.subject}":`, error);
+      return false;
     }
-    return true
+    return true;
   } catch (err) {
-    console.error(`[email] send threw "${opts.subject}":`, err)
-    return false
+    console.error(`[email] send threw "${opts.subject}":`, err);
+    return false;
   }
 }
 
@@ -56,26 +64,30 @@ async function send(opts: { to: string; subject: string; react: ReactElement }):
 export function sendWelcomeEmail(opts: { to: string; name?: string | null }) {
   return send({
     to: opts.to,
-    subject: 'Welcome to Factura',
+    subject: "Welcome to Factura",
     react: WelcomeEmail({
-      name: opts.name?.trim() || 'there',
+      name: opts.name?.trim() || "there",
       ledgerUrl: `${baseUrl()}/`,
     }),
-  })
+  });
 }
 
-/** Shared-apartment invite — fired when an owner invites someone by email.
- * Accept links to the Apartments page, where the invitee (signed in with the
+/** Shared-property invite — fired when an owner invites someone by email.
+ * Accept links to the Properties page, where the invitee (signed in with the
  * invited Google address) explicitly accepts or declines the share. */
-export function sendShareInviteEmail(opts: { to: string; inviter: string; property: string }) {
+export function sendShareInviteEmail(opts: {
+  to: string;
+  inviter: string;
+  property: string;
+}) {
   return send({
     to: opts.to,
     subject: `${opts.inviter} shared a property with you on Factura`,
     react: ShareInviteEmail({
       inviter: opts.inviter,
       property: opts.property,
-      acceptUrl: `${baseUrl()}/apartments`,
-      declineUrl: `${baseUrl()}/apartments`,
+      acceptUrl: `${baseUrl()}/properties`,
+      declineUrl: `${baseUrl()}/properties`,
     }),
-  })
+  });
 }

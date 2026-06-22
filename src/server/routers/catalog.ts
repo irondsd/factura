@@ -10,20 +10,20 @@ import {
   vendors,
 } from "@/db/schema";
 import { VENDOR_COLOR_NAMES } from "@/lib/vendorColors";
-import { createApartmentForUser } from "../defaults";
+import { createPropertyForUser } from "../defaults";
 import { sendShareInviteEmail } from "../email";
 import {
   accessibleProperties,
   assertMember,
   assertMemberVendor,
-  OWNED_APARTMENT_LIMIT,
+  OWNED_PROPERTY_LIMIT,
 } from "../ownership";
 import { protectedProcedure, router } from "../trpc";
 
 export const propertiesRouter = router({
-  /** Every apartment the user can access (owned + shared), each with the
+  /** Every property the user can access (owned + shared), each with the
    * caller's role, its members, and pending invites. Drives both the header
-   * switcher (uses id/nickname) and the apartments page. */
+   * switcher (uses id/nickname) and the properties page. */
   list: protectedProcedure.query(async ({ ctx }) => {
     const mine = await ctx.db.query.propertyMembers.findMany({
       where: eq(propertyMembers.userId, ctx.userId),
@@ -88,12 +88,12 @@ export const propertiesRouter = router({
         ),
         columns: { propertyId: true },
       });
-      if (owned.length >= OWNED_APARTMENT_LIMIT)
+      if (owned.length >= OWNED_PROPERTY_LIMIT)
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: `You can own at most ${OWNED_APARTMENT_LIMIT} apartments`,
+          message: `You can own at most ${OWNED_PROPERTY_LIMIT} properties`,
         });
-      return createApartmentForUser(
+      return createPropertyForUser(
         ctx.db,
         ctx.userId,
         input.nickname,
@@ -129,7 +129,7 @@ export const propertiesRouter = router({
       } catch {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "Apartment has linked accounts or bills",
+          message: "Property has linked accounts or bills",
         });
       }
       return { ok: true };
@@ -169,7 +169,7 @@ export const propertiesRouter = router({
         if (member)
           throw new TRPCError({
             code: "CONFLICT",
-            message: "Already a member of this apartment",
+            message: "Already a member of this property",
           });
       }
 
@@ -200,12 +200,16 @@ export const propertiesRouter = router({
       });
       if (!invite) throw new TRPCError({ code: "NOT_FOUND" });
       await assertMember(ctx.db, ctx.userId, invite.propertyId, "owner");
-      await ctx.db.delete(propertyInvites).where(eq(propertyInvites.id, input.id));
+      await ctx.db
+        .delete(propertyInvites)
+        .where(eq(propertyInvites.id, input.id));
       return { ok: true };
     }),
 
   removeMember: protectedProcedure
-    .input(z.object({ propertyId: z.string().uuid(), userId: z.string().uuid() }))
+    .input(
+      z.object({ propertyId: z.string().uuid(), userId: z.string().uuid() }),
+    )
     .mutation(async ({ ctx, input }) => {
       await assertMember(ctx.db, ctx.userId, input.propertyId, "owner");
       if (input.userId === ctx.userId)
@@ -226,7 +230,7 @@ export const propertiesRouter = router({
     }),
 
   /** A member removes their own access. The last owner can't leave (they must
-   * delete the apartment or, in a future version, transfer ownership). */
+   * delete the property or, in a future version, transfer ownership). */
   leave: protectedProcedure
     .input(z.object({ propertyId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
@@ -259,11 +263,16 @@ export const propertiesRouter = router({
     if (invites.length === 0) return [];
 
     const inviterIds = [
-      ...new Set(invites.map((i) => i.invitedBy).filter((id): id is string => !!id)),
+      ...new Set(
+        invites.map((i) => i.invitedBy).filter((id): id is string => !!id),
+      ),
     ];
     const [props, inviters] = await Promise.all([
       ctx.db.query.properties.findMany({
-        where: inArray(properties.id, invites.map((i) => i.propertyId)),
+        where: inArray(
+          properties.id,
+          invites.map((i) => i.propertyId),
+        ),
         columns: { id: true, nickname: true },
       }),
       inviterIds.length
@@ -279,7 +288,7 @@ export const propertiesRouter = router({
     return invites.map((i) => ({
       id: i.id,
       role: i.role,
-      property: nicknameById.get(i.propertyId) ?? "Apartment",
+      property: nicknameById.get(i.propertyId) ?? "Property",
       inviter: (i.invitedBy && inviterById.get(i.invitedBy)) || "Someone",
     }));
   }),
@@ -291,9 +300,15 @@ export const propertiesRouter = router({
       const invite = await assertOwnInvite(ctx.db, ctx.userId, input.id);
       await ctx.db
         .insert(propertyMembers)
-        .values({ propertyId: invite.propertyId, userId: ctx.userId, role: invite.role })
+        .values({
+          propertyId: invite.propertyId,
+          userId: ctx.userId,
+          role: invite.role,
+        })
         .onConflictDoNothing();
-      await ctx.db.delete(propertyInvites).where(eq(propertyInvites.id, invite.id));
+      await ctx.db
+        .delete(propertyInvites)
+        .where(eq(propertyInvites.id, invite.id));
       return { ok: true };
     }),
 
@@ -302,7 +317,9 @@ export const propertiesRouter = router({
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const invite = await assertOwnInvite(ctx.db, ctx.userId, input.id);
-      await ctx.db.delete(propertyInvites).where(eq(propertyInvites.id, invite.id));
+      await ctx.db
+        .delete(propertyInvites)
+        .where(eq(propertyInvites.id, invite.id));
       return { ok: true };
     }),
 });
@@ -324,7 +341,7 @@ async function assertLeavesAnOwner(
   if (isOwner && owners.length === 1)
     throw new TRPCError({
       code: "CONFLICT",
-      message: "You're the only owner — delete the apartment instead",
+      message: "You're the only owner — delete the property instead",
     });
 }
 
@@ -421,7 +438,7 @@ export const accountsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       await assertMember(ctx.db, ctx.userId, input.propertyId, "owner");
-      // The vendor must live in the same apartment as the account.
+      // The vendor must live in the same property as the account.
       const vendor = await ctx.db.query.vendors.findFirst({
         where: and(
           eq(vendors.id, input.vendorId),
@@ -432,7 +449,7 @@ export const accountsRouter = router({
       if (!vendor)
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Vendor does not belong to this apartment",
+          message: "Vendor does not belong to this property",
         });
       const [created] = await ctx.db
         .insert(vendorAccounts)
@@ -475,7 +492,9 @@ export const accountsRouter = router({
       if (!account) throw new TRPCError({ code: "NOT_FOUND" });
       await assertMember(ctx.db, ctx.userId, account.propertyId, "owner");
       try {
-        await ctx.db.delete(vendorAccounts).where(eq(vendorAccounts.id, input.id));
+        await ctx.db
+          .delete(vendorAccounts)
+          .where(eq(vendorAccounts.id, input.id));
       } catch {
         throw new TRPCError({
           code: "CONFLICT",

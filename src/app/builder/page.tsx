@@ -113,8 +113,23 @@ function groupOf(s: string): number | string {
 /** Month names → number, 3-letter-keyed (Spanish + English), lowercased. The
  * period builder feeds this to the engine's `lookup` transform. */
 const MONTH_LOOKUP: Record<string, number> = {
-  jan: 1, ene: 1, feb: 2, mar: 3, abr: 4, apr: 4, may: 5, jun: 6,
-  jul: 7, ago: 8, aug: 8, sep: 9, set: 9, oct: 10, nov: 11, dic: 12, dec: 12,
+  jan: 1,
+  ene: 1,
+  feb: 2,
+  mar: 3,
+  abr: 4,
+  apr: 4,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  ago: 8,
+  aug: 8,
+  sep: 9,
+  set: 9,
+  oct: 10,
+  nov: 11,
+  dic: 12,
+  dec: 12,
 };
 
 /** True once the row has the regex(es) it needs to extract anything. */
@@ -129,11 +144,26 @@ function fieldCaptureItems(
   f: FieldRow,
 ): { key: string; pattern: string; flags?: string; group: number | string }[] {
   if (f.role === "period" && f.periodMode === "parts") {
-    const out: { key: string; pattern: string; flags?: string; group: number | string }[] = [];
+    const out: {
+      key: string;
+      pattern: string;
+      flags?: string;
+      group: number | string;
+    }[] = [];
     if (f.pattern.trim())
-      out.push({ key: "p_month", pattern: f.pattern, flags: f.flags, group: groupOf(f.group) });
+      out.push({
+        key: "p_month",
+        pattern: f.pattern,
+        flags: f.flags,
+        group: groupOf(f.group),
+      });
     if (f.yearPattern.trim())
-      out.push({ key: "p_year", pattern: f.yearPattern, flags: f.yearFlags, group: groupOf(f.yearGroup) });
+      out.push({
+        key: "p_year",
+        pattern: f.yearPattern,
+        flags: f.yearFlags,
+        group: groupOf(f.yearGroup),
+      });
     return out;
   }
   if (!f.pattern.trim()) return [];
@@ -226,14 +256,19 @@ function generatePeriod(f: FieldRow): {
     captures.push({
       pattern: f.yearPattern,
       flags: f.yearFlags || undefined,
-      outputs: { p_year: { group: groupOf(f.yearGroup), transform: ["toInt"] } },
+      outputs: {
+        p_year: { group: groupOf(f.yearGroup), transform: ["toInt"] },
+      },
     });
     if (f.monthShift) {
       compute.push({
         name: "p_parts",
         dateFromParts: { year: "p_year", month: "p_month", day: 1 },
       });
-      compute.push({ name: "period", addMonths: { date: "p_parts", delta: f.monthShift } });
+      compute.push({
+        name: "period",
+        addMonths: { date: "p_parts", delta: f.monthShift },
+      });
     } else {
       compute.push({
         name: "period",
@@ -250,12 +285,17 @@ function generatePeriod(f: FieldRow): {
     outputs: {
       p_date: {
         group: groupOf(f.group),
-        transform: f.transforms.length ? f.transforms.map(toTransformOp) : undefined,
+        transform: f.transforms.length
+          ? f.transforms.map(toTransformOp)
+          : undefined,
       },
     },
   });
   if (f.monthShift) {
-    compute.push({ name: "period", addMonths: { date: "p_date", delta: f.monthShift } });
+    compute.push({
+      name: "period",
+      addMonths: { date: "p_date", delta: f.monthShift },
+    });
     return { captures, compute, rule: { sources: ["period"] } };
   }
   return { captures, compute, rule: { sources: ["p_date"] } };
@@ -381,13 +421,21 @@ function fieldsToBodyDraft(fields: FieldRow[]): Partial<Body> {
       pattern: f.pattern,
       flags: f.flags || undefined,
       outputs: {
-        [key]: { group: groupOf(f.group), transform: f.transforms.length ? f.transforms.map(toTransformOp) : undefined },
+        [key]: {
+          group: groupOf(f.group),
+          transform: f.transforms.length
+            ? f.transforms.map(toTransformOp)
+            : undefined,
+        },
       },
     });
     if (f.role === "custom") {
       custom.push({
-        name: f.name, source: key, type: f.type,
-        unit: f.unit || undefined, includeWhen: f.includeWhen || undefined,
+        name: f.name,
+        source: key,
+        type: f.type,
+        unit: f.unit || undefined,
+        includeWhen: f.includeWhen || undefined,
       });
     } else {
       roles[f.role] = { sources: [key] };
@@ -406,7 +454,14 @@ function fieldsToBodyDraft(fields: FieldRow[]): Partial<Body> {
 // using region/compute/validations, multi-output captures (barcodes), multi-
 // source roles, or transforms outside the dropdown stays JSON-only.
 const SIMPLE_TRANSFORMS = new Set([
-  "numberAR", "numberUS", "centsToAmount", "stripLeadingZeros", "toInt", "monthOf", "monthYear", "lowercase",
+  "numberAR",
+  "numberUS",
+  "centsToAmount",
+  "stripLeadingZeros",
+  "toInt",
+  "monthOf",
+  "monthYear",
+  "lowercase",
 ]);
 
 function transformOpToStr(op: TransformOp): string | null {
@@ -445,7 +500,11 @@ function periodDateRow(e: OutEntry, shift: number): FieldRow | null {
   };
 }
 
-function periodPartsRow(monthE: OutEntry, yearE: OutEntry, shift: number): FieldRow {
+function periodPartsRow(
+  monthE: OutEntry,
+  yearE: OutEntry,
+  shift: number,
+): FieldRow {
   const monthIsName = (monthE.transform ?? []).some(
     (op) => typeof op === "object" && "lookup" in op,
   );
@@ -489,7 +548,10 @@ function recognizePeriodCompute(
     const yE = outMap.get(a.dateFromParts.year);
     const mE = outMap.get(a.dateFromParts.month);
     if (!yE || !mE) return null;
-    return { row: periodPartsRow(mE, yE, 0), usedKeys: [a.dateFromParts.year, a.dateFromParts.month] };
+    return {
+      row: periodPartsRow(mE, yE, 0),
+      usedKeys: [a.dateFromParts.year, a.dateFromParts.month],
+    };
   }
   // parts mode + shift: dateFromParts named S, then addMonths over S named source
   if (
@@ -600,7 +662,12 @@ type Span = { start: number; end: number; key: string };
 
 function computeSpans(
   text: string,
-  items: { key: string; pattern: string; flags?: string; group: number | string }[],
+  items: {
+    key: string;
+    pattern: string;
+    flags?: string;
+    group: number | string;
+  }[],
 ): Span[] {
   const spans: Span[] = [];
   for (const it of items) {
@@ -713,19 +780,29 @@ function Builder() {
       // Adopted rows carry a full ParserConfig in `body` (slug/vendor/version
       // included); own rows carry just the definition. Strip the metadata so
       // both normalize to a definition Body.
-      const { slug: _bs, vendor: _bv, version: _bvn, ...bodyRest } =
-        preset.body as Record<string, unknown>;
+      const {
+        slug: _bs,
+        vendor: _bv,
+        version: _bvn,
+        ...bodyRest
+      } = preset.body as Record<string, unknown>;
       void _bs;
       void _bv;
       void _bvn;
       const body = bodyRest as Body;
       setSigs(
         body.detect?.allOf?.length
-          ? body.detect.allOf.map((s) => ({ pattern: s.pattern, flags: s.flags ?? "" }))
+          ? body.detect.allOf.map((s) => ({
+              pattern: s.pattern,
+              flags: s.flags ?? "",
+            }))
           : [{ pattern: "", flags: "i" }],
       );
       setNoneSigs(
-        (body.detect?.noneOf ?? []).map((s) => ({ pattern: s.pattern, flags: s.flags ?? "" })),
+        (body.detect?.noneOf ?? []).map((s) => ({
+          pattern: s.pattern,
+          flags: s.flags ?? "",
+        })),
       );
       const { detect: _omit, ...rest } = body;
       void _omit;
@@ -753,7 +830,9 @@ function Builder() {
   }
 
   const activeText = bills[activeIdx]?.text ?? "";
-  const knownVendor = (vendorList.data ?? []).some((v) => v.slug === vendorSlug);
+  const knownVendor = (vendorList.data ?? []).some(
+    (v) => v.slug === vendorSlug,
+  );
 
   // Assemble the draft config (client-side; the engine is pure).
   const assembled = useMemo(() => {
@@ -773,7 +852,17 @@ function Builder() {
       ...body,
     };
     return { config, body };
-  }, [mode, sigs, noneSigs, fields, advanced, slug, vendorSlug, displayName, category]);
+  }, [
+    mode,
+    sigs,
+    noneSigs,
+    fields,
+    advanced,
+    slug,
+    vendorSlug,
+    displayName,
+    category,
+  ]);
 
   // Detection probe (works even before extraction is complete).
   const detectObj = useMemo(
@@ -803,7 +892,10 @@ function Builder() {
       const result: ParsedResult = runConfig(assembled.config, activeText);
       return { result, error: null as string | null };
     } catch (e) {
-      return { result: null, error: e instanceof Error ? e.message : String(e) };
+      return {
+        result: null,
+        error: e instanceof Error ? e.message : String(e),
+      };
     }
   }, [assembled.config, activeText]);
 
@@ -812,13 +904,23 @@ function Builder() {
   // config is valid); in Advanced mode use the assembled captures.
   const spans = useMemo(() => {
     if (!activeText) return [];
-    const items: { key: string; pattern: string; flags?: string; group: number | string }[] = [];
+    const items: {
+      key: string;
+      pattern: string;
+      flags?: string;
+      group: number | string;
+    }[] = [];
     if (mode === "simple") {
       for (const f of fields) items.push(...fieldCaptureItems(f));
     } else if (assembled.body) {
       for (const cap of assembled.body.captures ?? []) {
         for (const [key, out] of Object.entries(cap.outputs)) {
-          items.push({ key, pattern: cap.pattern, flags: cap.flags, group: out.group });
+          items.push({
+            key,
+            pattern: cap.pattern,
+            flags: cap.flags,
+            group: out.group,
+          });
         }
       }
     }
@@ -978,7 +1080,11 @@ function Builder() {
             </div>
           )}
           <pre className="ruled font-mono text-xs whitespace-pre-wrap break-words bg-paper border border-line py-2.5 px-3 h-[58vh] overflow-y-auto">
-            {activeText ? <HighlightedText text={activeText} spans={spans} /> : "Drop a PDF to start."}
+            {activeText ? (
+              <HighlightedText text={activeText} spans={spans} />
+            ) : (
+              "Drop a PDF to start."
+            )}
           </pre>
 
           <DropZone onFiles={dropFiles} />
@@ -992,7 +1098,13 @@ function Builder() {
                     key={s.id}
                     onClick={() =>
                       setBills((b) => {
-                        const next = [...b, { name: s.fileName ?? "sample", text: normalize(s.rawText) }];
+                        const next = [
+                          ...b,
+                          {
+                            name: s.fileName ?? "sample",
+                            text: normalize(s.rawText),
+                          },
+                        ];
                         setActiveIdx(next.length - 1);
                         return next;
                       })
@@ -1031,7 +1143,11 @@ function Builder() {
           <Section title="Parser">
             <Grid>
               <Field label="Name">
-                <Input value={displayName} placeholder="e.g. Aguas Andinas" onChange={(e) => setDisplayName(e.target.value)} />
+                <Input
+                  value={displayName}
+                  placeholder="e.g. Aguas Andinas"
+                  onChange={(e) => setDisplayName(e.target.value)}
+                />
               </Field>
               <Field label="Slug (id)">
                 <Input
@@ -1051,12 +1167,16 @@ function Builder() {
                       return;
                     }
                     setVendorSlug(val);
-                    const v = (vendorList.data ?? []).find((x) => x.slug === val);
+                    const v = (vendorList.data ?? []).find(
+                      (x) => x.slug === val,
+                    );
                     if (v) setCategory(v.category as Category);
                   }}
                 >
                   {(vendorList.data ?? []).map((v) => (
-                    <option key={v.id} value={v.slug}>{v.displayName}</option>
+                    <option key={v.id} value={v.slug}>
+                      {v.displayName}
+                    </option>
                   ))}
                   <option value="__new__">➕ New vendor…</option>
                 </Select>
@@ -1068,7 +1188,9 @@ function Builder() {
                   onChange={(e) => setCategory(e.target.value as Category)}
                 >
                   {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
                   ))}
                 </Select>
               </Field>
@@ -1084,8 +1206,8 @@ function Builder() {
             </Grid>
             {!knownVendor && (
               <p className={`${hint} mt-2`}>
-                Point a second parser at an existing vendor to merge them — e.g. an
-                old and new administrator both filed under one “Expensas”.
+                Point a second parser at an existing vendor to merge them — e.g.
+                an old and new administrator both filed under one “Expensas”.
               </p>
             )}
           </Section>
@@ -1093,23 +1215,40 @@ function Builder() {
           {/* step 1 — detection */}
           <Section title="1 · Recognize the bill">
             <p className={`${hint} mb-2.5`}>
-              Patterns that uniquely identify this vendor. All must appear in the
-              text, and they must not match any of your other bills.
+              Patterns that uniquely identify this vendor. All must appear in
+              the text, and they must not match any of your other bills.
             </p>
             {sigs.map((s, i) => (
               <SigRow
                 key={i}
                 sig={s}
-                onChange={(ns) => setSigs(sigs.map((x, j) => (j === i ? ns : x)))}
-                onRemove={sigs.length > 1 ? () => setSigs(sigs.filter((_, j) => j !== i)) : undefined}
+                onChange={(ns) =>
+                  setSigs(sigs.map((x, j) => (j === i ? ns : x)))
+                }
+                onRemove={
+                  sigs.length > 1
+                    ? () => setSigs(sigs.filter((_, j) => j !== i))
+                    : undefined
+                }
               />
             ))}
-            <Button size="sm" variant="outline" onClick={() => setSigs([...sigs, { pattern: "", flags: "i" }])}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSigs([...sigs, { pattern: "", flags: "i" }])}
+            >
               + Add signature
             </Button>
 
             <div className="mt-3 flex flex-col gap-1.5">
-              <StatusLine ok={matchesCurrent} text={matchesCurrent ? "Matches this bill" : "Does not match this bill yet"} />
+              <StatusLine
+                ok={matchesCurrent}
+                text={
+                  matchesCurrent
+                    ? "Matches this bill"
+                    : "Does not match this bill yet"
+                }
+              />
               <StatusLine
                 ok={collisionList.length === 0}
                 text={
@@ -1124,18 +1263,29 @@ function Builder() {
           {/* step 2 — extraction */}
           <Section title="2 · Extract the data" dim={!gatePassed}>
             {!gatePassed ? (
-              <p className={`${hint} mb-2.5`}>Finish step 1 to unlock extraction.</p>
+              <p className={`${hint} mb-2.5`}>
+                Finish step 1 to unlock extraction.
+              </p>
             ) : (
               <>
                 <div className="flex items-center gap-1.5 mb-3">
-                  <ModeTab active={mode === "simple"} disabled={!simpleConvertible} onClick={switchToSimple}>
+                  <ModeTab
+                    active={mode === "simple"}
+                    disabled={!simpleConvertible}
+                    onClick={switchToSimple}
+                  >
                     Fields
                   </ModeTab>
-                  <ModeTab active={mode === "advanced"} onClick={switchToAdvanced}>
+                  <ModeTab
+                    active={mode === "advanced"}
+                    onClick={switchToAdvanced}
+                  >
                     Advanced (JSON)
                   </ModeTab>
                   {!simpleConvertible && (
-                    <span className={hint}>uses advanced features — JSON only</span>
+                    <span className={hint}>
+                      uses advanced features — JSON only
+                    </span>
                   )}
                 </div>
 
@@ -1146,24 +1296,39 @@ function Builder() {
                         <PeriodEditor
                           key={f.id}
                           field={f}
-                          onChange={(nf) => setFields(fields.map((x) => (x.id === f.id ? nf : x)))}
+                          onChange={(nf) =>
+                            setFields(
+                              fields.map((x) => (x.id === f.id ? nf : x)),
+                            )
+                          }
                           value={extractPeriodValue(activeText, f)}
                         />
                       ) : (
                         <FieldEditor
                           key={f.id}
                           field={f}
-                          onChange={(nf) => setFields(fields.map((x) => (x.id === f.id ? nf : x)))}
+                          onChange={(nf) =>
+                            setFields(
+                              fields.map((x) => (x.id === f.id ? nf : x)),
+                            )
+                          }
                           onRemove={
                             f.role === "custom"
-                              ? () => setFields(fields.filter((x) => x.id !== f.id))
+                              ? () =>
+                                  setFields(fields.filter((x) => x.id !== f.id))
                               : undefined
                           }
                           value={extractFieldValue(activeText, f)}
                         />
                       ),
                     )}
-                    <Button size="sm" variant="outline" onClick={() => setFields([...fields, emptyField("custom")])}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setFields([...fields, emptyField("custom")])
+                      }
+                    >
                       + Add custom field
                     </Button>
                   </>
@@ -1187,8 +1352,8 @@ function Builder() {
                   <Label>Preview</Label>
                   {assembled.incomplete ? (
                     <p className={`${hint} mb-2.5`}>
-                      Add a regex to every field — each value previews live above
-                      and highlights in the bill text.
+                      Add a regex to every field — each value previews live
+                      above and highlights in the bill text.
                     </p>
                   ) : assembled.error ? (
                     <ErrorBox text={assembled.error} />
@@ -1197,7 +1362,9 @@ function Builder() {
                   ) : preview?.result ? (
                     <PreviewBox result={preview.result} />
                   ) : (
-                    <p className={`${hint} mb-2.5`}>Define fields to see the result.</p>
+                    <p className={`${hint} mb-2.5`}>
+                      Define fields to see the result.
+                    </p>
                   )}
                 </div>
               </>
@@ -1206,12 +1373,27 @@ function Builder() {
 
           {/* finish */}
           <div className="flex items-center gap-3 flex-wrap">
-            <Button variant="solid" size="lg" disabled={!canFinish || createParser.isPending || updateParser.isPending || reparse.isPending} onClick={finish}>
-              {!editingOwn ? "Fork & save" : existingId ? "Save & reparse" : "Finish"}
+            <Button
+              variant="solid"
+              size="lg"
+              disabled={
+                !canFinish ||
+                createParser.isPending ||
+                updateParser.isPending ||
+                reparse.isPending
+              }
+              onClick={finish}
+            >
+              {!editingOwn
+                ? "Fork & save"
+                : existingId
+                  ? "Save & reparse"
+                  : "Finish"}
             </Button>
             {slug && usage.data && usage.data.count > 0 && (
               <span className={hint}>
-                Saving re-runs this parser against {usage.data.count} existing bill(s).
+                Saving re-runs this parser against {usage.data.count} existing
+                bill(s).
               </span>
             )}
           </div>
@@ -1222,7 +1404,15 @@ function Builder() {
 }
 
 // ── Small components ──────────────────────────────────────────────────────────
-function SigRow({ sig, onChange, onRemove }: { sig: Sig; onChange: (s: Sig) => void; onRemove?: () => void }) {
+function SigRow({
+  sig,
+  onChange,
+  onRemove,
+}: {
+  sig: Sig;
+  onChange: (s: Sig) => void;
+  onRemove?: () => void;
+}) {
   return (
     <div className="flex gap-1.5 mb-1.5">
       <Input
@@ -1230,9 +1420,16 @@ function SigRow({ sig, onChange, onRemove }: { sig: Sig; onChange: (s: Sig) => v
         placeholder="e.g. AGUAS ANDINAS"
         onChange={(e) => onChange({ ...sig, pattern: e.target.value })}
       />
-      <Input value={sig.flags} placeholder="i" className="w-14 flex-none" onChange={(e) => onChange({ ...sig, flags: e.target.value })} />
+      <Input
+        value={sig.flags}
+        placeholder="i"
+        className="w-14 flex-none"
+        onChange={(e) => onChange({ ...sig, flags: e.target.value })}
+      />
       {onRemove && (
-        <Button size="sm" variant="ghost" onClick={onRemove}>✕</Button>
+        <Button size="sm" variant="ghost" onClick={onRemove}>
+          ✕
+        </Button>
       )}
     </div>
   );
@@ -1255,7 +1452,11 @@ function FieldEditor({
       <div className="flex items-center gap-2 mb-2">
         <span className="font-mono text-xs font-semibold flex-1">
           {field.role === "custom" ? (
-            <Input value={field.name} placeholder="field name (e.g. consumption)" onChange={(e) => onChange({ ...field, name: e.target.value })} />
+            <Input
+              value={field.name}
+              placeholder="field name (e.g. consumption)"
+              onChange={(e) => onChange({ ...field, name: e.target.value })}
+            />
           ) : (
             ROLE_LABEL[field.role]
           )}
@@ -1265,37 +1466,69 @@ function FieldEditor({
         ) : (
           <Badge tone="neutral">no match</Badge>
         )}
-        {onRemove && <Button size="sm" variant="ghost" onClick={onRemove}>✕</Button>}
+        {onRemove && (
+          <Button size="sm" variant="ghost" onClick={onRemove}>
+            ✕
+          </Button>
+        )}
       </div>
 
       {isCustom && (
         <Grid>
           <Field label="Type">
-            <Select value={field.type} onChange={(e) => onChange({ ...field, type: e.target.value as FieldRow["type"] })}>
+            <Select
+              value={field.type}
+              onChange={(e) =>
+                onChange({ ...field, type: e.target.value as FieldRow["type"] })
+              }
+            >
               {["money", "number", "date", "string", "quantity"].map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </Select>
           </Field>
           {field.type === "quantity" && (
             <Field label="Unit">
-              <Input value={field.unit} placeholder="kWh, m³, GB…" onChange={(e) => onChange({ ...field, unit: e.target.value })} />
+              <Input
+                value={field.unit}
+                placeholder="kWh, m³, GB…"
+                onChange={(e) => onChange({ ...field, unit: e.target.value })}
+              />
             </Field>
           )}
           <Field label="Only when (optional)">
             <Input
               value={field.includeWhen}
               placeholder="e.g. f_extra > 0 — leave blank to always keep"
-              onChange={(e) => onChange({ ...field, includeWhen: e.target.value })}
+              onChange={(e) =>
+                onChange({ ...field, includeWhen: e.target.value })
+              }
             />
           </Field>
         </Grid>
       )}
 
       <div className="flex gap-1.5 mt-2">
-        <Input value={field.pattern} placeholder="regex with a (capture group)" onChange={(e) => onChange({ ...field, pattern: e.target.value })} />
-        <Input value={field.flags} placeholder="i" className="w-12 flex-none" onChange={(e) => onChange({ ...field, flags: e.target.value })} />
-        <Input value={field.group} placeholder="1" className="w-14 flex-none" title="capture group (number or name)" onChange={(e) => onChange({ ...field, group: e.target.value })} />
+        <Input
+          value={field.pattern}
+          placeholder="regex with a (capture group)"
+          onChange={(e) => onChange({ ...field, pattern: e.target.value })}
+        />
+        <Input
+          value={field.flags}
+          placeholder="i"
+          className="w-12 flex-none"
+          onChange={(e) => onChange({ ...field, flags: e.target.value })}
+        />
+        <Input
+          value={field.group}
+          placeholder="1"
+          className="w-14 flex-none"
+          title="capture group (number or name)"
+          onChange={(e) => onChange({ ...field, group: e.target.value })}
+        />
       </div>
 
       <TransformsEditor
@@ -1324,16 +1557,31 @@ function TransformsEditor({
             <Select
               value={t}
               className="w-auto"
-              onChange={(e) => onChange(transforms.map((x, j) => (j === i ? e.target.value : x)))}
+              onChange={(e) =>
+                onChange(
+                  transforms.map((x, j) => (j === i ? e.target.value : x)),
+                )
+              }
             >
               {TRANSFORMS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
               ))}
             </Select>
-            <button onClick={() => onChange(transforms.filter((_, j) => j !== i))} className={xBtn}>✕</button>
+            <button
+              onClick={() => onChange(transforms.filter((_, j) => j !== i))}
+              className={xBtn}
+            >
+              ✕
+            </button>
           </span>
         ))}
-        <Button size="sm" variant="outline" onClick={() => onChange([...transforms, TRANSFORMS[0].value])}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onChange([...transforms, TRANSFORMS[0].value])}
+        >
           + transform
         </Button>
       </div>
@@ -1360,14 +1608,24 @@ function PeriodEditor({
         <span className="font-mono text-xs font-semibold flex-1">
           {ROLE_LABEL.period}
         </span>
-        {value !== undefined ? <Badge>{value}</Badge> : <Badge tone="neutral">no match</Badge>}
+        {value !== undefined ? (
+          <Badge>{value}</Badge>
+        ) : (
+          <Badge tone="neutral">no match</Badge>
+        )}
       </div>
 
       <div className="flex gap-1.5 mb-2.5">
-        <button onClick={() => onChange({ ...field, periodMode: "date" })} className={tabClass(!isParts)}>
+        <button
+          onClick={() => onChange({ ...field, periodMode: "date" })}
+          className={tabClass(!isParts)}
+        >
           Whole date
         </button>
-        <button onClick={() => onChange({ ...field, periodMode: "parts" })} className={tabClass(isParts)}>
+        <button
+          onClick={() => onChange({ ...field, periodMode: "parts" })}
+          className={tabClass(isParts)}
+        >
           Month + year
         </button>
       </div>
@@ -1376,33 +1634,91 @@ function PeriodEditor({
         <>
           <span className={miniLabel}>Month</span>
           <div className="flex gap-1.5 mt-1 mb-2">
-            <Input value={field.pattern} placeholder="regex with a (month group)" onChange={(e) => onChange({ ...field, pattern: e.target.value })} />
-            <Input value={field.flags} placeholder="i" className="w-12 flex-none" onChange={(e) => onChange({ ...field, flags: e.target.value })} />
-            <Input value={field.group} placeholder="1" className="w-14 flex-none" onChange={(e) => onChange({ ...field, group: e.target.value })} />
+            <Input
+              value={field.pattern}
+              placeholder="regex with a (month group)"
+              onChange={(e) => onChange({ ...field, pattern: e.target.value })}
+            />
+            <Input
+              value={field.flags}
+              placeholder="i"
+              className="w-12 flex-none"
+              onChange={(e) => onChange({ ...field, flags: e.target.value })}
+            />
+            <Input
+              value={field.group}
+              placeholder="1"
+              className="w-14 flex-none"
+              onChange={(e) => onChange({ ...field, group: e.target.value })}
+            />
           </div>
-          <label className={cn("inline-flex items-center gap-1.5 mb-2.5 cursor-pointer", miniLabel)}>
+          <label
+            className={cn(
+              "inline-flex items-center gap-1.5 mb-2.5 cursor-pointer",
+              miniLabel,
+            )}
+          >
             <input
               type="checkbox"
               checked={field.monthIsName}
-              onChange={(e) => onChange({ ...field, monthIsName: e.target.checked })}
+              onChange={(e) =>
+                onChange({ ...field, monthIsName: e.target.checked })
+              }
             />
             Month is a name (Ene / February)
           </label>
           <span className={miniLabel}>Year</span>
           <div className="flex gap-1.5 mt-1">
-            <Input value={field.yearPattern} placeholder="regex with a (year group)" onChange={(e) => onChange({ ...field, yearPattern: e.target.value })} />
-            <Input value={field.yearFlags} placeholder="i" className="w-12 flex-none" onChange={(e) => onChange({ ...field, yearFlags: e.target.value })} />
-            <Input value={field.yearGroup} placeholder="1" className="w-14 flex-none" onChange={(e) => onChange({ ...field, yearGroup: e.target.value })} />
+            <Input
+              value={field.yearPattern}
+              placeholder="regex with a (year group)"
+              onChange={(e) =>
+                onChange({ ...field, yearPattern: e.target.value })
+              }
+            />
+            <Input
+              value={field.yearFlags}
+              placeholder="i"
+              className="w-12 flex-none"
+              onChange={(e) =>
+                onChange({ ...field, yearFlags: e.target.value })
+              }
+            />
+            <Input
+              value={field.yearGroup}
+              placeholder="1"
+              className="w-14 flex-none"
+              onChange={(e) =>
+                onChange({ ...field, yearGroup: e.target.value })
+              }
+            />
           </div>
         </>
       ) : (
         <>
           <div className="flex gap-1.5">
-            <Input value={field.pattern} placeholder="regex with a (date group)" onChange={(e) => onChange({ ...field, pattern: e.target.value })} />
-            <Input value={field.flags} placeholder="i" className="w-12 flex-none" onChange={(e) => onChange({ ...field, flags: e.target.value })} />
-            <Input value={field.group} placeholder="1" className="w-14 flex-none" onChange={(e) => onChange({ ...field, group: e.target.value })} />
+            <Input
+              value={field.pattern}
+              placeholder="regex with a (date group)"
+              onChange={(e) => onChange({ ...field, pattern: e.target.value })}
+            />
+            <Input
+              value={field.flags}
+              placeholder="i"
+              className="w-12 flex-none"
+              onChange={(e) => onChange({ ...field, flags: e.target.value })}
+            />
+            <Input
+              value={field.group}
+              placeholder="1"
+              className="w-14 flex-none"
+              onChange={(e) => onChange({ ...field, group: e.target.value })}
+            />
           </div>
-          <TransformsEditor transforms={field.transforms} onChange={(t) => onChange({ ...field, transforms: t })} />
+          <TransformsEditor
+            transforms={field.transforms}
+            onChange={(t) => onChange({ ...field, transforms: t })}
+          />
         </>
       )}
 
@@ -1412,9 +1728,16 @@ function PeriodEditor({
           type="number"
           value={String(field.monthShift)}
           className="w-[72px] flex-none"
-          onChange={(e) => onChange({ ...field, monthShift: Math.trunc(Number(e.target.value) || 0) })}
+          onChange={(e) =>
+            onChange({
+              ...field,
+              monthShift: Math.trunc(Number(e.target.value) || 0),
+            })
+          }
         />
-        <span className={hint}>−1 = previous month · +1 = next · rolls the year</span>
+        <span className={hint}>
+          −1 = previous month · +1 = next · rolls the year
+        </span>
       </div>
     </div>
   );
@@ -1452,7 +1775,12 @@ function PreviewBox({ result }: { result: ParsedResult }) {
     ["Due date", result.dueDate],
     ...Object.entries(result.custom).map(
       ([k, v]) =>
-        [k, typeof v === "object" ? `${v.value}${v.unit ? ` ${v.unit}` : ""}` : String(v)] as [string, string],
+        [
+          k,
+          typeof v === "object"
+            ? `${v.value}${v.unit ? ` ${v.unit}` : ""}`
+            : String(v),
+        ] as [string, string],
     ),
   ];
   return (
@@ -1483,27 +1811,60 @@ function ErrorBox({ text }: { text: string }) {
 
 function StatusLine({ ok, text }: { ok: boolean; text: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-2 font-mono text-xs", ok ? "text-ink" : "text-muted")}>
-      <span className={cn("w-2 h-2 inline-block flex-none", ok ? "bg-accent" : "bg-line")} />
+    <span
+      className={cn(
+        "inline-flex items-center gap-2 font-mono text-xs",
+        ok ? "text-ink" : "text-muted",
+      )}
+    >
+      <span
+        className={cn(
+          "w-2 h-2 inline-block flex-none",
+          ok ? "bg-accent" : "bg-line",
+        )}
+      />
       {text}
     </span>
   );
 }
 
-function Section({ title, children, dim }: { title: string; children: React.ReactNode; dim?: boolean }) {
+function Section({
+  title,
+  children,
+  dim,
+}: {
+  title: string;
+  children: React.ReactNode;
+  dim?: boolean;
+}) {
   return (
-    <section className={cn("border border-line p-4 transition-opacity duration-200", dim ? "opacity-55 pointer-events-none" : "opacity-100")}>
-      <h3 className="font-mono text-micro uppercase tracking-label text-accent mb-3">{title}</h3>
+    <section
+      className={cn(
+        "border border-line p-4 transition-opacity duration-200",
+        dim ? "opacity-55 pointer-events-none" : "opacity-100",
+      )}
+    >
+      <h3 className="font-mono text-micro uppercase tracking-label text-accent mb-3">
+        {title}
+      </h3>
       {children}
     </section>
   );
 }
 
 function Grid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>;
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>
+  );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-[5px]">
       <span className={miniLabel}>{label}</span>
@@ -1531,14 +1892,18 @@ function ModeTab({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={cn(tabClass(active), "disabled:opacity-40 disabled:cursor-not-allowed")}
+      className={cn(
+        tabClass(active),
+        "disabled:opacity-40 disabled:cursor-not-allowed",
+      )}
     >
       {children}
     </button>
   );
 }
 
-const miniLabel = "font-mono text-[10px] uppercase tracking-[0.14em] text-muted";
+const miniLabel =
+  "font-mono text-[10px] uppercase tracking-[0.14em] text-muted";
 
 // Hint text — the block-level spacing (mb-2.5) is added per-use so it can be
 // dropped where the hint sits inline.
@@ -1549,7 +1914,9 @@ const xBtn = "border-none bg-transparent cursor-pointer text-muted text-xs";
 function tabClass(active: boolean): string {
   return cn(
     "font-mono text-micro uppercase tracking-[0.1em] py-[5px] px-2.5 cursor-pointer border transition-colors",
-    active ? "border-ink bg-ink text-paper" : "border-line bg-transparent text-muted",
+    active
+      ? "border-ink bg-ink text-paper"
+      : "border-line bg-transparent text-muted",
   );
 }
 

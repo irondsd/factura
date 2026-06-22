@@ -10,7 +10,7 @@ import { loadUserConfigs } from "../registry";
 import { protectedProcedure, router } from "../trpc";
 
 /** Resolve the property ids an insights query should cover: a single requested
- * apartment (when the caller is a member) or all the caller's apartments. */
+ * property (when the caller is a member) or all the caller's properties. */
 async function resolveScope(
   db: typeof Db,
   userId: string,
@@ -40,17 +40,14 @@ function nowMonth(): string {
 
 type EnrichedBill = typeof bills.$inferSelect & { usdAmount: number | null };
 
-/** All parsed bills across the given apartments, USD-enriched. */
+/** All parsed bills across the given properties, USD-enriched. */
 async function loadParsed(
   db: typeof Db,
   scopeIds: string[],
 ): Promise<EnrichedBill[]> {
   if (scopeIds.length === 0) return [];
   const rows = await db.query.bills.findMany({
-    where: and(
-      inArray(bills.propertyId, scopeIds),
-      eq(bills.status, "parsed"),
-    ),
+    where: and(inArray(bills.propertyId, scopeIds), eq(bills.status, "parsed")),
     columns: { rawText: false },
   });
   const rateFor = await usdRateLookup(db, rows.map(billRateDate));
@@ -65,7 +62,11 @@ async function loadParsed(
 }
 
 const amountIn = (b: EnrichedBill, currency: Currency) =>
-  currency === "USD" ? b.usdAmount : b.totalAmount !== null ? Number(b.totalAmount) : null;
+  currency === "USD"
+    ? b.usdAmount
+    : b.totalAmount !== null
+      ? Number(b.totalAmount)
+      : null;
 
 type CustomVal = number | string | { value: number; unit?: string };
 
@@ -93,7 +94,7 @@ async function loadActiveAccounts(db: typeof Db, scopeIds: string[]) {
   });
 }
 
-/** Vendors across the given apartments. */
+/** Vendors across the given properties. */
 async function loadVendors(db: typeof Db, scopeIds: string[]) {
   if (scopeIds.length === 0) return [];
   return db.query.vendors.findMany({
@@ -167,7 +168,11 @@ type MonthSeries = ReturnType<typeof monthlySeries>;
 type VendorHere = ReturnType<typeof vendorMeta>;
 
 /** Vendor share over complete months, sorted high → low. */
-function shareList(series: MonthSeries, completeFlags: boolean[], vendors: VendorHere[]) {
+function shareList(
+  series: MonthSeries,
+  completeFlags: boolean[],
+  vendors: VendorHere[],
+) {
   const share: Record<string, number> = {};
   series.forEach((s, i) => {
     if (!completeFlags[i]) return;
@@ -250,10 +255,14 @@ export const insightsRouter = router({
           accountId: a.id,
           vendor: vendorMeta(v),
           received: Boolean(thisMonth),
-          amount: thisMonth?.totalAmount != null ? Number(thisMonth.totalAmount) : null,
+          amount:
+            thisMonth?.totalAmount != null
+              ? Number(thisMonth.totalAmount)
+              : null,
           usd: thisMonth?.usdAmount ?? null,
           lastPeriod: last?.period ? last.period.slice(0, 7) : null,
-          lastAmount: last?.totalAmount != null ? Number(last.totalAmount) : null,
+          lastAmount:
+            last?.totalAmount != null ? Number(last.totalAmount) : null,
         };
       });
       const received = awaiting.filter((a) => a.received);
@@ -272,10 +281,17 @@ export const insightsRouter = router({
 
       // Stacked series, vendor share and per-vendor trend in both currencies so
       // each chart can switch ARS/USD client-side without a refetch.
-      const byCurrency = currencyViews(months, parsed, completeFlags, vendorsHere);
+      const byCurrency = currencyViews(
+        months,
+        parsed,
+        completeFlags,
+        vendorsHere,
+      );
 
       return {
-        property: property ? { id: property.id, nickname: property.nickname } : null,
+        property: property
+          ? { id: property.id, nickname: property.nickname }
+          : null,
         month: now,
         thisMonthTotal,
         thisMonthUsd,
@@ -323,7 +339,12 @@ export const insightsRouter = router({
         .filter((v) => presentVendorIds.has(v.id))
         .map((v) => vendorMeta(v));
 
-      const byCurrency = currencyViews(months, parsed, completeFlags, vendorsHere);
+      const byCurrency = currencyViews(
+        months,
+        parsed,
+        completeFlags,
+        vendorsHere,
+      );
 
       return {
         months,
@@ -354,7 +375,7 @@ export const insightsRouter = router({
       const vendor = await ctx.db.query.vendors.findFirst({
         where: eq(vendors.id, vendorId),
       });
-      // Vendor must live in one of the apartments in scope.
+      // Vendor must live in one of the properties in scope.
       if (!vendor || !scopeIds.includes(vendor.propertyId)) return null;
       const parsed = (await loadParsed(ctx.db, scopeIds)).filter(
         (b) => b.vendorId === vendorId,
@@ -375,7 +396,10 @@ export const insightsRouter = router({
       const slugs = new Set(
         parsed.map((b) => b.parserKey).filter((s): s is string => Boolean(s)),
       );
-      const fieldMeta = new Map<string, { type: FieldType; unit: string | null }>();
+      const fieldMeta = new Map<
+        string,
+        { type: FieldType; unit: string | null }
+      >();
       for (const c of configs) {
         if (!slugs.has(c.slug)) continue;
         for (const cf of c.custom ?? []) {
@@ -430,7 +454,15 @@ export const insightsRouter = router({
             unitPrice = { arsIdx: rebase(ars), usdIdx: rebase(usd) };
           }
 
-          return { name, type: m.type, unit: m.unit, isMoney, values, valuesUsd, unitPrice };
+          return {
+            name,
+            type: m.type,
+            unit: m.unit,
+            isMoney,
+            values,
+            valuesUsd,
+            unitPrice,
+          };
         });
 
       return { vendor: vendorMeta(vendor), months, spend, fields };

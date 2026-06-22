@@ -66,7 +66,9 @@ export default function OverviewPage() {
           </div>
           <p className="font-mono text-[13px] text-muted mt-2">
             {d.billsIn} of {d.billsExpected} bills in
-            {d.thisMonthUsd > 0 && <span> · ≈ {formatUSD(d.thisMonthUsd)}</span>}
+            {d.thisMonthUsd > 0 && (
+              <span> · ≈ {formatUSD(d.thisMonthUsd)}</span>
+            )}
             {pending > 0 && <span> · {pending} awaiting</span>}
           </p>
         </div>
@@ -113,7 +115,9 @@ export default function OverviewPage() {
                       {a.lastPeriod
                         ? `${formatMonthShort(a.lastPeriod)} ${a.lastPeriod.slice(0, 4)}`
                         : "—"}
-                      {a.lastAmount != null && <span> · {formatMoney(a.lastAmount, "ARS")}</span>}
+                      {a.lastAmount != null && (
+                        <span> · {formatMoney(a.lastAmount, "ARS")}</span>
+                      )}
                     </p>
                     <p className="font-mono text-micro mt-1 text-accent">
                       △ awaiting
@@ -134,7 +138,11 @@ export default function OverviewPage() {
           action={donut.toggle}
         >
           <div className="flex flex-wrap items-center gap-[18px] md:flex-nowrap">
-            <DonutFx slices={slices} centerLabel={moneySym} centerSub="by vendor" />
+            <DonutFx
+              slices={slices}
+              centerLabel={moneySym}
+              centerSub="by vendor"
+            />
             <div className="flex flex-col gap-[9px] flex-1">
               {slices.map((s) => (
                 <div key={s.id} className="flex items-center gap-[9px]">
@@ -157,7 +165,11 @@ export default function OverviewPage() {
           </div>
         </ChartCard>
 
-        <ChartCard title="Monthly spend" caption="Stacked by vendor" action={bars.toggle}>
+        <ChartCard
+          title="Monthly spend"
+          caption="Stacked by vendor"
+          action={bars.toggle}
+        >
           <StackedBarsFx
             months={d.months}
             stacks={d.byCurrency[bars.currency].series.map((s) => s.byVendor)}
@@ -167,7 +179,11 @@ export default function OverviewPage() {
             height={210}
           />
           <Legend
-            items={d.vendors.map((v) => ({ id: v.id, label: v.displayName, color: v.color }))}
+            items={d.vendors.map((v) => ({
+              id: v.id,
+              label: v.displayName,
+              color: v.color,
+            }))}
             className="mt-3"
           />
         </ChartCard>
@@ -198,7 +214,8 @@ export default function OverviewPage() {
                       </span>
                     </div>
                     <div className="font-mono text-micro text-muted mt-1">
-                      {formatMoney(pv.last, trend.currency)} <Delta pct={pv.pct} className="ml-1" />
+                      {formatMoney(pv.last, trend.currency)}{" "}
+                      <Delta pct={pv.pct} className="ml-1" />
                     </div>
                   </div>
                   <SparklineFx values={pv.values} color={pv.vendor.color} />

@@ -14,7 +14,12 @@ import { loadUserConfigs } from "./registry";
 export type IngestResult =
   | { outcome: "duplicate"; billId: string }
   | { outcome: "unrecognized"; billId: string }
-  | { outcome: "parse_failed"; billId: string; vendorName: string; error: string }
+  | {
+      outcome: "parse_failed";
+      billId: string;
+      vendorName: string;
+      error: string;
+    }
   | {
       outcome: "unknown_account";
       billId: string;
@@ -32,7 +37,11 @@ export type IngestResult =
       periodDuplicate: boolean;
     };
 
-export type VendorMeta = { slug: string; displayName: string; category: string };
+export type VendorMeta = {
+  slug: string;
+  displayName: string;
+  category: string;
+};
 
 /** Vendor identity carried on an *unfiled* bill (no vendor row yet), so the
  * inbox can show a label and filing can later materialize the real vendor. */
@@ -45,14 +54,16 @@ export function vendorMetaExtra(config: ParserConfig) {
 }
 
 /** Find an existing account for `vendorSlug` + `accountNumber` in one of the
- * given apartments. Vendors are per-apartment, so the match is on vendor slug
+ * given properties. Vendors are per-property, so the match is on vendor slug
  * across the caller's accessible properties. */
 export async function findAccountMatch(
   db: typeof Db,
   accessible: string[],
   vendorSlug: string,
   accountNumber: string,
-): Promise<{ accountId: string; propertyId: string; vendorId: string } | undefined> {
+): Promise<
+  { accountId: string; propertyId: string; vendorId: string } | undefined
+> {
   if (accessible.length === 0) return undefined;
   const [row] = await db
     .select({
@@ -84,9 +95,9 @@ export function vendorMetaFromExtra(
   return { slug, displayName, category };
 }
 
-/** Materialize an apartment's vendor + account for `accountNumber`, point the
+/** Materialize an property's vendor + account for `accountNumber`, point the
  * bill at them and mark it parsed. The single place a bill becomes "filed" into
- * an apartment — shared by ingest, confirmAccount, manual fill, and reparse. */
+ * an property — shared by ingest, confirmAccount, manual fill, and reparse. */
 export async function fileBillIntoProperty(
   db: typeof Db,
   billId: string,
@@ -166,7 +177,7 @@ export async function ingestBill(
     textHash,
   };
 
-  // Duplicate check is scoped to where the bill would land: per-apartment once
+  // Duplicate check is scoped to where the bill would land: per-property once
   // filed, per-uploader while it sits unfiled in the inbox.
   const inboxDuplicate = () =>
     db.query.bills.findFirst({
@@ -220,7 +231,7 @@ export async function ingestBill(
   };
 
   // Find an existing account for this vendor + number in one of the uploader's
-  // apartments. Vendors are per-apartment now, so we match on the vendor slug.
+  // properties. Vendors are per-property now, so we match on the vendor slug.
   const accessible = await accessibleProperties(db, userId);
   const match = await findAccountMatch(
     db,
@@ -231,7 +242,7 @@ export async function ingestBill(
 
   if (!match) {
     // First bill from this account: keep it in the inbox with the vendor identity
-    // on `extra`, and ask the user which apartment once (confirmAccount).
+    // on `extra`, and ask the user which property once (confirmAccount).
     const dup = await inboxDuplicate();
     if (dup) return { outcome: "duplicate", billId: dup.id };
     const props = accessible.length
@@ -258,13 +269,19 @@ export async function ingestBill(
   }
 
   const propertyDuplicate = await db.query.bills.findFirst({
-    where: and(eq(bills.propertyId, match.propertyId), eq(bills.textHash, textHash)),
+    where: and(
+      eq(bills.propertyId, match.propertyId),
+      eq(bills.textHash, textHash),
+    ),
   });
   if (propertyDuplicate)
     return { outcome: "duplicate", billId: propertyDuplicate.id };
 
   const periodTwin = await db.query.bills.findFirst({
-    where: and(eq(bills.accountId, match.accountId), eq(bills.period, result.period)),
+    where: and(
+      eq(bills.accountId, match.accountId),
+      eq(bills.period, result.period),
+    ),
   });
 
   const [bill] = await db
