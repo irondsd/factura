@@ -1240,6 +1240,36 @@ function Builder() {
               + Add signature
             </Button>
 
+            <div className="mt-4">
+              <p className={`${hint} mb-2.5`}>
+                Optional — patterns that must <em>not</em> appear. Use this to
+                split one vendor across two parsers: e.g. the monthly bill must
+                not contain “Cuota 13”, while a second parser claims exactly the
+                annual “Cuota 13” bill.
+              </p>
+              {noneSigs.map((s, i) => (
+                <SigRow
+                  key={i}
+                  sig={s}
+                  onChange={(ns) =>
+                    setNoneSigs(noneSigs.map((x, j) => (j === i ? ns : x)))
+                  }
+                  onRemove={() =>
+                    setNoneSigs(noneSigs.filter((_, j) => j !== i))
+                  }
+                />
+              ))}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  setNoneSigs([...noneSigs, { pattern: "", flags: "i" }])
+                }
+              >
+                + Add exclusion
+              </Button>
+            </div>
+
             <div className="mt-3 flex flex-col gap-1.5">
               <StatusLine
                 ok={matchesCurrent}
