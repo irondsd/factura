@@ -6,19 +6,21 @@ import {
   ChartCard,
   Delta,
   Display,
-  DonutFx,
   Eyebrow,
   Legend,
   SparklineFx,
   StackedBarsFx,
   useChartCurrency,
+  VendorShare,
 } from "@/components/charts";
+import { FinePrint } from "@/components/ui";
 import {
   formatMoney,
   formatMonth,
   formatMonthShort,
   formatUSD,
 } from "@/lib/format";
+import { toSlices } from "@/lib/insights";
 import { trpc } from "@/lib/trpc";
 
 export default function OverviewPage() {
@@ -29,28 +31,13 @@ export default function OverviewPage() {
   const trend = useChartCurrency();
 
   if (!overview.data) {
-    return (
-      <div className="mx-auto max-w-[64rem] px-5 py-8 font-mono text-[13px] text-muted">
-        Reading the fine print…
-      </div>
-    );
+    return <FinePrint className="mx-auto max-w-[64rem] px-5 py-8" />;
   }
 
   const d = overview.data;
-  const vendorById = new Map(d.vendors.map((v) => [v.id, v]));
   const pending = d.billsExpected - d.billsIn;
-  const donutShare = d.byCurrency[donut.currency].share;
   const moneySym = donut.currency === "USD" ? "US$" : "AR$";
-  const shareTotal = donutShare.reduce((a, s) => a + s.value, 0) || 1;
-  const slices = donutShare.map((s) => {
-    const v = vendorById.get(s.vendorId);
-    return {
-      id: s.vendorId,
-      label: v?.displayName ?? "—",
-      value: s.value,
-      color: v?.color ?? "var(--muted)",
-    };
-  });
+  const slices = toSlices(d.byCurrency[donut.currency].share, d.vendors);
 
   return (
     <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
@@ -137,32 +124,11 @@ export default function OverviewPage() {
           caption="Last 12 complete months"
           action={donut.toggle}
         >
-          <div className="flex flex-wrap items-center gap-[18px] md:flex-nowrap">
-            <DonutFx
-              slices={slices}
-              centerLabel={moneySym}
-              centerSub="by vendor"
-            />
-            <div className="flex flex-col gap-[9px] flex-1">
-              {slices.map((s) => (
-                <div key={s.id} className="flex items-center gap-[9px]">
-                  <span
-                    className="inline-block w-2.5 h-2.5 flex-none"
-                    style={{ background: s.color }}
-                  />
-                  <span className="font-mono text-xs flex-1">{s.label}</span>
-                  <span className="font-mono text-xs font-medium">
-                    {Math.round((s.value / shareTotal) * 100)}%
-                  </span>
-                </div>
-              ))}
-              {slices.length === 0 && (
-                <span className="font-mono text-xs text-muted">
-                  No complete months yet.
-                </span>
-              )}
-            </div>
-          </div>
+          <VendorShare
+            slices={slices}
+            centerLabel={moneySym}
+            centerSub="by vendor"
+          />
         </ChartCard>
 
         <ChartCard

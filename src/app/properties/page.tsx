@@ -2,13 +2,13 @@
 
 import { useSession } from "next-auth/react";
 import { useMemo, useState } from "react";
-import { useApp } from "@/components/app/context";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button, Checkbox, Input } from "@/components/ui";
 import { VendorColorPicker } from "@/components/VendorColorPicker";
 import { cn } from "@/lib/cn";
 import { OWNED_PROPERTY_LIMIT } from "@/lib/limits";
+import { useToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
 
 const help =
@@ -23,7 +23,7 @@ const iconX =
 
 export default function PropertiesPage() {
   const { data: session } = useSession();
-  const { showToast } = useApp();
+  const { showToast, error: toastErr, opts } = useToast();
   const utils = trpc.useUtils();
 
   const properties = trpc.properties.list.useQuery();
@@ -32,7 +32,6 @@ export default function PropertiesPage() {
   const accounts = trpc.accounts.list.useQuery();
 
   const invalidate = () => utils.invalidate();
-  const toastErr = (err: { message: string }) => showToast(`✕ ${err.message}`);
 
   const createApt = trpc.properties.create.useMutation({
     onSuccess: invalidate,
@@ -117,10 +116,7 @@ export default function PropertiesPage() {
                   onClick={() =>
                     acceptInvite.mutate(
                       { id: inv.id },
-                      {
-                        onSuccess: () => showToast("Invitation accepted"),
-                        onError: toastErr,
-                      },
+                      opts("Invitation accepted"),
                     )
                   }
                 >
@@ -131,10 +127,7 @@ export default function PropertiesPage() {
                   onClick={() =>
                     declineInvite.mutate(
                       { id: inv.id },
-                      {
-                        onSuccess: () => showToast("Invitation declined"),
-                        onError: toastErr,
-                      },
+                      opts("Invitation declined"),
                     )
                   }
                 >
@@ -205,10 +198,7 @@ export default function PropertiesPage() {
                     onClick={() =>
                       leave.mutate(
                         { propertyId: apt.id },
-                        {
-                          onSuccess: () => showToast("Left property"),
-                          onError: toastErr,
-                        },
+                        opts("Left property"),
                       )
                     }
                   >
@@ -252,10 +242,7 @@ export default function PropertiesPage() {
                     onClick={() =>
                       removeMember.mutate(
                         { propertyId: apt.id, userId: m.userId },
-                        {
-                          onSuccess: () => showToast("Member removed"),
-                          onError: toastErr,
-                        },
+                        opts("Member removed"),
                       )
                     }
                     className={iconX}
@@ -275,13 +262,7 @@ export default function PropertiesPage() {
                   <button
                     aria-label="Revoke"
                     onClick={() =>
-                      revokeInvite.mutate(
-                        { id: inv.id },
-                        {
-                          onSuccess: () => showToast("Invite revoked"),
-                          onError: toastErr,
-                        },
-                      )
+                      revokeInvite.mutate({ id: inv.id }, opts("Invite revoked"))
                     }
                     className={iconX}
                   >
@@ -295,10 +276,7 @@ export default function PropertiesPage() {
                 onInvite={(email) =>
                   invite.mutate(
                     { propertyId: apt.id, email },
-                    {
-                      onSuccess: () => showToast("Invitation sent"),
-                      onError: toastErr,
-                    },
+                    opts("Invitation sent"),
                   )
                 }
               />
@@ -408,10 +386,7 @@ export default function PropertiesPage() {
             if (!newNickname.trim()) return;
             createApt.mutate(
               { nickname: newNickname.trim(), addressVariants: [] },
-              {
-                onSuccess: () => showToast("Property added"),
-                onError: toastErr,
-              },
+              opts("Property added"),
             );
             setNewNickname("");
           }}

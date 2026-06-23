@@ -15,12 +15,12 @@ import { createPropertyForUser } from "../defaults";
 import { sendShareInviteEmail } from "../email";
 import { deleteObject, isStorageConfigured } from "../storage";
 import {
-  accessibleProperties,
   assertMember,
   assertMemberVendor,
   OWNED_PROPERTY_LIMIT,
+  scopeIds,
 } from "../ownership";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, router, scopedProcedure } from "../trpc";
 
 export const propertiesRouter = router({
   /** Every property the user can access (owned + shared), each with the
@@ -397,16 +397,10 @@ async function assertOwnInvite(
 }
 
 export const vendorsRouter = router({
-  list: protectedProcedure
+  list: scopedProcedure
     .input(z.object({ propertyId: z.string().uuid().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const ids = await accessibleProperties(ctx.db, ctx.userId);
-      if (ids.length === 0) return [];
-      const scope = input?.propertyId
-        ? ids.includes(input.propertyId)
-          ? [input.propertyId]
-          : []
-        : ids;
+      const scope = scopeIds(ctx.accessiblePropertyIds, input?.propertyId);
       if (scope.length === 0) return [];
       return ctx.db.query.vendors.findMany({
         where: inArray(vendors.propertyId, scope),
@@ -439,16 +433,10 @@ export const vendorsRouter = router({
 });
 
 export const accountsRouter = router({
-  list: protectedProcedure
+  list: scopedProcedure
     .input(z.object({ propertyId: z.string().uuid().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const ids = await accessibleProperties(ctx.db, ctx.userId);
-      if (ids.length === 0) return [];
-      const scope = input?.propertyId
-        ? ids.includes(input.propertyId)
-          ? [input.propertyId]
-          : []
-        : ids;
+      const scope = scopeIds(ctx.accessiblePropertyIds, input?.propertyId);
       if (scope.length === 0) return [];
       return ctx.db.query.vendorAccounts.findMany({
         where: inArray(vendorAccounts.propertyId, scope),

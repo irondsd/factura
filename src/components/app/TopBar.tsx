@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { Session } from "next-auth";
 import { useState } from "react";
 import { Segmented } from "@/components/charts/primitives";
+import { Avatar } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 import { BurgerButton } from "./BurgerButton";
@@ -41,13 +42,6 @@ export function TopBar({ user }: { user: Session["user"] }) {
   ];
 
   const name = user?.name ?? user?.email ?? "You";
-  const initials = name
-    .split(/[\s@.]+/)
-    .filter(Boolean)
-    .map((s) => s[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 
   const navLink = (l: { href: string; label: string }) => {
     const active = pathname === l.href;
@@ -66,14 +60,11 @@ export function TopBar({ user }: { user: Session["user"] }) {
   };
 
   const avatarCircle = (
-    <span
-      className={cn(
-        "inline-flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full text-paper font-mono text-micro font-medium transition-colors hover:bg-accent",
-        onProfile ? "bg-accent" : "bg-ink",
-      )}
-    >
-      {initials}
-    </span>
+    <Avatar
+      name={name}
+      active={onProfile}
+      className="text-micro transition-colors hover:bg-accent"
+    />
   );
 
   return (

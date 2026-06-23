@@ -25,6 +25,17 @@ export async function accessibleProperties(
   return rows.map((r) => r.propertyId);
 }
 
+/** Narrow a set of accessible property ids to a query's scope: a single
+ * requested property (only if the caller can access it, else empty), or all
+ * accessible properties when none is requested. */
+export function scopeIds(
+  accessible: string[],
+  propertyId?: string,
+): string[] {
+  if (propertyId) return accessible.includes(propertyId) ? [propertyId] : [];
+  return accessible;
+}
+
 /** Throw unless `userId` is a member of `propertyId`; when `requiredRole` is
  * "owner", also require the owner role. Returns the membership row. Use before
  * any read or write scoped to a single property. */

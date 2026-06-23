@@ -15,12 +15,7 @@ import {
   vendorMetaExtra,
   vendorMetaFromExtra,
 } from "../ingest";
-import {
-  accessibleProperties,
-  assertMember,
-  assertMemberVendor,
-  RAW_TEXT_MAX,
-} from "../ownership";
+import { assertMember, assertMemberVendor, RAW_TEXT_MAX } from "../ownership";
 import { resultToColumns, resultToExtra } from "../parsers";
 import { loadUserConfigs } from "../registry";
 import {
@@ -29,7 +24,7 @@ import {
   presignDownload,
   presignUpload,
 } from "../storage";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, router, scopedProcedure } from "../trpc";
 
 const period = z.string().regex(/^\d{4}-\d{2}-01$/);
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -168,7 +163,7 @@ export const billsRouter = router({
       return ingestBill(ctx.db, ctx.userId, input);
     }),
 
-  list: protectedProcedure
+  list: scopedProcedure
     .input(
       z.object({
         status: z.enum(["parsed", "needs_review"]).optional(),
@@ -177,7 +172,7 @@ export const billsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const ids = ctx.accessiblePropertyIds;
       if (input.propertyId && !ids.includes(input.propertyId)) return [];
       const scope = input.propertyId
         ? eq(bills.propertyId, input.propertyId)
@@ -195,10 +190,10 @@ export const billsRouter = router({
 
   /** Distinct vendors that actually have bills (optionally for one property) —
    * drives the ledger's vendor filter tabs, independent of account rows. */
-  vendorsPresent: protectedProcedure
+  vendorsPresent: scopedProcedure
     .input(z.object({ propertyId: z.string().uuid().optional() }))
     .query(async ({ ctx, input }) => {
-      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const ids = ctx.accessiblePropertyIds;
       if (input.propertyId && !ids.includes(input.propertyId)) return [];
       const scope = input.propertyId
         ? eq(bills.propertyId, input.propertyId)
@@ -214,7 +209,7 @@ export const billsRouter = router({
 
   /** Paginated ledger for the Bills screen: review-needed first, then newest
    * period; USD-enriched. */
-  listPaged: protectedProcedure
+  listPaged: scopedProcedure
     .input(
       z.object({
         propertyId: z.string().uuid().optional(),
@@ -224,7 +219,7 @@ export const billsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const ids = ctx.accessiblePropertyIds;
       if (input.propertyId && !ids.includes(input.propertyId))
         return { rows: [], total: 0, page: 0, pageCount: 1 };
       const scope = input.propertyId
@@ -267,10 +262,10 @@ export const billsRouter = router({
 
   /** Full bill incl. raw extracted text, a presigned link to the stored PDF,
    * and the year-over-year delta — everything the editor drawer needs. */
-  get: protectedProcedure
+  get: scopedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const ids = ctx.accessiblePropertyIds;
       const bill = await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
       const downloadUrl =
         bill.storageKey && isStorageConfigured()
@@ -327,7 +322,7 @@ export const billsRouter = router({
    * a parsed-but-unfiled bill that carries a vendor identity also materializes
    * its vendor + account, so the rest of that account's bills resolve on their
    * own. */
-  update: protectedProcedure
+  update: scopedProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -339,7 +334,7 @@ export const billsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const ids = ctx.accessiblePropertyIds;
       const bill = await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
 
       // Filing is a member action; vendor must live in an accessible property.
@@ -384,7 +379,7 @@ export const billsRouter = router({
 
   /** One-click answer to "new account NNN — which property?" Materializes the
    * property's vendor + account and finalizes the bill; never asked again. */
-  confirmAccount: protectedProcedure
+  confirmAccount: scopedProcedure
     .input(
       z.object({
         billId: z.string().uuid(),
@@ -394,7 +389,7 @@ export const billsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       await assertMember(ctx.db, ctx.userId, input.propertyId);
-      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const ids = ctx.accessiblePropertyIds;
       const bill = await loadAccessibleBill(
         ctx.db,
         ctx.userId,
@@ -422,9 +417,9 @@ export const billsRouter = router({
 
   /** Re-run current parsers over stored raw text for every accessible bill.
    * Backfills new fields and rescues needs_review bills after parser changes. */
-  reparse: protectedProcedure.mutation(async ({ ctx }) => {
+  reparse: scopedProcedure.mutation(async ({ ctx }) => {
     const configs = await loadUserConfigs(ctx.db, ctx.userId);
-    const ids = await accessibleProperties(ctx.db, ctx.userId);
+    const ids = ctx.accessiblePropertyIds;
     const all = await ctx.db.query.bills.findMany({
       where: billsScope(ids, ctx.userId),
     });
@@ -450,10 +445,10 @@ export const billsRouter = router({
   }),
 
   /** Drawer "From the text" path: re-run the parser on the stored text. */
-  reparseText: protectedProcedure
+  reparseText: scopedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const ids = ctx.accessiblePropertyIds;
       const bill = await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
       const configs = await loadUserConfigs(ctx.db, ctx.userId);
       const updated = await reparseSingle(
@@ -468,7 +463,7 @@ export const billsRouter = router({
 
   /** Drawer "From the file" path: the client re-extracts text from the stored
    * PDF (pdf.js), we replace the stored text and re-run the parser. */
-  reparseFile: protectedProcedure
+  reparseFile: scopedProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -476,7 +471,7 @@ export const billsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const ids = ctx.accessiblePropertyIds;
       const bill = await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
       await ctx.db
         .update(bills)
@@ -493,10 +488,10 @@ export const billsRouter = router({
       return { updated };
     }),
 
-  delete: protectedProcedure
+  delete: scopedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const ids = await accessibleProperties(ctx.db, ctx.userId);
+      const ids = ctx.accessiblePropertyIds;
       const bill = await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
       // Drop the stored PDF first: if storage is unreachable this throws and
       // leaves the DB row intact, so we never orphan the object in the bucket.

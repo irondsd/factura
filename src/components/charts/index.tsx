@@ -16,6 +16,7 @@ import {
   YAxis,
 } from "recharts";
 import { formatMonth, formatMonthShort, formatMoney } from "@/lib/format";
+import type { Slice } from "@/lib/insights";
 
 export * from "./primitives";
 
@@ -385,6 +386,44 @@ export function DonutFx({
         )}
       </Pie>
     </PieChart>
+  );
+}
+
+/** Vendor-share donut paired with its percentage legend list. Used on the
+ * Overview and Insights screens. Percentages are computed over the slice total. */
+export function VendorShare({
+  slices,
+  centerLabel,
+  centerSub,
+  emptyLabel = "No complete months yet.",
+}: {
+  slices: Slice[];
+  centerLabel?: string;
+  centerSub?: string;
+  emptyLabel?: string;
+}) {
+  const total = slices.reduce((a, s) => a + s.value, 0) || 1;
+  return (
+    <div className="flex flex-wrap items-center gap-4 md:flex-nowrap">
+      <DonutFx slices={slices} centerLabel={centerLabel} centerSub={centerSub} />
+      <div className="flex flex-col gap-2 flex-1">
+        {slices.map((s) => (
+          <div key={s.id} className="flex items-center gap-2">
+            <span
+              className="inline-block w-2.5 h-2.5 flex-none"
+              style={{ background: s.color }}
+            />
+            <span className="font-mono text-xs flex-1">{s.label}</span>
+            <span className="font-mono text-xs font-medium">
+              {Math.round((s.value / total) * 100)}%
+            </span>
+          </div>
+        ))}
+        {slices.length === 0 && (
+          <span className="font-mono text-xs text-muted">{emptyLabel}</span>
+        )}
+      </div>
+    </div>
   );
 }
 

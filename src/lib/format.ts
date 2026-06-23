@@ -71,3 +71,15 @@ export function shiftMonth(month: string, delta: number): string {
 export function currentMonth(): string {
   return new Date().toISOString().slice(0, 7);
 }
+
+/** Up-to-two-letter initials from a name or email, e.g. "Ada Lovelace" -> "AL",
+ * "ada@example.com" -> "AE". Used for avatar circles. */
+export function initials(name: string): string {
+  return name
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}

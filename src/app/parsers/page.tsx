@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useApp } from "@/components/app/context";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Badge, Button } from "@/components/ui";
+import { useToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
 
 const parserRow =
@@ -20,7 +20,7 @@ const nameStyle = "font-mono font-semibold text-sm";
  * power-user surface). */
 export default function ParsersPage() {
   const router = useRouter();
-  const { showToast } = useApp();
+  const { showToast, error: toastErr } = useToast();
   const utils = trpc.useUtils();
 
   const list = trpc.parsers.list.useQuery();
@@ -66,7 +66,7 @@ export default function ParsersPage() {
       showToast(`${label} · reparsed ${res.updated} bill(s)`);
       utils.invalidate();
     } catch (e) {
-      showToast(`✕ ${e instanceof Error ? e.message : e}`);
+      toastErr(e);
     }
   };
 
@@ -76,7 +76,7 @@ export default function ParsersPage() {
       await refresh();
       showToast(`Published v${r.version}`);
     } catch (e) {
-      showToast(`✕ ${e instanceof Error ? e.message : e}`);
+      toastErr(e);
     }
   };
 

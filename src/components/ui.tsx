@@ -7,9 +7,14 @@ import type {
   SelectHTMLAttributes,
 } from "react";
 import { cn } from "@/lib/cn";
+import { initials } from "@/lib/format";
 
 // Factura's design-system primitives — square corners, mono uppercase labels,
 // hairline borders, one accent. Ported from the design bundle.
+
+/** The recurring tiny mono uppercase caption used for field/section labels. */
+export const microLabel =
+  "font-mono text-[10px] uppercase tracking-[0.14em] text-muted";
 
 const BTN_BASE =
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none border border-transparent font-mono text-micro uppercase tracking-label leading-none cursor-pointer transition-colors";
@@ -115,5 +120,96 @@ export function Badge({
     >
       {children}
     </span>
+  );
+}
+
+/** Filter pill used for the vendor tabs on the Bills and Insights screens. The
+ * swatch accepts either a tailwind class (`colorClass`, e.g. the `.vbg-*`
+ * classes) or a raw color string (`color`). */
+export function FilterPill({
+  label,
+  color,
+  colorClass,
+  active,
+  onClick,
+}: {
+  label: string;
+  color?: string;
+  colorClass?: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-[7px] font-mono text-micro uppercase tracking-[0.12em] py-[5px] px-[11px] cursor-pointer border transition-colors",
+        active
+          ? "border-ink bg-ink text-paper"
+          : "border-transparent bg-transparent text-muted",
+      )}
+    >
+      {(color || colorClass) && (
+        <span
+          className={cn("inline-block w-2 h-2", colorClass)}
+          style={color ? { background: color } : undefined}
+        />
+      )}
+      {label}
+    </button>
+  );
+}
+
+/** A labeled form control: the mono caption above an Input/Select/etc. */
+export function Field({
+  label,
+  children,
+  className,
+}: {
+  label: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <label className={cn("flex flex-col gap-[5px]", className)}>
+      <span className={microLabel}>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+/** Avatar circle showing a person's initials. `size` is the px diameter; the
+ * text size comes from `className` (the design uses different sizes per spot). */
+export function Avatar({
+  name,
+  size = 30,
+  active = false,
+  className,
+}: {
+  name: string;
+  size?: number;
+  active?: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      style={{ width: size, height: size }}
+      className={cn(
+        "inline-flex flex-none items-center justify-center rounded-full text-paper font-mono font-medium",
+        active ? "bg-accent" : "bg-ink",
+        className,
+      )}
+    >
+      {initials(name)}
+    </span>
+  );
+}
+
+/** The app's house loading line. `className` positions it for each context. */
+export function FinePrint({ className }: { className?: string }) {
+  return (
+    <p className={cn("font-mono text-[13px] text-muted", className)}>
+      Reading the fine print…
+    </p>
   );
 }

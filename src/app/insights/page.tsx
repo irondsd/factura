@@ -6,16 +6,18 @@ import {
   ChartCard,
   Delta,
   Display,
-  DonutFx,
   Eyebrow,
   Legend,
   LineChartFx,
   Segmented,
   StackedBarsFx,
   useChartCurrency,
+  VendorShare,
 } from "@/components/charts";
+import { FilterPill, FinePrint } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { formatMoney } from "@/lib/format";
+import { toSlices } from "@/lib/insights";
 import { type RouterOutputs, trpc } from "@/lib/trpc";
 
 type Range = 12 | 24;
@@ -52,13 +54,13 @@ export default function InsightsPage() {
 
       {/* vendor filter */}
       <div className="flex flex-wrap gap-1.5 mt-[18px] border-b border-line pb-3">
-        <VendorTab
+        <FilterPill
           label="All vendors"
           active={vendorId === "all"}
           onClick={() => setVendorId("all")}
         />
         {vendorsHere.map((v) => (
-          <VendorTab
+          <FilterPill
             key={v.id}
             label={v.displayName}
             color={v.color}
@@ -81,59 +83,15 @@ export default function InsightsPage() {
   );
 }
 
-function VendorTab({
-  label,
-  color,
-  active,
-  onClick,
-}: {
-  label: string;
-  color?: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-[7px] font-mono text-micro uppercase tracking-[0.12em] py-[5px] px-[11px] cursor-pointer border transition-colors",
-        active
-          ? "border-ink bg-ink text-paper"
-          : "border-transparent bg-transparent text-muted",
-      )}
-    >
-      {color && (
-        <span className="inline-block w-2 h-2" style={{ background: color }} />
-      )}
-      {label}
-    </button>
-  );
-}
-
 type SeriesData = RouterOutputs["insights"]["series"];
 
 function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
   const bars = useChartCurrency();
   const donut = useChartCurrency();
   if (!data) {
-    return (
-      <p className="font-mono text-[13px] text-muted mt-5">
-        Reading the fine print…
-      </p>
-    );
+    return <FinePrint className="mt-5" />;
   }
-  const vendorById = new Map(data.vendors.map((v) => [v.id, v]));
-  const donutShare = data.byCurrency[donut.currency].share;
-  const shareTotal = donutShare.reduce((a, s) => a + s.value, 0) || 1;
-  const slices = donutShare.map((s) => {
-    const v = vendorById.get(s.vendorId);
-    return {
-      id: s.vendorId,
-      label: v?.displayName ?? "—",
-      value: s.value,
-      color: v?.color ?? "var(--muted)",
-    };
-  });
+  const slices = toSlices(data.byCurrency[donut.currency].share, data.vendors);
 
   return (
     <>
@@ -167,27 +125,11 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
           caption="Where it goes, in range"
           action={donut.toggle}
         >
-          <div className="flex flex-wrap items-center gap-4 md:flex-nowrap">
-            <DonutFx
-              slices={slices}
-              centerLabel={donut.currency === "USD" ? "US$" : "AR$"}
-              centerSub="total"
-            />
-            <div className="flex flex-col gap-2 flex-1">
-              {slices.map((s) => (
-                <div key={s.id} className="flex items-center gap-2">
-                  <span
-                    className="inline-block w-2.5 h-2.5"
-                    style={{ background: s.color }}
-                  />
-                  <span className="font-mono text-xs flex-1">{s.label}</span>
-                  <span className="font-mono text-xs font-medium">
-                    {Math.round((s.value / shareTotal) * 100)}%
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <VendorShare
+            slices={slices}
+            centerLabel={donut.currency === "USD" ? "US$" : "AR$"}
+            centerSub="total"
+          />
         </ChartCard>
 
         <ChartCard
@@ -250,11 +192,7 @@ function SingleVendorCharts({
   const d = detail.data;
 
   if (!d) {
-    return (
-      <p className="font-mono text-[13px] text-muted mt-5">
-        Reading the fine print…
-      </p>
-    );
+    return <FinePrint className="mt-5" />;
   }
 
   const vendor = d.vendor;

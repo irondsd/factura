@@ -4,7 +4,15 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Delta } from "@/components/charts/primitives";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { Badge, Button, Input, Select } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Field,
+  FinePrint,
+  Input,
+  microLabel,
+  Select,
+} from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { formatMonth, formatMonthShort } from "@/lib/format";
 import { trpc } from "@/lib/trpc";
@@ -25,9 +33,6 @@ function formatCustom(v: unknown): string {
   }
   return String(v);
 }
-
-const flabel = "font-mono text-[10px] uppercase tracking-[0.14em] text-muted";
-const field = "flex flex-col gap-[5px]";
 
 export function BillDrawer({
   billId,
@@ -202,9 +207,7 @@ export function BillDrawer({
         )}
       >
         {!bill || !draft ? (
-          <div className="p-6 font-mono text-[13px] text-muted">
-            Reading the fine print…
-          </div>
+          <FinePrint className="p-6" />
         ) : (
           <>
             {/* header */}
@@ -256,8 +259,7 @@ export function BillDrawer({
 
             {/* editable fields */}
             <div className="py-5 px-6 grid grid-cols-1 md:grid-cols-2 gap-[14px]">
-              <label className={field}>
-                <span className={flabel}>Vendor</span>
+              <Field label="Vendor">
                 <Select
                   value={draft.vendorId}
                   onChange={(e) =>
@@ -273,9 +275,8 @@ export function BillDrawer({
                     </option>
                   ))}
                 </Select>
-              </label>
-              <label className={field}>
-                <span className={flabel}>Property</span>
+              </Field>
+              <Field label="Property">
                 <Select
                   value={draft.propertyId}
                   onChange={(e) =>
@@ -291,9 +292,8 @@ export function BillDrawer({
                     </option>
                   ))}
                 </Select>
-              </label>
-              <label className={field}>
-                <span className={flabel}>Period</span>
+              </Field>
+              <Field label="Period">
                 <Input
                   type="month"
                   value={draft.period}
@@ -301,9 +301,8 @@ export function BillDrawer({
                     setDraft({ ...draft, period: e.target.value })
                   }
                 />
-              </label>
-              <label className={field}>
-                <span className={flabel}>Due date</span>
+              </Field>
+              <Field label="Due date">
                 <Input
                   type="date"
                   value={draft.dueDate}
@@ -311,9 +310,8 @@ export function BillDrawer({
                     setDraft({ ...draft, dueDate: e.target.value })
                   }
                 />
-              </label>
-              <label className={field}>
-                <span className={flabel}>Amount (ARS)</span>
+              </Field>
+              <Field label="Amount (ARS)">
                 <Input
                   type="number"
                   value={draft.totalAmount}
@@ -321,13 +319,13 @@ export function BillDrawer({
                     setDraft({ ...draft, totalAmount: e.target.value })
                   }
                 />
-              </label>
+              </Field>
             </div>
 
             {/* parser-extracted custom fields (read-only) */}
             {Object.keys(customFields).length > 0 && (
               <div className="px-6 pb-1">
-                <p className={cn(flabel, "mb-1.5")}>Extracted fields</p>
+                <p className={cn(microLabel, "mb-1.5")}>Extracted fields</p>
                 <div className="border border-line bg-paper">
                   {Object.entries(customFields).map(([k, v], i) => (
                     <div
@@ -347,7 +345,7 @@ export function BillDrawer({
 
             {/* parser used + builder entry */}
             <div className="pt-4 px-6 pb-1">
-              <p className={cn(flabel, "mb-1.5")}>Parser</p>
+              <p className={cn(microLabel, "mb-1.5")}>Parser</p>
               <div className="flex items-center gap-2.5 border border-line py-2.5 px-3 bg-paper">
                 <span className="font-mono text-xs flex-1">
                   {bill.parserKey ? (
@@ -394,7 +392,7 @@ export function BillDrawer({
 
             {/* original file */}
             <div className="px-6 pb-1">
-              <p className={cn(flabel, "mb-1.5")}>Original file</p>
+              <p className={cn(microLabel, "mb-1.5")}>Original file</p>
               <div className="flex items-center gap-2.5 border border-line py-2.5 px-3 bg-paper">
                 <span className="font-mono text-xs flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                   {bill.fileName ?? "(pasted text)"}
@@ -422,7 +420,7 @@ export function BillDrawer({
 
             {/* raw text */}
             <div className="pt-4 px-6 pb-1">
-              <p className={cn(flabel, "mb-1.5")}>Extracted text</p>
+              <p className={cn(microLabel, "mb-1.5")}>Extracted text</p>
               <pre className="ruled font-mono text-[12.5px] whitespace-pre-wrap text-ink bg-paper border border-line pt-1 px-3 pb-2.5 max-h-[240px] overflow-y-auto">
                 {bill.rawText}
               </pre>
@@ -430,7 +428,7 @@ export function BillDrawer({
 
             {/* reparse — two paths */}
             <div className="pt-3 px-6 pb-5">
-              <p className={cn(flabel, "mb-2")}>Reparse</p>
+              <p className={cn(microLabel, "mb-2")}>Reparse</p>
               <div className="flex gap-2">
                 <ReparseOption
                   title="From the file"

@@ -4,7 +4,7 @@ import type { db as Db } from "@/db";
 import { bills, properties, vendorAccounts, vendors } from "@/db/schema";
 import type { FieldType } from "@/parsers/engine/types";
 import { billRateDate, usdRateLookup } from "../fx";
-import { accessibleProperties } from "../ownership";
+import { accessibleProperties, scopeIds } from "../ownership";
 import { loadUserConfigs } from "../registry";
 import { protectedProcedure, router } from "../trpc";
 import {
@@ -29,8 +29,7 @@ async function resolveScope(
   propertyId?: string,
 ): Promise<string[]> {
   const accessible = await accessibleProperties(db, userId);
-  if (propertyId) return accessible.includes(propertyId) ? [propertyId] : [];
-  return accessible;
+  return scopeIds(accessible, propertyId);
 }
 
 /** All parsed bills across the given properties, USD-enriched. */

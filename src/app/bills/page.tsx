@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useApp } from "@/components/app/context";
 import { Display, Eyebrow } from "@/components/charts/primitives";
-import { Badge } from "@/components/ui";
+import { Badge, FilterPill } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { formatARS, formatMonthShort, formatUSD } from "@/lib/format";
 import { vendorColorClass } from "@/lib/vendorColors";
@@ -63,13 +63,13 @@ export default function BillsPage() {
       </Display>
 
       <div className="flex flex-wrap gap-1.5 mt-[18px] border-b border-line pb-3">
-        <FilterTab
+        <FilterPill
           label="All vendors"
           active={vendorId === "all"}
           onClick={() => setVendorId("all")}
         />
         {vendorsHere.map((v) => (
-          <FilterTab
+          <FilterPill
             key={v.id}
             label={v.displayName}
             colorClass={vendorColorClass(v.color)}
@@ -199,35 +199,6 @@ function pageWindow(current: number, count: number): (number | "…")[] {
   if (current <= 3) return [...range(0, 4), "…", last];
   if (current >= last - 3) return [0, "…", ...range(last - 4, last)];
   return [0, "…", current - 1, current, current + 1, "…", last];
-}
-
-function FilterTab({
-  label,
-  colorClass,
-  active,
-  onClick,
-}: {
-  label: string;
-  colorClass?: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-[7px] font-mono text-micro uppercase tracking-[0.12em] py-[5px] px-[11px] cursor-pointer border transition-colors",
-        active
-          ? "border-ink bg-ink text-paper"
-          : "border-transparent bg-transparent text-muted",
-      )}
-    >
-      {colorClass && (
-        <span className={cn("inline-block w-2 h-2", colorClass)} />
-      )}
-      {label}
-    </button>
-  );
 }
 
 const PAGENUM_BASE =

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { Display, Eyebrow } from "@/components/charts/primitives";
-import { Button } from "@/components/ui";
+import { Avatar, Button } from "@/components/ui";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -11,13 +11,6 @@ export default function ProfilePage() {
 
   const user = session?.user;
   const name = user?.name ?? user?.email ?? "You";
-  const initials = name
-    .split(/[\s@.]+/)
-    .filter(Boolean)
-    .map((s) => s[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 
   const help = "font-mono text-xs text-muted mb-3 max-w-[520px] leading-[1.6]";
 
@@ -30,9 +23,7 @@ export default function ProfilePage() {
 
       {/* account identity */}
       <div className="mt-[22px] flex flex-wrap items-center gap-4 border border-line bg-card p-4">
-        <span className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-full bg-ink text-paper font-mono text-sm font-medium">
-          {initials}
-        </span>
+        <Avatar name={name} size={44} className="text-sm" />
         <div className="flex-1 min-w-[160px]">
           <p className="font-display font-semibold text-lg tracking-tight">
             {name}
