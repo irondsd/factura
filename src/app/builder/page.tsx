@@ -1642,13 +1642,13 @@ function PeriodEditor({
             <Input
               value={field.flags}
               placeholder="i"
-              className="w-12 flex-none"
+              className="w-12! flex-none"
               onChange={(e) => onChange({ ...field, flags: e.target.value })}
             />
             <Input
               value={field.group}
               placeholder="1"
-              className="w-14 flex-none"
+              className="w-14! flex-none"
               onChange={(e) => onChange({ ...field, group: e.target.value })}
             />
           </div>
@@ -1679,7 +1679,7 @@ function PeriodEditor({
             <Input
               value={field.yearFlags}
               placeholder="i"
-              className="w-12 flex-none"
+              className="w-12! flex-none"
               onChange={(e) =>
                 onChange({ ...field, yearFlags: e.target.value })
               }
@@ -1687,7 +1687,7 @@ function PeriodEditor({
             <Input
               value={field.yearGroup}
               placeholder="1"
-              className="w-14 flex-none"
+              className="w-14! flex-none"
               onChange={(e) =>
                 onChange({ ...field, yearGroup: e.target.value })
               }
@@ -1705,13 +1705,13 @@ function PeriodEditor({
             <Input
               value={field.flags}
               placeholder="i"
-              className="w-12 flex-none"
+              className="w-12! flex-none"
               onChange={(e) => onChange({ ...field, flags: e.target.value })}
             />
             <Input
               value={field.group}
               placeholder="1"
-              className="w-14 flex-none"
+              className="w-14! flex-none"
               onChange={(e) => onChange({ ...field, group: e.target.value })}
             />
           </div>
