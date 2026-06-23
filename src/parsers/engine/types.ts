@@ -95,7 +95,7 @@ export type Signature = { pattern: string; flags?: string; weight?: number };
 
 export type ParserConfig = {
   slug: string;
-  vendor: { slug: string; displayName: string; category: string };
+  vendor: { slug: string; displayName: string };
   version: number;
   /** Restrict captures to a slice of the text (e.g. drop an embedded prior
    * receipt). Detection still runs against the full text. */

@@ -4,7 +4,7 @@ import type { ParserConfig } from "../types";
  * which the liquidated range starts. */
 export const metrogasConfig: ParserConfig = {
   slug: "metrogas",
-  vendor: { slug: "metrogas", displayName: "MetroGAS", category: "gas" },
+  vendor: { slug: "metrogas", displayName: "MetroGAS" },
   version: 1,
   detect: { allOf: [{ pattern: "MetroGAS", flags: "i" }] },
 

@@ -17,16 +17,6 @@ import { normalize } from "@/parsers/normalize";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 
-const CATEGORIES = [
-  "electricity",
-  "gas",
-  "water",
-  "expensas",
-  "internet",
-  "other",
-] as const;
-type Category = (typeof CATEGORIES)[number];
-
 const ROLES = ["identity", "amount", "period", "dueDate"] as const;
 type Role = (typeof ROLES)[number];
 const ROLE_LABEL: Record<Role, string> = {
@@ -752,7 +742,6 @@ function Builder() {
   const [slug, setSlug] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [vendorSlug, setVendorSlug] = useState("");
-  const [category, setCategory] = useState<Category>("other");
   const [sigs, setSigs] = useState<Sig[]>([{ pattern: "", flags: "i" }]);
   const [noneSigs, setNoneSigs] = useState<Sig[]>([]);
   const [fields, setFields] = useState<FieldRow[]>(ROLES.map(emptyField));
@@ -782,7 +771,6 @@ function Builder() {
       setSlug(preset.slug);
       setDisplayName(preset.displayName);
       setVendorSlug(preset.vendorSlug);
-      setCategory(preset.category as Category);
       // Adopted rows carry a full ParserConfig in `body` (slug/vendor/version
       // included); own rows carry just the definition. Strip the metadata so
       // both normalize to a definition Body.
@@ -854,22 +842,11 @@ function Builder() {
       vendor: {
         slug: vendorSlug || slug || "draft",
         displayName: displayName || "Draft",
-        category,
       },
       ...body,
     };
     return { config, body };
-  }, [
-    mode,
-    sigs,
-    noneSigs,
-    fields,
-    advanced,
-    slug,
-    vendorSlug,
-    displayName,
-    category,
-  ]);
+  }, [mode, sigs, noneSigs, fields, advanced, slug, vendorSlug, displayName]);
 
   // Detection probe (works even before extraction is complete).
   const detectObj = useMemo(
@@ -1026,7 +1003,6 @@ function Builder() {
       slug,
       displayName,
       vendorSlug: vendorSlug || slug,
-      category,
       definition: assembled.body,
     };
     try {
@@ -1174,10 +1150,6 @@ function Builder() {
                       return;
                     }
                     setVendorSlug(val);
-                    const v = (vendorList.data ?? []).find(
-                      (x) => x.slug === val,
-                    );
-                    if (v) setCategory(v.category as Category);
                   }}
                 >
                   {(vendorList.data ?? []).map((v) => (
@@ -1186,22 +1158,6 @@ function Builder() {
                     </option>
                   ))}
                   <option value="__new__">➕ New vendor…</option>
-                </Select>
-              </Field>
-              <Field
-                label="Category"
-                hint={knownVendor ? "Set by the chosen vendor" : undefined}
-              >
-                <Select
-                  value={category}
-                  disabled={knownVendor}
-                  onChange={(e) => setCategory(e.target.value as Category)}
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
                 </Select>
               </Field>
               {!knownVendor && (
@@ -1900,18 +1856,15 @@ function Grid({ children }: { children: React.ReactNode }) {
 
 function Field({
   label,
-  hint: hintProp,
   children,
 }: {
   label: string;
-  hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <label className="flex flex-col gap-[5px]">
       <span className={miniLabel}>{label}</span>
       {children}
-      {hintProp && <span className={hint}>{hintProp}</span>}
     </label>
   );
 }

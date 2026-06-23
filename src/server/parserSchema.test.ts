@@ -10,7 +10,6 @@ function input(overrides: Partial<ConfigInput> = {}): ConfigInput {
   return {
     slug: "edesur",
     displayName: "Edesur",
-    category: "electricity",
     vendorSlug: "edesur",
     definition: {
       detect: { allOf: [{ pattern: "EDESUR" }] },
@@ -47,13 +46,6 @@ describe("configInputSchema", () => {
     expect(
       configInputSchema.safeParse(input({ slug: "a".repeat(61) })).success,
     ).toBe(false);
-  });
-
-  it("rejects an unknown category", () => {
-    const bad = input();
-    // @ts-expect-error intentionally invalid category
-    bad.category = "telephone";
-    expect(configInputSchema.safeParse(bad).success).toBe(false);
   });
 
   it("requires all four roles", () => {
@@ -110,7 +102,6 @@ describe("toEngineConfig", () => {
     expect(cfg.vendor).toEqual({
       slug: "edesur",
       displayName: "Edesur",
-      category: "electricity",
     });
     expect(cfg.detect).toEqual({ allOf: [{ pattern: "EDESUR" }] });
     expect(cfg.captures).toHaveLength(1);

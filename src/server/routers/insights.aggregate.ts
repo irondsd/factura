@@ -56,7 +56,6 @@ export function vendorMeta(v: VendorRow) {
   return {
     id: v.id,
     displayName: v.displayName,
-    category: v.category,
     color: vendorColorVar(v.color),
   };
 }

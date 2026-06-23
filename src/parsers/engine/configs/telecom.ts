@@ -5,7 +5,7 @@ import type { ParserConfig } from "../types";
  * referente, the amount in cents, and the due date as YYMMDD). */
 export const telecomConfig: ParserConfig = {
   slug: "telecom",
-  vendor: { slug: "telecom", displayName: "Telecom", category: "internet" },
+  vendor: { slug: "telecom", displayName: "Telecom" },
   version: 1,
   detect: { allOf: [{ pattern: "TELECOM ARGENTINA S\\.A\\.", flags: "i" }] },
 

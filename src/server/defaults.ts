@@ -14,7 +14,6 @@ import { ensureSystemUser } from "./registry";
 
 type VendorRow = typeof vendors.$inferSelect;
 type PropertyRow = typeof properties.$inferSelect;
-type Category = (typeof vendors.category.enumValues)[number];
 
 /** Get an property's vendor for a slug, creating it from preset metadata if it
  * doesn't exist yet. Vendors belong to a property, so this is the single point
@@ -23,7 +22,7 @@ type Category = (typeof vendors.category.enumValues)[number];
 export async function ensureVendor(
   db: typeof Db,
   propertyId: string,
-  vendor: { slug: string; displayName: string; category: string },
+  vendor: { slug: string; displayName: string },
 ): Promise<VendorRow> {
   const existing = await db.query.vendors.findFirst({
     where: and(
@@ -43,7 +42,6 @@ export async function ensureVendor(
       propertyId,
       slug: vendor.slug,
       displayName: vendor.displayName,
-      category: vendor.category as Category,
       color: pickVendorColor(siblings.map((s) => s.color)),
     })
     .returning();
@@ -68,7 +66,6 @@ export async function seedPropertyVendors(
     await ensureVendor(db, propertyId, {
       slug: c.vendorSlug,
       displayName: c.displayName,
-      category: c.category,
     });
   }
 }
@@ -117,7 +114,6 @@ export async function seedParserConfigs(db: typeof Db): Promise<number> {
         version,
         vendorSlug: vendor.slug,
         displayName: vendor.displayName,
-        category: vendor.category as Category,
         body,
         verified: true,
       })

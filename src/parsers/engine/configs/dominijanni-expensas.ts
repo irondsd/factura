@@ -11,7 +11,6 @@ export const dominijanniExpensasConfig: ParserConfig = {
   vendor: {
     slug: "dominijanni-expensas",
     displayName: "Expensas Dominijanni",
-    category: "expensas",
   },
   version: 1,
   region: { before: "RECIBO DE PAGO MES ANTERIOR", flags: "i" },

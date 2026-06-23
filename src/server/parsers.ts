@@ -13,7 +13,6 @@ export function rowToConfig(row: ParserConfigRow): ParserConfig {
     vendor: {
       slug: row.vendorSlug,
       displayName: row.displayName,
-      category: row.category,
     },
     ...(row.body as object),
   } as ParserConfig;

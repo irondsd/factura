@@ -40,7 +40,6 @@ export type IngestResult =
 export type VendorMeta = {
   slug: string;
   displayName: string;
-  category: string;
 };
 
 /** Vendor identity carried on an *unfiled* bill (no vendor row yet), so the
@@ -49,7 +48,6 @@ export function vendorMetaExtra(config: ParserConfig) {
   return {
     vendorSlug: config.vendor.slug,
     vendorName: config.vendor.displayName,
-    vendorCategory: config.vendor.category,
   };
 }
 
@@ -90,9 +88,8 @@ export function vendorMetaFromExtra(
 ): VendorMeta | null {
   const slug = extra.vendorSlug as string | undefined;
   const displayName = extra.vendorName as string | undefined;
-  const category = extra.vendorCategory as string | undefined;
-  if (!slug || !displayName || !category) return null;
-  return { slug, displayName, category };
+  if (!slug || !displayName) return null;
+  return { slug, displayName };
 }
 
 /** Materialize an property's vendor + account for `accountNumber`, point the

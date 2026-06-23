@@ -73,7 +73,6 @@ export const parsersRouter = router({
           version: c.version,
           vendorSlug: c.vendor.slug,
           displayName: c.vendor.displayName,
-          category: c.vendor.category,
           body: c,
           editable: false as const,
         };
@@ -122,7 +121,6 @@ export const parsersRouter = router({
             version: input.version ?? 1,
             vendorSlug: input.vendorSlug,
             displayName: input.displayName,
-            category: input.category,
             body: input.definition,
           })
           .returning();
@@ -149,7 +147,6 @@ export const parsersRouter = router({
           version: existing.version + 1,
           vendorSlug: input.vendorSlug,
           displayName: input.displayName,
-          category: input.category,
           body: input.definition,
           updatedAt: new Date(),
         })
@@ -204,7 +201,6 @@ export const parsersRouter = router({
           slug: c.slug,
           displayName: c.vendor.displayName,
           vendorSlug: c.vendor.slug,
-          category: c.vendor.category,
           verified: verified.has(p.configId),
         };
       })
@@ -253,7 +249,6 @@ export const parsersRouter = router({
         version: config.version,
         displayName: config.vendor.displayName,
         vendorSlug: config.vendor.slug,
-        category: config.vendor.category,
       };
       let result = null;
       let error: string | null = null;

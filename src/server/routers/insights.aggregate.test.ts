@@ -33,7 +33,6 @@ function bill(p: {
 const vendor = (id: string): VendorHere => ({
   id,
   displayName: id,
-  category: "other",
   color: `var(--vendor-${id})`,
 });
 

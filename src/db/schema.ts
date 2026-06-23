@@ -15,15 +15,6 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-export const vendorCategory = pgEnum("vendor_category", [
-  "electricity",
-  "gas",
-  "water",
-  "expensas",
-  "internet",
-  "other",
-]);
-
 export const billStatus = pgEnum("bill_status", ["parsed", "needs_review"]);
 
 export const memberRole = pgEnum("member_role", ["owner", "member"]);
@@ -140,7 +131,6 @@ export const vendors = pgTable(
       .references(() => properties.id, { onDelete: "cascade" }),
     slug: text("slug").notNull(),
     displayName: text("display_name").notNull(),
-    category: vendorCategory("category").notNull(),
     // A color *name* from the vendor palette (see lib/vendorColors). Assigned
     // randomly on creation, user-editable. Hex values live in CSS, not here.
     color: text("color").notNull().default("taupe"),
@@ -235,7 +225,6 @@ export const parserConfigs = pgTable(
     version: integer("version").notNull().default(1),
     vendorSlug: text("vendor_slug").notNull(),
     displayName: text("display_name").notNull(),
-    category: vendorCategory("category").notNull(),
     body: jsonb("body").notNull(),
     verified: boolean("verified").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),

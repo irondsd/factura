@@ -29,7 +29,6 @@ export const mdaExpensasConfig: ParserConfig = {
   vendor: {
     slug: "mda-expensas",
     displayName: "Expensas MDA",
-    category: "expensas",
   },
   version: 1,
   detect: {

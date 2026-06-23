@@ -17,7 +17,6 @@ function asStoredRow(config: (typeof ENGINE_CONFIGS)[number]) {
     version,
     vendorSlug: vendor.slug,
     displayName: vendor.displayName,
-    category: vendor.category as never,
     // Round-trip through JSON to mimic the jsonb column exactly.
     body: JSON.parse(JSON.stringify(body)),
     verified: true,

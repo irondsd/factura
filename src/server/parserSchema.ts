@@ -108,15 +108,6 @@ const signature = z.object({
   weight: z.number().optional(),
 });
 
-export const categoryEnum = z.enum([
-  "electricity",
-  "gas",
-  "water",
-  "expensas",
-  "internet",
-  "other",
-]);
-
 /** Step-1 vendor matching, broken out so the collision check can validate a
  * candidate detect block on its own. */
 export const detectSchema = z.object({
@@ -155,7 +146,6 @@ export const configInputSchema = z.object({
     .max(60)
     .regex(/^[a-z0-9-]+$/, "lowercase letters, digits and dashes only"),
   displayName: z.string().min(1).max(60),
-  category: categoryEnum,
   vendorSlug: z
     .string()
     .min(1)
@@ -176,7 +166,6 @@ export function toEngineConfig(input: ConfigInput): ParserConfig {
     vendor: {
       slug: input.vendorSlug,
       displayName: input.displayName,
-      category: input.category,
     },
     ...input.definition,
   };

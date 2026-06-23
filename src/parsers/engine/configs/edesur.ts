@@ -9,7 +9,7 @@ import type { ParserConfig } from "../types";
  */
 export const edesurConfig: ParserConfig = {
   slug: "edesur",
-  vendor: { slug: "edesur", displayName: "Edesur", category: "electricity" },
+  vendor: { slug: "edesur", displayName: "Edesur" },
   version: 1,
   detect: { allOf: [{ pattern: "edesur", flags: "i" }] },
 

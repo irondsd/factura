@@ -8,7 +8,7 @@ function cfg(slug: string, version = 1): ParserConfig {
   return {
     slug,
     version,
-    vendor: { slug, displayName: slug, category: "other" },
+    vendor: { slug, displayName: slug },
     detect: {},
     captures: [],
     roles: {
