@@ -1423,7 +1423,7 @@ function SigRow({
       <Input
         value={sig.flags}
         placeholder="i"
-        className="w-14 flex-none"
+        className="w-14! flex-none"
         onChange={(e) => onChange({ ...sig, flags: e.target.value })}
       />
       {onRemove && (
