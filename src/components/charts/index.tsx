@@ -52,7 +52,7 @@ type TipPayload = {
   dataKey?: string | number | ((obj: unknown) => unknown);
 };
 
-type Segment = { name: string; value: number; color: string };
+type Segment = { id: string; name: string; value: number; color: string };
 
 /** Stacked-bar tooltip: every vendor's exact amount for the hovered month + total. */
 function StackTooltip({
@@ -80,7 +80,7 @@ function StackTooltip({
         {typeof label === "string" ? formatMonth(label) : ""}
       </div>
       {segments.map((s) => (
-        <div key={s.name} className="flex items-center gap-2 mt-[3px]">
+        <div key={s.id} className="flex items-center gap-2 mt-[3px]">
           <span
             className="w-2 h-2 inline-block shrink-0"
             style={{ background: s.color }}
@@ -246,6 +246,7 @@ export function StackedBarsFx({
   const data = months.map((m, i) => {
     const stack = stacks[i];
     const _segments: Segment[] = orderedVendors.map((v) => ({
+      id: v.id,
       name: v.displayName ?? v.id,
       value: stack[v.id] ?? 0,
       color: v.color,
