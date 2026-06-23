@@ -744,6 +744,11 @@ function Builder() {
   // False when the loaded parser is adopted/official (not owned): saving forks
   // it into a new owned copy rather than editing the original (which would 404).
   const [editingOwn, setEditingOwn] = useState(true);
+  // Slug of the parser we seeded from (own, adopted, or an orphaned reference).
+  // Bills already claimed by it must not count as collisions — it's the parser
+  // being edited, not a *different* one. Set for adopted parsers too, where
+  // `existingId` stays null because the save forks rather than updates.
+  const [loadedSlug, setLoadedSlug] = useState<string | null>(null);
   const [slug, setSlug] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [vendorSlug, setVendorSlug] = useState("");
@@ -773,6 +778,7 @@ function Builder() {
       // forked on save, so leave existingId null and flag it.
       if (preset.editable) setExistingId(preset.id);
       else setEditingOwn(false);
+      setLoadedSlug(preset.slug);
       setSlug(preset.slug);
       setDisplayName(preset.displayName);
       setVendorSlug(preset.vendorSlug);
@@ -822,6 +828,7 @@ function Builder() {
       // that parser and reparse links the orphaned bills back to it.
       const orphan = parserSlug || billQuery.data?.parserKey;
       if (orphan) {
+        setLoadedSlug(orphan);
         setSlug(orphan);
         setVendorSlug(orphan);
         setDisplayName(orphan);
@@ -879,7 +886,7 @@ function Builder() {
     detectScore({ detect: detectObj } as ParserConfig, activeText) !== null;
 
   const collisions = trpc.parsers.detectCollisions.useQuery(
-    { detect: detectObj, excludeSlug: existingId ? slug : undefined },
+    { detect: detectObj, excludeSlug: loadedSlug ?? undefined },
     { enabled: hasSignature },
   );
   const collisionList = collisions.data ?? [];
@@ -1181,7 +1188,10 @@ function Builder() {
                   <option value="__new__">➕ New vendor…</option>
                 </Select>
               </Field>
-              <Field label="Category">
+              <Field
+                label="Category"
+                hint={knownVendor ? "Set by the chosen vendor" : undefined}
+              >
                 <Select
                   value={category}
                   disabled={knownVendor}
@@ -1890,15 +1900,18 @@ function Grid({ children }: { children: React.ReactNode }) {
 
 function Field({
   label,
+  hint: hintProp,
   children,
 }: {
   label: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <label className="flex flex-col gap-[5px]">
       <span className={miniLabel}>{label}</span>
       {children}
+      {hintProp && <span className={hint}>{hintProp}</span>}
     </label>
   );
 }

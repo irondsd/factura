@@ -71,7 +71,15 @@ export function Select({
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select {...props} className={cn(FIELD_BASE, "cursor-pointer", className)}>
+    <select
+      {...props}
+      className={cn(
+        FIELD_BASE,
+        "cursor-pointer appearance-none pr-8",
+        "disabled:cursor-not-allowed disabled:opacity-55",
+        className,
+      )}
+    >
       {children}
     </select>
   );
