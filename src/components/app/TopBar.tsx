@@ -30,8 +30,10 @@ export function TopBar({ user }: { user: Session["user"] }) {
     setMenuOpen(false);
   }
 
-  // The property switcher is meaningless on the management pages.
+  // The property switcher is meaningless on the management pages, and there's
+  // nothing to switch between when the user has a single property.
   const onProfile = pathname === "/profile" || pathname === "/properties";
+  const showSwitcher = !onProfile && (properties.data?.length ?? 0) > 1;
   const propValue = propertyId ?? "all";
   const propOptions = [
     { value: "all", label: "All" },
@@ -87,7 +89,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
         {/* Desktop: inline nav + property picker + avatar */}
         <nav className="hidden gap-4 md:flex">{NAV.map(navLink)}</nav>
         <div className="ml-auto hidden items-center gap-2.5 md:flex">
-          {!onProfile && (
+          {showSwitcher && (
             <Segmented
               options={propOptions}
               value={propValue}
@@ -125,7 +127,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
             })}
           </nav>
 
-          {!onProfile && (
+          {showSwitcher && (
             <div className="mt-[14px]">
               <p className="font-mono text-[10px] uppercase tracking-label-wide text-muted mb-2">
                 Property
