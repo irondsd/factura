@@ -1519,13 +1519,13 @@ function FieldEditor({
         <Input
           value={field.flags}
           placeholder="i"
-          className="w-12 flex-none"
+          className="w-12! flex-none"
           onChange={(e) => onChange({ ...field, flags: e.target.value })}
         />
         <Input
           value={field.group}
           placeholder="1"
-          className="w-14 flex-none"
+          className="w-14! flex-none"
           title="capture group (number or name)"
           onChange={(e) => onChange({ ...field, group: e.target.value })}
         />
