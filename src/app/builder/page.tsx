@@ -45,6 +45,102 @@ function toTransformOp(v: string): TransformOp {
   return v as TransformOp;
 }
 
+// ── Regex toolkit ─────────────────────────────────────────────────────────────
+// Copy-paste recipes + a scratch tester for the left column. Patterns are
+// LatAm-leaning (dot-thousands/comma-decimal amounts, Spanish month names) since
+// that's the bulk of bills, but the US-style and label-anchored ones cover the
+// rest. `hint` names the transform a captured value usually needs next.
+type Recipe = { label: string; pattern: string; flags?: string; hint?: string };
+
+const REGEX_RECIPES: { group: string; items: Recipe[] }[] = [
+  {
+    group: "Amounts",
+    items: [
+      {
+        label: "LatAm · 1.234.567,89",
+        pattern: "(?:\\$\\s*)?((?:\\d{1,3}(?:\\.\\d{3})+|\\d+)(?:,\\d{2})?)",
+        hint: "→ AR number (AR/UY/BR)",
+      },
+      {
+        label: "US / intl · 1,234,567.89",
+        pattern: "(?:\\$\\s*)?((?:\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\.\\d{2})?)",
+        hint: "→ US number",
+      },
+      {
+        label: "Whole units · 1.234.567",
+        pattern: "\\$?\\s*(\\d{1,3}(?:\\.\\d{3})+)",
+        hint: "no decimals (CLP) → AR number",
+      },
+      {
+        label: "After a label · “Total a pagar”",
+        pattern: "Total\\s*a\\s*pagar\\s*:?\\s*\\$?\\s*([\\d.,]+)",
+        flags: "i",
+        hint: "swap the label text for yours",
+      },
+    ],
+  },
+  {
+    group: "Dates",
+    items: [
+      {
+        label: "DD/MM/YYYY",
+        pattern: "(\\d{2}/\\d{2}/\\d{4})",
+        hint: "→ date DD/MM/YYYY",
+      },
+      { label: "YYYY-MM-DD", pattern: "(\\d{4}-\\d{2}-\\d{2})" },
+      { label: "MM/YYYY", pattern: "(\\d{2})[/-](\\d{4})", hint: "month + year" },
+      {
+        label: "Spanish month name",
+        pattern: "(ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)",
+        flags: "i",
+        hint: "use “Month is a name”",
+      },
+    ],
+  },
+  {
+    group: "Identifiers",
+    items: [
+      { label: "CUIT · 20-12345678-9", pattern: "(\\d{2}-\\d{8}-\\d)" },
+      {
+        label: "Account / client no.",
+        pattern: "(?:cliente|cuenta|n[°º])\\s*:?\\s*(\\d{4,})",
+        flags: "i",
+      },
+      { label: "Any run of digits", pattern: "(\\d+)" },
+    ],
+  },
+];
+
+/** First match of a recipe against the text — the captured group if there is
+ * one, else the whole match. Drives the live "matches?" chip. */
+function recipeMatch(text: string, r: Recipe): string | undefined {
+  if (!text) return undefined;
+  try {
+    const m = new RegExp(r.pattern, r.flags || undefined).exec(text);
+    if (!m) return undefined;
+    return m[1] ?? m[0];
+  } catch {
+    return undefined;
+  }
+}
+
+/** Count all matches + show the first, for the scratch tester. Returns null for
+ * an invalid (still-being-typed) pattern so the UI can flag it distinctly. */
+function testerMatches(
+  text: string,
+  pattern: string,
+  flags: string,
+): { count: number; first?: string } | null {
+  if (!pattern.trim() || !text) return { count: 0 };
+  try {
+    const g = flags.includes("g") ? flags : `${flags}g`;
+    const all = [...text.matchAll(new RegExp(pattern, g))];
+    return { count: all.length, first: all[0]?.[1] ?? all[0]?.[0] };
+  } catch {
+    return null;
+  }
+}
+
 type Sig = { pattern: string; flags: string };
 type PeriodMode = "date" | "parts";
 type FieldRow = {
@@ -1072,6 +1168,14 @@ function Builder() {
 
           <DropZone onFiles={dropFiles} />
 
+          <RegexToolkit
+            text={activeText}
+            onCopy={(p) => {
+              navigator.clipboard?.writeText(p);
+              showToast("Pattern copied — paste into a field’s regex box");
+            }}
+          />
+
           {slug && (
             <div className="mt-3">
               <Label>Saved samples ({samples.data?.length ?? 0})</Label>
@@ -1735,6 +1839,134 @@ function PeriodEditor({
           −1 = previous month · +1 = next · rolls the year
         </span>
       </div>
+    </div>
+  );
+}
+
+/** Left-column helper: copy-paste regex recipes + a scratch tester, both live
+ * against the active bill. Self-contained (own tester state) so it never
+ * interferes with the field editors. Regex is the hardest part of authoring a
+ * parser — this lets people crib a pattern or probe the text without one. */
+function RegexToolkit({
+  text,
+  onCopy,
+}: {
+  text: string;
+  onCopy: (pattern: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"recipes" | "tester">("recipes");
+  const [pattern, setPattern] = useState("");
+  const [flags, setFlags] = useState("i");
+  const result = testerMatches(text, pattern, flags);
+
+  return (
+    <div className="mt-4 border border-line">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between py-2 px-3 font-mono text-micro uppercase tracking-label text-accent cursor-pointer"
+      >
+        <span>Regex toolkit</span>
+        <span className="text-muted">{open ? "−" : "+"}</span>
+      </button>
+
+      {open && (
+        <div className="border-t border-line p-3">
+          <div className="flex items-center gap-1.5 mb-3">
+            <button
+              onClick={() => setTab("recipes")}
+              className={tabClass(tab === "recipes")}
+            >
+              Recipes
+            </button>
+            <button
+              onClick={() => setTab("tester")}
+              className={tabClass(tab === "tester")}
+            >
+              Tester
+            </button>
+          </div>
+
+          {tab === "recipes" ? (
+            <div className="flex flex-col gap-3">
+              {REGEX_RECIPES.map((sec) => (
+                <div key={sec.group}>
+                  <span className={miniLabel}>{sec.group}</span>
+                  <div className="flex flex-col gap-1 mt-1">
+                    {sec.items.map((r) => {
+                      const hit = recipeMatch(text, r);
+                      return (
+                        <button
+                          key={r.label}
+                          onClick={() => onCopy(r.pattern)}
+                          title="Copy pattern"
+                          className="text-left border border-line hover:border-ink transition-colors py-1.5 px-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-[11px] text-ink">
+                              {r.label}
+                            </span>
+                            {hit !== undefined ? (
+                              <Badge>
+                                {hit.length > 16 ? `${hit.slice(0, 15)}…` : hit}
+                              </Badge>
+                            ) : (
+                              <span className={hint}>no match</span>
+                            )}
+                          </div>
+                          <div className="font-mono text-[10.5px] text-muted break-all mt-0.5">
+                            {r.pattern}
+                          </div>
+                          {r.hint && (
+                            <div className={`${hint} mt-0.5`}>{r.hint}</div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              <p className={hint}>
+                Click a recipe to copy it, then paste into a field’s regex box.
+                The chip shows what it captures from this bill right now.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div className="flex gap-1.5">
+                <Input
+                  value={pattern}
+                  placeholder="type a pattern to probe this bill"
+                  onChange={(e) => setPattern(e.target.value)}
+                />
+                <Input
+                  value={flags}
+                  placeholder="i"
+                  className="w-12! flex-none"
+                  onChange={(e) => setFlags(e.target.value)}
+                />
+              </div>
+              <div className="mt-2 font-mono text-xs">
+                {!pattern.trim() ? (
+                  <span className={hint}>
+                    The first capture group (or whole match) shows here, with a
+                    count across the bill.
+                  </span>
+                ) : result === null ? (
+                  <span className="text-accent">Invalid pattern</span>
+                ) : result.count === 0 ? (
+                  <span className={hint}>No matches in this bill</span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 text-ink">
+                    {result.count} match{result.count === 1 ? "" : "es"} · first
+                    <Badge>{result.first ?? ""}</Badge>
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
