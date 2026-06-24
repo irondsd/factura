@@ -22,6 +22,4 @@ Key concepts:
 ## Product
 
 - [Homepage](https://factura.uno/): Main overview of Factura and its core value proposition.
-- [Insights](https://factura.uno/insights): Bill parsing, spending analysis, utility usage tracking, and household expense insights.
-- [Bills](https://factura.uno/bills): List of user bills
 

@@ -1,4 +1,4 @@
-import { Metadata } from 'next'
+import { Metadata, Viewport } from 'next'
 
 export const siteUrl = 'https://factura.uno'
 const siteName = 'Factura'
@@ -40,14 +40,8 @@ export const metadata: Metadata = {
     title,
     description,
     locale: 'en_US',
-    images: [
-      {
-        url: '/opengraph-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Factura — your bill ledger',
-      },
-    ],
+    // og:image tags are generated from src/app/opengraph-image.png
+    // (file-based metadata, with alt from opengraph-image.alt.txt).
   },
   twitter: {
     card: 'summary_large_image',
@@ -66,11 +60,8 @@ export const metadata: Metadata = {
       'max-video-preview': -1,
     },
   },
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-icon.png',
-    shortcut: '/favicon.ico',
-  },
+  // favicon.ico, icon.png and apple-icon.png are picked up automatically from
+  // src/app/ as file-based metadata — no manual icons config needed.
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
@@ -82,4 +73,8 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#1f1a17',
 }

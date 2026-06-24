@@ -4,24 +4,15 @@ import { siteUrl } from './config/meta'
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()
 
+  // Only genuinely public, logged-out-visible pages belong here. Everything
+  // else (/bills, /insights, /profile, …) is the authenticated app and is
+  // disallowed in robots.ts. Add public marketing routes here as they ship.
   return [
     {
       url: siteUrl,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 1,
-    },
-    {
-      url: `${siteUrl}/insights`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.9,
-    },
-    {
-      url: `${siteUrl}/bills`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.8,
     },
   ]
 }

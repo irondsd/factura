@@ -7,10 +7,20 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: ['/'],
-        disallow: ['/api/', '/profile/', '/login/'],
+        // No trailing slashes: routes are /login, /profile, etc. (trailingSlash
+        // is off), and a prefix without the slash blocks both forms.
+        disallow: [
+          '/api',
+          '/login',
+          '/profile',
+          '/bills',
+          '/insights',
+          '/builder',
+          '/parsers',
+          '/properties',
+        ],
       },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,
-    host: siteUrl,
   }
 }

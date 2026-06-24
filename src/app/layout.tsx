@@ -2,9 +2,9 @@ import { AppShell } from "@/components/app/AppShell";
 import { Providers } from "./providers";
 import "./globals.css";
 import { fraunces, plexMono } from "./config/fonts";
-import { metadata } from "./config/meta";
+import { metadata, viewport } from "./config/meta";
 
-export { metadata };
+export { metadata, viewport };
 
 export default function RootLayout({
   children,
