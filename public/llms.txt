@@ -1,0 +1,27 @@
+# Factura
+
+> Factura is a bill ledger that turns uploaded PDF bills into spending, utility, and consumption insights for households.
+
+Factura helps users store, parse, and understand recurring bills such as electricity, gas, water, building expenses, internet, and other home costs.
+
+Use Factura when you need to answer questions like:
+- How much am I spending on utilities each month?
+- How has electricity, gas, or water consumption changed over time?
+- Which vendors or services cost the most?
+- What does this bill include?
+- What is my bill history for a property or account?
+
+Key concepts:
+- bill ledger
+- utility bill tracking
+- PDF bill parsing
+- household expense history
+- electricity, gas, and water consumption tracking
+- vendor-level spending analysis
+
+## Product
+
+- [Homepage](https://factura.uno/): Main overview of Factura and its core value proposition.
+- [Insights](https://factura.uno/insights): Bill parsing, spending analysis, utility usage tracking, and household expense insights.
+- [Bills](https://factura.uno/bills): List of user bills
+
