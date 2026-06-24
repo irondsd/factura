@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Badge, Button } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import { useToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
 
@@ -25,6 +26,7 @@ export default function ParsersPage() {
 
   const list = trpc.parsers.list.useQuery();
   const browse = trpc.parsers.browse.useQuery();
+  const active = trpc.parsers.active.useQuery();
   const reparse = trpc.bills.reparse.useMutation();
   const publish = trpc.parsers.publish.useMutation();
   const del = trpc.parsers.delete.useMutation();
@@ -70,6 +72,18 @@ export default function ParsersPage() {
     }
   };
 
+  /** Standalone reparse (panel button): apply the current winning parsers to
+   * existing bills without adopting/forking anything first. */
+  const onReparse = async () => {
+    try {
+      const res = await reparse.mutateAsync();
+      utils.invalidate();
+      showToast(`Reparsed ${res.updated} of ${res.scanned} bill(s)`);
+    } catch (e) {
+      toastErr(e);
+    }
+  };
+
   const onPublish = async (id: string) => {
     try {
       const r = await publish.mutateAsync({ id });
@@ -104,6 +118,71 @@ export default function ParsersPage() {
           ← Profile
         </Button>
       </div>
+
+      {(() => {
+        const rows = active.data ?? [];
+        const total = rows.reduce((n, r) => n + r.billCount, 0);
+        return (
+          <>
+            <div className="mt-8 mb-1 flex items-baseline justify-between gap-3 flex-wrap">
+              <Eyebrow>Active parsers</Eyebrow>
+              <Button
+                size="sm"
+                variant="solid"
+                disabled={busy || total === 0}
+                onClick={onReparse}
+              >
+                Reparse my bills{total > 0 ? ` (${total})` : ""}
+              </Button>
+            </div>
+            <p className={help}>
+              Which parser currently handles your bills, per vendor. Forking a
+              parser makes your copy win automatically — reparse to apply it to
+              bills you already have.
+            </p>
+            <div className="flex flex-col gap-2">
+              {rows.length === 0 && (
+                <p className={parserMeta}>
+                  No parsers active yet — adopt or build one below.
+                </p>
+              )}
+              {rows.map((r) => (
+                <div key={r.slug} className={parserRow}>
+                  <span className={nameStyle}>{r.displayName}</span>
+                  <span className={parserMeta}>
+                    {r.slug}
+                    {r.version > 0 ? ` · v${r.version}` : ""}
+                  </span>
+                  {r.source === "own" && (
+                    <Badge tone="accent">your parser</Badge>
+                  )}
+                  {r.source === "official" && (
+                    <Badge tone="neutral">official</Badge>
+                  )}
+                  {r.source === "community" && (
+                    <Badge tone="neutral">community</Badge>
+                  )}
+                  {r.source === "none" && (
+                    <Badge tone="neutral">no parser</Badge>
+                  )}
+                  {r.shadowsAdopted && (
+                    <span className={parserMeta}>shadows the adopted copy</span>
+                  )}
+                  {r.source === "none" && (
+                    <span className={parserMeta}>
+                      these bills won&apos;t reparse until you run a matching
+                      parser
+                    </span>
+                  )}
+                  <span className={cn(parserMeta, "ml-auto")}>
+                    {r.billCount} bill{r.billCount === 1 ? "" : "s"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        );
+      })()}
 
       <h2 className={sectionTitle}>
         <Eyebrow>Your parsers</Eyebrow>

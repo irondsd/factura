@@ -331,6 +331,101 @@ export const parsersRouter = router({
       return { count: row?.n ?? 0 };
     }),
 
+  /** Which parser actually wins for the user's bills, per vendor slug. Mirrors
+   * the detection merge (own package shadows an adopted one of the same slug)
+   * and annotates each entry with how many of the user's bills currently carry
+   * that slug — drives the "active parsers" panel + its reparse button. Also
+   * surfaces orphan slugs: bills last parsed by a slug the user no longer runs
+   * (those won't reparse until a matching parser is adopted/forked). */
+  active: protectedProcedure.query(async ({ ctx }) => {
+    const ownRows = await ctx.db.query.parserConfigs.findMany({
+      where: eq(parserConfigs.ownerId, ctx.userId),
+    });
+    const adoptions = await ctx.db.query.parserAdoptions.findMany({
+      where: eq(parserAdoptions.userId, ctx.userId),
+    });
+    const versionIds = adoptions.map((a) => a.versionId);
+    const versionRows = versionIds.length
+      ? await ctx.db.query.parserVersions.findMany({
+          where: inArray(parserVersions.id, versionIds),
+        })
+      : [];
+    const verifiedRows = await ctx.db.query.parserConfigs.findMany({
+      where: eq(parserConfigs.verified, true),
+      columns: { id: true },
+    });
+    const verified = new Set(verifiedRows.map((r) => r.id));
+
+    type Entry = {
+      slug: string;
+      displayName: string;
+      vendorSlug: string;
+      source: "own" | "official" | "community" | "none";
+      version: number;
+      // An own parser that overrides an adopted one of the same slug.
+      shadowsAdopted: boolean;
+    };
+    const bySlug = new Map<string, Entry>();
+
+    // Adopted first; an own package of the same slug overwrites it below.
+    for (const a of adoptions) {
+      const v = versionRows.find((r) => r.id === a.versionId);
+      if (!v) continue;
+      const c = v.config as ParserConfig;
+      bySlug.set(c.slug, {
+        slug: c.slug,
+        displayName: c.vendor.displayName,
+        vendorSlug: c.vendor.slug,
+        source: verified.has(a.configId) ? "official" : "community",
+        version: c.version,
+        shadowsAdopted: false,
+      });
+    }
+    for (const r of ownRows) {
+      bySlug.set(r.slug, {
+        slug: r.slug,
+        displayName: r.displayName,
+        vendorSlug: r.vendorSlug,
+        source: "own",
+        version: Number(r.version),
+        shadowsAdopted: bySlug.has(r.slug),
+      });
+    }
+
+    // Bills per parserKey for this user.
+    const counts = await ctx.db
+      .select({ slug: bills.parserKey, n: count() })
+      .from(bills)
+      .where(eq(bills.createdBy, ctx.userId))
+      .groupBy(bills.parserKey);
+    const countBySlug = new Map(
+      counts.map((c) => [c.slug, c.n] as const),
+    );
+
+    const result = [...bySlug.values()].map((e) => ({
+      ...e,
+      billCount: countBySlug.get(e.slug) ?? 0,
+    }));
+
+    // Orphans: bills carry a slug no active parser provides.
+    for (const c of counts) {
+      if (!c.slug || bySlug.has(c.slug)) continue;
+      result.push({
+        slug: c.slug,
+        displayName: c.slug,
+        vendorSlug: c.slug,
+        source: "none",
+        version: 0,
+        shadowsAdopted: false,
+        billCount: c.n,
+      });
+    }
+
+    return result.sort(
+      (a, b) => b.billCount - a.billCount || a.displayName.localeCompare(b.displayName),
+    );
+  }),
+
   // ── Regression samples (per-user) ──────────────────────────────────────────
   listSamples: protectedProcedure
     .input(z.object({ slug: z.string() }))
