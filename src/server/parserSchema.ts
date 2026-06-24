@@ -65,6 +65,7 @@ const computeStep = z.union([
   z.object({ name: z.string(), round: z.string() }),
   z.object({ name: z.string(), template: z.string() }),
   z.object({ name: z.string(), coalesce: z.array(z.string()) }),
+  z.object({ name: z.string(), when: z.string(), use: z.number() }),
 ]);
 
 const validation = z.union([

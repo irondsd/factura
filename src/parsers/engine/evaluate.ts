@@ -119,6 +119,9 @@ function runCompute(step: ComputeStep, scope: Scope): ScopeValue {
     });
     return ok ? out : undefined;
   }
+  if ("when" in step) {
+    return scope[step.when] === undefined ? undefined : step.use;
+  }
   // coalesce
   for (const ref of step.coalesce) {
     if (scope[ref] !== undefined) return scope[ref];

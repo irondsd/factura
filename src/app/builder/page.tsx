@@ -4,52 +4,37 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import { useApp } from "@/components/app/context";
 import { Display, Eyebrow } from "@/components/charts/primitives";
-import { Badge, Button, Input, Select } from "@/components/ui";
+import { Button, Input, Select, microLabel } from "@/components/ui";
 import { detectScore, runConfig } from "@/parsers/engine/evaluate";
-import { applyTransforms } from "@/parsers/engine/transforms";
-import { addMonths as addMonthsClient } from "@/parsers/helpers";
-import type {
-  ParsedResult,
-  ParserConfig,
-  TransformOp,
-} from "@/parsers/engine/types";
+import type { ParsedResult, ParserConfig } from "@/parsers/engine/types";
+import { evaluateConfig } from "@/parsers/builder/evaluate";
+import type { EvalResult, ValueRec } from "@/parsers/builder/evaluate";
+import { generateBody } from "@/parsers/builder/generate";
+import type { Body } from "@/parsers/builder/generate";
+import { bodyToConfig } from "@/parsers/builder/parse";
+import {
+  emptyConfig,
+  newCapture,
+  newCustom,
+  newDerive,
+  ROLE_KEYS,
+  ROLE_LABEL,
+} from "@/parsers/builder/model";
+import type { BuilderConfig } from "@/parsers/builder/model";
 import { normalize } from "@/parsers/normalize";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
+import {
+  CaptureCard,
+  CustomCard,
+  DeriveCard,
+  hint,
+  RoleCard,
+  ValueChip,
+  type ValueOption,
+} from "./_cards";
 
-const ROLES = ["identity", "amount", "period", "dueDate"] as const;
-type Role = (typeof ROLES)[number];
-const ROLE_LABEL: Record<Role, string> = {
-  identity: "Account / unique ID",
-  amount: "Amount",
-  period: "Period",
-  dueDate: "Due date",
-};
-
-const TRANSFORMS: { label: string; value: string }[] = [
-  { label: "AR number (1.234,56)", value: "numberAR" },
-  { label: "US number (1,234.56)", value: "numberUS" },
-  { label: "cents ÷ 100", value: "centsToAmount" },
-  { label: "strip leading zeros", value: "stripLeadingZeros" },
-  { label: "to integer", value: "toInt" },
-  { label: "month of date", value: "monthOf" },
-  { label: "month-year → period (2025-09-01)", value: "monthYear" },
-  { label: "lowercase", value: "lowercase" },
-  { label: "date DD/MM/YYYY", value: "parseDate:DMY" },
-  { label: "date YYMMDD", value: "parseDate:YYMMDD" },
-];
-
-function toTransformOp(v: string): TransformOp {
-  if (v === "parseDate:DMY") return { parseDate: "DMY" };
-  if (v === "parseDate:YYMMDD") return { parseDate: "YYMMDD" };
-  return v as TransformOp;
-}
-
-// ── Regex toolkit ─────────────────────────────────────────────────────────────
-// Copy-paste recipes + a scratch tester for the left column. Patterns are
-// LatAm-leaning (dot-thousands/comma-decimal amounts, Spanish month names) since
-// that's the bulk of bills, but the US-style and label-anchored ones cover the
-// rest. `hint` names the transform a captured value usually needs next.
+// ── Regex toolkit recipes (left column) ───────────────────────────────────────
 type Recipe = { label: string; pattern: string; flags?: string; hint?: string };
 
 const REGEX_RECIPES: { group: string; items: Recipe[] }[] = [
@@ -82,18 +67,13 @@ const REGEX_RECIPES: { group: string; items: Recipe[] }[] = [
   {
     group: "Dates",
     items: [
-      {
-        label: "DD/MM/YYYY",
-        pattern: "(\\d{2}/\\d{2}/\\d{4})",
-        hint: "→ date DD/MM/YYYY",
-      },
+      { label: "DD/MM/YYYY", pattern: "(\\d{2}/\\d{2}/\\d{4})", hint: "→ date DD/MM/YYYY" },
       { label: "YYYY-MM-DD", pattern: "(\\d{4}-\\d{2}-\\d{2})" },
       { label: "MM/YYYY", pattern: "(\\d{2})[/-](\\d{4})", hint: "month + year" },
       {
         label: "Spanish month name",
         pattern: "(ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)",
         flags: "i",
-        hint: "use “Month is a name”",
       },
     ],
   },
@@ -111,21 +91,16 @@ const REGEX_RECIPES: { group: string; items: Recipe[] }[] = [
   },
 ];
 
-/** First match of a recipe against the text — the captured group if there is
- * one, else the whole match. Drives the live "matches?" chip. */
 function recipeMatch(text: string, r: Recipe): string | undefined {
   if (!text) return undefined;
   try {
     const m = new RegExp(r.pattern, r.flags || undefined).exec(text);
-    if (!m) return undefined;
-    return m[1] ?? m[0];
+    return m ? (m[1] ?? m[0]) : undefined;
   } catch {
     return undefined;
   }
 }
 
-/** Count all matches + show the first, for the scratch tester. Returns null for
- * an invalid (still-being-typed) pattern so the UI can flag it distinctly. */
 function testerMatches(
   text: string,
   pattern: string,
@@ -142,648 +117,101 @@ function testerMatches(
 }
 
 type Sig = { pattern: string; flags: string };
-type PeriodMode = "date" | "parts";
-type FieldRow = {
-  id: string;
-  role: Role | "custom";
-  name: string; // custom only
-  type: "money" | "number" | "date" | "string" | "quantity";
-  unit: string;
-  includeWhen: string;
-  pattern: string;
-  flags: string;
-  group: string;
-  transforms: string[];
-  // ── period role only ──
-  // "date": `pattern` captures a whole date (transforms pick the format).
-  // "parts": `pattern` captures the month, `year*` the year; combined via
-  // dateFromParts. `monthShift` shifts the result ±N months (addMonths).
-  periodMode: PeriodMode;
-  monthIsName: boolean;
-  yearPattern: string;
-  yearFlags: string;
-  yearGroup: string;
-  monthShift: number;
-};
+type Mode = "structured" | "json";
 
-function emptyField(role: FieldRow["role"]): FieldRow {
-  return {
-    id: crypto.randomUUID(),
-    role,
-    name: role === "custom" ? "" : role,
-    type: "money",
-    unit: "",
-    includeWhen: "",
-    pattern: "",
-    flags: "i",
-    group: "1",
-    transforms: [],
-    periodMode: "date",
-    monthIsName: false,
-    yearPattern: "",
-    yearFlags: "i",
-    yearGroup: "1",
-    monthShift: 0,
-  };
+// ── option builders ────────────────────────────────────────────────────────────
+function captureOptions(config: BuilderConfig, values: EvalResult["values"]): ValueOption[] {
+  const opts: ValueOption[] = [];
+  for (const cap of config.captures)
+    for (const o of cap.outputs)
+      if (o.name) opts.push({ name: o.name, origin: "capture", rec: values[o.name] });
+  return opts;
 }
-
-function fieldKey(f: FieldRow): string {
-  return f.role === "custom" ? `f_${f.name || "field"}` : f.role;
-}
-
-/** A regex group spec is a number ("1") or a named group. */
-function groupOf(s: string): number | string {
-  return /^\d+$/.test(s.trim()) ? Number(s.trim()) : s.trim();
-}
-
-/** Month names → number, 3-letter-keyed (Spanish + English), lowercased. The
- * period builder feeds this to the engine's `lookup` transform. */
-const MONTH_LOOKUP: Record<string, number> = {
-  jan: 1,
-  ene: 1,
-  feb: 2,
-  mar: 3,
-  abr: 4,
-  apr: 4,
-  may: 5,
-  jun: 6,
-  jul: 7,
-  ago: 8,
-  aug: 8,
-  sep: 9,
-  set: 9,
-  oct: 10,
-  nov: 11,
-  dic: 12,
-  dec: 12,
-};
-
-/** True once the row has the regex(es) it needs to extract anything. */
-function fieldIncomplete(f: FieldRow): boolean {
-  if (f.role === "period" && f.periodMode === "parts")
-    return !f.pattern.trim() || !f.yearPattern.trim();
-  return !f.pattern.trim();
-}
-
-/** The capture(s) a row contributes — drives live highlighting. */
-function fieldCaptureItems(
-  f: FieldRow,
-): { key: string; pattern: string; flags?: string; group: number | string }[] {
-  if (f.role === "period" && f.periodMode === "parts") {
-    const out: {
-      key: string;
-      pattern: string;
-      flags?: string;
-      group: number | string;
-    }[] = [];
-    if (f.pattern.trim())
-      out.push({
-        key: "p_month",
-        pattern: f.pattern,
-        flags: f.flags,
-        group: groupOf(f.group),
-      });
-    if (f.yearPattern.trim())
-      out.push({
-        key: "p_year",
-        pattern: f.yearPattern,
-        flags: f.yearFlags,
-        group: groupOf(f.yearGroup),
-      });
-    return out;
+function optionsBeforeDerive(config: BuilderConfig, values: EvalResult["values"], idx: number): ValueOption[] {
+  const opts = captureOptions(config, values);
+  for (let i = 0; i < idx; i++) {
+    const d = config.derives[i];
+    if (d.name) opts.push({ name: d.name, origin: "derive", rec: values[d.name] });
   }
-  if (!f.pattern.trim()) return [];
-  const key = f.role === "period" ? "p_date" : fieldKey(f);
-  return [{ key, pattern: f.pattern, flags: f.flags, group: groupOf(f.group) }];
+  return opts;
+}
+function allOptions(config: BuilderConfig, values: EvalResult["values"]): ValueOption[] {
+  return optionsBeforeDerive(config, values, config.derives.length);
 }
 
-/** Run one field's regex + transforms against text, independent of whether the
- * whole config is complete — drives the per-field live value while typing. */
-function extractFieldValue(text: string, f: FieldRow): string | undefined {
-  if (!f.pattern.trim() || !text) return undefined;
-  try {
-    const m = new RegExp(f.pattern, f.flags || undefined).exec(text);
-    if (!m) return undefined;
-    const g = groupOf(f.group);
-    const raw = typeof g === "number" ? m[g] : m.groups?.[g];
-    if (raw === undefined) return undefined;
-    const v = applyTransforms(raw, f.transforms.map(toTransformOp));
-    return v === undefined ? undefined : String(v);
-  } catch {
-    return undefined;
+function moveArr<T>(arr: T[], i: number, dir: number): T[] {
+  const j = i + dir;
+  if (j < 0 || j >= arr.length) return arr;
+  const n = arr.slice();
+  [n[i], n[j]] = [n[j], n[i]];
+  return n;
+}
+
+// ── highlight ──────────────────────────────────────────────────────────────────
+type Span = { start: number; end: number; tone: "strong" | "faint" };
+
+/** Two-tone spans: every captured value faint, the focused one strong. */
+function structuredSpans(values: EvalResult["values"], focusKey: string | null): Span[] {
+  const faint: { start: number; end: number }[] = [];
+  const strong: { start: number; end: number }[] = [];
+  for (const name in values) {
+    const rec = values[name];
+    if (rec.origin !== "capture") continue;
+    for (const s of rec.spans) faint.push(s);
   }
-}
-
-function matchGroup(
-  text: string,
-  pattern: string,
-  flags: string,
-  group: string,
-): string | undefined {
-  if (!pattern.trim() || !text) return undefined;
-  const m = new RegExp(pattern, flags || undefined).exec(text);
-  if (!m) return undefined;
-  const g = groupOf(group);
-  return typeof g === "number" ? m[g] : m.groups?.[g];
-}
-
-/** Live value for the period row, mirroring generatePeriod's engine output. */
-function extractPeriodValue(text: string, f: FieldRow): string | undefined {
-  try {
-    if (f.periodMode === "parts") {
-      const mRaw = matchGroup(text, f.pattern, f.flags, f.group);
-      const yRaw = matchGroup(text, f.yearPattern, f.yearFlags, f.yearGroup);
-      if (mRaw === undefined || yRaw === undefined) return undefined;
-      const month = f.monthIsName
-        ? MONTH_LOOKUP[mRaw.slice(0, 3).toLowerCase()]
-        : parseInt(mRaw, 10);
-      const year = parseInt(yRaw, 10);
-      if (!month || Number.isNaN(year)) return undefined;
-      const iso = `${year}-${String(month).padStart(2, "0")}-01`;
-      return f.monthShift ? addMonthsClient(iso, f.monthShift) : iso;
+  if (focusKey && values[focusKey]) for (const s of values[focusKey].spans) strong.push(s);
+  const faintKept = faint.filter((f) => !strong.some((s) => f.start < s.end && s.start < f.end));
+  const all: Span[] = [
+    ...strong.map((s) => ({ ...s, tone: "strong" as const })),
+    ...faintKept.map((s) => ({ ...s, tone: "faint" as const })),
+  ].sort((a, b) => a.start - b.start || (a.tone === "strong" ? -1 : 1));
+  const out: Span[] = [];
+  let last = -1;
+  for (const s of all)
+    if (s.start >= last) {
+      out.push(s);
+      last = s.end;
     }
-    const v = extractFieldValue(text, f);
-    if (v === undefined) return undefined;
-    return f.monthShift ? addMonthsClient(v, f.monthShift) : v;
-  } catch {
-    return undefined;
-  }
-}
-
-type Body = Omit<ParserConfig, "slug" | "version" | "vendor">;
-type Compute = NonNullable<Body["compute"]>;
-
-/** Emit the captures + compute steps for the period role from its structured
- * editor state. "date" mode optionally shifts a captured date; "parts" mode
- * builds a date from a month (number or name) and a year, then optionally
- * shifts. addMonths snaps to the 1st and rolls the year, so shifts are safe
- * across December/January. */
-function generatePeriod(f: FieldRow): {
-  captures: Body["captures"];
-  compute: Compute;
-  rule: { sources: string[] };
-} {
-  const captures: Body["captures"] = [];
-  const compute: Compute = [];
-
-  if (f.periodMode === "parts") {
-    captures.push({
-      pattern: f.pattern,
-      flags: f.flags || undefined,
-      outputs: {
-        p_month: {
-          group: groupOf(f.group),
-          transform: f.monthIsName
-            ? ["lowercase", { slice: 3 }, { lookup: MONTH_LOOKUP }]
-            : ["toInt"],
-        },
-      },
-    });
-    captures.push({
-      pattern: f.yearPattern,
-      flags: f.yearFlags || undefined,
-      outputs: {
-        p_year: { group: groupOf(f.yearGroup), transform: ["toInt"] },
-      },
-    });
-    if (f.monthShift) {
-      compute.push({
-        name: "p_parts",
-        dateFromParts: { year: "p_year", month: "p_month", day: 1 },
-      });
-      compute.push({
-        name: "period",
-        addMonths: { date: "p_parts", delta: f.monthShift },
-      });
-    } else {
-      compute.push({
-        name: "period",
-        dateFromParts: { year: "p_year", month: "p_month", day: 1 },
-      });
-    }
-    return { captures, compute, rule: { sources: ["period"] } };
-  }
-
-  // date mode
-  captures.push({
-    pattern: f.pattern,
-    flags: f.flags || undefined,
-    outputs: {
-      p_date: {
-        group: groupOf(f.group),
-        transform: f.transforms.length
-          ? f.transforms.map(toTransformOp)
-          : undefined,
-      },
-    },
-  });
-  if (f.monthShift) {
-    compute.push({
-      name: "period",
-      addMonths: { date: "p_date", delta: f.monthShift },
-    });
-    return { captures, compute, rule: { sources: ["period"] } };
-  }
-  return { captures, compute, rule: { sources: ["p_date"] } };
-}
-
-/** Assemble the engine body from the structured Fields editor. `incomplete`
- * (vs `error`) means the user simply hasn't filled everything in yet — not a
- * failure to surface as a red error. */
-function assembleSimple(
-  sigs: Sig[],
-  noneSigs: Sig[],
-  fields: FieldRow[],
-): { body?: Body; error?: string; incomplete?: boolean } {
-  const captures: Body["captures"] = [];
-  const roles = {} as Body["roles"];
-  const custom: NonNullable<Body["custom"]> = [];
-  const compute: Compute = [];
-
-  // Empty fields aren't an error — just not done yet.
-  if (fields.some(fieldIncomplete)) return { incomplete: true };
-
-  for (const f of fields) {
-    if (f.role === "period") {
-      const g = generatePeriod(f);
-      captures.push(...g.captures);
-      compute.push(...g.compute);
-      roles.period = g.rule;
-      continue;
-    }
-    const key = fieldKey(f);
-    captures.push({
-      pattern: f.pattern,
-      flags: f.flags || undefined,
-      outputs: {
-        [key]: {
-          group: groupOf(f.group),
-          transform: f.transforms.length
-            ? f.transforms.map(toTransformOp)
-            : undefined,
-        },
-      },
-    });
-    if (f.role === "custom") {
-      if (!f.name.trim()) return { error: "A custom field is missing a name" };
-      custom.push({
-        name: f.name,
-        source: key,
-        type: f.type,
-        unit: f.unit || undefined,
-        includeWhen: f.includeWhen || undefined,
-      });
-    } else {
-      roles[f.role] = { sources: [key] };
-    }
-  }
-
-  for (const r of ROLES) {
-    if (!roles[r]) return { error: `${ROLE_LABEL[r]} has no field yet` };
-  }
-
-  return {
-    body: {
-      detect: {
-        allOf: sigs.filter((s) => s.pattern.trim()),
-        noneOf: noneSigs.filter((s) => s.pattern.trim()).length
-          ? noneSigs.filter((s) => s.pattern.trim())
-          : undefined,
-      },
-      captures,
-      compute: compute.length ? compute : undefined,
-      roles,
-      custom: custom.length ? custom : undefined,
-    },
-  };
-}
-
-/** Assemble the body from the raw-JSON (advanced) editor + structured detect. */
-function assembleAdvanced(
-  sigs: Sig[],
-  noneSigs: Sig[],
-  json: string,
-): { body?: Body; error?: string; incomplete?: boolean } {
-  if (!json.trim()) return { incomplete: true }; // nothing typed yet
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(json);
-  } catch (e) {
-    return { error: `Invalid JSON: ${e instanceof Error ? e.message : e}` };
-  }
-  return {
-    body: {
-      ...(parsed as object),
-      detect: {
-        allOf: sigs.filter((s) => s.pattern.trim()),
-        noneOf: noneSigs.filter((s) => s.pattern.trim()).length
-          ? noneSigs.filter((s) => s.pattern.trim())
-          : undefined,
-      },
-    } as Body,
-  };
-}
-
-/** Lenient Fields -> body for the Advanced (JSON) view: serialize whatever the
- * user has filled so toggling to JSON never discards partial work. Detect lives
- * separately (structured), so it's not included here. */
-function fieldsToBodyDraft(fields: FieldRow[]): Partial<Body> {
-  const captures: Body["captures"] = [];
-  const roles: Partial<Body["roles"]> = {};
-  const custom: NonNullable<Body["custom"]> = [];
-  const compute: Compute = [];
-  for (const f of fields) {
-    if (fieldIncomplete(f)) continue;
-    if (f.role === "period") {
-      const g = generatePeriod(f);
-      captures.push(...g.captures);
-      compute.push(...g.compute);
-      roles.period = g.rule;
-      continue;
-    }
-    if (f.role === "custom" && !f.name.trim()) continue; // would orphan its capture
-    const key = fieldKey(f);
-    captures.push({
-      pattern: f.pattern,
-      flags: f.flags || undefined,
-      outputs: {
-        [key]: {
-          group: groupOf(f.group),
-          transform: f.transforms.length
-            ? f.transforms.map(toTransformOp)
-            : undefined,
-        },
-      },
-    });
-    if (f.role === "custom") {
-      custom.push({
-        name: f.name,
-        source: key,
-        type: f.type,
-        unit: f.unit || undefined,
-        includeWhen: f.includeWhen || undefined,
-      });
-    } else {
-      roles[f.role] = { sources: [key] };
-    }
-  }
-  return {
-    captures,
-    compute: compute.length ? compute : undefined,
-    roles: roles as Body["roles"],
-    custom: custom.length ? custom : undefined,
-  };
-}
-
-// ── Reverse mapping (body -> Fields) ──────────────────────────────────────────
-// Only configs the Fields editor can faithfully represent convert back. Anything
-// using region/compute/validations, multi-output captures (barcodes), multi-
-// source roles, or transforms outside the dropdown stays JSON-only.
-const SIMPLE_TRANSFORMS = new Set([
-  "numberAR",
-  "numberUS",
-  "centsToAmount",
-  "stripLeadingZeros",
-  "toInt",
-  "monthOf",
-  "monthYear",
-  "lowercase",
-]);
-
-function transformOpToStr(op: TransformOp): string | null {
-  if (typeof op === "string") return SIMPLE_TRANSFORMS.has(op) ? op : null;
-  if ("parseDate" in op) return `parseDate:${op.parseDate}`;
-  return null;
-}
-
-function reverseTransforms(ops: TransformOp[] | undefined): string[] | null {
-  const out: string[] = [];
-  for (const op of ops ?? []) {
-    const s = transformOpToStr(op);
-    if (s === null) return null;
-    out.push(s);
-  }
   return out;
 }
 
-type OutEntry = {
-  cap: { pattern: string; flags?: string };
-  group: number | string;
-  transform?: TransformOp[];
-};
-
-function periodDateRow(e: OutEntry, shift: number): FieldRow | null {
-  const t = reverseTransforms(e.transform);
-  if (!t) return null;
-  return {
-    ...emptyField("period"),
-    periodMode: "date",
-    monthShift: shift,
-    pattern: e.cap.pattern,
-    flags: e.cap.flags ?? "",
-    group: String(e.group),
-    transforms: t,
-  };
-}
-
-function periodPartsRow(
-  monthE: OutEntry,
-  yearE: OutEntry,
-  shift: number,
-): FieldRow {
-  const monthIsName = (monthE.transform ?? []).some(
-    (op) => typeof op === "object" && "lookup" in op,
-  );
-  return {
-    ...emptyField("period"),
-    periodMode: "parts",
-    monthShift: shift,
-    monthIsName,
-    pattern: monthE.cap.pattern,
-    flags: monthE.cap.flags ?? "",
-    group: String(monthE.group),
-    yearPattern: yearE.cap.pattern,
-    yearFlags: yearE.cap.flags ?? "",
-    yearGroup: String(yearE.group),
-  };
-}
-
-/** Match the exact compute shapes `generatePeriod` emits, back into a period
- * row. Returns null for any other compute (those configs stay JSON-only). */
-function recognizePeriodCompute(
-  compute: Compute,
-  sourceKey: string,
-  outMap: Map<string, OutEntry>,
-): { row: FieldRow; usedKeys: string[] } | null {
-  const a = compute[0];
-  const b = compute[1];
-  // date mode + shift: [{ name: source, addMonths: { date: K, delta } }]
-  if (compute.length === 1 && a.name === sourceKey && "addMonths" in a) {
-    const e = outMap.get(a.addMonths.date);
-    if (!e) return null;
-    const row = periodDateRow(e, a.addMonths.delta);
-    return row ? { row, usedKeys: [a.addMonths.date] } : null;
-  }
-  // parts mode, no shift: [{ name: source, dateFromParts: { year, month, day:1 } }]
-  if (
-    compute.length === 1 &&
-    a.name === sourceKey &&
-    "dateFromParts" in a &&
-    a.dateFromParts.day === 1
-  ) {
-    const yE = outMap.get(a.dateFromParts.year);
-    const mE = outMap.get(a.dateFromParts.month);
-    if (!yE || !mE) return null;
-    return {
-      row: periodPartsRow(mE, yE, 0),
-      usedKeys: [a.dateFromParts.year, a.dateFromParts.month],
-    };
-  }
-  // parts mode + shift: dateFromParts named S, then addMonths over S named source
-  if (
-    compute.length === 2 &&
-    "dateFromParts" in a &&
-    a.dateFromParts.day === 1 &&
-    "addMonths" in b &&
-    b.name === sourceKey &&
-    b.addMonths.date === a.name
-  ) {
-    const yE = outMap.get(a.dateFromParts.year);
-    const mE = outMap.get(a.dateFromParts.month);
-    if (!yE || !mE) return null;
-    return {
-      row: periodPartsRow(mE, yE, b.addMonths.delta),
-      usedKeys: [a.dateFromParts.year, a.dateFromParts.month],
-    };
-  }
-  return null;
-}
-
-function bodyToFields(body: Partial<Body>): FieldRow[] | null {
-  if (body.region || body.validations?.length) return null;
-  const captures = body.captures ?? [];
-  const outMap = new Map<string, OutEntry>();
-  for (const cap of captures) {
-    const entries = Object.entries(cap.outputs);
-    if (entries.length !== 1) return null; // barcode-style multi-output
-    const [key, out] = entries[0];
-    outMap.set(key, { cap, group: out.group, transform: out.transform });
-  }
-
-  const used = new Set<string>();
-
-  // Period may derive through compute steps. Recognize the period-builder shapes
-  // (and the legacy "sourced straight from a capture" form); bail on anything
-  // else so complex configs open in the JSON editor.
-  const periodSources = body.roles?.period?.sources;
-  if (!periodSources || periodSources.length !== 1) return null;
-  const compute = (body.compute ?? []) as Compute;
-  let periodRow: FieldRow;
-  if (compute.length === 0) {
-    const e = outMap.get(periodSources[0]);
-    if (!e) return null;
-    const row = periodDateRow(e, 0);
-    if (!row) return null;
-    periodRow = row;
-    used.add(periodSources[0]);
-  } else {
-    const r = recognizePeriodCompute(compute, periodSources[0], outMap);
-    if (!r) return null;
-    periodRow = r.row;
-    for (const k of r.usedKeys) used.add(k);
-  }
-
-  const fields: FieldRow[] = [];
-  for (const role of ROLES) {
-    if (role === "period") {
-      fields.push(periodRow);
-      continue;
-    }
-    const rule = body.roles?.[role];
-    if (!rule) {
-      fields.push(emptyField(role)); // not mapped yet — still a simple draft
-      continue;
-    }
-    if (rule.sources.length !== 1) return null; // coalesced
-    const e = outMap.get(rule.sources[0]);
-    if (!e) return null; // role sourced from a compute step
-    const t = reverseTransforms(e.transform);
-    if (!t) return null;
-    fields.push({
-      ...emptyField(role),
-      pattern: e.cap.pattern,
-      flags: e.cap.flags ?? "",
-      group: String(e.group),
-      transforms: t,
-    });
-    used.add(rule.sources[0]);
-  }
-
-  for (const cf of body.custom ?? []) {
-    const e = outMap.get(cf.source);
-    if (!e) return null;
-    const t = reverseTransforms(e.transform);
-    if (!t) return null;
-    fields.push({
-      ...emptyField("custom"),
-      name: cf.name,
-      type: cf.type,
-      unit: cf.unit ?? "",
-      includeWhen: cf.includeWhen ?? "",
-      pattern: e.cap.pattern,
-      flags: e.cap.flags ?? "",
-      group: String(e.group),
-      transforms: t,
-    });
-    used.add(cf.source);
-  }
-
-  // A capture nothing references can't be shown as a field.
-  for (const key of outMap.keys()) if (!used.has(key)) return null;
-  return fields;
-}
-
-// ── Highlighting ──────────────────────────────────────────────────────────────
-type Span = { start: number; end: number; key: string };
-
-function computeSpans(
-  text: string,
-  items: {
-    key: string;
-    pattern: string;
-    flags?: string;
-    group: number | string;
-  }[],
-): Span[] {
+/** Single-tone spans for JSON mode: highlight each capture's focused group. */
+function bodySpans(text: string, body: Body | undefined): Span[] {
+  if (!body) return [];
   const spans: Span[] = [];
-  for (const it of items) {
-    try {
-      const re = new RegExp(it.pattern, `${it.flags ?? ""}d`);
-      const m = re.exec(text);
-      if (!m || !m.indices) continue;
-      const gi =
-        typeof it.group === "number"
-          ? m.indices[it.group]
-          : m.indices.groups?.[it.group];
-      if (gi) spans.push({ start: gi[0], end: gi[1], key: it.key });
-    } catch {
-      // invalid regex while typing — ignore
+  for (const cap of body.captures ?? []) {
+    for (const out of Object.values(cap.outputs)) {
+      try {
+        const re = new RegExp(cap.pattern, `${cap.flags ?? ""}d`);
+        const m = re.exec(text);
+        const indices = (
+          m as
+            | (RegExpExecArray & {
+                indices?: { [k: number]: [number, number]; groups?: Record<string, [number, number]> };
+              })
+            | null
+        )?.indices;
+        if (!indices) continue;
+        const gi = typeof out.group === "number" ? indices[out.group] : indices.groups?.[out.group];
+        if (gi) spans.push({ start: gi[0], end: gi[1], tone: "strong" });
+      } catch {
+        // invalid regex while typing
+      }
     }
   }
   spans.sort((a, b) => a.start - b.start);
   const out: Span[] = [];
   let last = -1;
-  for (const s of spans) {
+  for (const s of spans)
     if (s.start >= last) {
       out.push(s);
       last = s.end;
     }
-  }
   return out;
 }
 
 function HighlightedText({ text, spans }: { text: string; spans: Span[] }) {
-  if (spans.length === 0) return <>{text}</>;
+  if (!spans.length) return <>{text}</>;
   const nodes: React.ReactNode[] = [];
   let cursor = 0;
   spans.forEach((s, i) => {
@@ -791,8 +219,12 @@ function HighlightedText({ text, spans }: { text: string; spans: Span[] }) {
     nodes.push(
       <mark
         key={i}
-        title={s.key}
-        className="bg-[color-mix(in_srgb,var(--accent)_26%,transparent)] text-ink px-px"
+        className={cn(
+          "text-ink px-px",
+          s.tone === "strong"
+            ? "bg-[color-mix(in_srgb,var(--accent)_32%,transparent)] outline outline-1 outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]"
+            : "bg-[color-mix(in_srgb,var(--accent)_13%,transparent)]",
+        )}
       >
         {text.slice(s.start, s.end)}
       </mark>,
@@ -803,7 +235,7 @@ function HighlightedText({ text, spans }: { text: string; spans: Span[] }) {
   return <>{nodes}</>;
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ── Page ────────────────────────────────────────────────────────────────────────
 function Builder() {
   const router = useRouter();
   const params = useSearchParams();
@@ -812,104 +244,68 @@ function Builder() {
   const { showToast } = useApp();
   const utils = trpc.useUtils();
 
-  const billQuery = trpc.bills.get.useQuery(
-    { id: billId! },
-    { enabled: Boolean(billId) },
-  );
+  const billQuery = trpc.bills.get.useQuery({ id: billId! }, { enabled: Boolean(billId) });
   const presets = trpc.parsers.list.useQuery();
   const vendorList = trpc.vendors.list.useQuery();
 
-  // Working bills the parser is tested against (seed + dropped). Never saved
-  // unless explicitly added as a sample.
   const [bills, setBills] = useState<{ name: string; text: string }[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [seeded, setSeeded] = useState(false);
 
-  const [mode, setMode] = useState<"simple" | "advanced">("simple");
+  const [mode, setMode] = useState<Mode>("structured");
   const [existingId, setExistingId] = useState<string | null>(null);
-  // False when the loaded parser is adopted/official (not owned): saving forks
-  // it into a new owned copy rather than editing the original (which would 404).
   const [editingOwn, setEditingOwn] = useState(true);
-  // Slug of the parser we seeded from (own, adopted, or an orphaned reference).
-  // Bills already claimed by it must not count as collisions — it's the parser
-  // being edited, not a *different* one. Set for adopted parsers too, where
-  // `existingId` stays null because the save forks rather than updates.
   const [loadedSlug, setLoadedSlug] = useState<string | null>(null);
   const [slug, setSlug] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [vendorSlug, setVendorSlug] = useState("");
   const [sigs, setSigs] = useState<Sig[]>([{ pattern: "", flags: "i" }]);
   const [noneSigs, setNoneSigs] = useState<Sig[]>([]);
-  const [fields, setFields] = useState<FieldRow[]>(ROLES.map(emptyField));
+  const [config, setConfig] = useState<BuilderConfig>(() => emptyConfig());
   const [advanced, setAdvanced] = useState("");
+  const [focusKey, setFocusKey] = useState<string | null>(null);
 
-  // Seed once from the loaded bill / preset.
+  // Seed once from the loaded bill / preset. Forward-only: an existing saved
+  // parser opens in the JSON tab (the structured editor builds new configs).
   if (!seeded && (billId ? billQuery.data : true) && presets.data) {
     setSeeded(true);
     if (billQuery.data) {
-      setBills([
-        {
-          name: billQuery.data.fileName ?? "bill",
-          text: normalize(billQuery.data.rawText),
-        },
-      ]);
+      setBills([{ name: billQuery.data.fileName ?? "bill", text: normalize(billQuery.data.rawText) }]);
     }
     const preset =
       (parserSlug && presets.data.find((p) => p.slug === parserSlug)) ||
-      (billQuery.data?.parserKey &&
-        presets.data.find((p) => p.slug === billQuery.data!.parserKey));
+      (billQuery.data?.parserKey && presets.data.find((p) => p.slug === billQuery.data!.parserKey));
     if (preset) {
-      // Only an owned parser is edited in place; an adopted/official one is
-      // forked on save, so leave existingId null and flag it.
       if (preset.editable) setExistingId(preset.id);
       else setEditingOwn(false);
       setLoadedSlug(preset.slug);
       setSlug(preset.slug);
       setDisplayName(preset.displayName);
       setVendorSlug(preset.vendorSlug);
-      // Adopted rows carry a full ParserConfig in `body` (slug/vendor/version
-      // included); own rows carry just the definition. Strip the metadata so
-      // both normalize to a definition Body.
-      const {
-        slug: _bs,
-        vendor: _bv,
-        version: _bvn,
-        ...bodyRest
-      } = preset.body as Record<string, unknown>;
-      void _bs;
-      void _bv;
-      void _bvn;
+      const { slug: _s, vendor: _v, version: _vn, ...bodyRest } = preset.body as Record<string, unknown>;
+      void _s;
+      void _v;
+      void _vn;
       const body = bodyRest as Body;
       setSigs(
         body.detect?.allOf?.length
-          ? body.detect.allOf.map((s) => ({
-              pattern: s.pattern,
-              flags: s.flags ?? "",
-            }))
+          ? body.detect.allOf.map((s) => ({ pattern: s.pattern, flags: s.flags ?? "" }))
           : [{ pattern: "", flags: "i" }],
       );
-      setNoneSigs(
-        (body.detect?.noneOf ?? []).map((s) => ({
-          pattern: s.pattern,
-          flags: s.flags ?? "",
-        })),
-      );
+      setNoneSigs((body.detect?.noneOf ?? []).map((s) => ({ pattern: s.pattern, flags: s.flags ?? "" })));
       const { detect: _omit, ...rest } = body;
       void _omit;
-      // Open in the Fields editor when the config is simple enough; otherwise
-      // (barcodes, derived periods, cross-checks) edit it as JSON.
-      const asFields = bodyToFields(rest);
-      if (asFields) {
-        setFields(asFields);
-        setMode("simple");
+      // Open in the structured editor when the body reverse-maps; otherwise
+      // (region, exotic compute, un-mappable validations) fall back to JSON.
+      const asConfig = bodyToConfig(body);
+      if (asConfig) {
+        setConfig(asConfig);
+        setMode("structured");
       } else {
         setAdvanced(JSON.stringify(rest, null, 2));
-        setMode("advanced");
+        setMode("json");
       }
     } else {
-      // The bill references a parser slug with no saved config (e.g. bills
-      // parsed by an older build). Prefill the identity so finishing recreates
-      // that parser and reparse links the orphaned bills back to it.
       const orphan = parserSlug || billQuery.data?.parserKey;
       if (orphan) {
         setLoadedSlug(orphan);
@@ -921,30 +317,8 @@ function Builder() {
   }
 
   const activeText = bills[activeIdx]?.text ?? "";
-  const knownVendor = (vendorList.data ?? []).some(
-    (v) => v.slug === vendorSlug,
-  );
+  const knownVendor = (vendorList.data ?? []).some((v) => v.slug === vendorSlug);
 
-  // Assemble the draft config (client-side; the engine is pure).
-  const assembled = useMemo(() => {
-    const { body, error, incomplete } =
-      mode === "simple"
-        ? assembleSimple(sigs, noneSigs, fields)
-        : assembleAdvanced(sigs, noneSigs, advanced);
-    if (!body) return { error, incomplete };
-    const config: ParserConfig = {
-      slug: slug || "draft",
-      version: 1,
-      vendor: {
-        slug: vendorSlug || slug || "draft",
-        displayName: displayName || "Draft",
-      },
-      ...body,
-    };
-    return { config, body };
-  }, [mode, sigs, noneSigs, fields, advanced, slug, vendorSlug, displayName]);
-
-  // Detection probe (works even before extraction is complete).
   const detectObj = useMemo(
     () => ({
       allOf: sigs.filter((s) => s.pattern.trim()),
@@ -952,6 +326,58 @@ function Builder() {
     }),
     [sigs, noneSigs],
   );
+
+  // Assembled engine body (drives finish + JSON-mode preview/highlight).
+  const assembled = useMemo((): { body?: Body; error?: string } => {
+    if (mode === "structured") {
+      return { body: generateBody(config, { allOf: sigs, noneOf: noneSigs }) };
+    }
+    if (!advanced.trim()) return { error: "Add a definition" };
+    try {
+      const parsed = JSON.parse(advanced) as Record<string, unknown>;
+      return { body: { ...(parsed as object), detect: detectObj } as Body };
+    } catch (e) {
+      return { error: `Invalid JSON: ${e instanceof Error ? e.message : e}` };
+    }
+  }, [mode, config, sigs, noneSigs, advanced, detectObj]);
+
+  // Structured mode: rich per-value evaluation for chips / highlight / preview.
+  const structResult = useMemo(
+    () => (mode === "structured" && activeText ? evaluateConfig(activeText, config) : null),
+    [mode, activeText, config],
+  );
+
+  // JSON mode: final result via the real engine.
+  const jsonPreview = useMemo(() => {
+    if (mode !== "json" || !assembled.body || !activeText) return null;
+    const full: ParserConfig = {
+      slug: slug || "draft",
+      version: 1,
+      vendor: { slug: vendorSlug || slug || "draft", displayName: displayName || "Draft" },
+      ...assembled.body,
+    };
+    try {
+      return { result: runConfig(full, activeText), error: null as string | null };
+    } catch (e) {
+      return { result: null, error: e instanceof Error ? e.message : String(e) };
+    }
+  }, [mode, assembled.body, activeText, slug, vendorSlug, displayName]);
+
+  const spans = useMemo(() => {
+    if (!activeText) return [];
+    return mode === "structured"
+      ? structuredSpans(structResult?.values ?? {}, focusKey)
+      : bodySpans(activeText, assembled.body);
+  }, [mode, structResult, focusKey, activeText, assembled.body]);
+
+  const values = structResult?.values ?? {};
+  const recOf = (name: string): ValueRec | undefined => values[name];
+  const onPreview = (name: string | null) => setFocusKey(name);
+
+  const setCaptures = (captures: BuilderConfig["captures"]) => setConfig((c) => ({ ...c, captures }));
+  const setDerives = (derives: BuilderConfig["derives"]) => setConfig((c) => ({ ...c, derives }));
+  const setCustom = (custom: BuilderConfig["custom"]) => setConfig((c) => ({ ...c, custom }));
+
   const hasSignature = detectObj.allOf.length > 0;
   const matchesCurrent =
     hasSignature &&
@@ -965,98 +391,18 @@ function Builder() {
   const collisionList = collisions.data ?? [];
   const gatePassed = matchesCurrent && collisionList.length === 0;
 
-  // Live preview of extraction against the active bill.
-  const preview = useMemo(() => {
-    if (!assembled.config || !activeText) return null;
-    try {
-      const result: ParsedResult = runConfig(assembled.config, activeText);
-      return { result, error: null as string | null };
-    } catch (e) {
-      return {
-        result: null,
-        error: e instanceof Error ? e.message : String(e),
-      };
-    }
-  }, [assembled.config, activeText]);
+  const usage = trpc.parsers.usage.useQuery({ slug }, { enabled: Boolean(slug) });
+  const samples = trpc.parsers.listSamples.useQuery({ slug }, { enabled: Boolean(slug) });
 
-  // Spans to highlight in the active text. In Fields mode derive straight from
-  // the rows so highlights appear as each regex is typed (before the whole
-  // config is valid); in Advanced mode use the assembled captures.
-  const spans = useMemo(() => {
-    if (!activeText) return [];
-    const items: {
-      key: string;
-      pattern: string;
-      flags?: string;
-      group: number | string;
-    }[] = [];
-    if (mode === "simple") {
-      for (const f of fields) items.push(...fieldCaptureItems(f));
-    } else if (assembled.body) {
-      for (const cap of assembled.body.captures ?? []) {
-        for (const [key, out] of Object.entries(cap.outputs)) {
-          items.push({
-            key,
-            pattern: cap.pattern,
-            flags: cap.flags,
-            group: out.group,
-          });
-        }
-      }
-    }
-    return computeSpans(activeText, items);
-  }, [mode, fields, assembled.body, activeText]);
-
-  const usage = trpc.parsers.usage.useQuery(
-    { slug },
-    { enabled: Boolean(slug) },
-  );
-  const samples = trpc.parsers.listSamples.useQuery(
-    { slug },
-    { enabled: Boolean(slug) },
-  );
-
-  // Tab switches convert between representations so neither side goes stale.
-  // Blank JSON is always convertible (it just means "nothing yet") so the user
-  // can never get stranded in Advanced.
-  const simpleConvertible = useMemo(() => {
-    if (mode === "simple" || !advanced.trim()) return true;
-    try {
-      return bodyToFields(JSON.parse(advanced)) !== null;
-    } catch {
-      return false;
-    }
-  }, [mode, advanced]);
-
-  const switchToSimple = () => {
-    if (mode === "simple") return;
-    // Blank JSON: just go back, keeping whatever fields were already there.
-    if (!advanced.trim()) {
-      setMode("simple");
-      return;
-    }
-    let parsed: Partial<Body>;
-    try {
-      parsed = JSON.parse(advanced);
-    } catch {
-      showToast("Fix the JSON before switching to Fields");
-      return;
-    }
-    const f = bodyToFields(parsed);
-    if (!f) {
-      showToast("This parser uses advanced features — edit it as JSON");
-      return;
-    }
-    setFields(f);
-    setMode("simple");
+  const toJson = () => {
+    // Body for the JSON editor mirrors what we'd save, minus the separately-
+    // edited detect block (step 1 owns that in both modes).
+    const { detect: _d, ...rest } = generateBody(config, { allOf: [], noneOf: [] });
+    void _d;
+    setAdvanced(JSON.stringify(rest, null, 2));
+    setMode("json");
   };
-
-  const switchToAdvanced = () => {
-    if (mode === "advanced") return;
-    // Serialize partial work too, so nothing is lost on the way over.
-    setAdvanced(JSON.stringify(fieldsToBodyDraft(fields), null, 2));
-    setMode("advanced");
-  };
+  const toStructured = () => setMode("structured");
 
   const createParser = trpc.parsers.create.useMutation();
   const updateParser = trpc.parsers.update.useMutation();
@@ -1085,26 +431,20 @@ function Builder() {
   };
 
   const slugValid = /^[a-z0-9-]+$/.test(slug);
+  const previewOk =
+    mode === "structured" ? Boolean(structResult?.resolved) : jsonPreview?.result != null;
   const canFinish =
     gatePassed &&
     slugValid &&
     displayName.trim().length > 0 &&
-    Boolean(assembled.config) &&
-    preview?.error == null &&
-    preview?.result != null;
+    Boolean(assembled.body) &&
+    !assembled.error &&
+    previewOk;
 
   const finish = async () => {
     if (!assembled.body) return;
-    const input = {
-      slug,
-      displayName,
-      vendorSlug: vendorSlug || slug,
-      definition: assembled.body,
-    };
+    const input = { slug, displayName, vendorSlug: vendorSlug || slug, definition: assembled.body };
     try {
-      // Upsert by slug, but only against parsers you OWN: a previous attempt may
-      // have saved before a later step failed (avoid a false slug conflict),
-      // while an adopted parser with the same slug must be forked, not updated.
       let id = existingId;
       if (!id) {
         const list = await utils.parsers.list.fetch();
@@ -1127,7 +467,7 @@ function Builder() {
   };
 
   return (
-    <div className="mx-auto max-w-[80rem] px-5 pt-7 pb-20">
+    <div className="mx-auto max-w-[84rem] px-5 pt-7 pb-20">
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <div>
           <Eyebrow>Parser builder {existingId ? "· editing" : "· new"}</Eyebrow>
@@ -1140,42 +480,35 @@ function Builder() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-6 mt-[22px]">
-        {/* ── Left: the bill text + test bills ── */}
-        <div>
-          <Label>Bill text</Label>
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] gap-6 mt-[22px] items-start">
+        {/* ── Left: bill text ── */}
+        <div className="md:sticky md:top-4">
+          <div className="flex items-center justify-between mb-2">
+            <Label>Bill text</Label>
+            {mode === "structured" && (
+              <span className="font-mono text-[10.5px] text-muted">focus a value to highlight its span →</span>
+            )}
+          </div>
           {bills.length > 1 && (
             <div className="flex flex-wrap gap-1 mb-2">
               {bills.map((b, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveIdx(i)}
-                  className={tabClass(i === activeIdx)}
-                  title={b.name}
-                >
+                <button key={i} onClick={() => setActiveIdx(i)} className={tabClass(i === activeIdx)} title={b.name}>
                   {b.name.length > 18 ? `${b.name.slice(0, 16)}…` : b.name}
                 </button>
               ))}
             </div>
           )}
-          <pre className="ruled font-mono text-xs whitespace-pre-wrap break-words bg-paper border border-line py-2.5 px-3 h-[58vh] overflow-y-auto">
-            {activeText ? (
-              <HighlightedText text={activeText} spans={spans} />
-            ) : (
-              "Drop a PDF to start."
-            )}
+          <pre className="ruled font-mono text-xs leading-[1.55] whitespace-pre-wrap break-words bg-paper border border-line py-2.5 px-3 h-[62vh] overflow-y-auto m-0 text-ink">
+            {activeText ? <HighlightedText text={activeText} spans={spans} /> : "Drop a PDF to start."}
           </pre>
-
           <DropZone onFiles={dropFiles} />
-
           <RegexToolkit
             text={activeText}
             onCopy={(p) => {
               navigator.clipboard?.writeText(p);
-              showToast("Pattern copied — paste into a field’s regex box");
+              showToast("Pattern copied — paste into a regex box");
             }}
           />
-
           {slug && (
             <div className="mt-3">
               <Label>Saved samples ({samples.data?.length ?? 0})</Label>
@@ -1185,13 +518,7 @@ function Builder() {
                     key={s.id}
                     onClick={() =>
                       setBills((b) => {
-                        const next = [
-                          ...b,
-                          {
-                            name: s.fileName ?? "sample",
-                            text: normalize(s.rawText),
-                          },
-                        ];
+                        const next = [...b, { name: s.fileName ?? "sample", text: normalize(s.rawText) }];
                         setActiveIdx(next.length - 1);
                         return next;
                       })
@@ -1207,11 +534,7 @@ function Builder() {
                     variant="outline"
                     disabled={addSample.isPending}
                     onClick={async () => {
-                      await addSample.mutateAsync({
-                        slug,
-                        fileName: bills[activeIdx]?.name,
-                        rawText: activeText,
-                      });
+                      await addSample.mutateAsync({ slug, fileName: bills[activeIdx]?.name, rawText: activeText });
                       samples.refetch();
                       showToast("Saved as regression sample");
                     }}
@@ -1224,17 +547,12 @@ function Builder() {
           )}
         </div>
 
-        {/* ── Right: the editor ── */}
+        {/* ── Right: editor ── */}
         <div className="flex flex-col gap-5">
-          {/* metadata */}
           <Section title="Parser">
             <Grid>
               <Field label="Name">
-                <Input
-                  value={displayName}
-                  placeholder="e.g. Aguas Andinas"
-                  onChange={(e) => setDisplayName(e.target.value)}
-                />
+                <Input value={displayName} placeholder="e.g. Aguas Andinas" onChange={(e) => setDisplayName(e.target.value)} />
               </Field>
               <Field label="Slug (id)">
                 <Input
@@ -1249,11 +567,7 @@ function Builder() {
                   value={knownVendor ? vendorSlug : "__new__"}
                   onChange={(e) => {
                     const val = e.target.value;
-                    if (val === "__new__") {
-                      setVendorSlug("");
-                      return;
-                    }
-                    setVendorSlug(val);
+                    setVendorSlug(val === "__new__" ? "" : val);
                   }}
                 >
                   {(vendorList.data ?? []).map((v) => (
@@ -1266,89 +580,47 @@ function Builder() {
               </Field>
               {!knownVendor && (
                 <Field label="New vendor slug">
-                  <Input
-                    value={vendorSlug}
-                    placeholder={slug || "vendor"}
-                    onChange={(e) => setVendorSlug(e.target.value)}
-                  />
+                  <Input value={vendorSlug} placeholder={slug || "vendor"} onChange={(e) => setVendorSlug(e.target.value)} />
                 </Field>
               )}
             </Grid>
-            {!knownVendor && (
-              <p className={`${hint} mt-2`}>
-                Point a second parser at an existing vendor to merge them — e.g.
-                an old and new administrator both filed under one “Expensas”.
-              </p>
-            )}
           </Section>
 
           {/* step 1 — detection */}
           <Section title="1 · Recognize the bill">
-            <p className={`${hint} mb-2.5`}>
-              Patterns that uniquely identify this vendor. All must appear in
-              the text, and they must not match any of your other bills.
+            <p className={cn(hint, "mb-2.5")}>
+              Patterns that uniquely identify this vendor. All must appear in the text, and they must not match any of your
+              other bills.
             </p>
             {sigs.map((s, i) => (
               <SigRow
                 key={i}
                 sig={s}
-                onChange={(ns) =>
-                  setSigs(sigs.map((x, j) => (j === i ? ns : x)))
-                }
-                onRemove={
-                  sigs.length > 1
-                    ? () => setSigs(sigs.filter((_, j) => j !== i))
-                    : undefined
-                }
+                onChange={(ns) => setSigs(sigs.map((x, j) => (j === i ? ns : x)))}
+                onRemove={sigs.length > 1 ? () => setSigs(sigs.filter((_, j) => j !== i)) : undefined}
               />
             ))}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setSigs([...sigs, { pattern: "", flags: "i" }])}
-            >
+            <Button size="sm" variant="outline" onClick={() => setSigs([...sigs, { pattern: "", flags: "i" }])}>
               + Add signature
             </Button>
-
             <div className="mt-4">
-              <p className={`${hint} mb-2.5`}>
-                Optional — patterns that must <em>not</em> appear. Use this to
-                split one vendor across two parsers: e.g. the monthly bill must
-                not contain “Cuota 13”, while a second parser claims exactly the
-                annual “Cuota 13” bill.
+              <p className={cn(hint, "mb-2.5")}>
+                Optional — patterns that must <em>not</em> appear. Splits one vendor across two parsers.
               </p>
               {noneSigs.map((s, i) => (
                 <SigRow
                   key={i}
                   sig={s}
-                  onChange={(ns) =>
-                    setNoneSigs(noneSigs.map((x, j) => (j === i ? ns : x)))
-                  }
-                  onRemove={() =>
-                    setNoneSigs(noneSigs.filter((_, j) => j !== i))
-                  }
+                  onChange={(ns) => setNoneSigs(noneSigs.map((x, j) => (j === i ? ns : x)))}
+                  onRemove={() => setNoneSigs(noneSigs.filter((_, j) => j !== i))}
                 />
               ))}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  setNoneSigs([...noneSigs, { pattern: "", flags: "i" }])
-                }
-              >
+              <Button size="sm" variant="outline" onClick={() => setNoneSigs([...noneSigs, { pattern: "", flags: "i" }])}>
                 + Add exclusion
               </Button>
             </div>
-
             <div className="mt-3 flex flex-col gap-1.5">
-              <StatusLine
-                ok={matchesCurrent}
-                text={
-                  matchesCurrent
-                    ? "Matches this bill"
-                    : "Does not match this bill yet"
-                }
-              />
+              <StatusLine ok={matchesCurrent} text={matchesCurrent ? "Matches this bill" : "Does not match this bill yet"} />
               <StatusLine
                 ok={collisionList.length === 0}
                 text={
@@ -1361,140 +633,157 @@ function Builder() {
           </Section>
 
           {/* step 2 — extraction */}
-          <Section title="2 · Extract the data" dim={!gatePassed}>
-            {!gatePassed ? (
-              <p className={`${hint} mb-2.5`}>
-                Finish step 1 to unlock extraction.
-              </p>
-            ) : (
-              <>
-                <div className="flex items-center gap-1.5 mb-3">
-                  <ModeTab
-                    active={mode === "simple"}
-                    disabled={!simpleConvertible}
-                    onClick={switchToSimple}
-                  >
-                    Fields
+          <Section
+            title="2 · Extract the data"
+            dim={!gatePassed}
+            right={
+              gatePassed ? (
+                <div className="flex gap-1.5">
+                  <ModeTab active={mode === "structured"} onClick={toStructured}>
+                    Structured
                   </ModeTab>
-                  <ModeTab
-                    active={mode === "advanced"}
-                    onClick={switchToAdvanced}
-                  >
+                  <ModeTab active={mode === "json"} onClick={toJson}>
                     Advanced (JSON)
                   </ModeTab>
-                  {!simpleConvertible && (
-                    <span className={hint}>
-                      uses advanced features — JSON only
-                    </span>
-                  )}
                 </div>
-
-                {mode === "simple" ? (
-                  <>
-                    {fields.map((f) =>
-                      f.role === "period" ? (
-                        <PeriodEditor
-                          key={f.id}
-                          field={f}
-                          onChange={(nf) =>
-                            setFields(
-                              fields.map((x) => (x.id === f.id ? nf : x)),
-                            )
-                          }
-                          value={extractPeriodValue(activeText, f)}
-                        />
-                      ) : (
-                        <FieldEditor
-                          key={f.id}
-                          field={f}
-                          onChange={(nf) =>
-                            setFields(
-                              fields.map((x) => (x.id === f.id ? nf : x)),
-                            )
-                          }
-                          onRemove={
-                            f.role === "custom"
-                              ? () =>
-                                  setFields(fields.filter((x) => x.id !== f.id))
-                              : undefined
-                          }
-                          value={extractFieldValue(activeText, f)}
-                        />
-                      ),
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setFields([...fields, emptyField("custom")])
-                      }
-                    >
-                      + Add custom field
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <p className={`${hint} mb-2.5`}>
-                      The full extraction body (captures, compute, validations,
-                      roles, custom). For barcodes and derived periods.
-                    </p>
-                    <textarea
-                      value={advanced}
-                      onChange={(e) => setAdvanced(e.target.value)}
-                      spellCheck={false}
-                      className="w-full min-h-[280px] font-mono text-xs bg-paper border border-line py-2.5 px-3 resize-y"
-                    />
-                  </>
+              ) : undefined
+            }
+          >
+            {!gatePassed ? (
+              <p className={cn(hint, "mb-2.5")}>Finish step 1 to unlock extraction.</p>
+            ) : mode === "json" ? (
+              <>
+                <p className={cn(hint, "mb-2")}>
+                  The underlying engine body — captures, compute, roles, custom. Edits preview live below.
+                </p>
+                <textarea
+                  value={advanced}
+                  onChange={(e) => setAdvanced(e.target.value)}
+                  spellCheck={false}
+                  className={cn(
+                    "w-full box-border min-h-[340px] font-mono text-[11.5px] leading-relaxed bg-paper border py-2.5 px-3 resize-y text-ink outline-none",
+                    assembled.error ? "border-accent" : "border-line",
+                  )}
+                />
+                {assembled.error && <p className={cn(hint, "text-accent mt-1.5")}>△ {assembled.error}</p>}
+              </>
+            ) : (
+              <>
+                <SubHead label="Extract — capture from the bill" sub="Each card is one regex producing one or more named values." />
+                {config.captures.length === 0 && (
+                  <p className={cn(hint, "mb-2.5")}>Nothing captured yet. Add a capture to read a value off the bill.</p>
                 )}
+                {config.captures.map((cap, i) => (
+                  <CaptureCard
+                    key={cap.id}
+                    cap={cap}
+                    recOf={recOf}
+                    onPreview={onPreview}
+                    onChange={(nc) => setCaptures(config.captures.map((x, j) => (j === i ? nc : x)))}
+                    onRemove={() => setCaptures(config.captures.filter((_, j) => j !== i))}
+                  />
+                ))}
+                <Button size="sm" variant="outline" onClick={() => setCaptures([...config.captures, newCapture()])}>
+                  + add capture
+                </Button>
 
-                {/* preview */}
-                <div className="mt-[14px]">
-                  <Label>Preview</Label>
-                  {assembled.incomplete ? (
-                    <p className={`${hint} mb-2.5`}>
-                      Add a regex to every field — each value previews live
-                      above and highlights in the bill text.
-                    </p>
-                  ) : assembled.error ? (
-                    <ErrorBox text={assembled.error} />
-                  ) : preview?.error ? (
-                    <ErrorBox text={preview.error} />
-                  ) : preview?.result ? (
-                    <PreviewBox result={preview.result} />
-                  ) : (
-                    <p className={`${hint} mb-2.5`}>
-                      Define fields to see the result.
-                    </p>
-                  )}
-                </div>
+                <div className="h-4" />
+                <SubHead
+                  label="Derive — compute from other values"
+                  sub="Each card makes a new value from the values above it. Order matters; ≈ marks a computed value."
+                />
+                {config.derives.map((d, i) => (
+                  <DeriveCard
+                    key={d.id}
+                    der={d}
+                    recOf={recOf}
+                    options={optionsBeforeDerive(config, values, i)}
+                    onPreview={onPreview}
+                    focusKey={focusKey}
+                    onChange={(nd) => setDerives(config.derives.map((x, j) => (j === i ? nd : x)))}
+                    onRemove={() => setDerives(config.derives.filter((_, j) => j !== i))}
+                    moveUp={() => setDerives(moveArr(config.derives, i, -1))}
+                    moveDown={() => setDerives(moveArr(config.derives, i, 1))}
+                  />
+                ))}
+                <Button size="sm" variant="outline" onClick={() => setDerives([...config.derives, newDerive()])}>
+                  + add derived value
+                </Button>
+
+                <div className="h-4" />
+                <SubHead label="Roles — the four required slots" sub="Point each slot at a value. Add fallbacks for bills that print it differently." />
+                {ROLE_KEYS.map((key) => (
+                  <RoleCard
+                    key={key}
+                    label={ROLE_LABEL[key]}
+                    role={config.roles[key]}
+                    resolved={structResult?.roleOut[key]}
+                    options={allOptions(config, values)}
+                    onPreview={onPreview}
+                    focusKey={focusKey}
+                    onChange={(r) => setConfig((c) => ({ ...c, roles: { ...c.roles, [key]: r } }))}
+                  />
+                ))}
+
+                <div className="h-4" />
+                <SubHead label="Custom fields" sub="Anything else worth tracking — charted later." />
+                {config.custom.map((cf, i) => (
+                  <CustomCard
+                    key={cf.id}
+                    field={cf}
+                    recOf={recOf}
+                    options={allOptions(config, values)}
+                    onPreview={onPreview}
+                    focusKey={focusKey}
+                    onChange={(nf) => setCustom(config.custom.map((x, j) => (j === i ? nf : x)))}
+                    onRemove={() => setCustom(config.custom.filter((_, j) => j !== i))}
+                  />
+                ))}
+                <Button size="sm" variant="outline" onClick={() => setCustom([...config.custom, newCustom()])}>
+                  + add custom field
+                </Button>
               </>
             )}
+
+            {/* preview / review */}
+            <div className="mt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Label>{mode === "structured" && structResult?.issues.length ? "Needs review" : "Preview"}</Label>
+                {previewOk && <ValueChip value="resolves" size="sm" />}
+              </div>
+              {mode === "structured" ? (
+                structResult ? (
+                  structResult.issues.length ? (
+                    <ReviewBox issues={structResult.issues} />
+                  ) : (
+                    <StructuredPreview result={structResult} />
+                  )
+                ) : (
+                  <p className={cn(hint, "mb-2.5")}>Define fields to see the result.</p>
+                )
+              ) : assembled.error ? (
+                <ErrorBox text={assembled.error} />
+              ) : jsonPreview?.error ? (
+                <ErrorBox text={jsonPreview.error} />
+              ) : jsonPreview?.result ? (
+                <ParsedPreview result={jsonPreview.result} />
+              ) : (
+                <p className={cn(hint, "mb-2.5")}>Define fields to see the result.</p>
+              )}
+            </div>
           </Section>
 
-          {/* finish */}
           <div className="flex items-center gap-3 flex-wrap">
             <Button
               variant="solid"
               size="lg"
-              disabled={
-                !canFinish ||
-                createParser.isPending ||
-                updateParser.isPending ||
-                reparse.isPending
-              }
+              disabled={!canFinish || createParser.isPending || updateParser.isPending || reparse.isPending}
               onClick={finish}
             >
-              {!editingOwn
-                ? "Fork & save"
-                : existingId
-                  ? "Save & reparse"
-                  : "Finish"}
+              {!editingOwn ? "Fork & save" : existingId ? "Save & reparse" : "Finish"}
             </Button>
             {slug && usage.data && usage.data.count > 0 && (
-              <span className={hint}>
-                Saving re-runs this parser against {usage.data.count} existing
-                bill(s).
-              </span>
+              <span className={hint}>Saving re-runs this parser against {usage.data.count} existing bill(s).</span>
             )}
           </div>
         </div>
@@ -1503,23 +792,106 @@ function Builder() {
   );
 }
 
-// ── Small components ──────────────────────────────────────────────────────────
-function SigRow({
-  sig,
-  onChange,
-  onRemove,
-}: {
-  sig: Sig;
-  onChange: (s: Sig) => void;
-  onRemove?: () => void;
-}) {
+// ── small components ──────────────────────────────────────────────────────────
+function SubHead({ label, sub }: { label: string; sub?: string }) {
+  return (
+    <div className="my-1 mb-2.5">
+      <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink font-semibold">{label}</div>
+      {sub && <p className={cn(hint, "mt-0.5")}>{sub}</p>}
+    </div>
+  );
+}
+
+function StructuredPreview({ result }: { result: EvalResult }) {
+  const rows: [string, string][] = [
+    ["Account / ID", fmt(result.roleOut.identity.value)],
+    ["Amount", fmt(result.roleOut.amount.value)],
+    ["Period", fmt(result.roleOut.period.value)],
+    ["Due date", fmt(result.roleOut.dueDate.value)],
+    ...result.custom.map(
+      (c): [string, string] => [
+        `${c.name}${c.type === "quantity" && c.unit ? ` (${c.unit})` : ""}`,
+        c.value === undefined ? "—" : `${c.value}${c.type === "quantity" && c.unit ? ` ${c.unit}` : ""}`,
+      ],
+    ),
+  ];
+  return <RowBox rows={rows} />;
+}
+
+function ParsedPreview({ result }: { result: ParsedResult }) {
+  const rows: [string, string][] = [
+    ["Account / ID", result.identity],
+    ["Amount", String(result.amount)],
+    ["Period", result.period],
+    ["Due date", result.dueDate],
+    ...Object.entries(result.custom).map(
+      ([k, v]): [string, string] => [k, typeof v === "object" ? `${v.value}${v.unit ? ` ${v.unit}` : ""}` : String(v)],
+    ),
+  ];
+  return <RowBox rows={rows} />;
+}
+
+function RowBox({ rows }: { rows: [string, string][] }) {
+  return (
+    <div className="border border-line bg-paper">
+      {rows.map(([k, v], i) => (
+        <div
+          key={k}
+          className={cn(
+            "flex justify-between gap-3 py-[7px] px-3 font-mono text-xs",
+            i === 0 ? "" : "border-t border-dashed border-line",
+          )}
+        >
+          <span className="text-muted">{k}</span>
+          <span className="text-ink font-medium">{v}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function fmt(v: unknown): string {
+  return v === undefined || v === null || v === "" ? "—" : String(v);
+}
+
+function ReviewBox({ issues }: { issues: EvalResult["issues"] }) {
+  return (
+    <div className="border border-accent bg-[color-mix(in_srgb,var(--accent)_5%,transparent)]">
+      {issues.map((it, i) => (
+        <div
+          key={i}
+          className={cn("py-2 px-3 font-mono text-xs text-ink", i === 0 ? "" : "border-t border-dashed border-accent")}
+        >
+          <span className="text-accent">{it.type === "error" ? "✕" : "△"}</span>{" "}
+          <span className="font-medium">{it.label}</span>
+          {it.detail && <span className="text-muted"> — {it.detail}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ErrorBox({ text }: { text: string }) {
+  return (
+    <div className="border border-accent text-accent bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] py-2.5 px-3 font-mono text-xs">
+      {text}
+    </div>
+  );
+}
+
+function StatusLine({ ok, text }: { ok: boolean; text: string }) {
+  return (
+    <span className={cn("inline-flex items-center gap-2 font-mono text-xs", ok ? "text-ink" : "text-muted")}>
+      <span className={cn("w-2 h-2 inline-block flex-none", ok ? "bg-accent" : "bg-line")} />
+      {text}
+    </span>
+  );
+}
+
+function SigRow({ sig, onChange, onRemove }: { sig: Sig; onChange: (s: Sig) => void; onRemove?: () => void }) {
   return (
     <div className="flex gap-1.5 mb-1.5">
-      <Input
-        value={sig.pattern}
-        placeholder="e.g. AGUAS ANDINAS"
-        onChange={(e) => onChange({ ...sig, pattern: e.target.value })}
-      />
+      <Input value={sig.pattern} placeholder="e.g. AGUAS ANDINAS" onChange={(e) => onChange({ ...sig, pattern: e.target.value })} />
       <Input
         value={sig.flags}
         placeholder="i"
@@ -1530,442 +902,6 @@ function SigRow({
         <Button size="sm" variant="ghost" onClick={onRemove}>
           ✕
         </Button>
-      )}
-    </div>
-  );
-}
-
-function FieldEditor({
-  field,
-  onChange,
-  onRemove,
-  value,
-}: {
-  field: FieldRow;
-  onChange: (f: FieldRow) => void;
-  onRemove?: () => void;
-  value?: string;
-}) {
-  const isCustom = field.role === "custom";
-  return (
-    <div className="border border-line p-3 mb-2.5">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="font-mono text-xs font-semibold flex-1">
-          {field.role === "custom" ? (
-            <Input
-              value={field.name}
-              placeholder="field name (e.g. consumption)"
-              onChange={(e) => onChange({ ...field, name: e.target.value })}
-            />
-          ) : (
-            ROLE_LABEL[field.role]
-          )}
-        </span>
-        {value !== undefined ? (
-          <Badge>{value}</Badge>
-        ) : (
-          <Badge tone="neutral">no match</Badge>
-        )}
-        {onRemove && (
-          <Button size="sm" variant="ghost" onClick={onRemove}>
-            ✕
-          </Button>
-        )}
-      </div>
-
-      {isCustom && (
-        <Grid>
-          <Field label="Type">
-            <Select
-              value={field.type}
-              onChange={(e) =>
-                onChange({ ...field, type: e.target.value as FieldRow["type"] })
-              }
-            >
-              {["money", "number", "date", "string", "quantity"].map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          {field.type === "quantity" && (
-            <Field label="Unit">
-              <Input
-                value={field.unit}
-                placeholder="kWh, m³, GB…"
-                onChange={(e) => onChange({ ...field, unit: e.target.value })}
-              />
-            </Field>
-          )}
-          <Field label="Only when (optional)">
-            <Input
-              value={field.includeWhen}
-              placeholder="e.g. f_extra > 0 — leave blank to always keep"
-              onChange={(e) =>
-                onChange({ ...field, includeWhen: e.target.value })
-              }
-            />
-          </Field>
-        </Grid>
-      )}
-
-      <div className="flex gap-1.5 mt-2">
-        <Input
-          value={field.pattern}
-          placeholder="regex with a (capture group)"
-          onChange={(e) => onChange({ ...field, pattern: e.target.value })}
-        />
-        <Input
-          value={field.flags}
-          placeholder="i"
-          className="w-12! flex-none"
-          onChange={(e) => onChange({ ...field, flags: e.target.value })}
-        />
-        <Input
-          value={field.group}
-          placeholder="1"
-          className="w-14! flex-none"
-          title="capture group (number or name)"
-          onChange={(e) => onChange({ ...field, group: e.target.value })}
-        />
-      </div>
-
-      <TransformsEditor
-        transforms={field.transforms}
-        onChange={(t) => onChange({ ...field, transforms: t })}
-      />
-    </div>
-  );
-}
-
-/** The ordered transform-pipeline picker, shared by custom fields and the
- * period builder's "whole date" mode. */
-function TransformsEditor({
-  transforms,
-  onChange,
-}: {
-  transforms: string[];
-  onChange: (t: string[]) => void;
-}) {
-  return (
-    <div className="mt-2">
-      <span className={miniLabel}>Transforms</span>
-      <div className="flex flex-wrap gap-1.5 mt-1 items-center">
-        {transforms.map((t, i) => (
-          <span key={i} className="inline-flex gap-1 items-center">
-            <Select
-              value={t}
-              className="w-auto"
-              onChange={(e) =>
-                onChange(
-                  transforms.map((x, j) => (j === i ? e.target.value : x)),
-                )
-              }
-            >
-              {TRANSFORMS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </Select>
-            <button
-              onClick={() => onChange(transforms.filter((_, j) => j !== i))}
-              className={xBtn}
-            >
-              ✕
-            </button>
-          </span>
-        ))}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onChange([...transforms, TRANSFORMS[0].value])}
-        >
-          + transform
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-/** The period role's structured editor: a captured date (with format
- * transforms) or month + year parts, either way optionally shifted ±N months.
- * Generates dateFromParts / addMonths under the hood (see generatePeriod). */
-function PeriodEditor({
-  field,
-  onChange,
-  value,
-}: {
-  field: FieldRow;
-  onChange: (f: FieldRow) => void;
-  value?: string;
-}) {
-  const isParts = field.periodMode === "parts";
-  return (
-    <div className="border border-line p-3 mb-2.5">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="font-mono text-xs font-semibold flex-1">
-          {ROLE_LABEL.period}
-        </span>
-        {value !== undefined ? (
-          <Badge>{value}</Badge>
-        ) : (
-          <Badge tone="neutral">no match</Badge>
-        )}
-      </div>
-
-      <div className="flex gap-1.5 mb-2.5">
-        <button
-          onClick={() => onChange({ ...field, periodMode: "date" })}
-          className={tabClass(!isParts)}
-        >
-          Whole date
-        </button>
-        <button
-          onClick={() => onChange({ ...field, periodMode: "parts" })}
-          className={tabClass(isParts)}
-        >
-          Month + year
-        </button>
-      </div>
-
-      {isParts ? (
-        <>
-          <span className={miniLabel}>Month</span>
-          <div className="flex gap-1.5 mt-1 mb-2">
-            <Input
-              value={field.pattern}
-              placeholder="regex with a (month group)"
-              onChange={(e) => onChange({ ...field, pattern: e.target.value })}
-            />
-            <Input
-              value={field.flags}
-              placeholder="i"
-              className="w-12! flex-none"
-              onChange={(e) => onChange({ ...field, flags: e.target.value })}
-            />
-            <Input
-              value={field.group}
-              placeholder="1"
-              className="w-14! flex-none"
-              onChange={(e) => onChange({ ...field, group: e.target.value })}
-            />
-          </div>
-          <label
-            className={cn(
-              "inline-flex items-center gap-1.5 mb-2.5 cursor-pointer",
-              miniLabel,
-            )}
-          >
-            <input
-              type="checkbox"
-              checked={field.monthIsName}
-              onChange={(e) =>
-                onChange({ ...field, monthIsName: e.target.checked })
-              }
-            />
-            Month is a name (Ene / February)
-          </label>
-          <span className={miniLabel}>Year</span>
-          <div className="flex gap-1.5 mt-1">
-            <Input
-              value={field.yearPattern}
-              placeholder="regex with a (year group)"
-              onChange={(e) =>
-                onChange({ ...field, yearPattern: e.target.value })
-              }
-            />
-            <Input
-              value={field.yearFlags}
-              placeholder="i"
-              className="w-12! flex-none"
-              onChange={(e) =>
-                onChange({ ...field, yearFlags: e.target.value })
-              }
-            />
-            <Input
-              value={field.yearGroup}
-              placeholder="1"
-              className="w-14! flex-none"
-              onChange={(e) =>
-                onChange({ ...field, yearGroup: e.target.value })
-              }
-            />
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="flex gap-1.5">
-            <Input
-              value={field.pattern}
-              placeholder="regex with a (date group)"
-              onChange={(e) => onChange({ ...field, pattern: e.target.value })}
-            />
-            <Input
-              value={field.flags}
-              placeholder="i"
-              className="w-12! flex-none"
-              onChange={(e) => onChange({ ...field, flags: e.target.value })}
-            />
-            <Input
-              value={field.group}
-              placeholder="1"
-              className="w-14! flex-none"
-              onChange={(e) => onChange({ ...field, group: e.target.value })}
-            />
-          </div>
-          <TransformsEditor
-            transforms={field.transforms}
-            onChange={(t) => onChange({ ...field, transforms: t })}
-          />
-        </>
-      )}
-
-      <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-        <span className={miniLabel}>Shift months</span>
-        <Input
-          type="number"
-          value={String(field.monthShift)}
-          className="w-[72px] flex-none"
-          onChange={(e) =>
-            onChange({
-              ...field,
-              monthShift: Math.trunc(Number(e.target.value) || 0),
-            })
-          }
-        />
-        <span className={hint}>
-          −1 = previous month · +1 = next · rolls the year
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/** Left-column helper: copy-paste regex recipes + a scratch tester, both live
- * against the active bill. Self-contained (own tester state) so it never
- * interferes with the field editors. Regex is the hardest part of authoring a
- * parser — this lets people crib a pattern or probe the text without one. */
-function RegexToolkit({
-  text,
-  onCopy,
-}: {
-  text: string;
-  onCopy: (pattern: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<"recipes" | "tester">("recipes");
-  const [pattern, setPattern] = useState("");
-  const [flags, setFlags] = useState("i");
-  const result = testerMatches(text, pattern, flags);
-
-  return (
-    <div className="mt-4 border border-line">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between py-2 px-3 font-mono text-micro uppercase tracking-label text-accent cursor-pointer"
-      >
-        <span>Regex toolkit</span>
-        <span className="text-muted">{open ? "−" : "+"}</span>
-      </button>
-
-      {open && (
-        <div className="border-t border-line p-3">
-          <div className="flex items-center gap-1.5 mb-3">
-            <button
-              onClick={() => setTab("recipes")}
-              className={tabClass(tab === "recipes")}
-            >
-              Recipes
-            </button>
-            <button
-              onClick={() => setTab("tester")}
-              className={tabClass(tab === "tester")}
-            >
-              Tester
-            </button>
-          </div>
-
-          {tab === "recipes" ? (
-            <div className="flex flex-col gap-3">
-              {REGEX_RECIPES.map((sec) => (
-                <div key={sec.group}>
-                  <span className={miniLabel}>{sec.group}</span>
-                  <div className="flex flex-col gap-1 mt-1">
-                    {sec.items.map((r) => {
-                      const hit = recipeMatch(text, r);
-                      return (
-                        <button
-                          key={r.label}
-                          onClick={() => onCopy(r.pattern)}
-                          title="Copy pattern"
-                          className="text-left border border-line hover:border-ink transition-colors py-1.5 px-2"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-mono text-[11px] text-ink">
-                              {r.label}
-                            </span>
-                            {hit !== undefined ? (
-                              <Badge>
-                                {hit.length > 16 ? `${hit.slice(0, 15)}…` : hit}
-                              </Badge>
-                            ) : (
-                              <span className={hint}>no match</span>
-                            )}
-                          </div>
-                          <div className="font-mono text-[10.5px] text-muted break-all mt-0.5">
-                            {r.pattern}
-                          </div>
-                          {r.hint && (
-                            <div className={`${hint} mt-0.5`}>{r.hint}</div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-              <p className={hint}>
-                Click a recipe to copy it, then paste into a field’s regex box.
-                The chip shows what it captures from this bill right now.
-              </p>
-            </div>
-          ) : (
-            <div>
-              <div className="flex gap-1.5">
-                <Input
-                  value={pattern}
-                  placeholder="type a pattern to probe this bill"
-                  onChange={(e) => setPattern(e.target.value)}
-                />
-                <Input
-                  value={flags}
-                  placeholder="i"
-                  className="w-12! flex-none"
-                  onChange={(e) => setFlags(e.target.value)}
-                />
-              </div>
-              <div className="mt-2 font-mono text-xs">
-                {!pattern.trim() ? (
-                  <span className={hint}>
-                    The first capture group (or whole match) shows here, with a
-                    count across the bill.
-                  </span>
-                ) : result === null ? (
-                  <span className="text-accent">Invalid pattern</span>
-                ) : result.count === 0 ? (
-                  <span className={hint}>No matches in this bill</span>
-                ) : (
-                  <span className="inline-flex items-center gap-2 text-ink">
-                    {result.count} match{result.count === 1 ? "" : "es"} · first
-                    <Badge>{result.first ?? ""}</Badge>
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
       )}
     </div>
   );
@@ -1995,64 +931,88 @@ function DropZone({ onFiles }: { onFiles: (f: FileList) => void }) {
   );
 }
 
-function PreviewBox({ result }: { result: ParsedResult }) {
-  const rows: [string, string][] = [
-    ["Account / ID", result.identity],
-    ["Amount", String(result.amount)],
-    ["Period", result.period],
-    ["Due date", result.dueDate],
-    ...Object.entries(result.custom).map(
-      ([k, v]) =>
-        [
-          k,
-          typeof v === "object"
-            ? `${v.value}${v.unit ? ` ${v.unit}` : ""}`
-            : String(v),
-        ] as [string, string],
-    ),
-  ];
+function RegexToolkit({ text, onCopy }: { text: string; onCopy: (pattern: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"recipes" | "tester">("recipes");
+  const [pattern, setPattern] = useState("");
+  const [flags, setFlags] = useState("i");
+  const result = testerMatches(text, pattern, flags);
   return (
-    <div className="border border-line bg-paper">
-      {rows.map(([k, v], i) => (
-        <div
-          key={k}
-          className={cn(
-            "flex justify-between gap-3 py-[7px] px-3 font-mono text-xs",
-            i === 0 ? "" : "border-t border-dashed border-line",
+    <div className="mt-4 border border-line">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between py-2 px-3 font-mono text-micro uppercase tracking-label text-accent cursor-pointer"
+      >
+        <span>Regex toolkit</span>
+        <span className="text-muted">{open ? "−" : "+"}</span>
+      </button>
+      {open && (
+        <div className="border-t border-line p-3">
+          <div className="flex items-center gap-1.5 mb-3">
+            <button onClick={() => setTab("recipes")} className={tabClass(tab === "recipes")}>
+              Recipes
+            </button>
+            <button onClick={() => setTab("tester")} className={tabClass(tab === "tester")}>
+              Tester
+            </button>
+          </div>
+          {tab === "recipes" ? (
+            <div className="flex flex-col gap-3">
+              {REGEX_RECIPES.map((sec) => (
+                <div key={sec.group}>
+                  <span className={microLabel}>{sec.group}</span>
+                  <div className="flex flex-col gap-1 mt-1">
+                    {sec.items.map((r) => {
+                      const hitv = recipeMatch(text, r);
+                      return (
+                        <button
+                          key={r.label}
+                          onClick={() => onCopy(r.pattern)}
+                          title="Copy pattern"
+                          className="text-left border border-line hover:border-ink transition-colors py-1.5 px-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-[11px] text-ink">{r.label}</span>
+                            {hitv !== undefined ? (
+                              <ValueChip value={hitv.length > 16 ? `${hitv.slice(0, 15)}…` : hitv} size="sm" />
+                            ) : (
+                              <span className={hint}>no match</span>
+                            )}
+                          </div>
+                          <div className="font-mono text-[10.5px] text-muted break-all mt-0.5">{r.pattern}</div>
+                          {r.hint && <div className={cn(hint, "mt-0.5")}>{r.hint}</div>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div>
+              <div className="flex gap-1.5">
+                <Input value={pattern} placeholder="type a pattern to probe this bill" onChange={(e) => setPattern(e.target.value)} />
+                <Input value={flags} placeholder="i" className="w-12! flex-none" onChange={(e) => setFlags(e.target.value)} />
+              </div>
+              <div className="mt-2 font-mono text-xs">
+                {!pattern.trim() ? (
+                  <span className={hint}>The first capture group (or whole match) shows here, with a count.</span>
+                ) : result === null ? (
+                  <span className="text-accent">Invalid pattern</span>
+                ) : result.count === 0 ? (
+                  <span className={hint}>No matches in this bill</span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 text-ink">
+                    {result.count} match{result.count === 1 ? "" : "es"} · first
+                    <ValueChip value={result.first ?? ""} size="sm" />
+                  </span>
+                )}
+              </div>
+            </div>
           )}
-        >
-          <span className="text-muted">{k}</span>
-          <span>{v}</span>
         </div>
-      ))}
-    </div>
-  );
-}
-
-function ErrorBox({ text }: { text: string }) {
-  return (
-    <div className="border border-accent text-accent bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] py-2.5 px-3 font-mono text-xs">
-      {text}
-    </div>
-  );
-}
-
-function StatusLine({ ok, text }: { ok: boolean; text: string }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-2 font-mono text-xs",
-        ok ? "text-ink" : "text-muted",
       )}
-    >
-      <span
-        className={cn(
-          "w-2 h-2 inline-block flex-none",
-          ok ? "bg-accent" : "bg-line",
-        )}
-      />
-      {text}
-    </span>
+    </div>
   );
 }
 
@@ -2060,91 +1020,55 @@ function Section({
   title,
   children,
   dim,
+  right,
 }: {
   title: string;
   children: React.ReactNode;
   dim?: boolean;
+  right?: React.ReactNode;
 }) {
   return (
     <section
-      className={cn(
-        "border border-line p-4 transition-opacity duration-200",
-        dim ? "opacity-55 pointer-events-none" : "opacity-100",
-      )}
+      className={cn("border border-line p-4 transition-opacity duration-200", dim ? "opacity-55 pointer-events-none" : "opacity-100")}
     >
-      <h3 className="font-mono text-micro uppercase tracking-label text-accent mb-3">
-        {title}
-      </h3>
+      <div className="flex items-baseline justify-between gap-2.5 mb-3">
+        <h3 className="font-mono text-micro uppercase tracking-label text-accent">{title}</h3>
+        {right}
+      </div>
       {children}
     </section>
   );
 }
 
 function Grid({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>
-  );
+  return <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>;
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-[5px]">
-      <span className={miniLabel}>{label}</span>
+      <span className={microLabel}>{label}</span>
       {children}
     </label>
   );
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <p className={`${miniLabel} mb-1.5`}>{children}</p>;
+  return <p className={cn(microLabel, "mb-1.5")}>{children}</p>;
 }
 
-function ModeTab({
-  active,
-  onClick,
-  disabled,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-}) {
+function ModeTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        tabClass(active),
-        "disabled:opacity-40 disabled:cursor-not-allowed",
-      )}
-    >
+    <button onClick={onClick} className={tabClass(active)}>
       {children}
     </button>
   );
 }
 
-const miniLabel =
-  "font-mono text-[10px] uppercase tracking-[0.14em] text-muted";
-
-// Hint text — the block-level spacing (mb-2.5) is added per-use so it can be
-// dropped where the hint sits inline.
-const hint = "font-mono text-[11.5px] text-muted leading-[1.6]";
-
-const xBtn = "border-none bg-transparent cursor-pointer text-muted text-xs";
-
 function tabClass(active: boolean): string {
   return cn(
     "font-mono text-micro uppercase tracking-[0.1em] py-[5px] px-2.5 cursor-pointer border transition-colors",
-    active
-      ? "border-ink bg-ink text-paper"
-      : "border-line bg-transparent text-muted",
+    active ? "border-ink bg-ink text-paper" : "border-line bg-transparent text-muted",
   );
 }
 

@@ -56,6 +56,10 @@ export type ComputeStep = { name: string } & (
   | { round: string }
   | { template: string } // "{cuit}:{unit}" — undefined if any ref is absent
   | { coalesce: string[] } // first defined ref
+  // `use` when `when` is present, else undefined. A presence gate: lets a value
+  // depend on *which* dialect matched (e.g. periodMonths = 2 when the bimonthly
+  // marker captured, 1 when the monthly one did) without an arithmetic trick.
+  | { when: string; use: number }
 );
 
 // ── Validations ─────────────────────────────────────────────────────────────

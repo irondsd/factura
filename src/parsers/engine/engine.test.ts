@@ -11,7 +11,7 @@ import { telecomConfig } from "./configs/telecom";
 import { evalExpr } from "./expr";
 import { runConfig, selectConfig } from "./evaluate";
 import { applyTransforms } from "./transforms";
-import { ParseError } from "./types";
+import { ParseError, type ParserConfig } from "./types";
 
 function fixture(name: string): string {
   return normalize(
@@ -35,6 +35,57 @@ describe("expr (safe expression language)", () => {
 
   it("coerces numeric strings", () => {
     expect(evalExpr("a * 100", { a: "417.1" })).toBeCloseTo(41710);
+  });
+});
+
+describe("compute: when/use presence gate", () => {
+  const cfg = (): ParserConfig => ({
+    slug: "t",
+    version: 1,
+    vendor: { slug: "t", displayName: "T" },
+    detect: { allOf: [{ pattern: "BILL" }] },
+    captures: [
+      {
+        pattern: "DUE (\\d{2}/\\d{2}/\\d{4})",
+        outputs: { due: { group: 1, transform: [{ parseDate: "DMY" }] } },
+      },
+      {
+        pattern: "PER (\\d{2}/\\d{4})",
+        outputs: { per: { group: 1, transform: ["monthYear"] } },
+      },
+      {
+        pattern: "BIM (\\d+)",
+        outputs: { bim: { group: 1, transform: ["toInt"] } },
+      },
+      {
+        pattern: "MON (\\d+)",
+        outputs: { mon: { group: 1, transform: ["toInt"] } },
+      },
+      {
+        pattern: "USED ([\\d.]+)",
+        outputs: { kwh: { group: 1, transform: ["numberUS"] } },
+      },
+    ],
+    compute: [
+      { name: "bimMonths", when: "bim", use: 2 },
+      { name: "monMonths", when: "mon", use: 1 },
+      { name: "months", coalesce: ["bimMonths", "monMonths"] },
+      { name: "perMonth", expr: "kwh / months" },
+    ],
+    roles: {
+      identity: { sources: ["kwh"] },
+      amount: { sources: ["kwh"] },
+      period: { sources: ["per"] },
+      dueDate: { sources: ["due"] },
+    },
+    custom: [{ name: "perMonth", source: "perMonth", type: "number" }],
+  });
+
+  it("halves a bimonthly total, leaves a monthly one untouched", () => {
+    const bim = runConfig(cfg(), "BILL\nDUE 10/04/2025\nPER 02/2025\nBIM 2\nUSED 240");
+    expect(bim.custom.perMonth).toBe(120);
+    const mon = runConfig(cfg(), "BILL\nDUE 20/05/2025\nPER 05/2025\nMON 5\nUSED 132");
+    expect(mon.custom.perMonth).toBe(132);
   });
 });
 
