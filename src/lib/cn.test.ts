@@ -13,9 +13,9 @@ describe("cn", () => {
   it("supports conditional expressions", () => {
     const active = true;
     const disabled = false;
-    expect(cn("btn", active && "btn--active", disabled && "btn--disabled")).toBe(
-      "btn btn--active",
-    );
+    expect(
+      cn("btn", active && "btn--active", disabled && "btn--disabled"),
+    ).toBe("btn btn--active");
   });
 
   it("returns an empty string when nothing is truthy", () => {

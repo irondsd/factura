@@ -66,7 +66,11 @@ function buildCompute(config: BuilderConfig): ComputeStep[] {
         });
         break;
       case "constWhen":
-        out.push({ name: d.name, when: d.whenRef ?? "", use: d.constValue ?? 0 });
+        out.push({
+          name: d.name,
+          when: d.whenRef ?? "",
+          use: d.constValue ?? 0,
+        });
         break;
       case "dateParts": {
         const parts = {
@@ -90,10 +94,7 @@ function buildCompute(config: BuilderConfig): ComputeStep[] {
   return out;
 }
 
-export function generateBody(
-  config: BuilderConfig,
-  detect: DetectInput,
-): Body {
+export function generateBody(config: BuilderConfig, detect: DetectInput): Body {
   const compute = buildCompute(config);
   const custom = config.custom
     .filter((c) => c.name.trim() && c.source.trim())

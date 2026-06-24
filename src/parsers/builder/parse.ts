@@ -32,25 +32,32 @@ function stepRefs(step: ComputeStep): string[] {
   if ("datePart" in step) return [step.datePart.date];
   if ("dateFromParts" in step) {
     const r = [step.dateFromParts.year, step.dateFromParts.month];
-    if (typeof step.dateFromParts.day === "string") r.push(step.dateFromParts.day);
+    if (typeof step.dateFromParts.day === "string")
+      r.push(step.dateFromParts.day);
     return r;
   }
   if ("addMonths" in step) return [step.addMonths.date];
   if ("formatDate" in step) return [step.formatDate.date];
   if ("round" in step) return [step.round];
-  if ("template" in step) return [...step.template.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+  if ("template" in step)
+    return [...step.template.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
   if ("when" in step) return [step.when];
   return [];
 }
 
 /** Is `name` read by anything other than compute step `exceptIdx`? Used to know
  * whether a dateFromParts → addMonths intermediate is safe to fold away. */
-function referencedElsewhere(name: string, body: Body, exceptIdx: number): boolean {
+function referencedElsewhere(
+  name: string,
+  body: Body,
+  exceptIdx: number,
+): boolean {
   const compute = body.compute ?? [];
   for (let i = 0; i < compute.length; i++) {
     if (i !== exceptIdx && stepRefs(compute[i]).includes(name)) return true;
   }
-  for (const k of ROLE_KEYS) if ((body.roles[k]?.sources ?? []).includes(name)) return true;
+  for (const k of ROLE_KEYS)
+    if ((body.roles[k]?.sources ?? []).includes(name)) return true;
   for (const c of body.custom ?? []) {
     if (c.source === name) return true;
     if (c.includeWhen && exprIds(c.includeWhen).includes(name)) return true;
@@ -58,16 +65,36 @@ function referencedElsewhere(name: string, body: Body, exceptIdx: number): boole
   return false;
 }
 
-function computeToDerives(steps: ComputeStep[], body: Body): BuilderDerive[] | null {
+function computeToDerives(
+  steps: ComputeStep[],
+  body: Body,
+): BuilderDerive[] | null {
   const out: BuilderDerive[] = [];
   for (let i = 0; i < steps.length; i++) {
     const s = steps[i];
     if ("coalesce" in s) {
-      out.push({ id: uid("der"), name: s.name, kind: "fallback", sources: s.coalesce.slice() });
+      out.push({
+        id: uid("der"),
+        name: s.name,
+        kind: "fallback",
+        sources: s.coalesce.slice(),
+      });
     } else if ("when" in s) {
-      out.push({ id: uid("der"), name: s.name, kind: "constWhen", whenRef: s.when, constValue: s.use });
+      out.push({
+        id: uid("der"),
+        name: s.name,
+        kind: "constWhen",
+        whenRef: s.when,
+        constValue: s.use,
+      });
     } else if ("datePart" in s) {
-      out.push({ id: uid("der"), name: s.name, kind: "datePart", dateRef: s.datePart.date, part: s.datePart.part });
+      out.push({
+        id: uid("der"),
+        name: s.name,
+        kind: "datePart",
+        dateRef: s.datePart.date,
+        part: s.datePart.part,
+      });
     } else if ("dateFromParts" in s) {
       if (typeof s.dateFromParts.day !== "number") return null; // a value-ref day can't be edited here
       const next = steps[i + 1];
@@ -105,7 +132,13 @@ function computeToDerives(steps: ComputeStep[], body: Body): BuilderDerive[] | n
     } else if ("expr" in s) {
       const m = CONST_WHEN.exec(s.expr);
       if (m) {
-        out.push({ id: uid("der"), name: s.name, kind: "constWhen", whenRef: m[1], constValue: Number(m[2]) });
+        out.push({
+          id: uid("der"),
+          name: s.name,
+          kind: "constWhen",
+          whenRef: m[1],
+          constValue: Number(m[2]),
+        });
       } else {
         out.push({ id: uid("der"), name: s.name, kind: "math", expr: s.expr });
       }

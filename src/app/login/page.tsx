@@ -95,9 +95,8 @@ export default function LoginPage() {
         ) : (
           <>
             <p className="font-mono text-sm text-muted leading-[1.6] mt-4">
-              We sent a code to{" "}
-              <span className="text-ink">{email}</span>. Enter it below — it
-              expires in 10 minutes.
+              We sent a code to <span className="text-ink">{email}</span>. Enter
+              it below — it expires in 10 minutes.
             </p>
             <form onSubmit={verifyCode} className="mt-7 flex flex-col gap-3">
               <Input

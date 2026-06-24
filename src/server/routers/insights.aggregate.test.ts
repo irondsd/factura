@@ -52,21 +52,24 @@ describe("monthList", () => {
 
 describe("amountIn", () => {
   it("returns the peso total for ARS", () => {
-    expect(amountIn(bill({ vendorId: "a", period: null, total: 1500 }), "ARS")).toBe(
-      1500,
-    );
+    expect(
+      amountIn(bill({ vendorId: "a", period: null, total: 1500 }), "ARS"),
+    ).toBe(1500);
   });
 
   it("returns the USD-enriched value for USD", () => {
     expect(
-      amountIn(bill({ vendorId: "a", period: null, total: 1500, usd: 1.5 }), "USD"),
+      amountIn(
+        bill({ vendorId: "a", period: null, total: 1500, usd: 1.5 }),
+        "USD",
+      ),
     ).toBe(1.5);
   });
 
   it("returns null when the total is missing", () => {
-    expect(amountIn(bill({ vendorId: "a", period: null, total: null }), "ARS")).toBe(
-      null,
-    );
+    expect(
+      amountIn(bill({ vendorId: "a", period: null, total: null }), "ARS"),
+    ).toBe(null);
   });
 });
 
@@ -100,9 +103,9 @@ describe("readCustom", () => {
     });
     expect(readCustom(b, "note")).toBe(null);
     expect(readCustom(b, "absent")).toBe(null);
-    expect(readCustom(bill({ vendorId: "a", period: null, total: 1 }), "x")).toBe(
-      null,
-    );
+    expect(
+      readCustom(bill({ vendorId: "a", period: null, total: 1 }), "x"),
+    ).toBe(null);
   });
 });
 
@@ -137,7 +140,11 @@ describe("monthlySeries", () => {
       ],
       "ARS",
     );
-    expect(series[0]).toEqual({ month: "2026-01", byVendor: { a: 10 }, total: 10 });
+    expect(series[0]).toEqual({
+      month: "2026-01",
+      byVendor: { a: 10 },
+      total: 10,
+    });
   });
 
   it("emits zeroed months with no matching bills", () => {
@@ -154,7 +161,10 @@ describe("completeFlagsFor", () => {
       bill({ vendorId: "b", period: "2026-02-01", total: 1 }),
     ];
     // b's first bill is Feb, so Jan isn't "incomplete" for lacking b.
-    expect(completeFlagsFor(["2026-01", "2026-02"], bills)).toEqual([true, true]);
+    expect(completeFlagsFor(["2026-01", "2026-02"], bills)).toEqual([
+      true,
+      true,
+    ]);
   });
 
   it("marks a month incomplete when a started vendor is missing", () => {
@@ -164,11 +174,17 @@ describe("completeFlagsFor", () => {
       bill({ vendorId: "a", period: "2026-02-01", total: 1 }),
       // b has no Feb bill though it started in Jan → Feb incomplete.
     ];
-    expect(completeFlagsFor(["2026-01", "2026-02"], bills)).toEqual([true, false]);
+    expect(completeFlagsFor(["2026-01", "2026-02"], bills)).toEqual([
+      true,
+      false,
+    ]);
   });
 
   it("returns all-false when there are no vendors at all", () => {
-    expect(completeFlagsFor(["2026-01", "2026-02"], [])).toEqual([false, false]);
+    expect(completeFlagsFor(["2026-01", "2026-02"], [])).toEqual([
+      false,
+      false,
+    ]);
   });
 });
 

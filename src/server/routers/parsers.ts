@@ -398,9 +398,7 @@ export const parsersRouter = router({
       .from(bills)
       .where(eq(bills.createdBy, ctx.userId))
       .groupBy(bills.parserKey);
-    const countBySlug = new Map(
-      counts.map((c) => [c.slug, c.n] as const),
-    );
+    const countBySlug = new Map(counts.map((c) => [c.slug, c.n] as const));
 
     const result = [...bySlug.values()].map((e) => ({
       ...e,
@@ -422,7 +420,8 @@ export const parsersRouter = router({
     }
 
     return result.sort(
-      (a, b) => b.billCount - a.billCount || a.displayName.localeCompare(b.displayName),
+      (a, b) =>
+        b.billCount - a.billCount || a.displayName.localeCompare(b.displayName),
     );
   }),
 

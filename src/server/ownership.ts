@@ -28,10 +28,7 @@ export async function accessibleProperties(
 /** Narrow a set of accessible property ids to a query's scope: a single
  * requested property (only if the caller can access it, else empty), or all
  * accessible properties when none is requested. */
-export function scopeIds(
-  accessible: string[],
-  propertyId?: string,
-): string[] {
+export function scopeIds(accessible: string[], propertyId?: string): string[] {
   if (propertyId) return accessible.includes(propertyId) ? [propertyId] : [];
   return accessible;
 }

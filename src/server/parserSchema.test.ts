@@ -42,7 +42,9 @@ describe("configInputSchema", () => {
   });
 
   it("rejects an empty slug and an over-long slug", () => {
-    expect(configInputSchema.safeParse(input({ slug: "" })).success).toBe(false);
+    expect(configInputSchema.safeParse(input({ slug: "" })).success).toBe(
+      false,
+    );
     expect(
       configInputSchema.safeParse(input({ slug: "a".repeat(61) })).success,
     ).toBe(false);
@@ -81,9 +83,9 @@ describe("configInputSchema", () => {
 
   it("makes version optional", () => {
     expect(configInputSchema.safeParse(input()).success).toBe(true);
-    expect(
-      configInputSchema.safeParse(input({ version: 3 })).success,
-    ).toBe(true);
+    expect(configInputSchema.safeParse(input({ version: 3 })).success).toBe(
+      true,
+    );
   });
 });
 

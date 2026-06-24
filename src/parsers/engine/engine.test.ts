@@ -82,9 +82,15 @@ describe("compute: when/use presence gate", () => {
   });
 
   it("halves a bimonthly total, leaves a monthly one untouched", () => {
-    const bim = runConfig(cfg(), "BILL\nDUE 10/04/2025\nPER 02/2025\nBIM 2\nUSED 240");
+    const bim = runConfig(
+      cfg(),
+      "BILL\nDUE 10/04/2025\nPER 02/2025\nBIM 2\nUSED 240",
+    );
     expect(bim.custom.perMonth).toBe(120);
-    const mon = runConfig(cfg(), "BILL\nDUE 20/05/2025\nPER 05/2025\nMON 5\nUSED 132");
+    const mon = runConfig(
+      cfg(),
+      "BILL\nDUE 20/05/2025\nPER 05/2025\nMON 5\nUSED 132",
+    );
     expect(mon.custom.perMonth).toBe(132);
   });
 });

@@ -80,7 +80,9 @@ export function sendWelcomeEmail(opts: { to: string; name?: string | null }) {
  * without a mail provider. */
 export async function sendOtpEmail(opts: { to: string; code: string }) {
   if (!process.env.RESEND_API_KEY) {
-    console.warn(`[email] RESEND_API_KEY unset — OTP for ${opts.to}: ${opts.code}`);
+    console.warn(
+      `[email] RESEND_API_KEY unset — OTP for ${opts.to}: ${opts.code}`,
+    );
     return;
   }
   const sent = await send({

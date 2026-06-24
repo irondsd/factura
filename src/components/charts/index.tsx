@@ -405,7 +405,11 @@ export function VendorShare({
   const total = slices.reduce((a, s) => a + s.value, 0) || 1;
   return (
     <div className="flex flex-wrap items-center gap-4 md:flex-nowrap">
-      <DonutFx slices={slices} centerLabel={centerLabel} centerSub={centerSub} />
+      <DonutFx
+        slices={slices}
+        centerLabel={centerLabel}
+        centerSub={centerSub}
+      />
       <div className="flex flex-col gap-2 flex-1">
         {slices.map((s) => (
           <div key={s.id} className="flex items-center gap-2">

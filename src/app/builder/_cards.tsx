@@ -60,11 +60,13 @@ function move<T>(arr: T[], i: number, dir: number): T[] {
 }
 
 // ── chip ──────────────────────────────────────────────────────────────────────
-const CHIP_BASE = "inline-block align-middle font-mono leading-tight rounded-none";
+const CHIP_BASE =
+  "inline-block align-middle font-mono leading-tight rounded-none";
 // `sm` chips (the dropdown / inline tokens) stay clamped + ellipsis to keep
 // lists tidy — their full value shows in the title tooltip. `md` chips (the
 // editor's live readouts) must show the whole value, wrapping if it's long.
-const CHIP_CLAMP = "max-w-[230px] overflow-hidden text-ellipsis whitespace-nowrap";
+const CHIP_CLAMP =
+  "max-w-[230px] overflow-hidden text-ellipsis whitespace-nowrap";
 const CHIP_FULL = "whitespace-normal break-all";
 
 export function ValueChip({
@@ -78,13 +80,19 @@ export function ValueChip({
   size?: "sm" | "md";
   title?: string;
 }) {
-  const sz = size === "sm" ? "text-[10.5px] py-px px-1.5" : "text-[11.5px] py-0.5 px-2";
+  const sz =
+    size === "sm" ? "text-[10.5px] py-px px-1.5" : "text-[11.5px] py-0.5 px-2";
   const wrap = size === "sm" ? CHIP_CLAMP : CHIP_FULL;
   if (error) {
     return (
       <span
         title={title ?? error}
-        className={cn(CHIP_BASE, sz, wrap, "text-accent border border-accent bg-[color-mix(in_srgb,var(--accent)_7%,transparent)]")}
+        className={cn(
+          CHIP_BASE,
+          sz,
+          wrap,
+          "text-accent border border-accent bg-[color-mix(in_srgb,var(--accent)_7%,transparent)]",
+        )}
       >
         △ {error}
       </span>
@@ -92,7 +100,13 @@ export function ValueChip({
   }
   if (value === undefined || value === null || value === "") {
     return (
-      <span className={cn(CHIP_BASE, sz, "whitespace-nowrap text-muted border border-dashed border-line")}>
+      <span
+        className={cn(
+          CHIP_BASE,
+          sz,
+          "whitespace-nowrap text-muted border border-dashed border-line",
+        )}
+      >
         no match
       </span>
     );
@@ -100,7 +114,12 @@ export function ValueChip({
   return (
     <span
       title={title ?? String(value)}
-      className={cn(CHIP_BASE, sz, wrap, "text-accent border border-accent font-medium")}
+      className={cn(
+        CHIP_BASE,
+        sz,
+        wrap,
+        "text-accent border border-accent font-medium",
+      )}
     >
       {String(value)}
     </span>
@@ -127,8 +146,10 @@ export function CardShell({
       onMouseLeave={onMouseLeave}
       className={cn(
         "border border-line bg-card p-3 mb-2.5 transition-[background,border-color,box-shadow] duration-150",
-        derived && "border-l-[color-mix(in_srgb,var(--accent)_45%,var(--line))] border-l-2 border-dashed",
-        focused && "shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent)_45%,transparent)]",
+        derived &&
+          "border-l-[color-mix(in_srgb,var(--accent)_45%,var(--line))] border-l-2 border-dashed",
+        focused &&
+          "shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent)_45%,transparent)]",
       )}
     >
       {children}
@@ -154,7 +175,10 @@ const arrowBtn =
   "border-none bg-transparent cursor-pointer text-muted hover:text-accent text-[10px] font-mono px-0.5 leading-none";
 
 // ── Value Picker ──────────────────────────────────────────────────────────────
-function useClickAway(ref: React.RefObject<HTMLElement | null>, onAway: () => void) {
+function useClickAway(
+  ref: React.RefObject<HTMLElement | null>,
+  onAway: () => void,
+) {
   useEffect(() => {
     function h(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) onAway();
@@ -227,16 +251,26 @@ function ValueList({
             onMouseEnter={() => onPreview?.(o.name)}
             className={cn(
               "w-full text-left border-none border-b border-line cursor-pointer py-[7px] px-2.5 flex items-center justify-between gap-2.5 hover:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]",
-              active ? "bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]" : "bg-transparent",
+              active
+                ? "bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]"
+                : "bg-transparent",
             )}
           >
             <span className="inline-flex items-center gap-1.5 min-w-0">
               {o.origin === "derive" && (
-                <span title="computed value" className="text-accent text-[11px]">
+                <span
+                  title="computed value"
+                  className="text-accent text-[11px]"
+                >
                   ≈
                 </span>
               )}
-              <span className={cn("font-mono text-xs text-ink truncate", active && "font-semibold")}>
+              <span
+                className={cn(
+                  "font-mono text-xs text-ink truncate",
+                  active && "font-semibold",
+                )}
+              >
                 {o.name}
               </span>
             </span>
@@ -296,7 +330,9 @@ export function ValuePicker({
           onClick={() => setOpen((o) => !o)}
           className={cn(
             "inline-flex items-center gap-1.5 cursor-pointer py-[3px] px-[7px] font-mono text-[11.5px] border rounded-none",
-            empty ? "border-dashed border-line bg-transparent text-muted" : "border-line bg-paper text-ink",
+            empty
+              ? "border-dashed border-line bg-transparent text-muted"
+              : "border-line bg-paper text-ink",
           )}
         >
           {empty ? (
@@ -334,14 +370,18 @@ export function ValuePicker({
           {value ? (
             <>
               {isDerived && <span className="text-accent text-[11px]">≈</span>}
-              <span className="font-mono text-[12.5px] text-ink truncate">{value}</span>
+              <span className="font-mono text-[12.5px] text-ink truncate">
+                {value}
+              </span>
             </>
           ) : (
             <span className="font-mono text-xs text-muted">{placeholder}</span>
           )}
         </span>
         <span className="inline-flex items-center gap-2">
-          {value && <ValueChip value={rec?.value} error={rec?.error} size="sm" />}
+          {value && (
+            <ValueChip value={rec?.value} error={rec?.error} size="sm" />
+          )}
           <span className="text-muted text-[10px]">▾</span>
         </span>
       </button>
@@ -366,7 +406,9 @@ function FallbackChain({
     <div className="flex flex-wrap gap-1.5 items-center">
       {refs.map((r, i) => (
         <span key={i} className="inline-flex items-center gap-0.5">
-          {i > 0 && <span className="font-mono text-[10px] text-muted mr-1">then</span>}
+          {i > 0 && (
+            <span className="font-mono text-[10px] text-muted mr-1">then</span>
+          )}
           <ValuePicker
             value={r}
             options={options}
@@ -380,13 +422,22 @@ function FallbackChain({
             }}
           />
           {i > 0 && (
-            <button type="button" onClick={() => onChange(move(refs, i, -1))} title="earlier" className={arrowBtn}>
+            <button
+              type="button"
+              onClick={() => onChange(move(refs, i, -1))}
+              title="earlier"
+              className={arrowBtn}
+            >
               ‹
             </button>
           )}
         </span>
       ))}
-      <Button size="sm" variant="outline" onClick={() => onChange([...refs, ""])}>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => onChange([...refs, ""])}
+      >
         + fallback
       </Button>
     </div>
@@ -412,14 +463,20 @@ function TransformsEditor({
               className="inline-flex items-center gap-1 border border-line bg-paper py-1 px-[7px] font-mono text-[11px] text-ink"
             >
               {transformLabel(t)}
-              <XBtn onClick={() => onChange(transforms.filter((_, j) => j !== i))} />
+              <XBtn
+                onClick={() => onChange(transforms.filter((_, j) => j !== i))}
+              />
             </span>
           ) : (
             <span key={i} className="inline-flex items-center gap-0.5">
               <Select
                 value={t}
                 className="w-auto py-1 px-1.5 text-[11.5px]"
-                onChange={(e) => onChange(transforms.map((x, j) => (j === i ? e.target.value : x)))}
+                onChange={(e) =>
+                  onChange(
+                    transforms.map((x, j) => (j === i ? e.target.value : x)),
+                  )
+                }
               >
                 {TRANSFORM_OPTS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -427,7 +484,9 @@ function TransformsEditor({
                   </option>
                 ))}
               </Select>
-              <XBtn onClick={() => onChange(transforms.filter((_, j) => j !== i))} />
+              <XBtn
+                onClick={() => onChange(transforms.filter((_, j) => j !== i))}
+              />
             </span>
           ),
         )}
@@ -466,8 +525,14 @@ export function CaptureCard({
     }
   }
   const multi = cap.outputs.length > 1;
-  const setOut = (i: number, patch: Partial<BuilderCapture["outputs"][number]>) =>
-    onChange({ ...cap, outputs: cap.outputs.map((o, j) => (j === i ? { ...o, ...patch } : o)) });
+  const setOut = (
+    i: number,
+    patch: Partial<BuilderCapture["outputs"][number]>,
+  ) =>
+    onChange({
+      ...cap,
+      outputs: cap.outputs.map((o, j) => (j === i ? { ...o, ...patch } : o)),
+    });
 
   return (
     <CardShell>
@@ -489,10 +554,15 @@ export function CaptureCard({
         </div>
         {onRemove && <XBtn onClick={onRemove} title="remove capture" />}
       </div>
-      {invalid && <p className={cn(hint, "text-accent mb-2")}>△ invalid regex — still typing?</p>}
+      {invalid && (
+        <p className={cn(hint, "text-accent mb-2")}>
+          △ invalid regex — still typing?
+        </p>
+      )}
       {multi && (
         <p className={cn(hint, "mb-2")}>
-          One regex, {cap.outputs.length} named values — the groups below feed each.
+          One regex, {cap.outputs.length} named values — the groups below feed
+          each.
         </p>
       )}
 
@@ -504,7 +574,10 @@ export function CaptureCard({
               key={o.id}
               onMouseEnter={() => onPreview(o.name)}
               onMouseLeave={() => onPreview(null)}
-              className={cn("pt-2", i === 0 ? "pt-0" : "border-t border-dashed border-line")}
+              className={cn(
+                "pt-2",
+                i === 0 ? "pt-0" : "border-t border-dashed border-line",
+              )}
             >
               <div className="flex items-center gap-2">
                 <Input
@@ -523,7 +596,12 @@ export function CaptureCard({
                 </span>
                 {multi && (
                   <XBtn
-                    onClick={() => onChange({ ...cap, outputs: cap.outputs.filter((_, j) => j !== i) })}
+                    onClick={() =>
+                      onChange({
+                        ...cap,
+                        outputs: cap.outputs.filter((_, j) => j !== i),
+                      })
+                    }
                     title="remove output"
                   />
                 )}
@@ -531,13 +609,22 @@ export function CaptureCard({
               <div className="mt-1.5">
                 <ValueChip value={rec?.value} error={rec?.error} />
               </div>
-              <TransformsEditor transforms={o.transforms} onChange={(t) => setOut(i, { transforms: t })} />
+              <TransformsEditor
+                transforms={o.transforms}
+                onChange={(t) => setOut(i, { transforms: t })}
+              />
             </div>
           );
         })}
       </div>
       <div className="mt-2">
-        <Button size="sm" variant="ghost" onClick={() => onChange({ ...cap, outputs: [...cap.outputs, newOutput()] })}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() =>
+            onChange({ ...cap, outputs: [...cap.outputs, newOutput()] })
+          }
+        >
           + add output
         </Button>
       </div>
@@ -593,7 +680,10 @@ function MathField({
         <p className={cn(hint, "text-accent mt-1.5")}>△ {rec.error}</p>
       ) : (
         <p className={cn(hint, "mt-1.5")}>
-          References: {names.length ? names.slice(0, 6).join(" · ") + (names.length > 6 ? " …" : "") : "no values above yet"}
+          References:{" "}
+          {names.length
+            ? names.slice(0, 6).join(" · ") + (names.length > 6 ? " …" : "")
+            : "no values above yet"}
         </p>
       )}
     </div>
@@ -619,7 +709,13 @@ function DerivePicker({
     <div className="min-w-[150px]">
       <span className={microLabel}>{label}</span>
       <div className="mt-1">
-        <ValuePicker value={value} options={options} onPreview={onPreview} onChange={onChange} placeholder={placeholder} />
+        <ValuePicker
+          value={value}
+          options={options}
+          onPreview={onPreview}
+          onChange={onChange}
+          placeholder={placeholder}
+        />
       </div>
     </div>
   );
@@ -667,7 +763,9 @@ export function DeriveCard({
         <Select
           value={der.kind}
           className="w-auto text-[11.5px] py-1.5 px-2"
-          onChange={(e) => onChange({ ...der, kind: e.target.value as DeriveKind })}
+          onChange={(e) =>
+            onChange({ ...der, kind: e.target.value as DeriveKind })
+          }
         >
           {DERIVE_KINDS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -677,10 +775,20 @@ export function DeriveCard({
         </Select>
         <span className="ml-auto inline-flex items-center gap-1">
           <ValueChip value={rec?.value} error={rec?.error} />
-          <button type="button" onClick={moveUp} title="move up" className={arrowBtn}>
+          <button
+            type="button"
+            onClick={moveUp}
+            title="move up"
+            className={arrowBtn}
+          >
             ▲
           </button>
-          <button type="button" onClick={moveDown} title="move down" className={arrowBtn}>
+          <button
+            type="button"
+            onClick={moveDown}
+            title="move down"
+            className={arrowBtn}
+          >
             ▼
           </button>
           <XBtn onClick={onRemove} title="remove" />
@@ -696,30 +804,80 @@ export function DeriveCard({
         />
       )}
       {der.kind === "math" && (
-        <MathField expr={der.expr ?? ""} options={options} rec={rec} onChange={(expr) => onChange({ ...der, expr })} />
+        <MathField
+          expr={der.expr ?? ""}
+          options={options}
+          rec={rec}
+          onChange={(expr) => onChange({ ...der, expr })}
+        />
       )}
       {der.kind === "dateParts" && (
         <div className="flex flex-wrap gap-3.5 items-end">
-          <DerivePicker label="Year" value={der.yearRef ?? ""} options={options} onPreview={onPreview} onChange={(v) => onChange({ ...der, yearRef: v })} placeholder="year value" />
-          <DerivePicker label="Month" value={der.monthRef ?? ""} options={options} onPreview={onPreview} onChange={(v) => onChange({ ...der, monthRef: v })} placeholder="month value" />
+          <DerivePicker
+            label="Year"
+            value={der.yearRef ?? ""}
+            options={options}
+            onPreview={onPreview}
+            onChange={(v) => onChange({ ...der, yearRef: v })}
+            placeholder="year value"
+          />
+          <DerivePicker
+            label="Month"
+            value={der.monthRef ?? ""}
+            options={options}
+            onPreview={onPreview}
+            onChange={(v) => onChange({ ...der, monthRef: v })}
+            placeholder="month value"
+          />
           <label className="flex flex-col gap-1.5 w-16">
             <span className={microLabel}>Day</span>
-            <Input value={String(der.day ?? 1)} className="text-center" onChange={(e) => onChange({ ...der, day: Number(e.target.value) || 1 })} />
+            <Input
+              value={String(der.day ?? 1)}
+              className="text-center"
+              onChange={(e) =>
+                onChange({ ...der, day: Number(e.target.value) || 1 })
+              }
+            />
           </label>
           <label className="flex flex-col gap-1.5 w-[74px]">
             <span className={microLabel}>± months</span>
-            <Input type="number" value={String(der.shift ?? 0)} className="text-center" onChange={(e) => onChange({ ...der, shift: Math.trunc(Number(e.target.value) || 0) })} />
+            <Input
+              type="number"
+              value={String(der.shift ?? 0)}
+              className="text-center"
+              onChange={(e) =>
+                onChange({
+                  ...der,
+                  shift: Math.trunc(Number(e.target.value) || 0),
+                })
+              }
+            />
           </label>
         </div>
       )}
       {der.kind === "datePart" && (
         <div className="flex flex-wrap gap-3.5 items-end">
           <div className="min-w-[180px] flex-1">
-            <DerivePicker label="Date value" value={der.dateRef ?? ""} options={options} onPreview={onPreview} onChange={(v) => onChange({ ...der, dateRef: v })} placeholder="a date value" />
+            <DerivePicker
+              label="Date value"
+              value={der.dateRef ?? ""}
+              options={options}
+              onPreview={onPreview}
+              onChange={(v) => onChange({ ...der, dateRef: v })}
+              placeholder="a date value"
+            />
           </div>
           <label className="flex flex-col gap-1.5 w-[110px]">
             <span className={microLabel}>Take</span>
-            <Select value={der.part ?? "year"} onChange={(e) => onChange({ ...der, part: e.target.value as "year" | "month" | "day" })}>
+            <Select
+              value={der.part ?? "year"}
+              onChange={(e) =>
+                onChange({
+                  ...der,
+                  part: e.target.value as "year" | "month" | "day",
+                })
+              }
+            >
               <option value="year">year</option>
               <option value="month">month</option>
               <option value="day">day</option>
@@ -733,10 +891,19 @@ export function DeriveCard({
           <Input
             value={String(der.constValue ?? "")}
             className="w-[70px]! text-center text-[13px]"
-            onChange={(e) => onChange({ ...der, constValue: Number(e.target.value) })}
+            onChange={(e) =>
+              onChange({ ...der, constValue: Number(e.target.value) })
+            }
           />
           <span className="font-mono text-xs text-muted">when</span>
-          <ValuePicker value={der.whenRef ?? ""} options={options} variant="B" onPreview={onPreview} placeholder="value exists" onChange={(v) => onChange({ ...der, whenRef: v })} />
+          <ValuePicker
+            value={der.whenRef ?? ""}
+            options={options}
+            variant="B"
+            onPreview={onPreview}
+            placeholder="value exists"
+            onChange={(v) => onChange({ ...der, whenRef: v })}
+          />
           <span className="font-mono text-xs text-muted">exists</span>
         </div>
       )}
@@ -763,13 +930,21 @@ export function RoleCard({
   focusKey: string | null;
 }) {
   const disagree = resolved?.disagree ?? false;
-  const focused = !!focusKey && (role.primary === focusKey || role.fallbacks.includes(focusKey));
+  const focused =
+    !!focusKey &&
+    (role.primary === focusKey || role.fallbacks.includes(focusKey));
   return (
     <CardShell focused={focused}>
       <div className="flex items-center gap-2 mb-2.5">
-        <span className="font-mono text-xs font-semibold text-ink flex-1">{label}</span>
+        <span className="font-mono text-xs font-semibold text-ink flex-1">
+          {label}
+        </span>
         {resolved ? (
-          <ValueChip value={resolved.value} error={disagree ? "review" : null} title={disagree ? "sources disagree" : ""} />
+          <ValueChip
+            value={resolved.value}
+            error={disagree ? "review" : null}
+            title={disagree ? "sources disagree" : ""}
+          />
         ) : (
           <ValueChip />
         )}
@@ -778,17 +953,36 @@ export function RoleCard({
         <div>
           <span className={microLabel}>Use this value</span>
           <div className="mt-1">
-            <ValuePicker value={role.primary} options={options} onPreview={onPreview} onChange={(v) => onChange({ ...role, primary: v })} />
+            <ValuePicker
+              value={role.primary}
+              options={options}
+              onPreview={onPreview}
+              onChange={(v) => onChange({ ...role, primary: v })}
+            />
           </div>
         </div>
         <div>
           <span className={microLabel}>If missing, try…</span>
           <div className="mt-1">
-            <FallbackChain refs={role.fallbacks} options={options} onPreview={onPreview} onChange={(fallbacks) => onChange({ ...role, fallbacks })} />
+            <FallbackChain
+              refs={role.fallbacks}
+              options={options}
+              onPreview={onPreview}
+              onChange={(fallbacks) => onChange({ ...role, fallbacks })}
+            />
           </div>
         </div>
-        <label className={cn("inline-flex items-center gap-2 cursor-pointer font-mono text-[11.5px]", disagree ? "text-accent" : "text-muted")}>
-          <input type="checkbox" checked={role.mustAgree} onChange={(e) => onChange({ ...role, mustAgree: e.target.checked })} />
+        <label
+          className={cn(
+            "inline-flex items-center gap-2 cursor-pointer font-mono text-[11.5px]",
+            disagree ? "text-accent" : "text-muted",
+          )}
+        >
+          <input
+            type="checkbox"
+            checked={role.mustAgree}
+            onChange={(e) => onChange({ ...role, mustAgree: e.target.checked })}
+          />
           Must agree — flag for review if present sources disagree
           {disagree && <span className="text-accent">△ disagree</span>}
         </label>
@@ -832,13 +1026,26 @@ export function CustomCard({
         <div>
           <span className={microLabel}>Source value</span>
           <div className="mt-1">
-            <ValuePicker value={field.source} options={options} onPreview={onPreview} onChange={(v) => onChange({ ...field, source: v })} />
+            <ValuePicker
+              value={field.source}
+              options={options}
+              onPreview={onPreview}
+              onChange={(v) => onChange({ ...field, source: v })}
+            />
           </div>
         </div>
         <div className="flex flex-wrap gap-3.5 items-end">
           <label className="flex flex-col gap-1.5 w-[120px]">
             <span className={microLabel}>Type</span>
-            <Select value={field.type} onChange={(e) => onChange({ ...field, type: e.target.value as CustomDef["type"] })}>
+            <Select
+              value={field.type}
+              onChange={(e) =>
+                onChange({
+                  ...field,
+                  type: e.target.value as CustomDef["type"],
+                })
+              }
+            >
               {["money", "number", "date", "string", "quantity"].map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -849,7 +1056,11 @@ export function CustomCard({
           {field.type === "quantity" && (
             <label className="flex flex-col gap-1.5 w-[100px]">
               <span className={microLabel}>Unit</span>
-              <Input value={field.unit} placeholder="kWh, m³…" onChange={(e) => onChange({ ...field, unit: e.target.value })} />
+              <Input
+                value={field.unit}
+                placeholder="kWh, m³…"
+                onChange={(e) => onChange({ ...field, unit: e.target.value })}
+              />
             </label>
           )}
           <label className="flex flex-col gap-1.5 flex-1 min-w-[160px]">
@@ -858,7 +1069,9 @@ export function CustomCard({
               value={field.includeWhen}
               placeholder="e.g. barcode.surcharge > 0"
               className="text-xs"
-              onChange={(e) => onChange({ ...field, includeWhen: e.target.value })}
+              onChange={(e) =>
+                onChange({ ...field, includeWhen: e.target.value })
+              }
             />
           </label>
         </div>

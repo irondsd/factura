@@ -59,17 +59,33 @@ const edesur = {
       "\\b009(?<acct>\\d{10})(?<cents>\\d{11})(?<due>\\d{6})(?<surcharge>\\d{9})\\d{4}\\d{15}\\b",
       "",
       [
-        { name: "barcode.acct", group: "acct", transforms: ["stripLeadingZeros"] },
-        { name: "barcode.cents", group: "cents", transforms: ["centsToAmount"] },
+        {
+          name: "barcode.acct",
+          group: "acct",
+          transforms: ["stripLeadingZeros"],
+        },
+        {
+          name: "barcode.cents",
+          group: "cents",
+          transforms: ["centsToAmount"],
+        },
         { name: "barcode.due", group: "due", transforms: ["parseDate:YYMMDD"] },
-        { name: "barcode.surcharge", group: "surcharge", transforms: ["centsToAmount"] },
+        {
+          name: "barcode.surcharge",
+          group: "surcharge",
+          transforms: ["centsToAmount"],
+        },
       ],
     ),
     cap(
       "Periodo liquidado (?<half>1er|2do) tramo del bim\\.?\\s*(?<bim>\\d{1,2})/(?<year>\\d{4})",
       "i",
       [
-        { name: "tramoHalf", group: "half", transforms: [{ lookup: { "1er": 1, "2do": 2 } }] },
+        {
+          name: "tramoHalf",
+          group: "half",
+          transforms: [{ lookup: { "1er": 1, "2do": 2 } }],
+        },
         { name: "tramoBim", group: "bim", transforms: ["toInt"] },
         { name: "tramoYear", group: "year", transforms: ["toInt"] },
       ],
@@ -86,13 +102,27 @@ const edesur = {
     der("dueYear", "datePart", { dateRef: "due", part: "year" }),
     der("dueMonth", "datePart", { dateRef: "due", part: "month" }),
     der("tramoMonth", "math", { expr: "(tramoBim - 1) * 2 + tramoHalf" }),
-    der("tramoPeriod", "dateParts", { yearRef: "tramoYear", monthRef: "tramoMonth", day: 1, shift: 0 }),
-    der("simpleYear", "math", { expr: "simpleMonth > dueMonth ? dueYear - 1 : dueYear" }),
-    der("simplePeriod", "dateParts", { yearRef: "simpleYear", monthRef: "simpleMonth", day: 1, shift: 0 }),
+    der("tramoPeriod", "dateParts", {
+      yearRef: "tramoYear",
+      monthRef: "tramoMonth",
+      day: 1,
+      shift: 0,
+    }),
+    der("simpleYear", "math", {
+      expr: "simpleMonth > dueMonth ? dueYear - 1 : dueYear",
+    }),
+    der("simplePeriod", "dateParts", {
+      yearRef: "simpleYear",
+      monthRef: "simpleMonth",
+      day: 1,
+      shift: 0,
+    }),
     der("period", "fallback", { sources: ["tramoPeriod", "simplePeriod"] }),
     der("tramoMonths", "constWhen", { constValue: 2, whenRef: "tramoBim" }),
     der("simpleMonths", "constWhen", { constValue: 1, whenRef: "simpleMonth" }),
-    der("periodMonths", "fallback", { sources: ["tramoMonths", "simpleMonths"] }),
+    der("periodMonths", "fallback", {
+      sources: ["tramoMonths", "simpleMonths"],
+    }),
     der("monthlyKwh", "math", { expr: "kwh / periodMonths" }),
   ],
   roles: {
@@ -104,7 +134,9 @@ const edesur = {
   custom: [
     cf("consumption", "monthlyKwh", "quantity", { unit: "kWh" }),
     cf("periodMonths", "periodMonths", "number"),
-    cf("lateSurcharge", "barcode.surcharge", "money", { includeWhen: "barcode.surcharge > 0" }),
+    cf("lateSurcharge", "barcode.surcharge", "money", {
+      includeWhen: "barcode.surcharge > 0",
+    }),
   ],
 } as unknown as BuilderConfig;
 
@@ -152,7 +184,9 @@ describe("structured builder — evaluateConfig", () => {
   it("attaches source spans to captured values for highlighting", () => {
     const r = evaluateConfig(bimonthly, edesur);
     expect(r.values.kwh.spans.length).toBe(1);
-    expect(bimonthly.slice(r.values.kwh.spans[0].start, r.values.kwh.spans[0].end)).toBe("240");
+    expect(
+      bimonthly.slice(r.values.kwh.spans[0].start, r.values.kwh.spans[0].end),
+    ).toBe("240");
   });
 });
 
@@ -196,7 +230,9 @@ describe("structured builder — bodyToConfig reverse map", () => {
 
   it("reads when/use and the * 0 + N trick back as constWhen", () => {
     const body = generateBody(edesur, detect);
-    expect(bodyToConfig(body)!.derives.find((d) => d.name === "tramoMonths")).toMatchObject({
+    expect(
+      bodyToConfig(body)!.derives.find((d) => d.name === "tramoMonths"),
+    ).toMatchObject({
       kind: "constWhen",
       whenRef: "tramoBim",
       constValue: 2,
@@ -207,7 +243,11 @@ describe("structured builder — bodyToConfig reverse map", () => {
       compute: [{ name: "m", expr: "tramoBim * 0 + 3" }],
       roles: emptyRoles,
     } as unknown as Body;
-    expect(bodyToConfig(trick)!.derives[0]).toMatchObject({ kind: "constWhen", whenRef: "tramoBim", constValue: 3 });
+    expect(bodyToConfig(trick)!.derives[0]).toMatchObject({
+      kind: "constWhen",
+      whenRef: "tramoBim",
+      constValue: 3,
+    });
   });
 
   it("collapses a dateFromParts + addMonths pair into one shifted dateParts", () => {
@@ -222,7 +262,13 @@ describe("structured builder — bodyToConfig reverse map", () => {
     } as unknown as Body;
     const back = bodyToConfig(body)!;
     expect(back.derives).toHaveLength(1);
-    expect(back.derives[0]).toMatchObject({ name: "p", kind: "dateParts", yearRef: "y", monthRef: "m", shift: -1 });
+    expect(back.derives[0]).toMatchObject({
+      name: "p",
+      kind: "dateParts",
+      yearRef: "y",
+      monthRef: "m",
+      shift: -1,
+    });
     expect(generateBody(back, detect).compute).toEqual(body.compute);
   });
 
@@ -230,22 +276,34 @@ describe("structured builder — bodyToConfig reverse map", () => {
     const body = {
       detect,
       captures: [],
-      roles: { ...emptyRoles, amount: { sources: ["barcode.cents", "labelTotal"] } },
-      validations: [{ type: "agree", a: "labelTotal", b: "barcode.cents", label: "Total" }],
+      roles: {
+        ...emptyRoles,
+        amount: { sources: ["barcode.cents", "labelTotal"] },
+      },
+      validations: [
+        { type: "agree", a: "labelTotal", b: "barcode.cents", label: "Total" },
+      ],
     } as unknown as Body;
     expect(bodyToConfig(body)!.roles.amount.mustAgree).toBe(true);
   });
 
   it("falls back (null) on region, lineContainsAll, standalone addMonths, or an unmatched check", () => {
     const base = { detect, captures: [], roles: emptyRoles };
-    expect(bodyToConfig({ ...base, region: { before: "x" } } as unknown as Body)).toBeNull();
     expect(
-      bodyToConfig({ ...base, compute: [{ name: "x", addMonths: { date: "d", delta: 1 } }] } as unknown as Body),
+      bodyToConfig({ ...base, region: { before: "x" } } as unknown as Body),
     ).toBeNull();
     expect(
       bodyToConfig({
         ...base,
-        validations: [{ type: "lineContainsAll", linePattern: "x", values: [], label: "l" }],
+        compute: [{ name: "x", addMonths: { date: "d", delta: 1 } }],
+      } as unknown as Body),
+    ).toBeNull();
+    expect(
+      bodyToConfig({
+        ...base,
+        validations: [
+          { type: "lineContainsAll", linePattern: "x", values: [], label: "l" },
+        ],
       } as unknown as Body),
     ).toBeNull();
     expect(

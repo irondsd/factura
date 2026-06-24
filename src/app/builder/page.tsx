@@ -67,9 +67,17 @@ const REGEX_RECIPES: { group: string; items: Recipe[] }[] = [
   {
     group: "Dates",
     items: [
-      { label: "DD/MM/YYYY", pattern: "(\\d{2}/\\d{2}/\\d{4})", hint: "→ date DD/MM/YYYY" },
+      {
+        label: "DD/MM/YYYY",
+        pattern: "(\\d{2}/\\d{2}/\\d{4})",
+        hint: "→ date DD/MM/YYYY",
+      },
       { label: "YYYY-MM-DD", pattern: "(\\d{4}-\\d{2}-\\d{2})" },
-      { label: "MM/YYYY", pattern: "(\\d{2})[/-](\\d{4})", hint: "month + year" },
+      {
+        label: "MM/YYYY",
+        pattern: "(\\d{2})[/-](\\d{4})",
+        hint: "month + year",
+      },
       {
         label: "Spanish month name",
         pattern: "(ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)",
@@ -120,22 +128,34 @@ type Sig = { pattern: string; flags: string };
 type Mode = "structured" | "json";
 
 // ── option builders ────────────────────────────────────────────────────────────
-function captureOptions(config: BuilderConfig, values: EvalResult["values"]): ValueOption[] {
+function captureOptions(
+  config: BuilderConfig,
+  values: EvalResult["values"],
+): ValueOption[] {
   const opts: ValueOption[] = [];
   for (const cap of config.captures)
     for (const o of cap.outputs)
-      if (o.name) opts.push({ name: o.name, origin: "capture", rec: values[o.name] });
+      if (o.name)
+        opts.push({ name: o.name, origin: "capture", rec: values[o.name] });
   return opts;
 }
-function optionsBeforeDerive(config: BuilderConfig, values: EvalResult["values"], idx: number): ValueOption[] {
+function optionsBeforeDerive(
+  config: BuilderConfig,
+  values: EvalResult["values"],
+  idx: number,
+): ValueOption[] {
   const opts = captureOptions(config, values);
   for (let i = 0; i < idx; i++) {
     const d = config.derives[i];
-    if (d.name) opts.push({ name: d.name, origin: "derive", rec: values[d.name] });
+    if (d.name)
+      opts.push({ name: d.name, origin: "derive", rec: values[d.name] });
   }
   return opts;
 }
-function allOptions(config: BuilderConfig, values: EvalResult["values"]): ValueOption[] {
+function allOptions(
+  config: BuilderConfig,
+  values: EvalResult["values"],
+): ValueOption[] {
   return optionsBeforeDerive(config, values, config.derives.length);
 }
 
@@ -151,7 +171,10 @@ function moveArr<T>(arr: T[], i: number, dir: number): T[] {
 type Span = { start: number; end: number; tone: "strong" | "faint" };
 
 /** Two-tone spans: every captured value faint, the focused one strong. */
-function structuredSpans(values: EvalResult["values"], focusKey: string | null): Span[] {
+function structuredSpans(
+  values: EvalResult["values"],
+  focusKey: string | null,
+): Span[] {
   const faint: { start: number; end: number }[] = [];
   const strong: { start: number; end: number }[] = [];
   for (const name in values) {
@@ -159,8 +182,11 @@ function structuredSpans(values: EvalResult["values"], focusKey: string | null):
     if (rec.origin !== "capture") continue;
     for (const s of rec.spans) faint.push(s);
   }
-  if (focusKey && values[focusKey]) for (const s of values[focusKey].spans) strong.push(s);
-  const faintKept = faint.filter((f) => !strong.some((s) => f.start < s.end && s.start < f.end));
+  if (focusKey && values[focusKey])
+    for (const s of values[focusKey].spans) strong.push(s);
+  const faintKept = faint.filter(
+    (f) => !strong.some((s) => f.start < s.end && s.start < f.end),
+  );
   const all: Span[] = [
     ...strong.map((s) => ({ ...s, tone: "strong" as const })),
     ...faintKept.map((s) => ({ ...s, tone: "faint" as const })),
@@ -187,12 +213,18 @@ function bodySpans(text: string, body: Body | undefined): Span[] {
         const indices = (
           m as
             | (RegExpExecArray & {
-                indices?: { [k: number]: [number, number]; groups?: Record<string, [number, number]> };
+                indices?: {
+                  [k: number]: [number, number];
+                  groups?: Record<string, [number, number]>;
+                };
               })
             | null
         )?.indices;
         if (!indices) continue;
-        const gi = typeof out.group === "number" ? indices[out.group] : indices.groups?.[out.group];
+        const gi =
+          typeof out.group === "number"
+            ? indices[out.group]
+            : indices.groups?.[out.group];
         if (gi) spans.push({ start: gi[0], end: gi[1], tone: "strong" });
       } catch {
         // invalid regex while typing
@@ -244,7 +276,10 @@ function Builder() {
   const { showToast } = useApp();
   const utils = trpc.useUtils();
 
-  const billQuery = trpc.bills.get.useQuery({ id: billId! }, { enabled: Boolean(billId) });
+  const billQuery = trpc.bills.get.useQuery(
+    { id: billId! },
+    { enabled: Boolean(billId) },
+  );
   const presets = trpc.parsers.list.useQuery();
   const vendorList = trpc.vendors.list.useQuery();
 
@@ -270,11 +305,17 @@ function Builder() {
   if (!seeded && (billId ? billQuery.data : true) && presets.data) {
     setSeeded(true);
     if (billQuery.data) {
-      setBills([{ name: billQuery.data.fileName ?? "bill", text: normalize(billQuery.data.rawText) }]);
+      setBills([
+        {
+          name: billQuery.data.fileName ?? "bill",
+          text: normalize(billQuery.data.rawText),
+        },
+      ]);
     }
     const preset =
       (parserSlug && presets.data.find((p) => p.slug === parserSlug)) ||
-      (billQuery.data?.parserKey && presets.data.find((p) => p.slug === billQuery.data!.parserKey));
+      (billQuery.data?.parserKey &&
+        presets.data.find((p) => p.slug === billQuery.data!.parserKey));
     if (preset) {
       if (preset.editable) setExistingId(preset.id);
       else setEditingOwn(false);
@@ -282,17 +323,30 @@ function Builder() {
       setSlug(preset.slug);
       setDisplayName(preset.displayName);
       setVendorSlug(preset.vendorSlug);
-      const { slug: _s, vendor: _v, version: _vn, ...bodyRest } = preset.body as Record<string, unknown>;
+      const {
+        slug: _s,
+        vendor: _v,
+        version: _vn,
+        ...bodyRest
+      } = preset.body as Record<string, unknown>;
       void _s;
       void _v;
       void _vn;
       const body = bodyRest as Body;
       setSigs(
         body.detect?.allOf?.length
-          ? body.detect.allOf.map((s) => ({ pattern: s.pattern, flags: s.flags ?? "" }))
+          ? body.detect.allOf.map((s) => ({
+              pattern: s.pattern,
+              flags: s.flags ?? "",
+            }))
           : [{ pattern: "", flags: "i" }],
       );
-      setNoneSigs((body.detect?.noneOf ?? []).map((s) => ({ pattern: s.pattern, flags: s.flags ?? "" })));
+      setNoneSigs(
+        (body.detect?.noneOf ?? []).map((s) => ({
+          pattern: s.pattern,
+          flags: s.flags ?? "",
+        })),
+      );
       const { detect: _omit, ...rest } = body;
       void _omit;
       // Open in the structured editor when the body reverse-maps; otherwise
@@ -317,7 +371,9 @@ function Builder() {
   }
 
   const activeText = bills[activeIdx]?.text ?? "";
-  const knownVendor = (vendorList.data ?? []).some((v) => v.slug === vendorSlug);
+  const knownVendor = (vendorList.data ?? []).some(
+    (v) => v.slug === vendorSlug,
+  );
 
   const detectObj = useMemo(
     () => ({
@@ -343,7 +399,10 @@ function Builder() {
 
   // Structured mode: rich per-value evaluation for chips / highlight / preview.
   const structResult = useMemo(
-    () => (mode === "structured" && activeText ? evaluateConfig(activeText, config) : null),
+    () =>
+      mode === "structured" && activeText
+        ? evaluateConfig(activeText, config)
+        : null,
     [mode, activeText, config],
   );
 
@@ -353,13 +412,22 @@ function Builder() {
     const full: ParserConfig = {
       slug: slug || "draft",
       version: 1,
-      vendor: { slug: vendorSlug || slug || "draft", displayName: displayName || "Draft" },
+      vendor: {
+        slug: vendorSlug || slug || "draft",
+        displayName: displayName || "Draft",
+      },
       ...assembled.body,
     };
     try {
-      return { result: runConfig(full, activeText), error: null as string | null };
+      return {
+        result: runConfig(full, activeText),
+        error: null as string | null,
+      };
     } catch (e) {
-      return { result: null, error: e instanceof Error ? e.message : String(e) };
+      return {
+        result: null,
+        error: e instanceof Error ? e.message : String(e),
+      };
     }
   }, [mode, assembled.body, activeText, slug, vendorSlug, displayName]);
 
@@ -374,9 +442,12 @@ function Builder() {
   const recOf = (name: string): ValueRec | undefined => values[name];
   const onPreview = (name: string | null) => setFocusKey(name);
 
-  const setCaptures = (captures: BuilderConfig["captures"]) => setConfig((c) => ({ ...c, captures }));
-  const setDerives = (derives: BuilderConfig["derives"]) => setConfig((c) => ({ ...c, derives }));
-  const setCustom = (custom: BuilderConfig["custom"]) => setConfig((c) => ({ ...c, custom }));
+  const setCaptures = (captures: BuilderConfig["captures"]) =>
+    setConfig((c) => ({ ...c, captures }));
+  const setDerives = (derives: BuilderConfig["derives"]) =>
+    setConfig((c) => ({ ...c, derives }));
+  const setCustom = (custom: BuilderConfig["custom"]) =>
+    setConfig((c) => ({ ...c, custom }));
 
   const hasSignature = detectObj.allOf.length > 0;
   const matchesCurrent =
@@ -391,13 +462,22 @@ function Builder() {
   const collisionList = collisions.data ?? [];
   const gatePassed = matchesCurrent && collisionList.length === 0;
 
-  const usage = trpc.parsers.usage.useQuery({ slug }, { enabled: Boolean(slug) });
-  const samples = trpc.parsers.listSamples.useQuery({ slug }, { enabled: Boolean(slug) });
+  const usage = trpc.parsers.usage.useQuery(
+    { slug },
+    { enabled: Boolean(slug) },
+  );
+  const samples = trpc.parsers.listSamples.useQuery(
+    { slug },
+    { enabled: Boolean(slug) },
+  );
 
   const toJson = () => {
     // Body for the JSON editor mirrors what we'd save, minus the separately-
     // edited detect block (step 1 owns that in both modes).
-    const { detect: _d, ...rest } = generateBody(config, { allOf: [], noneOf: [] });
+    const { detect: _d, ...rest } = generateBody(config, {
+      allOf: [],
+      noneOf: [],
+    });
     void _d;
     setAdvanced(JSON.stringify(rest, null, 2));
     setMode("json");
@@ -432,7 +512,9 @@ function Builder() {
 
   const slugValid = /^[a-z0-9-]+$/.test(slug);
   const previewOk =
-    mode === "structured" ? Boolean(structResult?.resolved) : jsonPreview?.result != null;
+    mode === "structured"
+      ? Boolean(structResult?.resolved)
+      : jsonPreview?.result != null;
   const canFinish =
     gatePassed &&
     slugValid &&
@@ -443,7 +525,12 @@ function Builder() {
 
   const finish = async () => {
     if (!assembled.body) return;
-    const input = { slug, displayName, vendorSlug: vendorSlug || slug, definition: assembled.body };
+    const input = {
+      slug,
+      displayName,
+      vendorSlug: vendorSlug || slug,
+      definition: assembled.body,
+    };
     try {
       let id = existingId;
       if (!id) {
@@ -486,20 +573,31 @@ function Builder() {
           <div className="flex items-center justify-between mb-2">
             <Label>Bill text</Label>
             {mode === "structured" && (
-              <span className="font-mono text-[10.5px] text-muted">focus a value to highlight its span →</span>
+              <span className="font-mono text-[10.5px] text-muted">
+                focus a value to highlight its span →
+              </span>
             )}
           </div>
           {bills.length > 1 && (
             <div className="flex flex-wrap gap-1 mb-2">
               {bills.map((b, i) => (
-                <button key={i} onClick={() => setActiveIdx(i)} className={tabClass(i === activeIdx)} title={b.name}>
+                <button
+                  key={i}
+                  onClick={() => setActiveIdx(i)}
+                  className={tabClass(i === activeIdx)}
+                  title={b.name}
+                >
                   {b.name.length > 18 ? `${b.name.slice(0, 16)}…` : b.name}
                 </button>
               ))}
             </div>
           )}
           <pre className="ruled font-mono text-xs leading-[1.55] whitespace-pre-wrap break-words bg-paper border border-line py-2.5 px-3 h-[62vh] overflow-y-auto m-0 text-ink">
-            {activeText ? <HighlightedText text={activeText} spans={spans} /> : "Drop a PDF to start."}
+            {activeText ? (
+              <HighlightedText text={activeText} spans={spans} />
+            ) : (
+              "Drop a PDF to start."
+            )}
           </pre>
           <DropZone onFiles={dropFiles} />
           <RegexToolkit
@@ -518,7 +616,13 @@ function Builder() {
                     key={s.id}
                     onClick={() =>
                       setBills((b) => {
-                        const next = [...b, { name: s.fileName ?? "sample", text: normalize(s.rawText) }];
+                        const next = [
+                          ...b,
+                          {
+                            name: s.fileName ?? "sample",
+                            text: normalize(s.rawText),
+                          },
+                        ];
                         setActiveIdx(next.length - 1);
                         return next;
                       })
@@ -534,7 +638,11 @@ function Builder() {
                     variant="outline"
                     disabled={addSample.isPending}
                     onClick={async () => {
-                      await addSample.mutateAsync({ slug, fileName: bills[activeIdx]?.name, rawText: activeText });
+                      await addSample.mutateAsync({
+                        slug,
+                        fileName: bills[activeIdx]?.name,
+                        rawText: activeText,
+                      });
                       samples.refetch();
                       showToast("Saved as regression sample");
                     }}
@@ -552,7 +660,11 @@ function Builder() {
           <Section title="Parser">
             <Grid>
               <Field label="Name">
-                <Input value={displayName} placeholder="e.g. Aguas Andinas" onChange={(e) => setDisplayName(e.target.value)} />
+                <Input
+                  value={displayName}
+                  placeholder="e.g. Aguas Andinas"
+                  onChange={(e) => setDisplayName(e.target.value)}
+                />
               </Field>
               <Field label="Slug (id)">
                 <Input
@@ -580,7 +692,11 @@ function Builder() {
               </Field>
               {!knownVendor && (
                 <Field label="New vendor slug">
-                  <Input value={vendorSlug} placeholder={slug || "vendor"} onChange={(e) => setVendorSlug(e.target.value)} />
+                  <Input
+                    value={vendorSlug}
+                    placeholder={slug || "vendor"}
+                    onChange={(e) => setVendorSlug(e.target.value)}
+                  />
                 </Field>
               )}
             </Grid>
@@ -589,38 +705,66 @@ function Builder() {
           {/* step 1 — detection */}
           <Section title="1 · Recognize the bill">
             <p className={cn(hint, "mb-2.5")}>
-              Patterns that uniquely identify this vendor. All must appear in the text, and they must not match any of your
-              other bills.
+              Patterns that uniquely identify this vendor. All must appear in
+              the text, and they must not match any of your other bills.
             </p>
             {sigs.map((s, i) => (
               <SigRow
                 key={i}
                 sig={s}
-                onChange={(ns) => setSigs(sigs.map((x, j) => (j === i ? ns : x)))}
-                onRemove={sigs.length > 1 ? () => setSigs(sigs.filter((_, j) => j !== i)) : undefined}
+                onChange={(ns) =>
+                  setSigs(sigs.map((x, j) => (j === i ? ns : x)))
+                }
+                onRemove={
+                  sigs.length > 1
+                    ? () => setSigs(sigs.filter((_, j) => j !== i))
+                    : undefined
+                }
               />
             ))}
-            <Button size="sm" variant="outline" onClick={() => setSigs([...sigs, { pattern: "", flags: "i" }])}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSigs([...sigs, { pattern: "", flags: "i" }])}
+            >
               + Add signature
             </Button>
             <div className="mt-4">
               <p className={cn(hint, "mb-2.5")}>
-                Optional — patterns that must <em>not</em> appear. Splits one vendor across two parsers.
+                Optional — patterns that must <em>not</em> appear. Splits one
+                vendor across two parsers.
               </p>
               {noneSigs.map((s, i) => (
                 <SigRow
                   key={i}
                   sig={s}
-                  onChange={(ns) => setNoneSigs(noneSigs.map((x, j) => (j === i ? ns : x)))}
-                  onRemove={() => setNoneSigs(noneSigs.filter((_, j) => j !== i))}
+                  onChange={(ns) =>
+                    setNoneSigs(noneSigs.map((x, j) => (j === i ? ns : x)))
+                  }
+                  onRemove={() =>
+                    setNoneSigs(noneSigs.filter((_, j) => j !== i))
+                  }
                 />
               ))}
-              <Button size="sm" variant="outline" onClick={() => setNoneSigs([...noneSigs, { pattern: "", flags: "i" }])}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  setNoneSigs([...noneSigs, { pattern: "", flags: "i" }])
+                }
+              >
                 + Add exclusion
               </Button>
             </div>
             <div className="mt-3 flex flex-col gap-1.5">
-              <StatusLine ok={matchesCurrent} text={matchesCurrent ? "Matches this bill" : "Does not match this bill yet"} />
+              <StatusLine
+                ok={matchesCurrent}
+                text={
+                  matchesCurrent
+                    ? "Matches this bill"
+                    : "Does not match this bill yet"
+                }
+              />
               <StatusLine
                 ok={collisionList.length === 0}
                 text={
@@ -639,7 +783,10 @@ function Builder() {
             right={
               gatePassed ? (
                 <div className="flex gap-1.5">
-                  <ModeTab active={mode === "structured"} onClick={toStructured}>
+                  <ModeTab
+                    active={mode === "structured"}
+                    onClick={toStructured}
+                  >
                     Structured
                   </ModeTab>
                   <ModeTab active={mode === "json"} onClick={toJson}>
@@ -650,11 +797,14 @@ function Builder() {
             }
           >
             {!gatePassed ? (
-              <p className={cn(hint, "mb-2.5")}>Finish step 1 to unlock extraction.</p>
+              <p className={cn(hint, "mb-2.5")}>
+                Finish step 1 to unlock extraction.
+              </p>
             ) : mode === "json" ? (
               <>
                 <p className={cn(hint, "mb-2")}>
-                  The underlying engine body — captures, compute, roles, custom. Edits preview live below.
+                  The underlying engine body — captures, compute, roles, custom.
+                  Edits preview live below.
                 </p>
                 <textarea
                   value={advanced}
@@ -665,13 +815,23 @@ function Builder() {
                     assembled.error ? "border-accent" : "border-line",
                   )}
                 />
-                {assembled.error && <p className={cn(hint, "text-accent mt-1.5")}>△ {assembled.error}</p>}
+                {assembled.error && (
+                  <p className={cn(hint, "text-accent mt-1.5")}>
+                    △ {assembled.error}
+                  </p>
+                )}
               </>
             ) : (
               <>
-                <SubHead label="Extract — capture from the bill" sub="Each card is one regex producing one or more named values." />
+                <SubHead
+                  label="Extract — capture from the bill"
+                  sub="Each card is one regex producing one or more named values."
+                />
                 {config.captures.length === 0 && (
-                  <p className={cn(hint, "mb-2.5")}>Nothing captured yet. Add a capture to read a value off the bill.</p>
+                  <p className={cn(hint, "mb-2.5")}>
+                    Nothing captured yet. Add a capture to read a value off the
+                    bill.
+                  </p>
                 )}
                 {config.captures.map((cap, i) => (
                   <CaptureCard
@@ -679,11 +839,23 @@ function Builder() {
                     cap={cap}
                     recOf={recOf}
                     onPreview={onPreview}
-                    onChange={(nc) => setCaptures(config.captures.map((x, j) => (j === i ? nc : x)))}
-                    onRemove={() => setCaptures(config.captures.filter((_, j) => j !== i))}
+                    onChange={(nc) =>
+                      setCaptures(
+                        config.captures.map((x, j) => (j === i ? nc : x)),
+                      )
+                    }
+                    onRemove={() =>
+                      setCaptures(config.captures.filter((_, j) => j !== i))
+                    }
                   />
                 ))}
-                <Button size="sm" variant="outline" onClick={() => setCaptures([...config.captures, newCapture()])}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setCaptures([...config.captures, newCapture()])
+                  }
+                >
                   + add capture
                 </Button>
 
@@ -700,18 +872,31 @@ function Builder() {
                     options={optionsBeforeDerive(config, values, i)}
                     onPreview={onPreview}
                     focusKey={focusKey}
-                    onChange={(nd) => setDerives(config.derives.map((x, j) => (j === i ? nd : x)))}
-                    onRemove={() => setDerives(config.derives.filter((_, j) => j !== i))}
+                    onChange={(nd) =>
+                      setDerives(
+                        config.derives.map((x, j) => (j === i ? nd : x)),
+                      )
+                    }
+                    onRemove={() =>
+                      setDerives(config.derives.filter((_, j) => j !== i))
+                    }
                     moveUp={() => setDerives(moveArr(config.derives, i, -1))}
                     moveDown={() => setDerives(moveArr(config.derives, i, 1))}
                   />
                 ))}
-                <Button size="sm" variant="outline" onClick={() => setDerives([...config.derives, newDerive()])}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setDerives([...config.derives, newDerive()])}
+                >
                   + add derived value
                 </Button>
 
                 <div className="h-4" />
-                <SubHead label="Roles — the four required slots" sub="Point each slot at a value. Add fallbacks for bills that print it differently." />
+                <SubHead
+                  label="Roles — the four required slots"
+                  sub="Point each slot at a value. Add fallbacks for bills that print it differently."
+                />
                 {ROLE_KEYS.map((key) => (
                   <RoleCard
                     key={key}
@@ -721,12 +906,20 @@ function Builder() {
                     options={allOptions(config, values)}
                     onPreview={onPreview}
                     focusKey={focusKey}
-                    onChange={(r) => setConfig((c) => ({ ...c, roles: { ...c.roles, [key]: r } }))}
+                    onChange={(r) =>
+                      setConfig((c) => ({
+                        ...c,
+                        roles: { ...c.roles, [key]: r },
+                      }))
+                    }
                   />
                 ))}
 
                 <div className="h-4" />
-                <SubHead label="Custom fields" sub="Anything else worth tracking — charted later." />
+                <SubHead
+                  label="Custom fields"
+                  sub="Anything else worth tracking — charted later."
+                />
                 {config.custom.map((cf, i) => (
                   <CustomCard
                     key={cf.id}
@@ -735,11 +928,19 @@ function Builder() {
                     options={allOptions(config, values)}
                     onPreview={onPreview}
                     focusKey={focusKey}
-                    onChange={(nf) => setCustom(config.custom.map((x, j) => (j === i ? nf : x)))}
-                    onRemove={() => setCustom(config.custom.filter((_, j) => j !== i))}
+                    onChange={(nf) =>
+                      setCustom(config.custom.map((x, j) => (j === i ? nf : x)))
+                    }
+                    onRemove={() =>
+                      setCustom(config.custom.filter((_, j) => j !== i))
+                    }
                   />
                 ))}
-                <Button size="sm" variant="outline" onClick={() => setCustom([...config.custom, newCustom()])}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCustom([...config.custom, newCustom()])}
+                >
                   + add custom field
                 </Button>
               </>
@@ -748,7 +949,11 @@ function Builder() {
             {/* preview / review */}
             <div className="mt-4">
               <div className="flex items-center gap-2 mb-2">
-                <Label>{mode === "structured" && structResult?.issues.length ? "Needs review" : "Preview"}</Label>
+                <Label>
+                  {mode === "structured" && structResult?.issues.length
+                    ? "Needs review"
+                    : "Preview"}
+                </Label>
                 {previewOk && <ValueChip value="resolves" size="sm" />}
               </div>
               {mode === "structured" ? (
@@ -759,7 +964,9 @@ function Builder() {
                     <StructuredPreview result={structResult} />
                   )
                 ) : (
-                  <p className={cn(hint, "mb-2.5")}>Define fields to see the result.</p>
+                  <p className={cn(hint, "mb-2.5")}>
+                    Define fields to see the result.
+                  </p>
                 )
               ) : assembled.error ? (
                 <ErrorBox text={assembled.error} />
@@ -768,7 +975,9 @@ function Builder() {
               ) : jsonPreview?.result ? (
                 <ParsedPreview result={jsonPreview.result} />
               ) : (
-                <p className={cn(hint, "mb-2.5")}>Define fields to see the result.</p>
+                <p className={cn(hint, "mb-2.5")}>
+                  Define fields to see the result.
+                </p>
               )}
             </div>
           </Section>
@@ -777,13 +986,25 @@ function Builder() {
             <Button
               variant="solid"
               size="lg"
-              disabled={!canFinish || createParser.isPending || updateParser.isPending || reparse.isPending}
+              disabled={
+                !canFinish ||
+                createParser.isPending ||
+                updateParser.isPending ||
+                reparse.isPending
+              }
               onClick={finish}
             >
-              {!editingOwn ? "Fork & save" : existingId ? "Save & reparse" : "Finish"}
+              {!editingOwn
+                ? "Fork & save"
+                : existingId
+                  ? "Save & reparse"
+                  : "Finish"}
             </Button>
             {slug && usage.data && usage.data.count > 0 && (
-              <span className={hint}>Saving re-runs this parser against {usage.data.count} existing bill(s).</span>
+              <span className={hint}>
+                Saving re-runs this parser against {usage.data.count} existing
+                bill(s).
+              </span>
             )}
           </div>
         </div>
@@ -796,7 +1017,9 @@ function Builder() {
 function SubHead({ label, sub }: { label: string; sub?: string }) {
   return (
     <div className="my-1 mb-2.5">
-      <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink font-semibold">{label}</div>
+      <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink font-semibold">
+        {label}
+      </div>
       {sub && <p className={cn(hint, "mt-0.5")}>{sub}</p>}
     </div>
   );
@@ -808,12 +1031,12 @@ function StructuredPreview({ result }: { result: EvalResult }) {
     ["Amount", fmt(result.roleOut.amount.value)],
     ["Period", fmt(result.roleOut.period.value)],
     ["Due date", fmt(result.roleOut.dueDate.value)],
-    ...result.custom.map(
-      (c): [string, string] => [
-        `${c.name}${c.type === "quantity" && c.unit ? ` (${c.unit})` : ""}`,
-        c.value === undefined ? "—" : `${c.value}${c.type === "quantity" && c.unit ? ` ${c.unit}` : ""}`,
-      ],
-    ),
+    ...result.custom.map((c): [string, string] => [
+      `${c.name}${c.type === "quantity" && c.unit ? ` (${c.unit})` : ""}`,
+      c.value === undefined
+        ? "—"
+        : `${c.value}${c.type === "quantity" && c.unit ? ` ${c.unit}` : ""}`,
+    ]),
   ];
   return <RowBox rows={rows} />;
 }
@@ -824,9 +1047,12 @@ function ParsedPreview({ result }: { result: ParsedResult }) {
     ["Amount", String(result.amount)],
     ["Period", result.period],
     ["Due date", result.dueDate],
-    ...Object.entries(result.custom).map(
-      ([k, v]): [string, string] => [k, typeof v === "object" ? `${v.value}${v.unit ? ` ${v.unit}` : ""}` : String(v)],
-    ),
+    ...Object.entries(result.custom).map(([k, v]): [string, string] => [
+      k,
+      typeof v === "object"
+        ? `${v.value}${v.unit ? ` ${v.unit}` : ""}`
+        : String(v),
+    ]),
   ];
   return <RowBox rows={rows} />;
 }
@@ -860,7 +1086,10 @@ function ReviewBox({ issues }: { issues: EvalResult["issues"] }) {
       {issues.map((it, i) => (
         <div
           key={i}
-          className={cn("py-2 px-3 font-mono text-xs text-ink", i === 0 ? "" : "border-t border-dashed border-accent")}
+          className={cn(
+            "py-2 px-3 font-mono text-xs text-ink",
+            i === 0 ? "" : "border-t border-dashed border-accent",
+          )}
         >
           <span className="text-accent">{it.type === "error" ? "✕" : "△"}</span>{" "}
           <span className="font-medium">{it.label}</span>
@@ -881,17 +1110,39 @@ function ErrorBox({ text }: { text: string }) {
 
 function StatusLine({ ok, text }: { ok: boolean; text: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-2 font-mono text-xs", ok ? "text-ink" : "text-muted")}>
-      <span className={cn("w-2 h-2 inline-block flex-none", ok ? "bg-accent" : "bg-line")} />
+    <span
+      className={cn(
+        "inline-flex items-center gap-2 font-mono text-xs",
+        ok ? "text-ink" : "text-muted",
+      )}
+    >
+      <span
+        className={cn(
+          "w-2 h-2 inline-block flex-none",
+          ok ? "bg-accent" : "bg-line",
+        )}
+      />
       {text}
     </span>
   );
 }
 
-function SigRow({ sig, onChange, onRemove }: { sig: Sig; onChange: (s: Sig) => void; onRemove?: () => void }) {
+function SigRow({
+  sig,
+  onChange,
+  onRemove,
+}: {
+  sig: Sig;
+  onChange: (s: Sig) => void;
+  onRemove?: () => void;
+}) {
   return (
     <div className="flex gap-1.5 mb-1.5">
-      <Input value={sig.pattern} placeholder="e.g. AGUAS ANDINAS" onChange={(e) => onChange({ ...sig, pattern: e.target.value })} />
+      <Input
+        value={sig.pattern}
+        placeholder="e.g. AGUAS ANDINAS"
+        onChange={(e) => onChange({ ...sig, pattern: e.target.value })}
+      />
       <Input
         value={sig.flags}
         placeholder="i"
@@ -931,7 +1182,13 @@ function DropZone({ onFiles }: { onFiles: (f: FileList) => void }) {
   );
 }
 
-function RegexToolkit({ text, onCopy }: { text: string; onCopy: (pattern: string) => void }) {
+function RegexToolkit({
+  text,
+  onCopy,
+}: {
+  text: string;
+  onCopy: (pattern: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"recipes" | "tester">("recipes");
   const [pattern, setPattern] = useState("");
@@ -949,10 +1206,16 @@ function RegexToolkit({ text, onCopy }: { text: string; onCopy: (pattern: string
       {open && (
         <div className="border-t border-line p-3">
           <div className="flex items-center gap-1.5 mb-3">
-            <button onClick={() => setTab("recipes")} className={tabClass(tab === "recipes")}>
+            <button
+              onClick={() => setTab("recipes")}
+              className={tabClass(tab === "recipes")}
+            >
               Recipes
             </button>
-            <button onClick={() => setTab("tester")} className={tabClass(tab === "tester")}>
+            <button
+              onClick={() => setTab("tester")}
+              className={tabClass(tab === "tester")}
+            >
               Tester
             </button>
           </div>
@@ -972,15 +1235,28 @@ function RegexToolkit({ text, onCopy }: { text: string; onCopy: (pattern: string
                           className="text-left border border-line hover:border-ink transition-colors py-1.5 px-2"
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="font-mono text-[11px] text-ink">{r.label}</span>
+                            <span className="font-mono text-[11px] text-ink">
+                              {r.label}
+                            </span>
                             {hitv !== undefined ? (
-                              <ValueChip value={hitv.length > 16 ? `${hitv.slice(0, 15)}…` : hitv} size="sm" />
+                              <ValueChip
+                                value={
+                                  hitv.length > 16
+                                    ? `${hitv.slice(0, 15)}…`
+                                    : hitv
+                                }
+                                size="sm"
+                              />
                             ) : (
                               <span className={hint}>no match</span>
                             )}
                           </div>
-                          <div className="font-mono text-[10.5px] text-muted break-all mt-0.5">{r.pattern}</div>
-                          {r.hint && <div className={cn(hint, "mt-0.5")}>{r.hint}</div>}
+                          <div className="font-mono text-[10.5px] text-muted break-all mt-0.5">
+                            {r.pattern}
+                          </div>
+                          {r.hint && (
+                            <div className={cn(hint, "mt-0.5")}>{r.hint}</div>
+                          )}
                         </button>
                       );
                     })}
@@ -991,12 +1267,24 @@ function RegexToolkit({ text, onCopy }: { text: string; onCopy: (pattern: string
           ) : (
             <div>
               <div className="flex gap-1.5">
-                <Input value={pattern} placeholder="type a pattern to probe this bill" onChange={(e) => setPattern(e.target.value)} />
-                <Input value={flags} placeholder="i" className="w-12! flex-none" onChange={(e) => setFlags(e.target.value)} />
+                <Input
+                  value={pattern}
+                  placeholder="type a pattern to probe this bill"
+                  onChange={(e) => setPattern(e.target.value)}
+                />
+                <Input
+                  value={flags}
+                  placeholder="i"
+                  className="w-12! flex-none"
+                  onChange={(e) => setFlags(e.target.value)}
+                />
               </div>
               <div className="mt-2 font-mono text-xs">
                 {!pattern.trim() ? (
-                  <span className={hint}>The first capture group (or whole match) shows here, with a count.</span>
+                  <span className={hint}>
+                    The first capture group (or whole match) shows here, with a
+                    count.
+                  </span>
                 ) : result === null ? (
                   <span className="text-accent">Invalid pattern</span>
                 ) : result.count === 0 ? (
@@ -1029,10 +1317,15 @@ function Section({
 }) {
   return (
     <section
-      className={cn("border border-line p-4 transition-opacity duration-200", dim ? "opacity-55 pointer-events-none" : "opacity-100")}
+      className={cn(
+        "border border-line p-4 transition-opacity duration-200",
+        dim ? "opacity-55 pointer-events-none" : "opacity-100",
+      )}
     >
       <div className="flex items-baseline justify-between gap-2.5 mb-3">
-        <h3 className="font-mono text-micro uppercase tracking-label text-accent">{title}</h3>
+        <h3 className="font-mono text-micro uppercase tracking-label text-accent">
+          {title}
+        </h3>
         {right}
       </div>
       {children}
@@ -1041,10 +1334,18 @@ function Section({
 }
 
 function Grid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>;
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>
+  );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-[5px]">
       <span className={microLabel}>{label}</span>
@@ -1057,7 +1358,15 @@ function Label({ children }: { children: React.ReactNode }) {
   return <p className={cn(microLabel, "mb-1.5")}>{children}</p>;
 }
 
-function ModeTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function ModeTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button onClick={onClick} className={tabClass(active)}>
       {children}
@@ -1068,7 +1377,9 @@ function ModeTab({ active, onClick, children }: { active: boolean; onClick: () =
 function tabClass(active: boolean): string {
   return cn(
     "font-mono text-micro uppercase tracking-[0.1em] py-[5px] px-2.5 cursor-pointer border transition-colors",
-    active ? "border-ink bg-ink text-paper" : "border-line bg-transparent text-muted",
+    active
+      ? "border-ink bg-ink text-paper"
+      : "border-line bg-transparent text-muted",
   );
 }
 

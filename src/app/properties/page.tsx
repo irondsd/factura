@@ -262,7 +262,10 @@ export default function PropertiesPage() {
                   <button
                     aria-label="Revoke"
                     onClick={() =>
-                      revokeInvite.mutate({ id: inv.id }, opts("Invite revoked"))
+                      revokeInvite.mutate(
+                        { id: inv.id },
+                        opts("Invite revoked"),
+                      )
                     }
                     className={iconX}
                   >

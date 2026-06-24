@@ -110,7 +110,9 @@ describe("assertAmountsAgree", () => {
   });
 
   it("throws when amounts differ beyond rounding", () => {
-    expect(() => assertAmountsAgree(100.0, 100.01, "total")).toThrow(ParseError);
+    expect(() => assertAmountsAgree(100.0, 100.01, "total")).toThrow(
+      ParseError,
+    );
   });
 });
 

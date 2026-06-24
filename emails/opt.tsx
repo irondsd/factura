@@ -20,7 +20,9 @@ export function OtpEmail({ code }: OtpEmailProps) {
       title="Welcome."
     >
       <Text style={styles.text}>Hi there!</Text>
-      <Text style={styles.text}>Here&apos;s your Factura verification code:</Text>
+      <Text style={styles.text}>
+        Here&apos;s your Factura verification code:
+      </Text>
 
       <Section
         style={{
