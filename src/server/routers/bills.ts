@@ -244,7 +244,7 @@ export const billsRouter = router({
         propertyId: z.string().uuid().optional(),
         vendorId: z.string().uuid().optional(),
         page: z.number().int().min(0).default(0),
-        perPage: z.number().int().min(1).max(50).default(9),
+        perPage: z.number().int().min(1).max(50).default(10),
       }),
     )
     .query(async ({ ctx, input }) => {

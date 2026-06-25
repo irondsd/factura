@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useApp } from "@/components/app/context";
 import { Display, Eyebrow } from "@/components/charts/primitives";
-import { Badge, FilterPill } from "@/components/ui";
+import { Badge, FilterPill, Select } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { formatARS, formatMonthShort, formatUSD } from "@/lib/format";
 import { vendorColorClass } from "@/lib/vendorColors";
@@ -12,11 +12,13 @@ import { trpc } from "@/lib/trpc";
 export default function BillsPage() {
   const { propertyId, openBill } = useApp();
   const [vendorId, setVendorId] = useState<string>("all");
+  const [perPage, setPerPage] = useState(10);
   const [page, setPage] = useState(0);
 
   // Reset to the first page whenever the filters change (render-time sync —
-  // avoids a state-setting effect).
-  const filterKey = `${propertyId ?? "all"}|${vendorId}`;
+  // avoids a state-setting effect). Page size is included so resizing the page
+  // jumps back to the start rather than landing on a now-empty page.
+  const filterKey = `${propertyId ?? "all"}|${vendorId}|${perPage}`;
   const [prevFilter, setPrevFilter] = useState(filterKey);
   if (filterKey !== prevFilter) {
     setPrevFilter(filterKey);
@@ -30,6 +32,7 @@ export default function BillsPage() {
     propertyId,
     vendorId: vendorId === "all" ? undefined : vendorId,
     page,
+    perPage,
   });
 
   // Tabs reflect vendors that actually have bills (for the current property),
@@ -152,9 +155,23 @@ export default function BillsPage() {
 
       {/* pagination */}
       <div className="flex items-center justify-between mt-[18px] gap-3 flex-wrap">
-        <span className="font-mono text-micro uppercase tracking-[0.08em] text-muted">
-          {d?.total ?? 0} bills · page {safePage + 1} of {pageCount}
-        </span>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="font-mono text-micro uppercase tracking-[0.08em] text-muted">
+            {d?.total ?? 0} bills · page {safePage + 1} of {pageCount}
+          </span>
+          <Select
+            aria-label="Bills per page"
+            value={perPage}
+            onChange={(e) => setPerPage(Number(e.target.value))}
+            className="py-1 px-2! text-micro leading-none"
+          >
+            {[10, 25, 50].map((n) => (
+              <option key={n} value={n}>
+                {n} / page
+              </option>
+            ))}
+          </Select>
+        </div>
         {/* Prev/Next + a 5-page window. The labels collapse to bare arrows on mobile. */}
         <div className="flex gap-1 flex-wrap justify-end">
           <PageBtn
