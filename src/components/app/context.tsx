@@ -6,16 +6,12 @@ export type AppState = {
   /** Selected property, or undefined for "All". */
   propertyId?: string;
   setPropertyId: (id?: string) => void;
-  /** Open the bill editor drawer for a bill id. */
-  openBill: (id: string) => void;
-  /** Show a transient bottom-right toast. */
-  showToast: (text: string) => void;
 };
 
 export const AppContext = createContext<AppState | null>(null);
 
 export function useApp(): AppState {
   const ctx = useContext(AppContext);
-  if (!ctx) throw new Error("useApp must be used within <AppShell>");
+  if (!ctx) throw new Error("useApp must be used within the /app layout");
   return ctx;
 }

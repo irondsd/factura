@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatARS, formatMonth } from "@/lib/format";
+import { useToasts } from "@/providers/ToastProvider";
 
 type PendingConfirm = {
   billId: string;
@@ -14,11 +15,12 @@ type PendingConfirm = {
 
 /** Global drag-and-drop: drop a PDF anywhere to upload + ingest it. The file is
  * stored to S3 (when configured) and its extracted text saved to the ledger. */
-export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
+export function DropOverlay() {
   // The builder page has its own dropzone (drop bills to test against), so the
   // global ingest-on-drop must stand down there.
   const pathname = usePathname();
-  const disabled = pathname?.startsWith("/builder") ?? false;
+  const { showToast } = useToasts();
+  const disabled = pathname?.startsWith("/app/builder") ?? false;
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmQueue, setConfirmQueue] = useState<PendingConfirm[]>([]);
@@ -42,14 +44,14 @@ export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
           file.type === "application/pdf" ||
           file.name.toLowerCase().endsWith(".pdf");
         if (!isPdf) {
-          onToast(`✕ ${file.name}: not a PDF`);
+          showToast(`✕ ${file.name}: not a PDF`);
           continue;
         }
         try {
           const { default: pdfToText } = await import("react-pdftotext");
           const rawText = await pdfToText(file);
           if (rawText.trim().length < 20) {
-            onToast(
+            showToast(
               `✕ ${file.name}: no text found — scanned image PDFs aren't supported yet`,
             );
             continue;
@@ -81,7 +83,7 @@ export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
           });
           switch (result.outcome) {
             case "parsed":
-              onToast(
+              showToast(
                 `${result.vendorName} · ${formatMonth(result.period)} · ${formatARS(result.totalAmount)}` +
                   (result.periodDuplicate
                     ? " — △ period already had a bill"
@@ -89,13 +91,13 @@ export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
               );
               break;
             case "duplicate":
-              onToast(`△ ${file.name}: already saved`);
+              showToast(`△ ${file.name}: already saved`);
               break;
             case "unrecognized":
-              onToast(`△ ${file.name}: vendor not recognized — sent to review`);
+              showToast(`△ ${file.name}: vendor not recognized — sent to review`);
               break;
             case "parse_failed":
-              onToast(
+              showToast(
                 `△ ${result.vendorName}: parsing failed — sent to review`,
               );
               break;
@@ -112,7 +114,7 @@ export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
               break;
           }
         } catch (err) {
-          onToast(
+          showToast(
             `✕ ${file.name}: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
@@ -120,7 +122,7 @@ export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
       setBusy(false);
       utils.invalidate();
     },
-    [ingest, presignUpload, onToast, utils],
+    [ingest, presignUpload, showToast, utils],
   );
 
   useEffect(() => {
@@ -161,7 +163,7 @@ export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
 
   const resolveConfirm = async (propertyId: string) => {
     await confirmAccount.mutateAsync({ billId: current.billId, propertyId });
-    onToast(`${current.vendorName} account linked`);
+    showToast(`${current.vendorName} account linked`);
     setConfirmQueue((q) => q.slice(1));
     utils.invalidate();
   };

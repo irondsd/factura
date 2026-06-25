@@ -2,7 +2,6 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
-import { useApp } from "@/components/app/context";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import {
   Button,
@@ -35,6 +34,7 @@ import {
 import type { BuilderConfig } from "@/parsers/builder/model";
 import { normalize } from "@/parsers/normalize";
 import { cn } from "@/lib/cn";
+import { useToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
 import {
   CaptureCard,
@@ -57,7 +57,7 @@ function Builder() {
   const params = useSearchParams();
   const billId = params.get("bill");
   const parserSlug = params.get("parser");
-  const { showToast } = useApp();
+  const { showToast } = useToast();
   const utils = trpc.useUtils();
 
   const billQuery = trpc.bills.get.useQuery(
@@ -331,7 +331,7 @@ function Builder() {
       const res = await reparse.mutateAsync();
       showToast(`Parser saved · reparsed ${res.updated} bill(s)`);
       utils.invalidate();
-      router.push("/bills");
+      router.push("/app/bills");
     } catch (e) {
       showToast(`✕ Save failed: ${e instanceof Error ? e.message : e}`);
     }
@@ -346,7 +346,7 @@ function Builder() {
             {displayName || "Untitled parser"}
           </Display>
         </div>
-        <Button variant="ghost" onClick={() => router.push("/bills")}>
+        <Button variant="ghost" onClick={() => router.push("/app/bills")}>
           ← Back to bills
         </Button>
       </div>

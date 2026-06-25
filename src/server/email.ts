@@ -68,7 +68,7 @@ export function sendWelcomeEmail(opts: { to: string; name?: string | null }) {
     subject: "Welcome to Factura",
     react: WelcomeEmail({
       name: opts.name?.trim() || "there",
-      ledgerUrl: `${baseUrl()}/`,
+      ledgerUrl: `${baseUrl()}/app`,
     }),
   });
 }
@@ -107,8 +107,8 @@ export function sendShareInviteEmail(opts: {
     react: ShareInviteEmail({
       inviter: opts.inviter,
       property: opts.property,
-      acceptUrl: `${baseUrl()}/properties`,
-      declineUrl: `${baseUrl()}/properties`,
+      acceptUrl: `${baseUrl()}/app/properties`,
+      declineUrl: `${baseUrl()}/app/properties`,
     }),
   });
 }

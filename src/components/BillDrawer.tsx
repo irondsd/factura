@@ -137,10 +137,10 @@ export function BillDrawer({
     if (!bill) return;
     const params = new URLSearchParams({ bill: bill.id });
     if (bill.parserKey) params.set("parser", bill.parserKey);
-    // The drawer lives in the app shell and survives the route change, so close
-    // it explicitly instead of leaving it open over the builder page.
+    // Close the drawer explicitly before navigating instead of leaving it open
+    // over the builder page.
     close();
-    router.push(`/builder?${params.toString()}`);
+    router.push(`/app/builder?${params.toString()}`);
   };
 
   const save = async () => {

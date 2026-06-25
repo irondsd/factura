@@ -33,7 +33,7 @@ export default function ProfilePage() {
             {user?.email ? " · " : ""}via Google
           </p>
         </div>
-        <Button variant="outline" onClick={() => signOut()}>
+        <Button variant="outline" onClick={() => signOut({ callbackUrl: "/" })}>
           Sign out
         </Button>
       </div>
@@ -46,7 +46,7 @@ export default function ProfilePage() {
         Your properties hold their bills, vendors and accounts. Invite a partner
         or flatmate so they can see and add bills too.
       </p>
-      <Button variant="outline" onClick={() => router.push("/properties")}>
+      <Button variant="outline" onClick={() => router.push("/app/properties")}>
         Manage properties →
       </Button>
 
@@ -58,7 +58,7 @@ export default function ProfilePage() {
         Parsers turn bill PDFs into structured data. Manage your own, publish
         them, or adopt others&apos; — most people never need to touch this.
       </p>
-      <Button variant="outline" onClick={() => router.push("/parsers")}>
+      <Button variant="outline" onClick={() => router.push("/app/parsers")}>
         Manage parsers →
       </Button>
     </div>

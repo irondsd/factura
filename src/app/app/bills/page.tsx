@@ -2,15 +2,21 @@
 
 import { useMemo, useState } from "react";
 import { useApp } from "@/components/app/context";
+import { BillDrawer } from "@/components/BillDrawer";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Badge, FilterPill, Select } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { formatARS, formatMonthShort, formatUSD } from "@/lib/format";
+import { useToast } from "@/lib/toast";
 import { vendorColorClass } from "@/lib/vendorColors";
 import { trpc } from "@/lib/trpc";
 
 export default function BillsPage() {
-  const { propertyId, openBill } = useApp();
+  const { propertyId } = useApp();
+  const { showToast } = useToast();
+  // The bill-editor drawer is local to this page — it's the only place bills
+  // are opened from.
+  const [openBillId, setOpenBillId] = useState<string | null>(null);
   const [vendorId, setVendorId] = useState<string>("all");
   const [perPage, setPerPage] = useState(10);
   const [page, setPage] = useState(0);
@@ -100,7 +106,7 @@ export default function BillsPage() {
               return (
                 <tr
                   key={b.id}
-                  onClick={() => openBill(b.id)}
+                  onClick={() => setOpenBillId(b.id)}
                   className="cursor-pointer [&:hover>td]:bg-[color-mix(in_srgb,var(--accent)_4%,transparent)]"
                 >
                   <td
@@ -198,6 +204,12 @@ export default function BillsPage() {
           </PageBtn>
         </div>
       </div>
+
+      <BillDrawer
+        billId={openBillId}
+        onClose={() => setOpenBillId(null)}
+        onToast={showToast}
+      />
     </div>
   );
 }

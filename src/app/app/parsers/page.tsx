@@ -114,7 +114,7 @@ export default function ParsersPage() {
             Parser library
           </Display>
         </div>
-        <Button variant="ghost" onClick={() => router.push("/profile")}>
+        <Button variant="ghost" onClick={() => router.push("/app/profile")}>
           ← Profile
         </Button>
       </div>
@@ -209,7 +209,7 @@ export default function ParsersPage() {
               <div className="ml-auto flex gap-1.5">
                 <Button
                   size="sm"
-                  onClick={() => router.push(`/builder?parser=${p.slug}`)}
+                  onClick={() => router.push(`/app/builder?parser=${p.slug}`)}
                 >
                   Edit
                 </Button>
@@ -284,7 +284,7 @@ export default function ParsersPage() {
                 )}
                 <Button
                   size="sm"
-                  onClick={() => router.push(`/builder?parser=${p.slug}`)}
+                  onClick={() => router.push(`/app/builder?parser=${p.slug}`)}
                 >
                   Fork
                 </Button>

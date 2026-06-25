@@ -3,21 +3,35 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, Suspense, useEffect, useState } from "react";
 import { Button, Input } from "@/components/ui";
 
-// Two-step email sign-in: enter email → receive a 6-digit code → enter it.
-// Step 1 triggers the NextAuth "resend" email provider (redirect:false so we
-// stay on the page); step 2 hits the provider's verification callback, which
-// sets the session cookie and links to the matching account (incl. Google).
-type Step = "email" | "code";
+// Sign-in flow, all on /login:
+//   choose → "Continue with Google" or "Sign in with email"
+//   email  → enter address, we send a 6-digit code
+//   code   → enter the code to verify
+// The email steps drive the NextAuth "resend" provider: step "email" triggers
+// it (redirect:false so we stay on the page); step "code" hits the provider's
+// verification callback, which sets the session cookie and links to the
+// matching account (incl. Google).
+type Step = "choose" | "email" | "code";
 
 export default function LoginPage() {
+  // useSearchParams (read in LoginForm) needs a Suspense boundary so the page
+  // can be statically prerendered.
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const { status } = useSession();
 
-  const [step, setStep] = useState<Step>("email");
+  const [step, setStep] = useState<Step>("choose");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -28,7 +42,7 @@ export default function LoginPage() {
 
   // Already signed in (or just verified) → leave the public login page.
   useEffect(() => {
-    if (status === "authenticated") router.replace("/");
+    if (status === "authenticated") router.replace("/app");
   }, [status, router]);
 
   async function requestCode(e: FormEvent) {
@@ -52,7 +66,7 @@ export default function LoginPage() {
     const qs = new URLSearchParams({
       token: code.trim(),
       email,
-      callbackUrl: "/",
+      callbackUrl: "/app",
     });
     window.location.href = `/api/auth/callback/resend?${qs.toString()}`;
   }
@@ -64,7 +78,36 @@ export default function LoginPage() {
           Factura<span className="text-accent">.</span>
         </span>
 
-        {step === "email" ? (
+        {step === "choose" && (
+          <>
+            <p className="font-mono text-sm text-muted leading-[1.6] mt-4">
+              Drop a bill, get a ledger. Your utilities — quietly accounted for,
+              and yours alone.
+            </p>
+            <button
+              onClick={() => signIn("google", { callbackUrl: "/app" })}
+              className="mt-7 inline-flex w-full items-center justify-center gap-3 font-mono text-[13px] text-ink bg-paper border border-line py-3 px-4 cursor-pointer transition-colors hover:border-accent"
+            >
+              <GoogleG />
+              Continue with Google
+            </button>
+            <button
+              onClick={() => {
+                setError(null);
+                setStep("email");
+              }}
+              className="mt-3 inline-flex w-full items-center justify-center gap-3 font-mono text-[13px] text-muted py-3 px-4 cursor-pointer transition-colors hover:text-accent"
+            >
+              Sign in with email
+            </button>
+            <p className="font-mono text-[10.5px] text-muted leading-[1.6] mt-5">
+              Bills are scoped to your account. Parsed text and PDFs are private
+              to you.
+            </p>
+          </>
+        )}
+
+        {step === "email" && (
           <>
             <p className="font-mono text-sm text-muted leading-[1.6] mt-4">
               Enter your email and we&apos;ll send you a 6-digit code to sign
@@ -90,9 +133,21 @@ export default function LoginPage() {
               >
                 {busy ? "Sending…" : "Send code"}
               </Button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("choose");
+                  setError(null);
+                }}
+                className="font-mono text-[11px] text-muted hover:text-accent transition-colors cursor-pointer"
+              >
+                Other ways to sign in
+              </button>
             </form>
           </>
-        ) : (
+        )}
+
+        {step === "code" && (
           <>
             <p className="font-mono text-sm text-muted leading-[1.6] mt-4">
               We sent a code to <span className="text-ink">{email}</span>. Enter
@@ -150,5 +205,34 @@ export default function LoginPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+function GoogleG() {
+  return (
+    <svg
+      viewBox="0 0 18 18"
+      width="17"
+      height="17"
+      aria-hidden="true"
+      className="flex-none"
+    >
+      <path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+      />
+    </svg>
   );
 }

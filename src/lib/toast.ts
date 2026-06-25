@@ -1,12 +1,12 @@
 "use client";
 
-import { useApp } from "@/components/app/context";
+import { useToasts } from "@/providers/ToastProvider";
 
-/** Toast helpers on top of the app-shell toaster. `error` renders the house
+/** Toast helpers on top of the global toaster. `error` renders the house
  * "✕ message" style from any thrown value; `opts` builds the react-query
  * mutation callbacks for the common "toast on success, toast the error" case. */
 export function useToast() {
-  const { showToast } = useApp();
+  const { showToast } = useToasts();
 
   const error = (e: unknown) => {
     const message =

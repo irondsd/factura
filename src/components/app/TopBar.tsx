@@ -12,9 +12,9 @@ import { BurgerButton } from "./BurgerButton";
 import { useApp } from "./context";
 
 const NAV = [
-  { href: "/", label: "Overview" },
-  { href: "/insights", label: "Insights" },
-  { href: "/bills", label: "Bills" },
+  { href: "/app", label: "Overview" },
+  { href: "/app/insights", label: "Insights" },
+  { href: "/app/bills", label: "Bills" },
 ];
 
 export function TopBar({ user }: { user: Session["user"] }) {
@@ -33,7 +33,8 @@ export function TopBar({ user }: { user: Session["user"] }) {
 
   // The property switcher is meaningless on the management pages, and there's
   // nothing to switch between when the user has a single property.
-  const onProfile = pathname === "/profile" || pathname === "/properties";
+  const onProfile =
+    pathname === "/app/profile" || pathname === "/app/properties";
   const showSwitcher = !onProfile && (properties.data?.length ?? 0) > 1;
   const propValue = propertyId ?? "all";
   const propOptions = [
@@ -71,7 +72,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
     <header className="sticky top-0 z-50 border-b border-line bg-[color-mix(in_srgb,var(--card)_72%,transparent)] backdrop-blur-[6px]">
       <div className="mx-auto flex max-w-[64rem] items-center gap-5 py-3 px-5">
         <Link
-          href="/"
+          href="/app"
           className="font-display font-semibold text-xl tracking-tight text-ink no-underline"
         >
           Factura<span className="text-accent">.</span>
@@ -87,7 +88,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
               onChange={(v) => setPropertyId(v === "all" ? undefined : v)}
             />
           )}
-          <Link href="/profile" aria-label="Profile" title={name}>
+          <Link href="/app/profile" aria-label="Profile" title={name}>
             {avatarCircle}
           </Link>
         </div>
@@ -134,7 +135,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
           )}
 
           <Link
-            href="/profile"
+            href="/app/profile"
             onClick={() => setMenuOpen(false)}
             className="mt-4 inline-flex items-center gap-2.5 no-underline"
           >
