@@ -173,7 +173,7 @@ export function DropOverlay({ onToast }: { onToast: (text: string) => void }) {
           <div className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed border-accent px-16 py-12 text-center">
             <p className="font-display text-3xl font-semibold">Drop the bill</p>
             <p className="text-[11px] uppercase tracking-wider text-muted">
-              parsed locally · stored securely
+              read in your browser · stored to your account
             </p>
           </div>
         </div>

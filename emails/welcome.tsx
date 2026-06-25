@@ -30,8 +30,8 @@ export function WelcomeEmail({
         period, and keep a running total per property.
       </Text>
       <Text style={{ ...styles.text, margin: "0 0 8px" }}>
-        Original files never leave your machine. Only the extracted text is
-        saved.
+        Your bills — the extracted text and the original PDFs — are stored
+        privately to your account. Only you can see them.
       </Text>
 
       <Section style={{ padding: "16px 0 0" }}>
@@ -40,7 +40,7 @@ export function WelcomeEmail({
         </Button>
       </Section>
       <Text style={{ ...styles.voice, margin: "14px 0 0" }}>
-        Parsed locally · saved to your ledger.
+        Read in your browser · saved to your ledger.
       </Text>
     </FacturaEmail>
   );

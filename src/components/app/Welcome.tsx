@@ -34,7 +34,7 @@ export function Welcome({ onLogin }: { onLogin: () => void }) {
         </p>
       </div>
       <p className="font-mono text-[10.5px] uppercase tracking-label-wide text-muted mt-6">
-        Parsed locally · stored securely
+        Read in your browser · stored to your account
       </p>
     </div>
   );
