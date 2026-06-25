@@ -238,7 +238,7 @@ export function FacturaEmail({
               <Dot />
             </Text>
             <Text style={styles.footLine}>
-              Personal utility ledger · Buenos Aires, Argentina
+              Personal utility ledger · Argentina
             </Text>
             <Text style={styles.footLine}>
               {footerNote}{" "}
