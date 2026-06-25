@@ -1,8 +1,8 @@
 import { AppShell } from "@/components/app/AppShell";
-import { Providers } from "./providers";
+import { Providers } from "@/providers/Providers";
 import "./globals.css";
-import { fraunces, plexMono } from "./config/fonts";
-import { metadata, viewport } from "./config/meta";
+import { fraunces, plexMono } from "../config/fonts";
+import { metadata, viewport } from "../config/meta";
 
 export { metadata, viewport };
 
