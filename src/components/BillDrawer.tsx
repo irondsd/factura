@@ -52,6 +52,7 @@ export function BillDrawer({
   const [closing, setClosing] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [syncedId, setSyncedId] = useState<string | null>(null);
+  const [openedId, setOpenedId] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // Vendors belong to an property, so scope the picker to the bill's chosen
@@ -69,12 +70,22 @@ export function BillDrawer({
 
   const bill = billQuery.data;
 
+  // Reset the close-animation flag whenever the drawer is (re)opened. Keyed off
+  // billId (the open signal from the parent) rather than the loaded bill — the
+  // bill query is cached, so reopening the *same* bill yields unchanged data and
+  // would otherwise leave `closing` stuck true, rendering the drawer off-screen.
+  if (billId && billId !== openedId) {
+    setOpenedId(billId);
+    setClosing(false);
+    setConfirmingDelete(false);
+  } else if (!billId && openedId) {
+    setOpenedId(null);
+  }
+
   // Seed the editable draft from the loaded bill (render-time sync, keyed by
   // bill id — the React-recommended alternative to a state-setting effect).
   if (bill && bill.id !== syncedId) {
     setSyncedId(bill.id);
-    setClosing(false);
-    setConfirmingDelete(false);
     setDraft({
       vendorId: bill.vendorId ?? "",
       propertyId: bill.propertyId ?? "",
