@@ -21,5 +21,19 @@ Key concepts:
 
 ## Product
 
-- [Homepage](https://factura.uno/): Main overview of Factura and its core value proposition.
+- [Homepage](https://factura.uno/): Overview of Factura, how it works (drop a PDF, it parses, you get a ledger), and its core value proposition.
+- [Docs](https://factura.uno/docs): Getting started, core concepts, and reference for uploading bills, parsers, properties, and vendors.
+- [FAQ](https://factura.uno/faq): Common questions about supported bills, parsing, storage, privacy, and sharing.
+
+## Demo
+
+A live, interactive walkthrough of the app on sample data — no sign-in required. Mirrors the signed-in experience.
+
+- [Demo overview](https://factura.uno/demo): This-month totals, awaiting bills, vendor share, and monthly spend on sample data.
+- [Demo insights](https://factura.uno/demo/insights): Spend over time, vendor share, the inflation lens (pesos vs the dollar cost), and per-vendor consumption trends.
+- [Demo bills](https://factura.uno/demo/bills): The bill ledger — every parsed bill per vendor and month, with peso and USD amounts and the extracted fields and text.
+
+## Optional
+
+- The signed-in application lives under https://factura.uno/app and requires authentication; it is not publicly indexable. The /demo pages above show the same screens on sample data.
 
