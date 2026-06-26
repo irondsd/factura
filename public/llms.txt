@@ -33,6 +33,11 @@ A live, interactive walkthrough of the app on sample data — no sign-in require
 - [Demo insights](https://factura.uno/demo/insights): Spend over time, vendor share, the inflation lens (pesos vs the dollar cost), and per-vendor consumption trends.
 - [Demo bills](https://factura.uno/demo/bills): The bill ledger — every parsed bill per vendor and month, with peso and USD amounts and the extracted fields and text.
 
+## Trust
+
+- [Privacy](https://factura.uno/privacy): What Factura collects (bills, account email, properties), why, where it's stored, the third parties involved, and how to delete your data.
+- [Security](https://factura.uno/security): Passwordless authentication, per-account data isolation, encrypted storage with signed access, TLS in transit, and how to report a vulnerability.
+
 ## Optional
 
 - The signed-in application lives under https://factura.uno/app and requires authentication; it is not publicly indexable. The /demo pages above show the same screens on sample data.

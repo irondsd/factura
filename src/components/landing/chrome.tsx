@@ -16,7 +16,12 @@ const TOP_NAV = [
 ];
 
 const FOOT_NAV = [
-  ...TOP_NAV,
+  { label: "Docs", href: "/docs" },
+  { label: "FAQ", href: "/faq" },
+  { label: "Demo", href: "/demo" },
+  { label: "Privacy", href: "/privacy" },
+  { label: "Security", href: "/security" },
+  { label: "Sign in", href: "/login" },
   { label: "GitHub", href: "https://github.com/irondsd/factura" },
 ];
 
