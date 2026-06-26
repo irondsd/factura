@@ -182,8 +182,8 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
             ]}
           />
           <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6]">
-            Pesos climb with inflation; in dollars your real cost is far flatter.
-            The gap is the peso losing value — not you using more.
+            Pesos climb with inflation; in dollars your real cost is far
+            flatter. The gap is the peso losing value — not you using more.
           </p>
         </ChartCard>
       </div>
@@ -191,7 +191,11 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
   );
 }
 
-function SingleVendorCharts({ data: d }: { data: VendorDetail | null | undefined }) {
+function SingleVendorCharts({
+  data: d,
+}: {
+  data: VendorDetail | null | undefined;
+}) {
   const spend = useChartCurrency();
 
   if (!d) {
@@ -211,7 +215,10 @@ function SingleVendorCharts({ data: d }: { data: VendorDetail | null | undefined
     <>
       <div className="flex items-baseline gap-[14px] mt-[18px]">
         <Display size={28}>
-          {formatMoney(knownSpend[knownSpend.length - 1] ?? null, spend.currency)}
+          {formatMoney(
+            knownSpend[knownSpend.length - 1] ?? null,
+            spend.currency,
+          )}
         </Display>
         <span className="font-mono text-xs text-muted">
           latest · <Delta pct={pct} /> over range
@@ -326,7 +333,10 @@ function CustomFieldCharts({
           <Legend
             className="mt-2.5"
             items={[
-              { label: `ARS / ${field.unit || "unit"}`, color: "var(--accent)" },
+              {
+                label: `ARS / ${field.unit || "unit"}`,
+                color: "var(--accent)",
+              },
               { label: `USD / ${field.unit || "unit"}`, color: USD_LINE },
             ]}
           />

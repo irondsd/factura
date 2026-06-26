@@ -5,5 +5,7 @@ import { demoInsightsSource } from "@/components/demo/sources";
 import { demoProperty } from "@/lib/demo/fixtures";
 
 export function DemoInsights() {
-  return <InsightsView source={demoInsightsSource} propertyId={demoProperty.id} />;
+  return (
+    <InsightsView source={demoInsightsSource} propertyId={demoProperty.id} />
+  );
 }

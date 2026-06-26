@@ -108,10 +108,11 @@ const SECTIONS: Section[] = [
         q: "Why do I see both pesos and dollars?",
         a: (
           <>
-            Amounts are stored in ARS, with an approximate USD &ldquo;blue&rdquo;
-            estimate alongside (marked <code className={CODE}>≈</code>) so figures
-            stay legible across months of inflation. The rate is an estimate, not
-            an accounting record.
+            Amounts are stored in ARS, with an approximate USD
+            &ldquo;blue&rdquo; estimate alongside (marked{" "}
+            <code className={CODE}>≈</code>) so figures stay legible across
+            months of inflation. The rate is an estimate, not an accounting
+            record.
           </>
         ),
       },
@@ -120,8 +121,9 @@ const SECTIONS: Section[] = [
         a: (
           <>
             Factura knows what usually arrives. When a vendor is late for the
-            month, you&apos;ll see <span className="text-accent">△ awaiting</span>{" "}
-            in the summary — not a silent gap.
+            month, you&apos;ll see{" "}
+            <span className="text-accent">△ awaiting</span> in the summary — not
+            a silent gap.
           </>
         ),
       },
@@ -177,7 +179,11 @@ export default function FaqPage() {
             </div>
             <div className="border-t border-line">
               {section.items.map((item, i) => (
-                <FaqItem key={item.q} item={item} open={section === SECTIONS[0] && i === 0} />
+                <FaqItem
+                  key={item.q}
+                  item={item}
+                  open={section === SECTIONS[0] && i === 0}
+                />
               ))}
             </div>
           </section>

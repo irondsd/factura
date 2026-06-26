@@ -117,12 +117,12 @@ emails/           # React Email templates (welcome, sign-in code, invites)
 Copy `env.example` to `.env.local`. The defaults match `docker-compose.yml`, so
 local dev needs no edits.
 
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | Postgres connection string. |
-| `AUTH_SECRET` | Session/JWT secret (`npx auth secret`). |
-| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth; optional in dev. |
-| `RESEND_API_KEY` / `EMAIL_FROM` | Transactional email; blank in dev logs sign-in codes to the console. |
+| Variable                                                                                                        | Purpose                                                                             |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                                                                                  | Postgres connection string.                                                         |
+| `AUTH_SECRET`                                                                                                   | Session/JWT secret (`npx auth secret`).                                             |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`                                                                         | Google OAuth; optional in dev.                                                      |
+| `RESEND_API_KEY` / `EMAIL_FROM`                                                                                 | Transactional email; blank in dev logs sign-in codes to the console.                |
 | `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_FORCE_PATH_STYLE` | Storage for original PDFs. Leave blank to run text-only (no PDF upload / View PDF). |
 
 ## Scripts

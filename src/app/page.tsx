@@ -60,7 +60,8 @@ const NAV = [
   { label: "GitHub", href: "https://github.com/irondsd/factura" },
 ];
 
-const HAIRLINE = "border-t border-[color-mix(in_srgb,var(--line)_70%,transparent)]";
+const HAIRLINE =
+  "border-t border-[color-mix(in_srgb,var(--line)_70%,transparent)]";
 
 export default function LandingPage() {
   return (
@@ -100,7 +101,10 @@ export default function LandingPage() {
           {STEPS.map((s, i) => (
             <div
               key={s.n}
-              className={cn("grid grid-cols-[64px_1fr] gap-5 py-6", i !== 0 && HAIRLINE)}
+              className={cn(
+                "grid grid-cols-[64px_1fr] gap-5 py-6",
+                i !== 0 && HAIRLINE,
+              )}
             >
               <span className="font-display font-semibold text-[34px] text-accent tracking-tight leading-none">
                 {s.n}
@@ -136,10 +140,7 @@ export default function LandingPage() {
         <SectionLabel>What it does</SectionLabel>
         <div>
           {FEATURES.map((f, i) => (
-            <div
-              key={f.label}
-              className={cn("py-[18px]", i !== 0 && HAIRLINE)}
-            >
+            <div key={f.label} className={cn("py-[18px]", i !== 0 && HAIRLINE)}>
               <div className="mb-[7px]">
                 <Eyebrow className="text-ink tracking-[0.14em]">
                   {f.label}

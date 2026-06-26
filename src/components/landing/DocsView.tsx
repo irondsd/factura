@@ -18,7 +18,13 @@ function H2({ children }: { children: React.ReactNode }) {
   );
 }
 
-function P({ children, muted }: { children: React.ReactNode; muted?: boolean }) {
+function P({
+  children,
+  muted,
+}: {
+  children: React.ReactNode;
+  muted?: boolean;
+}) {
   return (
     <p
       className={cn(
@@ -275,9 +281,9 @@ Vencimiento: 18/07/2026`}
       <>
         <P>
           Open the builder, drop a sample bill on the left, and build the parser
-          on the right. Every value you define is highlighted on the bill text as
-          you go, and a live preview shows the parsed result. It comes together
-          in two steps.
+          on the right. Every value you define is highlighted on the bill text
+          as you go, and a live preview shows the parsed result. It comes
+          together in two steps.
         </P>
         <H2>1 · Recognise the bill</H2>
         <UL>
@@ -306,26 +312,26 @@ Vencimiento: 18/07/2026`}
             totals, conversions).
           </LI>
           <LI>
-            Fill the four <b>roles</b> every bill needs: vendor identity, amount,
-            period and due date, each with fallbacks for bills that print them
-            differently.
+            Fill the four <b>roles</b> every bill needs: vendor identity,
+            amount, period and due date, each with fallbacks for bills that
+            print them differently.
           </LI>
           <LI>
             Add <b>custom fields</b> for anything else worth keeping — a meter
-            reading or consumption in <Code>kWh</Code> or <Code>m³</Code> — which
-            then show up in insights.
+            reading or consumption in <Code>kWh</Code> or <Code>m³</Code> —
+            which then show up in insights.
           </LI>
         </UL>
         <H2>Save &amp; re-parse</H2>
         <P>
           Saving the parser re-runs it across your existing bills from that
-          vendor, so older entries pick up the same reading. You can store a bill
-          as a regression sample to guard the parser as you refine it, and drop
-          into an advanced JSON mode when you need the raw definition.
+          vendor, so older entries pick up the same reading. You can store a
+          bill as a regression sample to guard the parser as you refine it, and
+          drop into an advanced JSON mode when you need the raw definition.
         </P>
         <Callout label="△ Good to know">
-          Because parsers are configuration, an improved parser can re-read every
-          stored PDF — you never have to find and re-upload an old bill.
+          Because parsers are configuration, an improved parser can re-read
+          every stored PDF — you never have to find and re-upload an old bill.
         </Callout>
       </>
     ),
@@ -346,12 +352,10 @@ Vencimiento: 18/07/2026`}
         </P>
         <H2>How to read it</H2>
         <UL>
+          <LI>The peso amount is exactly what the bill says, to the cent.</LI>
           <LI>
-            The peso amount is exactly what the bill says, to the cent.
-          </LI>
-          <LI>
-            The <Code>≈</Code> dollar figure is an estimate at the blue rate, not
-            an accounting record.
+            The <Code>≈</Code> dollar figure is an estimate at the blue rate,
+            not an accounting record.
           </LI>
           <LI>
             In insights you can switch the whole view between ARS and USD to see

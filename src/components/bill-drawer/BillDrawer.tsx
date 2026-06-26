@@ -110,7 +110,9 @@ export function BillDrawer({
             vendorId: draft.vendorId || undefined,
             propertyId: draft.propertyId || undefined,
             period: draft.period ? `${draft.period}-01` : undefined,
-            totalAmount: draft.totalAmount ? Number(draft.totalAmount) : undefined,
+            totalAmount: draft.totalAmount
+              ? Number(draft.totalAmount)
+              : undefined,
             dueDate: draft.dueDate || undefined,
           });
           onToast("Bill updated · ledger recalculated");
@@ -202,7 +204,10 @@ export function BillDrawer({
                           </span>
                         )
                       ) : (
-                        <span className="text-muted"> · not a saved parser</span>
+                        <span className="text-muted">
+                          {" "}
+                          · not a saved parser
+                        </span>
                       )}
                     </>
                   ) : (
@@ -258,7 +263,11 @@ export function BillDrawer({
 
             {/* footer */}
             <div className="sticky bottom-0 flex gap-2 py-3.5 px-6 border-t border-line bg-card">
-              <Button variant="solid" onClick={save} disabled={updateBill.isPending}>
+              <Button
+                variant="solid"
+                onClick={save}
+                disabled={updateBill.isPending}
+              >
                 Save changes
               </Button>
               <Button

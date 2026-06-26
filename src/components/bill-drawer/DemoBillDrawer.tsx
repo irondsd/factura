@@ -80,7 +80,10 @@ export function DemoBillDrawer({
                     <>
                       {bill.parserKey}
                       {bill.parserVersion && (
-                        <span className="text-muted"> · v{bill.parserVersion}</span>
+                        <span className="text-muted">
+                          {" "}
+                          · v{bill.parserVersion}
+                        </span>
                       )}
                     </>
                   ) : (

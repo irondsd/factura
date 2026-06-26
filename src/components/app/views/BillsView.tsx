@@ -164,7 +164,11 @@ export function BillsView({
                     </td>
                   )}
                   <td className="fd-td text-right font-medium">
-                    {review ? <Badge>needs review</Badge> : formatARS(b.totalAmount)}
+                    {review ? (
+                      <Badge>needs review</Badge>
+                    ) : (
+                      formatARS(b.totalAmount)
+                    )}
                   </td>
                   <td className="fd-td text-right text-muted">
                     {review ? "—" : formatUSD(b.usdAmount)}

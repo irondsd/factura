@@ -16,5 +16,7 @@ const source: BillsSource = {
 
 export default function BillsPage() {
   const { propertyId } = useApp();
-  return <BillsView source={source} Drawer={BillDrawer} propertyId={propertyId} />;
+  return (
+    <BillsView source={source} Drawer={BillDrawer} propertyId={propertyId} />
+  );
 }

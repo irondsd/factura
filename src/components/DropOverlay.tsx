@@ -94,7 +94,9 @@ export function DropOverlay() {
               showToast(`△ ${file.name}: already saved`);
               break;
             case "unrecognized":
-              showToast(`△ ${file.name}: vendor not recognized — sent to review`);
+              showToast(
+                `△ ${file.name}: vendor not recognized — sent to review`,
+              );
               break;
             case "parse_failed":
               showToast(

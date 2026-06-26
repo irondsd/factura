@@ -56,7 +56,9 @@ export function OverviewView({
           </div>
           <p className="font-mono text-[13px] text-muted mt-2">
             {d.billsIn} of {d.billsExpected} bills in
-            {d.thisMonthUsd > 0 && <span> · ≈ {formatUSD(d.thisMonthUsd)}</span>}
+            {d.thisMonthUsd > 0 && (
+              <span> · ≈ {formatUSD(d.thisMonthUsd)}</span>
+            )}
             {pending > 0 && <span> · {pending} awaiting</span>}
           </p>
         </div>

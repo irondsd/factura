@@ -1,8 +1,8 @@
-import type { MetadataRoute } from 'next'
-import { siteUrl } from '../config/meta'
+import type { MetadataRoute } from "next";
+import { siteUrl } from "../config/meta";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date()
+  const now = new Date();
 
   // Only genuinely public, logged-out-visible pages belong here. The
   // authenticated app (everything under /app) is disallowed in robots.ts. Add
@@ -11,26 +11,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
     {
       url: siteUrl,
       lastModified: now,
-      changeFrequency: 'weekly',
+      changeFrequency: "weekly",
       priority: 1,
     },
     {
       url: `${siteUrl}/docs`,
       lastModified: now,
-      changeFrequency: 'weekly',
+      changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${siteUrl}/faq`,
       lastModified: now,
-      changeFrequency: 'weekly',
+      changeFrequency: "weekly",
       priority: 0.8,
     },
-    ...['/demo', '/demo/insights', '/demo/bills'].map((path) => ({
+    ...["/demo", "/demo/insights", "/demo/bills"].map((path) => ({
       url: `${siteUrl}${path}`,
       lastModified: now,
-      changeFrequency: 'weekly' as const,
+      changeFrequency: "weekly" as const,
       priority: 0.8,
     })),
-  ]
+  ];
 }

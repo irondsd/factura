@@ -9,13 +9,17 @@ import { Eyebrow, Wordmark } from "./parts";
 
 type Vendor = "dark-earth" | "burnt-orange" | "taupe" | "sage";
 
-const SHARE: { name: string; pct: number; vendor: Vendor; awaiting?: boolean }[] =
-  [
-    { name: "Expensas", pct: 84, vendor: "dark-earth" },
-    { name: "MetroGAS", pct: 6, vendor: "burnt-orange", awaiting: true },
-    { name: "Personal", pct: 6, vendor: "taupe" },
-    { name: "Edesur", pct: 4, vendor: "sage" },
-  ];
+const SHARE: {
+  name: string;
+  pct: number;
+  vendor: Vendor;
+  awaiting?: boolean;
+}[] = [
+  { name: "Expensas", pct: 84, vendor: "dark-earth" },
+  { name: "MetroGAS", pct: 6, vendor: "burnt-orange", awaiting: true },
+  { name: "Personal", pct: 6, vendor: "taupe" },
+  { name: "Edesur", pct: 4, vendor: "sage" },
+];
 
 const vbg: Record<Vendor, string> = {
   "dark-earth": "vbg-dark-earth",
@@ -44,9 +48,7 @@ const donutRing = (() => {
 
 export function LedgerPeek({ compact = false }: { compact?: boolean }) {
   return (
-    <div
-      className="receipt-edge bg-card border border-line shadow-receipt"
-    >
+    <div className="receipt-edge bg-card border border-line shadow-receipt">
       {/* faux top bar */}
       <div className="flex items-center justify-between gap-3 py-3 px-4 border-b border-line">
         <div className="flex items-center gap-[18px] flex-wrap">
@@ -162,7 +164,13 @@ function MiniToggle({ left, right }: { left: string; right: string }) {
 // Monthly vendor breakdown in thousands of pesos; trailing months are still
 // filling in (rendered as a single gray "incomplete" bar).
 type Month =
-  | { m: string; expensas: number; personal: number; metrogas: number; edesur: number }
+  | {
+      m: string;
+      expensas: number;
+      personal: number;
+      metrogas: number;
+      edesur: number;
+    }
   | { m: string; incomplete: number };
 
 const MONTHS: Month[] = [
@@ -182,13 +190,15 @@ const MONTHS: Month[] = [
 
 const MAX = 600; // $600k ceiling
 const GRID_Y = [600, 450, 300, 150, 0];
-const STACK: { key: "expensas" | "personal" | "metrogas" | "edesur"; vbg: string }[] =
-  [
-    { key: "expensas", vbg: "vbg-dark-earth" },
-    { key: "personal", vbg: "vbg-taupe" },
-    { key: "metrogas", vbg: "vbg-burnt-orange" },
-    { key: "edesur", vbg: "vbg-sage" },
-  ];
+const STACK: {
+  key: "expensas" | "personal" | "metrogas" | "edesur";
+  vbg: string;
+}[] = [
+  { key: "expensas", vbg: "vbg-dark-earth" },
+  { key: "personal", vbg: "vbg-taupe" },
+  { key: "metrogas", vbg: "vbg-burnt-orange" },
+  { key: "edesur", vbg: "vbg-sage" },
+];
 
 function SpendChart() {
   return (
@@ -222,10 +232,7 @@ function SpendChart() {
         {/* bars */}
         <div className="absolute left-[34px] right-0 top-0 bottom-0 flex items-end gap-1">
           {MONTHS.map((d) => (
-            <div
-              key={d.m}
-              className="flex-1 h-full flex flex-col-reverse"
-            >
+            <div key={d.m} className="flex-1 h-full flex flex-col-reverse">
               {"incomplete" in d ? (
                 <div
                   className="bg-[color-mix(in_srgb,var(--muted)_45%,var(--paper))]"

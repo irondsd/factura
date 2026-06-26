@@ -14,14 +14,10 @@ import { DropOverlay } from "@/components/DropOverlay";
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
-  
 
   const [propertyId, setPropertyId] = useState<string | undefined>(undefined);
 
-  const value = useMemo(
-    () => ({ propertyId, setPropertyId }),
-    [propertyId],
-  );
+  const value = useMemo(() => ({ propertyId, setPropertyId }), [propertyId]);
 
   // Signed out → leave the app for the public login flow.
   useEffect(() => {
