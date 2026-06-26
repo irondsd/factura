@@ -2,6 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { interpolate } from "@/i18n/config";
+import { useI18n } from "@/i18n/I18nProvider";
 import { trpc } from "@/lib/trpc";
 import { formatARS, formatMonth } from "@/lib/format";
 import { useToasts } from "@/providers/ToastProvider";
@@ -20,6 +22,8 @@ export function DropOverlay() {
   // global ingest-on-drop must stand down there.
   const pathname = usePathname();
   const { showToast } = useToasts();
+  const { t, locale } = useI18n();
+  const td = t.drop;
   const disabled = pathname?.startsWith("/app/builder") ?? false;
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -44,16 +48,14 @@ export function DropOverlay() {
           file.type === "application/pdf" ||
           file.name.toLowerCase().endsWith(".pdf");
         if (!isPdf) {
-          showToast(`✕ ${file.name}: not a PDF`);
+          showToast(interpolate(td.notPdf, { file: file.name }));
           continue;
         }
         try {
           const { default: pdfToText } = await import("react-pdftotext");
           const rawText = await pdfToText(file);
           if (rawText.trim().length < 20) {
-            showToast(
-              `✕ ${file.name}: no text found — scanned image PDFs aren't supported yet`,
-            );
+            showToast(interpolate(td.noText, { file: file.name }));
             continue;
           }
 
@@ -84,23 +86,19 @@ export function DropOverlay() {
           switch (result.outcome) {
             case "parsed":
               showToast(
-                `${result.vendorName} · ${formatMonth(result.period)} · ${formatARS(result.totalAmount)}` +
-                  (result.periodDuplicate
-                    ? " — △ period already had a bill"
-                    : ""),
+                `${result.vendorName} · ${formatMonth(result.period, locale)} · ${formatARS(result.totalAmount)}` +
+                  (result.periodDuplicate ? td.periodDuplicate : ""),
               );
               break;
             case "duplicate":
-              showToast(`△ ${file.name}: already saved`);
+              showToast(interpolate(td.duplicate, { file: file.name }));
               break;
             case "unrecognized":
-              showToast(
-                `△ ${file.name}: vendor not recognized — sent to review`,
-              );
+              showToast(interpolate(td.unrecognized, { file: file.name }));
               break;
             case "parse_failed":
               showToast(
-                `△ ${result.vendorName}: parsing failed — sent to review`,
+                interpolate(td.parseFailed, { vendor: result.vendorName }),
               );
               break;
             case "unknown_account":
@@ -124,7 +122,7 @@ export function DropOverlay() {
       setBusy(false);
       utils.invalidate();
     },
-    [ingest, presignUpload, showToast, utils],
+    [ingest, presignUpload, showToast, utils, td, locale],
   );
 
   useEffect(() => {
@@ -165,7 +163,7 @@ export function DropOverlay() {
 
   const resolveConfirm = async (propertyId: string) => {
     await confirmAccount.mutateAsync({ billId: current.billId, propertyId });
-    showToast(`${current.vendorName} account linked`);
+    showToast(interpolate(td.accountLinked, { vendor: current.vendorName }));
     setConfirmQueue((q) => q.slice(1));
     utils.invalidate();
   };
@@ -175,9 +173,9 @@ export function DropOverlay() {
       {dragging && (
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-paper/90">
           <div className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed border-accent px-16 py-12 text-center">
-            <p className="font-display text-3xl font-semibold">Drop the bill</p>
+            <p className="font-display text-3xl font-semibold">{td.dropTitle}</p>
             <p className="text-[11px] uppercase tracking-wider text-muted">
-              read in your browser · stored to your account
+              {td.dropSubtitle}
             </p>
           </div>
         </div>
@@ -185,7 +183,7 @@ export function DropOverlay() {
 
       {busy && (
         <div className="fixed bottom-4 left-4 z-50 animate-pulse border border-line bg-card px-4 py-2 text-[11px] uppercase tracking-wider text-muted">
-          Reading the fine print…
+          {t.app.loading}
         </div>
       )}
 
@@ -193,15 +191,12 @@ export function DropOverlay() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4">
           <div className="receipt-edge w-full max-w-md border border-line bg-card p-6 pb-10">
             <p className="text-[11px] uppercase tracking-[0.25em] text-accent">
-              New account found
+              {td.newAccount}
             </p>
             <h2 className="mt-2 font-display text-2xl font-semibold">
               {current.vendorName} · №{current.accountNumber}
             </h2>
-            <p className="mt-2 text-sm text-muted">
-              Which property does this account belong to? You&rsquo;ll only be
-              asked once.
-            </p>
+            <p className="mt-2 text-sm text-muted">{td.whichProperty}</p>
             <div className="mt-4 flex flex-col gap-2">
               {(propertiesQuery.data ?? []).map((p) => (
                 <button
@@ -217,7 +212,7 @@ export function DropOverlay() {
                   {p.nickname}
                   {p.id === current.suggestedPropertyId && (
                     <span className="ml-2 text-[10px] uppercase tracking-wider text-accent">
-                      address match
+                      {td.addressMatch}
                     </span>
                   )}
                 </button>
@@ -238,7 +233,7 @@ export function DropOverlay() {
                 <input
                   value={newNickname}
                   onChange={(e) => setNewNickname(e.target.value)}
-                  placeholder="…or new property nickname"
+                  placeholder={td.newPropertyPlaceholder}
                   className="flex-1 border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-accent"
                 />
                 <button
@@ -246,14 +241,14 @@ export function DropOverlay() {
                   disabled={createProperty.isPending}
                   className="cursor-pointer border border-line px-3 py-2 text-[11px] uppercase tracking-wider hover:border-accent hover:text-accent"
                 >
-                  Add
+                  {t.common.add}
                 </button>
               </form>
               <button
                 onClick={() => setConfirmQueue((q) => q.slice(1))}
                 className="mt-1 cursor-pointer text-[11px] uppercase tracking-wider text-muted underline decoration-dotted underline-offset-4 hover:text-accent"
               >
-                Skip — keep in review inbox
+                {td.skipReview}
               </button>
             </div>
           </div>

@@ -1,8 +1,9 @@
 "use client";
 
 import { microLabel } from "@/components/ui";
-import type { ScopeValue } from "@/parsers/engine/types";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { RoleDef } from "@/parsers/builder/model";
+import type { ScopeValue } from "@/parsers/engine/types";
 import { cn } from "@/lib/cn";
 import {
   CardShell,
@@ -31,6 +32,8 @@ export function RoleCard({
   onPreview: (name: string | null) => void;
   focusKey: string | null;
 }) {
+  const { t } = useI18n();
+  const tr = t.builder.role;
   const disagree = resolved?.disagree ?? false;
   const focused =
     !!focusKey &&
@@ -44,8 +47,8 @@ export function RoleCard({
         {resolved ? (
           <ValueChip
             value={resolved.value}
-            error={disagree ? "review" : null}
-            title={disagree ? "sources disagree" : ""}
+            error={disagree ? tr.review : null}
+            title={disagree ? tr.sourcesDisagree : ""}
           />
         ) : (
           <ValueChip />
@@ -53,7 +56,7 @@ export function RoleCard({
       </div>
       <div className="flex flex-col gap-2.5">
         <div>
-          <span className={microLabel}>Use this value</span>
+          <span className={microLabel}>{tr.useThisValue}</span>
           <div className="mt-1">
             <ValuePicker
               value={role.primary}
@@ -64,7 +67,7 @@ export function RoleCard({
           </div>
         </div>
         <div>
-          <span className={microLabel}>If missing, try…</span>
+          <span className={microLabel}>{tr.ifMissing}</span>
           <div className="mt-1">
             <FallbackChain
               refs={role.fallbacks}
@@ -85,8 +88,8 @@ export function RoleCard({
             checked={role.mustAgree}
             onChange={(e) => onChange({ ...role, mustAgree: e.target.checked })}
           />
-          Must agree — flag for review if present sources disagree
-          {disagree && <span className="text-accent">△ disagree</span>}
+          {tr.mustAgree}
+          {disagree && <span className="text-accent">{tr.disagree}</span>}
         </label>
       </div>
     </CardShell>

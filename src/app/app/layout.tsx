@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { AppContext } from "@/components/app/context";
 import { TopBar } from "@/components/app/TopBar";
 import { DropOverlay } from "@/components/DropOverlay";
+import { useI18n } from "@/i18n/I18nProvider";
 
 /** Auth gate + chrome for the signed-in app: bounces signed-out visitors to
  * /login, otherwise renders the top bar, the shared property filter, and the
@@ -14,6 +15,7 @@ import { DropOverlay } from "@/components/DropOverlay";
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useI18n();
 
   const [propertyId, setPropertyId] = useState<string | undefined>(undefined);
 
@@ -27,7 +29,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   if (status === "loading" || status === "unauthenticated" || !session?.user) {
     return (
       <div className="flex min-h-screen items-center justify-center font-mono text-xs uppercase tracking-label-wide text-muted">
-        Reading the fine print…
+        {t.app.loading}
       </div>
     );
   }

@@ -1,0 +1,911 @@
+{
+  "nav": {
+    "docs": "Docs",
+    "faq": "FAQ",
+    "demo": "Demo",
+    "privacy": "Privacidad",
+    "security": "Seguridad",
+    "signIn": "Ingresar",
+    "github": "GitHub",
+    "overview": "Resumen",
+    "insights": "Análisis",
+    "bills": "Facturas"
+  },
+  "months": {
+    "short": {
+      "Jan": "Ene",
+      "Feb": "Feb",
+      "Mar": "Mar",
+      "Apr": "Abr",
+      "May": "May",
+      "Jun": "Jun",
+      "Jul": "Jul",
+      "Aug": "Ago",
+      "Sep": "Sep",
+      "Oct": "Oct",
+      "Nov": "Nov",
+      "Dec": "Dic"
+    }
+  },
+  "landing": {
+    "hero": {
+      "eyebrow": "Un registro de facturas para el hogar",
+      "title": "Subí una factura,\nobtené tu registro.",
+      "body": "Arrastra el PDF de una factura a la página. Factura lo lee, anota el monto y el período, y mantiene un registro al día de cada peso: luz, gas, internet, expensas. Guardado de forma segura, y solo tuyo.",
+      "cta": "Comenzar",
+      "trust": "Guardado de forma segura · reprocesable cuando quieras"
+    },
+    "howItWorks": "Cómo funciona",
+    "steps": [
+      {
+        "title": "Soltá el PDF",
+        "body": "Arrastra cualquier factura a la página. Factura extrae el texto y guarda el PDF original a salvo en el almacenamiento, listo para reprocesar más adelante."
+      },
+      {
+        "title": "Lo leemos",
+        "body": "Los analizadores propios de cada proveedor encuentran el monto, el período de facturación y la lectura del medidor. Un vistazo para confirmar, nunca un formulario para completar."
+      },
+      {
+        "title": "Mira cómo avanza",
+        "body": "Los totales se agrupan por propiedad y por mes. Las facturas que faltan se marcan, y los análisis muestran a dónde va el dinero con el tiempo."
+      }
+    ],
+    "peekInside": "Un vistazo por dentro",
+    "peekCaption": "Palermo · junio de 2026 hasta ahora · 3 de 4 facturas cargadas, una pendiente.",
+    "whatItDoes": "Qué hace",
+    "features": [
+      {
+        "label": "Por propiedad, por mes",
+        "body": "Los totales se agrupan por departamento y por mes, con una estimación en dólares al blue junto a los pesos."
+      },
+      {
+        "label": "Radar de facturas faltantes",
+        "body": "Factura sabe lo que suele llegar. Cuando MetroGAS se demora en junio, vas a ver △ pendiente, no un vacío."
+      },
+      {
+        "label": "Análisis fáciles de leer",
+        "body": "Gasto apilado, participación por proveedor, tendencia por proveedor y una mirada a la inflación: los pesos frente al costo en dólares, lado a lado."
+      },
+      {
+        "label": "Guardado de forma segura",
+        "body": "Cada PDF se conserva a salvo y puede reprocesarse directamente desde el almacenamiento cuando un analizador mejora. Los datos siguen siendo tuyos."
+      },
+      {
+        "label": "Hecho para Argentina",
+        "body": "Edesur, MetroGAS, Personal y Expensas vienen listos de fábrica. Agrega tus propias cuentas con un clic."
+      },
+      {
+        "label": "Se lee como un recibo",
+        "body": "Sin tableros que griten por atención. Solo una página tranquila que suma como un honesto recibo de papel."
+      }
+    ],
+    "closingTitle": "Empieza tu registro.",
+    "footer": {
+      "left": "Registro de facturas · Guardado seguro",
+      "right": "Argentina · ARS ≈ USD"
+    }
+  },
+  "siteChrome": {
+    "footerLeft": "Guardado de forma segura · solo tuyo",
+    "footerRight": "Buenos Aires · ARS ≈ USD"
+  },
+  "peek": {
+    "period": "Palermo · junio de 2026 hasta ahora",
+    "billsIn": "3 de 4 facturas cargadas",
+    "awaiting": "1 pendiente",
+    "whereMoneyGoes": "A dónde va el dinero",
+    "byVendor": "por proveedor",
+    "totalSpend": "Gasto total en el tiempo",
+    "stackedByVendor": "Apilado por proveedor"
+  },
+  "emails": {
+    "footerTagline": "Registro personal de servicios · Argentina",
+    "unsubscribe": "Cancelar suscripción",
+    "headerAccount": "Cuenta",
+    "headerInvitation": "Invitación",
+    "welcome": {
+      "subject": "Bienvenido a Factura",
+      "preheader": "Tu registro está listo: suelta una factura en cualquier parte para empezar.",
+      "eyebrow": "Bienvenida",
+      "title": "Bienvenida.",
+      "greeting": "Hola {name},",
+      "greetingNoName": "¡Hola!",
+      "body1": "Tu registro está configurado y esperándote. Suelta el PDF de una factura de servicios en cualquier parte del panel: leeremos la letra chica, extraeremos el monto y el período, y mantendremos un total acumulado por propiedad.",
+      "body2": "Tus facturas —el texto extraído y los PDF originales— se guardan de forma privada en tu cuenta. Solo tú puedes verlas.",
+      "button": "Abre tu registro ›",
+      "voice": "Leído en tu navegador · guardado en tu registro.",
+      "footerNote": "Recibes esto porque tienes una cuenta en Factura."
+    },
+    "otp": {
+      "subject": "Tu código de acceso a Factura",
+      "preheader": "Usa este código para iniciar sesión en tu cuenta.",
+      "eyebrow": "Código de un solo uso",
+      "title": "Bienvenida.",
+      "greeting": "¡Hola!",
+      "intro": "Este es tu código de verificación de Factura:",
+      "expires": "Este código vence en 10 minutos.",
+      "ignore": "Si no solicitaste este código, no necesitas hacer nada.",
+      "footerNote": "Recibes esto porque alguien pidió iniciar sesión con tu correo en Factura."
+    },
+    "invite": {
+      "subject": "{inviter} compartió una propiedad contigo en Factura",
+      "preheader": "{inviter} compartió {property} contigo.",
+      "eyebrow": "Propiedad compartida",
+      "title": "Te agregaron.",
+      "greeting": "Hola {name},",
+      "greetingNoName": "¡Hola!",
+      "body": "{inviter} compartió una propiedad contigo. Acepta para empezar a ver sus facturas, totales e historial en tu propio registro.",
+      "labelProperty": "Propiedad",
+      "labelSharedBy": "Compartida por",
+      "labelAccess": "Acceso",
+      "accessDefault": "Puede ver y agregar facturas",
+      "button": "Aceptar invitación",
+      "declinePrompt": "¿No esperabas esto?",
+      "decline": "Rechazar",
+      "footerNote": "Recibes esto porque alguien compartió una propiedad con tu cuenta de Factura."
+    }
+  },
+  "charts": {
+    "total": "Total",
+    "noCompleteMonths": "Aún no hay meses completos."
+  },
+  "demo": {
+    "liveDemo": "Demo en vivo",
+    "bannerText": "· datos de muestra de un departamento ficticio. Nada aquí es editable.",
+    "trackOwn": "Registra tus propias facturas ›"
+  },
+  "common": {
+    "allProperties": "Todas las propiedades",
+    "allVendors": "Todos los proveedores",
+    "needsReview": "necesita revisión",
+    "unrecognized": "sin reconocer",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "add": "Agregar",
+    "working": "Procesando…",
+    "cantUndo": "Esto no se puede deshacer",
+    "changeColor": "Cambiar color"
+  },
+  "properties": {
+    "eyebrow": "Propiedades",
+    "title": "Tus propiedades",
+    "help": "Cada propiedad guarda sus propias facturas, proveedores y cuentas. Invita a alguien (tu pareja, un compañero de piso) y también verá y agregará facturas aquí. Puedes tener hasta {limit} propiedades; las que comparten contigo no cuentan.",
+    "pendingInvitations": "Invitaciones pendientes",
+    "sharedBy": "compartida por {inviter} · {role}",
+    "accept": "Aceptar",
+    "decline": "Rechazar",
+    "roles": {
+      "owner": "propietario",
+      "member": "miembro"
+    },
+    "leave": "Salir",
+    "addressVariantsPlaceholder": "Variantes de dirección, separadas por comas (calle + número)",
+    "people": "Personas",
+    "you": " · tú",
+    "memberInfo": "{email} · {role}",
+    "invitedPending": "invitado · pendiente",
+    "removeAria": "Quitar",
+    "revokeAria": "Revocar",
+    "deleteAria": "Eliminar",
+    "invitePlaceholder": "Invitar por correo",
+    "invite": "Invitar",
+    "vendors": "Proveedores",
+    "accounts": "Cuentas",
+    "expectedMonthly": "esperada cada mes",
+    "newPropertyPlaceholder": "Apodo de propiedad nueva",
+    "addProperty": "Agregar propiedad",
+    "atLimit": "Alcanzaste el límite de {limit} propiedades propias.",
+    "deleteEyebrow": "Eliminar propiedad",
+    "deleteDescSuffix": "y todas sus facturas, proveedores y cuentas se eliminarán de forma permanente.",
+    "deleteConfirm": "Eliminar propiedad",
+    "toastInviteAccepted": "Invitación aceptada",
+    "toastInviteDeclined": "Invitación rechazada",
+    "toastLeft": "Saliste de la propiedad",
+    "toastMemberRemoved": "Miembro quitado",
+    "toastInviteRevoked": "Invitación revocada",
+    "toastInviteSent": "Invitación enviada",
+    "toastAdded": "Propiedad agregada",
+    "toastRemoved": "Propiedad eliminada"
+  },
+  "billDrawer": {
+    "vendor": "Proveedor",
+    "property": "Propiedad",
+    "period": "Período",
+    "dueDate": "Fecha de vencimiento",
+    "amountArs": "Monto (ARS)",
+    "unrecognizedVendor": "Sin reconocer",
+    "close": "Cerrar",
+    "extractedFields": "Campos extraídos",
+    "parser": "Analizador",
+    "notSavedParser": "no es un analizador guardado",
+    "noParserRecognized": "Ningún analizador reconoció esta factura",
+    "parsedOk": "analizado OK",
+    "fixParser": "Corregir analizador",
+    "editParser": "Editar analizador",
+    "setupParser": "Configurar un analizador",
+    "parsedCleanly": "Se analizó sin problemas: solo elige una propiedad arriba y guarda.",
+    "originalFile": "Archivo original",
+    "pastedText": "(texto pegado)",
+    "viewPdf": "Ver PDF ›",
+    "notStored": "no guardado",
+    "storedSecurely": "Guardado de forma segura (S3) junto al texto extraído de abajo.",
+    "extractedText": "Texto extraído",
+    "reparse": "Reprocesar",
+    "reparseFromFile": "Desde el archivo",
+    "reparseFromFileCaption": "Vuelve a leer el PDF guardado: úsalo cuando mejore el extractor de texto",
+    "reparseFromText": "Desde el texto",
+    "reparseFromTextCaption": "Vuelve a ejecutar el analizador del proveedor sobre el texto guardado: más rápido",
+    "saveChanges": "Guardar cambios",
+    "deleteEyebrow": "Eliminar factura",
+    "deleteTitle": "Esto no se puede deshacer",
+    "deleteDescription": "La factura y su PDF guardado se eliminarán de forma permanente.",
+    "deleteConfirm": "Eliminar factura",
+    "deleting": "Eliminando…",
+    "reviewUnrecognized": "Necesita revisión · ningún analizador reconoció esta factura",
+    "reviewParseFailedPrefix": "Necesita revisión · ",
+    "reviewParseFailedDefault": "el analizador falló",
+    "reviewNeedsHome": "Necesita revisión · elige una propiedad",
+    "editBill": "Editar factura",
+    "vs": "vs",
+    "inArs": "en ARS",
+    "inUsd": "en USD",
+    "demo": "demo",
+    "demoNote": "Estás viendo datos de muestra. Inicia sesión para editar facturas, corregir analizadores, reprocesar y eliminar.",
+    "demoSignIn": "Inicia sesión para usar tus facturas",
+    "toastUpdated": "Factura actualizada · registro recalculado",
+    "toastDeleteFailed": "No se pudo eliminar la factura: inténtalo de nuevo",
+    "toastDeleted": "Factura eliminada",
+    "toastReparsedText": "Reprocesada desde el texto guardado · registro recalculado",
+    "toastNoPdf": "No hay PDF guardado para esta factura",
+    "toastReparsedFile": "Reprocesada desde el PDF guardado · registro recalculado",
+    "toastRereadFailed": "No se pudo volver a leer el PDF guardado"
+  },
+  "drop": {
+    "notPdf": "✕ {file}: no es un PDF",
+    "noText": "✕ {file}: no se encontró texto — los PDF de imágenes escaneadas aún no son compatibles",
+    "periodDuplicate": " — △ el período ya tenía una factura",
+    "duplicate": "△ {file}: ya guardada",
+    "unrecognized": "△ {file}: proveedor no reconocido — enviada a revisión",
+    "parseFailed": "△ {vendor}: el análisis falló — enviada a revisión",
+    "accountLinked": "Cuenta de {vendor} vinculada",
+    "dropTitle": "Suelta la factura",
+    "dropSubtitle": "leída en tu navegador · guardada en tu cuenta",
+    "newAccount": "Cuenta nueva encontrada",
+    "whichProperty": "¿A qué propiedad pertenece esta cuenta? Solo se te preguntará una vez.",
+    "addressMatch": "coincide la dirección",
+    "newPropertyPlaceholder": "…o apodo de propiedad nueva",
+    "skipReview": "Omitir — mantener en la bandeja de revisión"
+  },
+  "overview": {
+    "soFar": "hasta ahora",
+    "seeInsights": "Ver todos los análisis ›",
+    "billsIn": "{in} de {expected} facturas cargadas",
+    "awaitingOne": "1 pendiente",
+    "awaitingOther": "{n} pendientes",
+    "thisMonth": "Este mes",
+    "received": "recibida · en el registro",
+    "last": "última",
+    "awaitingTag": "△ pendiente",
+    "whereMoneyGoes": "A dónde va el dinero",
+    "last12Complete": "Últimos 12 meses completos",
+    "byVendor": "por proveedor",
+    "monthlySpend": "Gasto mensual",
+    "stackedByVendor": "Apilado por proveedor",
+    "perVendorTrend": "Tendencia por proveedor",
+    "spendLast12": "Gasto en los últimos 12 meses"
+  },
+  "insights": {
+    "title": "Cómo se mueven tus facturas",
+    "range12": "12 m",
+    "range24": "24 m",
+    "totalSpend": "Gasto total en el tiempo",
+    "stackedByVendor": "Apilado por proveedor",
+    "vendorShare": "Participación por proveedor",
+    "whereInRange": "A dónde va, en el rango",
+    "total": "total",
+    "inflationLens": "Mirada a la inflación",
+    "inflationCaption": "Mismo gasto, rebasado a 100: los pesos frente al costo en dólares",
+    "whatYouPay": "Lo que pagas (ARS)",
+    "realCost": "Costo real (USD)",
+    "realCostBlue": "Costo real (USD blue)",
+    "inflationNote": "Los pesos suben con la inflación; en dólares tu costo real es mucho más plano. La diferencia es el peso perdiendo valor, no que estés consumiendo más.",
+    "latest": "más reciente",
+    "overRange": "en el rango",
+    "spendOverTime": "{vendor} — gasto en el tiempo",
+    "noExtraFields": "Este analizador no extrae campos adicionales más allá del monto: la subida es inflación, no consumo. Agrega campos como consumo o recargos en el constructor de analizadores para graficarlos aquí.",
+    "pricePer": "Precio por {unit}",
+    "rebased": "Rebasado a 100 — ARS vs USD",
+    "unit": "unidad"
+  },
+  "bills": {
+    "title": "El registro",
+    "thPeriod": "Período",
+    "thVendor": "Proveedor",
+    "thProperty": "Propiedad",
+    "thAmount": "Monto",
+    "thUsd": "USD",
+    "empty": "Aún no hay facturas: suelta un PDF en cualquier parte.",
+    "summary": "{total} facturas · página {page} de {pages}",
+    "perPageAria": "Facturas por página",
+    "perPage": "{n} / página",
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "prevAria": "Página anterior",
+    "nextAria": "Página siguiente"
+  },
+  "builder": {
+    "eyebrow": "Constructor de analizadores",
+    "titleEditing": "· editando",
+    "titleNew": "· nuevo",
+    "untitled": "Analizador sin título",
+    "backToBills": "← Volver a facturas",
+    "billText": "Texto de la factura",
+    "focusHint": "enfoca un valor para resaltar su fragmento →",
+    "dropToStart": "Suelta un PDF para empezar.",
+    "noTextFound": "✕ {file}: no se encontró texto",
+    "couldNotRead": "✕ {file}: no se pudo leer",
+    "patternCopied": "Patrón copiado: pégalo en una casilla de regex",
+    "savedSample": "Guardado como muestra de regresión",
+    "savedSamplesLabel": "Muestras guardadas ({n})",
+    "saveAsSample": "+ Guardar esta factura como muestra",
+    "parserSection": "Analizador",
+    "name": "Nombre",
+    "namePlaceholder": "p. ej. Aguas Andinas",
+    "slug": "Slug (id)",
+    "vendorGroup": "Proveedor (los gráficos se agrupan por esto)",
+    "newVendorOption": "➕ Nuevo proveedor…",
+    "newVendorSlug": "Slug del nuevo proveedor",
+    "vendorPlaceholder": "proveedor",
+    "step1": "1 · Reconocer la factura",
+    "step1Help": "Patrones que identifican de forma única a este proveedor. Todos deben aparecer en el texto, y no deben coincidir con ninguna de tus otras facturas.",
+    "addSignature": "+ Agregar firma",
+    "exclusionHelp": "Opcional: patrones que <em>no</em> deben aparecer. Divide un proveedor en dos analizadores.",
+    "addExclusion": "+ Agregar exclusión",
+    "matches": "Coincide con esta factura",
+    "noMatch": "Todavía no coincide con esta factura",
+    "noConflicts": "Sin conflictos con tus otras facturas",
+    "conflictsOne": "Hay conflicto con {n} factura: acota la firma",
+    "conflictsOther": "Hay conflictos con {n} facturas: acota la firma",
+    "step2": "2 · Extraer los datos",
+    "structured": "Estructurado",
+    "advancedJson": "Avanzado (JSON)",
+    "finishStep1": "Completa el paso 1 para desbloquear la extracción.",
+    "jsonHelp": "El cuerpo del motor subyacente: capturas, cómputo, roles, personalizados. Las ediciones se previsualizan en vivo abajo.",
+    "addDefinition": "Agrega una definición",
+    "invalidJson": "JSON no válido: {msg}",
+    "extractLabel": "Extraer: capturar de la factura",
+    "extractSub": "Cada tarjeta es un regex que produce uno o más valores con nombre.",
+    "nothingCaptured": "Todavía no se captura nada. Agrega una captura para leer un valor de la factura.",
+    "addCapture": "+ agregar captura",
+    "deriveLabel": "Derivar: calcular a partir de otros valores",
+    "deriveSub": "Cada tarjeta crea un nuevo valor a partir de los valores anteriores. El orden importa; ≈ marca un valor calculado.",
+    "addDerived": "+ agregar valor derivado",
+    "rolesLabel": "Roles: las cuatro ranuras obligatorias",
+    "rolesSub": "Apunta cada ranura a un valor. Agrega alternativas para las facturas que lo imprimen de otra forma.",
+    "customLabel": "Campos personalizados",
+    "customSub": "Cualquier otra cosa que valga la pena registrar; se grafica luego.",
+    "addCustom": "+ agregar campo personalizado",
+    "needsReview": "Necesita revisión",
+    "preview": "Vista previa",
+    "resolves": "resuelve",
+    "defineFields": "Define campos para ver el resultado.",
+    "forkSave": "Bifurcar y guardar",
+    "saveReparse": "Guardar y reprocesar",
+    "finish": "Finalizar",
+    "saveFailed": "✕ Error al guardar: {msg}",
+    "savingRerunOne": "Al guardar, este analizador se vuelve a ejecutar sobre {n} factura existente.",
+    "savingRerunOther": "Al guardar, este analizador se vuelve a ejecutar sobre {n} facturas existentes.",
+    "parserSavedReparsedOne": "Analizador guardado · {n} factura reprocesada",
+    "parserSavedReparsedOther": "Analizador guardado · {n} facturas reprocesadas",
+    "roles": {
+      "identity": "Cuenta / ID único",
+      "amount": "Monto",
+      "period": "Período",
+      "dueDate": "Fecha de vencimiento"
+    },
+    "parts": {
+      "sigPlaceholder": "p. ej. AGUAS ANDINAS",
+      "dropZone": "Suelta otra factura de este tipo para probar"
+    },
+    "previewRows": {
+      "identity": "Cuenta / ID",
+      "amount": "Monto",
+      "period": "Período",
+      "dueDate": "Fecha de vencimiento"
+    },
+    "toolkit": {
+      "title": "Herramientas de regex",
+      "recipes": "Recetas",
+      "tester": "Probador",
+      "copyPattern": "Copiar patrón",
+      "noMatch": "sin coincidencia",
+      "testerPlaceholder": "escribe un patrón para probar esta factura",
+      "testerHelp": "Aquí aparece el primer grupo de captura (o la coincidencia completa), con un conteo.",
+      "invalid": "Patrón no válido",
+      "noMatches": "Sin coincidencias en esta factura",
+      "matchOne": "{count} coincidencia · primera",
+      "matchOther": "{count} coincidencias · primera",
+      "groups": {
+        "Amounts": "Montos",
+        "Dates": "Fechas",
+        "Identifiers": "Identificadores"
+      },
+      "items": {
+        "latam": { "label": "LatAm · 1.234.567,89", "hint": "→ número AR (AR/UY/BR)" },
+        "intl": { "label": "US / intl · 1,234,567.89", "hint": "→ número US" },
+        "whole": { "label": "Enteros · 1.234.567", "hint": "sin decimales (CLP) → número AR" },
+        "afterLabel": { "label": "Tras una etiqueta · «Total a pagar»", "hint": "cambia el texto de la etiqueta por el tuyo" },
+        "ddmmyyyy": { "label": "DD/MM/YYYY", "hint": "→ fecha DD/MM/YYYY" },
+        "yyyymmdd": { "label": "YYYY-MM-DD", "hint": "" },
+        "mmyyyy": { "label": "MM/YYYY", "hint": "mes + año" },
+        "spanishMonth": { "label": "Nombre de mes en español", "hint": "" },
+        "cuit": { "label": "CUIT · 20-12345678-9", "hint": "" },
+        "accountNo": { "label": "Cuenta / N.º de cliente", "hint": "" },
+        "anyDigits": { "label": "Cualquier serie de dígitos", "hint": "" }
+      }
+    },
+    "shared": {
+      "noMatch": "sin coincidencia",
+      "remove": "quitar",
+      "filterValues": "filtrar valores…",
+      "clearReference": "borrar referencia",
+      "noValues": "Aún no hay valores definidos.",
+      "computedValue": "valor calculado",
+      "pickValue": "elige un valor",
+      "addValue": "+ valor",
+      "then": "luego",
+      "earlier": "antes",
+      "addFallback": "+ alternativa",
+      "transforms": "Transformaciones",
+      "addTransform": "+ transformación",
+      "transformOpts": {
+        "numberAR": "número AR (1.234,56)",
+        "numberUS": "número US (1,234.56)",
+        "centsToAmount": "centavos ÷ 100",
+        "stripLeadingZeros": "quitar ceros a la izquierda",
+        "toInt": "a entero",
+        "monthOf": "mes de la fecha",
+        "monthYear": "mes-año → período",
+        "lowercase": "minúsculas",
+        "parseDate:DMY": "fecha DD/MM/YYYY",
+        "parseDate:YYMMDD": "fecha YYMMDD"
+      },
+      "dateOf": "fecha {x}",
+      "firstChars": "primeros {n} caracteres",
+      "lookup": "buscar {x}"
+    },
+    "capture": {
+      "regex": "Regex",
+      "regexPlaceholder": "regex con un (grupo de captura)",
+      "invalidRegex": "△ regex no válido, ¿sigues escribiendo?",
+      "multi": "Un regex, {n} valores con nombre: los grupos de abajo alimentan cada uno.",
+      "valueName": "nombre del valor",
+      "grp": "grp",
+      "removeCapture": "quitar captura",
+      "removeOutput": "quitar salida",
+      "addOutput": "+ agregar salida"
+    },
+    "role": {
+      "review": "revisar",
+      "sourcesDisagree": "las fuentes no coinciden",
+      "useThisValue": "Usa este valor",
+      "ifMissing": "Si falta, prueba…",
+      "mustAgree": "Deben coincidir: marcar para revisión si las fuentes presentes no coinciden",
+      "disagree": "△ no coinciden"
+    },
+    "custom": {
+      "fieldName": "nombre del campo (p. ej. consumo)",
+      "removeField": "quitar campo",
+      "sourceValue": "Valor de origen",
+      "type": "Tipo",
+      "types": {
+        "money": "dinero",
+        "number": "número",
+        "date": "fecha",
+        "string": "texto",
+        "quantity": "cantidad"
+      },
+      "unit": "Unidad",
+      "onlyWhen": "Solo cuando (opcional)"
+    },
+    "derive": {
+      "kinds": {
+        "fallback": "Alternativa: la primera que exista",
+        "math": "Cálculo: una expresión",
+        "dateParts": "Fecha a partir de partes",
+        "datePart": "Tomar parte de una fecha",
+        "constWhen": "Constante cuando está presente"
+      },
+      "mathPlaceholder": "p. ej. kwh / periodMonths",
+      "references": "Referencias: ",
+      "noValuesAbove": "aún no hay valores arriba",
+      "valueName": "nombre del valor",
+      "computedValue": "valor calculado",
+      "moveUp": "subir",
+      "moveDown": "bajar",
+      "remove": "quitar",
+      "year": "Año",
+      "month": "Mes",
+      "yearPlaceholder": "valor de año",
+      "monthPlaceholder": "valor de mes",
+      "day": "Día",
+      "plusMonths": "± meses",
+      "dateValue": "Valor de fecha",
+      "dateValuePlaceholder": "un valor de fecha",
+      "take": "Tomar",
+      "parts": {
+        "year": "año",
+        "month": "mes",
+        "day": "día"
+      },
+      "use": "usar",
+      "when": "cuando",
+      "valueExists": "el valor existe",
+      "exists": "existe"
+    }
+  },
+  "parsers": {
+    "eyebrow": "Analizadores",
+    "title": "Biblioteca de analizadores",
+    "backToProfile": "← Perfil",
+    "active": "Analizadores activos",
+    "reparseBtn": "Reprocesar mis facturas",
+    "activeHelp": "Qué analizador maneja tus facturas en este momento, por proveedor. Bifurcar un analizador hace que tu copia gane automáticamente; reprocesa para aplicarlo a las facturas que ya tienes.",
+    "noneActive": "Aún no hay analizadores activos: adopta o construye uno abajo.",
+    "yourParser": "tu analizador",
+    "official": "oficial",
+    "community": "comunidad",
+    "noParser": "sin analizador",
+    "shadows": "reemplaza la copia adoptada",
+    "noneWontReparse": "estas facturas no se reprocesarán hasta que ejecutes un analizador que coincida",
+    "billOne": "{n} factura",
+    "billOther": "{n} facturas",
+    "yourParsers": "Tus analizadores",
+    "yourParsersHelp": "Analizadores que posees. Editarlos afecta solo a tus facturas hasta que publiques una versión que otros puedan adoptar.",
+    "noneYetOwn": "Todavía ninguno: bifurca un analizador oficial de abajo o construye uno a partir de una factura.",
+    "unpublished": "Sin publicar",
+    "unpublishedChanges": "Cambios sin publicar",
+    "publishedV": "Publicado v{n}",
+    "edit": "Editar",
+    "publish": "Publicar",
+    "confirmDelete": "¿Eliminar el analizador «{name}»? Esto no se puede deshacer.",
+    "adopted": "Analizadores adoptados",
+    "adoptedHelp": "Analizadores publicados que ejecutas. Bifurca uno para personalizarlo para tus propias facturas.",
+    "noneAdopted": "Ninguno adoptado.",
+    "updateToV": "Actualizar a v{n}",
+    "fork": "Bifurcar",
+    "remove": "Eliminar",
+    "browse": "Explorar el registro",
+    "browseHelp": "Analizadores publicados por otros usuarios. Adopta uno para detectar su proveedor.",
+    "nothingNew": "Nada nuevo para adoptar.",
+    "adopt": "Adoptar",
+    "toastParserDeleted": "Analizador eliminado",
+    "toastPublished": "Publicado v{n}",
+    "toastUpdatedTo": "Actualizado a v{n}",
+    "toastAdopted": "Adoptado {name}",
+    "toastRemoved": "Eliminado",
+    "reparsedOne": "{label} · {n} factura reprocesada",
+    "reparsedOther": "{label} · {n} facturas reprocesadas",
+    "reparsedStandalone": "{updated} de {scanned} facturas reprocesadas"
+  },
+  "app": {
+    "navProfile": "Perfil",
+    "propertyAll": "Todas",
+    "propertyLabel": "Propiedad",
+    "menuOpen": "Abrir menú",
+    "menuClose": "Cerrar menú",
+    "loading": "Leyendo la letra chica…"
+  },
+  "login": {
+    "tagline": "Suelta una factura y obtén tu registro. Tus servicios, contabilizados en silencio y solo para ti.",
+    "google": "Continuar con Google",
+    "emailButton": "Ingresar con correo",
+    "privacyNote": "Las facturas están acotadas a tu cuenta. El texto analizado y los PDF son privados.",
+    "emailPrompt": "Ingresa tu correo y te enviaremos un código de 6 dígitos para ingresar.",
+    "emailPlaceholder": "tu@ejemplo.com",
+    "sending": "Enviando…",
+    "sendCode": "Enviar código",
+    "otherWays": "Otras formas de ingresar",
+    "codeSentPrefix": "Enviamos un código a ",
+    "codeSentSuffix": ". Ingrésalo abajo: vence en 10 minutos.",
+    "verifying": "Verificando…",
+    "signIn": "Ingresar",
+    "differentEmail": "Usar otro correo",
+    "errorInvalidCode": "Ese código no es válido o ha caducado.",
+    "errorSendCode": "No se pudo enviar el código. Revisa la dirección e inténtalo de nuevo.",
+    "back": "← Volver"
+  },
+  "legal": {
+    "lastUpdated": "Última actualización",
+    "privacy": {
+      "eyebrow": "Privacidad",
+      "title": "Tus facturas, solo para ti",
+      "intro": "Qué recopila Factura, por qué, dónde se guarda y cómo recuperarlo. En lenguaje claro, sin sorpresas.",
+      "updated": "junio de 2026",
+      "sections": [
+        {
+          "id": "overview",
+          "heading": "La versión corta",
+          "body": "<p>Factura es un registro de facturas: subes PDF de facturas de servicios y mantiene un historial privado de tu gasto por propiedad. Esta página explica qué datos implica eso, dónde residen y cómo eliminarlos.</p><p>El principio rector es la moderación. Factura guarda lo que necesita para mostrarte tu registro y nada más: no hay publicidad, no hay perfiles de seguimiento, y tus facturas nunca se venden ni se comparten con nadie a quien no hayas invitado personalmente. Factura es <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">de código abierto</a>, así que puedes leer exactamente cómo se tratan tus datos, o ejecutar tu propia copia.</p>"
+        },
+        {
+          "id": "what-we-collect",
+          "heading": "Qué guarda Factura",
+          "body": "<p>Los datos que Factura conserva se agrupan en unas pocas categorías:</p><ul class=\"bullets\"><li><strong>Cuenta</strong>: tu dirección de correo y (si inicias sesión con Google) tu nombre y tu avatar. Esa es toda la identidad que guardamos. No hay contraseña; mira <a href=\"/security#authentication\">Seguridad</a>.</li><li><strong>Facturas</strong>: los PDF que subes, el texto extraído de ellos y los campos analizados (proveedor, monto, período de facturación, fecha de vencimiento y cualquier lectura de medidor o cifra de consumo). El archivo original se conserva para poder reprocesar una factura más adelante.</li><li><strong>Propiedades y proveedores</strong>: los apodos de propiedad y las variantes de dirección que ingresas, y las cuentas de proveedor bajo las que se archivan tus facturas.</li><li><strong>Muestras de analizador</strong>: si construyes un analizador personalizado, el texto de la factura de muestra que le adjuntas se guarda (acotado solo a tu cuenta) para poder volver a probar el analizador cuando lo editas.</li><li><strong>Técnicos</strong>: una cookie de sesión para mantener tu sesión iniciada, y registros de servidor habituales. Factura no establece cookies de publicidad ni de seguimiento entre sitios.</li></ul>"
+        },
+        {
+          "id": "how-we-use-it",
+          "heading": "Cómo se usa",
+          "body": "<p>Tus datos se usan únicamente para hacer funcionar el producto que pediste:</p><ul class=\"bullets\"><li>Analizar tus facturas y mantener al día tu registro, tus totales y tus análisis.</li><li>Estimar un valor en dólares junto al monto en pesos, usando una fuente pública de cotización.</li><li>Enviar correos transaccionales: un código de inicio de sesión, una única bienvenida y un aviso cuando alguien comparte una propiedad contigo.</li></ul><p>Factura no te perfila, no ejecuta analítica de comportamiento ni usa el contenido de tus facturas para nada más allá de mostrártelo de vuelta.</p>"
+        },
+        {
+          "id": "storage",
+          "heading": "Dónde reside",
+          "body": "<p>El texto de una factura se extrae en tu navegador; ese texto y el PDF original luego se envían a Factura, se analizan y se guardan. Los datos estructurados (tu cuenta, facturas, propiedades y campos analizados) residen en una base de datos <strong>PostgreSQL</strong> administrada. Los PDF originales se conservan en <strong>almacenamiento de objetos compatible con S3</strong>, cifrados en reposo por el proveedor de almacenamiento y guardados bajo claves con espacio de nombres por cuenta.</p><p>Los archivos nunca se sirven desde una URL pública: el enlace «Ver PDF» genera un enlace firmado de corta duración cada vez, así que el acceso siempre pasa por una verificación de autorización. El dólar «blue» proviene de una API pública argentina de cotización; no se le envía ningún dato personal.</p>"
+        },
+        {
+          "id": "third-parties",
+          "heading": "Terceros",
+          "body": "<p>Factura se apoya en un pequeño conjunto de proveedores de infraestructura para operar. Procesan datos en nombre de Factura y solo para entregar su parte del servicio:</p><ul class=\"bullets\"><li><strong>Google</strong>: inicio de sesión opcional (OAuth). Se usa solo si eliges «Continuar con Google».</li><li><strong>Resend</strong>: entrega de correos transaccionales (códigos de inicio de sesión, bienvenida, invitaciones a compartir).</li><li><strong>Proveedores de almacenamiento de objetos y de hosting</strong>: guardan tus PDF y ejecutan la aplicación y la base de datos.</li><li><strong>argentinadatos.com</strong>: la fuente pública de cotización; no recibe ningún dato personal.</li></ul><p>Los proveedores exactos dependen del despliegue: si te autoalojas, los eliges tú mismo.</p>"
+        },
+        {
+          "id": "sharing",
+          "heading": "Compartir una propiedad",
+          "body": "<p>Una propiedad puede tener más de un miembro. Cuando invitas a alguien por correo, esa invitación le revela el apodo de la propiedad y le permite aceptar o rechazar. Una vez que se une, puede ver el registro de <strong>esa propiedad únicamente</strong>, nunca tus otras propiedades.</p><p>Los miembros pueden salir, y los propietarios pueden quitar miembros o revocar invitaciones pendientes, en cualquier momento.</p>"
+        },
+        {
+          "id": "retention",
+          "heading": "Conservar y eliminar datos",
+          "body": "<p>Tus datos permanecen hasta que los elimines, y la eliminación es real:</p><ul class=\"bullets\"><li><strong>Eliminar una factura</strong>: borra su entrada en el registro y su PDF guardado a la vez. No se conserva ninguna copia oculta.</li><li><strong>Eliminar una propiedad</strong>: desmonta sus facturas, proveedores, cuentas y archivos guardados de una sola vez.</li><li><strong>Eliminar tu cuenta</strong>: contáctanos (más abajo) y eliminaremos tu cuenta y los datos asociados.</li></ul><p>Las copias de seguridad y los registros pueden persistir durante una ventana breve y rotativa antes de expirar.</p>"
+        },
+        {
+          "id": "your-rights",
+          "heading": "Tus opciones",
+          "body": "<p>Tus facturas son tuyas. Puedes verlas y editarlas, exportar los PDF subyacentes en cualquier momento, y eliminar cualquier factura, propiedad o tu cuenta entera. Para solicitudes de acceso o eliminación que no puedas hacer ya desde la app, escríbenos y te ayudamos.</p>"
+        },
+        {
+          "id": "children",
+          "heading": "Menores",
+          "body": "<p>Factura es una herramienta para gestionar las facturas del hogar y no está dirigida a menores. No la uses si eres menor de la edad de consentimiento digital en tu país.</p>"
+        },
+        {
+          "id": "changes",
+          "heading": "Cambios y contacto",
+          "body": "<p>Si esta política cambia de forma sustancial, la fecha de «última actualización» de arriba cambiará y las actualizaciones importantes se anotarán en el historial del proyecto. El uso continuado después de un cambio significa que aceptas la política revisada.</p><p>¿Preguntas sobre tus datos? Escribe a <a href=\"mailto:privacy@factura.uno\">privacy@factura.uno</a>, o abre un issue en <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">GitHub</a>. Para cualquier cosa relacionada con seguridad, mira la página de <a href=\"/security\">Seguridad</a>.</p>"
+        }
+      ]
+    },
+    "security": {
+      "eyebrow": "Seguridad",
+      "title": "Hecho para mantener tu registro privado",
+      "intro": "Inicio de sesión sin contraseña, aislamiento estricto por cuenta, almacenamiento cifrado con acceso firmado, y un camino claro para reportar problemas.",
+      "updated": "junio de 2026",
+      "sections": [
+        {
+          "id": "overview",
+          "heading": "Nuestro enfoque",
+          "body": "<p>Factura guarda algo personal —un registro de las facturas de tu hogar— así que está construida para mantener ese registro privado por defecto. Esta página describe las medidas vigentes y cómo reportar un problema.</p><p>Como Factura es <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">de código abierto</a>, estas afirmaciones son verificables: el código de autenticación, autorización y almacenamiento es todo público. Para saber cómo se recopilan y usan los datos, mira <a href=\"/privacy\">Privacidad</a>.</p>"
+        },
+        {
+          "id": "authentication",
+          "heading": "Autenticación",
+          "body": "<p>El inicio de sesión es <strong>sin contraseña</strong>. Factura nunca guarda una contraseña, así que no hay ninguna que se filtre. Inicias sesión de una de dos formas:</p><ul class=\"bullets\"><li><strong>Google</strong>: OAuth estándar; Factura nunca ve tu contraseña de Google.</li><li><strong>Código por correo</strong>: un código de seis dígitos de un solo uso, válido por diez minutos, generado con una fuente criptográfica aleatoria y consumido en el primer uso.</li></ul><p>Las sesiones son del lado del servidor y se registran en la base de datos, transportadas en una cookie <strong>http-only</strong> que JavaScript no puede leer. Iniciar sesión por correo enlaza con la misma cuenta que Google cuando la dirección coincide, así que nunca terminas con datos divididos.</p>"
+        },
+        {
+          "id": "authorization",
+          "heading": "Aislamiento de datos",
+          "body": "<p>Cada solicitud se acota al usuario con sesión iniciada en el servidor. El acceso a una propiedad se rige por una única fuente de verdad —su lista de miembros— y cada llamada a la API lo vuelve a verificar; nada depende de que la interfaz oculte datos que no debería traer.</p><p>El efecto práctico: solo puedes leer o modificar facturas, propiedades y proveedores que posees o a los que fuiste invitado explícitamente. Una carga sin archivar es visible solo para quien la subió.</p>"
+        },
+        {
+          "id": "storage",
+          "heading": "Archivos guardados",
+          "body": "<p>Los PDF originales residen en almacenamiento de objetos compatible con S3, cifrados en reposo por el proveedor y guardados bajo claves con espacio de nombres por cuenta. El bucket nunca es público.</p><p>Cuando abres un PDF, Factura genera una <strong>URL firmada de corta duración</strong> para ese único archivo, tras verificar que tienes permiso para verlo, así que el acceso siempre está acotado en el tiempo y autorizado, nunca un enlace público adivinable. Eliminar una factura elimina su objeto guardado.</p>"
+        },
+        {
+          "id": "transit",
+          "heading": "Datos en tránsito",
+          "body": "<p>Todo el tráfico —la app, la API, los enlaces de los correos transaccionales y las URL firmadas de almacenamiento— se sirve sobre <strong>HTTPS/TLS</strong>. El texto de la factura se extrae en tu navegador y se envía por esa conexión cifrada para su análisis y almacenamiento.</p>"
+        },
+        {
+          "id": "infrastructure",
+          "heading": "Infraestructura y dependencias",
+          "body": "<p>Los secretos (credenciales de base de datos, almacenamiento y correo) se suministran mediante variables de entorno y nunca se suben al repositorio. La base de datos y el almacenamiento de objetos son servicios administrados.</p><p>Factura está construida sobre bibliotecas de código abierto bien mantenidas y ampliamente auditadas, y las dependencias se mantienen al día para incorporar las correcciones de seguridad de origen.</p>"
+        },
+        {
+          "id": "your-part",
+          "heading": "Tu parte",
+          "body": "<p>Como el inicio de sesión pasa por tu correo, la seguridad de tu bandeja de entrada y de tu cuenta de Google es la puerta de entrada a tu registro. Protégelas —activa la autenticación de dos factores en ellas— y cierra sesión en dispositivos compartidos.</p>"
+        },
+        {
+          "id": "reporting",
+          "heading": "Reportar una vulnerabilidad",
+          "body": "<p>¿Encontraste un problema de seguridad? Repórtalo de forma privada y danos la oportunidad de corregirlo antes de cualquier divulgación pública. Recibimos y agradecemos los reportes de buena fe.</p><ul class=\"bullets\"><li>Escribe a <a href=\"mailto:security@factura.uno\">security@factura.uno</a>, o abre un <a href=\"https://github.com/irondsd/factura/security/advisories/new\" target=\"_blank\" rel=\"noreferrer\">aviso de seguridad privado en GitHub</a>.</li><li>Incluye los pasos para reproducirlo, el impacto y todo lo que necesitemos para confirmarlo.</li><li>Por favor, no realices pruebas que degraden el servicio, accedan a datos de otras personas o extraigan datos más allá de lo necesario para demostrar el problema.</li></ul><p>Acusaremos recibo de tu reporte, te mantendremos al tanto de la corrección y te daremos crédito si así lo deseas.</p>"
+        },
+        {
+          "id": "disclaimer",
+          "heading": "Límites honestos",
+          "body": "<p>Ningún sistema es perfectamente seguro, y Factura se ofrece como software de código abierto sin garantía. Apuntamos a protecciones sensatas y verificables y a una mejora continua; y si necesitas control total, puedes <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">autoalojar</a> todo el sistema.</p>"
+        }
+      ]
+    }
+  },
+  "docs": {
+    "tocEyebrow": "Documentación",
+    "prev": "‹ Anterior",
+    "next": "Siguiente ›",
+    "items": [
+      {
+        "id": "welcome",
+        "group": "Primeros pasos",
+        "title": "Bienvenido a Factura",
+        "lede": "Factura convierte una pila de PDF de facturas de servicios en un registro tranquilo y continuo. Suelta una factura y el monto, el período y la lectura del medidor se archivan solos bajo la propiedad y el proveedor correctos.",
+        "body": "<p>No hay planilla que mantener ni carpeta que ordenar. Cuando llega la próxima factura, la arrastras y listo: Factura concilia y recuerda el resto.</p><h2>Qué obtienes</h2><ul><li>Totales por propiedad y por mes, en pesos con una estimación en dólares al blue al lado.</li><li>Detección de facturas faltantes, para que una factura demorada nunca pase en silencio.</li><li>Historial por proveedor y análisis que muestran a dónde va el dinero con el tiempo.</li></ul><div class=\"callout\"><span class=\"callout-label\">△ Bueno saberlo</span><p>Factura conserva el PDF original guardado de forma segura: puedes reprocesarlo cada vez que un analizador mejora.</p></div><p class=\"muted\">¿Recién llegas? Empieza con <code>Carga tu primera factura</code> en la página siguiente.</p>"
+      },
+      {
+        "id": "first-bill",
+        "group": "Primeros pasos",
+        "title": "Carga tu primera factura",
+        "lede": "Agregar una factura es arrastrar y soltar, no completar un formulario. Este es todo el flujo, de principio a fin.",
+        "body": "<h2>Arrastra, suelta, listo</h2><ul><li>Arrastra cualquier PDF de factura de servicios a cualquier parte de la página.</li><li>Factura lee el texto que contiene y encuentra el monto, el período, la fecha de vencimiento y la lectura del medidor.</li><li>Confirma la propiedad la primera vez que aparece una cuenta: solo se te pregunta una vez.</li></ul><figure class=\"example\"><figcaption>Extraído · edesur-junio.pdf</figcaption><pre class=\"ruled\">EDESUR S.A.\nPeríodo de facturación: 06/2026\nTotal a pagar: $ 25.253,37\nConsumo: 312 kWh\nVencimiento: 18/07/2026</pre></figure><p>A partir de ahí, la factura cae en tu registro bajo la propiedad y el proveedor que corresponden. La factura del mes siguiente reconocerá la cuenta por su cuenta y se archivará sola.</p><div class=\"callout\"><span class=\"callout-label\">△ Si un analizador duda</span><p>Cuando un valor no se puede leer con confianza, la factura se marca como <code>necesita revisión</code> en lugar de adivinar. Defines el valor a mano una vez y, como el PDF queda guardado, puede reprocesarse más adelante cuando el analizador se afina.</p></div><p class=\"muted\">¿Todavía no hay analizador para tu proveedor? Mira <a href=\"#build-parser\">Crea un analizador</a>.</p>"
+      },
+      {
+        "id": "properties",
+        "group": "Conceptos",
+        "title": "Propiedades y cuentas",
+        "lede": "Las propiedades son tus hogares; las cuentas vinculan el número de cuenta de un proveedor con una propiedad para que las facturas se enruten solas.",
+        "body": "<p>Una <code>propiedad</code> es un hogar que registras: un departamento o una casa, con su propio registro y totales mensuales. Cada factura pertenece a una propiedad a través de la <code>cuenta</code> impresa en ella (el número de suministro o de cliente con el que te factura el proveedor).</p><h2>Cómo funciona el ruteo</h2><ul><li>La primera vez que aparece una cuenta nueva, confirmas a qué propiedad pertenece.</li><li>Después de eso, cada factura futura de esa cuenta se archiva sola: sin preguntas, sin clasificar.</li><li>Una propiedad puede tener muchas cuentas: luz, gas, internet y expensas, todas bajo el mismo techo.</li></ul><h2>Más de un hogar</h2><p>Puedes tener hasta tres propiedades en una cuenta gratuita, cada una totalmente separada en totales y análisis. Cambia entre ellas desde el selector de propiedades en la parte superior de la app.</p><h2>Compartir un hogar</h2><p>Una propiedad puede tener más de un miembro. Invita a un compañero de piso o a tu pareja y ambos verán el mismo registro de ese hogar; una propiedad compartida no cuenta para el límite del propietario. Los miembros pueden salir, y el propietario puede quitar miembros, en cualquier momento.</p>"
+      },
+      {
+        "id": "vendors",
+        "group": "Conceptos",
+        "title": "Proveedores y analizadores",
+        "lede": "Un proveedor es quien factura: Edesur, MetroGAS, Telecom, Expensas. Cada uno tiene un analizador que sabe leer su formato.",
+        "body": "<p>Un <code>analizador</code> es un pequeño lector propio de cada proveedor que ubica el monto, el período de facturación, la fecha de vencimiento y el consumo dentro de un formato de factura. Edesur (luz), MetroGAS (gas), Telecom / Personal (internet y teléfono) y un par de formatos de Expensas vienen listos de fábrica.</p><h2>Qué incluye un proveedor</h2><ul><li>Un nombre visible y un color, usados de forma consistente en el registro y en cada gráfico.</li><li>Uno o más analizadores que reconocen sus facturas y las leen.</li><li>Un historial que puedes filtrar para seguir a ese proveedor mes a mes.</li></ul><p>Los analizadores son simple configuración en lugar de código incrustado en la app, así que nada los ata a una empresa o país en particular. Cuando un proveedor que usas todavía no está cubierto, lo agregas tú mismo.</p><div class=\"callout\"><span class=\"callout-label\">△ Siguiente</span><p>Agregar tu propio proveedor toma unos minutos en el constructor visual: mira <a href=\"#build-parser\">Crea un analizador</a>.</p></div>"
+      },
+      {
+        "id": "build-parser",
+        "group": "Conceptos",
+        "title": "Crea un analizador",
+        "lede": "El constructor de analizadores te permite enseñarle a Factura un nuevo formato de factura, de forma visual, con vista previa en vivo y sin código.",
+        "body": "<p>Abre el constructor, suelta una factura de muestra a la izquierda y arma el analizador a la derecha. Cada valor que defines se resalta en el texto de la factura a medida que avanzas, y una vista previa en vivo muestra el resultado. Se arma en dos pasos.</p><h2>1 · Reconocer la factura</h2><ul><li>Agrega una o más <em>firmas</em>: patrones cortos que identifican de forma única a este proveedor y que deben aparecer todos en el texto.</li><li>Opcionalmente agrega exclusiones: patrones que <em>no</em> deben aparecer, lo que te permite dividir un proveedor en dos formatos.</li><li>Factura verifica que la firma coincida con la muestra y que <em>no choque</em> con tus otras facturas antes de dejarte continuar.</li></ul><h2>2 · Extraer los datos</h2><ul><li><b>Captura</b> valores de la factura con un patrón: un pequeño juego de herramientas de regex te ayuda a apuntar al texto correcto.</li><li><b>Deriva</b> nuevos valores calculándolos a partir de los anteriores (fechas, totales, conversiones).</li><li>Completa los cuatro <b>roles</b> que necesita toda factura: identidad del proveedor, monto, período y fecha de vencimiento, cada uno con alternativas para las facturas que los imprimen de otra forma.</li><li>Agrega <b>campos personalizados</b> para cualquier otra cosa que valga la pena guardar —una lectura del medidor o el consumo en <code>kWh</code> o <code>m³</code>— que luego aparecen en los análisis.</li></ul><h2>Guardar y reprocesar</h2><p>Al guardar el analizador, se vuelve a ejecutar sobre tus facturas existentes de ese proveedor, así las entradas más viejas adoptan la misma lectura. Puedes guardar una factura como muestra de regresión para proteger el analizador a medida que lo refinas, y pasar a un modo JSON avanzado cuando necesites la definición en crudo.</p><div class=\"callout\"><span class=\"callout-label\">△ Bueno saberlo</span><p>Como los analizadores son configuración, un analizador mejorado puede volver a leer cada PDF guardado: nunca tienes que buscar ni volver a subir una factura vieja.</p></div>"
+      },
+      {
+        "id": "blue-rate",
+        "group": "Conceptos",
+        "title": "ARS y el dólar blue",
+        "lede": "Los montos se guardan en pesos. Una estimación en dólares «blue» va al lado para que las cifras sigan siendo legibles con el tiempo.",
+        "body": "<p>Cada total muestra su valor en pesos y una cifra aproximada en dólares, marcada con <code>≈</code>: por ejemplo <code>$ 25.253,37 · ≈ US$ 16,51</code>. Guardar los pesos mantiene el registro fiel a la factura; la estimación en dólares mantiene comparable un año de cifras a través de la inflación.</p><h2>Cómo leerlo</h2><ul><li>El monto en pesos es exactamente lo que dice la factura, al centavo.</li><li>La cifra en dólares <code>≈</code> es una estimación al dólar blue, no un registro contable.</li><li>En los análisis puedes cambiar toda la vista entre ARS y USD para ver el gasto de cualquiera de las dos formas.</li></ul>"
+      },
+      {
+        "id": "insights",
+        "group": "Referencia",
+        "title": "Análisis",
+        "lede": "Gasto apilado, participación por proveedor, tendencia por proveedor y una mirada a la inflación: los pesos frente al costo en dólares.",
+        "body": "<p>La vista de análisis convierte el registro en una imagen de a dónde va el dinero. Elige una propiedad, escoge una ventana de 12 o 24 meses y lee el gasto como totales o por proveedor.</p><h2>Qué hay</h2><ul><li><b>Gasto apilado</b>: cada mes desglosado por proveedor, para que la composición se vea de un vistazo.</li><li><b>Participación por proveedor</b>: qué proveedores se llevan la porción más grande en la ventana.</li><li><b>Tendencia por proveedor</b>: filtra a un proveedor y míralo mes a mes, con el cambio marcado.</li><li><b>Mirada a la inflación</b>: el mismo gasto en pesos y en dólares, lado a lado, para que el movimiento real se separe de la inflación.</li></ul><div class=\"callout\"><span class=\"callout-label\">△ Pendiente</span><p>Cuando un proveedor que suele facturar se demora en el mes, los análisis lo marcan como <span class=\"accent\">△ pendiente</span> en lugar de leerlo como una caída a cero.</p></div>"
+      },
+      {
+        "id": "privacy",
+        "group": "Referencia",
+        "title": "Privacidad y almacenamiento",
+        "lede": "Tus facturas están acotadas a tu cuenta. El procesamiento es mayormente local; el PDF luego se guarda de forma segura.",
+        "body": "<p>La mayor parte del procesamiento ocurre directamente en tu navegador: el texto del PDF se lee en tu dispositivo. El archivo original luego se conserva en almacenamiento seguro para poder reprocesarlo más adelante cuando un analizador mejora, lo que resulta útil cuando un proveedor cambia un formato.</p><ul><li>Las facturas son privadas de tu cuenta y de quienes invites.</li><li>Los PDF guardados están cifrados en reposo y se pueden reprocesar cuando quieras.</li><li>Puedes eliminar una factura y su archivo guardado en cualquier momento.</li></ul><p class=\"muted\">Factura es de código abierto bajo la licencia MIT: lee el código o ejecuta tu propia copia desde <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">GitHub</a>.</p>"
+      }
+    ]
+  },
+  "faq": {
+    "eyebrow": "Ayuda",
+    "title": "Preguntas y respuestas",
+    "intro": "La versión corta de cómo funciona Factura. ¿No lo encuentras aquí? La documentación entra en más detalle.",
+    "sections": [
+      {
+        "label": "Primeros pasos",
+        "items": [
+          {
+            "q": "¿Qué hace Factura exactamente?",
+            "a": "Sueltas un PDF de una factura de servicios y Factura lee el monto, el período y la lectura del medidor; luego lo archiva en un registro continuo por propiedad y por mes. Sin planillas, sin carga manual."
+          },
+          {
+            "q": "¿Qué facturas puedo agregar?",
+            "a": "Edesur, MetroGAS, Personal y Expensas vienen listas de fábrica. También puedes agregar cualquier otro proveedor: le enseñas a Factura el formato una vez en el constructor de analizadores y se encarga de todas las facturas futuras."
+          },
+          {
+            "q": "¿Cómo agrego una factura?",
+            "a": "Arrastra el PDF a cualquier parte de la página. La primera vez que aparece una cuenta, vas a confirmar a qué propiedad pertenece; después de eso, cada factura futura se archiva sola. Mira <a href=\"/docs#first-bill\">Carga tu primera factura</a>."
+          },
+          {
+            "q": "¿Qué tipo de PDF funciona?",
+            "a": "Un PDF real, basado en texto: del tipo que tu proveedor te envía por correo o que descargas de su portal. Factura lee el texto que contiene, así que una foto o un escaneo plano sin texto seleccionable no se va a poder procesar. Si un archivo no tiene texto legible, te lo avisamos en vez de dejarte adivinando."
+          }
+        ]
+      },
+      {
+        "label": "Analizadores y proveedores",
+        "items": [
+          {
+            "q": "¿Y si mi proveedor no está incluido?",
+            "a": "Puedes agregarlo tú mismo: este es el corazón de Factura. Los analizadores son simple configuración, no código incrustado en la app, así que nada los ata a una empresa o país en particular. Abre el constructor de analizadores, suelta una factura de muestra y define cómo reconocer al proveedor y dónde están el monto, el período, la fecha de vencimiento y la lectura del medidor. Guárdalo y cada factura futura de ese proveedor se archiva sola."
+          },
+          {
+            "q": "¿Necesito saber programar?",
+            "a": "No. El constructor es visual: sueltas una factura de muestra de un lado y armas el analizador del otro, con cada valor resaltado en la página a medida que avanzas y una vista previa en vivo del resultado. Un pequeño juego de herramientas de regex te ayuda a apuntar al texto correcto. Antes de guardar, verifica que tu analizador coincida con esta factura y no choque con tus otros proveedores."
+          },
+          {
+            "q": "¿Puedo registrar algo más que el monto?",
+            "a": "Sí. Más allá de los cuatro campos centrales —proveedor, monto, período y fecha de vencimiento— puedes capturar campos personalizados como la lectura del medidor o el consumo en m³ o kWh. Esos acompañan a la factura y aparecen en los análisis, para que puedas seguir el consumo, no solo el costo, con el tiempo."
+          },
+          {
+            "q": "¿Qué pasa cuando un analizador mejora?",
+            "a": "Como el PDF original queda guardado en el almacenamiento, Factura puede volver a leerlo con el analizador mejorado, sin necesidad de buscar ni volver a subir nada. Al guardar un analizador, se reprocesan en el lugar tus facturas existentes de ese proveedor, así las entradas viejas también reciben la mejora."
+          }
+        ]
+      },
+      {
+        "label": "Privacidad y almacenamiento",
+        "items": [
+          {
+            "q": "¿Dónde se guardan mis PDF?",
+            "a": "La mayor parte del procesamiento ocurre localmente en tu navegador. El PDF original luego se conserva en almacenamiento seguro para poder reprocesarlo más adelante, útil cuando un proveedor cambia un formato. Tus facturas quedan acotadas a tu cuenta."
+          },
+          {
+            "q": "¿Puedo eliminar una factura?",
+            "a": "Sí: al eliminar una factura se borran su entrada en el registro y su archivo guardado. No queda ninguna copia oculta."
+          },
+          {
+            "q": "¿Quién puede ver mi registro?",
+            "a": "Solo tú, y quienes invites explícitamente a una propiedad. Las facturas son privadas de tu cuenta, y los archivos guardados están cifrados en reposo."
+          },
+          {
+            "q": "¿Puedo compartir un hogar con otra persona?",
+            "a": "Sí. Una propiedad puede tener más de un miembro: invita a un compañero de piso o a tu pareja y ambos ven el mismo registro de ese hogar. Puedes tener varias propiedades en una cuenta, cada una con sus propias facturas y totales, y salir o quitar miembros en cualquier momento."
+          }
+        ]
+      },
+      {
+        "label": "Dinero y números",
+        "items": [
+          {
+            "q": "¿Por qué veo pesos y dólares a la vez?",
+            "a": "Los montos se guardan en ARS, con una estimación aproximada en dólares «blue» al lado (marcada con <code>≈</code>) para que las cifras sigan siendo legibles a lo largo de meses de inflación. La cotización es una estimación, no un registro contable."
+          },
+          {
+            "q": "¿Qué pasa si falta una factura?",
+            "a": "Factura sabe lo que suele llegar. Cuando un proveedor se demora en el mes, vas a ver <span class=\"accent\">△ pendiente</span> en el resumen, no un vacío silencioso."
+          }
+        ]
+      },
+      {
+        "label": "Acerca de Factura",
+        "items": [
+          {
+            "q": "¿Factura es de código abierto?",
+            "a": "Sí: Factura es de código abierto bajo la licencia MIT. Puedes leer el código, reportar un problema o ejecutar tu propia copia. Vive en <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">GitHub</a>."
+          }
+        ]
+      }
+    ],
+    "ctaTitle": "¿Todavía tienes una pregunta?",
+    "ctaBody": "La documentación cubre el resto, o simplemente empieza tu registro y compruébalo.",
+    "ctaButton": "Comenzar"
+  },
+  "profile": {
+    "eyebrow": "Perfil",
+    "title": "Tu configuración",
+    "you": "Tú",
+    "viaGoogle": "vía Google",
+    "signOut": "Cerrar sesión",
+    "properties": {
+      "eyebrow": "propiedades",
+      "help": "Tus propiedades guardan sus facturas, proveedores y cuentas. Invita a tu pareja o compañero de piso para que también puedan ver y agregar facturas.",
+      "manage": "Gestionar propiedades →"
+    },
+    "parsers": {
+      "eyebrow": "Analizadores",
+      "help": "Los analizadores convierten los PDF de facturas en datos estructurados. Gestiona los tuyos, publícalos o adopta los de otros: la mayoría nunca necesita tocar esto.",
+      "manage": "Gestionar analizadores →"
+    },
+    "language": {
+      "eyebrow": "Idioma",
+      "help": "Esta es la versión en español. Puedes cambiar de idioma en cualquier momento."
+    }
+  }
+}

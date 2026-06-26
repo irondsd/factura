@@ -8,8 +8,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button, Select, microLabel } from "@/components/ui";
-import type { ScopeValue, TransformOp } from "@/parsers/engine/types";
+import { type Dictionary, interpolate } from "@/i18n/config";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { ValueRec } from "@/parsers/builder/evaluate";
+import type { ScopeValue, TransformOp } from "@/parsers/engine/types";
 import { cn } from "@/lib/cn";
 
 export type ValueOption = {
@@ -47,6 +49,7 @@ export function ValueChip({
   size?: "sm" | "md";
   title?: string;
 }) {
+  const { t } = useI18n();
   const sz =
     size === "sm" ? "text-[10.5px] py-px px-1.5" : "text-[11.5px] py-0.5 px-2";
   const wrap = size === "sm" ? CHIP_CLAMP : CHIP_FULL;
@@ -74,7 +77,7 @@ export function ValueChip({
           "whitespace-nowrap text-muted border border-dashed border-line",
         )}
       >
-        no match
+        {t.builder.shared.noMatch}
       </span>
     );
   }
@@ -132,11 +135,12 @@ export function XBtn({
   onClick: () => void;
   title?: string;
 }) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
       onClick={onClick}
-      title={title ?? "remove"}
+      title={title ?? t.builder.shared.remove}
       className="border-none bg-transparent cursor-pointer text-muted hover:text-accent text-xs font-mono px-0.5 leading-none"
     >
       ✕
@@ -174,6 +178,8 @@ function ValueList({
   onPreview?: (name: string | null) => void;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
+  const ts = t.builder.shared;
   const [q, setQ] = useState("");
   const showSearch = options.length > 9;
   const filtered = q
@@ -189,7 +195,7 @@ function ValueList({
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="filter values…"
+          placeholder={ts.filterValues}
           className="w-full box-border border-none border-b border-line bg-paper font-mono text-xs py-2 px-2.5 outline-none"
         />
       )}
@@ -202,13 +208,13 @@ function ValueList({
           }}
           className="pb-vrow w-full text-left border-none border-b border-line bg-transparent cursor-pointer py-[7px] px-2.5 font-mono text-[11px] text-muted flex justify-between hover:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]"
         >
-          <span>clear reference</span>
+          <span>{ts.clearReference}</span>
           <span>✕</span>
         </button>
       )}
       {filtered.length === 0 && (
         <div className="p-2.5 font-mono text-[11.5px] text-muted">
-          No values defined yet.
+          {ts.noValues}
         </div>
       )}
       {filtered.map((o) => {
@@ -232,7 +238,7 @@ function ValueList({
             <span className="inline-flex items-center gap-1.5 min-w-0">
               {o.origin === "derive" && (
                 <span
-                  title="computed value"
+                  title={ts.computedValue}
                   className="text-accent text-[11px]"
                 >
                   ≈
@@ -261,7 +267,7 @@ export function ValuePicker({
   onChange,
   onPreview,
   variant = "A",
-  placeholder = "pick a value",
+  placeholder,
 }: {
   value: string;
   options: ValueOption[];
@@ -270,6 +276,8 @@ export function ValuePicker({
   variant?: "A" | "B";
   placeholder?: string;
 }) {
+  const { t } = useI18n();
+  const ph = placeholder ?? t.builder.shared.pickValue;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | HTMLSpanElement>(null);
   useClickAway(ref, () => {
@@ -309,7 +317,7 @@ export function ValuePicker({
           )}
         >
           {empty ? (
-            <span>+ value</span>
+            <span>{t.builder.shared.addValue}</span>
           ) : (
             <>
               {isDerived && <span className="text-accent">≈</span>}
@@ -348,7 +356,7 @@ export function ValuePicker({
               </span>
             </>
           ) : (
-            <span className="font-mono text-xs text-muted">{placeholder}</span>
+            <span className="font-mono text-xs text-muted">{ph}</span>
           )}
         </span>
         <span className="inline-flex items-center gap-2">
@@ -375,12 +383,16 @@ export function FallbackChain({
   onChange: (refs: string[]) => void;
   onPreview?: (name: string | null) => void;
 }) {
+  const { t } = useI18n();
+  const ts = t.builder.shared;
   return (
     <div className="flex flex-wrap gap-1.5 items-center">
       {refs.map((r, i) => (
         <span key={i} className="inline-flex items-center gap-0.5">
           {i > 0 && (
-            <span className="font-mono text-[10px] text-muted mr-1">then</span>
+            <span className="font-mono text-[10px] text-muted mr-1">
+              {ts.then}
+            </span>
           )}
           <ValuePicker
             value={r}
@@ -398,7 +410,7 @@ export function FallbackChain({
             <button
               type="button"
               onClick={() => onChange(move(refs, i, -1))}
-              title="earlier"
+              title={ts.earlier}
               className={arrowBtn}
             >
               ‹
@@ -411,33 +423,38 @@ export function FallbackChain({
         variant="outline"
         onClick={() => onChange([...refs, ""])}
       >
-        + fallback
+        {ts.addFallback}
       </Button>
     </div>
   );
 }
 
 // ── transforms pipeline ──────────────────────────────────────────────────────
-const TRANSFORM_OPTS: { value: string; label: string }[] = [
-  { value: "numberAR", label: "AR number (1.234,56)" },
-  { value: "numberUS", label: "US number (1,234.56)" },
-  { value: "centsToAmount", label: "cents ÷ 100" },
-  { value: "stripLeadingZeros", label: "strip leading zeros" },
-  { value: "toInt", label: "to integer" },
-  { value: "monthOf", label: "month of date" },
-  { value: "monthYear", label: "month-year → period" },
-  { value: "lowercase", label: "lowercase" },
-  { value: "parseDate:DMY", label: "date DD/MM/YYYY" },
-  { value: "parseDate:YYMMDD", label: "date YYMMDD" },
-];
+// Values are stable engine identifiers; labels come from the dictionary
+// (builder.shared.transformOpts), keyed by value.
+const TRANSFORM_VALUES = [
+  "numberAR",
+  "numberUS",
+  "centsToAmount",
+  "stripLeadingZeros",
+  "toInt",
+  "monthOf",
+  "monthYear",
+  "lowercase",
+  "parseDate:DMY",
+  "parseDate:YYMMDD",
+] as const;
 
-function transformLabel(op: string | TransformOp): string {
+type TransformsDict = Dictionary["builder"]["shared"];
+
+function transformLabel(op: string | TransformOp, ts: TransformsDict): string {
   if (typeof op === "string") {
-    return TRANSFORM_OPTS.find((o) => o.value === op)?.label ?? op;
+    return ts.transformOpts[op as keyof typeof ts.transformOpts] ?? op;
   }
-  if ("parseDate" in op) return `date ${op.parseDate}`;
-  if ("slice" in op) return `first ${op.slice} chars`;
-  if ("lookup" in op) return `lookup ${Object.keys(op.lookup).join("/")}`;
+  if ("parseDate" in op) return interpolate(ts.dateOf, { x: op.parseDate });
+  if ("slice" in op) return interpolate(ts.firstChars, { n: op.slice });
+  if ("lookup" in op)
+    return interpolate(ts.lookup, { x: Object.keys(op.lookup).join("/") });
   return JSON.stringify(op);
 }
 
@@ -448,17 +465,19 @@ export function TransformsEditor({
   transforms: (string | TransformOp)[];
   onChange: (t: (string | TransformOp)[]) => void;
 }) {
+  const { t } = useI18n();
+  const ts = t.builder.shared;
   return (
     <div className="mt-2">
-      <span className={microLabel}>Transforms</span>
+      <span className={microLabel}>{ts.transforms}</span>
       <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
-        {transforms.map((t, i) =>
-          typeof t === "object" ? (
+        {transforms.map((op, i) =>
+          typeof op === "object" ? (
             <span
               key={i}
               className="inline-flex items-center gap-1 border border-line bg-paper py-1 px-[7px] font-mono text-[11px] text-ink"
             >
-              {transformLabel(t)}
+              {transformLabel(op, ts)}
               <XBtn
                 onClick={() => onChange(transforms.filter((_, j) => j !== i))}
               />
@@ -466,7 +485,7 @@ export function TransformsEditor({
           ) : (
             <span key={i} className="inline-flex items-center gap-0.5">
               <Select
-                value={t}
+                value={op}
                 className="w-auto py-1 px-1.5 text-[11.5px]"
                 onChange={(e) =>
                   onChange(
@@ -474,9 +493,9 @@ export function TransformsEditor({
                   )
                 }
               >
-                {TRANSFORM_OPTS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
+                {TRANSFORM_VALUES.map((v) => (
+                  <option key={v} value={v}>
+                    {ts.transformOpts[v]}
                   </option>
                 ))}
               </Select>
@@ -489,9 +508,9 @@ export function TransformsEditor({
         <Button
           size="sm"
           variant="outline"
-          onClick={() => onChange([...transforms, TRANSFORM_OPTS[0].value])}
+          onClick={() => onChange([...transforms, TRANSFORM_VALUES[0]])}
         >
-          + transform
+          {ts.addTransform}
         </Button>
       </div>
     </div>

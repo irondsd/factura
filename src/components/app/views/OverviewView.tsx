@@ -12,6 +12,8 @@ import {
   useChartCurrency,
   VendorShare,
 } from "@/components/charts";
+import { useI18n } from "@/i18n/I18nProvider";
+import { interpolate } from "@/i18n/config";
 import {
   formatMoney,
   formatMonth,
@@ -34,6 +36,8 @@ export function OverviewView({
   data: Overview;
   insightsHref?: string;
 }) {
+  const { t, locale } = useI18n();
+  const to = t.overview;
   const donut = useChartCurrency();
   const bars = useChartCurrency();
   const trend = useChartCurrency();
@@ -48,32 +52,42 @@ export function OverviewView({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Eyebrow>
-            {d.property ? d.property.nickname : "All properties"} ·{" "}
-            {formatMonth(d.month)} so far
+            {d.property ? d.property.nickname : t.common.allProperties} ·{" "}
+            {formatMonth(d.month, locale)} {to.soFar}
           </Eyebrow>
           <div className="mt-2">
             <Display size={44}>{formatMoney(d.thisMonthTotal, "ARS")}</Display>
           </div>
           <p className="font-mono text-[13px] text-muted mt-2">
-            {d.billsIn} of {d.billsExpected} bills in
+            {interpolate(to.billsIn, {
+              in: d.billsIn,
+              expected: d.billsExpected,
+            })}
             {d.thisMonthUsd > 0 && (
               <span> · ≈ {formatUSD(d.thisMonthUsd)}</span>
             )}
-            {pending > 0 && <span> · {pending} awaiting</span>}
+            {pending > 0 && (
+              <span>
+                {" · "}
+                {pending === 1
+                  ? to.awaitingOne
+                  : interpolate(to.awaitingOther, { n: pending })}
+              </span>
+            )}
           </p>
         </div>
         <Link
           href={insightsHref}
           className="font-mono text-micro uppercase tracking-label border border-line py-[9px] px-[14px] text-ink no-underline transition-colors hover:border-accent hover:text-accent"
         >
-          See all insights ›
+          {to.seeInsights}
         </Link>
       </div>
 
       {/* awaiting model */}
       {d.awaiting.length > 0 && (
         <div className="mt-7">
-          <Eyebrow className="mb-3">This month</Eyebrow>
+          <Eyebrow className="mb-3">{to.thisMonth}</Eyebrow>
           <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(184px,1fr))]">
             {d.awaiting.map((a) => (
               <div
@@ -95,22 +109,22 @@ export function OverviewView({
                       {formatMoney(a.amount, "ARS")}
                     </p>
                     <p className="font-mono text-micro text-muted mt-[3px]">
-                      received · in ledger
+                      {to.received}
                     </p>
                   </>
                 ) : (
                   <>
                     <p className="font-mono text-xs text-muted mt-2.5 leading-[1.5]">
-                      last{" "}
+                      {to.last}{" "}
                       {a.lastPeriod
-                        ? `${formatMonthShort(a.lastPeriod)} ${a.lastPeriod.slice(0, 4)}`
+                        ? `${formatMonthShort(a.lastPeriod, locale)} ${a.lastPeriod.slice(0, 4)}`
                         : "—"}
                       {a.lastAmount != null && (
                         <span> · {formatMoney(a.lastAmount, "ARS")}</span>
                       )}
                     </p>
                     <p className="font-mono text-micro mt-1 text-accent">
-                      △ awaiting
+                      {to.awaitingTag}
                     </p>
                   </>
                 )}
@@ -123,20 +137,20 @@ export function OverviewView({
       {/* where the money goes + trend */}
       <div className="mt-7 grid grid-cols-1 md:grid-cols-[minmax(280px,1fr)_minmax(360px,1.4fr)] gap-4 items-start">
         <ChartCard
-          title="Where the money goes"
-          caption="Last 12 complete months"
+          title={to.whereMoneyGoes}
+          caption={to.last12Complete}
           action={donut.toggle}
         >
           <VendorShare
             slices={slices}
             centerLabel={moneySym}
-            centerSub="by vendor"
+            centerSub={to.byVendor}
           />
         </ChartCard>
 
         <ChartCard
-          title="Monthly spend"
-          caption="Stacked by vendor"
+          title={to.monthlySpend}
+          caption={to.stackedByVendor}
           action={bars.toggle}
         >
           <StackedBarsFx
@@ -162,8 +176,8 @@ export function OverviewView({
       {d.byCurrency[trend.currency].perVendor.length > 0 && (
         <div className="mt-4">
           <ChartCard
-            title="Per-vendor trend"
-            caption="Spend over the last 12 months"
+            title={to.perVendorTrend}
+            caption={to.spendLast12}
             action={trend.toggle}
           >
             <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">

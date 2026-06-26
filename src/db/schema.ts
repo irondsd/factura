@@ -19,6 +19,9 @@ export const billStatus = pgEnum("bill_status", ["parsed", "needs_review"]);
 
 export const memberRole = pgEnum("member_role", ["owner", "member"]);
 
+// Keep in sync with `locales` in src/i18n/config.ts. Spanish is the default.
+export const userLocale = pgEnum("user_locale", ["es", "en"]);
+
 // ── Auth.js (NextAuth) tables ───────────────────────────────────────────────
 // Column *property* names (id, emailVerified, userId, …) must match what the
 // @auth/drizzle-adapter reads; the DB column names stay snake_case to match the
@@ -29,6 +32,9 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   emailVerified: timestamp("email_verified", { mode: "date" }),
   image: text("image"),
+  // Preferred language. Source of truth for server-sent emails, which can't
+  // read the client locale cookie. Defaults to Spanish for existing rows.
+  locale: userLocale("locale").notNull().default("es"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

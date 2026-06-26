@@ -5,6 +5,8 @@
 
 import { useState } from "react";
 import { Input, hint, microLabel, tabClass } from "@/components/ui";
+import { interpolate } from "@/i18n/config";
+import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { ValueChip } from "./cards";
 import { REGEX_RECIPES, recipeMatch, testerMatches } from "./recipes";
@@ -16,6 +18,8 @@ export function RegexToolkit({
   text: string;
   onCopy: (pattern: string) => void;
 }) {
+  const { t } = useI18n();
+  const tk = t.builder.toolkit;
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"recipes" | "tester">("recipes");
   const [pattern, setPattern] = useState("");
@@ -27,7 +31,7 @@ export function RegexToolkit({
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between py-2 px-3 font-mono text-micro uppercase tracking-label text-accent cursor-pointer"
       >
-        <span>Regex toolkit</span>
+        <span>{tk.title}</span>
         <span className="text-muted">{open ? "−" : "+"}</span>
       </button>
       {open && (
@@ -37,33 +41,36 @@ export function RegexToolkit({
               onClick={() => setTab("recipes")}
               className={tabClass(tab === "recipes")}
             >
-              Recipes
+              {tk.recipes}
             </button>
             <button
               onClick={() => setTab("tester")}
               className={tabClass(tab === "tester")}
             >
-              Tester
+              {tk.tester}
             </button>
           </div>
           {tab === "recipes" ? (
             <div className="flex flex-col gap-3">
               {REGEX_RECIPES.map((sec) => (
-                <div key={sec.group}>
-                  <span className={microLabel}>{sec.group}</span>
+                <div key={sec.groupId}>
+                  <span className={microLabel}>
+                    {tk.groups[sec.groupId as keyof typeof tk.groups]}
+                  </span>
                   <div className="flex flex-col gap-1 mt-1">
                     {sec.items.map((r) => {
                       const hitv = recipeMatch(text, r);
+                      const item = tk.items[r.id as keyof typeof tk.items];
                       return (
                         <button
-                          key={r.label}
+                          key={r.id}
                           onClick={() => onCopy(r.pattern)}
-                          title="Copy pattern"
+                          title={tk.copyPattern}
                           className="text-left border border-line hover:border-ink transition-colors py-1.5 px-2"
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-mono text-[11px] text-ink">
-                              {r.label}
+                              {item.label}
                             </span>
                             {hitv !== undefined ? (
                               <ValueChip
@@ -75,14 +82,14 @@ export function RegexToolkit({
                                 size="sm"
                               />
                             ) : (
-                              <span className={hint}>no match</span>
+                              <span className={hint}>{tk.noMatch}</span>
                             )}
                           </div>
                           <div className="font-mono text-[10.5px] text-muted break-all mt-0.5">
                             {r.pattern}
                           </div>
-                          {r.hint && (
-                            <div className={cn(hint, "mt-0.5")}>{r.hint}</div>
+                          {item.hint && (
+                            <div className={cn(hint, "mt-0.5")}>{item.hint}</div>
                           )}
                         </button>
                       );
@@ -96,7 +103,7 @@ export function RegexToolkit({
               <div className="flex gap-1.5">
                 <Input
                   value={pattern}
-                  placeholder="type a pattern to probe this bill"
+                  placeholder={tk.testerPlaceholder}
                   onChange={(e) => setPattern(e.target.value)}
                 />
                 <Input
@@ -108,17 +115,17 @@ export function RegexToolkit({
               </div>
               <div className="mt-2 font-mono text-xs">
                 {!pattern.trim() ? (
-                  <span className={hint}>
-                    The first capture group (or whole match) shows here, with a
-                    count.
-                  </span>
+                  <span className={hint}>{tk.testerHelp}</span>
                 ) : result === null ? (
-                  <span className="text-accent">Invalid pattern</span>
+                  <span className="text-accent">{tk.invalid}</span>
                 ) : result.count === 0 ? (
-                  <span className={hint}>No matches in this bill</span>
+                  <span className={hint}>{tk.noMatches}</span>
                 ) : (
                   <span className="inline-flex items-center gap-2 text-ink">
-                    {result.count} match{result.count === 1 ? "" : "es"} · first
+                    {interpolate(
+                      result.count === 1 ? tk.matchOne : tk.matchOther,
+                      { count: result.count },
+                    )}
                     <ValueChip value={result.first ?? ""} size="sm" />
                   </span>
                 )}

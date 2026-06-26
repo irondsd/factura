@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui";
+import { useI18n } from "@/i18n/I18nProvider";
 
 /**
  * A destructive-action confirmation dialog. Square corners, mono eyebrow,
@@ -14,8 +15,8 @@ export function ConfirmDialog({
   eyebrow,
   title,
   description,
-  confirmLabel = "Delete",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   busy = false,
   busyLabel,
   onConfirm,
@@ -32,6 +33,7 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useI18n();
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-6">
@@ -53,7 +55,9 @@ export function ConfirmDialog({
         )}
         <div className="flex gap-2 mt-5">
           <Button variant="solid" onClick={onConfirm} disabled={busy}>
-            {busy ? (busyLabel ?? "Working…") : confirmLabel}
+            {busy
+              ? (busyLabel ?? t.common.working)
+              : (confirmLabel ?? t.common.delete)}
           </Button>
           <Button
             variant="ghost"
@@ -61,7 +65,7 @@ export function ConfirmDialog({
             onClick={onCancel}
             disabled={busy}
           >
-            {cancelLabel}
+            {cancelLabel ?? t.common.cancel}
           </Button>
         </div>
       </div>

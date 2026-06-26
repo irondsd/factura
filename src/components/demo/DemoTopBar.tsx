@@ -3,19 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wordmark } from "@/components/landing/parts";
+import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
-
-const NAV = [
-  { href: "/demo", label: "Overview" },
-  { href: "/demo/insights", label: "Insights" },
-  { href: "/demo/bills", label: "Bills" },
-];
 
 /** App-style top bar for the public demo: the same chrome as the signed-in
  * header, but the nav points at /demo and the avatar is replaced by a sign-in
  * call to action. No property switcher (the demo has a single property). */
 export function DemoTopBar() {
   const pathname = usePathname();
+  const { t } = useI18n();
+
+  const NAV = [
+    { href: "/demo", label: t.nav.overview },
+    { href: "/demo/insights", label: t.nav.insights },
+    { href: "/demo/bills", label: t.nav.bills },
+  ];
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-[color-mix(in_srgb,var(--card)_72%,transparent)] backdrop-blur-[6px]">
@@ -46,7 +48,7 @@ export function DemoTopBar() {
           href="/login"
           className="ml-auto inline-flex items-center justify-center whitespace-nowrap py-1.5 px-3 font-mono text-micro uppercase tracking-label leading-none border border-ink bg-ink text-paper no-underline transition-colors hover:bg-accent hover:border-accent"
         >
-          Sign in
+          {t.nav.signIn}
         </Link>
       </div>
     </header>

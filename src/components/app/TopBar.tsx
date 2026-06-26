@@ -6,22 +6,24 @@ import type { Session } from "next-auth";
 import { useState } from "react";
 import { Segmented } from "@/components/charts/primitives";
 import { Avatar } from "@/components/ui";
+import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 import { BurgerButton } from "./BurgerButton";
 import { useApp } from "./context";
 
-const NAV = [
-  { href: "/app", label: "Overview" },
-  { href: "/app/insights", label: "Insights" },
-  { href: "/app/bills", label: "Bills" },
-];
-
 export function TopBar({ user }: { user: Session["user"] }) {
   const pathname = usePathname();
   const { propertyId, setPropertyId } = useApp();
+  const { t } = useI18n();
   const properties = trpc.properties.list.useQuery();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const NAV = [
+    { href: "/app", label: t.nav.overview },
+    { href: "/app/insights", label: t.nav.insights },
+    { href: "/app/bills", label: t.nav.bills },
+  ];
 
   // Close the mobile menu on navigation (render-time sync, keyed by pathname —
   // the project's idiom over a state-setting effect).
@@ -38,11 +40,11 @@ export function TopBar({ user }: { user: Session["user"] }) {
   const showSwitcher = !onProfile && (properties.data?.length ?? 0) > 1;
   const propValue = propertyId ?? "all";
   const propOptions = [
-    { value: "all", label: "All" },
+    { value: "all", label: t.app.propertyAll },
     ...(properties.data ?? []).map((p) => ({ value: p.id, label: p.nickname })),
   ];
 
-  const name = user?.name ?? user?.email ?? "You";
+  const name = user?.name ?? user?.email ?? t.profile.you;
 
   const navLink = (l: { href: string; label: string }) => {
     const active = pathname === l.href;
@@ -88,13 +90,18 @@ export function TopBar({ user }: { user: Session["user"] }) {
               onChange={(v) => setPropertyId(v === "all" ? undefined : v)}
             />
           )}
-          <Link href="/app/profile" aria-label="Profile" title={name}>
+          <Link href="/app/profile" aria-label={t.app.navProfile} title={name}>
             {avatarCircle}
           </Link>
         </div>
 
         {/* Mobile: burger only */}
-        <BurgerButton open={menuOpen} onToggle={() => setMenuOpen((o) => !o)} />
+        <BurgerButton
+          open={menuOpen}
+          onToggle={() => setMenuOpen((o) => !o)}
+          openLabel={t.app.menuOpen}
+          closeLabel={t.app.menuClose}
+        />
       </div>
 
       {/* Mobile menu: nav links, property picker, profile */}
@@ -122,7 +129,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
           {showSwitcher && (
             <div className="mt-[14px]">
               <p className="font-mono text-[10px] uppercase tracking-label-wide text-muted mb-2">
-                Property
+                {t.app.propertyLabel}
               </p>
               <div className="overflow-x-auto [-webkit-overflow-scrolling:touch] pb-0.5">
                 <Segmented

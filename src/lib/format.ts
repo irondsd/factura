@@ -1,3 +1,5 @@
+import type { Locale } from "@/i18n/config";
+
 const ars = new Intl.NumberFormat("es-AR", {
   style: "currency",
   currency: "ARS",
@@ -40,25 +42,38 @@ export function formatMoney(
   return currency === "USD" ? formatUSD(value) : arsWhole.format(Number(value));
 }
 
-const monthFmt = new Intl.DateTimeFormat("en", {
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
+// Month names follow the UI language. Currency above stays es-AR (the product
+// is ARS-based), but "June 2026" vs "junio de 2026" tracks the active locale.
+const INTL_TAG: Record<Locale, string> = { es: "es-AR", en: "en" };
 
-const monthShortFmt = new Intl.DateTimeFormat("en", {
-  month: "short",
-  timeZone: "UTC",
-});
+const monthFmt: Record<Locale, Intl.DateTimeFormat> = {
+  es: new Intl.DateTimeFormat(INTL_TAG.es, {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }),
+  en: new Intl.DateTimeFormat(INTL_TAG.en, {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }),
+};
 
-/** "2026-06" or "2026-06-01" -> "June 2026" */
-export function formatMonth(month: string): string {
-  return monthFmt.format(new Date(`${month.slice(0, 7)}-01T00:00:00Z`));
+const monthShortFmt: Record<Locale, Intl.DateTimeFormat> = {
+  es: new Intl.DateTimeFormat(INTL_TAG.es, { month: "short", timeZone: "UTC" }),
+  en: new Intl.DateTimeFormat(INTL_TAG.en, { month: "short", timeZone: "UTC" }),
+};
+
+/** "2026-06" -> "June 2026" (en) / "junio de 2026" (es) */
+export function formatMonth(month: string, locale: Locale = "es"): string {
+  return monthFmt[locale].format(new Date(`${month.slice(0, 7)}-01T00:00:00Z`));
 }
 
-/** "2026-06" or "2026-06-01" -> "Jun" */
-export function formatMonthShort(month: string): string {
-  return monthShortFmt.format(new Date(`${month.slice(0, 7)}-01T00:00:00Z`));
+/** "2026-06" -> "Jun" (en) / "jun." (es) */
+export function formatMonthShort(month: string, locale: Locale = "es"): string {
+  return monthShortFmt[locale].format(
+    new Date(`${month.slice(0, 7)}-01T00:00:00Z`),
+  );
 }
 
 /** "2026-06" +/- n months */

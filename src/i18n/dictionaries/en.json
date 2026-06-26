@@ -1,0 +1,911 @@
+{
+  "nav": {
+    "docs": "Docs",
+    "faq": "FAQ",
+    "demo": "Demo",
+    "privacy": "Privacy",
+    "security": "Security",
+    "signIn": "Sign in",
+    "github": "GitHub",
+    "overview": "Overview",
+    "insights": "Insights",
+    "bills": "Bills"
+  },
+  "months": {
+    "short": {
+      "Jan": "Jan",
+      "Feb": "Feb",
+      "Mar": "Mar",
+      "Apr": "Apr",
+      "May": "May",
+      "Jun": "Jun",
+      "Jul": "Jul",
+      "Aug": "Aug",
+      "Sep": "Sep",
+      "Oct": "Oct",
+      "Nov": "Nov",
+      "Dec": "Dec"
+    }
+  },
+  "landing": {
+    "hero": {
+      "eyebrow": "A bill ledger for the home",
+      "title": "Drop a bill,\nget a ledger.",
+      "body": "Drag a utility-bill PDF onto the page. Factura reads it, files the amount and period, and keeps a running ledger of every peso — electricity, gas, internet, expensas. Stored securely, and yours alone.",
+      "cta": "Get started",
+      "trust": "Stored securely · re-parsed anytime"
+    },
+    "howItWorks": "How it works",
+    "steps": [
+      {
+        "title": "Drop the PDF",
+        "body": "Drag any bill onto the page. Factura pulls out the text and keeps the original PDF safe in storage — ready to re-parse later."
+      },
+      {
+        "title": "We read it",
+        "body": "Vendor-specific parsers find the amount, the billing period, and the meter reading. A glance to confirm, never a form to fill."
+      },
+      {
+        "title": "Watch it move",
+        "body": "Totals roll up per property and month. Missing bills get flagged, and insights show where the money goes over time."
+      }
+    ],
+    "peekInside": "A peek inside",
+    "peekCaption": "Palermo · June 2026 so far · 3 of 4 bills in, one awaiting.",
+    "whatItDoes": "What it does",
+    "features": [
+      {
+        "label": "Per property, per month",
+        "body": "Totals roll up by apartment and by month, with a USD blue-rate estimate alongside the pesos."
+      },
+      {
+        "label": "Missing-bill radar",
+        "body": "Factura knows what usually arrives. When MetroGAS is late for June, you'll see △ awaiting — not a gap."
+      },
+      {
+        "label": "Insights that read plainly",
+        "body": "Stacked spend, vendor share, per-vendor trend, and an inflation lens — pesos vs. the dollar cost, side by side."
+      },
+      {
+        "label": "Stored securely",
+        "body": "Every PDF is kept safe and can be re-parsed straight from storage when a parser gets smarter. The data stays yours."
+      },
+      {
+        "label": "Built for Argentina",
+        "body": "Edesur, MetroGAS, Personal and Expensas come ready out of the box. Add your own accounts in a click."
+      },
+      {
+        "label": "Reads like a receipt",
+        "body": "No dashboards screaming for attention. Just a calm page that totals up like an honest slip of paper."
+      }
+    ],
+    "closingTitle": "Start your ledger.",
+    "footer": {
+      "left": "Bill ledger · Stored securely",
+      "right": "Argentina · ARS ≈ USD"
+    }
+  },
+  "siteChrome": {
+    "footerLeft": "Stored securely · yours alone",
+    "footerRight": "Buenos Aires · ARS ≈ USD"
+  },
+  "peek": {
+    "period": "Palermo · June 2026 so far",
+    "billsIn": "3 of 4 bills in",
+    "awaiting": "1 awaiting",
+    "whereMoneyGoes": "Where the money goes",
+    "byVendor": "by vendor",
+    "totalSpend": "Total spend over time",
+    "stackedByVendor": "Stacked by vendor"
+  },
+  "emails": {
+    "footerTagline": "Personal utility ledger · Argentina",
+    "unsubscribe": "Unsubscribe",
+    "headerAccount": "Account",
+    "headerInvitation": "Invitation",
+    "welcome": {
+      "subject": "Welcome to Factura",
+      "preheader": "Your ledger is ready — drop a bill anywhere to begin.",
+      "eyebrow": "Welcome",
+      "title": "Welcome.",
+      "greeting": "Hi {name},",
+      "greetingNoName": "Hi there!",
+      "body1": "Your ledger is set up and waiting. Drop a utility-bill PDF anywhere on the dashboard — we'll read the fine print, pull the amount and period, and keep a running total per property.",
+      "body2": "Your bills — the extracted text and the original PDFs — are stored privately to your account. Only you can see them.",
+      "button": "Open your ledger ›",
+      "voice": "Read in your browser · saved to your ledger.",
+      "footerNote": "You're receiving this because you have a Factura account."
+    },
+    "otp": {
+      "subject": "Your Factura sign-in code",
+      "preheader": "Use this code to sign in to your account.",
+      "eyebrow": "One-time password",
+      "title": "Welcome.",
+      "greeting": "Hi there!",
+      "intro": "Here's your Factura verification code:",
+      "expires": "This code expires in 10 minutes.",
+      "ignore": "If you didn't request this code, no action is needed.",
+      "footerNote": "You're receiving this because someone requested a sign-in with your email on Factura."
+    },
+    "invite": {
+      "subject": "{inviter} shared a property with you on Factura",
+      "preheader": "{inviter} shared {property} with you.",
+      "eyebrow": "Shared property",
+      "title": "You've been added.",
+      "greeting": "Hi {name},",
+      "greetingNoName": "Hi there!",
+      "body": "{inviter} has shared a property with you. Accept to start seeing its bills, totals and history in your own ledger.",
+      "labelProperty": "Property",
+      "labelSharedBy": "Shared by",
+      "labelAccess": "Access",
+      "accessDefault": "Can view & add bills",
+      "button": "Accept invitation",
+      "declinePrompt": "Didn't expect this?",
+      "decline": "Decline",
+      "footerNote": "You're receiving this because someone shared a property with your Factura account."
+    }
+  },
+  "charts": {
+    "total": "Total",
+    "noCompleteMonths": "No complete months yet."
+  },
+  "demo": {
+    "liveDemo": "Live demo",
+    "bannerText": "· sample data for a fictional apartment. Nothing here is editable.",
+    "trackOwn": "Track your own bills ›"
+  },
+  "common": {
+    "allProperties": "All properties",
+    "allVendors": "All vendors",
+    "needsReview": "needs review",
+    "unrecognized": "unrecognized",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "add": "Add",
+    "working": "Working…",
+    "cantUndo": "This can't be undone",
+    "changeColor": "Change color"
+  },
+  "properties": {
+    "eyebrow": "Properties",
+    "title": "Your properties",
+    "help": "Each property holds its own bills, vendors and accounts. Invite someone (a partner, a flatmate) and they'll see and add bills here too. You can own up to {limit} properties; ones shared with you don't count.",
+    "pendingInvitations": "Pending invitations",
+    "sharedBy": "shared by {inviter} · {role}",
+    "accept": "Accept",
+    "decline": "Decline",
+    "roles": {
+      "owner": "owner",
+      "member": "member"
+    },
+    "leave": "Leave",
+    "addressVariantsPlaceholder": "Address variants, comma-separated (street + number)",
+    "people": "People",
+    "you": " · you",
+    "memberInfo": "{email} · {role}",
+    "invitedPending": "invited · pending",
+    "removeAria": "Remove",
+    "revokeAria": "Revoke",
+    "deleteAria": "Delete",
+    "invitePlaceholder": "Invite by email",
+    "invite": "Invite",
+    "vendors": "Vendors",
+    "accounts": "Accounts",
+    "expectedMonthly": "expected monthly",
+    "newPropertyPlaceholder": "New property nickname",
+    "addProperty": "Add property",
+    "atLimit": "You've reached the limit of {limit} owned properties.",
+    "deleteEyebrow": "Delete property",
+    "deleteDescSuffix": "and all of its bills, vendors and accounts will be permanently removed.",
+    "deleteConfirm": "Delete property",
+    "toastInviteAccepted": "Invitation accepted",
+    "toastInviteDeclined": "Invitation declined",
+    "toastLeft": "Left property",
+    "toastMemberRemoved": "Member removed",
+    "toastInviteRevoked": "Invite revoked",
+    "toastInviteSent": "Invitation sent",
+    "toastAdded": "Property added",
+    "toastRemoved": "Property removed"
+  },
+  "billDrawer": {
+    "vendor": "Vendor",
+    "property": "Property",
+    "period": "Period",
+    "dueDate": "Due date",
+    "amountArs": "Amount (ARS)",
+    "unrecognizedVendor": "Unrecognized",
+    "close": "Close",
+    "extractedFields": "Extracted fields",
+    "parser": "Parser",
+    "notSavedParser": "not a saved parser",
+    "noParserRecognized": "No parser recognized this bill",
+    "parsedOk": "parsed OK",
+    "fixParser": "Fix parser",
+    "editParser": "Edit parser",
+    "setupParser": "Set up a parser",
+    "parsedCleanly": "Parsed cleanly — just choose a property above and save.",
+    "originalFile": "Original file",
+    "pastedText": "(pasted text)",
+    "viewPdf": "View PDF ›",
+    "notStored": "not stored",
+    "storedSecurely": "Stored securely (S3) alongside the extracted text below.",
+    "extractedText": "Extracted text",
+    "reparse": "Reparse",
+    "reparseFromFile": "From the file",
+    "reparseFromFileCaption": "Re-reads the stored PDF — use when the text extractor improves",
+    "reparseFromText": "From the text",
+    "reparseFromTextCaption": "Re-runs the vendor parser on the stored text — faster",
+    "saveChanges": "Save changes",
+    "deleteEyebrow": "Delete bill",
+    "deleteTitle": "This can't be undone",
+    "deleteDescription": "The bill and its stored PDF will be permanently removed.",
+    "deleteConfirm": "Delete bill",
+    "deleting": "Deleting…",
+    "reviewUnrecognized": "Needs review · no parser recognized this bill",
+    "reviewParseFailedPrefix": "Needs review · ",
+    "reviewParseFailedDefault": "parser failed",
+    "reviewNeedsHome": "Needs review · pick a property",
+    "editBill": "Edit bill",
+    "vs": "vs",
+    "inArs": "in ARS",
+    "inUsd": "in USD",
+    "demo": "demo",
+    "demoNote": "You're viewing sample data. Sign in to edit bills, fix parsers, reparse and delete.",
+    "demoSignIn": "Sign in to use your bills",
+    "toastUpdated": "Bill updated · ledger recalculated",
+    "toastDeleteFailed": "Couldn't delete the bill — please try again",
+    "toastDeleted": "Bill deleted",
+    "toastReparsedText": "Reparsed from stored text · ledger recalculated",
+    "toastNoPdf": "No stored PDF for this bill",
+    "toastReparsedFile": "Reparsed from the stored PDF · ledger recalculated",
+    "toastRereadFailed": "Could not re-read the stored PDF"
+  },
+  "drop": {
+    "notPdf": "✕ {file}: not a PDF",
+    "noText": "✕ {file}: no text found — scanned image PDFs aren't supported yet",
+    "periodDuplicate": " — △ period already had a bill",
+    "duplicate": "△ {file}: already saved",
+    "unrecognized": "△ {file}: vendor not recognized — sent to review",
+    "parseFailed": "△ {vendor}: parsing failed — sent to review",
+    "accountLinked": "{vendor} account linked",
+    "dropTitle": "Drop the bill",
+    "dropSubtitle": "read in your browser · stored to your account",
+    "newAccount": "New account found",
+    "whichProperty": "Which property does this account belong to? You'll only be asked once.",
+    "addressMatch": "address match",
+    "newPropertyPlaceholder": "…or new property nickname",
+    "skipReview": "Skip — keep in review inbox"
+  },
+  "overview": {
+    "soFar": "so far",
+    "seeInsights": "See all insights ›",
+    "billsIn": "{in} of {expected} bills in",
+    "awaitingOne": "1 awaiting",
+    "awaitingOther": "{n} awaiting",
+    "thisMonth": "This month",
+    "received": "received · in ledger",
+    "last": "last",
+    "awaitingTag": "△ awaiting",
+    "whereMoneyGoes": "Where the money goes",
+    "last12Complete": "Last 12 complete months",
+    "byVendor": "by vendor",
+    "monthlySpend": "Monthly spend",
+    "stackedByVendor": "Stacked by vendor",
+    "perVendorTrend": "Per-vendor trend",
+    "spendLast12": "Spend over the last 12 months"
+  },
+  "insights": {
+    "title": "How your bills move",
+    "range12": "12 mo",
+    "range24": "24 mo",
+    "totalSpend": "Total spend over time",
+    "stackedByVendor": "Stacked by vendor",
+    "vendorShare": "Vendor share",
+    "whereInRange": "Where it goes, in range",
+    "total": "total",
+    "inflationLens": "Inflation lens",
+    "inflationCaption": "Same spend, rebased to 100 — pesos vs the dollar cost",
+    "whatYouPay": "What you pay (ARS)",
+    "realCost": "Real cost (USD)",
+    "realCostBlue": "Real cost (USD blue)",
+    "inflationNote": "Pesos climb with inflation; in dollars your real cost is far flatter. The gap is the peso losing value — not you using more.",
+    "latest": "latest",
+    "overRange": "over range",
+    "spendOverTime": "{vendor} — spend over time",
+    "noExtraFields": "This parser extracts no extra fields beyond the amount — the climb is inflation, not usage. Add fields like consumption or surcharges in the parser builder to chart them here.",
+    "pricePer": "Price per {unit}",
+    "rebased": "Rebased to 100 — ARS vs USD",
+    "unit": "unit"
+  },
+  "bills": {
+    "title": "The ledger",
+    "thPeriod": "Period",
+    "thVendor": "Vendor",
+    "thProperty": "Property",
+    "thAmount": "Amount",
+    "thUsd": "USD",
+    "empty": "No bills yet — drop a PDF anywhere.",
+    "summary": "{total} bills · page {page} of {pages}",
+    "perPageAria": "Bills per page",
+    "perPage": "{n} / page",
+    "prev": "Prev",
+    "next": "Next",
+    "prevAria": "Previous page",
+    "nextAria": "Next page"
+  },
+  "builder": {
+    "eyebrow": "Parser builder",
+    "titleEditing": "· editing",
+    "titleNew": "· new",
+    "untitled": "Untitled parser",
+    "backToBills": "← Back to bills",
+    "billText": "Bill text",
+    "focusHint": "focus a value to highlight its span →",
+    "dropToStart": "Drop a PDF to start.",
+    "noTextFound": "✕ {file}: no text found",
+    "couldNotRead": "✕ {file}: could not read",
+    "patternCopied": "Pattern copied — paste into a regex box",
+    "savedSample": "Saved as regression sample",
+    "savedSamplesLabel": "Saved samples ({n})",
+    "saveAsSample": "+ Save this bill as sample",
+    "parserSection": "Parser",
+    "name": "Name",
+    "namePlaceholder": "e.g. Aguas Andinas",
+    "slug": "Slug (id)",
+    "vendorGroup": "Vendor (charts group by this)",
+    "newVendorOption": "➕ New vendor…",
+    "newVendorSlug": "New vendor slug",
+    "vendorPlaceholder": "vendor",
+    "step1": "1 · Recognize the bill",
+    "step1Help": "Patterns that uniquely identify this vendor. All must appear in the text, and they must not match any of your other bills.",
+    "addSignature": "+ Add signature",
+    "exclusionHelp": "Optional — patterns that must <em>not</em> appear. Splits one vendor across two parsers.",
+    "addExclusion": "+ Add exclusion",
+    "matches": "Matches this bill",
+    "noMatch": "Does not match this bill yet",
+    "noConflicts": "No conflicts with your other bills",
+    "conflictsOne": "Conflicts with {n} other bill — narrow the signature",
+    "conflictsOther": "Conflicts with {n} other bills — narrow the signature",
+    "step2": "2 · Extract the data",
+    "structured": "Structured",
+    "advancedJson": "Advanced (JSON)",
+    "finishStep1": "Finish step 1 to unlock extraction.",
+    "jsonHelp": "The underlying engine body — captures, compute, roles, custom. Edits preview live below.",
+    "addDefinition": "Add a definition",
+    "invalidJson": "Invalid JSON: {msg}",
+    "extractLabel": "Extract — capture from the bill",
+    "extractSub": "Each card is one regex producing one or more named values.",
+    "nothingCaptured": "Nothing captured yet. Add a capture to read a value off the bill.",
+    "addCapture": "+ add capture",
+    "deriveLabel": "Derive — compute from other values",
+    "deriveSub": "Each card makes a new value from the values above it. Order matters; ≈ marks a computed value.",
+    "addDerived": "+ add derived value",
+    "rolesLabel": "Roles — the four required slots",
+    "rolesSub": "Point each slot at a value. Add fallbacks for bills that print it differently.",
+    "customLabel": "Custom fields",
+    "customSub": "Anything else worth tracking — charted later.",
+    "addCustom": "+ add custom field",
+    "needsReview": "Needs review",
+    "preview": "Preview",
+    "resolves": "resolves",
+    "defineFields": "Define fields to see the result.",
+    "forkSave": "Fork & save",
+    "saveReparse": "Save & reparse",
+    "finish": "Finish",
+    "saveFailed": "✕ Save failed: {msg}",
+    "savingRerunOne": "Saving re-runs this parser against {n} existing bill.",
+    "savingRerunOther": "Saving re-runs this parser against {n} existing bills.",
+    "parserSavedReparsedOne": "Parser saved · reparsed {n} bill",
+    "parserSavedReparsedOther": "Parser saved · reparsed {n} bills",
+    "roles": {
+      "identity": "Account / unique ID",
+      "amount": "Amount",
+      "period": "Period",
+      "dueDate": "Due date"
+    },
+    "parts": {
+      "sigPlaceholder": "e.g. AGUAS ANDINAS",
+      "dropZone": "Drop another bill of this type to test against"
+    },
+    "previewRows": {
+      "identity": "Account / ID",
+      "amount": "Amount",
+      "period": "Period",
+      "dueDate": "Due date"
+    },
+    "toolkit": {
+      "title": "Regex toolkit",
+      "recipes": "Recipes",
+      "tester": "Tester",
+      "copyPattern": "Copy pattern",
+      "noMatch": "no match",
+      "testerPlaceholder": "type a pattern to probe this bill",
+      "testerHelp": "The first capture group (or whole match) shows here, with a count.",
+      "invalid": "Invalid pattern",
+      "noMatches": "No matches in this bill",
+      "matchOne": "{count} match · first",
+      "matchOther": "{count} matches · first",
+      "groups": {
+        "Amounts": "Amounts",
+        "Dates": "Dates",
+        "Identifiers": "Identifiers"
+      },
+      "items": {
+        "latam": { "label": "LatAm · 1.234.567,89", "hint": "→ AR number (AR/UY/BR)" },
+        "intl": { "label": "US / intl · 1,234,567.89", "hint": "→ US number" },
+        "whole": { "label": "Whole units · 1.234.567", "hint": "no decimals (CLP) → AR number" },
+        "afterLabel": { "label": "After a label · “Total a pagar”", "hint": "swap the label text for yours" },
+        "ddmmyyyy": { "label": "DD/MM/YYYY", "hint": "→ date DD/MM/YYYY" },
+        "yyyymmdd": { "label": "YYYY-MM-DD", "hint": "" },
+        "mmyyyy": { "label": "MM/YYYY", "hint": "month + year" },
+        "spanishMonth": { "label": "Spanish month name", "hint": "" },
+        "cuit": { "label": "CUIT · 20-12345678-9", "hint": "" },
+        "accountNo": { "label": "Account / client no.", "hint": "" },
+        "anyDigits": { "label": "Any run of digits", "hint": "" }
+      }
+    },
+    "shared": {
+      "noMatch": "no match",
+      "remove": "remove",
+      "filterValues": "filter values…",
+      "clearReference": "clear reference",
+      "noValues": "No values defined yet.",
+      "computedValue": "computed value",
+      "pickValue": "pick a value",
+      "addValue": "+ value",
+      "then": "then",
+      "earlier": "earlier",
+      "addFallback": "+ fallback",
+      "transforms": "Transforms",
+      "addTransform": "+ transform",
+      "transformOpts": {
+        "numberAR": "AR number (1.234,56)",
+        "numberUS": "US number (1,234.56)",
+        "centsToAmount": "cents ÷ 100",
+        "stripLeadingZeros": "strip leading zeros",
+        "toInt": "to integer",
+        "monthOf": "month of date",
+        "monthYear": "month-year → period",
+        "lowercase": "lowercase",
+        "parseDate:DMY": "date DD/MM/YYYY",
+        "parseDate:YYMMDD": "date YYMMDD"
+      },
+      "dateOf": "date {x}",
+      "firstChars": "first {n} chars",
+      "lookup": "lookup {x}"
+    },
+    "capture": {
+      "regex": "Regex",
+      "regexPlaceholder": "regex with a (capture group)",
+      "invalidRegex": "△ invalid regex — still typing?",
+      "multi": "One regex, {n} named values — the groups below feed each.",
+      "valueName": "value name",
+      "grp": "grp",
+      "removeCapture": "remove capture",
+      "removeOutput": "remove output",
+      "addOutput": "+ add output"
+    },
+    "role": {
+      "review": "review",
+      "sourcesDisagree": "sources disagree",
+      "useThisValue": "Use this value",
+      "ifMissing": "If missing, try…",
+      "mustAgree": "Must agree — flag for review if present sources disagree",
+      "disagree": "△ disagree"
+    },
+    "custom": {
+      "fieldName": "field name (e.g. consumption)",
+      "removeField": "remove field",
+      "sourceValue": "Source value",
+      "type": "Type",
+      "types": {
+        "money": "money",
+        "number": "number",
+        "date": "date",
+        "string": "string",
+        "quantity": "quantity"
+      },
+      "unit": "Unit",
+      "onlyWhen": "Only when (optional)"
+    },
+    "derive": {
+      "kinds": {
+        "fallback": "Fallback — first that exists",
+        "math": "Math — an expression",
+        "dateParts": "Date from parts",
+        "datePart": "Pick part of a date",
+        "constWhen": "Constant when present"
+      },
+      "mathPlaceholder": "e.g. kwh / periodMonths",
+      "references": "References: ",
+      "noValuesAbove": "no values above yet",
+      "valueName": "value name",
+      "computedValue": "computed value",
+      "moveUp": "move up",
+      "moveDown": "move down",
+      "remove": "remove",
+      "year": "Year",
+      "month": "Month",
+      "yearPlaceholder": "year value",
+      "monthPlaceholder": "month value",
+      "day": "Day",
+      "plusMonths": "± months",
+      "dateValue": "Date value",
+      "dateValuePlaceholder": "a date value",
+      "take": "Take",
+      "parts": {
+        "year": "year",
+        "month": "month",
+        "day": "day"
+      },
+      "use": "use",
+      "when": "when",
+      "valueExists": "value exists",
+      "exists": "exists"
+    }
+  },
+  "parsers": {
+    "eyebrow": "Parsers",
+    "title": "Parser library",
+    "backToProfile": "← Profile",
+    "active": "Active parsers",
+    "reparseBtn": "Reparse my bills",
+    "activeHelp": "Which parser currently handles your bills, per vendor. Forking a parser makes your copy win automatically — reparse to apply it to bills you already have.",
+    "noneActive": "No parsers active yet — adopt or build one below.",
+    "yourParser": "your parser",
+    "official": "official",
+    "community": "community",
+    "noParser": "no parser",
+    "shadows": "shadows the adopted copy",
+    "noneWontReparse": "these bills won't reparse until you run a matching parser",
+    "billOne": "{n} bill",
+    "billOther": "{n} bills",
+    "yourParsers": "Your parsers",
+    "yourParsersHelp": "Parsers you own. Editing affects only your bills until you publish a version others can adopt.",
+    "noneYetOwn": "None yet — fork an official parser below, or build one from a bill.",
+    "unpublished": "Unpublished",
+    "unpublishedChanges": "Unpublished changes",
+    "publishedV": "Published v{n}",
+    "edit": "Edit",
+    "publish": "Publish",
+    "confirmDelete": "Delete parser \"{name}\"? This can't be undone.",
+    "adopted": "Adopted parsers",
+    "adoptedHelp": "Published parsers you run. Fork one to customize it for your own bills.",
+    "noneAdopted": "None adopted.",
+    "updateToV": "Update to v{n}",
+    "fork": "Fork",
+    "remove": "Remove",
+    "browse": "Browse registry",
+    "browseHelp": "Published parsers from other users. Adopt one to detect its vendor.",
+    "nothingNew": "Nothing new to adopt.",
+    "adopt": "Adopt",
+    "toastParserDeleted": "Parser deleted",
+    "toastPublished": "Published v{n}",
+    "toastUpdatedTo": "Updated to v{n}",
+    "toastAdopted": "Adopted {name}",
+    "toastRemoved": "Removed",
+    "reparsedOne": "{label} · reparsed {n} bill",
+    "reparsedOther": "{label} · reparsed {n} bills",
+    "reparsedStandalone": "Reparsed {updated} of {scanned} bills"
+  },
+  "app": {
+    "navProfile": "Profile",
+    "propertyAll": "All",
+    "propertyLabel": "Property",
+    "menuOpen": "Open menu",
+    "menuClose": "Close menu",
+    "loading": "Reading the fine print…"
+  },
+  "login": {
+    "tagline": "Drop a bill, get a ledger. Your utilities — quietly accounted for, and yours alone.",
+    "google": "Continue with Google",
+    "emailButton": "Sign in with email",
+    "privacyNote": "Bills are scoped to your account. Parsed text and PDFs are private to you.",
+    "emailPrompt": "Enter your email and we'll send you a 6-digit code to sign in.",
+    "emailPlaceholder": "you@example.com",
+    "sending": "Sending…",
+    "sendCode": "Send code",
+    "otherWays": "Other ways to sign in",
+    "codeSentPrefix": "We sent a code to ",
+    "codeSentSuffix": ". Enter it below — it expires in 10 minutes.",
+    "verifying": "Verifying…",
+    "signIn": "Sign in",
+    "differentEmail": "Use a different email",
+    "errorInvalidCode": "That code is invalid or has expired.",
+    "errorSendCode": "Couldn't send a code. Check the address and try again.",
+    "back": "← Back"
+  },
+  "legal": {
+    "lastUpdated": "Last updated",
+    "privacy": {
+      "eyebrow": "Privacy",
+      "title": "Your bills, kept to yourself",
+      "intro": "What Factura collects, why, where it's stored, and how to take it back. Plain language, no surprises.",
+      "updated": "June 2026",
+      "sections": [
+        {
+          "id": "overview",
+          "heading": "The short version",
+          "body": "<p>Factura is a bill ledger: you upload utility-bill PDFs and it keeps a private, per-property history of your spending. This page explains what data that involves, where it lives, and how to remove it.</p><p>The guiding principle is restraint. Factura stores what it needs to show you your ledger and nothing more — there are no ads, no tracking profiles, and your bills are never sold or shared with anyone you haven't personally invited. Factura is <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">open source</a>, so you can read exactly how your data is handled, or run your own copy.</p>"
+        },
+        {
+          "id": "what-we-collect",
+          "heading": "What Factura stores",
+          "body": "<p>The data Factura keeps falls into a few groups:</p><ul class=\"bullets\"><li><strong>Account</strong> — your email address, and (if you sign in with Google) your name and avatar. That's the whole identity we hold. There is no password — see <a href=\"/security#authentication\">Security</a>.</li><li><strong>Bills</strong> — the PDFs you upload, the text extracted from them, and the fields parsed out (vendor, amount, billing period, due date, and any meter readings or consumption figures). The original file is kept so a bill can be re-parsed later.</li><li><strong>Properties &amp; vendors</strong> — the property nicknames and address variants you enter, and the vendor accounts your bills are filed under.</li><li><strong>Parser samples</strong> — if you build a custom parser, the sample bill text you attach to it is saved (scoped to your account only) so the parser can be re-tested when you edit it.</li><li><strong>Technical</strong> — a session cookie to keep you signed in, and ordinary server logs. Factura sets no advertising or cross-site tracking cookies.</li></ul>"
+        },
+        {
+          "id": "how-we-use-it",
+          "heading": "How it's used",
+          "body": "<p>Your data is used only to run the product you asked for:</p><ul class=\"bullets\"><li>Parsing your bills and keeping your ledger, totals and insights up to date.</li><li>Estimating a USD value alongside the peso amount, using a public exchange-rate feed.</li><li>Sending transactional email — a sign-in code, a one-time welcome, and a notification when someone shares a property with you.</li></ul><p>Factura does not profile you, run behavioural analytics, or use your bill contents for anything beyond showing them back to you.</p>"
+        },
+        {
+          "id": "storage",
+          "heading": "Where it lives",
+          "body": "<p>A bill's text is extracted in your browser; that text and the original PDF are then sent to Factura, parsed, and stored. Structured data (your account, bills, properties and parsed fields) lives in a managed <strong>PostgreSQL</strong> database. Original PDFs are kept in <strong>S3-compatible object storage</strong>, encrypted at rest by the storage provider and stored under keys namespaced to your account.</p><p>Files are never served from a public URL — the “View PDF” link generates a short-lived, signed link each time, so access always passes through an authorization check. The USD “blue” rate comes from a public Argentine exchange-rate API; no personal data is sent to it.</p>"
+        },
+        {
+          "id": "third-parties",
+          "heading": "Third parties",
+          "body": "<p>Factura relies on a small set of infrastructure providers to operate. They process data on Factura's behalf and only to deliver their part of the service:</p><ul class=\"bullets\"><li><strong>Google</strong> — optional sign-in (OAuth). Used only if you choose “Continue with Google”.</li><li><strong>Resend</strong> — delivery of transactional email (sign-in codes, welcome, share invites).</li><li><strong>Object-storage &amp; hosting providers</strong> — store your PDFs and run the application and database.</li><li><strong>argentinadatos.com</strong> — the public exchange-rate feed; receives no personal data.</li></ul><p>The exact providers depend on the deployment — if you self-host, you choose them yourself.</p>"
+        },
+        {
+          "id": "sharing",
+          "heading": "Sharing a property",
+          "body": "<p>A property can have more than one member. When you invite someone by email, that invitation reveals the property's nickname to them and lets them accept or decline. Once they join, they can see the ledger for <strong>that property only</strong> — never your other properties.</p><p>Members can leave, and owners can remove members or revoke pending invites, at any time.</p>"
+        },
+        {
+          "id": "retention",
+          "heading": "Keeping & deleting data",
+          "body": "<p>Your data stays until you remove it, and removal is real:</p><ul class=\"bullets\"><li><strong>Delete a bill</strong> — removes its ledger entry and its stored PDF together. No hidden copy is kept.</li><li><strong>Delete a property</strong> — tears down its bills, vendors, accounts and stored files in one go.</li><li><strong>Delete your account</strong> — contact us (below) and we will remove your account and associated data.</li></ul><p>Backups and logs may persist for a short, rolling window before they age out.</p>"
+        },
+        {
+          "id": "your-rights",
+          "heading": "Your choices",
+          "body": "<p>Your bills are yours. You can view and edit them, export the underlying PDFs at any time, and delete any bill, property, or your whole account. For access or deletion requests we can't already do from the app, reach out and we'll help.</p>"
+        },
+        {
+          "id": "children",
+          "heading": "Children",
+          "body": "<p>Factura is a tool for managing household bills and is not directed at children. Don't use it if you are under the age of digital consent in your country.</p>"
+        },
+        {
+          "id": "changes",
+          "heading": "Changes & contact",
+          "body": "<p>If this policy changes materially, the “last updated” date above will change and significant updates will be noted in the project history. Continued use after a change means you accept the revised policy.</p><p>Questions about your data? Email <a href=\"mailto:privacy@factura.uno\">privacy@factura.uno</a>, or open an issue on <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">GitHub</a>. For anything security-related, see the <a href=\"/security\">Security</a> page.</p>"
+        }
+      ]
+    },
+    "security": {
+      "eyebrow": "Security",
+      "title": "Built to keep your ledger private",
+      "intro": "Passwordless sign-in, strict per-account isolation, encrypted storage with signed access, and a clear path to report issues.",
+      "updated": "June 2026",
+      "sections": [
+        {
+          "id": "overview",
+          "heading": "Our approach",
+          "body": "<p>Factura holds something personal — a record of your household bills — so it's built to keep that record private by default. This page describes the measures in place and how to report a problem.</p><p>Because Factura is <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">open source</a>, these claims are verifiable: the authentication, authorization and storage code is all public. For how data is collected and used, see <a href=\"/privacy\">Privacy</a>.</p>"
+        },
+        {
+          "id": "authentication",
+          "heading": "Authentication",
+          "body": "<p>Sign-in is <strong>passwordless</strong>. Factura never stores a password, so there isn't one to leak. You sign in one of two ways:</p><ul class=\"bullets\"><li><strong>Google</strong> — standard OAuth; Factura never sees your Google password.</li><li><strong>Email code</strong> — a single-use six-digit code, valid for ten minutes, generated with a cryptographic random source and consumed on first use.</li></ul><p>Sessions are server-side and tracked in the database, carried in an <strong>http-only</strong> cookie that JavaScript can't read. Signing in by email links to the same account as Google when the address matches, so you never end up with split data.</p>"
+        },
+        {
+          "id": "authorization",
+          "heading": "Data isolation",
+          "body": "<p>Every request is scoped to the signed-in user on the server. Access to a property is governed by a single source of truth — its membership list — and each API call re-checks it; nothing relies on the UI to hide data it shouldn't fetch.</p><p>The practical effect: you can only ever read or change bills, properties and vendors you own or have been explicitly invited to. An unfiled upload is visible only to the person who uploaded it.</p>"
+        },
+        {
+          "id": "storage",
+          "heading": "Stored files",
+          "body": "<p>Original PDFs live in S3-compatible object storage, encrypted at rest by the provider and stored under keys namespaced per account. The bucket is never public.</p><p>When you open a PDF, Factura mints a <strong>short-lived signed URL</strong> for that single file after checking you're allowed to see it — so access is always time-boxed and authorized, never a guessable public link. Deleting a bill deletes its stored object.</p>"
+        },
+        {
+          "id": "transit",
+          "heading": "Data in transit",
+          "body": "<p>All traffic — the app, the API, transactional email links, and the signed storage URLs — is served over <strong>HTTPS/TLS</strong>. Bill text is extracted in your browser and sent over that encrypted connection for parsing and storage.</p>"
+        },
+        {
+          "id": "infrastructure",
+          "heading": "Infrastructure & dependencies",
+          "body": "<p>Secrets (database, storage and email credentials) are supplied through environment variables and are never committed to the repository. The database and object storage are managed services.</p><p>Factura is built on well-maintained, widely-audited open-source libraries, and dependencies are kept current to take in upstream security fixes.</p>"
+        },
+        {
+          "id": "your-part",
+          "heading": "Your part",
+          "body": "<p>Since sign-in flows through your email, the security of your inbox and your Google account is the front door to your ledger. Protect those — enable two-factor authentication on them — and sign out on shared devices.</p>"
+        },
+        {
+          "id": "reporting",
+          "heading": "Reporting a vulnerability",
+          "body": "<p>Found a security issue? Please report it privately and give us a chance to fix it before any public disclosure. We welcome and appreciate good-faith reports.</p><ul class=\"bullets\"><li>Email <a href=\"mailto:security@factura.uno\">security@factura.uno</a>, or open a private <a href=\"https://github.com/irondsd/factura/security/advisories/new\" target=\"_blank\" rel=\"noreferrer\">GitHub security advisory</a>.</li><li>Include steps to reproduce, the impact, and anything we need to confirm it.</li><li>Please don't run tests that degrade the service, access other people's data, or exfiltrate data beyond what's needed to prove the issue.</li></ul><p>We'll acknowledge your report, keep you posted on the fix, and credit you if you'd like.</p>"
+        },
+        {
+          "id": "disclaimer",
+          "heading": "Honest limits",
+          "body": "<p>No system is perfectly secure, and Factura is provided as open-source software without warranty. We aim for sensible, verifiable protections and continual improvement — and if you need full control, you can <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">self-host</a> the whole thing.</p>"
+        }
+      ]
+    }
+  },
+  "docs": {
+    "tocEyebrow": "Documentation",
+    "prev": "‹ Previous",
+    "next": "Next ›",
+    "items": [
+      {
+        "id": "welcome",
+        "group": "Getting started",
+        "title": "Welcome to Factura",
+        "lede": "Factura turns a stack of utility-bill PDFs into a calm, running ledger. Drop a bill, and the amount, period and meter reading file themselves under the right property and vendor.",
+        "body": "<p>There is no spreadsheet to keep and no folder to organise. When the next bill arrives, you drag it in — Factura does the reconciling and remembers the rest.</p><h2>What you get</h2><ul><li>Totals per property and per month, in pesos with a USD blue-rate estimate alongside.</li><li>Missing-bill detection, so a late invoice never quietly slips by.</li><li>Per-vendor history and insights that show where the money goes over time.</li></ul><div class=\"callout\"><span class=\"callout-label\">△ Good to know</span><p>Factura keeps the original PDF stored securely — you can re-parse it any time a parser improves.</p></div><p class=\"muted\">New here? Start with <code>Drop your first bill</code> on the next page.</p>"
+      },
+      {
+        "id": "first-bill",
+        "group": "Getting started",
+        "title": "Drop your first bill",
+        "lede": "Adding a bill is a drag-and-drop, not a form. Here is the whole flow, start to finish.",
+        "body": "<h2>Drag, drop, done</h2><ul><li>Drag any utility-bill PDF anywhere onto the page.</li><li>Factura reads the text inside it and finds the amount, period, due date and meter reading.</li><li>Confirm the property the first time an account appears — you are only asked once.</li></ul><figure class=\"example\"><figcaption>Extracted · edesur-junio.pdf</figcaption><pre class=\"ruled\">EDESUR S.A.\nPeríodo de facturación: 06/2026\nTotal a pagar: $ 25.253,37\nConsumo: 312 kWh\nVencimiento: 18/07/2026</pre></figure><p>From there the bill lands in your ledger under the matching property and vendor. The next month's invoice will recognise the account on its own and file itself.</p><div class=\"callout\"><span class=\"callout-label\">△ If a parser is unsure</span><p>When a value can't be read with confidence, the bill is marked <code>needs review</code> instead of guessing. You set the value by hand once — and because the PDF is stored, it can be re-parsed later when the parser is sharpened.</p></div><p class=\"muted\">No parser for your vendor yet? See <a href=\"#build-parser\">Build a parser</a>.</p>"
+      },
+      {
+        "id": "properties",
+        "group": "Concepts",
+        "title": "Properties & accounts",
+        "lede": "Properties are your homes; accounts tie a vendor's account number to a property so bills route themselves.",
+        "body": "<p>A <code>property</code> is a home you track — an apartment or house, with its own ledger and monthly totals. Each bill belongs to a property through the <code>account</code> printed on it (the supply or client number the vendor bills against).</p><h2>How routing works</h2><ul><li>The first time a new account appears, you confirm which property it belongs to.</li><li>After that, every future bill on that account files itself — no prompt, no sorting.</li><li>One property can hold many accounts: electricity, gas, internet and building expenses all under the same roof.</li></ul><h2>More than one home</h2><p>You can own up to three properties on a free account, each kept fully separate in totals and insights. Switch between them from the property selector at the top of the app.</p><h2>Sharing a home</h2><p>A property can have more than one member. Invite a flatmate or partner and you both see the same ledger for that home; a shared property does not count against the owner's limit. Members can leave, and the owner can remove members, at any time.</p>"
+      },
+      {
+        "id": "vendors",
+        "group": "Concepts",
+        "title": "Vendors & parsers",
+        "lede": "A vendor is a biller — Edesur, MetroGAS, Telecom, Expensas. Each has a parser that knows how to read its layout.",
+        "body": "<p>A <code>parser</code> is a small, vendor-specific reader that locates the amount, billing period, due date and consumption inside one bill format. Edesur (electricity), MetroGAS (gas), Telecom / Personal (internet & phone) and a couple of Expensas formats come ready out of the box.</p><h2>What a vendor carries</h2><ul><li>A display name and a colour, used consistently across the ledger and every chart.</li><li>One or more parsers that recognise its bills and read them.</li><li>A history you can filter to, to watch that one biller month over month.</li></ul><p>Parsers are plain configuration rather than code baked into the app, so nothing ties them to a specific company or country. When a vendor you use isn't covered yet, you add it yourself.</p><div class=\"callout\"><span class=\"callout-label\">△ Next</span><p>Adding your own vendor takes a few minutes in the visual builder — see <a href=\"#build-parser\">Build a parser</a>.</p></div>"
+      },
+      {
+        "id": "build-parser",
+        "group": "Concepts",
+        "title": "Build a parser",
+        "lede": "The parser builder lets you teach Factura a new bill layout — visually, with a live preview and no code.",
+        "body": "<p>Open the builder, drop a sample bill on the left, and build the parser on the right. Every value you define is highlighted on the bill text as you go, and a live preview shows the parsed result. It comes together in two steps.</p><h2>1 · Recognise the bill</h2><ul><li>Add one or more <em>signatures</em> — short patterns that uniquely identify this vendor and must all appear in the text.</li><li>Optionally add exclusions: patterns that must <em>not</em> appear, which lets you split one vendor across two formats.</li><li>Factura checks that the signature matches the sample and <em>doesn't collide</em> with your other bills before it lets you continue.</li></ul><h2>2 · Extract the data</h2><ul><li><b>Capture</b> values off the bill with a pattern — a small regex toolkit helps you point at the right text.</li><li><b>Derive</b> new values by computing from the ones above (dates, totals, conversions).</li><li>Fill the four <b>roles</b> every bill needs: vendor identity, amount, period and due date, each with fallbacks for bills that print them differently.</li><li>Add <b>custom fields</b> for anything else worth keeping — a meter reading or consumption in <code>kWh</code> or <code>m³</code> — which then show up in insights.</li></ul><h2>Save & re-parse</h2><p>Saving the parser re-runs it across your existing bills from that vendor, so older entries pick up the same reading. You can store a bill as a regression sample to guard the parser as you refine it, and drop into an advanced JSON mode when you need the raw definition.</p><div class=\"callout\"><span class=\"callout-label\">△ Good to know</span><p>Because parsers are configuration, an improved parser can re-read every stored PDF — you never have to find and re-upload an old bill.</p></div>"
+      },
+      {
+        "id": "blue-rate",
+        "group": "Concepts",
+        "title": "ARS & the blue rate",
+        "lede": "Amounts are stored in pesos. A USD “blue” estimate rides alongside so figures stay legible over time.",
+        "body": "<p>Every total shows its peso value and an approximate dollar figure, marked with <code>≈</code> — for example <code>$ 25.253,37 · ≈ US$ 16,51</code>. Storing pesos keeps the record faithful to the bill; the dollar estimate keeps a year of figures comparable through inflation.</p><h2>How to read it</h2><ul><li>The peso amount is exactly what the bill says, to the cent.</li><li>The <code>≈</code> dollar figure is an estimate at the blue rate, not an accounting record.</li><li>In insights you can switch the whole view between ARS and USD to see spend either way.</li></ul>"
+      },
+      {
+        "id": "insights",
+        "group": "Reference",
+        "title": "Insights",
+        "lede": "Stacked spend, vendor share, per-vendor trend, and an inflation lens — pesos vs. the dollar cost.",
+        "body": "<p>The insights view turns the ledger into a picture of where the money goes. Pick a property, choose a 12- or 24-month window, and read spend as totals or per vendor.</p><h2>What's there</h2><ul><li><b>Stacked spend</b> — each month broken down by vendor, so the mix is visible at a glance.</li><li><b>Vendor share</b> — which billers take the biggest slice over the window.</li><li><b>Per-vendor trend</b> — filter to one vendor and watch it month over month, with the change marked.</li><li><b>Inflation lens</b> — the same spend in pesos and in dollars, side by side, so real movement separates from inflation.</li></ul><div class=\"callout\"><span class=\"callout-label\">△ Awaiting</span><p>When a vendor that usually bills is late for the month, insights mark it <span class=\"accent\">△ awaiting</span> rather than reading it as a drop to zero.</p></div>"
+      },
+      {
+        "id": "privacy",
+        "group": "Reference",
+        "title": "Privacy & storage",
+        "lede": "Your bills are scoped to your account. Parsing is mostly local; the PDF is then stored securely.",
+        "body": "<p>Most parsing happens right in your browser — the PDF's text is read on your device. The original file is then kept in secure storage so it can be re-parsed later when a parser gets smarter, which is useful when a vendor changes a layout.</p><ul><li>Bills are private to your account and anyone you invite.</li><li>Stored PDFs are encrypted at rest and re-parsable on demand.</li><li>You can delete a bill and its stored file at any time.</li></ul><p class=\"muted\">Factura is open source under the MIT license — read the code or run your own copy from <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">GitHub</a>.</p>"
+      }
+    ]
+  },
+  "faq": {
+    "eyebrow": "Help",
+    "title": "Questions & answers",
+    "intro": "The short version of how Factura works. Can't find it here? The docs go deeper.",
+    "sections": [
+      {
+        "label": "Getting started",
+        "items": [
+          {
+            "q": "What does Factura actually do?",
+            "a": "You drop a utility-bill PDF and Factura reads the amount, period and meter reading, then files it into a running ledger per property and month. No spreadsheet, no manual entry."
+          },
+          {
+            "q": "Which bills can I add?",
+            "a": "Edesur, MetroGAS, Personal and Expensas come ready out of the box. Any other vendor can be added too — you teach Factura the layout once in the parser builder and it handles every future bill."
+          },
+          {
+            "q": "How do I add a bill?",
+            "a": "Drag the PDF anywhere onto the page. The first time an account appears, you'll confirm which property it belongs to — after that, every future bill files itself. See <a href=\"/docs#first-bill\">Drop your first bill</a>."
+          },
+          {
+            "q": "What kind of PDF works?",
+            "a": "A real, text-based PDF — the kind your vendor emails or you download from their portal. Factura reads the text inside it, so a photo or a flat scan with no selectable text won't parse. If a file has no readable text, you'll be told rather than left guessing."
+          }
+        ]
+      },
+      {
+        "label": "Parsers & vendors",
+        "items": [
+          {
+            "q": "What if my vendor isn't supported?",
+            "a": "You can add it yourself — this is the heart of Factura. Parsers are plain configuration, not code baked into the app, so nothing ties them to a specific company or country. Open the parser builder, drop a sample bill, and define how to recognize the vendor and where the amount, period, due date and meter reading sit. Save it and every future bill from that vendor files itself."
+          },
+          {
+            "q": "Do I need to know how to code?",
+            "a": "No. The builder is visual: you drop a sample bill on one side and build the parser on the other, with each value highlighted on the page as you go and a live preview of the parsed result. A small regex toolkit helps you point at the right text. It checks that your parser matches this bill and doesn't collide with your other vendors before you save."
+          },
+          {
+            "q": "Can I track more than the amount?",
+            "a": "Yes. Beyond the four core fields — vendor, amount, period and due date — you can capture custom fields like a meter reading or consumption in m³ or kWh. Those ride along on the bill and show up in insights, so you can watch usage, not just cost, over time."
+          },
+          {
+            "q": "What happens when a parser gets better?",
+            "a": "Because the original PDF is kept in storage, Factura can re-read it with the improved parser — no need to find and re-upload anything. Saving a parser re-parses your existing bills from that vendor in place, so old entries get the fix too."
+          }
+        ]
+      },
+      {
+        "label": "Privacy & storage",
+        "items": [
+          {
+            "q": "Where are my PDFs stored?",
+            "a": "Most parsing happens locally in your browser. The original PDF is then kept in secure storage so it can be re-parsed later — handy when a vendor changes a layout. Your bills are scoped to your account."
+          },
+          {
+            "q": "Can I delete a bill?",
+            "a": "Yes — deleting a bill removes its ledger entry and its stored file. There's no hidden copy left behind."
+          },
+          {
+            "q": "Who can see my ledger?",
+            "a": "Only you — and anyone you explicitly invite to a property. Bills are private to your account, and stored files are encrypted at rest."
+          },
+          {
+            "q": "Can I share a home with someone else?",
+            "a": "Yes. A property can have more than one member — invite a flatmate or partner and you both see the same ledger for that home. You can keep several properties under one account, each with its own bills and totals, and leave or remove members at any time."
+          }
+        ]
+      },
+      {
+        "label": "Money & numbers",
+        "items": [
+          {
+            "q": "Why do I see both pesos and dollars?",
+            "a": "Amounts are stored in ARS, with an approximate USD “blue” estimate alongside (marked <code>≈</code>) so figures stay legible across months of inflation. The rate is an estimate, not an accounting record."
+          },
+          {
+            "q": "What happens if a bill is missing?",
+            "a": "Factura knows what usually arrives. When a vendor is late for the month, you'll see <span class=\"accent\">△ awaiting</span> in the summary — not a silent gap."
+          }
+        ]
+      },
+      {
+        "label": "About Factura",
+        "items": [
+          {
+            "q": "Is Factura open source?",
+            "a": "Yes — Factura is open source under the MIT license. You can read the code, file an issue, or run your own copy. It lives on <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">GitHub</a>."
+          }
+        ]
+      }
+    ],
+    "ctaTitle": "Still have a question?",
+    "ctaBody": "The docs cover the rest — or just start your ledger and see.",
+    "ctaButton": "Get started"
+  },
+  "profile": {
+    "eyebrow": "Profile",
+    "title": "Your setup",
+    "you": "You",
+    "viaGoogle": "via Google",
+    "signOut": "Sign out",
+    "properties": {
+      "eyebrow": "properties",
+      "help": "Your properties hold their bills, vendors and accounts. Invite a partner or flatmate so they can see and add bills too.",
+      "manage": "Manage properties →"
+    },
+    "parsers": {
+      "eyebrow": "Parsers",
+      "help": "Parsers turn bill PDFs into structured data. Manage your own, publish them, or adopt others' — most people never need to touch this.",
+      "manage": "Manage parsers →"
+    },
+    "language": {
+      "eyebrow": "Language",
+      "help": "This is the English version. You can switch languages at any time."
+    }
+  }
+}

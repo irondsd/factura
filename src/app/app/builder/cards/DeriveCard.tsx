@@ -1,6 +1,7 @@
 "use client";
 
 import { Input, Select, hint, microLabel } from "@/components/ui";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { ValueRec } from "@/parsers/builder/evaluate";
 import type { BuilderDerive, DeriveKind } from "@/parsers/builder/model";
 import { cn } from "@/lib/cn";
@@ -14,12 +15,12 @@ import {
   arrowBtn,
 } from "./shared";
 
-const DERIVE_KINDS: { value: DeriveKind; label: string }[] = [
-  { value: "fallback", label: "Fallback — first that exists" },
-  { value: "math", label: "Math — an expression" },
-  { value: "dateParts", label: "Date from parts" },
-  { value: "datePart", label: "Pick part of a date" },
-  { value: "constWhen", label: "Constant when present" },
+const DERIVE_KIND_VALUES: DeriveKind[] = [
+  "fallback",
+  "math",
+  "dateParts",
+  "datePart",
+  "constWhen",
 ];
 
 function MathField({
@@ -33,6 +34,8 @@ function MathField({
   rec?: ValueRec;
   onChange: (e: string) => void;
 }) {
+  const { t } = useI18n();
+  const td = t.builder.derive;
   const names = options.map((o) => o.name);
   return (
     <div>
@@ -48,7 +51,7 @@ function MathField({
           onChange={(e) => onChange(e.target.value)}
           list="pb-value-names"
           spellCheck={false}
-          placeholder="e.g. kwh / periodMonths"
+          placeholder={td.mathPlaceholder}
           className="flex-1 border-none bg-transparent outline-none font-mono text-[13px] text-ink"
         />
       </div>
@@ -61,10 +64,10 @@ function MathField({
         <p className={cn(hint, "text-accent mt-1.5")}>△ {rec.error}</p>
       ) : (
         <p className={cn(hint, "mt-1.5")}>
-          References:{" "}
+          {td.references}
           {names.length
             ? names.slice(0, 6).join(" · ") + (names.length > 6 ? " …" : "")
-            : "no values above yet"}
+            : td.noValuesAbove}
         </p>
       )}
     </div>
@@ -123,6 +126,8 @@ export function DeriveCard({
   moveUp: () => void;
   moveDown: () => void;
 }) {
+  const { t } = useI18n();
+  const td = t.builder.derive;
   const rec = recOf(der.name);
   return (
     <CardShell
@@ -132,12 +137,12 @@ export function DeriveCard({
       onMouseLeave={() => onPreview(null)}
     >
       <div className="flex items-center gap-2 mb-2.5">
-        <span className="text-accent text-xs flex-none" title="computed value">
+        <span className="text-accent text-xs flex-none" title={td.computedValue}>
           ≈
         </span>
         <Input
           value={der.name}
-          placeholder="value name"
+          placeholder={td.valueName}
           className="text-xs font-semibold max-w-[170px]"
           onChange={(e) => onChange({ ...der, name: e.target.value })}
         />
@@ -148,9 +153,9 @@ export function DeriveCard({
             onChange({ ...der, kind: e.target.value as DeriveKind })
           }
         >
-          {DERIVE_KINDS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
+          {DERIVE_KIND_VALUES.map((k) => (
+            <option key={k} value={k}>
+              {td.kinds[k]}
             </option>
           ))}
         </Select>
@@ -159,7 +164,7 @@ export function DeriveCard({
           <button
             type="button"
             onClick={moveUp}
-            title="move up"
+            title={td.moveUp}
             className={arrowBtn}
           >
             ▲
@@ -167,12 +172,12 @@ export function DeriveCard({
           <button
             type="button"
             onClick={moveDown}
-            title="move down"
+            title={td.moveDown}
             className={arrowBtn}
           >
             ▼
           </button>
-          <XBtn onClick={onRemove} title="remove" />
+          <XBtn onClick={onRemove} title={td.remove} />
         </span>
       </div>
 
@@ -195,23 +200,23 @@ export function DeriveCard({
       {der.kind === "dateParts" && (
         <div className="flex flex-wrap gap-3.5 items-end">
           <DerivePicker
-            label="Year"
+            label={td.year}
             value={der.yearRef ?? ""}
             options={options}
             onPreview={onPreview}
             onChange={(v) => onChange({ ...der, yearRef: v })}
-            placeholder="year value"
+            placeholder={td.yearPlaceholder}
           />
           <DerivePicker
-            label="Month"
+            label={td.month}
             value={der.monthRef ?? ""}
             options={options}
             onPreview={onPreview}
             onChange={(v) => onChange({ ...der, monthRef: v })}
-            placeholder="month value"
+            placeholder={td.monthPlaceholder}
           />
           <label className="flex flex-col gap-1.5 w-16">
-            <span className={microLabel}>Day</span>
+            <span className={microLabel}>{td.day}</span>
             <Input
               value={String(der.day ?? 1)}
               className="text-center"
@@ -221,7 +226,7 @@ export function DeriveCard({
             />
           </label>
           <label className="flex flex-col gap-1.5 w-[74px]">
-            <span className={microLabel}>± months</span>
+            <span className={microLabel}>{td.plusMonths}</span>
             <Input
               type="number"
               value={String(der.shift ?? 0)}
@@ -240,16 +245,16 @@ export function DeriveCard({
         <div className="flex flex-wrap gap-3.5 items-end">
           <div className="min-w-[180px] flex-1">
             <DerivePicker
-              label="Date value"
+              label={td.dateValue}
               value={der.dateRef ?? ""}
               options={options}
               onPreview={onPreview}
               onChange={(v) => onChange({ ...der, dateRef: v })}
-              placeholder="a date value"
+              placeholder={td.dateValuePlaceholder}
             />
           </div>
           <label className="flex flex-col gap-1.5 w-[110px]">
-            <span className={microLabel}>Take</span>
+            <span className={microLabel}>{td.take}</span>
             <Select
               value={der.part ?? "year"}
               onChange={(e) =>
@@ -259,16 +264,16 @@ export function DeriveCard({
                 })
               }
             >
-              <option value="year">year</option>
-              <option value="month">month</option>
-              <option value="day">day</option>
+              <option value="year">{td.parts.year}</option>
+              <option value="month">{td.parts.month}</option>
+              <option value="day">{td.parts.day}</option>
             </Select>
           </label>
         </div>
       )}
       {der.kind === "constWhen" && (
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="font-mono text-xs text-muted">use</span>
+          <span className="font-mono text-xs text-muted">{td.use}</span>
           <Input
             value={String(der.constValue ?? "")}
             className="w-[70px]! text-center text-[13px]"
@@ -276,16 +281,16 @@ export function DeriveCard({
               onChange({ ...der, constValue: Number(e.target.value) })
             }
           />
-          <span className="font-mono text-xs text-muted">when</span>
+          <span className="font-mono text-xs text-muted">{td.when}</span>
           <ValuePicker
             value={der.whenRef ?? ""}
             options={options}
             variant="B"
             onPreview={onPreview}
-            placeholder="value exists"
+            placeholder={td.valueExists}
             onChange={(v) => onChange({ ...der, whenRef: v })}
           />
-          <span className="font-mono text-xs text-muted">exists</span>
+          <span className="font-mono text-xs text-muted">{td.exists}</span>
         </div>
       )}
     </CardShell>

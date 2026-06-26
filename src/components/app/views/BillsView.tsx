@@ -3,6 +3,8 @@
 import { type ComponentType, useMemo, useState } from "react";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Badge, FilterPill, Select } from "@/components/ui";
+import { interpolate } from "@/i18n/config";
+import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatARS, formatMonthShort, formatUSD } from "@/lib/format";
 import { useToast } from "@/lib/toast";
@@ -43,6 +45,8 @@ export function BillsView({
   propertyId?: string;
 }) {
   const { showToast } = useToast();
+  const { t, locale } = useI18n();
+  const tb = t.bills;
   // The bill-editor drawer is local to this screen — it's the only place bills
   // are opened from.
   const [openBillId, setOpenBillId] = useState<string | null>(null);
@@ -82,7 +86,7 @@ export function BillsView({
     [vendors],
   );
   const vendorName = (id: string | null) =>
-    id ? (vendorById.get(id)?.displayName ?? "—") : "unrecognized";
+    id ? (vendorById.get(id)?.displayName ?? "—") : t.common.unrecognized;
   const propName = (id: string | null) =>
     (properties ?? []).find((p) => p.id === id)?.nickname ?? "—";
 
@@ -94,15 +98,16 @@ export function BillsView({
   return (
     <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
       <Eyebrow>
-        Bills · {propertyId ? propName(propertyId) : "All properties"}
+        {t.nav.bills} ·{" "}
+        {propertyId ? propName(propertyId) : t.common.allProperties}
       </Eyebrow>
       <Display size={34} className="block mt-1.5">
-        The ledger
+        {tb.title}
       </Display>
 
       <div className="flex flex-wrap gap-1.5 mt-[18px] border-b border-line pb-3">
         <FilterPill
-          label="All vendors"
+          label={t.common.allVendors}
           active={vendorId === "all"}
           onClick={() => setVendorId("all")}
         />
@@ -121,11 +126,11 @@ export function BillsView({
         <table className="w-full min-w-[440px] border-collapse">
           <thead>
             <tr>
-              <th className="fd-th">Period</th>
-              <th className="fd-th">Vendor</th>
-              {!propertyId && <th className="fd-th">Property</th>}
-              <th className="fd-th text-right">Amount</th>
-              <th className="fd-th text-right">USD</th>
+              <th className="fd-th">{tb.thPeriod}</th>
+              <th className="fd-th">{tb.thVendor}</th>
+              {!propertyId && <th className="fd-th">{tb.thProperty}</th>}
+              <th className="fd-th text-right">{tb.thAmount}</th>
+              <th className="fd-th text-right">{tb.thUsd}</th>
               <th className="fd-th"></th>
             </tr>
           </thead>
@@ -142,7 +147,7 @@ export function BillsView({
                     className={cn("fd-td", review ? "text-accent" : "text-ink")}
                   >
                     {b.period
-                      ? `${formatMonthShort(b.period)} ${b.period.slice(0, 4)}`
+                      ? `${formatMonthShort(b.period, locale)} ${b.period.slice(0, 4)}`
                       : (b.fileName ?? "—")}
                   </td>
                   <td className="fd-td">
@@ -165,7 +170,7 @@ export function BillsView({
                   )}
                   <td className="fd-td text-right font-medium">
                     {review ? (
-                      <Badge>needs review</Badge>
+                      <Badge>{t.common.needsReview}</Badge>
                     ) : (
                       formatARS(b.totalAmount)
                     )}
@@ -180,7 +185,7 @@ export function BillsView({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="fd-td text-center text-muted py-7">
-                  No bills yet — drop a PDF anywhere.
+                  {tb.empty}
                 </td>
               </tr>
             )}
@@ -192,17 +197,21 @@ export function BillsView({
       <div className="flex items-center justify-between mt-[18px] gap-3 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
           <span className="font-mono text-micro uppercase tracking-[0.08em] text-muted">
-            {d?.total ?? 0} bills · page {safePage + 1} of {pageCount}
+            {interpolate(tb.summary, {
+              total: d?.total ?? 0,
+              page: safePage + 1,
+              pages: pageCount,
+            })}
           </span>
           <Select
-            aria-label="Bills per page"
+            aria-label={tb.perPageAria}
             value={perPage}
             onChange={(e) => setPerPage(Number(e.target.value))}
             className="py-1 px-2! text-micro leading-none"
           >
             {[10, 25, 50].map((n) => (
               <option key={n} value={n}>
-                {n} / page
+                {interpolate(tb.perPage, { n })}
               </option>
             ))}
           </Select>
@@ -212,9 +221,9 @@ export function BillsView({
           <PageBtn
             disabled={safePage === 0}
             onClick={() => setPage(safePage - 1)}
-            aria-label="Previous page"
+            aria-label={tb.prevAria}
           >
-            ‹<span className="hidden md:inline">Prev</span>
+            ‹<span className="hidden md:inline">{tb.prev}</span>
           </PageBtn>
           {pageWindow(safePage, pageCount).map((item, idx) => (
             <PageNum
@@ -227,9 +236,9 @@ export function BillsView({
           <PageBtn
             disabled={safePage >= pageCount - 1}
             onClick={() => setPage(safePage + 1)}
-            aria-label="Next page"
+            aria-label={tb.nextAria}
           >
-            <span className="hidden md:inline">Next</span>›
+            <span className="hidden md:inline">{tb.next}</span>›
           </PageBtn>
         </div>
       </div>

@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { Button, Input, hint } from "@/components/ui";
+import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 
 export type Sig = { pattern: string; flags: string };
@@ -18,11 +19,12 @@ export function SigRow({
   onChange: (s: Sig) => void;
   onRemove?: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex gap-1.5 mb-1.5">
       <Input
         value={sig.pattern}
-        placeholder="e.g. AGUAS ANDINAS"
+        placeholder={t.builder.parts.sigPlaceholder}
         onChange={(e) => onChange({ ...sig, pattern: e.target.value })}
       />
       <Input
@@ -41,6 +43,7 @@ export function SigRow({
 }
 
 export function DropZone({ onFiles }: { onFiles: (f: FileList) => void }) {
+  const { t } = useI18n();
   const [over, setOver] = useState(false);
   return (
     <div
@@ -59,7 +62,7 @@ export function DropZone({ onFiles }: { onFiles: (f: FileList) => void }) {
         over ? "border-accent" : "border-line",
       )}
     >
-      Drop another bill of this type to test against
+      {t.builder.parts.dropZone}
     </div>
   );
 }

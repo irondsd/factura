@@ -4,21 +4,25 @@ import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Avatar, Button } from "@/components/ui";
+import { useI18n } from "@/i18n/I18nProvider";
+import { LanguageSwitch } from "@/i18n/LanguageSwitch";
 
 export default function ProfilePage() {
   const router = useRouter();
   const { data: session } = useSession();
+  const { t } = useI18n();
+  const tp = t.profile;
 
   const user = session?.user;
-  const name = user?.name ?? user?.email ?? "You";
+  const name = user?.name ?? user?.email ?? tp.you;
 
   const help = "font-mono text-xs text-muted mb-3 max-w-[520px] leading-[1.6]";
 
   return (
     <div className="mx-auto max-w-[52rem] px-5 pt-8 pb-20">
-      <Eyebrow>Profile</Eyebrow>
+      <Eyebrow>{tp.eyebrow}</Eyebrow>
       <Display size={34} className="block mt-1.5">
-        Your setup
+        {tp.title}
       </Display>
 
       {/* account identity */}
@@ -30,36 +34,38 @@ export default function ProfilePage() {
           </p>
           <p className="font-mono text-xs text-muted mt-0.5">
             {user?.email}
-            {user?.email ? " · " : ""}via Google
+            {user?.email ? " · " : ""}
+            {tp.viaGoogle}
           </p>
         </div>
         <Button variant="outline" onClick={() => signOut({ callbackUrl: "/" })}>
-          Sign out
+          {tp.signOut}
         </Button>
       </div>
 
+      {/* language — Phase 1: simple switch to the opposite language */}
+      <h2 className="mt-10 mb-1">
+        <Eyebrow>{tp.language.eyebrow}</Eyebrow>
+      </h2>
+      <p className={help}>{tp.language.help}</p>
+      <LanguageSwitch />
+
       {/* properties — manage on the dedicated page */}
       <h2 className="mt-10 mb-1">
-        <Eyebrow>properties</Eyebrow>
+        <Eyebrow>{tp.properties.eyebrow}</Eyebrow>
       </h2>
-      <p className={help}>
-        Your properties hold their bills, vendors and accounts. Invite a partner
-        or flatmate so they can see and add bills too.
-      </p>
+      <p className={help}>{tp.properties.help}</p>
       <Button variant="outline" onClick={() => router.push("/app/properties")}>
-        Manage properties →
+        {tp.properties.manage}
       </Button>
 
       {/* parsers — link out to the dedicated library (power-user surface) */}
       <h2 className="mt-10 mb-1">
-        <Eyebrow>Parsers</Eyebrow>
+        <Eyebrow>{tp.parsers.eyebrow}</Eyebrow>
       </h2>
-      <p className={help}>
-        Parsers turn bill PDFs into structured data. Manage your own, publish
-        them, or adopt others&apos; — most people never need to touch this.
-      </p>
+      <p className={help}>{tp.parsers.help}</p>
       <Button variant="outline" onClick={() => router.push("/app/parsers")}>
-        Manage parsers →
+        {tp.parsers.manage}
       </Button>
     </div>
   );

@@ -5,43 +5,51 @@
 
 import { Button, Section, Text } from "@react-email/components";
 import * as React from "react";
+import { type Dictionary, interpolate, type Locale } from "../src/i18n/config";
+import en from "../src/i18n/dictionaries/en.json";
 import { FacturaEmail, styles } from "./components/factura-email";
 
+type Emails = Dictionary["emails"];
+
 export type WelcomeEmailProps = {
+  /** Resolved `emails` dictionary slice for the recipient's locale. */
+  t?: Emails;
+  locale?: Locale;
   name?: string;
   ledgerUrl?: string;
 };
 
 export function WelcomeEmail({
-  name = "there",
+  t = en.emails,
+  locale = "en",
+  name,
   ledgerUrl = "https://example.com/ledger",
 }: WelcomeEmailProps) {
+  const w = t.welcome;
+  const greeting = name?.trim()
+    ? interpolate(w.greeting, { name: name.trim() })
+    : w.greetingNoName;
   return (
     <FacturaEmail
-      preheader="Your ledger is ready — drop a bill anywhere to begin."
-      headerTag="Account"
-      eyebrow="Welcome"
-      title="Welcome."
+      locale={locale}
+      preheader={w.preheader}
+      headerTag={t.headerAccount}
+      eyebrow={w.eyebrow}
+      title={w.title}
+      footerNote={w.footerNote}
+      footerTagline={t.footerTagline}
+      unsubscribeLabel={t.unsubscribe}
     >
-      <Text style={styles.text}>Hi {name},</Text>
-      <Text style={styles.text}>
-        Your ledger is set up and waiting. Drop a utility-bill PDF anywhere on
-        the dashboard — we&apos;ll read the fine print, pull the amount and
-        period, and keep a running total per property.
-      </Text>
-      <Text style={{ ...styles.text, margin: "0 0 8px" }}>
-        Your bills — the extracted text and the original PDFs — are stored
-        privately to your account. Only you can see them.
-      </Text>
+      <Text style={styles.text}>{greeting}</Text>
+      <Text style={styles.text}>{w.body1}</Text>
+      <Text style={{ ...styles.text, margin: "0 0 8px" }}>{w.body2}</Text>
 
       <Section style={{ padding: "16px 0 0" }}>
         <Button href={ledgerUrl} style={styles.button}>
-          Open your ledger ›
+          {w.button}
         </Button>
       </Section>
-      <Text style={{ ...styles.voice, margin: "14px 0 0" }}>
-        Read in your browser · saved to your ledger.
-      </Text>
+      <Text style={{ ...styles.voice, margin: "14px 0 0" }}>{w.voice}</Text>
     </FacturaEmail>
   );
 }

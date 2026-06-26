@@ -12,13 +12,32 @@
  *   AUTH_URL         — app base URL, reused for links (falls back to :4000)
  */
 
+import { eq } from "drizzle-orm";
 import type { ReactElement } from "react";
 import { Resend } from "resend";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { defaultLocale, interpolate, type Locale } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionaries";
 import { OtpEmail } from "../../emails/opt";
 import { ShareInviteEmail } from "../../emails/share-invite";
 import { WelcomeEmail } from "../../emails/welcome";
 
 const FROM = process.env.EMAIL_FROM ?? "Factura <onboarding@resend.dev>";
+
+/** Best-effort: the recipient's stored locale (emails can't read the cookie),
+ * falling back to the default when they have no account yet. */
+async function localeFor(email: string): Promise<Locale> {
+  try {
+    const row = await db.query.users.findFirst({
+      where: eq(users.email, email),
+      columns: { locale: true },
+    });
+    return row?.locale ?? defaultLocale;
+  } catch {
+    return defaultLocale;
+  }
+}
 
 /** Absolute base URL for links inside emails. */
 function baseUrl(): string {
@@ -62,12 +81,19 @@ async function send(opts: {
 }
 
 /** Registration / welcome — fired on first sign-in (auth createUser event). */
-export function sendWelcomeEmail(opts: { to: string; name?: string | null }) {
+export async function sendWelcomeEmail(opts: {
+  to: string;
+  name?: string | null;
+}) {
+  const locale = await localeFor(opts.to);
+  const t = (await getDictionary(locale)).emails;
   return send({
     to: opts.to,
-    subject: "Welcome to Factura",
+    subject: t.welcome.subject,
     react: WelcomeEmail({
-      name: opts.name?.trim() || "there",
+      t,
+      locale,
+      name: opts.name?.trim() || undefined,
       ledgerUrl: `${baseUrl()}/app`,
     }),
   });
@@ -85,10 +111,12 @@ export async function sendOtpEmail(opts: { to: string; code: string }) {
     );
     return;
   }
+  const locale = await localeFor(opts.to);
+  const t = (await getDictionary(locale)).emails;
   const sent = await send({
     to: opts.to,
-    subject: "Your Factura sign-in code",
-    react: OtpEmail({ code: opts.code }),
+    subject: t.otp.subject,
+    react: OtpEmail({ t, locale, code: opts.code }),
   });
   if (!sent) throw new Error("Failed to send sign-in code");
 }
@@ -96,15 +124,19 @@ export async function sendOtpEmail(opts: { to: string; code: string }) {
 /** Shared-property invite — fired when an owner invites someone by email.
  * Accept links to the Properties page, where the invitee (signed in with the
  * invited Google address) explicitly accepts or declines the share. */
-export function sendShareInviteEmail(opts: {
+export async function sendShareInviteEmail(opts: {
   to: string;
   inviter: string;
   property: string;
 }) {
+  const locale = await localeFor(opts.to);
+  const t = (await getDictionary(locale)).emails;
   return send({
     to: opts.to,
-    subject: `${opts.inviter} shared a property with you on Factura`,
+    subject: interpolate(t.invite.subject, { inviter: opts.inviter }),
     react: ShareInviteEmail({
+      t,
+      locale,
       inviter: opts.inviter,
       property: opts.property,
       acceptUrl: `${baseUrl()}/app/properties`,

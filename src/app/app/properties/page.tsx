@@ -6,6 +6,8 @@ import { Display, Eyebrow } from "@/components/charts/primitives";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button, Checkbox, Input } from "@/components/ui";
 import { VendorColorPicker } from "@/components/VendorColorPicker";
+import { interpolate } from "@/i18n/config";
+import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { OWNED_PROPERTY_LIMIT } from "@/lib/limits";
 import { useToast } from "@/lib/toast";
@@ -24,6 +26,10 @@ const iconX =
 export default function PropertiesPage() {
   const { data: session } = useSession();
   const { showToast, error: toastErr, opts } = useToast();
+  const { t } = useI18n();
+  const tp = t.properties;
+  const roleLabel = (role: string) =>
+    tp.roles[role as keyof typeof tp.roles] ?? role;
   const utils = trpc.useUtils();
 
   const properties = trpc.properties.list.useQuery();
@@ -87,28 +93,28 @@ export default function PropertiesPage() {
 
   return (
     <div className="mx-auto max-w-[52rem] px-5 pt-8 pb-20">
-      <Eyebrow>Properties</Eyebrow>
+      <Eyebrow>{tp.eyebrow}</Eyebrow>
       <Display size={34} className="block mt-1.5">
-        Your properties
+        {tp.title}
       </Display>
       <p className={`${help} mt-[14px]`}>
-        Each property holds its own bills, vendors and accounts. Invite someone
-        (a partner, a flatmate) and they&rsquo;ll see and add bills here too.
-        You can own up to {OWNED_PROPERTY_LIMIT} properties; ones shared with
-        you don&rsquo;t count.
+        {interpolate(tp.help, { limit: OWNED_PROPERTY_LIMIT })}
       </p>
 
       {/* pending invitations addressed to this user */}
       {(pendingInvites.data ?? []).length > 0 && (
         <div className={card}>
-          <p className={subhead + " mt-0"}>Pending invitations</p>
+          <p className={subhead + " mt-0"}>{tp.pendingInvitations}</p>
           {(pendingInvites.data ?? []).map((inv) => (
             <div key={inv.id} className={row}>
               <span className="font-mono text-[13px] font-medium">
                 {inv.property}
               </span>
               <span className="font-mono text-micro text-muted">
-                shared by {inv.inviter} · {inv.role}
+                {interpolate(tp.sharedBy, {
+                  inviter: inv.inviter,
+                  role: roleLabel(inv.role),
+                })}
               </span>
               <div className="ml-auto flex gap-2">
                 <Button
@@ -116,22 +122,22 @@ export default function PropertiesPage() {
                   onClick={() =>
                     acceptInvite.mutate(
                       { id: inv.id },
-                      opts("Invitation accepted"),
+                      opts(tp.toastInviteAccepted),
                     )
                   }
                 >
-                  Accept
+                  {tp.accept}
                 </Button>
                 <Button
                   variant="ghost"
                   onClick={() =>
                     declineInvite.mutate(
                       { id: inv.id },
-                      opts("Invitation declined"),
+                      opts(tp.toastInviteDeclined),
                     )
                   }
                 >
-                  Decline
+                  {tp.decline}
                 </Button>
               </div>
             </div>
@@ -180,7 +186,7 @@ export default function PropertiesPage() {
                   isOwner ? "text-accent" : "text-muted",
                 )}
               >
-                {apt.role}
+                {roleLabel(apt.role)}
               </span>
               <div className="ml-auto flex gap-2">
                 {isOwner ? (
@@ -190,19 +196,16 @@ export default function PropertiesPage() {
                       setDeletingApt({ id: apt.id, nickname: apt.nickname })
                     }
                   >
-                    Delete
+                    {t.common.delete}
                   </Button>
                 ) : (
                   <Button
                     variant="ghost"
                     onClick={() =>
-                      leave.mutate(
-                        { propertyId: apt.id },
-                        opts("Left property"),
-                      )
+                      leave.mutate({ propertyId: apt.id }, opts(tp.toastLeft))
                     }
                   >
-                    Leave
+                    {tp.leave}
                   </Button>
                 )}
               </div>
@@ -212,7 +215,7 @@ export default function PropertiesPage() {
             {isOwner && (
               <Input
                 defaultValue={apt.addressVariants.join(", ")}
-                placeholder="Address variants, comma-separated (street + number)"
+                placeholder={tp.addressVariantsPlaceholder}
                 onBlur={(e) =>
                   updateApt.mutate({
                     id: apt.id,
@@ -224,25 +227,28 @@ export default function PropertiesPage() {
             )}
 
             {/* members */}
-            <p className={subhead}>People</p>
+            <p className={subhead}>{tp.people}</p>
             {apt.members.map((m) => (
               <div key={m.userId} className={row}>
                 <span className="font-mono text-[13px] font-medium">
                   {m.name ?? m.email}
                   {m.email.toLowerCase() === myEmail && (
-                    <span className="text-muted"> · you</span>
+                    <span className="text-muted">{tp.you}</span>
                   )}
                 </span>
                 <span className="font-mono text-micro text-muted">
-                  {m.email} · {m.role}
+                  {interpolate(tp.memberInfo, {
+                    email: m.email,
+                    role: roleLabel(m.role),
+                  })}
                 </span>
                 {isOwner && m.email.toLowerCase() !== myEmail && (
                   <button
-                    aria-label="Remove"
+                    aria-label={tp.removeAria}
                     onClick={() =>
                       removeMember.mutate(
                         { propertyId: apt.id, userId: m.userId },
-                        opts("Member removed"),
+                        opts(tp.toastMemberRemoved),
                       )
                     }
                     className={iconX}
@@ -256,15 +262,15 @@ export default function PropertiesPage() {
               <div key={inv.id} className={row}>
                 <span className="font-mono text-[13px]">{inv.email}</span>
                 <span className="font-mono text-micro text-accent">
-                  invited · pending
+                  {tp.invitedPending}
                 </span>
                 {isOwner && (
                   <button
-                    aria-label="Revoke"
+                    aria-label={tp.revokeAria}
                     onClick={() =>
                       revokeInvite.mutate(
                         { id: inv.id },
-                        opts("Invite revoked"),
+                        opts(tp.toastInviteRevoked),
                       )
                     }
                     className={iconX}
@@ -279,7 +285,7 @@ export default function PropertiesPage() {
                 onInvite={(email) =>
                   invite.mutate(
                     { propertyId: apt.id, email },
-                    opts("Invitation sent"),
+                    opts(tp.toastInviteSent),
                   )
                 }
               />
@@ -288,7 +294,7 @@ export default function PropertiesPage() {
             {/* vendors */}
             {aptVendors.length > 0 && (
               <>
-                <p className={subhead}>Vendors</p>
+                <p className={subhead}>{tp.vendors}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {aptVendors.map((v) => (
                     <div key={v.id} className="flex items-center gap-2">
@@ -330,7 +336,7 @@ export default function PropertiesPage() {
             {/* accounts */}
             {aptAccounts.length > 0 && (
               <>
-                <p className={subhead}>Accounts</p>
+                <p className={subhead}>{tp.accounts}</p>
                 {aptAccounts.map((a) => (
                   <div key={a.id} className={row}>
                     <span className="w-[130px] font-mono font-semibold text-[13px]">
@@ -341,7 +347,7 @@ export default function PropertiesPage() {
                     </span>
                     {isOwner && (
                       <Checkbox
-                        label="expected monthly"
+                        label={tp.expectedMonthly}
                         checked={a.active}
                         onChange={(e) =>
                           updateAccount.mutate({
@@ -353,7 +359,7 @@ export default function PropertiesPage() {
                     )}
                     {isOwner && (
                       <button
-                        aria-label="Delete"
+                        aria-label={tp.deleteAria}
                         onClick={() =>
                           deleteAccount.mutate(
                             { id: a.id },
@@ -378,7 +384,7 @@ export default function PropertiesPage() {
         <Input
           value={newNickname}
           onChange={(e) => setNewNickname(e.target.value)}
-          placeholder="New property nickname"
+          placeholder={tp.newPropertyPlaceholder}
           disabled={atLimit}
           className="w-[220px]"
         />
@@ -389,38 +395,36 @@ export default function PropertiesPage() {
             if (!newNickname.trim()) return;
             createApt.mutate(
               { nickname: newNickname.trim(), addressVariants: [] },
-              opts("Property added"),
+              opts(tp.toastAdded),
             );
             setNewNickname("");
           }}
         >
-          Add property
+          {tp.addProperty}
         </Button>
         {atLimit && (
           <span className="font-mono text-micro text-muted self-center">
-            You&rsquo;ve reached the limit of {OWNED_PROPERTY_LIMIT} owned
-            properties.
+            {interpolate(tp.atLimit, { limit: OWNED_PROPERTY_LIMIT })}
           </span>
         )}
       </div>
 
       <ConfirmDialog
         open={!!deletingApt}
-        eyebrow="Delete property"
-        title="This can't be undone"
+        eyebrow={tp.deleteEyebrow}
+        title={t.common.cantUndo}
         description={
           deletingApt ? (
             <>
               <span className="font-semibold text-ink">
                 {deletingApt.nickname}
               </span>{" "}
-              and all of its bills, vendors and accounts will be permanently
-              removed.
+              {tp.deleteDescSuffix}
             </>
           ) : null
         }
-        confirmLabel="Delete property"
-        busyLabel="Deleting…"
+        confirmLabel={tp.deleteConfirm}
+        busyLabel={t.billDrawer.deleting}
         busy={deleteApt.isPending}
         onConfirm={() => {
           if (!deletingApt) return;
@@ -428,7 +432,7 @@ export default function PropertiesPage() {
             { id: deletingApt.id },
             {
               onSuccess: () => {
-                showToast("Property removed");
+                showToast(tp.toastRemoved);
                 setDeletingApt(null);
               },
               onError: (err) => {
@@ -446,6 +450,7 @@ export default function PropertiesPage() {
 
 function InviteForm({ onInvite }: { onInvite: (email: string) => void }) {
   const [email, setEmail] = useState("");
+  const { t } = useI18n();
   return (
     <form
       className="flex gap-2 mt-2.5"
@@ -460,11 +465,11 @@ function InviteForm({ onInvite }: { onInvite: (email: string) => void }) {
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="Invite by email"
+        placeholder={t.properties.invitePlaceholder}
         className="flex-1 max-w-[280px]"
       />
       <Button type="submit" variant="outline">
-        Invite
+        {t.properties.invite}
       </Button>
     </form>
   );

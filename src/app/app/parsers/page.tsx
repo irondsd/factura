@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Badge, Button } from "@/components/ui";
+import { interpolate } from "@/i18n/config";
+import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { useToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
@@ -22,6 +24,8 @@ const nameStyle = "font-mono font-semibold text-sm";
 export default function ParsersPage() {
   const router = useRouter();
   const { showToast, error: toastErr } = useToast();
+  const { t } = useI18n();
+  const tp = t.parsers;
   const utils = trpc.useUtils();
 
   const list = trpc.parsers.list.useQuery();
@@ -65,7 +69,12 @@ export default function ParsersPage() {
       await run();
       await refresh();
       const res = await reparse.mutateAsync();
-      showToast(`${label} · reparsed ${res.updated} bill(s)`);
+      showToast(
+        interpolate(res.updated === 1 ? tp.reparsedOne : tp.reparsedOther, {
+          label,
+          n: res.updated,
+        }),
+      );
       utils.invalidate();
     } catch (e) {
       toastErr(e);
@@ -78,7 +87,12 @@ export default function ParsersPage() {
     try {
       const res = await reparse.mutateAsync();
       utils.invalidate();
-      showToast(`Reparsed ${res.updated} of ${res.scanned} bill(s)`);
+      showToast(
+        interpolate(tp.reparsedStandalone, {
+          updated: res.updated,
+          scanned: res.scanned,
+        }),
+      );
     } catch (e) {
       toastErr(e);
     }
@@ -88,7 +102,7 @@ export default function ParsersPage() {
     try {
       const r = await publish.mutateAsync({ id });
       await refresh();
-      showToast(`Published v${r.version}`);
+      showToast(interpolate(tp.toastPublished, { n: r.version }));
     } catch (e) {
       toastErr(e);
     }
@@ -96,11 +110,11 @@ export default function ParsersPage() {
 
   const ownStatus = (p: OwnItem) => {
     if (p.latestPublishedVersion == null)
-      return { label: "Unpublished", canPublish: true };
+      return { label: tp.unpublished, canPublish: true };
     if (p.latestPublishedVersion < p.version)
-      return { label: "Unpublished changes", canPublish: true };
+      return { label: tp.unpublishedChanges, canPublish: true };
     return {
-      label: `Published v${p.latestPublishedVersion}`,
+      label: interpolate(tp.publishedV, { n: p.latestPublishedVersion }),
       canPublish: false,
     };
   };
@@ -109,13 +123,13 @@ export default function ParsersPage() {
     <div className="mx-auto max-w-[52rem] px-5 pt-8 pb-20">
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <div>
-          <Eyebrow>Parsers</Eyebrow>
+          <Eyebrow>{tp.eyebrow}</Eyebrow>
           <Display size={34} className="block mt-1.5">
-            Parser library
+            {tp.title}
           </Display>
         </div>
         <Button variant="ghost" onClick={() => router.push("/app/profile")}>
-          ← Profile
+          {tp.backToProfile}
         </Button>
       </div>
 
@@ -125,26 +139,21 @@ export default function ParsersPage() {
         return (
           <>
             <div className="mt-8 mb-1 flex items-baseline justify-between gap-3 flex-wrap">
-              <Eyebrow>Active parsers</Eyebrow>
+              <Eyebrow>{tp.active}</Eyebrow>
               <Button
                 size="sm"
                 variant="solid"
                 disabled={busy || total === 0}
                 onClick={onReparse}
               >
-                Reparse my bills{total > 0 ? ` (${total})` : ""}
+                {tp.reparseBtn}
+                {total > 0 ? ` (${total})` : ""}
               </Button>
             </div>
-            <p className={help}>
-              Which parser currently handles your bills, per vendor. Forking a
-              parser makes your copy win automatically — reparse to apply it to
-              bills you already have.
-            </p>
+            <p className={help}>{tp.activeHelp}</p>
             <div className="flex flex-col gap-2">
               {rows.length === 0 && (
-                <p className={parserMeta}>
-                  No parsers active yet — adopt or build one below.
-                </p>
+                <p className={parserMeta}>{tp.noneActive}</p>
               )}
               {rows.map((r) => (
                 <div key={r.slug} className={parserRow}>
@@ -154,28 +163,27 @@ export default function ParsersPage() {
                     {r.version > 0 ? ` · v${r.version}` : ""}
                   </span>
                   {r.source === "own" && (
-                    <Badge tone="accent">your parser</Badge>
+                    <Badge tone="accent">{tp.yourParser}</Badge>
                   )}
                   {r.source === "official" && (
-                    <Badge tone="neutral">official</Badge>
+                    <Badge tone="neutral">{tp.official}</Badge>
                   )}
                   {r.source === "community" && (
-                    <Badge tone="neutral">community</Badge>
+                    <Badge tone="neutral">{tp.community}</Badge>
                   )}
                   {r.source === "none" && (
-                    <Badge tone="neutral">no parser</Badge>
+                    <Badge tone="neutral">{tp.noParser}</Badge>
                   )}
                   {r.shadowsAdopted && (
-                    <span className={parserMeta}>shadows the adopted copy</span>
+                    <span className={parserMeta}>{tp.shadows}</span>
                   )}
                   {r.source === "none" && (
-                    <span className={parserMeta}>
-                      these bills won&apos;t reparse until you run a matching
-                      parser
-                    </span>
+                    <span className={parserMeta}>{tp.noneWontReparse}</span>
                   )}
                   <span className={cn(parserMeta, "ml-auto")}>
-                    {r.billCount} bill{r.billCount === 1 ? "" : "s"}
+                    {interpolate(r.billCount === 1 ? tp.billOne : tp.billOther, {
+                      n: r.billCount,
+                    })}
                   </span>
                 </div>
               ))}
@@ -185,17 +193,12 @@ export default function ParsersPage() {
       })()}
 
       <h2 className={sectionTitle}>
-        <Eyebrow>Your parsers</Eyebrow>
+        <Eyebrow>{tp.yourParsers}</Eyebrow>
       </h2>
-      <p className={help}>
-        Parsers you own. Editing affects only your bills until you publish a
-        version others can adopt.
-      </p>
+      <p className={help}>{tp.yourParsersHelp}</p>
       <div className="flex flex-col gap-2">
         {own.length === 0 && (
-          <p className={parserMeta}>
-            None yet — fork an official parser below, or build one from a bill.
-          </p>
+          <p className={parserMeta}>{tp.noneYetOwn}</p>
         )}
         {own.map((p) => {
           const st = ownStatus(p);
@@ -211,7 +214,7 @@ export default function ParsersPage() {
                   size="sm"
                   onClick={() => router.push(`/app/builder?parser=${p.slug}`)}
                 >
-                  Edit
+                  {tp.edit}
                 </Button>
                 {st.canPublish && (
                   <Button
@@ -220,7 +223,7 @@ export default function ParsersPage() {
                     disabled={publish.isPending}
                     onClick={() => onPublish(p.id)}
                   >
-                    Publish
+                    {tp.publish}
                   </Button>
                 )}
                 <Button
@@ -230,17 +233,19 @@ export default function ParsersPage() {
                   onClick={() => {
                     if (
                       !confirm(
-                        `Delete parser "${p.displayName}"? This can't be undone.`,
+                        interpolate(tp.confirmDelete, {
+                          name: p.displayName,
+                        }),
                       )
                     )
                       return;
                     withReparse(
                       () => del.mutateAsync({ id: p.id }),
-                      "Parser deleted",
+                      tp.toastParserDeleted,
                     );
                   }}
                 >
-                  Delete
+                  {t.common.delete}
                 </Button>
               </div>
             </div>
@@ -249,13 +254,13 @@ export default function ParsersPage() {
       </div>
 
       <h2 className={sectionTitle}>
-        <Eyebrow>Adopted parsers</Eyebrow>
+        <Eyebrow>{tp.adopted}</Eyebrow>
       </h2>
-      <p className={help}>
-        Published parsers you run. Fork one to customize it for your own bills.
-      </p>
+      <p className={help}>{tp.adoptedHelp}</p>
       <div className="flex flex-col gap-2">
-        {adopted.length === 0 && <p className={parserMeta}>None adopted.</p>}
+        {adopted.length === 0 && (
+          <p className={parserMeta}>{tp.noneAdopted}</p>
+        )}
         {adopted.map((p) => {
           const upstream = browseByConfig.get(p.id);
           const updatable = upstream != null && upstream.version > p.version;
@@ -265,7 +270,7 @@ export default function ParsersPage() {
               <span className={parserMeta}>
                 {p.slug} · v{p.version}
               </span>
-              {upstream?.verified && <Badge tone="accent">official</Badge>}
+              {upstream?.verified && <Badge tone="accent">{tp.official}</Badge>}
               <div className="ml-auto flex gap-1.5">
                 {updatable && (
                   <Button
@@ -275,18 +280,20 @@ export default function ParsersPage() {
                     onClick={() =>
                       withReparse(
                         () => adopt.mutateAsync({ configId: p.id }),
-                        `Updated to v${upstream.version}`,
+                        interpolate(tp.toastUpdatedTo, {
+                          n: upstream.version,
+                        }),
                       )
                     }
                   >
-                    Update to v{upstream.version}
+                    {interpolate(tp.updateToV, { n: upstream.version })}
                   </Button>
                 )}
                 <Button
                   size="sm"
                   onClick={() => router.push(`/app/builder?parser=${p.slug}`)}
                 >
-                  Fork
+                  {tp.fork}
                 </Button>
                 <Button
                   size="sm"
@@ -295,11 +302,11 @@ export default function ParsersPage() {
                   onClick={() =>
                     withReparse(
                       () => unadopt.mutateAsync({ configId: p.id }),
-                      "Removed",
+                      tp.toastRemoved,
                     )
                   }
                 >
-                  Remove
+                  {tp.remove}
                 </Button>
               </div>
             </div>
@@ -308,14 +315,12 @@ export default function ParsersPage() {
       </div>
 
       <h2 className={sectionTitle}>
-        <Eyebrow>Browse registry</Eyebrow>
+        <Eyebrow>{tp.browse}</Eyebrow>
       </h2>
-      <p className={help}>
-        Published parsers from other users. Adopt one to detect its vendor.
-      </p>
+      <p className={help}>{tp.browseHelp}</p>
       <div className="flex flex-col gap-2">
         {registry.length === 0 && (
-          <p className={parserMeta}>Nothing new to adopt.</p>
+          <p className={parserMeta}>{tp.nothingNew}</p>
         )}
         {registry.map((b) => (
           <div key={b.configId} className={parserRow}>
@@ -323,7 +328,7 @@ export default function ParsersPage() {
             <span className={parserMeta}>
               {b.slug} · v{b.version}
             </span>
-            {b.verified && <Badge tone="accent">official</Badge>}
+            {b.verified && <Badge tone="accent">{tp.official}</Badge>}
             <Button
               size="sm"
               variant="solid"
@@ -332,11 +337,11 @@ export default function ParsersPage() {
               onClick={() =>
                 withReparse(
                   () => adopt.mutateAsync({ configId: b.configId }),
-                  `Adopted ${b.displayName}`,
+                  interpolate(tp.toastAdopted, { name: b.displayName }),
                 )
               }
             >
-              Adopt
+              {tp.adopt}
             </Button>
           </div>
         ))}

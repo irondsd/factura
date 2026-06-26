@@ -1,6 +1,8 @@
 "use client";
 
 import { Button, Input, hint, microLabel } from "@/components/ui";
+import { interpolate } from "@/i18n/config";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { ValueRec } from "@/parsers/builder/evaluate";
 import type { BuilderCapture } from "@/parsers/builder/model";
 import { newOutput } from "@/parsers/builder/model";
@@ -22,6 +24,8 @@ export function CaptureCard({
   onRemove?: () => void;
   onPreview: (name: string | null) => void;
 }) {
+  const { t } = useI18n();
+  const tc = t.builder.capture;
   let invalid = false;
   if (cap.pattern.trim()) {
     try {
@@ -43,11 +47,11 @@ export function CaptureCard({
   return (
     <CardShell>
       <div className="flex items-center gap-2 mb-2">
-        <span className={cn(microLabel, "flex-none")}>Regex</span>
+        <span className={cn(microLabel, "flex-none")}>{tc.regex}</span>
         <div className="flex-1 min-w-0 flex gap-1.5">
           <Input
             value={cap.pattern}
-            placeholder="regex with a (capture group)"
+            placeholder={tc.regexPlaceholder}
             className={cn("text-xs", invalid && "border-accent")}
             onChange={(e) => onChange({ ...cap, pattern: e.target.value })}
           />
@@ -58,17 +62,14 @@ export function CaptureCard({
             onChange={(e) => onChange({ ...cap, flags: e.target.value })}
           />
         </div>
-        {onRemove && <XBtn onClick={onRemove} title="remove capture" />}
+        {onRemove && <XBtn onClick={onRemove} title={tc.removeCapture} />}
       </div>
       {invalid && (
-        <p className={cn(hint, "text-accent mb-2")}>
-          △ invalid regex — still typing?
-        </p>
+        <p className={cn(hint, "text-accent mb-2")}>{tc.invalidRegex}</p>
       )}
       {multi && (
         <p className={cn(hint, "mb-2")}>
-          One regex, {cap.outputs.length} named values — the groups below feed
-          each.
+          {interpolate(tc.multi, { n: cap.outputs.length })}
         </p>
       )}
 
@@ -88,12 +89,12 @@ export function CaptureCard({
               <div className="flex items-center gap-2">
                 <Input
                   value={o.name}
-                  placeholder="value name"
+                  placeholder={tc.valueName}
                   className="text-xs font-medium"
                   onChange={(e) => setOut(i, { name: e.target.value })}
                 />
                 <span className="inline-flex items-center gap-1 flex-none">
-                  <span className={microLabel}>grp</span>
+                  <span className={microLabel}>{tc.grp}</span>
                   <Input
                     value={String(o.group)}
                     className="w-14! text-center text-xs"
@@ -108,7 +109,7 @@ export function CaptureCard({
                         outputs: cap.outputs.filter((_, j) => j !== i),
                       })
                     }
-                    title="remove output"
+                    title={tc.removeOutput}
                   />
                 )}
               </div>
@@ -131,7 +132,7 @@ export function CaptureCard({
             onChange({ ...cap, outputs: [...cap.outputs, newOutput()] })
           }
         >
-          + add output
+          {tc.addOutput}
         </Button>
       </div>
     </CardShell>

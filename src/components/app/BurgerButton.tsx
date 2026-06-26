@@ -4,14 +4,18 @@ import styles from "./BurgerButton.module.css";
 export function BurgerButton({
   open,
   onToggle,
+  openLabel,
+  closeLabel,
 }: {
   open: boolean;
   onToggle: () => void;
+  openLabel: string;
+  closeLabel: string;
 }) {
   return (
     <button
       type="button"
-      aria-label={open ? "Close menu" : "Open menu"}
+      aria-label={open ? closeLabel : openLabel}
       aria-expanded={open}
       onClick={onToggle}
       className={`flex md:hidden ${styles.button}`}

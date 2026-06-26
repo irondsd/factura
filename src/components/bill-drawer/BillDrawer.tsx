@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Badge, Button, FinePrint, microLabel } from "@/components/ui";
+import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatMonth } from "@/lib/format";
 import { trpc } from "@/lib/trpc";
@@ -35,6 +36,8 @@ export function BillDrawer({
   onToast: (text: string) => void;
 }) {
   const router = useRouter();
+  const { t, locale } = useI18n();
+  const tb = t.billDrawer;
   const utils = trpc.useUtils();
   const billQuery = trpc.bills.get.useQuery(
     { id: billId! },
@@ -82,13 +85,13 @@ export function BillDrawer({
   const vendorLabel =
     vendor?.displayName ??
     (extra.vendorName as string | undefined) ??
-    "Unrecognized";
+    tb.unrecognizedVendor;
   const parseError = extra.parseError as string | undefined;
   const customFields = (extra.fields ?? {}) as Record<string, unknown>;
 
   const reviewKind = bill ? reviewKindOf(bill) : null;
   const parser = parsers.data?.find((p) => p.slug === bill?.parserKey);
-  const reviewLabel = reviewLabelOf(reviewKind, parseError);
+  const reviewLabel = reviewLabelOf(reviewKind, tb, parseError);
 
   return (
     <BillDrawerShell openKey={billId} onClose={onClose}>
@@ -115,7 +118,7 @@ export function BillDrawer({
               : undefined,
             dueDate: draft.dueDate || undefined,
           });
-          onToast("Bill updated · ledger recalculated");
+          onToast(tb.toastUpdated);
           utils.invalidate();
           close();
         };
@@ -127,23 +130,23 @@ export function BillDrawer({
             // Storage cleanup failed before the row was removed — the bill is
             // still intact, so keep the drawer open and let the user retry.
             setConfirmingDelete(false);
-            onToast("Couldn't delete the bill — please try again");
+            onToast(tb.toastDeleteFailed);
             return;
           }
-          onToast("Bill deleted");
+          onToast(tb.toastDeleted);
           utils.invalidate();
           close();
         };
 
         const onReparseText = async () => {
           await reparseText.mutateAsync({ id: bill.id });
-          onToast("Reparsed from stored text · ledger recalculated");
+          onToast(tb.toastReparsedText);
           utils.invalidate();
         };
 
         const onReparseFile = async () => {
           if (!bill.downloadUrl) {
-            onToast("No stored PDF for this bill");
+            onToast(tb.toastNoPdf);
             return;
           }
           try {
@@ -155,10 +158,10 @@ export function BillDrawer({
               }),
             );
             await reparseFile.mutateAsync({ id: bill.id, rawText });
-            onToast("Reparsed from the stored PDF · ledger recalculated");
+            onToast(tb.toastReparsedFile);
             utils.invalidate();
           } catch {
-            onToast("Could not re-read the stored PDF");
+            onToast(tb.toastRereadFailed);
           }
         };
 
@@ -170,7 +173,7 @@ export function BillDrawer({
               title={
                 <>
                   {vendorLabel}
-                  {bill.period ? " · " + formatMonth(bill.period) : ""}
+                  {bill.period ? " · " + formatMonth(bill.period, locale) : ""}
                 </>
               }
               fileName={bill.fileName}
@@ -190,7 +193,7 @@ export function BillDrawer({
 
             {/* parser used + builder entry */}
             <div className="pt-4 px-6 pb-1">
-              <p className={cn(microLabel, "mb-1.5")}>Parser</p>
+              <p className={cn(microLabel, "mb-1.5")}>{tb.parser}</p>
               <div className="flex items-center gap-2.5 border border-line py-2.5 px-3 bg-paper">
                 <span className="font-mono text-xs flex-1">
                   {bill.parserKey ? (
@@ -204,33 +207,28 @@ export function BillDrawer({
                           </span>
                         )
                       ) : (
-                        <span className="text-muted">
-                          {" "}
-                          · not a saved parser
-                        </span>
+                        <span className="text-muted"> · {tb.notSavedParser}</span>
                       )}
                     </>
                   ) : (
-                    <span className="text-muted">
-                      No parser recognized this bill
-                    </span>
+                    <span className="text-muted">{tb.noParserRecognized}</span>
                   )}
                 </span>
                 {reviewKind === "needs_home" ? (
-                  <Badge tone="neutral">parsed OK</Badge>
+                  <Badge tone="neutral">{tb.parsedOk}</Badge>
                 ) : (
                   <Button size="sm" onClick={openBuilder}>
                     {parser
                       ? reviewKind === "parse_failed"
-                        ? "Fix parser"
-                        : "Edit parser"
-                      : "Set up a parser"}
+                        ? tb.fixParser
+                        : tb.editParser
+                      : tb.setupParser}
                   </Button>
                 )}
               </div>
               {reviewKind === "needs_home" && (
                 <p className="font-mono text-[10.5px] text-muted mt-2">
-                  Parsed cleanly — just choose a property above and save.
+                  {tb.parsedCleanly}
                 </p>
               )}
             </div>
@@ -244,17 +242,17 @@ export function BillDrawer({
 
             {/* reparse — two paths */}
             <div className="pt-3 px-6 pb-5">
-              <p className={cn(microLabel, "mb-2")}>Reparse</p>
+              <p className={cn(microLabel, "mb-2")}>{tb.reparse}</p>
               <div className="flex gap-2">
                 <ReparseOption
-                  title="From the file"
-                  caption="Re-reads the stored PDF — use when the text extractor improves"
+                  title={tb.reparseFromFile}
+                  caption={tb.reparseFromFileCaption}
                   disabled={!bill.downloadUrl || reparseFile.isPending}
                   onClick={onReparseFile}
                 />
                 <ReparseOption
-                  title="From the text"
-                  caption="Re-runs the vendor parser on the stored text — faster"
+                  title={tb.reparseFromText}
+                  caption={tb.reparseFromTextCaption}
                   disabled={reparseText.isPending}
                   onClick={onReparseText}
                 />
@@ -268,7 +266,7 @@ export function BillDrawer({
                 onClick={save}
                 disabled={updateBill.isPending}
               >
-                Save changes
+                {tb.saveChanges}
               </Button>
               <Button
                 variant="ghost"
@@ -276,17 +274,17 @@ export function BillDrawer({
                 onClick={() => setConfirmingDelete(true)}
                 disabled={deleteBill.isPending}
               >
-                Delete
+                {t.common.delete}
               </Button>
             </div>
 
             <ConfirmDialog
               open={confirmingDelete}
-              eyebrow="Delete bill"
-              title="This can't be undone"
-              description="The bill and its stored PDF will be permanently removed."
-              confirmLabel="Delete bill"
-              busyLabel="Deleting…"
+              eyebrow={tb.deleteEyebrow}
+              title={tb.deleteTitle}
+              description={tb.deleteDescription}
+              confirmLabel={tb.deleteConfirm}
+              busyLabel={tb.deleting}
               busy={deleteBill.isPending}
               onConfirm={remove}
               onCancel={() => setConfirmingDelete(false)}

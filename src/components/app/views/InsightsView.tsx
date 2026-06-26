@@ -14,6 +14,8 @@ import {
   VendorShare,
 } from "@/components/charts";
 import { FilterPill, FinePrint } from "@/components/ui";
+import { interpolate } from "@/i18n/config";
+import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatMoney } from "@/lib/format";
 import { toSlices } from "@/lib/insights";
@@ -51,6 +53,7 @@ export function InsightsView({
   source: InsightsSource;
   propertyId?: string;
 }) {
+  const { t } = useI18n();
   const [vendorId, setVendorId] = useState<string>("all");
   const [range, setRange] = useState<InsightsRange>(12);
 
@@ -63,15 +66,15 @@ export function InsightsView({
     <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
       <div className="flex flex-wrap items-end justify-between gap-[14px]">
         <div>
-          <Eyebrow>Insights</Eyebrow>
+          <Eyebrow>{t.nav.insights}</Eyebrow>
           <Display size={34} className="block mt-1.5">
-            How your bills move
+            {t.insights.title}
           </Display>
         </div>
         <Segmented
           options={[
-            { value: 12, label: "12 mo" },
-            { value: 24, label: "24 mo" },
+            { value: 12, label: t.insights.range12 },
+            { value: 24, label: t.insights.range24 },
           ]}
           value={range}
           onChange={setRange}
@@ -81,7 +84,7 @@ export function InsightsView({
       {/* vendor filter */}
       <div className="flex flex-wrap gap-1.5 mt-[18px] border-b border-line pb-3">
         <FilterPill
-          label="All vendors"
+          label={t.common.allVendors}
           active={vendorId === "all"}
           onClick={() => setVendorId("all")}
         />
@@ -106,6 +109,8 @@ export function InsightsView({
 }
 
 function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
+  const { t } = useI18n();
+  const ti = t.insights;
   const bars = useChartCurrency();
   const donut = useChartCurrency();
   if (!data) {
@@ -116,8 +121,8 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
   return (
     <>
       <ChartCard
-        title="Total spend over time"
-        caption="Stacked by vendor"
+        title={ti.totalSpend}
+        caption={ti.stackedByVendor}
         action={bars.toggle}
         className="mt-4"
       >
@@ -141,32 +146,29 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
 
       <div className="mt-4 grid grid-cols-1 md:grid-cols-[minmax(280px,1fr)_minmax(360px,1.5fr)] gap-4 items-start">
         <ChartCard
-          title="Vendor share"
-          caption="Where it goes, in range"
+          title={ti.vendorShare}
+          caption={ti.whereInRange}
           action={donut.toggle}
         >
           <VendorShare
             slices={slices}
             centerLabel={donut.currency === "USD" ? "US$" : "AR$"}
-            centerSub="total"
+            centerSub={ti.total}
           />
         </ChartCard>
 
-        <ChartCard
-          title="Inflation lens"
-          caption="Same spend, rebased to 100 — pesos vs the dollar cost"
-        >
+        <ChartCard title={ti.inflationLens} caption={ti.inflationCaption}>
           <LineChartFx
             months={data.months}
             currency="IDX"
             series={[
               {
-                label: "What you pay (ARS)",
+                label: ti.whatYouPay,
                 color: "var(--accent)",
                 values: data.inflation.arsIdx,
               },
               {
-                label: "Real cost (USD)",
+                label: ti.realCost,
                 color: USD_LINE,
                 values: data.inflation.usdIdx,
                 dashed: true,
@@ -177,13 +179,12 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
           <Legend
             className="mt-3"
             items={[
-              { label: "What you pay (ARS)", color: "var(--accent)" },
-              { label: "Real cost (USD blue)", color: USD_LINE },
+              { label: ti.whatYouPay, color: "var(--accent)" },
+              { label: ti.realCostBlue, color: USD_LINE },
             ]}
           />
           <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6]">
-            Pesos climb with inflation; in dollars your real cost is far
-            flatter. The gap is the peso losing value — not you using more.
+            {ti.inflationNote}
           </p>
         </ChartCard>
       </div>
@@ -196,6 +197,8 @@ function SingleVendorCharts({
 }: {
   data: VendorDetail | null | undefined;
 }) {
+  const { t } = useI18n();
+  const ti = t.insights;
   const spend = useChartCurrency();
 
   if (!d) {
@@ -221,12 +224,12 @@ function SingleVendorCharts({
           )}
         </Display>
         <span className="font-mono text-xs text-muted">
-          latest · <Delta pct={pct} /> over range
+          {ti.latest} · <Delta pct={pct} /> {ti.overRange}
         </span>
       </div>
 
       <ChartCard
-        title={`${vendor.displayName} — spend over time`}
+        title={interpolate(ti.spendOverTime, { vendor: vendor.displayName })}
         action={spend.toggle}
         className="mt-[14px]"
       >
@@ -256,9 +259,7 @@ function SingleVendorCharts({
 
       {d.fields.length === 0 && (
         <p className="font-mono text-xs text-muted mt-4 mx-0.5 leading-[1.6]">
-          This parser extracts no extra fields beyond the amount — the climb is
-          inflation, not usage. Add fields like consumption or surcharges in the
-          parser builder to chart them here.
+          {ti.noExtraFields}
         </p>
       )}
     </>
@@ -276,6 +277,7 @@ function CustomFieldCharts({
   months: string[];
   color: string;
 }) {
+  const { t } = useI18n();
   const money = useChartCurrency();
   const isQuantity = field.type === "quantity";
   // Money fields follow their own currency toggle; quantities/numbers show raw
@@ -309,20 +311,22 @@ function CustomFieldCharts({
 
       {isQuantity && field.unitPrice && (
         <ChartCard
-          title={`Price per ${field.unit || "unit"}`}
-          caption="Rebased to 100 — ARS vs USD"
+          title={interpolate(t.insights.pricePer, {
+            unit: field.unit || t.insights.unit,
+          })}
+          caption={t.insights.rebased}
         >
           <LineChartFx
             months={months}
             currency="IDX"
             series={[
               {
-                label: `ARS / ${field.unit || "unit"}`,
+                label: `ARS / ${field.unit || t.insights.unit}`,
                 color: "var(--accent)",
                 values: field.unitPrice.arsIdx,
               },
               {
-                label: `USD / ${field.unit || "unit"}`,
+                label: `USD / ${field.unit || t.insights.unit}`,
                 color: USD_LINE,
                 values: field.unitPrice.usdIdx,
                 dashed: true,
@@ -334,10 +338,10 @@ function CustomFieldCharts({
             className="mt-2.5"
             items={[
               {
-                label: `ARS / ${field.unit || "unit"}`,
+                label: `ARS / ${field.unit || t.insights.unit}`,
                 color: "var(--accent)",
               },
-              { label: `USD / ${field.unit || "unit"}`, color: USD_LINE },
+              { label: `USD / ${field.unit || t.insights.unit}`, color: USD_LINE },
             ]}
           />
         </ChartCard>

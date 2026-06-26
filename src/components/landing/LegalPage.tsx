@@ -1,31 +1,40 @@
-import type { ReactNode } from "react";
 import { SHELL, SiteFoot, SiteTop } from "@/components/landing/chrome";
 import { Eyebrow } from "@/components/landing/parts";
+import { cn } from "@/lib/cn";
 
 // Shared layout for prose policy pages (Privacy, Security): the same marketing
 // chrome as Docs/FAQ, a narrow reading column, and a list of titled sections.
-// Sections carry an `id` so they can be deep-linked.
+// Sections carry an `id` so they can be deep-linked. Bodies are trusted,
+// author-controlled HTML strings from the dictionary (paragraphs, <strong>,
+// links, and `.bullets` lists); the container below supplies all styling via
+// descendant selectors so no Tailwind utilities live in the translations.
 
-export type LegalSection = { id: string; heading: string; body: ReactNode };
+export type LegalSection = { id: string; heading: string; body: string };
 
-const PROSE =
-  "font-mono text-sm leading-[1.75] text-muted max-w-[68ch] " +
-  "[&_p]:mb-3.5 " +
-  "[&_a]:text-accent [&_a]:underline [&_a]:decoration-dotted [&_a]:underline-offset-[3px] " +
-  "[&_strong]:text-ink [&_strong]:font-medium";
+const PROSE = cn(
+  "font-mono text-sm leading-[1.75] text-muted max-w-[68ch]",
+  "[&_p]:mb-3.5",
+  "[&_a]:text-accent [&_a]:underline [&_a]:decoration-dotted [&_a]:underline-offset-[3px]",
+  "[&_strong]:text-ink [&_strong]:font-medium",
+  "[&_.bullets]:list-none [&_.bullets]:p-0 [&_.bullets]:my-3.5 [&_.bullets]:flex [&_.bullets]:flex-col [&_.bullets]:gap-2",
+  "[&_.bullets_li]:relative [&_.bullets_li]:pl-[22px] [&_.bullets_li]:before:content-['—'] [&_.bullets_li]:before:absolute [&_.bullets_li]:before:left-0 [&_.bullets_li]:before:text-accent",
+);
 
 export function LegalPage({
   active,
   eyebrow,
   title,
   intro,
+  lastUpdatedLabel,
   updated,
   sections,
 }: {
+  /** Matched by href, e.g. "/privacy". */
   active: string;
   eyebrow: string;
   title: string;
-  intro: ReactNode;
+  intro: string;
+  lastUpdatedLabel: string;
   updated: string;
   sections: LegalSection[];
 }) {
@@ -44,7 +53,7 @@ export function LegalPage({
             {intro}
           </p>
           <p className="font-mono text-micro uppercase tracking-label-wide text-muted mt-5">
-            Last updated · {updated}
+            {lastUpdatedLabel} · {updated}
           </p>
         </header>
 
@@ -74,7 +83,10 @@ export function LegalPage({
               <h2 className="font-display font-semibold text-[23px] sm:text-[25px] tracking-tight m-0 mb-4">
                 {s.heading}
               </h2>
-              <div className={PROSE}>{s.body}</div>
+              <div
+                className={PROSE}
+                dangerouslySetInnerHTML={{ __html: s.body }}
+              />
             </section>
           ))}
         </div>
@@ -82,19 +94,5 @@ export function LegalPage({
 
       <SiteFoot />
     </>
-  );
-}
-
-/** A hairline-marked bullet list in the policy voice. */
-export function Bullets({ items }: { items: ReactNode[] }) {
-  return (
-    <ul className="list-none p-0 my-3.5 flex flex-col gap-2">
-      {items.map((it, i) => (
-        <li key={i} className="flex gap-2.5">
-          <span className="flex-none text-accent select-none">—</span>
-          <span className="flex-1">{it}</span>
-        </li>
-      ))}
-    </ul>
   );
 }

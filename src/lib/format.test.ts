@@ -52,22 +52,26 @@ describe("formatMoney", () => {
 
 describe("formatMonth / formatMonthShort", () => {
   it("formats a YYYY-MM string as a long month + year", () => {
-    expect(formatMonth("2026-06")).toBe("June 2026");
+    expect(formatMonth("2026-06", "en")).toBe("June 2026");
   });
 
   it("accepts a full YYYY-MM-DD string", () => {
-    expect(formatMonth("2026-06-15")).toBe("June 2026");
+    expect(formatMonth("2026-06-15", "en")).toBe("June 2026");
   });
 
   it("formats a short month name", () => {
-    expect(formatMonthShort("2026-06")).toBe("Jun");
-    expect(formatMonthShort("2026-01-31")).toBe("Jan");
+    expect(formatMonthShort("2026-06", "en")).toBe("Jun");
+    expect(formatMonthShort("2026-01-31", "en")).toBe("Jan");
+  });
+
+  it("defaults to Spanish (the app's primary language)", () => {
+    expect(formatMonth("2026-06")).toBe("junio de 2026");
   });
 
   it("is stable across the day-rollover edge (UTC, first of month)", () => {
     // A naive local-time Date would slip to the previous month in negative
     // offsets; formatMonth pins to UTC so December stays December.
-    expect(formatMonth("2026-12")).toBe("December 2026");
+    expect(formatMonth("2026-12", "en")).toBe("December 2026");
   });
 });
 

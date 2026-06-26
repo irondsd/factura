@@ -1,71 +1,60 @@
 // Regex toolkit recipes (left column of the builder) plus the match helpers
 // the toolkit uses to live-probe the active bill text.
 
+// `id` keys the display label + hint in the dictionary (builder.toolkit.items);
+// `groupId` keys the group title (builder.toolkit.groups). Patterns stay here.
 export type Recipe = {
-  label: string;
+  id: string;
   pattern: string;
   flags?: string;
-  hint?: string;
 };
 
-export const REGEX_RECIPES: { group: string; items: Recipe[] }[] = [
+export const REGEX_RECIPES: { groupId: string; items: Recipe[] }[] = [
   {
-    group: "Amounts",
+    groupId: "Amounts",
     items: [
       {
-        label: "LatAm · 1.234.567,89",
+        id: "latam",
         pattern: "(?:\\$\\s*)?((?:\\d{1,3}(?:\\.\\d{3})+|\\d+)(?:,\\d{2})?)",
-        hint: "→ AR number (AR/UY/BR)",
       },
       {
-        label: "US / intl · 1,234,567.89",
+        id: "intl",
         pattern: "(?:\\$\\s*)?((?:\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\.\\d{2})?)",
-        hint: "→ US number",
       },
       {
-        label: "Whole units · 1.234.567",
+        id: "whole",
         pattern: "\\$?\\s*(\\d{1,3}(?:\\.\\d{3})+)",
-        hint: "no decimals (CLP) → AR number",
       },
       {
-        label: "After a label · “Total a pagar”",
+        id: "afterLabel",
         pattern: "Total\\s*a\\s*pagar\\s*:?\\s*\\$?\\s*([\\d.,]+)",
         flags: "i",
-        hint: "swap the label text for yours",
       },
     ],
   },
   {
-    group: "Dates",
+    groupId: "Dates",
     items: [
+      { id: "ddmmyyyy", pattern: "(\\d{2}/\\d{2}/\\d{4})" },
+      { id: "yyyymmdd", pattern: "(\\d{4}-\\d{2}-\\d{2})" },
+      { id: "mmyyyy", pattern: "(\\d{2})[/-](\\d{4})" },
       {
-        label: "DD/MM/YYYY",
-        pattern: "(\\d{2}/\\d{2}/\\d{4})",
-        hint: "→ date DD/MM/YYYY",
-      },
-      { label: "YYYY-MM-DD", pattern: "(\\d{4}-\\d{2}-\\d{2})" },
-      {
-        label: "MM/YYYY",
-        pattern: "(\\d{2})[/-](\\d{4})",
-        hint: "month + year",
-      },
-      {
-        label: "Spanish month name",
+        id: "spanishMonth",
         pattern: "(ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)",
         flags: "i",
       },
     ],
   },
   {
-    group: "Identifiers",
+    groupId: "Identifiers",
     items: [
-      { label: "CUIT · 20-12345678-9", pattern: "(\\d{2}-\\d{8}-\\d)" },
+      { id: "cuit", pattern: "(\\d{2}-\\d{8}-\\d)" },
       {
-        label: "Account / client no.",
+        id: "accountNo",
         pattern: "(?:cliente|cuenta|n[°º])\\s*:?\\s*(\\d{4,})",
         flags: "i",
       },
-      { label: "Any run of digits", pattern: "(\\d+)" },
+      { id: "anyDigits", pattern: "(\\d+)" },
     ],
   },
 ];

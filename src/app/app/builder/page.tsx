@@ -29,10 +29,11 @@ import {
   newCustom,
   newDerive,
   ROLE_KEYS,
-  ROLE_LABEL,
 } from "@/parsers/builder/model";
 import type { BuilderConfig } from "@/parsers/builder/model";
 import { normalize } from "@/parsers/normalize";
+import { interpolate } from "@/i18n/config";
+import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { useToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
@@ -58,6 +59,8 @@ function Builder() {
   const billId = params.get("bill");
   const parserSlug = params.get("parser");
   const { showToast } = useToast();
+  const { t } = useI18n();
+  const tbu = t.builder;
   const utils = trpc.useUtils();
 
   const billQuery = trpc.bills.get.useQuery(
@@ -172,14 +175,18 @@ function Builder() {
     if (mode === "structured") {
       return { body: generateBody(config, { allOf: sigs, noneOf: noneSigs }) };
     }
-    if (!advanced.trim()) return { error: "Add a definition" };
+    if (!advanced.trim()) return { error: tbu.addDefinition };
     try {
       const parsed = JSON.parse(advanced) as Record<string, unknown>;
       return { body: { ...(parsed as object), detect: detectObj } as Body };
     } catch (e) {
-      return { error: `Invalid JSON: ${e instanceof Error ? e.message : e}` };
+      return {
+        error: interpolate(tbu.invalidJson, {
+          msg: e instanceof Error ? e.message : String(e),
+        }),
+      };
     }
-  }, [mode, config, sigs, noneSigs, advanced, detectObj]);
+  }, [mode, config, sigs, noneSigs, advanced, detectObj, tbu]);
 
   // Structured mode: rich per-value evaluation for chips / highlight / preview.
   const structResult = useMemo(
@@ -280,7 +287,7 @@ function Builder() {
         const { default: pdfToText } = await import("react-pdftotext");
         const raw = await pdfToText(file);
         if (raw.trim().length < 20) {
-          showToast(`✕ ${file.name}: no text found`);
+          showToast(interpolate(tbu.noTextFound, { file: file.name }));
           continue;
         }
         setBills((b) => {
@@ -289,7 +296,7 @@ function Builder() {
           return next;
         });
       } catch {
-        showToast(`✕ ${file.name}: could not read`);
+        showToast(interpolate(tbu.couldNotRead, { file: file.name }));
       }
     }
   };
@@ -329,11 +336,22 @@ function Builder() {
         setEditingOwn(true);
       }
       const res = await reparse.mutateAsync();
-      showToast(`Parser saved · reparsed ${res.updated} bill(s)`);
+      showToast(
+        interpolate(
+          res.updated === 1
+            ? tbu.parserSavedReparsedOne
+            : tbu.parserSavedReparsedOther,
+          { n: res.updated },
+        ),
+      );
       utils.invalidate();
       router.push("/app/bills");
     } catch (e) {
-      showToast(`✕ Save failed: ${e instanceof Error ? e.message : e}`);
+      showToast(
+        interpolate(tbu.saveFailed, {
+          msg: e instanceof Error ? e.message : String(e),
+        }),
+      );
     }
   };
 
@@ -341,13 +359,15 @@ function Builder() {
     <div className="mx-auto max-w-[84rem] px-5 pt-7 pb-20">
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <div>
-          <Eyebrow>Parser builder {existingId ? "· editing" : "· new"}</Eyebrow>
+          <Eyebrow>
+            {tbu.eyebrow} {existingId ? tbu.titleEditing : tbu.titleNew}
+          </Eyebrow>
           <Display size={30} className="block mt-1.5">
-            {displayName || "Untitled parser"}
+            {displayName || tbu.untitled}
           </Display>
         </div>
         <Button variant="ghost" onClick={() => router.push("/app/bills")}>
-          ← Back to bills
+          {tbu.backToBills}
         </Button>
       </div>
 
@@ -355,10 +375,10 @@ function Builder() {
         {/* ── Left: bill text ── */}
         <div className="md:sticky md:top-4">
           <div className="flex items-center justify-between mb-2">
-            <Label>Bill text</Label>
+            <Label>{tbu.billText}</Label>
             {mode === "structured" && (
               <span className="font-mono text-[10.5px] text-muted">
-                focus a value to highlight its span →
+                {tbu.focusHint}
               </span>
             )}
           </div>
@@ -380,7 +400,7 @@ function Builder() {
             {activeText ? (
               <HighlightedText text={activeText} spans={spans} />
             ) : (
-              "Drop a PDF to start."
+              tbu.dropToStart
             )}
           </pre>
           <DropZone onFiles={dropFiles} />
@@ -388,12 +408,16 @@ function Builder() {
             text={activeText}
             onCopy={(p) => {
               navigator.clipboard?.writeText(p);
-              showToast("Pattern copied — paste into a regex box");
+              showToast(tbu.patternCopied);
             }}
           />
           {slug && (
             <div className="mt-3">
-              <Label>Saved samples ({samples.data?.length ?? 0})</Label>
+              <Label>
+                {interpolate(tbu.savedSamplesLabel, {
+                  n: samples.data?.length ?? 0,
+                })}
+              </Label>
               <div className="flex flex-wrap gap-1.5">
                 {(samples.data ?? []).map((s) => (
                   <button
@@ -428,10 +452,10 @@ function Builder() {
                         rawText: activeText,
                       });
                       samples.refetch();
-                      showToast("Saved as regression sample");
+                      showToast(tbu.savedSample);
                     }}
                   >
-                    + Save this bill as sample
+                    {tbu.saveAsSample}
                   </Button>
                 )}
               </div>
@@ -441,16 +465,16 @@ function Builder() {
 
         {/* ── Right: editor ── */}
         <div className="flex flex-col gap-5">
-          <Section title="Parser">
+          <Section title={tbu.parserSection}>
             <Grid>
-              <Field label="Name">
+              <Field label={tbu.name}>
                 <Input
                   value={displayName}
-                  placeholder="e.g. Aguas Andinas"
+                  placeholder={tbu.namePlaceholder}
                   onChange={(e) => setDisplayName(e.target.value)}
                 />
               </Field>
-              <Field label="Slug (id)">
+              <Field label={tbu.slug}>
                 <Input
                   value={slug}
                   placeholder="aguas-andinas"
@@ -458,7 +482,7 @@ function Builder() {
                   className={cn(slug && !slugValid && "border-accent")}
                 />
               </Field>
-              <Field label="Vendor (charts group by this)">
+              <Field label={tbu.vendorGroup}>
                 <Select
                   value={knownVendor ? vendorSlug : "__new__"}
                   onChange={(e) => {
@@ -471,14 +495,14 @@ function Builder() {
                       {v.displayName}
                     </option>
                   ))}
-                  <option value="__new__">➕ New vendor…</option>
+                  <option value="__new__">{tbu.newVendorOption}</option>
                 </Select>
               </Field>
               {!knownVendor && (
-                <Field label="New vendor slug">
+                <Field label={tbu.newVendorSlug}>
                   <Input
                     value={vendorSlug}
-                    placeholder={slug || "vendor"}
+                    placeholder={slug || tbu.vendorPlaceholder}
                     onChange={(e) => setVendorSlug(e.target.value)}
                   />
                 </Field>
@@ -487,11 +511,8 @@ function Builder() {
           </Section>
 
           {/* step 1 — detection */}
-          <Section title="1 · Recognize the bill">
-            <p className={cn(hint, "mb-2.5")}>
-              Patterns that uniquely identify this vendor. All must appear in
-              the text, and they must not match any of your other bills.
-            </p>
+          <Section title={tbu.step1}>
+            <p className={cn(hint, "mb-2.5")}>{tbu.step1Help}</p>
             {sigs.map((s, i) => (
               <SigRow
                 key={i}
@@ -511,13 +532,13 @@ function Builder() {
               variant="outline"
               onClick={() => setSigs([...sigs, { pattern: "", flags: "i" }])}
             >
-              + Add signature
+              {tbu.addSignature}
             </Button>
             <div className="mt-4">
-              <p className={cn(hint, "mb-2.5")}>
-                Optional — patterns that must <em>not</em> appear. Splits one
-                vendor across two parsers.
-              </p>
+              <p
+                className={cn(hint, "mb-2.5")}
+                dangerouslySetInnerHTML={{ __html: tbu.exclusionHelp }}
+              />
               {noneSigs.map((s, i) => (
                 <SigRow
                   key={i}
@@ -537,24 +558,25 @@ function Builder() {
                   setNoneSigs([...noneSigs, { pattern: "", flags: "i" }])
                 }
               >
-                + Add exclusion
+                {tbu.addExclusion}
               </Button>
             </div>
             <div className="mt-3 flex flex-col gap-1.5">
               <StatusLine
                 ok={matchesCurrent}
-                text={
-                  matchesCurrent
-                    ? "Matches this bill"
-                    : "Does not match this bill yet"
-                }
+                text={matchesCurrent ? tbu.matches : tbu.noMatch}
               />
               <StatusLine
                 ok={collisionList.length === 0}
                 text={
                   collisionList.length === 0
-                    ? "No conflicts with your other bills"
-                    : `Conflicts with ${collisionList.length} other bill(s) — narrow the signature`
+                    ? tbu.noConflicts
+                    : interpolate(
+                        collisionList.length === 1
+                          ? tbu.conflictsOne
+                          : tbu.conflictsOther,
+                        { n: collisionList.length },
+                      )
                 }
               />
             </div>
@@ -562,31 +584,26 @@ function Builder() {
 
           {/* step 2 — extraction */}
           <Section
-            title="2 · Extract the data"
+            title={tbu.step2}
             dim={!gatePassed}
             right={
               gatePassed ? (
                 <div className="flex gap-1.5">
                   <Tab active={mode === "structured"} onClick={toStructured}>
-                    Structured
+                    {tbu.structured}
                   </Tab>
                   <Tab active={mode === "json"} onClick={toJson}>
-                    Advanced (JSON)
+                    {tbu.advancedJson}
                   </Tab>
                 </div>
               ) : undefined
             }
           >
             {!gatePassed ? (
-              <p className={cn(hint, "mb-2.5")}>
-                Finish step 1 to unlock extraction.
-              </p>
+              <p className={cn(hint, "mb-2.5")}>{tbu.finishStep1}</p>
             ) : mode === "json" ? (
               <>
-                <p className={cn(hint, "mb-2")}>
-                  The underlying engine body — captures, compute, roles, custom.
-                  Edits preview live below.
-                </p>
+                <p className={cn(hint, "mb-2")}>{tbu.jsonHelp}</p>
                 <textarea
                   value={advanced}
                   onChange={(e) => setAdvanced(e.target.value)}
@@ -604,15 +621,9 @@ function Builder() {
               </>
             ) : (
               <>
-                <SubHead
-                  label="Extract — capture from the bill"
-                  sub="Each card is one regex producing one or more named values."
-                />
+                <SubHead label={tbu.extractLabel} sub={tbu.extractSub} />
                 {config.captures.length === 0 && (
-                  <p className={cn(hint, "mb-2.5")}>
-                    Nothing captured yet. Add a capture to read a value off the
-                    bill.
-                  </p>
+                  <p className={cn(hint, "mb-2.5")}>{tbu.nothingCaptured}</p>
                 )}
                 {config.captures.map((cap, i) => (
                   <CaptureCard
@@ -637,14 +648,11 @@ function Builder() {
                     setCaptures([...config.captures, newCapture()])
                   }
                 >
-                  + add capture
+                  {tbu.addCapture}
                 </Button>
 
                 <div className="h-4" />
-                <SubHead
-                  label="Derive — compute from other values"
-                  sub="Each card makes a new value from the values above it. Order matters; ≈ marks a computed value."
-                />
+                <SubHead label={tbu.deriveLabel} sub={tbu.deriveSub} />
                 {config.derives.map((d, i) => (
                   <DeriveCard
                     key={d.id}
@@ -670,18 +678,15 @@ function Builder() {
                   variant="outline"
                   onClick={() => setDerives([...config.derives, newDerive()])}
                 >
-                  + add derived value
+                  {tbu.addDerived}
                 </Button>
 
                 <div className="h-4" />
-                <SubHead
-                  label="Roles — the four required slots"
-                  sub="Point each slot at a value. Add fallbacks for bills that print it differently."
-                />
+                <SubHead label={tbu.rolesLabel} sub={tbu.rolesSub} />
                 {ROLE_KEYS.map((key) => (
                   <RoleCard
                     key={key}
-                    label={ROLE_LABEL[key]}
+                    label={tbu.roles[key]}
                     role={config.roles[key]}
                     resolved={structResult?.roleOut[key]}
                     options={allOptions(config, values)}
@@ -697,10 +702,7 @@ function Builder() {
                 ))}
 
                 <div className="h-4" />
-                <SubHead
-                  label="Custom fields"
-                  sub="Anything else worth tracking — charted later."
-                />
+                <SubHead label={tbu.customLabel} sub={tbu.customSub} />
                 {config.custom.map((cf, i) => (
                   <CustomCard
                     key={cf.id}
@@ -722,7 +724,7 @@ function Builder() {
                   variant="outline"
                   onClick={() => setCustom([...config.custom, newCustom()])}
                 >
-                  + add custom field
+                  {tbu.addCustom}
                 </Button>
               </>
             )}
@@ -732,10 +734,10 @@ function Builder() {
               <div className="flex items-center gap-2 mb-2">
                 <Label>
                   {mode === "structured" && structResult?.issues.length
-                    ? "Needs review"
-                    : "Preview"}
+                    ? tbu.needsReview
+                    : tbu.preview}
                 </Label>
-                {previewOk && <ValueChip value="resolves" size="sm" />}
+                {previewOk && <ValueChip value={tbu.resolves} size="sm" />}
               </div>
               {mode === "structured" ? (
                 structResult ? (
@@ -745,9 +747,7 @@ function Builder() {
                     <StructuredPreview result={structResult} />
                   )
                 ) : (
-                  <p className={cn(hint, "mb-2.5")}>
-                    Define fields to see the result.
-                  </p>
+                  <p className={cn(hint, "mb-2.5")}>{tbu.defineFields}</p>
                 )
               ) : assembled.error ? (
                 <ErrorBox text={assembled.error} />
@@ -776,15 +776,19 @@ function Builder() {
               onClick={finish}
             >
               {!editingOwn
-                ? "Fork & save"
+                ? tbu.forkSave
                 : existingId
-                  ? "Save & reparse"
-                  : "Finish"}
+                  ? tbu.saveReparse
+                  : tbu.finish}
             </Button>
             {slug && usage.data && usage.data.count > 0 && (
               <span className={hint}>
-                Saving re-runs this parser against {usage.data.count} existing
-                bill(s).
+                {interpolate(
+                  usage.data.count === 1
+                    ? tbu.savingRerunOne
+                    : tbu.savingRerunOther,
+                  { n: usage.data.count },
+                )}
               </span>
             )}
           </div>

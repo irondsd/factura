@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { type FormEvent, Suspense, useEffect, useState } from "react";
 import { Button, Input } from "@/components/ui";
+import { useI18n } from "@/i18n/I18nProvider";
 
 // Sign-in flow, all on /login:
 //   choose → "Continue with Google" or "Sign in with email"
@@ -30,6 +31,8 @@ function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const { status } = useSession();
+  const { t } = useI18n();
+  const tl = t.login;
 
   const [step, setStep] = useState<Step>("choose");
   const [email, setEmail] = useState("");
@@ -37,7 +40,7 @@ function LoginForm() {
   const [busy, setBusy] = useState(false);
   // A failed verification redirects back here with ?error=Verification.
   const [error, setError] = useState<string | null>(
-    params.get("error") ? "That code is invalid or has expired." : null,
+    params.get("error") ? tl.errorInvalidCode : null,
   );
 
   // Already signed in (or just verified) → leave the public login page.
@@ -52,7 +55,7 @@ function LoginForm() {
     const res = await signIn("resend", { email, redirect: false });
     setBusy(false);
     if (res?.error) {
-      setError("Couldn't send a code. Check the address and try again.");
+      setError(tl.errorSendCode);
       return;
     }
     setStep("code");
@@ -81,15 +84,14 @@ function LoginForm() {
         {step === "choose" && (
           <>
             <p className="font-mono text-sm text-muted leading-[1.6] mt-4">
-              Drop a bill, get a ledger. Your utilities — quietly accounted for,
-              and yours alone.
+              {tl.tagline}
             </p>
             <button
               onClick={() => signIn("google", { callbackUrl: "/app" })}
               className="mt-7 inline-flex w-full items-center justify-center gap-3 font-mono text-[13px] text-ink bg-paper border border-line py-3 px-4 cursor-pointer transition-colors hover:border-accent"
             >
               <GoogleG />
-              Continue with Google
+              {tl.google}
             </button>
             <button
               onClick={() => {
@@ -98,11 +100,10 @@ function LoginForm() {
               }}
               className="mt-3 inline-flex w-full items-center justify-center gap-3 font-mono text-[13px] text-muted py-3 px-4 cursor-pointer transition-colors hover:text-accent"
             >
-              Sign in with email
+              {tl.emailButton}
             </button>
             <p className="font-mono text-[10.5px] text-muted leading-[1.6] mt-5">
-              Bills are scoped to your account. Parsed text and PDFs are private
-              to you.
+              {tl.privacyNote}
             </p>
           </>
         )}
@@ -110,8 +111,7 @@ function LoginForm() {
         {step === "email" && (
           <>
             <p className="font-mono text-sm text-muted leading-[1.6] mt-4">
-              Enter your email and we&apos;ll send you a 6-digit code to sign
-              in.
+              {tl.emailPrompt}
             </p>
             <form onSubmit={requestCode} className="mt-7 flex flex-col gap-3">
               <Input
@@ -119,7 +119,7 @@ function LoginForm() {
                 name="email"
                 required
                 autoFocus
-                placeholder="you@example.com"
+                placeholder={tl.emailPlaceholder}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="text-center"
@@ -131,7 +131,7 @@ function LoginForm() {
                 disabled={busy}
                 className="w-full"
               >
-                {busy ? "Sending…" : "Send code"}
+                {busy ? tl.sending : tl.sendCode}
               </Button>
               <button
                 type="button"
@@ -141,7 +141,7 @@ function LoginForm() {
                 }}
                 className="font-mono text-[11px] text-muted hover:text-accent transition-colors cursor-pointer"
               >
-                Other ways to sign in
+                {tl.otherWays}
               </button>
             </form>
           </>
@@ -150,8 +150,9 @@ function LoginForm() {
         {step === "code" && (
           <>
             <p className="font-mono text-sm text-muted leading-[1.6] mt-4">
-              We sent a code to <span className="text-ink">{email}</span>. Enter
-              it below — it expires in 10 minutes.
+              {tl.codeSentPrefix}
+              <span className="text-ink">{email}</span>
+              {tl.codeSentSuffix}
             </p>
             <form onSubmit={verifyCode} className="mt-7 flex flex-col gap-3">
               <Input
@@ -174,7 +175,7 @@ function LoginForm() {
                 disabled={busy || code.length < 6}
                 className="w-full"
               >
-                {busy ? "Verifying…" : "Sign in"}
+                {busy ? tl.verifying : tl.signIn}
               </Button>
               <button
                 type="button"
@@ -185,7 +186,7 @@ function LoginForm() {
                 }}
                 className="font-mono text-[11px] text-muted hover:text-accent transition-colors cursor-pointer"
               >
-                Use a different email
+                {tl.differentEmail}
               </button>
             </form>
           </>
@@ -201,7 +202,7 @@ function LoginForm() {
           href="/"
           className="block font-mono text-[10.5px] uppercase tracking-label-wide text-muted mt-8 hover:text-accent transition-colors"
         >
-          ← Back
+          {tl.back}
         </Link>
       </div>
     </div>

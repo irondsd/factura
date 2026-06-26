@@ -1,3 +1,4 @@
+import { getI18n } from "@/i18n/server";
 import { cn } from "@/lib/cn";
 import { Eyebrow, Wordmark } from "./parts";
 
@@ -46,7 +47,8 @@ const donutRing = (() => {
   return `conic-gradient(from -90deg, ${stops.join(", ")})`;
 })();
 
-export function LedgerPeek({ compact = false }: { compact?: boolean }) {
+export async function LedgerPeek({ compact = false }: { compact?: boolean }) {
+  const { t } = await getI18n();
   return (
     <div className="receipt-edge bg-card border border-line shadow-receipt">
       {/* faux top bar */}
@@ -54,9 +56,9 @@ export function LedgerPeek({ compact = false }: { compact?: boolean }) {
         <div className="flex items-center gap-[18px] flex-wrap">
           <Wordmark size={16} />
           <div className="flex gap-3.5">
-            <PeekNav active>Overview</PeekNav>
-            <PeekNav>Insights</PeekNav>
-            <PeekNav>Bills</PeekNav>
+            <PeekNav active>{t.nav.overview}</PeekNav>
+            <PeekNav>{t.nav.insights}</PeekNav>
+            <PeekNav>{t.nav.bills}</PeekNav>
           </div>
         </div>
       </div>
@@ -64,14 +66,14 @@ export function LedgerPeek({ compact = false }: { compact?: boolean }) {
       {/* total block */}
       <div className="pt-[18px] px-[18px] pb-4">
         <div className="mb-2">
-          <Eyebrow>Palermo · June 2026 so far</Eyebrow>
+          <Eyebrow>{t.peek.period}</Eyebrow>
         </div>
         <div className="font-display font-semibold text-[42px] tracking-tight leading-none text-ink">
           $ 429.638
         </div>
         <div className="font-mono text-[11.5px] text-muted mt-2.5">
-          3 of 4 bills in · ≈ US$ 295,39 ·{" "}
-          <span className="text-accent">1 awaiting</span>
+          {t.peek.billsIn} · ≈ US$ 295,39 ·{" "}
+          <span className="text-accent">{t.peek.awaiting}</span>
         </div>
       </div>
 
@@ -81,7 +83,7 @@ export function LedgerPeek({ compact = false }: { compact?: boolean }) {
       <div className="border-t border-line pt-4 px-[18px] pb-7">
         <div className="flex items-center justify-between mb-4">
           <Eyebrow className="text-ink tracking-[0.14em]">
-            Where the money goes
+            {t.peek.whereMoneyGoes}
           </Eyebrow>
           <MiniToggle left="ARS" right="USD" />
         </div>
@@ -101,7 +103,7 @@ export function LedgerPeek({ compact = false }: { compact?: boolean }) {
                 AR$
               </span>
               <span className="font-mono text-[8.5px] tracking-[0.16em] text-muted uppercase mt-0.5">
-                by vendor
+                {t.peek.byVendor}
               </span>
             </div>
           </div>
@@ -200,16 +202,17 @@ const STACK: {
   { key: "edesur", vbg: "vbg-sage" },
 ];
 
-function SpendChart() {
+async function SpendChart() {
+  const { t } = await getI18n();
   return (
     <div className="border-t border-line py-4 px-[18px]">
       <div className="flex items-start justify-between gap-2.5 mb-[26px]">
         <div>
           <Eyebrow className="text-ink tracking-[0.14em] whitespace-nowrap">
-            Total spend over time
+            {t.peek.totalSpend}
           </Eyebrow>
           <div className="font-mono text-[11px] text-muted mt-1">
-            Stacked by vendor
+            {t.peek.stackedByVendor}
           </div>
         </div>
         <MiniToggle left="ARS" right="USD" />
@@ -259,7 +262,7 @@ function SpendChart() {
             key={d.m}
             className="flex-1 text-center font-mono text-[8.5px] text-muted"
           >
-            {d.m}
+            {t.months.short[d.m as keyof typeof t.months.short]}
           </span>
         ))}
       </div>

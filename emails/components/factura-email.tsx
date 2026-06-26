@@ -162,6 +162,12 @@ export type FacturaEmailProps = {
   footerNote?: string;
   /** Unsubscribe target. */
   unsubscribeUrl?: string;
+  /** BCP-47 language for the <Html lang> attribute. */
+  locale?: string;
+  /** Localized footer tagline under the wordmark. */
+  footerTagline?: string;
+  /** Localized label for the unsubscribe link. */
+  unsubscribeLabel?: string;
 };
 
 /* ── Universal shell ─────────────────────────────────────────────────────── */
@@ -173,9 +179,12 @@ export function FacturaEmail({
   children,
   footerNote = "You're receiving this because you have a Factura account.",
   unsubscribeUrl = "https://example.com/unsubscribe",
+  locale = "en",
+  footerTagline = "Personal utility ledger · Argentina",
+  unsubscribeLabel = "Unsubscribe",
 }: FacturaEmailProps) {
   return (
-    <Html lang="en">
+    <Html lang={locale}>
       <Head>
         {/* Webfonts via <link> as the source HTML does — supporting clients and
             the preview get Fraunces + IBM Plex Mono; everywhere else falls back
@@ -237,13 +246,11 @@ export function FacturaEmail({
               Factura
               <Dot />
             </Text>
-            <Text style={styles.footLine}>
-              Personal utility ledger · Argentina
-            </Text>
+            <Text style={styles.footLine}>{footerTagline}</Text>
             <Text style={styles.footLine}>
               {footerNote}{" "}
               <Link href={unsubscribeUrl} style={styles.dottedLink}>
-                Unsubscribe
+                {unsubscribeLabel}
               </Link>
             </Text>
           </Section>

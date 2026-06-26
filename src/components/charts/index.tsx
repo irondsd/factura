@@ -15,6 +15,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useI18n } from "@/i18n/I18nProvider";
 import { formatMonth, formatMonthShort, formatMoney } from "@/lib/format";
 import type { Slice } from "@/lib/insights";
 
@@ -67,6 +68,7 @@ function StackTooltip({
   label?: string | number;
   currency: string;
 }) {
+  const { t, locale } = useI18n();
   if (!active || !payload || payload.length === 0) return null;
   // Each slot Bar carries the whole month's row; read the sorted segments off it.
   const row = (payload[0] as { payload?: { _segments?: Segment[] } }).payload;
@@ -78,7 +80,7 @@ function StackTooltip({
   return (
     <div className={tooltipBox}>
       <div className={tooltipHeader}>
-        {typeof label === "string" ? formatMonth(label) : ""}
+        {typeof label === "string" ? formatMonth(label, locale) : ""}
       </div>
       {segments.map((s) => (
         <div key={s.id} className="flex items-center gap-2 mt-[3px]">
@@ -91,7 +93,7 @@ function StackTooltip({
         </div>
       ))}
       <div className="flex justify-between gap-4 mt-[7px] pt-1.5 border-t border-line">
-        <span className="text-muted">Total</span>
+        <span className="text-muted">{t.charts.total}</span>
         <span className="font-semibold">{formatExact(total, currency)}</span>
       </div>
     </div>
@@ -110,13 +112,14 @@ function LineTooltip({
   label?: string | number;
   currency: string;
 }) {
+  const { locale } = useI18n();
   if (!active || !payload || payload.length === 0) return null;
   const rows = payload.filter((p) => p.value != null);
   if (rows.length === 0) return null;
   return (
     <div className={tooltipBox}>
       <div className={tooltipHeader}>
-        {typeof label === "string" ? formatMonth(label) : ""}
+        {typeof label === "string" ? formatMonth(label, locale) : ""}
       </div>
       {rows.map((p) => (
         <div
@@ -156,6 +159,7 @@ export function LineChartFx({
   currency?: string;
   height?: number;
 }) {
+  const { locale } = useI18n();
   const data = months.map((m, i) => {
     const row: Record<string, number | string | null> = { month: m };
     for (const s of series) row[s.label] = s.values[i] ?? null;
@@ -167,7 +171,7 @@ export function LineChartFx({
         <CartesianGrid stroke={AXIS} strokeDasharray="2 3" vertical={false} />
         <XAxis
           dataKey="month"
-          tickFormatter={formatMonthShort}
+          tickFormatter={(m: string) => formatMonthShort(m, locale)}
           tick={tickStyle}
           axisLine={{ stroke: AXIS }}
           tickLine={false}
@@ -234,6 +238,7 @@ export function StackedBarsFx({
   completeFlags?: boolean[];
   height?: number;
 }) {
+  const { locale } = useI18n();
   // Rank vendors once by their summed spend over the whole period, then use that
   // order for every bar. Recharts draws the first <Bar> at the bottom of the stack,
   // so "desc" (biggest first) puts the biggest vendor on the bottom.
@@ -266,7 +271,7 @@ export function StackedBarsFx({
         <CartesianGrid stroke={AXIS} strokeDasharray="2 3" vertical={false} />
         <XAxis
           dataKey="month"
-          tickFormatter={formatMonthShort}
+          tickFormatter={(m: string) => formatMonthShort(m, locale)}
           tick={tickStyle}
           axisLine={{ stroke: AXIS }}
           tickLine={false}
@@ -395,13 +400,15 @@ export function VendorShare({
   slices,
   centerLabel,
   centerSub,
-  emptyLabel = "No complete months yet.",
+  emptyLabel,
 }: {
   slices: Slice[];
   centerLabel?: string;
   centerSub?: string;
   emptyLabel?: string;
 }) {
+  const { t } = useI18n();
+  const empty = emptyLabel ?? t.charts.noCompleteMonths;
   const total = slices.reduce((a, s) => a + s.value, 0) || 1;
   return (
     <div className="flex flex-wrap items-center gap-4 md:flex-nowrap">
@@ -424,7 +431,7 @@ export function VendorShare({
           </div>
         ))}
         {slices.length === 0 && (
-          <span className="font-mono text-xs text-muted">{emptyLabel}</span>
+          <span className="font-mono text-xs text-muted">{empty}</span>
         )}
       </div>
     </div>

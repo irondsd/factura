@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import { Delta } from "@/components/charts/primitives";
 import { Field, Input, microLabel, Select } from "@/components/ui";
+import type { Dictionary } from "@/i18n/config";
+import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatMonthShort } from "@/lib/format";
 import type { RouterOutputs } from "@/lib/trpc";
@@ -51,14 +53,18 @@ export function reviewKindOf(bill: Bill): ReviewKind {
       : "needs_home";
 }
 
-export function reviewLabelOf(kind: ReviewKind, parseError?: string): string {
+export function reviewLabelOf(
+  kind: ReviewKind,
+  t: Dictionary["billDrawer"],
+  parseError?: string,
+): string {
   return kind === "unrecognized"
-    ? "Needs review · no parser recognized this bill"
+    ? t.reviewUnrecognized
     : kind === "parse_failed"
-      ? `Needs review · ${parseError ?? "parser failed"}`
+      ? `${t.reviewParseFailedPrefix}${parseError ?? t.reviewParseFailedDefault}`
       : kind === "needs_home"
-        ? "Needs review · pick a property"
-        : "Edit bill";
+        ? t.reviewNeedsHome
+        : t.editBill;
 }
 
 // ── Presentational pieces ────────────────────────────────────────────────────
@@ -75,6 +81,7 @@ export function DrawerHeader({
   fileName?: string | null;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-start justify-between gap-3 pt-[22px] px-6 pb-4 border-b border-dashed border-line">
       <div>
@@ -93,7 +100,7 @@ export function DrawerHeader({
       </div>
       <button
         onClick={onClose}
-        aria-label="Close"
+        aria-label={t.billDrawer.close}
         className="bg-transparent border-none cursor-pointer text-muted text-base leading-none transition-colors hover:text-accent"
       >
         ✕
@@ -103,19 +110,21 @@ export function DrawerHeader({
 }
 
 export function YoyStrip({ yoy }: { yoy: Bill["yoy"] }) {
+  const { t, locale } = useI18n();
   if (!yoy) return null;
   return (
     <div className="mt-4 mx-6 py-2.5 px-[14px] border border-line flex items-center gap-2.5 flex-wrap">
       <span className="font-mono text-micro text-muted">
-        vs {formatMonthShort(yoy.prevPeriod)} {yoy.prevPeriod.slice(0, 4)}:
+        {t.billDrawer.vs} {formatMonthShort(yoy.prevPeriod, locale)}{" "}
+        {yoy.prevPeriod.slice(0, 4)}:
       </span>
       <span className="font-mono text-xs">
-        <Delta pct={yoy.arsPct} /> in ARS
+        <Delta pct={yoy.arsPct} /> {t.billDrawer.inArs}
       </span>
       {yoy.usdPct != null && (
         <span className="font-mono text-xs text-muted">
           · {yoy.usdPct > 0 ? "+" : ""}
-          {yoy.usdPct.toFixed(0)}% in USD
+          {yoy.usdPct.toFixed(0)}% {t.billDrawer.inUsd}
         </span>
       )}
     </div>
@@ -140,17 +149,19 @@ export function BillFields({
   properties: PropertyOpt[];
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
+  const tb = t.billDrawer;
   const set = (patch: Partial<Draft>) => onChange?.({ ...draft, ...patch });
   return (
     <div className="py-5 px-6 grid grid-cols-1 md:grid-cols-2 gap-[14px]">
-      <Field label="Vendor">
+      <Field label={tb.vendor}>
         <Select
           value={draft.vendorId}
           disabled={disabled}
           onChange={(e) => set({ vendorId: e.target.value })}
         >
           <option value="" disabled>
-            Vendor
+            {tb.vendor}
           </option>
           {vendors.map((v) => (
             <option key={v.id} value={v.id}>
@@ -159,14 +170,14 @@ export function BillFields({
           ))}
         </Select>
       </Field>
-      <Field label="Property">
+      <Field label={tb.property}>
         <Select
           value={draft.propertyId}
           disabled={disabled}
           onChange={(e) => set({ propertyId: e.target.value })}
         >
           <option value="" disabled>
-            Property
+            {tb.property}
           </option>
           {properties.map((p) => (
             <option key={p.id} value={p.id}>
@@ -175,7 +186,7 @@ export function BillFields({
           ))}
         </Select>
       </Field>
-      <Field label="Period">
+      <Field label={tb.period}>
         <Input
           type="month"
           value={draft.period}
@@ -184,7 +195,7 @@ export function BillFields({
           onChange={(e) => set({ period: e.target.value })}
         />
       </Field>
-      <Field label="Due date">
+      <Field label={tb.dueDate}>
         <Input
           type="date"
           value={draft.dueDate}
@@ -193,7 +204,7 @@ export function BillFields({
           onChange={(e) => set({ dueDate: e.target.value })}
         />
       </Field>
-      <Field label="Amount (ARS)">
+      <Field label={tb.amountArs}>
         <Input
           type="number"
           value={draft.totalAmount}
@@ -212,11 +223,12 @@ export function ExtractedFields({
 }: {
   fields: Record<string, unknown>;
 }) {
+  const { t } = useI18n();
   const entries = Object.entries(fields);
   if (entries.length === 0) return null;
   return (
     <div className="px-6 pb-1">
-      <p className={cn(microLabel, "mb-1.5")}>Extracted fields</p>
+      <p className={cn(microLabel, "mb-1.5")}>{t.billDrawer.extractedFields}</p>
       <div className="border border-line bg-paper">
         {entries.map(([k, v], i) => (
           <div
@@ -260,11 +272,13 @@ export function OriginalFileRow({
   fileName?: string | null;
   downloadUrl?: string | null;
 }) {
+  const { t } = useI18n();
+  const tb = t.billDrawer;
   return (
     <>
-      <LabeledRow label="Original file">
+      <LabeledRow label={tb.originalFile}>
         <span className="font-mono text-xs flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-          {fileName ?? "(pasted text)"}
+          {fileName ?? tb.pastedText}
           <span className="text-muted"> · PDF</span>
         </span>
         {downloadUrl ? (
@@ -274,23 +288,24 @@ export function OriginalFileRow({
             rel="noopener noreferrer"
             className="font-mono text-micro uppercase tracking-[0.1em] text-accent underline decoration-dotted underline-offset-[3px] whitespace-nowrap transition-colors hover:text-ink"
           >
-            View PDF ›
+            {tb.viewPdf}
           </a>
         ) : (
-          <span className="font-mono text-micro text-muted">not stored</span>
+          <span className="font-mono text-micro text-muted">{tb.notStored}</span>
         )}
       </LabeledRow>
       <p className="font-mono text-[10.5px] text-muted mt-2 px-6">
-        Stored securely (S3) alongside the extracted text below.
+        {tb.storedSecurely}
       </p>
     </>
   );
 }
 
 export function ExtractedText({ text }: { text: string }) {
+  const { t } = useI18n();
   return (
     <div className="pt-4 px-6 pb-1">
-      <p className={cn(microLabel, "mb-1.5")}>Extracted text</p>
+      <p className={cn(microLabel, "mb-1.5")}>{t.billDrawer.extractedText}</p>
       <pre className="ruled font-mono text-[12.5px] whitespace-pre-wrap text-ink bg-paper border border-line pt-1 px-3 pb-2.5 max-h-[240px] overflow-y-auto">
         {text}
       </pre>

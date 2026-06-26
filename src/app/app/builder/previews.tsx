@@ -2,8 +2,9 @@
 // JSON-mode readout, and the "needs review" box for unresolved structured runs.
 
 import { RowBox } from "@/components/ui";
-import type { ParsedResult } from "@/parsers/engine/types";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { EvalResult } from "@/parsers/builder/evaluate";
+import type { ParsedResult } from "@/parsers/engine/types";
 import { cn } from "@/lib/cn";
 
 function fmt(v: unknown): string {
@@ -11,11 +12,13 @@ function fmt(v: unknown): string {
 }
 
 export function StructuredPreview({ result }: { result: EvalResult }) {
+  const { t } = useI18n();
+  const p = t.builder.previewRows;
   const rows: [string, string][] = [
-    ["Account / ID", fmt(result.roleOut.identity.value)],
-    ["Amount", fmt(result.roleOut.amount.value)],
-    ["Period", fmt(result.roleOut.period.value)],
-    ["Due date", fmt(result.roleOut.dueDate.value)],
+    [p.identity, fmt(result.roleOut.identity.value)],
+    [p.amount, fmt(result.roleOut.amount.value)],
+    [p.period, fmt(result.roleOut.period.value)],
+    [p.dueDate, fmt(result.roleOut.dueDate.value)],
     ...result.custom.map((c): [string, string] => [
       `${c.name}${c.type === "quantity" && c.unit ? ` (${c.unit})` : ""}`,
       c.value === undefined
@@ -27,11 +30,13 @@ export function StructuredPreview({ result }: { result: EvalResult }) {
 }
 
 export function ParsedPreview({ result }: { result: ParsedResult }) {
+  const { t } = useI18n();
+  const p = t.builder.previewRows;
   const rows: [string, string][] = [
-    ["Account / ID", result.identity],
-    ["Amount", String(result.amount)],
-    ["Period", result.period],
-    ["Due date", result.dueDate],
+    [p.identity, result.identity],
+    [p.amount, String(result.amount)],
+    [p.period, result.period],
+    [p.dueDate, result.dueDate],
     ...Object.entries(result.custom).map(([k, v]): [string, string] => [
       k,
       typeof v === "object"

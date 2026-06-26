@@ -5,24 +5,34 @@
 
 import { Section, Text } from "@react-email/components";
 import * as React from "react";
+import type { Dictionary, Locale } from "../src/i18n/config";
+import en from "../src/i18n/dictionaries/en.json";
 import { C, FacturaEmail, styles } from "./components/factura-email";
 
+type Emails = Dictionary["emails"];
+
 export type OtpEmailProps = {
+  /** Resolved `emails` dictionary slice for the recipient's locale. */
+  t?: Emails;
+  locale?: Locale;
   code?: string;
 };
 
-export function OtpEmail({ code }: OtpEmailProps) {
+export function OtpEmail({ t = en.emails, locale = "en", code }: OtpEmailProps) {
+  const o = t.otp;
   return (
     <FacturaEmail
-      preheader="Use this code to sign in to your account."
-      headerTag="Account"
-      eyebrow="One-time password"
-      title="Welcome."
+      locale={locale}
+      preheader={o.preheader}
+      headerTag={t.headerAccount}
+      eyebrow={o.eyebrow}
+      title={o.title}
+      footerNote={o.footerNote}
+      footerTagline={t.footerTagline}
+      unsubscribeLabel={t.unsubscribe}
     >
-      <Text style={styles.text}>Hi there!</Text>
-      <Text style={styles.text}>
-        Here&apos;s your Factura verification code:
-      </Text>
+      <Text style={styles.text}>{o.greeting}</Text>
+      <Text style={styles.text}>{o.intro}</Text>
 
       <Section
         style={{
@@ -44,12 +54,8 @@ export function OtpEmail({ code }: OtpEmailProps) {
         </Text>
       </Section>
 
-      <Text style={{ ...styles.voice, marginTop: "24px" }}>
-        This code expires in 10 minutes.
-      </Text>
-      <Text style={styles.voice}>
-        If you didn&apos;t request this code, no action is needed.
-      </Text>
+      <Text style={{ ...styles.voice, marginTop: "24px" }}>{o.expires}</Text>
+      <Text style={styles.voice}>{o.ignore}</Text>
     </FacturaEmail>
   );
 }

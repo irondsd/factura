@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function DocsPage() {
   return (
     <>
-      <SiteTop active="Docs" />
+      <SiteTop active="/docs" />
       <main className={SHELL}>
         <DocsView />
       </main>
