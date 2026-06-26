@@ -4,9 +4,12 @@
 // `RouterOutputs`, so the demo renders the exact same view components as the
 // signed-in app and the fixtures can't silently drift from the procedure shapes.
 //
-// Two color representations exist on purpose, matching the real endpoints:
-//  - insights.* return vendors via `vendorMeta` → color is a `var(--vendor-*)`.
-//  - vendors.list returns raw rows → color is the *name* (e.g. "dark-earth").
+// The series is anchored to a fixed EPOCH, not to "today": every value is a pure
+// function of its absolute calendar month, so a given month always shows the
+// same numbers and past bills never change. `now` (the real current month, read
+// at render time) only decides which months are in view and which one is still
+// "awaiting" — so the demo rolls forward on its own (June → July → …) while the
+// figures stay stable. See `revalidate` on the /demo pages for the cadence.
 
 import { vendorColorVar } from '@/lib/vendorColors'
 import type { RouterOutputs } from '@/lib/trpc'
@@ -25,7 +28,6 @@ export type DemoRange = 12 | 24
 // ── Identities ──────────────────────────────────────────────────────────────
 const PROPERTY_ID = 'd0000000-0000-4000-8000-000000000001'
 const USER_ID = 'd0000000-0000-4000-8000-0000000000ff'
-const NOW_MONTH = '2026-06' // the demo's "current" month
 
 type VendorKey = 'expensas' | 'metrogas' | 'personal' | 'edesur'
 
@@ -81,6 +83,22 @@ const vendorMeta = (v: VendorDef) => ({
 })
 
 // ── Time + currency model ───────────────────────────────────────────────────
+// The deterministic spine. EPOCH is where the series begins; every value scales
+// with `idx` = months elapsed since EPOCH, so it's stable per calendar month and
+// keeps climbing realistically as the demo rolls into the future.
+const EPOCH = '2024-07'
+
+/** Real current month ("YYYY-MM"), evaluated at render time. */
+function nowMonth(): string {
+  return new Date().toISOString().slice(0, 7)
+}
+
+function monthsBetween(from: string, to: string): number {
+  const [fy, fm] = from.split('-').map(Number)
+  const [ty, tm] = to.split('-').map(Number)
+  return (ty - fy) * 12 + (tm - fm)
+}
+
 /** "YYYY-MM" list ending at `end`, length `n` (oldest → newest). */
 function monthList(end: string, n: number): string[] {
   const [ey, em] = end.split('-').map(Number)
@@ -92,22 +110,21 @@ function monthList(end: string, n: number): string[] {
   return out
 }
 
-const MONTHS_24 = monthList(NOW_MONTH, 24)
-const ageOf = (month: string) => MONTHS_24.indexOf(month) // 0 oldest … 23 now
+const idx = (month: string) => monthsBetween(EPOCH, month) // 0 at EPOCH, grows
 const calMonth = (month: string) => Number(month.slice(5)) // 1..12
 
-/** ARS→USD blue rate, climbing with inflation from ~900 to ~1250 over 24 months. */
+/** ARS→USD blue rate, climbing with inflation (~900 over the first two years). */
 function rate(month: string): number {
-  const i = ageOf(month)
-  return Math.round(900 + (i / 23) * 350)
+  return Math.round(900 + (idx(month) / 23) * 350)
 }
 
-/** Peso inflation multiplier across the window (pesos climb; USD stays flatter). */
-const inflation = (month: string) => 1 + (ageOf(month) / 23) * 0.32
+/** Peso inflation multiplier (pesos climb; USD stays flatter). */
+const inflation = (month: string) => 1 + (idx(month) / 23) * 0.32
 
 // The current month is still filling in: MetroGAS (gas) hasn't arrived yet.
 const AWAITING_KEY: VendorKey = 'metrogas'
-const hasBill = (key: VendorKey, month: string) => !(month === NOW_MONTH && key === AWAITING_KEY)
+const hasBill = (key: VendorKey, month: string, now: string) =>
+  !(month === now && key === AWAITING_KEY)
 
 /** Native ARS amount for a vendor in a given month. */
 function amountARS(key: VendorKey, month: string): number {
@@ -115,7 +132,7 @@ function amountARS(key: VendorKey, month: string): number {
   switch (key) {
     case 'expensas':
       // Largest, steady line that creeps up every month.
-      return Math.round(160000 * infl + ageOf(month) * 1500)
+      return Math.round(160000 * infl + idx(month) * 1500)
     case 'personal':
       return Math.round(14000 * infl)
     case 'edesur': {
@@ -138,11 +155,11 @@ function quantity(key: VendorKey, month: string): number | null {
   const m = calMonth(month)
   switch (key) {
     case 'edesur': // kWh
-      return Math.round(190 + ([12, 1, 2].includes(m) ? 130 : 0) + ageOf(month))
+      return Math.round(190 + ([12, 1, 2].includes(m) ? 130 : 0) + idx(month))
     case 'metrogas': // m³
       return Math.round(18 + ([6, 7, 8].includes(m) ? 170 : [5, 9].includes(m) ? 80 : 10))
     case 'personal': // GB of data
-      return Math.round(8 + ageOf(month) * 0.25)
+      return Math.round(8 + idx(month) * 0.25)
     default:
       return null
   }
@@ -164,18 +181,18 @@ function valueIn(key: VendorKey, month: string, currency: 'ARS' | 'USD') {
 }
 
 /** A month is complete when every vendor has a bill that period. */
-function completeFlagsFor(months: string[]): boolean[] {
-  return months.map((m) => VENDORS.every((v) => hasBill(v.key, m)))
+function completeFlagsFor(months: string[], now: string): boolean[] {
+  return months.map((m) => VENDORS.every((v) => hasBill(v.key, m, now)))
 }
 
-function buildView(months: string[], currency: 'ARS' | 'USD'): View {
-  const completeFlags = completeFlagsFor(months)
+function buildView(months: string[], currency: 'ARS' | 'USD', now: string): View {
+  const completeFlags = completeFlagsFor(months, now)
 
   const series = months.map((m) => {
     const byVendor: Record<string, number> = {}
     let total = 0
     for (const v of VENDORS) {
-      if (!hasBill(v.key, m)) continue
+      if (!hasBill(v.key, m, now)) continue
       const val = valueIn(v.key, m, currency)
       byVendor[v.id] = val
       total += val
@@ -204,8 +221,8 @@ function buildView(months: string[], currency: 'ARS' | 'USD'): View {
   return { series, share, perVendor }
 }
 
-function buildByCurrency(months: string[]) {
-  return { ARS: buildView(months, 'ARS'), USD: buildView(months, 'USD') }
+function buildByCurrency(months: string[], now: string) {
+  return { ARS: buildView(months, 'ARS', now), USD: buildView(months, 'USD', now) }
 }
 
 // ── Public fixtures: catalog ────────────────────────────────────────────────
@@ -237,20 +254,21 @@ export const demoVendors: VendorRow[] = VENDORS.map((v) => ({
 
 // ── Public fixtures: insights ───────────────────────────────────────────────
 export function demoOverview(): Overview {
-  const months = monthList(NOW_MONTH, 12)
-  const completeFlags = completeFlagsFor(months)
+  const now = nowMonth()
+  const months = monthList(now, 12)
+  const completeFlags = completeFlagsFor(months, now)
   const vendors = VENDORS.map(vendorMeta)
 
   const awaiting = VENDORS.map((v) => {
-    const received = hasBill(v.key, NOW_MONTH)
-    const past = months.filter((m) => m !== NOW_MONTH && hasBill(v.key, m))
+    const received = hasBill(v.key, now, now)
+    const past = months.filter((m) => m !== now && hasBill(v.key, m, now))
     const lastMonth = past[past.length - 1] ?? null
     return {
       accountId: v.accountId,
       vendor: vendorMeta(v),
       received,
-      amount: received ? amountARS(v.key, NOW_MONTH) : null,
-      usd: received ? usdOf(amountARS(v.key, NOW_MONTH), NOW_MONTH) : null,
+      amount: received ? amountARS(v.key, now) : null,
+      usd: received ? usdOf(amountARS(v.key, now), now) : null,
       lastPeriod: lastMonth,
       lastAmount: lastMonth ? amountARS(v.key, lastMonth) : null,
     }
@@ -259,7 +277,7 @@ export function demoOverview(): Overview {
 
   return {
     property: demoProperty,
-    month: NOW_MONTH,
+    month: now,
     thisMonthTotal: received.reduce((s, a) => s + (a.amount ?? 0), 0),
     thisMonthUsd: received.reduce((s, a) => s + (a.usd ?? 0), 0),
     billsIn: received.length,
@@ -268,24 +286,27 @@ export function demoOverview(): Overview {
     months,
     completeFlags,
     vendors,
-    byCurrency: buildByCurrency(months),
+    byCurrency: buildByCurrency(months, now),
   }
 }
 
 export function demoSeries(range: DemoRange): Series {
-  const months = monthList(NOW_MONTH, range)
-  const completeFlags = completeFlagsFor(months)
+  const now = nowMonth()
+  const months = monthList(now, range)
+  const completeFlags = completeFlagsFor(months, now)
 
   const totalIn = (currency: 'ARS' | 'USD') =>
     months.map((m, i) =>
-      completeFlags[i] ? VENDORS.reduce((s, v) => s + (hasBill(v.key, m) ? valueIn(v.key, m, currency) : 0), 0) : null,
+      completeFlags[i]
+        ? VENDORS.reduce((s, v) => s + (hasBill(v.key, m, now) ? valueIn(v.key, m, currency) : 0), 0)
+        : null,
     )
 
   return {
     months,
     completeFlags,
     vendors: VENDORS.map(vendorMeta),
-    byCurrency: buildByCurrency(months),
+    byCurrency: buildByCurrency(months, now),
     inflation: { arsIdx: rebase(totalIn('ARS')), usdIdx: rebase(totalIn('USD')) },
   }
 }
@@ -304,21 +325,22 @@ const FIELD_DEFS: Record<
 export function demoVendorDetail(vendorId: string, range: DemoRange): VendorDetail | null {
   const def = VENDORS.find((v) => v.id === vendorId)
   if (!def) return null
-  const months = monthList(NOW_MONTH, range)
+  const now = nowMonth()
+  const months = monthList(now, range)
 
   const spendIn = (currency: 'ARS' | 'USD') =>
-    months.map((m) => (hasBill(def.key, m) ? valueIn(def.key, m, currency) : null))
+    months.map((m) => (hasBill(def.key, m, now) ? valueIn(def.key, m, currency) : null))
 
   const fields = FIELD_DEFS[def.key].map((f) => {
     const isMoney = f.type === 'money'
     if (f.type === 'quantity') {
-      const values = months.map((m) => (hasBill(def.key, m) ? quantity(def.key, m) : null))
+      const values = months.map((m) => (hasBill(def.key, m, now) ? quantity(def.key, m) : null))
       const ars = months.map((m) => {
-        const q = hasBill(def.key, m) ? quantity(def.key, m) : null
+        const q = hasBill(def.key, m, now) ? quantity(def.key, m) : null
         return q ? amountARS(def.key, m) / q : null
       })
       const usd = months.map((m) => {
-        const q = hasBill(def.key, m) ? quantity(def.key, m) : null
+        const q = hasBill(def.key, m, now) ? quantity(def.key, m) : null
         return q ? usdOf(amountARS(def.key, m), m) / q : null
       })
       return {
@@ -332,7 +354,9 @@ export function demoVendorDetail(vendorId: string, range: DemoRange): VendorDeta
       }
     }
     // money surcharge (≈8% of the bill, in pesos with a USD copy)
-    const values = months.map((m) => (hasBill(def.key, m) ? Math.round(amountARS(def.key, m) * 0.08) : null))
+    const values = months.map((m) =>
+      hasBill(def.key, m, now) ? Math.round(amountARS(def.key, m) * 0.08) : null,
+    )
     const valuesUsd = months.map((m, i) => (values[i] == null ? null : usdOf(values[i] as number, m)))
     return {
       name: f.name,
@@ -361,27 +385,25 @@ type DemoBillSeed = {
   status: 'parsed' | 'needs_review'
 }
 
-// Newest months first; one parsed bill per vendor per month for the last eight
-// complete months, plus the current month's three received bills and a single
-// unrecognized upload sitting in review.
-const LEDGER_MONTHS = monthList(NOW_MONTH, 9) // includes NOW_MONTH
+const UNRECOGNIZED_ID = 'd0000000-0000-4000-8000-0000000009ff'
 
-const BILL_SEEDS: DemoBillSeed[] = [
-  {
-    id: 'd0000000-0000-4000-8000-0000000009ff',
-    key: null,
-    month: null,
-    status: 'needs_review',
-  },
-  ...LEDGER_MONTHS.flatMap((month, mi) =>
-    VENDORS.filter((v) => hasBill(v.key, month)).map((v, vi) => ({
-      id: `d0000000-0000-4000-8000-0000000${String(900 + mi * 10 + vi).padStart(5, '0')}`,
-      key: v.key,
-      month,
-      status: 'parsed' as const,
-    })),
-  ),
-]
+// One parsed bill per vendor per month for the last eight complete months plus
+// the current month's received bills, and a single unrecognized upload sitting
+// in review. Built relative to `now` so the ledger advances with the calendar.
+function billSeeds(now: string): DemoBillSeed[] {
+  const ledgerMonths = monthList(now, 9) // includes the current month
+  return [
+    { id: UNRECOGNIZED_ID, key: null, month: null, status: 'needs_review' },
+    ...ledgerMonths.flatMap((month, mi) =>
+      VENDORS.filter((v) => hasBill(v.key, month, now)).map((v, vi) => ({
+        id: `d0000000-0000-4000-8000-0000000${String(900 + mi * 10 + vi).padStart(5, '0')}`,
+        key: v.key,
+        month,
+        status: 'parsed' as const,
+      })),
+    ),
+  ]
+}
 
 function rawTextFor(seed: DemoBillSeed): string {
   if (!seed.key || !seed.month) {
@@ -436,26 +458,35 @@ function fullToRow(full: FullBill): PagedRow {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { rawText, ...rest } = full
   const usdAmount =
-    full.totalAmount != null && full.period ? usdOf(Number(full.totalAmount), full.period.slice(0, 7)) : null
+    full.totalAmount != null && full.period
+      ? usdOf(Number(full.totalAmount), full.period.slice(0, 7))
+      : null
   return { ...rest, usdAmount }
 }
-
-const ALL_ROWS: PagedRow[] = BILL_SEEDS.map((s) => fullToRow(seedToFull(s)))
 
 // Same ordering the real listPaged applies: review-needed first, then newest period.
 function sortRows(rows: PagedRow[]): PagedRow[] {
   return [...rows].sort((a, b) => {
-    if ((a.status === 'needs_review') !== (b.status === 'needs_review')) return a.status === 'needs_review' ? -1 : 1
+    if ((a.status === 'needs_review') !== (b.status === 'needs_review'))
+      return a.status === 'needs_review' ? -1 : 1
     return (a.period ?? '0') < (b.period ?? '0') ? 1 : -1
   })
 }
 
 export function demoVendorsPresent(): string[] {
-  return [...new Set(ALL_ROWS.map((r) => r.vendorId).filter((id): id is string => !!id))]
+  const rows = billSeeds(nowMonth())
+  return [...new Set(rows.map((s) => (s.key ? VENDOR_BY_KEY.get(s.key)!.id : null)))].filter(
+    (id): id is string => !!id,
+  )
 }
 
-export function demoListPaged(args: { vendorId?: string; page: number; perPage: number }): Paged {
-  const filtered = args.vendorId ? ALL_ROWS.filter((r) => r.vendorId === args.vendorId) : ALL_ROWS
+export function demoListPaged(args: {
+  vendorId?: string
+  page: number
+  perPage: number
+}): Paged {
+  const all = billSeeds(nowMonth()).map((s) => fullToRow(seedToFull(s)))
+  const filtered = args.vendorId ? all.filter((r) => r.vendorId === args.vendorId) : all
   const rows = sortRows(filtered)
   const pageCount = Math.max(1, Math.ceil(rows.length / args.perPage))
   const page = Math.min(args.page, pageCount - 1)
@@ -466,23 +497,21 @@ export function demoListPaged(args: { vendorId?: string; page: number; perPage: 
 /** bills.get shape for the demo drawer: full bill + raw text, no PDF, plus YoY
  * for parsed bills that have a same-vendor bill twelve months earlier. */
 export function demoBill(id: string): BillGet | null {
-  const seed = BILL_SEEDS.find((s) => s.id === id)
+  const seed = billSeeds(nowMonth()).find((s) => s.id === id)
   if (!seed) return null
   const full = seedToFull(seed)
 
   let yoy: BillGet['yoy'] = null
   if (seed.key && seed.month) {
     const prevMonth = monthList(seed.month, 13)[0] // 12 months earlier
-    if (ageOf(prevMonth) >= 0) {
-      const cur = amountARS(seed.key, seed.month)
-      const prev = amountARS(seed.key, prevMonth)
-      const curUsd = usdOf(cur, seed.month)
-      const prevUsd = usdOf(prev, prevMonth)
-      yoy = {
-        prevPeriod: `${prevMonth}-01`,
-        arsPct: ((cur - prev) / prev) * 100,
-        usdPct: ((curUsd - prevUsd) / prevUsd) * 100,
-      }
+    const cur = amountARS(seed.key, seed.month)
+    const prev = amountARS(seed.key, prevMonth)
+    const curUsd = usdOf(cur, seed.month)
+    const prevUsd = usdOf(prev, prevMonth)
+    yoy = {
+      prevPeriod: `${prevMonth}-01`,
+      arsPct: ((cur - prev) / prev) * 100,
+      usdPct: ((curUsd - prevUsd) / prevUsd) * 100,
     }
   }
 

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { DemoBills } from "@/components/demo/DemoBills";
 
+// Regenerated daily so the ledger's months roll forward with the calendar.
+export const revalidate = 86400;
+
 export const metadata: Metadata = {
   title: "Demo · Bills",
   description:

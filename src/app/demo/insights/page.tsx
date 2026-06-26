@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { DemoInsights } from "@/components/demo/DemoInsights";
 
+// Regenerated daily so the demo window rolls forward with the calendar.
+export const revalidate = 86400;
+
 export const metadata: Metadata = {
   title: "Demo · Insights",
   description:
