@@ -13,11 +13,18 @@
  */
 
 import { eq } from "drizzle-orm";
+import { cookies } from "next/headers";
 import type { ReactElement } from "react";
 import { Resend } from "resend";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { defaultLocale, interpolate, type Locale } from "@/i18n/config";
+import {
+  defaultLocale,
+  interpolate,
+  isLocale,
+  LOCALE_COOKIE,
+  type Locale,
+} from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { OtpEmail } from "../../emails/opt";
 import { ShareInviteEmail } from "../../emails/share-invite";
@@ -25,17 +32,30 @@ import { WelcomeEmail } from "../../emails/welcome";
 
 const FROM = process.env.EMAIL_FROM ?? "Factura <onboarding@resend.dev>";
 
-/** Best-effort: the recipient's stored locale (emails can't read the cookie),
- * falling back to the default when they have no account yet. */
-async function localeFor(email: string): Promise<Locale> {
+/** The recipient's saved preference, or `null` when they have no account yet.
+ * This is the authoritative source for anyone who has signed in before; the
+ * proxy keeps it in sync with the version they last browsed. */
+async function storedLocale(email: string): Promise<Locale | null> {
   try {
     const row = await db.query.users.findFirst({
       where: eq(users.email, email),
       columns: { locale: true },
     });
-    return row?.locale ?? defaultLocale;
+    return row?.locale ?? null;
   } catch {
-    return defaultLocale;
+    return null;
+  }
+}
+
+/** The locale of the *current request's* visitor, from `NEXT_LOCALE`. Only
+ * meaningful when the recipient is the person making the request (i.e. the OTP
+ * signer) — never for an invite, where the recipient is someone else. */
+async function cookieLocale(): Promise<Locale | null> {
+  try {
+    const value = (await cookies()).get(LOCALE_COOKIE)?.value;
+    return isLocale(value) ? value : null;
+  } catch {
+    return null;
   }
 }
 
@@ -85,7 +105,7 @@ export async function sendWelcomeEmail(opts: {
   to: string;
   name?: string | null;
 }) {
-  const locale = await localeFor(opts.to);
+  const locale = (await storedLocale(opts.to)) ?? defaultLocale;
   const t = (await getDictionary(locale)).emails;
   return send({
     to: opts.to,
@@ -111,7 +131,11 @@ export async function sendOtpEmail(opts: { to: string; code: string }) {
     );
     return;
   }
-  const locale = await localeFor(opts.to);
+  // OTP recipient == the person signing in, so their request cookie is a valid
+  // signal. Prefer a saved preference (returning user), then the version they're
+  // signing up from (new user, no row yet), then the default.
+  const locale =
+    (await storedLocale(opts.to)) ?? (await cookieLocale()) ?? defaultLocale;
   const t = (await getDictionary(locale)).emails;
   const sent = await send({
     to: opts.to,
@@ -129,7 +153,7 @@ export async function sendShareInviteEmail(opts: {
   inviter: string;
   property: string;
 }) {
-  const locale = await localeFor(opts.to);
+  const locale = (await storedLocale(opts.to)) ?? defaultLocale;
   const t = (await getDictionary(locale)).emails;
   return send({
     to: opts.to,

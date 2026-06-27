@@ -31,6 +31,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       languages: {
         "es-AR": localeUrl(path, "es"),
         en: localeUrl(path, "en"),
+        "x-default": localeUrl(path, "es"),
       },
     },
   }));

@@ -8,20 +8,37 @@ import { LOCALE_COOKIE, type Locale } from "@/i18n/config";
 //   • passes /en and /en/* straight through to the English static page,
 //   • rewrites every other matched (bare) path → /es/* so the Spanish static
 //     page serves at the clean URL (the browser URL stays bare),
-//   • on first touch (no cookie yet) persists NEXT_LOCALE = the URL's locale so
-//     the signed-in app + transactional emails follow the version browsed; an
-//     explicit choice (the language switch) is never overridden.
+//   • for anonymous visitors, keeps NEXT_LOCALE pointed at the version they're
+//     actually viewing, so the locale captured at sign-up — and the OTP email —
+//     matches the page they signed up from (even if they first browsed the other
+//     language). Signed-in visitors are left untouched: their saved preference
+//     (set via the in-app switch, mirrored to the DB) must win over passive
+//     browsing, and is never silently overridden.
 // The matcher excludes /app, /login, /api, /_next, and files, so the app keeps
 // its cookie-driven locale untouched.
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
-function withFirstTouchCookie(
+// Presence of an Auth.js session cookie marks a signed-in visitor. Covers both
+// the dev (`authjs.session-token`) and HTTPS (`__Secure-…`) cookie names.
+function isSignedIn(request: NextRequest): boolean {
+  return (
+    request.cookies.has("authjs.session-token") ||
+    request.cookies.has("__Secure-authjs.session-token")
+  );
+}
+
+function withLocaleCookie(
   request: NextRequest,
   response: NextResponse,
   locale: Locale,
 ): NextResponse {
-  if (!request.cookies.get(LOCALE_COOKIE)) {
+  // Only track the browsed locale for anonymous visitors; never overwrite a
+  // signed-in user's stored preference.
+  if (
+    !isSignedIn(request) &&
+    request.cookies.get(LOCALE_COOKIE)?.value !== locale
+  ) {
     response.cookies.set(LOCALE_COOKIE, locale, {
       path: "/",
       maxAge: ONE_YEAR,
@@ -43,13 +60,13 @@ export function proxy(request: NextRequest): NextResponse {
 
   // English pages are served directly from /en*.
   if (pathname === "/en" || pathname.startsWith("/en/")) {
-    return withFirstTouchCookie(request, NextResponse.next(), "en");
+    return withLocaleCookie(request, NextResponse.next(), "en");
   }
 
   // Bare landing path → serve the Spanish static page at the clean URL.
   const url = request.nextUrl.clone();
   url.pathname = `/es${pathname === "/" ? "" : pathname}`;
-  return withFirstTouchCookie(request, NextResponse.rewrite(url), "es");
+  return withLocaleCookie(request, NextResponse.rewrite(url), "es");
 }
 
 export const config = {
