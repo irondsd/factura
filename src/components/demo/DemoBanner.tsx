@@ -1,10 +1,11 @@
 import Link from "next/link";
+import type { Locale } from "@/i18n/config";
 import { getI18n } from "@/i18n/server";
 
 /** A thin strip under the demo top bar making clear this is sample data and
  * pointing at sign-up. Static — safe to server-render for indexing. */
-export async function DemoBanner() {
-  const { t } = await getI18n();
+export async function DemoBanner({ locale }: { locale: Locale }) {
+  const { t } = await getI18n(locale);
   return (
     <div className="border-b border-line bg-[var(--accent-soft)]">
       <div className="mx-auto flex max-w-[64rem] flex-wrap items-center justify-between gap-2 py-2 px-5">

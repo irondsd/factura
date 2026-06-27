@@ -6,8 +6,8 @@ import { getDictionary } from "./dictionaries";
 
 // Resolves the active locale from the persisted cookie, falling back to the
 // default (Spanish). Reading cookies opts the calling route into dynamic
-// rendering — acceptable for the app shell; Phase 3 handles static landing
-// pages via dedicated /en routes.
+// rendering — used by the signed-in app shell (`(app)` route group). The static
+// landing (`(site)/[lang]`) passes its route locale to `getI18n` instead.
 export async function getLocale(): Promise<Locale> {
   const store = await cookies();
   const value = store.get(LOCALE_COOKIE)?.value;
@@ -15,10 +15,14 @@ export async function getLocale(): Promise<Locale> {
 }
 
 // Server-component counterpart of the client `useI18n()` hook. Resolves the
-// locale + dictionary for the current request. `cache` dedupes within a single
+// locale + dictionary for the current render. `cache` dedupes within a single
 // render, so any number of server components can call this freely.
-export const getI18n = cache(async () => {
-  const locale = await getLocale();
+//
+// Pass `localeOverride` to skip the cookie entirely (e.g. landing pages whose
+// locale comes from the `[lang]` route param) — that keeps the call free of
+// dynamic APIs so the route can still be statically generated.
+export const getI18n = cache(async (localeOverride?: Locale) => {
+  const locale = localeOverride ?? (await getLocale());
   const t = await getDictionary(locale);
   return { locale, t };
 });

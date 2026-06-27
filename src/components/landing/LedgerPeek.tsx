@@ -1,3 +1,4 @@
+import type { Locale } from "@/i18n/config";
 import { getI18n } from "@/i18n/server";
 import { cn } from "@/lib/cn";
 import { Eyebrow, Wordmark } from "./parts";
@@ -47,8 +48,14 @@ const donutRing = (() => {
   return `conic-gradient(from -90deg, ${stops.join(", ")})`;
 })();
 
-export async function LedgerPeek({ compact = false }: { compact?: boolean }) {
-  const { t } = await getI18n();
+export async function LedgerPeek({
+  compact = false,
+  locale,
+}: {
+  compact?: boolean;
+  locale: Locale;
+}) {
+  const { t } = await getI18n(locale);
   return (
     <div className="receipt-edge bg-card border border-line shadow-receipt">
       {/* faux top bar */}
@@ -77,7 +84,7 @@ export async function LedgerPeek({ compact = false }: { compact?: boolean }) {
         </div>
       </div>
 
-      <SpendChart />
+      <SpendChart locale={locale} />
 
       {/* vendor-share card */}
       <div className="border-t border-line pt-4 px-[18px] pb-7">
@@ -202,8 +209,8 @@ const STACK: {
   { key: "edesur", vbg: "vbg-sage" },
 ];
 
-async function SpendChart() {
-  const { t } = await getI18n();
+async function SpendChart({ locale }: { locale: Locale }) {
+  const { t } = await getI18n(locale);
   return (
     <div className="border-t border-line py-4 px-[18px]">
       <div className="flex items-start justify-between gap-2.5 mb-[26px]">

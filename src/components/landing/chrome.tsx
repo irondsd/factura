@@ -1,20 +1,31 @@
 import Link from "next/link";
 import { Eyebrow, Wordmark } from "@/components/landing/parts";
+import type { Locale } from "@/i18n/config";
+import { LandingLanguageSwitch } from "@/i18n/LandingLanguageSwitch";
+import { localizedHref } from "@/i18n/routing";
 import { getI18n } from "@/i18n/server";
 import { cn } from "@/lib/cn";
 
 // Marketing sub-page chrome (FAQ, Docs): a light paper top bar + footer that is
 // deliberately NOT the signed-in app header. Built on the same tokens as the
-// landing page; sits on a wider 1040px shell than the receipt column.
+// landing page; sits on a wider 1040px shell than the receipt column. `locale`
+// comes from the `[lang]` route so nav links stay in-locale and the dictionary
+// loads statically (no cookie).
 
 export const SHELL = "max-w-[1040px] mx-auto px-5 sm:px-8";
 
 const NAV_LINK =
   "font-mono text-micro uppercase tracking-[0.16em] text-muted no-underline whitespace-nowrap transition-colors hover:text-accent";
 
-// `active` is matched by href (stable across locales), e.g. SiteTop active="/docs".
-export async function SiteTop({ active }: { active?: string }) {
-  const { t } = await getI18n();
+// `active` is matched by canonical href (stable across locales), e.g. "/docs".
+export async function SiteTop({
+  active,
+  locale,
+}: {
+  active?: string;
+  locale: Locale;
+}) {
+  const { t } = await getI18n(locale);
   const topNav = [
     { label: t.nav.docs, href: "/docs" },
     { label: t.nav.faq, href: "/faq" },
@@ -29,14 +40,14 @@ export async function SiteTop({ active }: { active?: string }) {
           "flex h-[60px] items-center justify-between gap-5",
         )}
       >
-        <Link href="/" className="no-underline">
+        <Link href={localizedHref("/", locale)} className="no-underline">
           <Wordmark size={21} />
         </Link>
         <nav className="flex items-center gap-4 sm:gap-[26px]">
           {topNav.map((link) => (
             <Link
               key={link.href}
-              href={link.href}
+              href={localizedHref(link.href, locale)}
               className={cn(
                 NAV_LINK,
                 link.href === active &&
@@ -52,8 +63,8 @@ export async function SiteTop({ active }: { active?: string }) {
   );
 }
 
-export async function SiteFoot() {
-  const { t } = await getI18n();
+export async function SiteFoot({ locale }: { locale: Locale }) {
+  const { t } = await getI18n(locale);
   const footNav = [
     { label: t.nav.docs, href: "/docs" },
     { label: t.nav.faq, href: "/faq" },
@@ -70,15 +81,22 @@ export async function SiteFoot() {
           <Wordmark size={22} />
           <nav className="flex flex-wrap gap-[22px]">
             {footNav.map((link) => (
-              <a key={link.href} href={link.href} className={NAV_LINK}>
+              <a
+                key={link.href}
+                href={localizedHref(link.href, locale)}
+                className={NAV_LINK}
+              >
                 {link.label}
               </a>
             ))}
           </nav>
         </div>
-        <div className="mt-[22px] flex flex-wrap justify-between gap-2">
+        <div className="mt-[22px] flex flex-wrap items-center justify-between gap-2">
           <Eyebrow>{t.siteChrome.footerLeft}</Eyebrow>
-          <Eyebrow>{t.siteChrome.footerRight}</Eyebrow>
+          <div className="flex items-center gap-4">
+            <LandingLanguageSwitch />
+            <Eyebrow>{t.siteChrome.footerRight}</Eyebrow>
+          </div>
         </div>
       </div>
     </footer>

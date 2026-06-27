@@ -1,11 +1,13 @@
 import { randomInt } from "node:crypto";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import { lt } from "drizzle-orm";
+import { eq, lt } from "drizzle-orm";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
+import { cookies } from "next/headers";
 import { db } from "@/db";
 import { authAccounts, sessions, users, verificationTokens } from "@/db/schema";
+import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
 import { createPropertyForUser } from "./defaults";
 import { sendOtpEmail, sendWelcomeEmail } from "./email";
 import { adoptVerifiedDefaults } from "./registry";
@@ -61,6 +63,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async createUser({ user }) {
       if (user.id) {
+        // Capture the language the user registered from — the landing version
+        // they came through, persisted in NEXT_LOCALE. One-time: createUser
+        // fires once at account creation; later changes come from the profile
+        // switch. Set before the welcome email, which reads locale from the DB.
+        const cookieLocale = (await cookies()).get(LOCALE_COOKIE)?.value;
+        if (isLocale(cookieLocale)) {
+          await db
+            .update(users)
+            .set({ locale: cookieLocale })
+            .where(eq(users.id, user.id));
+        }
         await createPropertyForUser(db, user.id, "Home");
         await adoptVerifiedDefaults(db, user.id);
         if (user.email)

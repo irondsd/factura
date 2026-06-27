@@ -1,5 +1,6 @@
 import { SHELL, SiteFoot, SiteTop } from "@/components/landing/chrome";
 import { Eyebrow } from "@/components/landing/parts";
+import type { Locale } from "@/i18n/config";
 import { cn } from "@/lib/cn";
 
 // Shared layout for prose policy pages (Privacy, Security): the same marketing
@@ -22,6 +23,7 @@ const PROSE = cn(
 
 export function LegalPage({
   active,
+  locale,
   eyebrow,
   title,
   intro,
@@ -31,6 +33,7 @@ export function LegalPage({
 }: {
   /** Matched by href, e.g. "/privacy". */
   active: string;
+  locale: Locale;
   eyebrow: string;
   title: string;
   intro: string;
@@ -40,7 +43,7 @@ export function LegalPage({
 }) {
   return (
     <>
-      <SiteTop active={active} />
+      <SiteTop active={active} locale={locale} />
 
       <main className={SHELL}>
         {/* ── Head ─────────────────────────────────────────────── */}
@@ -92,7 +95,7 @@ export function LegalPage({
         </div>
       </main>
 
-      <SiteFoot />
+      <SiteFoot locale={locale} />
     </>
   );
 }

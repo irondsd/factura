@@ -1,4 +1,41 @@
 {
+  "meta": {
+    "switchTo": "Cambiar a español",
+    "suggestText": "¿Buscas la versión en español?",
+    "suggestDismiss": "Dismiss",
+    "home": {
+      "title": "Factura — your bill ledger",
+      "description": "Upload PDF bills, parse charges and meter data, and track household spending, utilities, and consumption over time. Factura is your bill ledger for electricity, gas, water, and home expenses."
+    },
+    "faq": {
+      "title": "FAQ",
+      "description": "Factura — frequently asked questions about bills, parsing, storage and privacy."
+    },
+    "docs": {
+      "title": "Docs",
+      "description": "Factura documentation — getting started, concepts, and reference for uploading bills, parsers, properties, and vendors."
+    },
+    "privacy": {
+      "title": "Privacy",
+      "description": "How Factura handles your data — what it collects, where it's stored, the third parties involved, and how to delete your data."
+    },
+    "security": {
+      "title": "Security",
+      "description": "How Factura keeps your bills safe — passwordless authentication, per-account data isolation, encrypted storage with signed access, and how to report a vulnerability."
+    },
+    "demo": {
+      "title": "Demo",
+      "description": "Explore Factura with sample data — a live demo of the bill ledger overview: this-month totals, awaiting bills, vendor share and monthly spend, no sign-in required."
+    },
+    "demoInsights": {
+      "title": "Demo · Insights",
+      "description": "A live demo of Factura's insights: stacked spend over time, vendor share, the inflation lens (pesos vs the dollar cost), and per-vendor consumption trends — on sample data."
+    },
+    "demoBills": {
+      "title": "Demo · Bills",
+      "description": "A live demo of Factura's bill ledger: every parsed bill per vendor and month with peso and USD amounts. Open one to see the extracted fields and text — on sample data."
+    }
+  },
   "nav": {
     "docs": "Docs",
     "faq": "FAQ",
@@ -631,7 +668,7 @@
         {
           "id": "what-we-collect",
           "heading": "What Factura stores",
-          "body": "<p>The data Factura keeps falls into a few groups:</p><ul class=\"bullets\"><li><strong>Account</strong> — your email address, and (if you sign in with Google) your name and avatar. That's the whole identity we hold. There is no password — see <a href=\"/security#authentication\">Security</a>.</li><li><strong>Bills</strong> — the PDFs you upload, the text extracted from them, and the fields parsed out (vendor, amount, billing period, due date, and any meter readings or consumption figures). The original file is kept so a bill can be re-parsed later.</li><li><strong>Properties &amp; vendors</strong> — the property nicknames and address variants you enter, and the vendor accounts your bills are filed under.</li><li><strong>Parser samples</strong> — if you build a custom parser, the sample bill text you attach to it is saved (scoped to your account only) so the parser can be re-tested when you edit it.</li><li><strong>Technical</strong> — a session cookie to keep you signed in, and ordinary server logs. Factura sets no advertising or cross-site tracking cookies.</li></ul>"
+          "body": "<p>The data Factura keeps falls into a few groups:</p><ul class=\"bullets\"><li><strong>Account</strong> — your email address, and (if you sign in with Google) your name and avatar. That's the whole identity we hold. There is no password — see <a href=\"/en/security#authentication\">Security</a>.</li><li><strong>Bills</strong> — the PDFs you upload, the text extracted from them, and the fields parsed out (vendor, amount, billing period, due date, and any meter readings or consumption figures). The original file is kept so a bill can be re-parsed later.</li><li><strong>Properties &amp; vendors</strong> — the property nicknames and address variants you enter, and the vendor accounts your bills are filed under.</li><li><strong>Parser samples</strong> — if you build a custom parser, the sample bill text you attach to it is saved (scoped to your account only) so the parser can be re-tested when you edit it.</li><li><strong>Technical</strong> — a session cookie to keep you signed in, and ordinary server logs. Factura sets no advertising or cross-site tracking cookies.</li></ul>"
         },
         {
           "id": "how-we-use-it",
@@ -671,7 +708,7 @@
         {
           "id": "changes",
           "heading": "Changes & contact",
-          "body": "<p>If this policy changes materially, the “last updated” date above will change and significant updates will be noted in the project history. Continued use after a change means you accept the revised policy.</p><p>Questions about your data? Email <a href=\"mailto:privacy@factura.uno\">privacy@factura.uno</a>, or open an issue on <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">GitHub</a>. For anything security-related, see the <a href=\"/security\">Security</a> page.</p>"
+          "body": "<p>If this policy changes materially, the “last updated” date above will change and significant updates will be noted in the project history. Continued use after a change means you accept the revised policy.</p><p>Questions about your data? Email <a href=\"mailto:privacy@factura.uno\">privacy@factura.uno</a>, or open an issue on <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">GitHub</a>. For anything security-related, see the <a href=\"/en/security\">Security</a> page.</p>"
         }
       ]
     },
@@ -684,7 +721,7 @@
         {
           "id": "overview",
           "heading": "Our approach",
-          "body": "<p>Factura holds something personal — a record of your household bills — so it's built to keep that record private by default. This page describes the measures in place and how to report a problem.</p><p>Because Factura is <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">open source</a>, these claims are verifiable: the authentication, authorization and storage code is all public. For how data is collected and used, see <a href=\"/privacy\">Privacy</a>.</p>"
+          "body": "<p>Factura holds something personal — a record of your household bills — so it's built to keep that record private by default. This page describes the measures in place and how to report a problem.</p><p>Because Factura is <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">open source</a>, these claims are verifiable: the authentication, authorization and storage code is all public. For how data is collected and used, see <a href=\"/en/privacy\">Privacy</a>.</p>"
         },
         {
           "id": "authentication",
@@ -810,7 +847,7 @@
           },
           {
             "q": "How do I add a bill?",
-            "a": "Drag the PDF anywhere onto the page. The first time an account appears, you'll confirm which property it belongs to — after that, every future bill files itself. See <a href=\"/docs#first-bill\">Drop your first bill</a>."
+            "a": "Drag the PDF anywhere onto the page. The first time an account appears, you'll confirm which property it belongs to — after that, every future bill files itself. See <a href=\"/en/docs#first-bill\">Drop your first bill</a>."
           },
           {
             "q": "What kind of PDF works?",

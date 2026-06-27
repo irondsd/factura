@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { LedgerPeek } from "@/components/landing/LedgerPeek";
 import { Eyebrow, Perforation, Wordmark } from "@/components/landing/parts";
+import { toLocale } from "@/i18n/config";
+import { LandingLanguageSwitch } from "@/i18n/LandingLanguageSwitch";
+import { pageMetadata } from "@/i18n/metadata";
+import { localizedHref } from "@/i18n/routing";
 import { getI18n } from "@/i18n/server";
 import { cn } from "@/lib/cn";
 
@@ -13,8 +18,22 @@ const STEP_NUMBERS = ["01", "02", "03"];
 const HAIRLINE =
   "border-t border-[color-mix(in_srgb,var(--line)_70%,transparent)]";
 
-export default async function LandingPage() {
-  const { t } = await getI18n();
+type Props = { params: Promise<{ lang: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const locale = toLocale((await params).lang);
+  const { t } = await getI18n(locale);
+  return pageMetadata({
+    path: "/",
+    locale,
+    title: t.meta.home.title,
+    description: t.meta.home.description,
+  });
+}
+
+export default async function LandingPage({ params }: Props) {
+  const locale = toLocale((await params).lang);
+  const { t } = await getI18n(locale);
   const l = t.landing;
 
   const nav = [
@@ -30,7 +49,7 @@ export default async function LandingPage() {
   return (
     <div className="mx-auto max-w-[560px] px-6">
       {/* ── Hero ─────────────────────────────────────────────── */}
-      <section className="text-center pt-[92px] pb-[60px]">
+      <section className="text-center pt-[60px] pb-[60px]">
         <div className="mb-[22px]">
           <Eyebrow>{l.hero.eyebrow}</Eyebrow>
         </div>
@@ -87,7 +106,7 @@ export default async function LandingPage() {
       {/* ── Product peek ─────────────────────────────────────── */}
       <section className="pb-16">
         <SectionLabel>{l.peekInside}</SectionLabel>
-        <LedgerPeek compact />
+        <LedgerPeek compact locale={locale} />
         <p className="text-center font-mono text-xs text-muted mt-[18px]">
           {l.peekCaption}
         </p>
@@ -130,7 +149,7 @@ export default async function LandingPage() {
             {nav.map((link) => (
               <a
                 key={link.label}
-                href={link.href}
+                href={localizedHref(link.href, locale)}
                 className="font-mono text-micro uppercase tracking-[0.16em] text-muted no-underline whitespace-nowrap transition-colors hover:text-accent"
               >
                 {link.label}
@@ -138,9 +157,12 @@ export default async function LandingPage() {
             ))}
           </nav>
         </div>
-        <div className="mt-[22px] flex flex-wrap gap-2 justify-between">
+        <div className="mt-[22px] flex flex-wrap items-center gap-2 justify-between">
           <Eyebrow>{l.footer.left}</Eyebrow>
-          <Eyebrow>{l.footer.right}</Eyebrow>
+          <div className="flex items-center gap-4">
+            <LandingLanguageSwitch />
+            <Eyebrow>{l.footer.right}</Eyebrow>
+          </div>
         </div>
       </footer>
     </div>

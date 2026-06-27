@@ -40,8 +40,17 @@ export const metadata: Metadata = {
     title,
     description,
     locale: "en_US",
-    // og:image tags are generated from src/app/opengraph-image.png
-    // (file-based metadata, with alt from opengraph-image.alt.txt).
+    // OG image is a public asset referenced here (and per-locale in
+    // src/i18n/metadata.ts pageMetadata) — config-based so it resolves on every
+    // route across both root layouts, unlike the segment-scoped file convention.
+    images: [
+      {
+        url: "/opengraph-image.png",
+        width: 2400,
+        height: 1260,
+        alt: "Factura — your bill ledger",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",

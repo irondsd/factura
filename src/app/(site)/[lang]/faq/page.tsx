@@ -2,15 +2,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SHELL, SiteFoot, SiteTop } from "@/components/landing/chrome";
 import { Eyebrow } from "@/components/landing/parts";
+import { toLocale } from "@/i18n/config";
+import { pageMetadata } from "@/i18n/metadata";
 import { getI18n } from "@/i18n/server";
 import { cn } from "@/lib/cn";
 
-export const metadata: Metadata = {
-  title: "FAQ",
-  description:
-    "Factura — frequently asked questions about bills, parsing, storage and privacy.",
-  alternates: { canonical: "/faq" },
-};
+type Props = { params: Promise<{ lang: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const locale = toLocale((await params).lang);
+  const { t } = await getI18n(locale);
+  return pageMetadata({
+    path: "/faq",
+    locale,
+    title: t.meta.faq.title,
+    description: t.meta.faq.description,
+  });
+}
 
 // Public FAQ. A wider marketing sub-page (not the receipt column) built on the
 // shared SiteTop/SiteFoot chrome. Answers are native <details> accordions so
@@ -19,13 +27,14 @@ export const metadata: Metadata = {
 // is supplied by the container's descendant selectors so no Tailwind utility
 // classes need to live in the translations.
 
-export default async function FaqPage() {
-  const { t } = await getI18n();
+export default async function FaqPage({ params }: Props) {
+  const locale = toLocale((await params).lang);
+  const { t } = await getI18n(locale);
   const f = t.faq;
 
   return (
     <>
-      <SiteTop active="/faq" />
+      <SiteTop active="/faq" locale={locale} />
 
       <main className={SHELL}>
         {/* ── Head ─────────────────────────────────────────────── */}
@@ -70,7 +79,7 @@ export default async function FaqPage() {
         </section>
       </main>
 
-      <SiteFoot />
+      <SiteFoot locale={locale} />
     </>
   );
 }

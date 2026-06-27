@@ -1,14 +1,17 @@
+import "../globals.css";
+import { fraunces, plexMono } from "@/config/fonts";
+import { metadata, viewport } from "@/config/meta";
+import { getDictionary } from "@/i18n/dictionaries";
+import { I18nProvider } from "@/i18n/I18nProvider";
+import { getLocale } from "@/i18n/server";
 import { Providers } from "@/providers/Providers";
-import "./globals.css";
-import { fraunces, plexMono } from "../config/fonts";
-import { metadata, viewport } from "../config/meta";
-import { getDictionary } from "../i18n/dictionaries";
-import { I18nProvider } from "../i18n/I18nProvider";
-import { getLocale } from "../i18n/server";
 
 export { metadata, viewport };
 
-export default async function RootLayout({
+// Root layout for the signed-in app + auth (`/app/*`, `/login`). This subtree is
+// dynamic and cookie-driven: the locale comes from `NEXT_LOCALE`, not the URL.
+// The public landing has its own static, `[lang]`-driven root layout.
+export default async function AppRootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const locale = await getLocale();

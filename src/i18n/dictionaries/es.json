@@ -1,4 +1,41 @@
 {
+  "meta": {
+    "switchTo": "Switch to English",
+    "suggestText": "Looking for the English version?",
+    "suggestDismiss": "Descartar",
+    "home": {
+      "title": "Factura — tu registro de facturas",
+      "description": "Sube facturas en PDF, extrae cargos y datos del medidor, y controla el gasto del hogar, los servicios y el consumo a lo largo del tiempo. Factura es tu registro de facturas de luz, gas, agua y gastos del hogar."
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "description": "Preguntas frecuentes sobre facturas, análisis, almacenamiento y privacidad en Factura."
+    },
+    "docs": {
+      "title": "Documentación",
+      "description": "Documentación de Factura: primeros pasos, conceptos y referencia para subir facturas, analizadores, propiedades y proveedores."
+    },
+    "privacy": {
+      "title": "Privacidad",
+      "description": "Cómo Factura trata tus datos: qué recopila, dónde se guarda, los terceros involucrados y cómo eliminarlos."
+    },
+    "security": {
+      "title": "Seguridad",
+      "description": "Cómo Factura mantiene seguras tus facturas: inicio de sesión sin contraseña, aislamiento por cuenta, almacenamiento cifrado con acceso firmado y cómo reportar una vulnerabilidad."
+    },
+    "demo": {
+      "title": "Demo",
+      "description": "Explora Factura con datos de muestra: una demo en vivo del resumen del registro de facturas —totales del mes, facturas pendientes, participación por proveedor y gasto mensual—, sin iniciar sesión."
+    },
+    "demoInsights": {
+      "title": "Demo · Análisis",
+      "description": "Una demo en vivo de los análisis de Factura: gasto apilado en el tiempo, participación por proveedor, la mirada a la inflación (pesos frente al costo en dólares) y tendencias de consumo por proveedor, con datos de muestra."
+    },
+    "demoBills": {
+      "title": "Demo · Facturas",
+      "description": "Una demo en vivo del registro de facturas de Factura: cada factura analizada por proveedor y mes, con montos en pesos y dólares. Abre una para ver los campos extraídos y el texto, con datos de muestra."
+    }
+  },
   "nav": {
     "docs": "Docs",
     "faq": "FAQ",

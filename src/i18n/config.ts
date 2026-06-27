@@ -16,6 +16,13 @@ export function isLocale(value: string | undefined | null): value is Locale {
   return value != null && (locales as readonly string[]).includes(value);
 }
 
+// Narrow a raw route param (`[lang]`) to a Locale, falling back to the default.
+// The landing layout `notFound()`s invalid locales, so this is a safe cast at
+// the page level — it just keeps the types honest without re-validating.
+export function toLocale(value: string | undefined | null): Locale {
+  return isLocale(value) ? value : defaultLocale;
+}
+
 // Fills `{placeholder}` tokens in a dictionary string. Keeps i18n simple without
 // a runtime dependency: `interpolate("{n} de {total}", { n: 3, total: 4 })`.
 export function interpolate(
