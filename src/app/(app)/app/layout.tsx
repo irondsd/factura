@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
+import posthog from "posthog-js";
 import { AppContext } from "@/components/app/context";
 import { TopBar } from "@/components/app/TopBar";
 import { DropOverlay } from "@/components/DropOverlay";
@@ -25,6 +26,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
   }, [status, router]);
+
+  // Identify the user in PostHog once the session is known.
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.email) {
+      posthog.identify(session.user.email, {
+        email: session.user.email,
+        name: session.user.name ?? undefined,
+      });
+    }
+  }, [status, session]);
 
   if (status === "loading" || status === "unauthenticated" || !session?.user) {
     return (

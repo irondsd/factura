@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import posthog from "posthog-js";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { trpc } from "@/lib/trpc";
@@ -83,6 +84,10 @@ export function DropOverlay() {
             rawText,
             storageKey,
           });
+          posthog.capture("bill_uploaded", {
+            outcome: result.outcome,
+            file_name: file.name,
+          });
           switch (result.outcome) {
             case "parsed":
               showToast(
@@ -163,6 +168,9 @@ export function DropOverlay() {
 
   const resolveConfirm = async (propertyId: string) => {
     await confirmAccount.mutateAsync({ billId: current.billId, propertyId });
+    posthog.capture("bill_account_linked", {
+      vendor_name: current.vendorName,
+    });
     showToast(interpolate(td.accountLinked, { vendor: current.vendorName }));
     setConfirmQueue((q) => q.slice(1));
     utils.invalidate();
@@ -173,7 +181,9 @@ export function DropOverlay() {
       {dragging && (
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-paper/90">
           <div className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed border-accent px-16 py-12 text-center">
-            <p className="font-display text-3xl font-semibold">{td.dropTitle}</p>
+            <p className="font-display text-3xl font-semibold">
+              {td.dropTitle}
+            </p>
             <p className="text-[11px] uppercase tracking-wider text-muted">
               {td.dropSubtitle}
             </p>

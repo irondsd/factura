@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { type FormEvent, Suspense, useEffect, useState } from "react";
+import posthog from "posthog-js";
 import { Button, Input } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -30,7 +31,7 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const { status } = useSession();
+  const { status, data: session } = useSession();
   const { t } = useI18n();
   const tl = t.login;
 
@@ -48,6 +49,15 @@ function LoginForm() {
     if (status === "authenticated") router.replace("/app");
   }, [status, router]);
 
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.email) {
+      posthog.identify(session.user.email, {
+        email: session.user.email,
+        name: session.user.name ?? undefined,
+      });
+    }
+  }, [status, session]);
+
   async function requestCode(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -58,6 +68,7 @@ function LoginForm() {
       setError(tl.errorSendCode);
       return;
     }
+    posthog.capture("sign_in_email_code_requested");
     setStep("code");
   }
 
@@ -87,7 +98,10 @@ function LoginForm() {
               {tl.tagline}
             </p>
             <button
-              onClick={() => signIn("google", { callbackUrl: "/app" })}
+              onClick={() => {
+                posthog.capture("sign_in_google_clicked");
+                signIn("google", { callbackUrl: "/app" });
+              }}
               className="mt-7 inline-flex w-full items-center justify-center gap-3 font-mono text-[13px] text-ink bg-paper border border-line py-3 px-4 cursor-pointer transition-colors hover:border-accent"
             >
               <GoogleG />

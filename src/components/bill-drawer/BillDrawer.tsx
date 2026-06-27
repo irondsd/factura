@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import posthog from "posthog-js";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Badge, Button, FinePrint, microLabel } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -118,6 +119,7 @@ export function BillDrawer({
               : undefined,
             dueDate: draft.dueDate || undefined,
           });
+          posthog.capture("bill_edited", { bill_id: bill.id });
           onToast(tb.toastUpdated);
           utils.invalidate();
           close();
@@ -133,6 +135,7 @@ export function BillDrawer({
             onToast(tb.toastDeleteFailed);
             return;
           }
+          posthog.capture("bill_deleted", { bill_id: bill.id });
           onToast(tb.toastDeleted);
           utils.invalidate();
           close();
@@ -207,7 +210,10 @@ export function BillDrawer({
                           </span>
                         )
                       ) : (
-                        <span className="text-muted"> · {tb.notSavedParser}</span>
+                        <span className="text-muted">
+                          {" "}
+                          · {tb.notSavedParser}
+                        </span>
                       )}
                     </>
                   ) : (

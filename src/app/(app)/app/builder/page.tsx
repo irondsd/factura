@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
+import posthog from "posthog-js";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import {
   Button,
@@ -332,6 +333,7 @@ function Builder() {
         await updateParser.mutateAsync({ ...input, id });
       } else {
         const created = await createParser.mutateAsync(input);
+        posthog.capture("parser_created", { slug, display_name: displayName });
         setExistingId(created.id);
         setEditingOwn(true);
       }

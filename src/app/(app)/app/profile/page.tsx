@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import posthog from "posthog-js";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Avatar, Button } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -38,7 +39,13 @@ export default function ProfilePage() {
             {tp.viaGoogle}
           </p>
         </div>
-        <Button variant="outline" onClick={() => signOut({ callbackUrl: "/" })}>
+        <Button
+          variant="outline"
+          onClick={() => {
+            posthog.reset();
+            signOut({ callbackUrl: "/" });
+          }}
+        >
           {tp.signOut}
         </Button>
       </div>

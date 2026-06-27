@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useMemo, useState } from "react";
+import posthog from "posthog-js";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button, Checkbox, Input } from "@/components/ui";
@@ -40,7 +41,10 @@ export default function PropertiesPage() {
   const invalidate = () => utils.invalidate();
 
   const createApt = trpc.properties.create.useMutation({
-    onSuccess: invalidate,
+    onSuccess: () => {
+      posthog.capture("property_created");
+      invalidate();
+    },
   });
   const updateApt = trpc.properties.update.useMutation({
     onSuccess: invalidate,
@@ -48,7 +52,12 @@ export default function PropertiesPage() {
   const deleteApt = trpc.properties.delete.useMutation({
     onSuccess: invalidate,
   });
-  const invite = trpc.properties.invite.useMutation({ onSuccess: invalidate });
+  const invite = trpc.properties.invite.useMutation({
+    onSuccess: () => {
+      posthog.capture("member_invited");
+      invalidate();
+    },
+  });
   const revokeInvite = trpc.properties.revokeInvite.useMutation({
     onSuccess: invalidate,
   });
@@ -57,7 +66,10 @@ export default function PropertiesPage() {
   });
   const leave = trpc.properties.leave.useMutation({ onSuccess: invalidate });
   const acceptInvite = trpc.properties.acceptInvite.useMutation({
-    onSuccess: invalidate,
+    onSuccess: () => {
+      posthog.capture("invite_accepted");
+      invalidate();
+    },
   });
   const declineInvite = trpc.properties.declineInvite.useMutation({
     onSuccess: invalidate,

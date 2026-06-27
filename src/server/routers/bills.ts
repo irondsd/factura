@@ -6,6 +6,7 @@ import { bills } from "@/db/schema";
 import { runConfig, selectConfig } from "@/parsers/engine/evaluate";
 import type { ParserConfig } from "@/parsers/engine/types";
 import { normalize } from "@/parsers/normalize";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { ensureVendor } from "../defaults";
 import { billRateDate, usdRateLookup } from "../fx";
 import {
@@ -181,7 +182,7 @@ export const billsRouter = router({
         storageKey: z.string().optional(),
       }),
     )
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       // A client-supplied storageKey must live in the caller's own namespace,
       // or `get` could later presign a download of another user's object.
       if (
@@ -189,7 +190,18 @@ export const billsRouter = router({
         !input.storageKey.startsWith(`bills/${ctx.userId}/`)
       )
         throw new TRPCError({ code: "FORBIDDEN" });
-      return ingestBill(ctx.db, ctx.userId, input);
+      const result = await ingestBill(ctx.db, ctx.userId, input);
+      const posthog = getPostHogClient();
+      posthog.capture({
+        distinctId: ctx.userId,
+        event: "bill_ingested",
+        properties: {
+          outcome: result.outcome,
+          file_name: input.fileName,
+        },
+      });
+      await posthog.shutdown();
+      return result;
     }),
 
   list: scopedProcedure

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Badge, Button } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
@@ -101,6 +102,7 @@ export default function ParsersPage() {
   const onPublish = async (id: string) => {
     try {
       const r = await publish.mutateAsync({ id });
+      posthog.capture("parser_published", { version: r.version });
       await refresh();
       showToast(interpolate(tp.toastPublished, { n: r.version }));
     } catch (e) {
@@ -181,9 +183,12 @@ export default function ParsersPage() {
                     <span className={parserMeta}>{tp.noneWontReparse}</span>
                   )}
                   <span className={cn(parserMeta, "ml-auto")}>
-                    {interpolate(r.billCount === 1 ? tp.billOne : tp.billOther, {
-                      n: r.billCount,
-                    })}
+                    {interpolate(
+                      r.billCount === 1 ? tp.billOne : tp.billOther,
+                      {
+                        n: r.billCount,
+                      },
+                    )}
                   </span>
                 </div>
               ))}
@@ -197,9 +202,7 @@ export default function ParsersPage() {
       </h2>
       <p className={help}>{tp.yourParsersHelp}</p>
       <div className="flex flex-col gap-2">
-        {own.length === 0 && (
-          <p className={parserMeta}>{tp.noneYetOwn}</p>
-        )}
+        {own.length === 0 && <p className={parserMeta}>{tp.noneYetOwn}</p>}
         {own.map((p) => {
           const st = ownStatus(p);
           return (
@@ -258,9 +261,7 @@ export default function ParsersPage() {
       </h2>
       <p className={help}>{tp.adoptedHelp}</p>
       <div className="flex flex-col gap-2">
-        {adopted.length === 0 && (
-          <p className={parserMeta}>{tp.noneAdopted}</p>
-        )}
+        {adopted.length === 0 && <p className={parserMeta}>{tp.noneAdopted}</p>}
         {adopted.map((p) => {
           const upstream = browseByConfig.get(p.id);
           const updatable = upstream != null && upstream.version > p.version;
@@ -319,9 +320,7 @@ export default function ParsersPage() {
       </h2>
       <p className={help}>{tp.browseHelp}</p>
       <div className="flex flex-col gap-2">
-        {registry.length === 0 && (
-          <p className={parserMeta}>{tp.nothingNew}</p>
-        )}
+        {registry.length === 0 && <p className={parserMeta}>{tp.nothingNew}</p>}
         {registry.map((b) => (
           <div key={b.configId} className={parserRow}>
             <span className={nameStyle}>{b.displayName}</span>
@@ -334,12 +333,16 @@ export default function ParsersPage() {
               variant="solid"
               disabled={busy}
               className="ml-auto"
-              onClick={() =>
+              onClick={() => {
+                posthog.capture("parser_adopted", {
+                  slug: b.slug,
+                  display_name: b.displayName,
+                });
                 withReparse(
                   () => adopt.mutateAsync({ configId: b.configId }),
                   interpolate(tp.toastAdopted, { name: b.displayName }),
-                )
-              }
+                );
+              }}
             >
               {tp.adopt}
             </Button>
