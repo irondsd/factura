@@ -4,4 +4,4 @@
 
 /** How many properties a single user may *own*. Properties shared with them by
  * someone else don't count against this. */
-export const OWNED_PROPERTY_LIMIT = 3;
+export const OWNED_PROPERTY_LIMIT = 1;

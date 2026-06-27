@@ -89,6 +89,7 @@ export default function PropertiesPage() {
     id: string;
     nickname: string;
   } | null>(null);
+  const [showLimitDialog, setShowLimitDialog] = useState(false);
   const myEmail = session?.user?.email?.toLowerCase() ?? "";
 
   const ownedCount = useMemo(
@@ -397,13 +398,21 @@ export default function PropertiesPage() {
           value={newNickname}
           onChange={(e) => setNewNickname(e.target.value)}
           placeholder={tp.newPropertyPlaceholder}
-          disabled={atLimit}
           className="w-[220px]"
         />
         <Button
           variant="outline"
-          disabled={atLimit || createApt.isPending}
+          disabled={createApt.isPending}
           onClick={() => {
+            if (atLimit) {
+              posthog.capture("property_limit_reached", {
+                email: myEmail || undefined,
+                owned_count: ownedCount,
+                limit: OWNED_PROPERTY_LIMIT,
+              });
+              setShowLimitDialog(true);
+              return;
+            }
             if (!newNickname.trim()) return;
             createApt.mutate(
               { nickname: newNickname.trim(), addressVariants: [] },
@@ -414,11 +423,6 @@ export default function PropertiesPage() {
         >
           {tp.addProperty}
         </Button>
-        {atLimit && (
-          <span className="font-mono text-micro text-muted self-center">
-            {interpolate(tp.atLimit, { limit: OWNED_PROPERTY_LIMIT })}
-          </span>
-        )}
       </div>
 
       <ConfirmDialog
@@ -455,6 +459,25 @@ export default function PropertiesPage() {
           );
         }}
         onCancel={() => setDeletingApt(null)}
+      />
+
+      <ConfirmDialog
+        open={showLimitDialog}
+        eyebrow={tp.limitEyebrow}
+        title={interpolate(tp.limitTitle, { limit: OWNED_PROPERTY_LIMIT })}
+        description={tp.limitDesc}
+        confirmLabel={tp.limitNotify}
+        cancelLabel={tp.limitDismiss}
+        onConfirm={() => {
+          posthog.capture("property_limit_notify_clicked", {
+            email: myEmail || undefined,
+            owned_count: ownedCount,
+            limit: OWNED_PROPERTY_LIMIT,
+          });
+          setShowLimitDialog(false);
+          showToast(tp.limitToastThanks);
+        }}
+        onCancel={() => setShowLimitDialog(false)}
       />
     </div>
   );
