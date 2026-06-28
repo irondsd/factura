@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Eyebrow, Wordmark } from "@/components/landing/parts";
+import { githubUrl } from "@/config/urls";
 import type { Locale } from "@/i18n/config";
 import { LandingLanguageSwitch } from "@/i18n/LandingLanguageSwitch";
 import { localizedHref } from "@/i18n/routing";
@@ -72,7 +73,7 @@ export async function SiteFoot({ locale }: { locale: Locale }) {
     { label: t.nav.privacy, href: "/privacy" },
     { label: t.nav.security, href: "/security" },
     { label: t.nav.signIn, href: "/login" },
-    { label: t.nav.github, href: "https://github.com/irondsd/factura" },
+    { label: t.nav.github, href: githubUrl },
   ];
   return (
     <footer className="mt-2 border-t border-line pt-[26px] pb-14">

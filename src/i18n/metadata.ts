@@ -1,6 +1,6 @@
 import "server-only";
 import type { Metadata } from "next";
-import { siteUrl } from "@/config/meta";
+import { siteUrl } from "@/config/urls";
 import type { Locale } from "./config";
 
 // Per-page SEO metadata for the localized landing. Spanish (default) lives at
@@ -48,7 +48,9 @@ export function pageMetadata({
       description,
       locale: OG_LOCALE[locale],
       alternateLocale: OG_LOCALE[locale === "en" ? "es" : "en"],
-      images: [{ url: "/opengraph-image.png", width: 2400, height: 1260, alt: title }],
+      images: [
+        { url: "/opengraph-image.png", width: 2400, height: 1260, alt: title },
+      ],
     },
     twitter: {
       card: "summary_large_image",

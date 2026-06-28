@@ -1,6 +1,6 @@
 import { Metadata, Viewport } from "next";
+import { siteUrl } from "./urls";
 
-export const siteUrl = "https://factura.uno";
 const siteName = "Factura";
 const title = "Factura — your bill ledger";
 const description =

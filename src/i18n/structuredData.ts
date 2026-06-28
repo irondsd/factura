@@ -1,5 +1,5 @@
 import "server-only";
-import { siteUrl } from "@/config/meta";
+import { githubUrl, siteUrl } from "@/config/urls";
 import type { Locale } from "./config";
 import { localeUrl } from "./metadata";
 
@@ -9,7 +9,6 @@ import { localeUrl } from "./metadata";
 // the per-locale dictionary so the /es and /en pages emit language-matched data.
 
 const ORG_NAME = "Factura";
-const GITHUB_URL = "https://github.com/irondsd/factura";
 const ORG_ID = `${siteUrl}/#organization`;
 
 /** Organization + WebSite: brand-level identity that's true on every marketing
@@ -24,7 +23,7 @@ export function siteLd(locale: Locale) {
         name: ORG_NAME,
         url: siteUrl,
         logo: `${siteUrl}/icon.png`,
-        sameAs: [GITHUB_URL],
+        sameAs: [githubUrl],
       },
       {
         "@type": "WebSite",

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LedgerPeek } from "@/components/landing/LedgerPeek";
 import { Eyebrow, Perforation, Wordmark } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { githubUrl } from "@/config/urls";
 import { toLocale } from "@/i18n/config";
 import { LandingLanguageSwitch } from "@/i18n/LandingLanguageSwitch";
 import { pageMetadata } from "@/i18n/metadata";
@@ -45,7 +46,7 @@ export default async function LandingPage({ params }: Props) {
     { label: t.nav.privacy, href: "/privacy" },
     { label: t.nav.security, href: "/security" },
     { label: t.nav.signIn, href: "/login" },
-    { label: t.nav.github, href: "https://github.com/irondsd/factura" },
+    { label: t.nav.github, href: githubUrl },
   ];
 
   return (
