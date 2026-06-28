@@ -341,7 +341,10 @@ function CustomFieldCharts({
                 label: `ARS / ${field.unit || t.insights.unit}`,
                 color: "var(--accent)",
               },
-              { label: `USD / ${field.unit || t.insights.unit}`, color: USD_LINE },
+              {
+                label: `USD / ${field.unit || t.insights.unit}`,
+                color: USD_LINE,
+              },
             ]}
           />
         </ChartCard>

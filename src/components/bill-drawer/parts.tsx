@@ -291,7 +291,9 @@ export function OriginalFileRow({
             {tb.viewPdf}
           </a>
         ) : (
-          <span className="font-mono text-micro text-muted">{tb.notStored}</span>
+          <span className="font-mono text-micro text-muted">
+            {tb.notStored}
+          </span>
         )}
       </LabeledRow>
       <p className="font-mono text-[10.5px] text-muted mt-2 px-6">

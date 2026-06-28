@@ -89,7 +89,9 @@ export function RegexToolkit({
                             {r.pattern}
                           </div>
                           {item.hint && (
-                            <div className={cn(hint, "mt-0.5")}>{item.hint}</div>
+                            <div className={cn(hint, "mt-0.5")}>
+                              {item.hint}
+                            </div>
                           )}
                         </button>
                       );

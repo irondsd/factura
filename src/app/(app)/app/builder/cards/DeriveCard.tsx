@@ -137,7 +137,10 @@ export function DeriveCard({
       onMouseLeave={() => onPreview(null)}
     >
       <div className="flex items-center gap-2 mb-2.5">
-        <span className="text-accent text-xs flex-none" title={td.computedValue}>
+        <span
+          className="text-accent text-xs flex-none"
+          title={td.computedValue}
+        >
           ≈
         </span>
         <Input

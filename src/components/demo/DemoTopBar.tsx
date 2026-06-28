@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wordmark } from "@/components/landing/parts";
 import { useI18n } from "@/i18n/I18nProvider";
-import { LandingLanguageSwitch } from "@/i18n/LandingLanguageSwitch";
 import { localizedHref } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
 

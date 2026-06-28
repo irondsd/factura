@@ -474,10 +474,19 @@
         "Identifiers": "Identificadores"
       },
       "items": {
-        "latam": { "label": "LatAm · 1.234.567,89", "hint": "→ número AR (AR/UY/BR)" },
+        "latam": {
+          "label": "LatAm · 1.234.567,89",
+          "hint": "→ número AR (AR/UY/BR)"
+        },
         "intl": { "label": "US / intl · 1,234,567.89", "hint": "→ número US" },
-        "whole": { "label": "Enteros · 1.234.567", "hint": "sin decimales (CLP) → número AR" },
-        "afterLabel": { "label": "Tras una etiqueta · «Total a pagar»", "hint": "cambia el texto de la etiqueta por el tuyo" },
+        "whole": {
+          "label": "Enteros · 1.234.567",
+          "hint": "sin decimales (CLP) → número AR"
+        },
+        "afterLabel": {
+          "label": "Tras una etiqueta · «Total a pagar»",
+          "hint": "cambia el texto de la etiqueta por el tuyo"
+        },
         "ddmmyyyy": { "label": "DD/MM/YYYY", "hint": "→ fecha DD/MM/YYYY" },
         "yyyymmdd": { "label": "YYYY-MM-DD", "hint": "" },
         "mmyyyy": { "label": "MM/YYYY", "hint": "mes + año" },

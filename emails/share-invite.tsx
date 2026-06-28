@@ -65,7 +65,11 @@ export function ShareInviteEmail({
       >
         <DetailRow label={i.labelProperty} value={property} />
         <DetailRow label={i.labelSharedBy} value={inviter} />
-        <DetailRow label={i.labelAccess} value={access ?? i.accessDefault} last />
+        <DetailRow
+          label={i.labelAccess}
+          value={access ?? i.accessDefault}
+          last
+        />
       </Section>
 
       <Section style={{ padding: "24px 0 0" }}>

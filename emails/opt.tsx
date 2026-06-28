@@ -18,7 +18,11 @@ export type OtpEmailProps = {
   code?: string;
 };
 
-export function OtpEmail({ t = en.emails, locale = "en", code }: OtpEmailProps) {
+export function OtpEmail({
+  t = en.emails,
+  locale = "en",
+  code,
+}: OtpEmailProps) {
   const o = t.otp;
   return (
     <FacturaEmail
