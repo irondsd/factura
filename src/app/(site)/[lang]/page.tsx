@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LedgerPeek } from "@/components/landing/LedgerPeek";
 import { Eyebrow, Perforation, Wordmark } from "@/components/landing/parts";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { toLocale } from "@/i18n/config";
 import { LandingLanguageSwitch } from "@/i18n/LandingLanguageSwitch";
 import { pageMetadata } from "@/i18n/metadata";
 import { localizedHref } from "@/i18n/routing";
 import { getI18n } from "@/i18n/server";
+import { softwareApplicationLd } from "@/i18n/structuredData";
 import { cn } from "@/lib/cn";
 
 // Public marketing landing — "the long receipt": one narrow centered column
@@ -48,6 +50,12 @@ export default async function LandingPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-[560px] px-6">
+      <JsonLd
+        data={softwareApplicationLd({
+          locale,
+          description: t.meta.home.description,
+        })}
+      />
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="text-center pt-[60px] pb-[60px]">
         <div className="mb-[22px]">

@@ -1,11 +1,13 @@
 import "../../globals.css";
 import { notFound } from "next/navigation";
 import { LangSuggestBanner } from "@/components/landing/LangSuggestBanner";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { fraunces, plexMono } from "@/config/fonts";
 import { metadata, viewport } from "@/config/meta";
 import { isLocale, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { siteLd } from "@/i18n/structuredData";
 import { ToastProvider } from "@/providers/ToastProvider";
 
 // Base metadata (metadataBase, title template, OG defaults, robots, icons). Each
@@ -39,6 +41,7 @@ export default async function LandingRootLayout({
       className={`${fraunces.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <JsonLd data={siteLd(lang)} />
         <I18nProvider locale={lang} dictionary={dictionary}>
           <ToastProvider>
             {children}

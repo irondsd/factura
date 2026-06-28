@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SHELL, SiteFoot, SiteTop } from "@/components/landing/chrome";
 import { Eyebrow } from "@/components/landing/parts";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
 import { getI18n } from "@/i18n/server";
+import { faqPageLd } from "@/i18n/structuredData";
 import { cn } from "@/lib/cn";
 
 type Props = { params: Promise<{ lang: string }> };
@@ -34,6 +36,12 @@ export default async function FaqPage({ params }: Props) {
 
   return (
     <>
+      <JsonLd
+        data={faqPageLd(
+          f.sections.flatMap((s) => s.items),
+          locale,
+        )}
+      />
       <SiteTop active="/faq" locale={locale} />
 
       <main className={SHELL}>
