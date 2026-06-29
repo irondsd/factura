@@ -4,6 +4,7 @@ import { LedgerPeek } from "@/components/landing/LedgerPeek";
 import { Eyebrow, Perforation, Wordmark } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { githubUrl } from "@/config/urls";
+import { allGuides } from "@/content/guias/guides";
 import { toLocale } from "@/i18n/config";
 import { LandingLanguageSwitch } from "@/i18n/LandingLanguageSwitch";
 import { pageMetadata } from "@/i18n/metadata";
@@ -39,10 +40,15 @@ export default async function LandingPage({ params }: Props) {
   const { t } = await getI18n(locale);
   const l = t.landing;
 
+  // Guides are Spanish-only — surface them on the es homepage (a high-authority
+  // internal link), and add Guías to the footer nav only on es.
+  const guides = locale === "es" ? await allGuides() : [];
+
   const nav = [
     { label: t.nav.docs, href: "/docs" },
     { label: t.nav.faq, href: "/faq" },
     { label: t.nav.demo, href: "/demo" },
+    ...(locale === "es" ? [{ label: t.nav.guides, href: "/guias" }] : []),
     { label: t.nav.privacy, href: "/privacy" },
     { label: t.nav.security, href: "/security" },
     { label: t.nav.signIn, href: "/login" },
@@ -142,6 +148,47 @@ export default async function LandingPage({ params }: Props) {
         </div>
       </section>
 
+      {/* ── Guides (Spanish-only) ────────────────────────────── */}
+      {guides.length > 0 && (
+        <>
+          <Perforation className="mb-16" />
+          <section className="pb-16">
+            <SectionLabel>Guías</SectionLabel>
+            <p className="text-center font-mono text-[13.5px] leading-[1.65] text-muted m-0 mb-7 mx-auto max-w-[460px]">
+              Aprende a leer tus facturas y a entender qué pagas en cada
+              servicio.
+            </p>
+            <div className="flex flex-col gap-1">
+              {guides.slice(0, 3).map((g, i) => (
+                <Link
+                  key={g.slug}
+                  href={`/guias/${g.slug}`}
+                  className={cn(
+                    "group flex items-baseline justify-between gap-4 py-[14px] no-underline",
+                    i !== 0 && HAIRLINE,
+                  )}
+                >
+                  <span className="font-mono text-[13.5px] text-ink transition-colors group-hover:text-accent">
+                    {g.meta.title}
+                  </span>
+                  <span className="flex-none font-mono text-micro text-accent">
+                    →
+                  </span>
+                </Link>
+              ))}
+            </div>
+            <div className="text-center mt-7">
+              <Link
+                href="/guias"
+                className="font-mono text-micro uppercase tracking-label text-muted no-underline transition-colors hover:text-accent"
+              >
+                Ver todas las guías →
+              </Link>
+            </div>
+          </section>
+        </>
+      )}
+
       {/* ── Closing CTA ──────────────────────────────────────── */}
       <section className="text-center pb-16">
         <h2 className="font-display font-semibold text-3xl tracking-tight m-0 mb-[22px]">
@@ -152,9 +199,9 @@ export default async function LandingPage({ params }: Props) {
 
       {/* ── Footer ───────────────────────────────────────────── */}
       <footer className="pb-14 border-t border-line pt-[26px] mt-2">
-        <div className="flex flex-wrap items-center justify-between gap-[18px]">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-[18px]">
           <Wordmark size={22} />
-          <nav className="flex flex-wrap gap-[22px]">
+          <nav className="flex flex-wrap gap-x-5 gap-y-3">
             {nav.map((link) => (
               <a
                 key={link.label}
@@ -166,7 +213,7 @@ export default async function LandingPage({ params }: Props) {
             ))}
           </nav>
         </div>
-        <div className="mt-[22px] flex flex-wrap items-center gap-2 justify-between">
+        <div className="mt-8 flex flex-col gap-3 sm:mt-[22px] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
           <Eyebrow>{l.footer.left}</Eyebrow>
           <div className="flex items-center gap-4">
             <LandingLanguageSwitch />

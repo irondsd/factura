@@ -1,7 +1,7 @@
 import "server-only";
 import { githubUrl, siteUrl } from "@/config/urls";
 import type { Locale } from "./config";
-import { localeUrl } from "./metadata";
+import { guidesIndexUrl, guideUrl, localeUrl } from "./metadata";
 
 // schema.org structured data (JSON-LD) for the public landing. Builders return
 // plain objects rendered through <JsonLd>. Stable @ids let the graphs reference
@@ -75,6 +75,74 @@ export function faqPageLd(items: { q: string; a: string }[], locale: Locale) {
       "@type": "Question",
       name: q,
       acceptedAnswer: { "@type": "Answer", text: a },
+    })),
+  };
+}
+
+// ── Guides (Spanish-only) ─────────────────────────────────────────────────
+
+/** BreadcrumbList from an ordered list of {name, url} crumbs (Home → … → page). */
+export function breadcrumbLd(items: { name: string; url: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  };
+}
+
+/** BlogPosting for a single guide. Always Spanish (`inLanguage: "es"`), authored
+ * and published by the existing Organization node. */
+export function guideLd({
+  slug,
+  title,
+  description,
+  published,
+  updated,
+}: {
+  slug: string;
+  title: string;
+  description: string;
+  published: string;
+  updated: string;
+}) {
+  const url = guideUrl(slug);
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "@id": `${url}#article`,
+    headline: title,
+    description,
+    inLanguage: "es",
+    datePublished: published,
+    dateModified: updated,
+    mainEntityOfPage: url,
+    image: `${siteUrl}/opengraph-image.png`,
+    author: { "@id": ORG_ID },
+    publisher: { "@id": ORG_ID },
+  };
+}
+
+/** Blog node for the /guias index, listing each guide as a post. */
+export function guideListLd(
+  guides: { slug: string; title: string; description: string }[],
+) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "@id": `${guidesIndexUrl}#blog`,
+    url: guidesIndexUrl,
+    inLanguage: "es",
+    publisher: { "@id": ORG_ID },
+    blogPost: guides.map((g) => ({
+      "@type": "BlogPosting",
+      headline: g.title,
+      description: g.description,
+      url: guideUrl(g.slug),
     })),
   };
 }

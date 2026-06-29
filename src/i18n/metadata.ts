@@ -60,3 +60,86 @@ export function pageMetadata({
     },
   };
 }
+
+// ── Guides (Spanish-only) ─────────────────────────────────────────────────
+// The /guias section exists only in Spanish, so — unlike the bilingual landing
+// pages above — it emits NO hreflang alternates (pointing hreflang at a /en URL
+// that 404s is an SEO error). Canonical is the bare (es) URL.
+
+/** Absolute canonical URL for the guides index. */
+export const guidesIndexUrl = `${siteUrl}/guias`;
+
+/** Absolute canonical URL for a single guide. */
+export const guideUrl = (slug: string): string => `${siteUrl}/guias/${slug}`;
+
+export function guidesIndexMetadata({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}): Metadata {
+  return {
+    title,
+    description,
+    alternates: { canonical: guidesIndexUrl },
+    openGraph: {
+      type: "website",
+      url: guidesIndexUrl,
+      title,
+      description,
+      locale: OG_LOCALE.es,
+      images: [
+        { url: "/opengraph-image.png", width: 2400, height: 1260, alt: title },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ["/twitter-image.png"],
+    },
+  };
+}
+
+export function guideMetadata({
+  slug,
+  title,
+  description,
+  keywords,
+  published,
+  updated,
+}: {
+  slug: string;
+  title: string;
+  description: string;
+  keywords: string[];
+  published: string;
+  updated: string;
+}): Metadata {
+  const url = guideUrl(slug);
+  return {
+    title,
+    description,
+    keywords,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      url,
+      title,
+      description,
+      locale: OG_LOCALE.es,
+      publishedTime: published,
+      modifiedTime: updated,
+      images: [
+        { url: "/opengraph-image.png", width: 2400, height: 1260, alt: title },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ["/twitter-image.png"],
+    },
+  };
+}

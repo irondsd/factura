@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import { SHELL, SiteFoot, SiteTop } from "@/components/landing/chrome";
+import { SHELL } from "@/components/landing/parts";
 import { DocsView } from "@/components/landing/DocsView";
+import { SiteFooter } from "@/components/landing/Footer";
+import { SiteHeader } from "@/components/landing/Header";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
 import { getI18n } from "@/i18n/server";
@@ -25,11 +27,11 @@ export default async function DocsPage({ params }: Props) {
   const locale = toLocale((await params).lang);
   return (
     <>
-      <SiteTop active="/docs" locale={locale} />
+      <SiteHeader active="/docs" locale={locale} />
       <main className={SHELL}>
         <DocsView />
       </main>
-      <SiteFoot locale={locale} />
+      <SiteFooter locale={locale} />
     </>
   );
 }

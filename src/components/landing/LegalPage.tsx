@@ -1,5 +1,6 @@
-import { SHELL, SiteFoot, SiteTop } from "@/components/landing/chrome";
-import { Eyebrow } from "@/components/landing/parts";
+import { SiteFooter } from "@/components/landing/Footer";
+import { SiteHeader } from "@/components/landing/Header";
+import { Eyebrow, SHELL } from "@/components/landing/parts";
 import type { Locale } from "@/i18n/config";
 import { cn } from "@/lib/cn";
 
@@ -43,7 +44,7 @@ export function LegalPage({
 }) {
   return (
     <>
-      <SiteTop active={active} locale={locale} />
+      <SiteHeader active={active} locale={locale} />
 
       <main className={SHELL}>
         {/* ── Head ─────────────────────────────────────────────── */}
@@ -95,7 +96,7 @@ export function LegalPage({
         </div>
       </main>
 
-      <SiteFoot locale={locale} />
+      <SiteFooter locale={locale} />
     </>
   );
 }

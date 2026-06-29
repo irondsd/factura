@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { DemoBanner } from "@/components/demo/DemoBanner";
 import { DemoTopBar } from "@/components/demo/DemoTopBar";
-import { SiteFoot } from "@/components/landing/chrome";
+import { SiteFooter } from "@/components/landing/Footer";
 import { toLocale } from "@/i18n/config";
 
 // Public, indexable demo of the signed-in app rendered on static sample data.
@@ -20,7 +20,7 @@ export default async function DemoLayout({
       <DemoTopBar />
       <DemoBanner locale={locale} />
       <main className="w-full">{children}</main>
-      <SiteFoot locale={locale} />
+      <SiteFooter locale={locale} />
     </>
   );
 }

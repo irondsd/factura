@@ -39,7 +39,12 @@ export function LangSuggestBanner() {
     if (pref && pref !== locale) setShow(true);
   }, [locale]);
 
-  if (!show) return null;
+  // The guides section is Spanish-only: never nudge toward a /en page that
+  // doesn't exist. A render guard (not just an effect guard) is required because
+  // this banner lives in the persistent [lang] layout — on a client-side nav
+  // onto /guias the banner would otherwise linger from the previous page.
+  const onGuides = pathname.startsWith("/guias");
+  if (!show || onGuides) return null;
 
   const dismiss = () => {
     localStorage.setItem(DISMISS_KEY, "1");

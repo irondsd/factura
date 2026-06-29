@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
-import { localeUrl } from "@/i18n/metadata";
+import { allGuides } from "@/content/guias/guides";
+import { guidesIndexUrl, guideUrl, localeUrl } from "@/i18n/metadata";
 
 // Only genuinely public, logged-out-visible pages belong here. The
 // authenticated app (everything under /app) is disallowed in robots.ts. Each
@@ -20,19 +21,41 @@ const LANDING: {
   { path: "/security", changeFrequency: "monthly", priority: 0.5 },
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  return LANDING.map(({ path, changeFrequency, priority }) => ({
-    url: localeUrl(path, "es"),
-    lastModified: now,
-    changeFrequency,
-    priority,
-    alternates: {
-      languages: {
-        "es-AR": localeUrl(path, "es"),
-        en: localeUrl(path, "en"),
-        "x-default": localeUrl(path, "es"),
+
+  const landing: MetadataRoute.Sitemap = LANDING.map(
+    ({ path, changeFrequency, priority }) => ({
+      url: localeUrl(path, "es"),
+      lastModified: now,
+      changeFrequency,
+      priority,
+      alternates: {
+        languages: {
+          "es-AR": localeUrl(path, "es"),
+          en: localeUrl(path, "en"),
+          "x-default": localeUrl(path, "es"),
+        },
       },
+    }),
+  );
+
+  // Guides are Spanish-only: no hreflang alternates (no /en counterpart exists).
+  const guides = await allGuides();
+  const guidesEntries: MetadataRoute.Sitemap = [
+    {
+      url: guidesIndexUrl,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
     },
-  }));
+    ...guides.map((g) => ({
+      url: guideUrl(g.slug),
+      lastModified: new Date(g.meta.updated),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+  ];
+
+  return [...landing, ...guidesEntries];
 }
