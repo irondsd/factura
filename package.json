@@ -10,6 +10,7 @@
     "lint": "eslint",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
+    "validate:guides": "bun scripts/validate-guides.ts",
     "db:push": "dotenv -e .env.local drizzle-kit push",
     "db:push:prod": "dotenv -e .env.prod drizzle-kit push",
     "db:seed": "dotenv -e .env.local tsx src/db/seed.ts",
