@@ -70,7 +70,8 @@ export function proxy(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  // Run on landing paths only — exclude the app, auth, API, Next internals, and
-  // any file with an extension (favicon, sitemap.xml, robots.txt, og images…).
-  matcher: ["/((?!api|_next/static|_next/image|app|login|.*\\..*).*)"],
+  // Run on landing paths only — exclude the app, auth, API, the PostHog reverse
+  // proxy (/ingest/*, rewritten in next.config), Next internals, and any file
+  // with an extension (favicon, sitemap.xml, robots.txt, og images…).
+  matcher: ["/((?!api|ingest|_next/static|_next/image|app|login|.*\\..*).*)"],
 };
