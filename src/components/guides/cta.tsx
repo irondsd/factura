@@ -10,8 +10,10 @@ const BASE =
   "inline-flex items-center justify-center font-mono text-[13px] uppercase tracking-[0.12em] no-underline py-3 px-[26px] transition-colors";
 
 const VARIANTS = {
-  solid: "border border-ink bg-ink text-paper hover:bg-transparent hover:text-ink",
-  outline: "border border-ink bg-transparent text-ink hover:bg-ink hover:text-paper",
+  solid:
+    "border border-ink bg-ink text-paper hover:bg-transparent hover:text-ink",
+  outline:
+    "border border-ink bg-transparent text-ink hover:bg-ink hover:text-paper",
 } as const;
 
 export function CtaButton({

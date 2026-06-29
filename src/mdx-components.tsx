@@ -10,10 +10,7 @@ import { cn } from "@/lib/cn";
 // <DemoCta/> / <SignupCta/> / <CtaButton/> without an import.
 
 // Internal links use next/link for client nav; external open in a new tab.
-function Anchor({
-  href = "",
-  children,
-}: React.ComponentProps<"a">) {
+function Anchor({ href = "", children }: React.ComponentProps<"a">) {
   const cls =
     "text-accent underline decoration-dotted underline-offset-[3px] hover:decoration-solid";
   if (href.startsWith("/")) {
@@ -119,7 +116,11 @@ const components: MDXComponents = {
     // Guide imagery is author-supplied static assets; plain <img> keeps MDX
     // simple (no width/height plumbing) and these are below the fold.
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={typeof src === "string" ? src : ""} alt={alt ?? ""} className="my-6 w-full border border-line" />
+    <img
+      src={typeof src === "string" ? src : ""}
+      alt={alt ?? ""}
+      className="my-6 w-full border border-line"
+    />
   ),
   // Custom components available unqualified inside guide MDX:
   CtaButton,

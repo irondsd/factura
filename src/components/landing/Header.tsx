@@ -41,7 +41,10 @@ export async function SiteHeader({
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-[color-mix(in_srgb,var(--card)_78%,transparent)] backdrop-blur-[8px]">
       <div
-        className={cn(SHELL, "flex h-[60px] items-center justify-between gap-5")}
+        className={cn(
+          SHELL,
+          "flex h-[60px] items-center justify-between gap-5",
+        )}
       >
         <Link href={localizedHref("/", locale)} className="no-underline">
           <Wordmark size={21} />

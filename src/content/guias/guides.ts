@@ -51,5 +51,7 @@ export async function allGuides(): Promise<Guide[]> {
       meta: (await loadGuide(slug)).meta,
     })),
   );
-  return guides.sort((a, b) => b.meta.published.localeCompare(a.meta.published));
+  return guides.sort((a, b) =>
+    b.meta.published.localeCompare(a.meta.published),
+  );
 }

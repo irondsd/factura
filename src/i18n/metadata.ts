@@ -89,7 +89,9 @@ export function guidesIndexMetadata({
       title,
       description,
       locale: OG_LOCALE.es,
-      images: [{ url: "/opengraph-image.png", width: 2400, height: 1260, alt: title }],
+      images: [
+        { url: "/opengraph-image.png", width: 2400, height: 1260, alt: title },
+      ],
     },
     twitter: {
       card: "summary_large_image",
@@ -129,7 +131,9 @@ export function guideMetadata({
       locale: OG_LOCALE.es,
       publishedTime: published,
       modifiedTime: updated,
-      images: [{ url: "/opengraph-image.png", width: 2400, height: 1260, alt: title }],
+      images: [
+        { url: "/opengraph-image.png", width: 2400, height: 1260, alt: title },
+      ],
     },
     twitter: {
       card: "summary_large_image",

@@ -44,14 +44,14 @@ export const meta = {
 };
 ```
 
-| Field         | Used for                                                        | Rules / length |
-| ------------- | -------------------------------------------------------------- | -------------- |
-| `title`       | Browser `<title>`, the on-page `<h1>`, OG/Twitter, JSON-LD     | ~50–60 chars. Put the primary keyword near the front. |
+| Field         | Used for                                                       | Rules / length                                                       |
+| ------------- | -------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `title`       | Browser `<title>`, the on-page `<h1>`, OG/Twitter, JSON-LD     | ~50–60 chars. Put the primary keyword near the front.                |
 | `description` | `<meta name="description">`, OG/Twitter description            | ~150–160 chars. One compelling sentence; this is the search snippet. |
-| `summary`     | The `/guias` index cards, the homepage list, `llms.txt`        | One short sentence (~90–120 chars). Can differ from `description`. |
-| `keywords`    | `<meta name="keywords">`                                        | 3–6 real Spanish search phrases. Lowercase. |
-| `published`   | Article dateline, JSON-LD `datePublished`, sitemap             | `YYYY-MM-DD`. Set once, don't change. |
-| `updated`     | Dateline (shown only if ≠ published), JSON-LD, sitemap lastmod | `YYYY-MM-DD`. Bump when you meaningfully edit. |
+| `summary`     | The `/guias` index cards, the homepage list, `llms.txt`        | One short sentence (~90–120 chars). Can differ from `description`.   |
+| `keywords`    | `<meta name="keywords">`                                       | 3–6 real Spanish search phrases. Lowercase.                          |
+| `published`   | Article dateline, JSON-LD `datePublished`, sitemap             | `YYYY-MM-DD`. Set once, don't change.                                |
+| `updated`     | Dateline (shown only if ≠ published), JSON-LD, sitemap lastmod | `YYYY-MM-DD`. Bump when you meaningfully edit.                       |
 
 ---
 
@@ -80,7 +80,7 @@ All standard Markdown + GitHub-Flavored Markdown works and is styled to match th
 site. You do not need any CSS classes — just write Markdown.
 
 ```mdx
-**negrita** y *cursiva*
+**negrita** y _cursiva_
 
 - viñeta
 - otra viñeta
@@ -96,12 +96,13 @@ site. You do not need any CSS classes — just write Markdown.
 | --------- | --------- |
 | valor     | valor     |
 
----  ← regla horizontal (separador de sección)
+--- ← regla horizontal (separador de sección)
 
 ![texto alternativo](/ruta/a/imagen.png)
 ```
 
 Notes:
+
 - Leave a blank line between block elements (paragraphs, lists, tables, headings).
 - Images are optional; reference static files under `public/` with an absolute
   path (`/...`). Always provide alt text.
@@ -111,6 +112,7 @@ Notes:
 ## 5. Links, interlinking & CTAs
 
 **Links** — write them as normal Markdown:
+
 - Internal links (start with `/`) become client-side navigations automatically:
   `[qué son las expensas](/guias/que-son-las-expensas-en-argentina)`
 - External links open in a new tab automatically.
