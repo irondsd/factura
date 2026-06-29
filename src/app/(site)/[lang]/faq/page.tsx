@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SHELL, SiteFoot, SiteTop } from "@/components/landing/chrome";
-import { Eyebrow } from "@/components/landing/parts";
+import { SiteFooter } from "@/components/landing/Footer";
+import { SiteHeader } from "@/components/landing/Header";
+import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 // Public FAQ. A wider marketing sub-page (not the receipt column) built on the
-// shared SiteTop/SiteFoot chrome. Answers are native <details> accordions so
+// shared SiteHeader/SiteFooter chrome. Answers are native <details> accordions so
 // they work without JS; the first item opens by default. Answer bodies come
 // from the dictionary as small HTML strings (links, <code>, .accent) — styling
 // is supplied by the container's descendant selectors so no Tailwind utility
@@ -42,7 +43,7 @@ export default async function FaqPage({ params }: Props) {
           locale,
         )}
       />
-      <SiteTop active="/faq" locale={locale} />
+      <SiteHeader active="/faq" locale={locale} />
 
       <main className={SHELL}>
         {/* ── Head ─────────────────────────────────────────────── */}
@@ -87,7 +88,7 @@ export default async function FaqPage({ params }: Props) {
         </section>
       </main>
 
-      <SiteFoot locale={locale} />
+      <SiteFooter locale={locale} />
     </>
   );
 }

@@ -2,6 +2,14 @@ import { cn } from "@/lib/cn";
 
 // Small shared pieces for the landing page, in the product's paper voice.
 
+// Page shell: the centered max-width column the marketing sub-pages (FAQ, Docs,
+// Guías, legal) and the SiteHeader/SiteFooter share.
+export const SHELL = "max-w-[1040px] mx-auto px-5 sm:px-8";
+
+// Nav-link styling shared by the header and footer.
+export const NAV_LINK =
+  "font-mono text-micro uppercase tracking-[0.16em] text-muted no-underline whitespace-nowrap transition-colors hover:text-accent";
+
 export function Wordmark({ size = 34 }: { size?: number }) {
   return (
     <span

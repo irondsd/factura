@@ -1,4 +1,14 @@
-# Factura
+import { allGuides } from "@/content/guias/guides";
+import { guidesIndexUrl, guideUrl } from "@/i18n/metadata";
+
+// Build-time generated /llms.txt. The curated product/demo/trust prose is
+// editorial and lives here as a template; the Guías list is generated from the
+// MDX content dir (the same source the sitemap reads) so it never drifts as
+// guides are added. `force-static` prerenders it once at build, like the rest of
+// the static site — no per-request work.
+export const dynamic = "force-static";
+
+const PREAMBLE = `# Factura
 
 > Factura is a bill ledger that turns uploaded PDF bills into spending, utility, and consumption insights for households.
 
@@ -25,9 +35,9 @@ Key concepts:
 
 - [Homepage](https://factura.uno/): Overview of Factura, how it works (drop a PDF, it parses, you get a ledger), and its core value proposition.
 - [Docs](https://factura.uno/docs): Getting started, core concepts, and reference for uploading bills, parsers, properties, and vendors.
-- [FAQ](https://factura.uno/faq): Common questions about supported bills, parsing, storage, privacy, and sharing.
+- [FAQ](https://factura.uno/faq): Common questions about supported bills, parsing, storage, privacy, and sharing.`;
 
-## Demo
+const AFTER = `## Demo
 
 A live, interactive walkthrough of the app on sample data — no sign-in required. Mirrors the signed-in experience.
 
@@ -42,5 +52,25 @@ A live, interactive walkthrough of the app on sample data — no sign-in require
 
 ## Optional
 
-- The signed-in application lives under https://factura.uno/app and requires authentication; it is not publicly indexable. The /demo pages above show the same screens on sample data.
+- The signed-in application lives under https://factura.uno/app and requires authentication; it is not publicly indexable. The /demo pages above show the same screens on sample data.`;
 
+export async function GET() {
+  const guides = await allGuides();
+
+  const guidesSection = [
+    "## Guías",
+    "",
+    "Spanish-only educational guides about household utility bills (electricity, gas, water): how to read them, what the charges mean, and how to keep spending under control. Indexed for organic search; each guide links to the demo and sign-up.",
+    "",
+    `- [Guías index](${guidesIndexUrl}): All guides about understanding utility bills.`,
+    ...guides.map(
+      (g) => `- [${g.meta.title}](${guideUrl(g.slug)}): ${g.meta.summary}`,
+    ),
+  ].join("\n");
+
+  const body = `${PREAMBLE}\n\n${guidesSection}\n\n${AFTER}\n`;
+
+  return new Response(body, {
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+  });
+}
