@@ -17,7 +17,7 @@ edit.
 - The **filename is the URL**: `<slug>.mdx` → `https://factura.uno/guias/<slug>`
 - Slug rules: lowercase, words separated by hyphens, **no accents or ñ**, no
   spaces. Make it keyword-rich and Spanish.
-  - Good: `como-leer-una-factura-de-luz`, `entender-cargos-fijos-y-variables`
+  - Good: `como-leer-un-recibo-de-expensas`, `que-son-las-expensas-en-argentina`
   - Bad: `Guía 1.mdx`, `cómo-leer.mdx`, `articulo_final.mdx`
 
 ---
@@ -112,7 +112,7 @@ Notes:
 
 **Links** — write them as normal Markdown:
 - Internal links (start with `/`) become client-side navigations automatically:
-  `[cargos fijos y variables](/guias/entender-cargos-fijos-y-variables)`
+  `[qué son las expensas](/guias/que-son-las-expensas-en-argentina)`
 - External links open in a new tab automatically.
 - **Interlink between guides** whenever relevant — it helps SEO and readers.
 
