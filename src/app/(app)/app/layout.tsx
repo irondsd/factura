@@ -6,7 +6,9 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import posthog from "posthog-js";
 import { AppContext } from "@/components/app/context";
 import { TopBar } from "@/components/app/TopBar";
+import { BillIngestProvider } from "@/components/BillIngestProvider";
 import { DropOverlay } from "@/components/DropOverlay";
+import { UploadFab } from "@/components/UploadFab";
 import { useI18n } from "@/i18n/I18nProvider";
 
 /** Auth gate + chrome for the signed-in app: bounces signed-out visitors to
@@ -47,9 +49,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={value}>
-      <TopBar user={session.user} />
-      <main className="w-full">{children}</main>
-      <DropOverlay />
+      <BillIngestProvider>
+        <TopBar user={session.user} />
+        <main className="w-full">{children}</main>
+        <DropOverlay />
+        <UploadFab />
+      </BillIngestProvider>
     </AppContext.Provider>
   );
 }

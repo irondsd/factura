@@ -317,7 +317,8 @@
     "whichProperty": "Which property does this account belong to? You'll only be asked once.",
     "addressMatch": "address match",
     "newPropertyPlaceholder": "…or new property nickname",
-    "skipReview": "Skip — keep in review inbox"
+    "skipReview": "Skip — keep in review inbox",
+    "uploadBill": "Upload bill"
   },
   "overview": {
     "soFar": "so far",

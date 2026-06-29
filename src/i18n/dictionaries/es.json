@@ -317,7 +317,8 @@
     "whichProperty": "¿A qué propiedad pertenece esta cuenta? Solo se te preguntará una vez.",
     "addressMatch": "coincide la dirección",
     "newPropertyPlaceholder": "…o apodo de propiedad nueva",
-    "skipReview": "Omitir — mantener en la bandeja de revisión"
+    "skipReview": "Omitir — mantener en la bandeja de revisión",
+    "uploadBill": "Subir factura"
   },
   "overview": {
     "soFar": "hasta ahora",
