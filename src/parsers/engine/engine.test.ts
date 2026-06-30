@@ -103,12 +103,56 @@ describe("transforms", () => {
     expect(applyTransforms("2025-09", ["monthYear"])).toBe("2025-09-01");
   });
 
-  it("monthYearEs resolves Spanish month names to first of month", () => {
+  it("monthYearEs maps every Spanish month to the right number", () => {
+    const cases: [string, string][] = [
+      ["enero 2026", "2026-01-01"],
+      ["febrero 2026", "2026-02-01"],
+      ["marzo 2026", "2026-03-01"],
+      ["abril 2026", "2026-04-01"],
+      ["mayo 2026", "2026-05-01"],
+      ["junio 2026", "2026-06-01"],
+      ["julio 2026", "2026-07-01"],
+      ["agosto 2026", "2026-08-01"],
+      ["septiembre 2026", "2026-09-01"],
+      ["octubre 2026", "2026-10-01"],
+      ["noviembre 2026", "2026-11-01"],
+      ["diciembre 2026", "2026-12-01"],
+    ];
+    for (const [input, expected] of cases) {
+      expect(applyTransforms(input, ["monthYearEs"])).toBe(expected);
+    }
+  });
+
+  it("monthYearEs accepts abbreviations, casing and any order", () => {
     expect(applyTransforms("ABRIL-2026", ["monthYearEs"])).toBe("2026-04-01");
-    expect(applyTransforms("Junio 2026", ["monthYearEs"])).toBe("2026-06-01");
     expect(applyTransforms("abr. 2026", ["monthYearEs"])).toBe("2026-04-01");
+    expect(applyTransforms("Jun 2026", ["monthYearEs"])).toBe("2026-06-01");
     expect(applyTransforms("2026 Diciembre", ["monthYearEs"])).toBe(
       "2026-12-01",
+    );
+    // Both accepted spellings of September resolve to 09.
+    expect(applyTransforms("sep 2026", ["monthYearEs"])).toBe("2026-09-01");
+    expect(applyTransforms("setiembre 2026", ["monthYearEs"])).toBe(
+      "2026-09-01",
+    );
+  });
+
+  it("monthYearEs passes undefined through untouched", () => {
+    expect(applyTransforms(undefined, ["monthYearEs"])).toBeUndefined();
+  });
+
+  it("monthYearEs throws ParseError on malformed input", () => {
+    // No 4-digit year.
+    expect(() => applyTransforms("ABRIL-26", ["monthYearEs"])).toThrow(
+      ParseError,
+    );
+    // No month name (numeric month — that's monthYear's job).
+    expect(() => applyTransforms("04-2026", ["monthYearEs"])).toThrow(
+      ParseError,
+    );
+    // A word that isn't a Spanish month.
+    expect(() => applyTransforms("Foo 2026", ["monthYearEs"])).toThrow(
+      ParseError,
     );
   });
 });
