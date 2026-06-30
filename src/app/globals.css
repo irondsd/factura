@@ -7,6 +7,7 @@
   --muted: #857b67;
   --line: #ddd2bb;
   --accent: #d9480f;
+  --ok: #6f7d52; /* muted olive — positive/valid state, pairs with --accent */
 
   /* Vendor palette — warm/muted earthy hues. Vendors store a color by *name*
      (see lib/vendorColors); these vars and the .vbg-* utilities below are the
@@ -83,6 +84,7 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-accent: var(--accent);
+  --color-ok: var(--ok);
   --font-display: var(--font-fraunces);
   --font-mono: var(--font-plex-mono);
 

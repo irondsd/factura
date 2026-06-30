@@ -102,6 +102,15 @@ describe("transforms", () => {
     expect(applyTransforms("9-2025", ["monthYear"])).toBe("2025-09-01");
     expect(applyTransforms("2025-09", ["monthYear"])).toBe("2025-09-01");
   });
+
+  it("monthYearEs resolves Spanish month names to first of month", () => {
+    expect(applyTransforms("ABRIL-2026", ["monthYearEs"])).toBe("2026-04-01");
+    expect(applyTransforms("Junio 2026", ["monthYearEs"])).toBe("2026-06-01");
+    expect(applyTransforms("abr. 2026", ["monthYearEs"])).toBe("2026-04-01");
+    expect(applyTransforms("2026 Diciembre", ["monthYearEs"])).toBe(
+      "2026-12-01",
+    );
+  });
 });
 
 describe("detection (step 1)", () => {

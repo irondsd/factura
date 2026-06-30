@@ -23,6 +23,7 @@ export type TransformOp =
   | "stripLeadingZeros" // "01234567" -> "1234567"
   | "monthOf" // ISO date -> first of its month
   | "monthYear" // "09-2025" / "09/2025" / "2025-09" -> "2025-09-01"
+  | "monthYearEs" // "ABRIL-2026" / "Junio 2026" -> "2026-04-01"
   | "toInt" // "04" -> 4
   | "lowercase"
   | { slice: number } // first N chars

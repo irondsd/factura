@@ -437,6 +437,9 @@
     "forkSave": "Bifurcar y guardar",
     "saveReparse": "Guardar y reprocesar",
     "finish": "Finalizar",
+    "finishNeeds": "Para finalizar, falta: {list}.",
+    "needGate": "completar el paso 1",
+    "needPreview": "que la vista previa resuelva",
     "saveFailed": "✕ Error al guardar: {msg}",
     "savingRerunOne": "Al guardar, este analizador se vuelve a ejecutar sobre {n} factura existente.",
     "savingRerunOther": "Al guardar, este analizador se vuelve a ejecutar sobre {n} facturas existentes.",
@@ -520,6 +523,7 @@
         "toInt": "a entero",
         "monthOf": "mes de la fecha",
         "monthYear": "mes-año → período",
+        "monthYearEs": "mes (texto)-año → período",
         "lowercase": "minúsculas",
         "parseDate:DMY": "fecha DD/MM/YYYY",
         "parseDate:YYMMDD": "fecha YYMMDD"

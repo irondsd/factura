@@ -437,6 +437,9 @@
     "forkSave": "Fork & save",
     "saveReparse": "Save & reparse",
     "finish": "Finish",
+    "finishNeeds": "To finish, still needed: {list}.",
+    "needGate": "completing step 1",
+    "needPreview": "a resolving preview",
     "saveFailed": "✕ Save failed: {msg}",
     "savingRerunOne": "Saving re-runs this parser against {n} existing bill.",
     "savingRerunOther": "Saving re-runs this parser against {n} existing bills.",
@@ -520,6 +523,7 @@
         "toInt": "to integer",
         "monthOf": "month of date",
         "monthYear": "month-year → period",
+        "monthYearEs": "month (text)-year → period",
         "lowercase": "lowercase",
         "parseDate:DMY": "date DD/MM/YYYY",
         "parseDate:YYMMDD": "date YYMMDD"

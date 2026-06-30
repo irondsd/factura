@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useRef, useState } from "react";
 import posthog from "posthog-js";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import {
@@ -54,6 +54,46 @@ import { RegexToolkit } from "./RegexToolkit";
 
 type Mode = "structured" | "json";
 
+type MarkStatus = "ok" | "bad" | "none";
+
+/** Field validity for the inline mark: valid → ok; invalid with content → bad;
+ * empty → only bad once a finish was attempted, otherwise unmarked. */
+function markStatus(value: string, valid: boolean, tried: boolean): MarkStatus {
+  if (valid) return "ok";
+  if (value.trim().length > 0) return "bad";
+  return tried ? "bad" : "none";
+}
+
+/** Wraps an Input with a right-aligned ✓/✕ and a red border when invalid. */
+function MarkedField({
+  label,
+  status,
+  children,
+}: {
+  label: React.ReactNode;
+  status: MarkStatus;
+  children: React.ReactNode;
+}) {
+  return (
+    <Field label={label}>
+      <div className="relative">
+        {children}
+        {status !== "none" && (
+          <span
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-[13px] leading-none",
+              status === "ok" ? "text-ok" : "text-accent",
+            )}
+          >
+            {status === "ok" ? "✓" : "✕"}
+          </span>
+        )}
+      </div>
+    </Field>
+  );
+}
+
 function Builder() {
   const router = useRouter();
   const params = useSearchParams();
@@ -87,6 +127,12 @@ function Builder() {
   const [config, setConfig] = useState<BuilderConfig>(() => emptyConfig());
   const [advanced, setAdvanced] = useState("");
   const [focusKey, setFocusKey] = useState<string | null>(null);
+  // True once a finish attempt is blocked by invalid identity fields, so empty
+  // fields only flag red after the user tries to finish (not on first load).
+  const [finishTried, setFinishTried] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const slugRef = useRef<HTMLInputElement>(null);
+  const vendorSlugRef = useRef<HTMLInputElement>(null);
 
   // Seed once from the loaded bill / preset. Forward-only: an existing saved
   // parser opens in the JSON tab (the structured editor builds new configs).
@@ -307,15 +353,60 @@ function Builder() {
     mode === "structured"
       ? Boolean(structResult?.resolved)
       : jsonPreview?.result != null;
+  // Identity fields are validated inline (✓/✕ in the field). The vendor slug is
+  // only required when creating a new vendor; both slugs must match the server
+  // regex (parserSchema) or the save round-trips into a failed-save toast.
+  const nameValid = displayName.trim().length > 0;
+  // Empty vendor slug is allowed — finish() falls back to the parser slug. Only
+  // a *filled* vendor slug must match the server regex.
+  const vendorSlugFilled = vendorSlug.trim().length > 0;
+  const vendorSlugValid =
+    knownVendor || !vendorSlugFilled || /^[a-z0-9-]+$/.test(vendorSlug);
+  const fieldsValid = nameValid && slugValid && vendorSlugValid;
+
   const canFinish =
     gatePassed &&
-    slugValid &&
-    displayName.trim().length > 0 &&
+    fieldsValid &&
     Boolean(assembled.body) &&
     !assembled.error &&
     previewOk;
 
+  const nameStatus = markStatus(displayName, nameValid, finishTried);
+  const slugStatus = markStatus(slug, slugValid, finishTried);
+  // Vendor slug is optional (inherits the parser slug), so an empty one stays
+  // unmarked; only flag a filled-but-malformed value.
+  const vendorSlugStatus: MarkStatus =
+    knownVendor || !vendorSlugFilled
+      ? "none"
+      : markStatus(vendorSlug, vendorSlugValid, finishTried);
+
+  // First invalid identity field, in top-to-bottom order, for focus-on-submit.
+  const firstInvalidField = !nameValid
+    ? nameRef
+    : !slugValid
+      ? slugRef
+      : !vendorSlugValid
+        ? vendorSlugRef
+        : null;
+
   const finish = async () => {
+    if (!fieldsValid) {
+      setFinishTried(true);
+      const el = firstInvalidField?.current;
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      el?.focus({ preventScroll: true });
+      return;
+    }
+    // Fields are fine but something upstream isn't (step 1 / preview) — say so
+    // rather than silently doing nothing.
+    if (!canFinish) {
+      const blockers = [
+        !gatePassed && tbu.needGate,
+        (!previewOk || assembled.error) && tbu.needPreview,
+      ].filter((x): x is string => Boolean(x));
+      showToast(interpolate(tbu.finishNeeds, { list: blockers.join(", ") }));
+      return;
+    }
     if (!assembled.body) return;
     const input = {
       slug,
@@ -469,21 +560,24 @@ function Builder() {
         <div className="flex flex-col gap-5">
           <Section title={tbu.parserSection}>
             <Grid>
-              <Field label={tbu.name}>
+              <MarkedField label={tbu.name} status={nameStatus}>
                 <Input
+                  ref={nameRef}
                   value={displayName}
                   placeholder={tbu.namePlaceholder}
                   onChange={(e) => setDisplayName(e.target.value)}
+                  className={cn("pr-8", nameStatus === "bad" && "border-accent")}
                 />
-              </Field>
-              <Field label={tbu.slug}>
+              </MarkedField>
+              <MarkedField label={tbu.slug} status={slugStatus}>
                 <Input
+                  ref={slugRef}
                   value={slug}
                   placeholder="aguas-andinas"
                   onChange={(e) => setSlug(e.target.value)}
-                  className={cn(slug && !slugValid && "border-accent")}
+                  className={cn("pr-8", slugStatus === "bad" && "border-accent")}
                 />
-              </Field>
+              </MarkedField>
               <Field label={tbu.vendorGroup}>
                 <Select
                   value={knownVendor ? vendorSlug : "__new__"}
@@ -501,13 +595,21 @@ function Builder() {
                 </Select>
               </Field>
               {!knownVendor && (
-                <Field label={tbu.newVendorSlug}>
+                <MarkedField
+                  label={tbu.newVendorSlug}
+                  status={vendorSlugStatus}
+                >
                   <Input
+                    ref={vendorSlugRef}
                     value={vendorSlug}
                     placeholder={slug || tbu.vendorPlaceholder}
                     onChange={(e) => setVendorSlug(e.target.value)}
+                    className={cn(
+                      "pr-8",
+                      vendorSlugStatus === "bad" && "border-accent",
+                    )}
                   />
-                </Field>
+                </MarkedField>
               )}
             </Grid>
           </Section>
@@ -766,11 +868,12 @@ function Builder() {
           </Section>
 
           <div className="flex items-center gap-3 flex-wrap">
+            {/* Always clickable (unless a save is in flight) so finish() can
+                surface what's missing and scroll to the offending field. */}
             <Button
               variant="solid"
               size="lg"
               disabled={
-                !canFinish ||
                 createParser.isPending ||
                 updateParser.isPending ||
                 reparse.isPending
@@ -783,7 +886,7 @@ function Builder() {
                   ? tbu.saveReparse
                   : tbu.finish}
             </Button>
-            {slug && usage.data && usage.data.count > 0 && (
+            {canFinish && slug && usage.data && usage.data.count > 0 && (
               <span className={hint}>
                 {interpolate(
                   usage.data.count === 1

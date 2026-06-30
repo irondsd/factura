@@ -4,6 +4,7 @@ import {
   parseAmountUS,
   parseDateDMY,
   parseDateYYMMDD,
+  parseSpanishMonth,
 } from "../helpers";
 import { ParseError, type ScopeValue, type TransformOp } from "./types";
 
@@ -39,6 +40,15 @@ function applyOne(op: TransformOp, value: ScopeValue): ScopeValue {
         const year = yearRaw.length === 2 ? `20${yearRaw}` : yearRaw;
         const month = String(Number(monthRaw)).padStart(2, "0");
         return `${year}-${month}-01`;
+      }
+      case "monthYearEs": {
+        // A Spanish month name + 4-digit year, any order/separator.
+        const name = s.match(/[A-Za-zÁÉÍÓÚáéíóúñÑ]+/)?.[0];
+        const year = s.match(/\d{4}/)?.[0];
+        if (!name || !year) {
+          throw new ParseError(`Bad Spanish month-year: "${s}"`);
+        }
+        return parseSpanishMonth(name, year);
       }
       case "toInt": {
         const n = parseInt(s, 10);

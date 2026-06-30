@@ -17,6 +17,7 @@ const transformOp = z.union([
     "stripLeadingZeros",
     "monthOf",
     "monthYear",
+    "monthYearEs",
     "toInt",
     "lowercase",
   ]),

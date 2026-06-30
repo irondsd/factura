@@ -440,6 +440,7 @@ const TRANSFORM_VALUES = [
   "toInt",
   "monthOf",
   "monthYear",
+  "monthYearEs",
   "lowercase",
   "parseDate:DMY",
   "parseDate:YYMMDD",
