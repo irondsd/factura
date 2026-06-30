@@ -9,11 +9,14 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatMonth } from "@/lib/format";
 import { trpc } from "@/lib/trpc";
+import type { ParserConfig } from "@/parsers/engine/types";
 import { BillDrawerShell } from "./BillDrawerShell";
 import {
   BillFields,
+  buildCustomPayload,
   type Draft,
   draftFromBill,
+  EditableCustomFields,
   ExtractedFields,
   ExtractedText,
   DrawerHeader,
@@ -94,6 +97,18 @@ export function BillDrawer({
   const parser = parsers.data?.find((p) => p.slug === bill?.parserKey);
   const reviewLabel = reviewLabelOf(reviewKind, tb, parseError);
 
+  // Custom fields to hand-fill come from the bill's parser: by parserKey when
+  // the parser recognized it, else via the vendor the user picks for a still-
+  // unrecognized bill (vendors map to parsers by slug).
+  const selectedVendor = vendors.data?.find((v) => v.id === draft?.vendorId);
+  const parserForBill = bill?.parserKey
+    ? parser
+    : selectedVendor
+      ? parsers.data?.find((p) => p.vendorSlug === selectedVendor.slug)
+      : undefined;
+  const customDefs =
+    (parserForBill?.body as ParserConfig | undefined)?.custom ?? [];
+
   return (
     <BillDrawerShell openKey={billId} onClose={onClose}>
       {(close) => {
@@ -118,6 +133,9 @@ export function BillDrawer({
               ? Number(draft.totalAmount)
               : undefined,
             dueDate: draft.dueDate || undefined,
+            custom: review
+              ? buildCustomPayload(customDefs, draft.custom)
+              : undefined,
           });
           posthog.capture("bill_edited", { bill_id: bill.id });
           onToast(tb.toastUpdated);
@@ -192,7 +210,15 @@ export function BillDrawer({
               properties={properties.data ?? []}
             />
 
-            <ExtractedFields fields={customFields} />
+            {review && customDefs.length > 0 ? (
+              <EditableCustomFields
+                defs={customDefs}
+                values={draft.custom}
+                onChange={(custom) => setDraft({ ...draft, custom })}
+              />
+            ) : (
+              <ExtractedFields fields={customFields} />
+            )}
 
             {/* parser used + builder entry */}
             <div className="pt-4 px-6 pb-1">

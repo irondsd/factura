@@ -238,10 +238,43 @@ export async function ingestBill(
   );
 
   if (!match) {
-    // First bill from this account: keep it in the inbox with the vendor identity
-    // on `extra`, and ask the user which property once (confirmAccount).
     const dup = await inboxDuplicate();
     if (dup) return { outcome: "duplicate", billId: dup.id };
+
+    // Single-property user: there's only one sensible home, so file the bill
+    // there instead of asking. Materializes the (brand-new) vendor + account
+    // like a matched bill would — a fresh account has no prior bills, so this
+    // can't be a period duplicate.
+    if (accessible.length === 1) {
+      const propertyId = accessible[0];
+      const [bill] = await db
+        .insert(bills)
+        .values({
+          ...billValues,
+          status: "needs_review",
+          extra: { ...resultToExtra(result), ...vendorMetaExtra(config) },
+        })
+        .returning();
+      await fileBillIntoProperty(
+        db,
+        bill.id,
+        propertyId,
+        config.vendor,
+        result.identity,
+      );
+      return {
+        outcome: "parsed",
+        billId: bill.id,
+        vendorName: config.vendor.displayName,
+        propertyId,
+        period: result.period,
+        totalAmount: result.amount,
+        periodDuplicate: false,
+      };
+    }
+
+    // 2+ properties (or none): keep the bill in the inbox with the vendor
+    // identity on `extra`, and ask the user which property once (confirmAccount).
     const props = accessible.length
       ? await db.query.properties.findMany({
           where: inArray(properties.id, accessible),

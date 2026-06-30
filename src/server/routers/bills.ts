@@ -141,8 +141,28 @@ async function reparseSingle(
       extra: resultToExtra(result),
       status: "parsed",
     };
+  } else if (accessible.length === 1) {
+    // Inbox, unknown account, single property: there's only one sensible home,
+    // so file it there (materializing the vendor + account) like a matched bill
+    // instead of leaving it stuck in needs_review.
+    const { vendorId, accountId } = await fileBillIntoProperty(
+      db,
+      bill.id,
+      accessible[0],
+      config.vendor,
+      result.identity,
+    );
+    patch = {
+      ...common,
+      vendorId,
+      accountId,
+      propertyId: accessible[0],
+      extra: resultToExtra(result),
+      status: "parsed",
+    };
   } else {
-    // Inbox, unknown account: refresh fields, keep the vendor deferred.
+    // Inbox, unknown account, multiple properties: refresh fields, keep the
+    // vendor deferred until the user picks a property.
     patch = {
       ...common,
       vendorId: null,
@@ -372,6 +392,9 @@ export const billsRouter = router({
         period: period.optional(),
         totalAmount: z.number().nonnegative().optional(),
         dueDate: isoDate.optional(),
+        // Manually entered parser custom fields ({ name: value }); merged into
+        // extra.fields so a bill the parser couldn't fill can be hand-completed.
+        custom: z.record(z.string(), z.unknown()).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -384,7 +407,7 @@ export const billsRouter = router({
       if (input.vendorId)
         await assertMemberVendor(ctx.db, ctx.userId, input.vendorId);
 
-      const { id, totalAmount, vendorId, propertyId, ...rest } = input;
+      const { id, totalAmount, vendorId, propertyId, custom, ...rest } = input;
 
       // Parsed/unknown-account bill being filed: materialize vendor + account
       // from the identity the parser stashed on `extra`.
@@ -401,6 +424,18 @@ export const billsRouter = router({
         );
       }
 
+      // Hand-filled custom fields merge into extra.fields, leaving the rest of
+      // extra (accountNumber, vendor identity, …) intact.
+      const nextExtra = custom
+        ? {
+            ...extra,
+            fields: {
+              ...((extra.fields as Record<string, unknown>) ?? {}),
+              ...custom,
+            },
+          }
+        : undefined;
+
       const [updated] = await ctx.db
         .update(bills)
         .set({
@@ -410,6 +445,7 @@ export const billsRouter = router({
           ...(totalAmount !== undefined
             ? { totalAmount: String(totalAmount) }
             : {}),
+          ...(nextExtra ? { extra: nextExtra } : {}),
           status: "parsed",
         })
         .where(eq(bills.id, id))
