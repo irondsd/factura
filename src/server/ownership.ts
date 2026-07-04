@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
-import type { db as Db } from "@/db";
+import type { Database } from "@/db";
 import { propertyMembers, vendors } from "@/db/schema";
 import { OWNED_PROPERTY_LIMIT } from "@/lib/limits";
 
@@ -15,7 +15,7 @@ export const RAW_TEXT_MAX = 200_000;
  * invited into. The basis for all domain scoping: queries filter
  * `propertyId IN (these)` instead of the old per-user `userId` match. */
 export async function accessibleProperties(
-  db: typeof Db,
+  db: Database,
   userId: string,
 ): Promise<string[]> {
   const rows = await db.query.propertyMembers.findMany({
@@ -37,7 +37,7 @@ export function scopeIds(accessible: string[], propertyId?: string): string[] {
  * "owner", also require the owner role. Returns the membership row. Use before
  * any read or write scoped to a single property. */
 export async function assertMember(
-  db: typeof Db,
+  db: Database,
   userId: string,
   propertyId: string,
   requiredRole?: "owner",
@@ -61,7 +61,7 @@ export async function assertMember(
 /** Throw unless `vendorId` belongs to an property the caller can access. Use
  * before pointing a bill at a client-supplied vendor. */
 export async function assertMemberVendor(
-  db: typeof Db,
+  db: Database,
   userId: string,
   vendorId: string,
   requiredRole?: "owner",

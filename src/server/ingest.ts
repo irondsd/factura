@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import type { db as Db } from "@/db";
+import type { Database } from "@/db";
 import { bills, properties, vendorAccounts, vendors } from "@/db/schema";
 import { runConfig, selectConfig } from "@/parsers/engine/evaluate";
 import { ParseError } from "@/parsers/engine/types";
@@ -55,7 +55,7 @@ export function vendorMetaExtra(config: ParserConfig) {
  * given properties. Vendors are per-property, so the match is on vendor slug
  * across the caller's accessible properties. */
 export async function findAccountMatch(
-  db: typeof Db,
+  db: Database,
   accessible: string[],
   vendorSlug: string,
   accountNumber: string,
@@ -96,7 +96,7 @@ export function vendorMetaFromExtra(
  * bill at them and mark it parsed. The single place a bill becomes "filed" into
  * an property — shared by ingest, confirmAccount, manual fill, and reparse. */
 export async function fileBillIntoProperty(
-  db: typeof Db,
+  db: Database,
   billId: string,
   propertyId: string,
   vendor: VendorMeta,
@@ -155,10 +155,28 @@ export function matchProperty(
   return null;
 }
 
-export async function ingestBill(
-  db: typeof Db,
+export type IngestInput = {
+  fileName: string;
+  rawText: string;
+  storageKey?: string;
+};
+
+/** Ingest a bill in a single transaction. Ingest is multi-step — insert the
+ * bill, then file it (materialize vendor + account, set status) — so without a
+ * transaction an intermittent DB failure mid-sequence can leave a half-saved
+ * bill stuck unfiled. Wrapping it means the whole thing commits or nothing does. */
+export function ingestBill(
+  db: Database,
   userId: string,
-  input: { fileName: string; rawText: string; storageKey?: string },
+  input: IngestInput,
+): Promise<IngestResult> {
+  return db.transaction((tx) => ingestInTx(tx, userId, input));
+}
+
+async function ingestInTx(
+  db: Database,
+  userId: string,
+  input: IngestInput,
 ): Promise<IngestResult> {
   const textHash = createHash("sha256").update(input.rawText).digest("hex");
   const text = normalize(input.rawText);

@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import type { db as Db } from "@/db";
+import type { Database } from "@/db";
 import {
   parserConfigs,
   parserVersions,
@@ -20,7 +20,7 @@ type PropertyRow = typeof properties.$inferSelect;
  * where a bill being *filed* into an property materializes its vendor row.
  * Idempotent per (propertyId, slug). */
 export async function ensureVendor(
-  db: typeof Db,
+  db: Database,
   propertyId: string,
   vendor: { slug: string; displayName: string },
 ): Promise<VendorRow> {
@@ -53,7 +53,7 @@ export async function ensureVendor(
  * created later are back-filled lazily by ensureVendor on first matching bill.
  * Idempotent. */
 export async function seedPropertyVendors(
-  db: typeof Db,
+  db: Database,
   propertyId: string,
 ): Promise<void> {
   const configs = await db.query.parserConfigs.findMany({
@@ -74,7 +74,7 @@ export async function seedPropertyVendors(
  * membership, and its seeded vendors. Shared by sign-up (the default "Home")
  * and the property page. */
 export async function createPropertyForUser(
-  db: typeof Db,
+  db: Database,
   userId: string,
   nickname: string,
   addressVariants: string[] = [],
@@ -94,7 +94,7 @@ export async function createPropertyForUser(
  * system maintainer account, marked verified, and published at v1 so new users
  * can auto-adopt them. Run once at setup (`npm run db:seed`); idempotent by
  * (owner, slug). Returns the number of packages newly inserted. */
-export async function seedParserConfigs(db: typeof Db): Promise<number> {
+export async function seedParserConfigs(db: Database): Promise<number> {
   const ownerId = await ensureSystemUser(db);
   let inserted = 0;
   for (const config of ENGINE_CONFIGS) {

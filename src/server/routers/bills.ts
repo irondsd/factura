@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
+import { after } from "next/server";
 import { z } from "zod";
 import type { db as Db } from "@/db";
 import { bills } from "@/db/schema";
@@ -211,16 +212,22 @@ export const billsRouter = router({
       )
         throw new TRPCError({ code: "FORBIDDEN" });
       const result = await ingestBill(ctx.db, ctx.userId, input);
-      const posthog = getPostHogClient();
-      posthog.capture({
-        distinctId: ctx.userId,
-        event: "bill_ingested",
-        properties: {
-          outcome: result.outcome,
-          file_name: input.fileName,
-        },
+      // Analytics must never block or fail the response — the bill is already
+      // saved. `after` runs this once the response is sent (Vercel keeps the
+      // invocation alive via waitUntil), so a slow/hung PostHog flush can't make
+      // a successful ingest look like a failed one to the client.
+      after(async () => {
+        const posthog = getPostHogClient();
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: "bill_ingested",
+          properties: {
+            outcome: result.outcome,
+            file_name: input.fileName,
+          },
+        });
+        await posthog.shutdown();
       });
-      await posthog.shutdown();
       return result;
     }),
 

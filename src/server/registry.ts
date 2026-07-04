@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
-import type { db as Db } from "@/db";
+import type { Database } from "@/db";
 import {
   parserAdoptions,
   parserConfigs,
@@ -70,7 +70,7 @@ export function findLikelyPii(body: unknown): string[] {
  * nothing global, nothing un-adopted. Replaces the old loadParserConfigs(db),
  * which loaded every preset in the database. */
 export function loadUserConfigs(
-  db: typeof Db,
+  db: Database,
   userId: string,
 ): Promise<ParserConfig[]> {
   return runConfigsExcept(db, userId, null);
@@ -81,7 +81,7 @@ export function loadUserConfigs(
  * compare a candidate against everything the user runs *except* the package
  * being adopted/upgraded. */
 async function runConfigsExcept(
-  db: typeof Db,
+  db: Database,
   userId: string,
   exceptConfigId: string | null,
 ): Promise<ParserConfig[]> {
@@ -109,7 +109,7 @@ async function runConfigsExcept(
 /** Throw unless `id` names a package owned by `userId`. NOT_FOUND (not
  * FORBIDDEN) so a caller can't probe which package ids exist. */
 export async function assertOwnsPackage(
-  db: typeof Db,
+  db: Database,
   userId: string,
   id: string,
 ): Promise<PackageRow> {
@@ -126,7 +126,7 @@ export async function assertOwnsPackage(
  * publish after an edit is strictly newer. Publishing twice without editing is
  * idempotent. Owner-only. */
 export async function publishPackage(
-  db: typeof Db,
+  db: Database,
   userId: string,
   id: string,
 ): Promise<VersionRow> {
@@ -158,7 +158,7 @@ export async function publishPackage(
  * Re-adopting the same package with a newer version is how an upgrade happens —
  * the caller should reparse afterward to apply it to existing bills. */
 export async function adoptPackage(
-  db: typeof Db,
+  db: Database,
   userId: string,
   configId: string,
   versionId?: string,
@@ -214,7 +214,7 @@ export async function adoptPackage(
 /** Stop running an adopted package. The user's bills keep their last parse until
  * they reparse. */
 export async function unadoptPackage(
-  db: typeof Db,
+  db: Database,
   userId: string,
   configId: string,
 ): Promise<void> {
@@ -231,7 +231,7 @@ export async function unadoptPackage(
 /** Adopt every verified package at its latest published version. Called on
  * sign-up so a new account immediately detects the common vendors. Idempotent. */
 export async function adoptVerifiedDefaults(
-  db: typeof Db,
+  db: Database,
   userId: string,
 ): Promise<void> {
   const verified = await db.query.parserConfigs.findMany({
@@ -253,7 +253,7 @@ export async function adoptVerifiedDefaults(
 
 /** Get (creating if needed) the maintainer account that owns the official
  * parsers. Has no auth credentials — it exists only to own verified packages. */
-export async function ensureSystemUser(db: typeof Db): Promise<string> {
+export async function ensureSystemUser(db: Database): Promise<string> {
   const existing = await db.query.users.findFirst({
     where: eq(users.email, SYSTEM_USER_EMAIL),
   });
