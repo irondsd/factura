@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import posthog from "posthog-js";
 import { AppContext } from "@/components/app/context";
+import { AppFooter } from "@/components/app/AppFooter";
 import { TopBar } from "@/components/app/TopBar";
 import { BillIngestProvider } from "@/components/BillIngestProvider";
 import { DropOverlay } from "@/components/DropOverlay";
@@ -50,8 +51,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={value}>
       <BillIngestProvider>
-        <TopBar user={session.user} />
-        <main className="w-full">{children}</main>
+        <div className="flex min-h-screen flex-col">
+          <TopBar user={session.user} />
+          <main className="w-full flex-1">{children}</main>
+          <AppFooter />
+        </div>
         <DropOverlay />
         <UploadFab />
       </BillIngestProvider>
