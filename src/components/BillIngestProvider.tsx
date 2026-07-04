@@ -93,9 +93,22 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
                 headers: { "Content-Type": "application/pdf" },
               });
               if (res.ok) storageKey = presigned.key;
+              // Non-ok = storage is configured but the PUT was rejected (bucket
+              // permissions, etc.). The bill still lands text-only; log why so
+              // it's diagnosable instead of silently showing "not stored".
+              else
+                console.warn(
+                  `PDF storage upload failed for ${file.name}: ${res.status} ${res.statusText}`,
+                );
             }
-          } catch {
-            // Upload failed — fall back to text-only so the bill still lands.
+          } catch (err) {
+            // A thrown fetch here is almost always the browser blocking the
+            // cross-origin PUT because the bucket has no matching CORS rule.
+            // Fall back to text-only so the bill still lands, but surface it.
+            console.warn(
+              `PDF storage upload errored for ${file.name} (likely bucket CORS):`,
+              err,
+            );
           }
 
           const result = await ingest.mutateAsync({
