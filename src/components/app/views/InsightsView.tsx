@@ -9,7 +9,7 @@ import {
   Legend,
   LineChartFx,
   RangeControl,
-  StackedBarsFx,
+  SpendOverTime,
   useChartCurrency,
   VendorShare,
 } from "@/components/charts";
@@ -133,21 +133,13 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
         action={bars.toggle}
         className="mt-4"
       >
-        <StackedBarsFx
+        <SpendOverTime
           months={data.months}
           stacks={data.byCurrency[bars.currency].series.map((s) => s.byVendor)}
           vendors={data.vendors}
           currency={bars.currency}
           completeFlags={data.completeFlags}
           height={230}
-        />
-        <Legend
-          items={data.vendors.map((v) => ({
-            id: v.id,
-            label: v.displayName,
-            color: v.color,
-          }))}
-          className="mt-3"
         />
       </ChartCard>
 

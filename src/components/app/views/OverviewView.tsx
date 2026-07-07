@@ -6,9 +6,8 @@ import {
   Delta,
   Display,
   Eyebrow,
-  Legend,
   SparklineFx,
-  StackedBarsFx,
+  SpendOverTime,
   useChartCurrency,
   VendorShare,
 } from "@/components/charts";
@@ -153,21 +152,13 @@ export function OverviewView({
           caption={to.stackedByVendor}
           action={bars.toggle}
         >
-          <StackedBarsFx
+          <SpendOverTime
             months={d.months}
             stacks={d.byCurrency[bars.currency].series.map((s) => s.byVendor)}
             vendors={d.vendors}
             currency={bars.currency}
             completeFlags={d.completeFlags}
             height={210}
-          />
-          <Legend
-            items={d.vendors.map((v) => ({
-              id: v.id,
-              label: v.displayName,
-              color: v.color,
-            }))}
-            className="mt-3"
           />
         </ChartCard>
       </div>

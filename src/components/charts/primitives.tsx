@@ -205,27 +205,62 @@ export function Delta({
 
 export function Legend({
   items,
+  hidden,
+  onToggle,
   className,
 }: {
   // `id` makes the key unique when two entries share a label (e.g. the same
   // vendor name across different properties); falls back to label otherwise.
   items: { label: string; color: string; id?: string }[];
+  // When `onToggle` is supplied the legend becomes interactive: each item is a
+  // button that toggles its id in `hidden`, and hidden entries dim to signal
+  // they're excluded from the chart. Without it the legend stays static.
+  hidden?: Set<string>;
+  onToggle?: (id: string) => void;
   className?: string;
 }) {
   return (
     <div className={cn("flex flex-wrap gap-x-[18px] gap-y-2", className)}>
-      {items.map((it) => (
-        <span
-          key={it.id ?? it.label}
-          className="inline-flex items-center gap-[7px] font-mono text-micro text-muted"
-        >
+      {items.map((it) => {
+        const key = it.id ?? it.label;
+        const isHidden = hidden?.has(key) ?? false;
+        const swatch = (
           <span
             className="inline-block w-2.5 h-2.5"
-            style={{ background: it.color }}
+            style={{
+              background: isHidden ? "transparent" : it.color,
+              boxShadow: isHidden ? `inset 0 0 0 1px ${it.color}` : undefined,
+            }}
           />
-          {it.label}
-        </span>
-      ))}
+        );
+        const content = (
+          <span className="inline-flex items-center gap-[7px] font-mono text-micro text-muted">
+            {swatch}
+            {it.label}
+          </span>
+        );
+        if (!onToggle) {
+          return (
+            <span key={key} className="inline-flex">
+              {content}
+            </span>
+          );
+        }
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onToggle(key)}
+            aria-pressed={!isHidden}
+            className={cn(
+              "inline-flex items-center border-none bg-transparent p-0 cursor-pointer transition-opacity",
+              isHidden ? "opacity-40" : "opacity-100",
+            )}
+          >
+            {content}
+          </button>
+        );
+      })}
     </div>
   );
 }

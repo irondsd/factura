@@ -15,12 +15,30 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useCallback, useState } from "react";
+import { cn } from "@/lib/cn";
 import { useI18n } from "@/i18n/I18nProvider";
 import { formatMonth, formatMonthShort, formatMoney } from "@/lib/format";
 import type { Slice } from "@/lib/insights";
+import { Legend } from "./primitives";
 
 export * from "./primitives";
 export * from "./RangeControl";
+
+/** Selection state for togglable chart legends: a set of hidden ids plus a
+ * toggle. Empty set = everything shown, which is the default. */
+function useHiddenSet() {
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const toggle = useCallback((id: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+  return { hidden, toggle };
+}
 
 const AXIS = "var(--line)";
 const tickStyle = {
@@ -309,6 +327,56 @@ export function StackedBarsFx({
   );
 }
 
+/**
+ * Stacked bars paired with an interactive legend. Clicking a vendor in the
+ * legend hides its segment; the bars, tooltip totals, and Y-axis all recompute
+ * because the hidden vendors are filtered out of the data the chart receives.
+ * The legend still lists every vendor (dimmed when hidden) so they can be
+ * toggled back. Selection is local to this chart.
+ */
+export function SpendOverTime({
+  months,
+  stacks,
+  vendors,
+  currency = "ARS",
+  completeFlags,
+  height = 220,
+  className,
+}: {
+  months: string[];
+  stacks: Record<string, number>[];
+  vendors: { id: string; color: string; displayName: string }[];
+  currency?: string;
+  completeFlags?: boolean[];
+  height?: number;
+  className?: string;
+}) {
+  const { hidden, toggle } = useHiddenSet();
+  const shown = vendors.filter((v) => !hidden.has(v.id));
+  return (
+    <>
+      <StackedBarsFx
+        months={months}
+        stacks={stacks}
+        vendors={shown}
+        currency={currency}
+        completeFlags={completeFlags}
+        height={height}
+      />
+      <Legend
+        items={vendors.map((v) => ({
+          id: v.id,
+          label: v.displayName,
+          color: v.color,
+        }))}
+        hidden={hidden}
+        onToggle={toggle}
+        className={className ?? "mt-3"}
+      />
+    </>
+  );
+}
+
 /** Vendor-share donut with a Fraunces center label. */
 export function DonutFx({
   slices,
@@ -409,28 +477,43 @@ export function VendorShare({
   emptyLabel?: string;
 }) {
   const { t } = useI18n();
+  const { hidden, toggle } = useHiddenSet();
   const empty = emptyLabel ?? t.charts.noCompleteMonths;
-  const total = slices.reduce((a, s) => a + s.value, 0) || 1;
+  // Hidden vendors drop out of the donut; percentages then recompute over the
+  // remaining visible total so the ring always sums to 100% of what's shown.
+  const shown = slices.filter((s) => !hidden.has(s.id));
+  const total = shown.reduce((a, s) => a + s.value, 0) || 1;
   return (
     <div className="flex flex-wrap items-center gap-4 md:flex-nowrap">
-      <DonutFx
-        slices={slices}
-        centerLabel={centerLabel}
-        centerSub={centerSub}
-      />
+      <DonutFx slices={shown} centerLabel={centerLabel} centerSub={centerSub} />
       <div className="flex flex-col gap-2 flex-1">
-        {slices.map((s) => (
-          <div key={s.id} className="flex items-center gap-2">
-            <span
-              className="inline-block w-2.5 h-2.5 flex-none"
-              style={{ background: s.color }}
-            />
-            <span className="font-mono text-xs flex-1">{s.label}</span>
-            <span className="font-mono text-xs font-medium">
-              {Math.round((s.value / total) * 100)}%
-            </span>
-          </div>
-        ))}
+        {slices.map((s) => {
+          const isHidden = hidden.has(s.id);
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => toggle(s.id)}
+              aria-pressed={!isHidden}
+              className={cn(
+                "flex items-center gap-2 border-none bg-transparent p-0 text-left cursor-pointer transition-opacity",
+                isHidden ? "opacity-40" : "opacity-100",
+              )}
+            >
+              <span
+                className="inline-block w-2.5 h-2.5 flex-none"
+                style={{
+                  background: isHidden ? "transparent" : s.color,
+                  boxShadow: isHidden ? `inset 0 0 0 1px ${s.color}` : undefined,
+                }}
+              />
+              <span className="font-mono text-xs flex-1">{s.label}</span>
+              <span className="font-mono text-xs font-medium">
+                {isHidden ? "—" : `${Math.round((s.value / total) * 100)}%`}
+              </span>
+            </button>
+          );
+        })}
         {slices.length === 0 && (
           <span className="font-mono text-xs text-muted">{empty}</span>
         )}
