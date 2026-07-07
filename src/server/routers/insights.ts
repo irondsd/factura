@@ -304,9 +304,15 @@ export const insightsRouter = router({
         .map(([name, m]) => {
           const isMoney = m.type === "money";
           // Native values: ARS pesos for money, raw unit for quantities/numbers.
+          // For money fields, a bill that exists but omits this field means the
+          // vendor didn't charge it that month (e.g. an extraordinaria only
+          // levied some months) → an honest 0, not a gap. No bill at all stays
+          // null so we never invent data for a month we have nothing for.
           const values = months.map((mm) => {
             const b = byMonth(mm);
-            return b ? readCustom(b, name) : null;
+            if (!b) return null;
+            const v = readCustom(b, name);
+            return v ?? (isMoney ? 0 : null);
           });
           // Money fields also get a USD-converted copy so the chart can toggle;
           // quantity/number fields are currency-independent.
@@ -315,6 +321,7 @@ export const insightsRouter = router({
                 const b = byMonth(mm);
                 const raw = values[i];
                 if (raw == null || !b) return null;
+                if (raw === 0) return 0; // 0 pesos is 0 dollars, no rate needed
                 return b.totalAmount != null && b.usdAmount != null
                   ? raw * (b.usdAmount / Number(b.totalAmount))
                   : null;
@@ -325,17 +332,23 @@ export const insightsRouter = router({
             | { arsIdx: (number | null)[]; usdIdx: (number | null)[] }
             | undefined;
           if (m.type === "quantity") {
+            // Effective unit price = amount ÷ quantity. A zero-quantity month
+            // (0 m³ consumed) has no per-unit price mathematically, but it means
+            // nothing was bought → plot 0 rather than a gap. Only null (no bill,
+            // or no reading) stays a gap.
             const ars = months.map((mm) => {
               const b = byMonth(mm);
-              const q = b ? readCustom(b, name) : null;
-              return b && b.totalAmount != null && q
-                ? Number(b.totalAmount) / q
-                : null;
+              if (!b || b.totalAmount == null) return null;
+              const q = readCustom(b, name);
+              if (q == null) return null;
+              return q === 0 ? 0 : Number(b.totalAmount) / q;
             });
             const usd = months.map((mm) => {
               const b = byMonth(mm);
-              const q = b ? readCustom(b, name) : null;
-              return b && b.usdAmount != null && q ? b.usdAmount / q : null;
+              if (!b || b.usdAmount == null) return null;
+              const q = readCustom(b, name);
+              if (q == null) return null;
+              return q === 0 ? 0 : b.usdAmount / q;
             });
             unitPrice = { arsIdx: rebase(ars), usdIdx: rebase(usd) };
           }

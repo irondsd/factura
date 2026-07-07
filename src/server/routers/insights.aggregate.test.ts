@@ -200,6 +200,18 @@ describe("rebase", () => {
   it("returns all-null when there is no data", () => {
     expect(rebase([null, null])).toEqual([null, null]);
   });
+
+  it("rebases a real 0 to 0 without nulling the series", () => {
+    expect(rebase([200, 0, 100])).toEqual([100, 0, 50]);
+  });
+
+  it("skips a leading 0 when choosing the 100-base", () => {
+    expect(rebase([0, 200, 100])).toEqual([0, 100, 50]);
+  });
+
+  it("returns all-null when the only values are 0", () => {
+    expect(rebase([0, 0])).toEqual([null, null]);
+  });
 });
 
 describe("shareList", () => {

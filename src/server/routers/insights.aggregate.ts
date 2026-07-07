@@ -105,10 +105,14 @@ export function completeFlagsFor(months: string[], parsed: EnrichedBill[]) {
   });
 }
 
-/** Rebase a series to 100 at its first non-null value (the inflation lens). */
+/** Rebase a series to 100 at its first non-null, non-zero value (the inflation
+ * lens). null stays a gap (no data that month); a real 0 rebases to 0 (e.g. a
+ * zero-consumption month), so we can't use it as the 100-base — skip to the
+ * first meaningful value. */
 export function rebase(vals: (number | null)[]): (number | null)[] {
-  const first = vals.find((v) => v != null);
-  return vals.map((v) => (v == null || !first ? null : (v / first) * 100));
+  const base = vals.find((v): v is number => v != null && v !== 0);
+  if (base == null) return vals.map(() => null);
+  return vals.map((v) => (v == null ? null : (v / base) * 100));
 }
 
 export type MonthSeries = ReturnType<typeof monthlySeries>;
