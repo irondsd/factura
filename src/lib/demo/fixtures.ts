@@ -11,6 +11,7 @@
 // "awaiting" — so the demo rolls forward on its own (June → July → …) while the
 // figures stay stable. See `revalidate` on the /demo pages for the cadence.
 
+import { type InsightsWindow, monthRange } from "@/lib/insights";
 import { vendorColorVar } from "@/lib/vendorColors";
 import type { RouterOutputs } from "@/lib/trpc";
 
@@ -22,8 +23,6 @@ type PropertyRow = RouterOutputs["properties"]["list"][number];
 type Paged = RouterOutputs["bills"]["listPaged"];
 type PagedRow = Paged["rows"][number];
 type BillGet = NonNullable<RouterOutputs["bills"]["get"]>;
-
-export type DemoRange = 12 | 24;
 
 // ── Identities ──────────────────────────────────────────────────────────────
 const PROPERTY_ID = "d0000000-0000-4000-8000-000000000001";
@@ -306,9 +305,18 @@ export function demoOverview(): Overview {
   };
 }
 
-export function demoSeries(range: DemoRange): Series {
+/** Concrete month list for a window, clamped to the demo's own span so the
+ * custom range can't wander past "today" or before the fixtures begin. */
+function windowMonths(win: InsightsWindow): string[] {
   const now = nowMonth();
-  const months = monthList(now, range);
+  const hi = win.to < now ? win.to : now;
+  const lo = win.from > EPOCH ? win.from : EPOCH;
+  return monthRange(lo > hi ? hi : lo, hi);
+}
+
+export function demoSeries(win: InsightsWindow): Series {
+  const now = nowMonth();
+  const months = windowMonths(win);
   const completeFlags = completeFlagsFor(months, now);
 
   const totalIn = (currency: "ARS" | "USD") =>
@@ -331,6 +339,7 @@ export function demoSeries(range: DemoRange): Series {
       arsIdx: rebase(totalIn("ARS")),
       usdIdx: rebase(totalIn("USD")),
     },
+    bounds: { earliest: EPOCH, latest: now },
   };
 }
 
@@ -351,12 +360,12 @@ const FIELD_DEFS: Record<
 
 export function demoVendorDetail(
   vendorId: string,
-  range: DemoRange,
+  win: InsightsWindow,
 ): VendorDetail | null {
   const def = VENDORS.find((v) => v.id === vendorId);
   if (!def) return null;
   const now = nowMonth();
-  const months = monthList(now, range);
+  const months = windowMonths(win);
 
   const spendIn = (currency: "ARS" | "USD") =>
     months.map((m) =>

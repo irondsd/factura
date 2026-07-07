@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { db as Db } from "@/db";
 import { bills, properties, vendorAccounts, vendors } from "@/db/schema";
+import { resolveWindowMonths } from "@/lib/insights";
 import type { FieldType } from "@/parsers/engine/types";
 import { billRateDate, usdRateLookup } from "../fx";
 import { accessibleProperties, scopeIds } from "../ownership";
@@ -70,6 +71,35 @@ async function loadVendors(db: typeof Db, scopeIds: string[]) {
   return db.query.vendors.findMany({
     where: inArray(vendors.propertyId, scopeIds),
   });
+}
+
+/** A "YYYY-MM" month tag (01–12), the shape both window endpoints take. */
+const monthTag = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "expected a YYYY-MM month");
+
+/** Explicit range window shared by `series` and `vendorDetail`. Both endpoints
+ * are optional; omitted, they default to the last 12 months ending this month. */
+const windowInput = { from: monthTag.optional(), to: monthTag.optional() };
+
+/** Resolve an optional `{ from, to }` window into a concrete month list, anchored
+ * to the real current month. Thin wrapper over the pure, unit-tested helper. */
+const windowMonths = (from?: string, to?: string) =>
+  resolveWindowMonths(from, to, nowMonth());
+
+/** The selectable span for the range control: earliest parsed bill → this month.
+ * Drives the custom-range dropdowns and drag bar; `earliest` is null with no data. */
+function boundsOf(parsed: EnrichedBill[]): {
+  earliest: string | null;
+  latest: string;
+} {
+  let earliest: string | null = null;
+  for (const b of parsed) {
+    if (!b.period) continue;
+    const m = b.period.slice(0, 7);
+    if (!earliest || m < earliest) earliest = m;
+  }
+  return { earliest, latest: nowMonth() };
 }
 
 export const insightsRouter = router({
@@ -165,12 +195,12 @@ export const insightsRouter = router({
     .input(
       z.object({
         propertyId: z.string().uuid().optional(),
-        range: z.union([z.literal(12), z.literal(24)]).default(12),
+        ...windowInput,
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { propertyId, range } = input;
-      const months = monthList(nowMonth(), range);
+      const { propertyId, from, to } = input;
+      const months = windowMonths(from, to);
       const scopeIds = await resolveScope(ctx.db, ctx.userId, propertyId);
       const parsed = await loadParsed(ctx.db, scopeIds);
       const allVendors = await loadVendors(ctx.db, scopeIds);
@@ -207,6 +237,7 @@ export const insightsRouter = router({
         vendors: vendorsHere,
         byCurrency,
         inflation: { arsIdx, usdIdx },
+        bounds: boundsOf(parsed),
       };
     }),
 
@@ -220,12 +251,12 @@ export const insightsRouter = router({
       z.object({
         propertyId: z.string().uuid().optional(),
         vendorId: z.string().uuid(),
-        range: z.union([z.literal(12), z.literal(24)]).default(12),
+        ...windowInput,
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { propertyId, vendorId, range } = input;
-      const months = monthList(nowMonth(), range);
+      const { propertyId, vendorId, from, to } = input;
+      const months = windowMonths(from, to);
       const scopeIds = await resolveScope(ctx.db, ctx.userId, propertyId);
       const vendor = await ctx.db.query.vendors.findFirst({
         where: eq(vendors.id, vendorId),

@@ -12,13 +12,12 @@ import {
   demoVendorDetail,
   demoVendors,
   demoVendorsPresent,
-  type DemoRange,
 } from "@/lib/demo/fixtures";
 
 export const demoInsightsSource: InsightsSource = {
-  useSeries: (_propertyId, range) => demoSeries(range as DemoRange),
-  useVendorDetail: (_propertyId, vendorId, range) =>
-    vendorId === "all" ? null : demoVendorDetail(vendorId, range as DemoRange),
+  useSeries: (_propertyId, win) => demoSeries(win),
+  useVendorDetail: (_propertyId, vendorId, win) =>
+    vendorId === "all" ? null : demoVendorDetail(vendorId, win),
 };
 
 export const demoBillsSource: BillsSource = {

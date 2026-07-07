@@ -20,6 +20,7 @@ import { formatMonth, formatMonthShort, formatMoney } from "@/lib/format";
 import type { Slice } from "@/lib/insights";
 
 export * from "./primitives";
+export * from "./RangeControl";
 
 const AXIS = "var(--line)";
 const tickStyle = {

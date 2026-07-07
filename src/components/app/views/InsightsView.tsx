@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ChartCard,
   Delta,
@@ -8,7 +8,7 @@ import {
   Eyebrow,
   Legend,
   LineChartFx,
-  Segmented,
+  RangeControl,
   StackedBarsFx,
   useChartCurrency,
   VendorShare,
@@ -18,10 +18,13 @@ import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatMoney } from "@/lib/format";
-import { toSlices } from "@/lib/insights";
+import {
+  defaultWindow,
+  type InsightsWindow,
+  monthRange,
+  toSlices,
+} from "@/lib/insights";
 import type { RouterOutputs } from "@/lib/trpc";
-
-export type InsightsRange = 12 | 24;
 
 type SeriesData = RouterOutputs["insights"]["series"];
 type VendorDetail = NonNullable<RouterOutputs["insights"]["vendorDetail"]>;
@@ -35,12 +38,12 @@ type CustomFieldSeries = VendorDetail["fields"][number];
 export type InsightsSource = {
   useSeries: (
     propertyId: string | undefined,
-    range: InsightsRange,
+    win: InsightsWindow,
   ) => SeriesData | undefined;
   useVendorDetail: (
     propertyId: string | undefined,
     vendorId: string,
-    range: InsightsRange,
+    win: InsightsWindow,
   ) => VendorDetail | null | undefined;
 };
 
@@ -55,12 +58,23 @@ export function InsightsView({
 }) {
   const { t } = useI18n();
   const [vendorId, setVendorId] = useState<string>("all");
-  const [range, setRange] = useState<InsightsRange>(12);
+  const [win, setWin] = useState<InsightsWindow>(defaultWindow);
 
-  const series = source.useSeries(propertyId, range);
-  const detail = source.useVendorDetail(propertyId, vendorId, range);
+  const series = source.useSeries(propertyId, win);
+  const detail = source.useVendorDetail(propertyId, vendorId, win);
 
   const vendorsHere = series?.vendors ?? [];
+
+  // The selectable span: earliest bill → now, widened to always contain the
+  // current window (so presets that reach past the first bill still fit).
+  const span = useMemo(() => {
+    const lo =
+      series?.bounds.earliest && series.bounds.earliest < win.from
+        ? series.bounds.earliest
+        : win.from;
+    const hi = series?.bounds.latest ?? win.to;
+    return monthRange(lo, hi < win.to ? win.to : hi);
+  }, [series?.bounds.earliest, series?.bounds.latest, win.from, win.to]);
 
   return (
     <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
@@ -71,14 +85,7 @@ export function InsightsView({
             {t.insights.title}
           </Display>
         </div>
-        <Segmented
-          options={[
-            { value: 12, label: t.insights.range12 },
-            { value: 24, label: t.insights.range24 },
-          ]}
-          value={range}
-          onChange={setRange}
-        />
+        <RangeControl span={span} value={win} onChange={setWin} />
       </div>
 
       {/* vendor filter */}
