@@ -33,6 +33,7 @@ import {
 } from "@/parsers/builder/model";
 import type { BuilderConfig } from "@/parsers/builder/model";
 import { normalize } from "@/parsers/normalize";
+import { PARSER_CATEGORIES } from "@/parsers/categories";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
@@ -53,6 +54,9 @@ import { ParsedPreview, ReviewBox, StructuredPreview } from "./previews";
 import { RegexToolkit } from "./RegexToolkit";
 
 type Mode = "structured" | "json";
+
+/** Select sentinel for the free-text "Other" category option. */
+const CATEGORY_OTHER = "__other__";
 
 type MarkStatus = "ok" | "bad" | "none";
 
@@ -122,6 +126,16 @@ function Builder() {
   const [slug, setSlug] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [vendorSlug, setVendorSlug] = useState("");
+  // Catalog metadata surfaced in the parser library. `categoryChoice` is either
+  // a built-in key, "" (none), or CATEGORY_OTHER; a custom label lives in
+  // `customCategory` and is only used when "Other" is chosen.
+  const [categoryChoice, setCategoryChoice] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
+  const [region, setRegion] = useState("");
+  const [provider, setProvider] = useState("");
+  const [compat, setCompat] = useState("");
+  // Set once when this parser is opened as a fork of an adopted/marketplace one.
+  const [forkedFrom, setForkedFrom] = useState<string | null>(null);
   const [sigs, setSigs] = useState<Sig[]>([{ pattern: "", flags: "i" }]);
   const [noneSigs, setNoneSigs] = useState<Sig[]>([]);
   const [config, setConfig] = useState<BuilderConfig>(() => emptyConfig());
@@ -152,11 +166,32 @@ function Builder() {
         presets.data.find((p) => p.slug === billQuery.data!.parserKey));
     if (preset) {
       if (preset.editable) setExistingId(preset.id);
-      else setEditingOwn(false);
+      else {
+        setEditingOwn(false);
+        // Forking an adopted/marketplace parser: record its lineage so the
+        // saved copy shows "↳ forked from …" in the library.
+        setForkedFrom(`${preset.displayName} v${preset.version}`);
+      }
       setLoadedSlug(preset.slug);
       setSlug(preset.slug);
       setDisplayName(preset.displayName);
       setVendorSlug(preset.vendorSlug);
+      // A known key selects its option; anything else is a custom label that
+      // opens the "Other" free-text field prefilled.
+      const presetCat = preset.category ?? "";
+      if (
+        presetCat &&
+        !(PARSER_CATEGORIES as readonly string[]).includes(presetCat)
+      ) {
+        setCategoryChoice(CATEGORY_OTHER);
+        setCustomCategory(presetCat);
+      } else {
+        setCategoryChoice(presetCat);
+        setCustomCategory("");
+      }
+      setRegion(preset.region ?? "");
+      setProvider(preset.provider ?? "");
+      setCompat(preset.compat ?? "");
       const {
         slug: _s,
         vendor: _v,
@@ -413,6 +448,14 @@ function Builder() {
       displayName,
       vendorSlug: vendorSlug || slug,
       definition: assembled.body,
+      category:
+        (categoryChoice === CATEGORY_OTHER
+          ? customCategory.trim()
+          : categoryChoice) || undefined,
+      region: region.trim() || undefined,
+      provider: provider.trim() || undefined,
+      compat: compat.trim() || undefined,
+      forkedFrom: forkedFrom ?? undefined,
     };
     try {
       let id = existingId;
@@ -611,6 +654,50 @@ function Builder() {
                   />
                 </MarkedField>
               )}
+              <Field label={tbu.category}>
+                <Select
+                  value={categoryChoice}
+                  onChange={(e) => setCategoryChoice(e.target.value)}
+                >
+                  <option value="">{tbu.categoryNone}</option>
+                  {PARSER_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {t.parsers.categories[c]}
+                    </option>
+                  ))}
+                  <option value={CATEGORY_OTHER}>{tbu.categoryOther}</option>
+                </Select>
+              </Field>
+              {categoryChoice === CATEGORY_OTHER && (
+                <Field label={tbu.categoryCustom}>
+                  <Input
+                    value={customCategory}
+                    placeholder={tbu.categoryCustomPlaceholder}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                  />
+                </Field>
+              )}
+              <Field label={tbu.region}>
+                <Input
+                  value={region}
+                  placeholder={tbu.regionPlaceholder}
+                  onChange={(e) => setRegion(e.target.value)}
+                />
+              </Field>
+              <Field label={tbu.provider}>
+                <Input
+                  value={provider}
+                  placeholder={displayName || tbu.namePlaceholder}
+                  onChange={(e) => setProvider(e.target.value)}
+                />
+              </Field>
+              <Field label={tbu.compat}>
+                <Input
+                  value={compat}
+                  placeholder={tbu.compatPlaceholder}
+                  onChange={(e) => setCompat(e.target.value)}
+                />
+              </Field>
             </Grid>
           </Section>
 

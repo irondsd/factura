@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ENGINE_CONFIGS } from "@/parsers/engine/configs";
+import { edesurConfig } from "@/parsers/engine/configs/edesur";
 import { runConfig } from "@/parsers/engine/evaluate";
 import { normalize } from "@/parsers/normalize";
-import { rowToConfig } from "./parsers";
+import { fieldsOf, rowToConfig } from "./parsers";
 
 /** Each preset, the way seedParserConfigs stores it: metadata in columns, the
  * rest as a JSON-serialized `body`. */
@@ -12,14 +13,19 @@ function asStoredRow(config: (typeof ENGINE_CONFIGS)[number]) {
   const { slug, version, vendor, ...body } = config;
   return {
     id: "00000000-0000-0000-0000-000000000000",
-    ownerId: "00000000-0000-0000-0000-000000000000",
+    ownerId: null,
     slug,
     version,
     vendorSlug: vendor.slug,
     displayName: vendor.displayName,
     // Round-trip through JSON to mimic the jsonb column exactly.
     body: JSON.parse(JSON.stringify(body)),
-    verified: true,
+    tier: "official" as const,
+    category: null,
+    region: null,
+    provider: null,
+    compat: null,
+    forkedFrom: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -58,4 +64,27 @@ describe("DB round-trip (rowToConfig)", () => {
       expect(restored.vendor).toEqual(config.vendor);
     });
   }
+});
+
+describe("fieldsOf", () => {
+  it("always lists the four semantic roles plus custom fields by name", () => {
+    expect(fieldsOf(edesurConfig)).toEqual([
+      "amount",
+      "period",
+      "dueDate",
+      "accountNumber",
+      "consumption",
+      "lateSurcharge",
+    ]);
+  });
+
+  it("lists just the roles when there are no custom fields", () => {
+    const bare = { ...edesurConfig, custom: undefined };
+    expect(fieldsOf(bare)).toEqual([
+      "amount",
+      "period",
+      "dueDate",
+      "accountNumber",
+    ]);
+  });
 });

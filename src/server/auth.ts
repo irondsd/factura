@@ -10,7 +10,7 @@ import { authAccounts, sessions, users, verificationTokens } from "@/db/schema";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
 import { createPropertyForUser } from "./defaults";
 import { sendOtpEmail, sendWelcomeEmail } from "./email";
-import { adoptVerifiedDefaults } from "./registry";
+import { adoptOfficialDefaults } from "./registry";
 
 /** How long a one-time code stays valid (matches the copy in emails/opt.tsx). */
 const OTP_TTL_SECONDS = 10 * 60;
@@ -75,7 +75,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             .where(eq(users.id, user.id));
         }
         await createPropertyForUser(db, user.id, "Home");
-        await adoptVerifiedDefaults(db, user.id);
+        await adoptOfficialDefaults(db, user.id);
         if (user.email)
           await sendWelcomeEmail({ to: user.email, name: user.name });
       }

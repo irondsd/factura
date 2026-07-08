@@ -35,3 +35,16 @@ export function resultToColumns(result: ParsedResult) {
 export function resultToExtra(result: ParsedResult) {
   return { accountNumber: result.identity, fields: result.custom };
 }
+
+/** The names of the fields a config extracts — the four semantic roles
+ * (identity surfaced as `accountNumber`) plus every custom field by name. Drives
+ * the parser library's "fields extracted" chips. */
+export function fieldsOf(config: ParserConfig): string[] {
+  return [
+    "amount",
+    "period",
+    "dueDate",
+    "accountNumber",
+    ...(config.custom ?? []).map((f) => f.name),
+  ];
+}

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import {
   bills,
@@ -7,6 +7,7 @@ import {
   parserConfigs,
   parserSamples,
   parserVersions,
+  parserVotes,
 } from "@/db/schema";
 import {
   detectScore,
@@ -15,6 +16,7 @@ import {
 } from "@/parsers/engine/evaluate";
 import { ParseError, type ParserConfig } from "@/parsers/engine/types";
 import { normalize } from "@/parsers/normalize";
+import { fieldsOf, rowToConfig } from "../parsers";
 import {
   configInputSchema,
   detectSchema,
@@ -28,6 +30,11 @@ import {
   publishPackage,
   unadoptPackage,
 } from "../registry";
+
+/** Published-not-owned filter for the registry: a user doesn't own a package
+ * when it's ownerless (official) or owned by someone else. */
+const notOwnedBy = (userId: string) =>
+  or(isNull(parserConfigs.ownerId), ne(parserConfigs.ownerId, userId));
 import { evaluateCandidates } from "../suggest/evaluate-in-worker";
 import type { SuggestCandidate } from "../suggest/protocol";
 import { rankSuggestions, type Suggestion } from "../suggest/rank";
@@ -70,6 +77,12 @@ export const parsersRouter = router({
         });
         const c = v?.config as ParserConfig | undefined;
         if (!c) return null;
+        // The source package row carries the catalog metadata (category etc.),
+        // which lives in columns rather than the engine config — pull it so a
+        // fork can prefill it in the builder.
+        const src = await ctx.db.query.parserConfigs.findFirst({
+          where: eq(parserConfigs.id, a.configId),
+        });
         return {
           id: a.configId,
           slug: c.slug,
@@ -77,6 +90,10 @@ export const parsersRouter = router({
           vendorSlug: c.vendor.slug,
           displayName: c.vendor.displayName,
           body: c,
+          category: src?.category ?? null,
+          region: src?.region ?? null,
+          provider: src?.provider ?? null,
+          compat: src?.compat ?? null,
           editable: false as const,
         };
       }),
@@ -97,10 +114,10 @@ export const parsersRouter = router({
       const row = await ctx.db.query.parserConfigs.findFirst({
         where: eq(parserConfigs.id, input.id),
       });
-      // Readable only if you own it, it's verified/official, or you've adopted
-      // it — otherwise another user's private draft would leak.
+      // Readable only if you own it, it's official, or you've adopted it —
+      // otherwise another user's private draft would leak.
       if (!row) throw new TRPCError({ code: "NOT_FOUND" });
-      if (row.ownerId !== ctx.userId && !row.verified) {
+      if (row.ownerId !== ctx.userId && row.tier !== "official") {
         const adoption = await ctx.db.query.parserAdoptions.findFirst({
           where: and(
             eq(parserAdoptions.userId, ctx.userId),
@@ -125,6 +142,11 @@ export const parsersRouter = router({
             vendorSlug: input.vendorSlug,
             displayName: input.displayName,
             body: input.definition,
+            category: input.category ?? null,
+            region: input.region ?? null,
+            provider: input.provider ?? null,
+            compat: input.compat ?? null,
+            forkedFrom: input.forkedFrom ?? null,
           })
           .returning();
         return row;
@@ -151,6 +173,10 @@ export const parsersRouter = router({
           vendorSlug: input.vendorSlug,
           displayName: input.displayName,
           body: input.definition,
+          category: input.category ?? null,
+          region: input.region ?? null,
+          provider: input.provider ?? null,
+          compat: input.compat ?? null,
           updatedAt: new Date(),
         })
         .where(eq(parserConfigs.id, input.id))
@@ -169,9 +195,16 @@ export const parsersRouter = router({
   /** Freeze the current draft as an immutable published version that others can
    * adopt. Owner-only. */
   publish: protectedProcedure
-    .input(z.object({ id: z.string().uuid() }))
+    .input(
+      z.object({ id: z.string().uuid(), note: z.string().max(200).optional() }),
+    )
     .mutation(async ({ ctx, input }) => {
-      const version = await publishPackage(ctx.db, ctx.userId, input.id);
+      const version = await publishPackage(
+        ctx.db,
+        ctx.userId,
+        input.id,
+        input.note,
+      );
       return { version: version.version, versionId: version.id };
     }),
 
@@ -186,14 +219,14 @@ export const parsersRouter = router({
       })
       .from(parserVersions)
       .innerJoin(parserConfigs, eq(parserConfigs.id, parserVersions.configId))
-      .where(ne(parserConfigs.ownerId, ctx.userId))
+      .where(notOwnedBy(ctx.userId))
       .orderBy(parserVersions.configId, desc(parserVersions.version));
 
-    const verifiedRows = await ctx.db.query.parserConfigs.findMany({
-      where: eq(parserConfigs.verified, true),
+    const officialRows = await ctx.db.query.parserConfigs.findMany({
+      where: eq(parserConfigs.tier, "official"),
       columns: { id: true },
     });
-    const verified = new Set(verifiedRows.map((r) => r.id));
+    const official = new Set(officialRows.map((r) => r.id));
 
     return published
       .map((p) => {
@@ -204,7 +237,7 @@ export const parsersRouter = router({
           slug: c.slug,
           displayName: c.vendor.displayName,
           vendorSlug: c.vendor.slug,
-          verified: verified.has(p.configId),
+          verified: official.has(p.configId),
         };
       })
       .sort(
@@ -246,7 +279,7 @@ export const parsersRouter = router({
         })
         .from(parserVersions)
         .innerJoin(parserConfigs, eq(parserConfigs.id, parserVersions.configId))
-        .where(ne(parserConfigs.ownerId, ctx.userId))
+        .where(notOwnedBy(ctx.userId))
         .orderBy(parserVersions.configId, desc(parserVersions.version));
 
       // Drop the ones already adopted — those already run in the user's set, so
@@ -256,11 +289,11 @@ export const parsersRouter = router({
       });
       const adopted = new Set(adoptions.map((a) => a.configId));
 
-      const verifiedRows = await ctx.db.query.parserConfigs.findMany({
-        where: eq(parserConfigs.verified, true),
+      const officialRows = await ctx.db.query.parserConfigs.findMany({
+        where: eq(parserConfigs.tier, "official"),
         columns: { id: true },
       });
-      const verified = new Set(verifiedRows.map((r) => r.id));
+      const verified = new Set(officialRows.map((r) => r.id));
 
       const adoptCounts = await ctx.db
         .select({ configId: parserAdoptions.configId, n: count() })
@@ -345,6 +378,172 @@ export const parsersRouter = router({
     .mutation(async ({ ctx, input }) => {
       await unadoptPackage(ctx.db, ctx.userId, input.configId);
       return { ok: true };
+    }),
+
+  /** The whole parser-library page in one shot: every package the user can see —
+   * their own drafts, the official/community packages they've adopted, and the
+   * rest of the published registry — each annotated with catalog metadata, its
+   * relationship to the user (owned / adopted / browsing), adoption + vote
+   * counts, and its published version history. Replaces the separate
+   * list/browse/active reads the old page stitched together. */
+  library: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.userId;
+
+    // Own drafts (editable) + the published registry the user doesn't own.
+    const ownRows = await ctx.db.query.parserConfigs.findMany({
+      where: eq(parserConfigs.ownerId, userId),
+    });
+    const publishedIds = await ctx.db
+      .selectDistinct({ configId: parserVersions.configId })
+      .from(parserVersions)
+      .innerJoin(parserConfigs, eq(parserConfigs.id, parserVersions.configId))
+      .where(notOwnedBy(userId));
+    const marketRows = publishedIds.length
+      ? await ctx.db.query.parserConfigs.findMany({
+          where: inArray(
+            parserConfigs.id,
+            publishedIds.map((r) => r.configId),
+          ),
+        })
+      : [];
+
+    const rows = [...ownRows, ...marketRows];
+    const ids = rows.map((r) => r.id);
+    if (ids.length === 0) return [];
+
+    // Every published version of every visible package (history + selector).
+    const versionRows = await ctx.db.query.parserVersions.findMany({
+      where: inArray(parserVersions.configId, ids),
+      orderBy: [desc(parserVersions.version)],
+    });
+    const versionsByConfig = new Map<string, typeof versionRows>();
+    for (const v of versionRows) {
+      const list = versionsByConfig.get(v.configId) ?? [];
+      list.push(v);
+      versionsByConfig.set(v.configId, list);
+    }
+
+    // Which version (if any) the user runs for each package.
+    const adoptions = await ctx.db.query.parserAdoptions.findMany({
+      where: eq(parserAdoptions.userId, userId),
+    });
+    const adoptedVersionId = new Map(adoptions.map((a) => [a.configId, a.versionId]));
+
+    // Adoption counts (popularity) and vote tallies.
+    const adoptCounts = await ctx.db
+      .select({ configId: parserAdoptions.configId, n: count() })
+      .from(parserAdoptions)
+      .where(inArray(parserAdoptions.configId, ids))
+      .groupBy(parserAdoptions.configId);
+    const adoptionsByConfig = new Map(adoptCounts.map((c) => [c.configId, c.n]));
+
+    const votes = await ctx.db.query.parserVotes.findMany({
+      where: inArray(parserVotes.configId, ids),
+    });
+    const voteTally = new Map<string, { up: number; down: number; mine: number }>();
+    for (const v of votes) {
+      const t = voteTally.get(v.configId) ?? { up: 0, down: 0, mine: 0 };
+      if (v.value > 0) t.up += 1;
+      else if (v.value < 0) t.down += 1;
+      if (v.userId === userId) t.mine = v.value;
+      voteTally.set(v.configId, t);
+    }
+
+    return rows.map((r) => {
+      const owned = r.ownerId === userId;
+      const versions = (versionsByConfig.get(r.id) ?? []).map((v) => ({
+        versionId: v.id,
+        version: v.version,
+        note: v.note,
+        publishedAt: v.publishedAt.toISOString(),
+        fields: fieldsOf(v.config as ParserConfig),
+      }));
+      // Own drafts with nothing published yet still need a row to display.
+      if (owned && versions.length === 0) {
+        versions.push({
+          versionId: null as unknown as string,
+          version: Number(r.version),
+          note: null,
+          publishedAt: r.updatedAt.toISOString(),
+          fields: fieldsOf(rowToConfig(r)),
+        });
+      }
+      const stable = versions.reduce((m, v) => Math.max(m, v.version), 0);
+      const adoptedVid = adoptedVersionId.get(r.id);
+      const adoptedVersion = adoptedVid
+        ? (versions.find((v) => v.versionId === adoptedVid)?.version ?? null)
+        : null;
+      const rel = owned ? "owned" : adoptedVid ? "adopted" : null;
+      const tally = voteTally.get(r.id) ?? { up: 0, down: 0, mine: 0 };
+      // "published" = the current draft is frozen as a version; otherwise the
+      // owner has unpublished changes (or never published).
+      const ownerStatus = owned
+        ? stable >= Number(r.version)
+          ? "published"
+          : "unpublished"
+        : null;
+      const lastUpdated = owned
+        ? r.updatedAt.toISOString()
+        : (versions[0]?.publishedAt ?? r.updatedAt.toISOString());
+
+      return {
+        configId: r.id,
+        slug: r.slug,
+        name: r.displayName,
+        vendorSlug: r.vendorSlug,
+        provider: r.provider,
+        category: r.category,
+        region: r.region,
+        compat: r.compat,
+        tier: r.tier,
+        forkedFrom: r.forkedFrom,
+        rel,
+        ownerStatus,
+        adoptions: adoptionsByConfig.get(r.id) ?? 0,
+        up: tally.up,
+        down: tally.down,
+        myVote: tally.mine,
+        adoptedVersion,
+        stable,
+        lastUpdated,
+        versions,
+      };
+    });
+  }),
+
+  /** Cast, change, or clear the current user's vote on a published package.
+   * `dir` 0 clears; +1/-1 up/downvote. Idempotent. */
+  vote: protectedProcedure
+    .input(
+      z.object({
+        configId: z.string().uuid(),
+        dir: z.union([z.literal(-1), z.literal(0), z.literal(1)]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (input.dir === 0) {
+        await ctx.db
+          .delete(parserVotes)
+          .where(
+            and(
+              eq(parserVotes.userId, ctx.userId),
+              eq(parserVotes.configId, input.configId),
+            ),
+          );
+        return { value: 0 };
+      }
+      await ctx.db
+        .insert(parserVotes)
+        .values({
+          userId: ctx.userId,
+          configId: input.configId,
+          value: input.dir,
+        })
+        .onConflictDoUpdate({
+          target: [parserVotes.userId, parserVotes.configId],
+          set: { value: input.dir },
+        });
+      return { value: input.dir };
     }),
 
   /** Builder step 0: drop a bill, see which of the user's parsers (own +
@@ -466,11 +665,11 @@ export const parsersRouter = router({
           where: inArray(parserVersions.id, versionIds),
         })
       : [];
-    const verifiedRows = await ctx.db.query.parserConfigs.findMany({
-      where: eq(parserConfigs.verified, true),
+    const officialRows = await ctx.db.query.parserConfigs.findMany({
+      where: eq(parserConfigs.tier, "official"),
       columns: { id: true },
     });
-    const verified = new Set(verifiedRows.map((r) => r.id));
+    const verified = new Set(officialRows.map((r) => r.id));
 
     type Entry = {
       slug: string;

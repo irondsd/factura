@@ -505,7 +505,10 @@
           "label": "LatAm · 1.234.567,89",
           "hint": "→ número AR (AR/UY/BR)"
         },
-        "intl": { "label": "US / intl · 1,234,567.89", "hint": "→ número US" },
+        "intl": {
+          "label": "US / intl · 1,234,567.89",
+          "hint": "→ número US"
+        },
         "whole": {
           "label": "Enteros · 1.234.567",
           "hint": "sin decimales (CLP) → número AR"
@@ -514,13 +517,34 @@
           "label": "Tras una etiqueta · «Total a pagar»",
           "hint": "cambia el texto de la etiqueta por el tuyo"
         },
-        "ddmmyyyy": { "label": "DD/MM/YYYY", "hint": "→ fecha DD/MM/YYYY" },
-        "yyyymmdd": { "label": "YYYY-MM-DD", "hint": "" },
-        "mmyyyy": { "label": "MM/YYYY", "hint": "mes + año" },
-        "spanishMonth": { "label": "Nombre de mes en español", "hint": "" },
-        "cuit": { "label": "CUIT · 20-12345678-9", "hint": "" },
-        "accountNo": { "label": "Cuenta / N.º de cliente", "hint": "" },
-        "anyDigits": { "label": "Cualquier serie de dígitos", "hint": "" }
+        "ddmmyyyy": {
+          "label": "DD/MM/YYYY",
+          "hint": "→ fecha DD/MM/YYYY"
+        },
+        "yyyymmdd": {
+          "label": "YYYY-MM-DD",
+          "hint": ""
+        },
+        "mmyyyy": {
+          "label": "MM/YYYY",
+          "hint": "mes + año"
+        },
+        "spanishMonth": {
+          "label": "Nombre de mes en español",
+          "hint": ""
+        },
+        "cuit": {
+          "label": "CUIT · 20-12345678-9",
+          "hint": ""
+        },
+        "accountNo": {
+          "label": "Cuenta / N.º de cliente",
+          "hint": ""
+        },
+        "anyDigits": {
+          "label": "Cualquier serie de dígitos",
+          "hint": ""
+        }
       }
     },
     "shared": {
@@ -622,51 +646,91 @@
       "when": "cuando",
       "valueExists": "el valor existe",
       "exists": "existe"
-    }
+    },
+    "category": "Categoría",
+    "categoryNone": "Sin categoría",
+    "region": "Región",
+    "regionPlaceholder": "AR · CABA",
+    "provider": "Proveedor",
+    "compat": "Compatibilidad",
+    "compatPlaceholder": "p. ej. factura PDF 2024–2026",
+    "categoryOther": "Otra…",
+    "categoryCustom": "Categoría personalizada",
+    "categoryCustomPlaceholder": "p. ej. Seguro"
   },
   "parsers": {
     "eyebrow": "Analizadores",
     "title": "Biblioteca de analizadores",
     "backToProfile": "← Perfil",
-    "active": "Analizadores activos",
-    "reparseBtn": "Reprocesar mis facturas",
-    "activeHelp": "Qué analizador maneja tus facturas en este momento, por proveedor. Bifurcar un analizador hace que tu copia gane automáticamente; reprocesa para aplicarlo a las facturas que ya tienes.",
-    "noneActive": "Aún no hay analizadores activos: adopta o construye uno abajo.",
-    "yourParser": "tu analizador",
-    "official": "oficial",
-    "community": "comunidad",
-    "noParser": "sin analizador",
-    "shadows": "reemplaza la copia adoptada",
-    "noneWontReparse": "estas facturas no se reprocesarán hasta que ejecutes un analizador que coincida",
-    "billOne": "{n} factura",
-    "billOther": "{n} facturas",
-    "yourParsers": "Tus analizadores",
-    "yourParsersHelp": "Analizadores que posees. Editarlos afecta solo a tus facturas hasta que publiques una versión que otros puedan adoptar.",
-    "noneYetOwn": "Todavía ninguno: bifurca un analizador oficial de abajo o construye uno a partir de una factura.",
-    "unpublished": "Sin publicar",
-    "unpublishedChanges": "Cambios sin publicar",
-    "publishedV": "Publicado v{n}",
-    "edit": "Editar",
-    "publish": "Publicar",
-    "confirmDelete": "¿Eliminar el analizador «{name}»? Esto no se puede deshacer.",
-    "adopted": "Analizadores adoptados",
-    "adoptedHelp": "Analizadores publicados que ejecutas. Bifurca uno para personalizarlo para tus propias facturas.",
-    "noneAdopted": "Ninguno adoptado.",
-    "updateToV": "Actualizar a v{n}",
-    "fork": "Bifurcar",
-    "remove": "Eliminar",
-    "browse": "Explorar el registro",
-    "browseHelp": "Analizadores publicados por otros usuarios. Adopta uno para detectar su proveedor.",
-    "nothingNew": "Nada nuevo para adoptar.",
+    "coverage": "Cobertura de reproceso",
+    "coverageAdopted": "{n} adoptados",
+    "coverageCats": "{n} categorías",
+    "tabAdopted": "Adoptados",
+    "tabMarketplace": "Mercado",
+    "tabOwned": "Tus analizadores",
+    "railCategory": "Categoría",
+    "railTrust": "Confianza",
+    "railSort": "Ordenar por",
+    "railAll": "Todos",
+    "sortLiked": "Más votados",
+    "sortAdopted": "Más adoptados",
+    "sortUpdated": "Actualizados recientemente",
+    "sortName": "Nombre A–Z",
+    "searchAdopted": "Buscar en adoptados…",
+    "searchMarketplace": "Buscar en el registro: proveedor, empresa, slug…",
+    "searchOwned": "Buscar en tus analizadores…",
+    "loading": "Cargando…",
+    "upvote": "Votar a favor",
+    "downvote": "Votar en contra",
+    "adoptedNote": "adoptado {v}",
+    "published": "Publicado",
+    "draft": "Borrador",
+    "adoptionsMeta": "{n} adoptados",
+    "updatedMeta": "act. {date}",
+    "versionLatest": "{v} · última",
     "adopt": "Adoptar",
-    "toastParserDeleted": "Analizador eliminado",
-    "toastPublished": "Publicado v{n}",
-    "toastUpdatedTo": "Actualizado a v{n}",
-    "toastAdopted": "Adoptado {name}",
+    "remove": "Eliminar",
+    "publish": "Publicar",
+    "fork": "Bifurcar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "provider": "Proveedor",
+    "adoption": "Adopción",
+    "adoptionValue": "{n} usuarios",
+    "rating": "Valoración",
+    "net": "neto {n}",
+    "compatibility": "Compatibilidad",
+    "forkedFrom": "bifurcado de {name}",
+    "version": "Versión",
+    "fieldsExtracted": "Campos extraídos · {v}",
+    "emptyOwned": "Todavía no creaste analizadores. Bifurca uno del mercado para empezar.",
+    "emptyAdopted": "No hay analizadores adoptados en esta categoría.",
+    "emptyQuery": "Ningún analizador coincide con «{q}».",
+    "emptyNothing": "Nada por aquí todavía.",
+    "publishNotePrompt": "Describe qué cambió (opcional):",
+    "toastAdopted": "Adoptado {name} — reprocesando tus facturas…",
     "toastRemoved": "Eliminado",
+    "toastPublished": "Publicado v{n}",
     "reparsedOne": "{label} · {n} factura reprocesada",
     "reparsedOther": "{label} · {n} facturas reprocesadas",
-    "reparsedStandalone": "{updated} de {scanned} facturas reprocesadas"
+    "tiers": {
+      "official": "Oficial",
+      "verified": "Verificado",
+      "community": "Comunidad"
+    },
+    "categories": {
+      "electricity": "Electricidad",
+      "gas": "Gas",
+      "water": "Agua",
+      "expensas": "Expensas",
+      "internet": "Internet",
+      "tax": "Impuestos",
+      "other": "Otros",
+      "tv": "TV",
+      "mobile": "Celular",
+      "insurance": "Seguro",
+      "rent": "Alquiler"
+    }
   },
   "app": {
     "navProfile": "Perfil",

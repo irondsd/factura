@@ -19,6 +19,15 @@ export const billStatus = pgEnum("bill_status", ["parsed", "needs_review"]);
 
 export const memberRole = pgEnum("member_role", ["owner", "member"]);
 
+// Trust tier shown in the parser library. `official` is the platform-maintained
+// set (ownerless rows, auto-adopted on sign-up); `verified` is a vetted
+// community parser (grantable out of band); `community` is the default.
+export const parserTier = pgEnum("parser_tier", [
+  "official",
+  "verified",
+  "community",
+]);
+
 // Keep in sync with `locales` in src/i18n/config.ts. Spanish is the default.
 export const userLocale = pgEnum("user_locale", ["es", "en"]);
 
@@ -216,23 +225,33 @@ export const bills = pgTable(
  * definition draft) plus its identity. Detection is no longer global — a user
  * only ever runs their OWN packages plus the published versions they've adopted
  * (see `parserAdoptions`), so a careless or hostile package can't affect anyone
- * who hasn't deliberately adopted it. Only the owner may edit. `verified` marks
- * the maintainer-owned official set that every new user auto-adopts. `version`
- * is a monotonic draft revision (bumped on every edit) that drives the owner's
- * own reparse; published snapshots live in `parserVersions`. */
+ * who hasn't deliberately adopted it. Only the owner may edit. `tier` places the
+ * package in the library: `official` rows are platform-maintained and ownerless
+ * (`ownerId` null) — they carry no editor and every new user auto-adopts them.
+ * `version` is a monotonic draft revision (bumped on every edit) that drives the
+ * owner's own reparse; published snapshots live in `parserVersions`. The
+ * remaining columns are catalog metadata surfaced by the parser library. */
 export const parserConfigs = pgTable(
   "parser_configs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    ownerId: uuid("owner_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    // Null for official/platform parsers, which have no human editor.
+    ownerId: uuid("owner_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
     slug: text("slug").notNull(),
     version: integer("version").notNull().default(1),
     vendorSlug: text("vendor_slug").notNull(),
     displayName: text("display_name").notNull(),
     body: jsonb("body").notNull(),
-    verified: boolean("verified").notNull().default(false),
+    tier: parserTier("tier").notNull().default("community"),
+    // Catalog metadata (see src/parsers/categories.ts for the category keys).
+    category: text("category"),
+    region: text("region"),
+    provider: text("provider"),
+    compat: text("compat"),
+    // Label of the parser this was forked from, e.g. "Edesur v4".
+    forkedFrom: text("forked_from"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -257,9 +276,30 @@ export const parserVersions = pgTable(
       .references(() => parserConfigs.id, { onDelete: "cascade" }),
     version: integer("version").notNull(),
     config: jsonb("config").notNull(),
+    // Optional changelog line entered at publish time; shown in the library's
+    // per-parser version history.
+    note: text("note"),
     publishedAt: timestamp("published_at").notNull().defaultNow(),
   },
   (t) => [uniqueIndex("parser_version_config_idx").on(t.configId, t.version)],
+);
+
+/** One user's up/down vote on a published parser package (not a version). Drives
+ * the library's rating widget and "most liked" sort. A missing row = no vote;
+ * changing your mind updates `value`; clearing it deletes the row. */
+export const parserVotes = pgTable(
+  "parser_votes",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    configId: uuid("config_id")
+      .notNull()
+      .references(() => parserConfigs.id, { onDelete: "cascade" }),
+    value: integer("value").notNull(), // +1 or -1
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.configId] })],
 );
 
 /** Which published version each user runs for a given package. Adoption is the

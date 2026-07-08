@@ -1,16 +1,15 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import type { Database } from "@/db";
 import {
   parserConfigs,
-  parserVersions,
   properties,
   propertyMembers,
   vendors,
 } from "@/db/schema";
 import { ENGINE_CONFIGS } from "@/parsers/engine/configs";
+import { OFFICIAL_PARSER_META } from "@/parsers/engine/configs/meta";
 import { pickVendorColor } from "@/lib/vendorColors";
-import { rowToConfig } from "./parsers";
-import { ensureSystemUser } from "./registry";
+import { publishConfig } from "./registry";
 
 type VendorRow = typeof vendors.$inferSelect;
 type PropertyRow = typeof properties.$inferSelect;
@@ -57,7 +56,7 @@ export async function seedPropertyVendors(
   propertyId: string,
 ): Promise<void> {
   const configs = await db.query.parserConfigs.findMany({
-    where: eq(parserConfigs.verified, true),
+    where: eq(parserConfigs.tier, "official"),
   });
   const seen = new Set<string>();
   for (const c of configs) {
@@ -90,40 +89,57 @@ export async function createPropertyForUser(
   return property;
 }
 
-/** Seed the official parser set from the built-in engine configs: owned by the
- * system maintainer account, marked verified, and published at v1 so new users
- * can auto-adopt them. Run once at setup (`npm run db:seed`); idempotent by
- * (owner, slug). Returns the number of packages newly inserted. */
+/** Seed the official parser set from the built-in engine configs: ownerless
+ * (`ownerId` null), `tier='official'`, tagged with catalog metadata, and
+ * published at v1 so new users can auto-adopt them. Run once at setup
+ * (`npm run db:seed`); idempotent by (ownerless) slug. Returns the number of
+ * packages newly inserted. */
 export async function seedParserConfigs(db: Database): Promise<number> {
-  const ownerId = await ensureSystemUser(db);
   let inserted = 0;
   for (const config of ENGINE_CONFIGS) {
+    const { slug, version, vendor, ...body } = config;
+    const meta = OFFICIAL_PARSER_META[slug];
     const existing = await db.query.parserConfigs.findFirst({
       where: and(
-        eq(parserConfigs.ownerId, ownerId),
+        isNull(parserConfigs.ownerId),
         eq(parserConfigs.slug, config.slug),
       ),
     });
-    if (existing) continue;
-    const { slug, version, vendor, ...body } = config;
+    if (existing) {
+      // Never touch the body/version (prod parsers are the source of truth —
+      // see resyncOfficialParser to update those deliberately). Only *backfill*
+      // missing catalog metadata: `?? existing` keeps any value already set, so
+      // a customized prod category/region is preserved.
+      if (meta)
+        await db
+          .update(parserConfigs)
+          .set({
+            category: existing.category ?? meta.category,
+            region: existing.region ?? meta.region,
+            provider: existing.provider ?? meta.provider,
+            compat: existing.compat ?? meta.compat,
+          })
+          .where(eq(parserConfigs.id, existing.id));
+      continue;
+    }
     const [pkg] = await db
       .insert(parserConfigs)
       .values({
-        ownerId,
+        ownerId: null,
         slug,
         version,
         vendorSlug: vendor.slug,
         displayName: vendor.displayName,
         body,
-        verified: true,
+        tier: "official",
+        category: meta?.category ?? null,
+        region: meta?.region ?? null,
+        provider: meta?.provider ?? null,
+        compat: meta?.compat ?? null,
       })
       .returning();
     // Publish v1 immediately so the package is adoptable.
-    await db.insert(parserVersions).values({
-      configId: pkg.id,
-      version: pkg.version,
-      config: rowToConfig(pkg),
-    });
+    await publishConfig(db, pkg.id);
     inserted++;
   }
   return inserted;

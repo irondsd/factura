@@ -140,22 +140,37 @@ export const configBodySchema = z.object({
   custom: z.array(customField).optional(),
 });
 
-/** Full create/test payload: column metadata + the definition body. */
-export const configInputSchema = z.object({
-  slug: z
-    .string()
-    .min(1)
-    .max(60)
-    .regex(/^[a-z0-9-]+$/, "lowercase letters, digits and dashes only"),
-  displayName: z.string().min(1).max(60),
-  vendorSlug: z
-    .string()
-    .min(1)
-    .max(60)
-    .regex(/^[a-z0-9-]+$/, "lowercase letters, digits and dashes only"),
-  version: z.number().int().min(1).optional(),
-  definition: configBodySchema,
+/** Catalog metadata carried on `parser_configs` columns (not the engine body).
+ * Kept out of `configBodySchema` so the engine `ParserConfig` stays
+ * vendor/country-agnostic. All optional — a bare parser still works. */
+export const configMetaSchema = z.object({
+  // A built-in category key or a user's custom label (free text) — see
+  // src/parsers/categories.ts.
+  category: z.string().min(1).max(60).optional(),
+  region: z.string().max(120).optional(),
+  provider: z.string().max(120).optional(),
+  compat: z.string().max(200).optional(),
+  forkedFrom: z.string().max(120).optional(),
 });
+
+/** Full create/test payload: column metadata + the definition body. */
+export const configInputSchema = z
+  .object({
+    slug: z
+      .string()
+      .min(1)
+      .max(60)
+      .regex(/^[a-z0-9-]+$/, "lowercase letters, digits and dashes only"),
+    displayName: z.string().min(1).max(60),
+    vendorSlug: z
+      .string()
+      .min(1)
+      .max(60)
+      .regex(/^[a-z0-9-]+$/, "lowercase letters, digits and dashes only"),
+    version: z.number().int().min(1).optional(),
+    definition: configBodySchema,
+  })
+  .merge(configMetaSchema);
 
 export type ConfigInput = z.infer<typeof configInputSchema>;
 export type ConfigBody = z.infer<typeof configBodySchema>;

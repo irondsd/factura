@@ -1,22 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import type { Database } from "@/db";
-import {
-  parserAdoptions,
-  parserConfigs,
-  parserVersions,
-  users,
-} from "@/db/schema";
+import { parserAdoptions, parserConfigs, parserVersions } from "@/db/schema";
 import type { ParserConfig } from "@/parsers/engine/types";
 import { rowToConfig } from "./parsers";
 
 type PackageRow = typeof parserConfigs.$inferSelect;
 type VersionRow = typeof parserVersions.$inferSelect;
-
-/** The maintainer account that owns the built-in "official" parsers. Seeded
- * once (see seedParserConfigs); every new user auto-adopts its verified
- * packages so common vendors work on day one. */
-export const SYSTEM_USER_EMAIL = "system@factura.local";
 
 // ── Pure helpers (unit-tested in registry.test.ts) ───────────────────────────
 
@@ -121,16 +111,22 @@ export async function assertOwnsPackage(
   return row;
 }
 
-/** Freeze the owner's current draft into an immutable published version. The
+/** Freeze a package's current draft into an immutable published version. The
  * draft's `version` (bumped on every edit) becomes the version number, so each
- * publish after an edit is strictly newer. Publishing twice without editing is
- * idempotent. Owner-only. */
-export async function publishPackage(
+ * publish after an edit is strictly newer; publishing twice without editing is
+ * idempotent (the existing snapshot is returned, `note` unchanged). No ownership
+ * check — that's the caller's job (see `publishPackage`). Used directly by seed
+ * and the maintainer scripts to publish ownerless official rows. */
+export async function publishConfig(
   db: Database,
-  userId: string,
   id: string,
+  note?: string,
 ): Promise<VersionRow> {
-  const pkg = await assertOwnsPackage(db, userId, id);
+  const pkg = await db.query.parserConfigs.findFirst({
+    where: eq(parserConfigs.id, id),
+  });
+  if (!pkg)
+    throw new TRPCError({ code: "NOT_FOUND", message: "Parser not found" });
   // Don't let a hardcoded account number into the public registry.
   const pii = findLikelyPii(pkg.body);
   if (pii.length > 0)
@@ -147,9 +143,27 @@ export async function publishPackage(
   if (existing) return existing;
   const [row] = await db
     .insert(parserVersions)
-    .values({ configId: id, version: pkg.version, config: rowToConfig(pkg) })
+    .values({
+      configId: id,
+      version: pkg.version,
+      config: rowToConfig(pkg),
+      note: note ?? null,
+    })
     .returning();
   return row;
+}
+
+/** Owner-gated `publishConfig`: verify the caller owns the package, then freeze
+ * its draft. Official (ownerless) rows can't be published this way — they go
+ * through the maintainer scripts. */
+export async function publishPackage(
+  db: Database,
+  userId: string,
+  id: string,
+  note?: string,
+): Promise<VersionRow> {
+  await assertOwnsPackage(db, userId, id);
+  return publishConfig(db, id, note);
 }
 
 /** Adopt a published package at a specific version (default: its latest). The
@@ -228,16 +242,16 @@ export async function unadoptPackage(
     );
 }
 
-/** Adopt every verified package at its latest published version. Called on
+/** Adopt every official package at its latest published version. Called on
  * sign-up so a new account immediately detects the common vendors. Idempotent. */
-export async function adoptVerifiedDefaults(
+export async function adoptOfficialDefaults(
   db: Database,
   userId: string,
 ): Promise<void> {
-  const verified = await db.query.parserConfigs.findMany({
-    where: eq(parserConfigs.verified, true),
+  const official = await db.query.parserConfigs.findMany({
+    where: eq(parserConfigs.tier, "official"),
   });
-  for (const pkg of verified) {
+  for (const pkg of official) {
     if (pkg.ownerId === userId) continue;
     const version = await db.query.parserVersions.findFirst({
       where: eq(parserVersions.configId, pkg.id),
@@ -249,18 +263,4 @@ export async function adoptVerifiedDefaults(
       .values({ userId, configId: pkg.id, versionId: version.id })
       .onConflictDoNothing();
   }
-}
-
-/** Get (creating if needed) the maintainer account that owns the official
- * parsers. Has no auth credentials — it exists only to own verified packages. */
-export async function ensureSystemUser(db: Database): Promise<string> {
-  const existing = await db.query.users.findFirst({
-    where: eq(users.email, SYSTEM_USER_EMAIL),
-  });
-  if (existing) return existing.id;
-  const [created] = await db
-    .insert(users)
-    .values({ name: "Factura (official)", email: SYSTEM_USER_EMAIL })
-    .returning();
-  return created.id;
 }

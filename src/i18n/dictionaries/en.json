@@ -505,7 +505,10 @@
           "label": "LatAm · 1.234.567,89",
           "hint": "→ AR number (AR/UY/BR)"
         },
-        "intl": { "label": "US / intl · 1,234,567.89", "hint": "→ US number" },
+        "intl": {
+          "label": "US / intl · 1,234,567.89",
+          "hint": "→ US number"
+        },
         "whole": {
           "label": "Whole units · 1.234.567",
           "hint": "no decimals (CLP) → AR number"
@@ -514,13 +517,34 @@
           "label": "After a label · “Total a pagar”",
           "hint": "swap the label text for yours"
         },
-        "ddmmyyyy": { "label": "DD/MM/YYYY", "hint": "→ date DD/MM/YYYY" },
-        "yyyymmdd": { "label": "YYYY-MM-DD", "hint": "" },
-        "mmyyyy": { "label": "MM/YYYY", "hint": "month + year" },
-        "spanishMonth": { "label": "Spanish month name", "hint": "" },
-        "cuit": { "label": "CUIT · 20-12345678-9", "hint": "" },
-        "accountNo": { "label": "Account / client no.", "hint": "" },
-        "anyDigits": { "label": "Any run of digits", "hint": "" }
+        "ddmmyyyy": {
+          "label": "DD/MM/YYYY",
+          "hint": "→ date DD/MM/YYYY"
+        },
+        "yyyymmdd": {
+          "label": "YYYY-MM-DD",
+          "hint": ""
+        },
+        "mmyyyy": {
+          "label": "MM/YYYY",
+          "hint": "month + year"
+        },
+        "spanishMonth": {
+          "label": "Spanish month name",
+          "hint": ""
+        },
+        "cuit": {
+          "label": "CUIT · 20-12345678-9",
+          "hint": ""
+        },
+        "accountNo": {
+          "label": "Account / client no.",
+          "hint": ""
+        },
+        "anyDigits": {
+          "label": "Any run of digits",
+          "hint": ""
+        }
       }
     },
     "shared": {
@@ -622,51 +646,91 @@
       "when": "when",
       "valueExists": "value exists",
       "exists": "exists"
-    }
+    },
+    "category": "Category",
+    "categoryNone": "Uncategorized",
+    "region": "Region",
+    "regionPlaceholder": "AR · CABA",
+    "provider": "Provider",
+    "compat": "Compatibility",
+    "compatPlaceholder": "e.g. 2024–2026 PDF layout",
+    "categoryOther": "Other…",
+    "categoryCustom": "Custom category",
+    "categoryCustomPlaceholder": "e.g. Insurance"
   },
   "parsers": {
     "eyebrow": "Parsers",
     "title": "Parser library",
     "backToProfile": "← Profile",
-    "active": "Active parsers",
-    "reparseBtn": "Reparse my bills",
-    "activeHelp": "Which parser currently handles your bills, per vendor. Forking a parser makes your copy win automatically — reparse to apply it to bills you already have.",
-    "noneActive": "No parsers active yet — adopt or build one below.",
-    "yourParser": "your parser",
-    "official": "official",
-    "community": "community",
-    "noParser": "no parser",
-    "shadows": "shadows the adopted copy",
-    "noneWontReparse": "these bills won't reparse until you run a matching parser",
-    "billOne": "{n} bill",
-    "billOther": "{n} bills",
-    "yourParsers": "Your parsers",
-    "yourParsersHelp": "Parsers you own. Editing affects only your bills until you publish a version others can adopt.",
-    "noneYetOwn": "None yet — fork an official parser below, or build one from a bill.",
-    "unpublished": "Unpublished",
-    "unpublishedChanges": "Unpublished changes",
-    "publishedV": "Published v{n}",
-    "edit": "Edit",
-    "publish": "Publish",
-    "confirmDelete": "Delete parser \"{name}\"? This can't be undone.",
-    "adopted": "Adopted parsers",
-    "adoptedHelp": "Published parsers you run. Fork one to customize it for your own bills.",
-    "noneAdopted": "None adopted.",
-    "updateToV": "Update to v{n}",
-    "fork": "Fork",
-    "remove": "Remove",
-    "browse": "Browse registry",
-    "browseHelp": "Published parsers from other users. Adopt one to detect its vendor.",
-    "nothingNew": "Nothing new to adopt.",
+    "coverage": "Reparse coverage",
+    "coverageAdopted": "{n} adopted",
+    "coverageCats": "{n} categories",
+    "tabAdopted": "Adopted",
+    "tabMarketplace": "Marketplace",
+    "tabOwned": "Your parsers",
+    "railCategory": "Category",
+    "railTrust": "Trust",
+    "railSort": "Sort by",
+    "railAll": "All",
+    "sortLiked": "Most liked",
+    "sortAdopted": "Most adopted",
+    "sortUpdated": "Recently updated",
+    "sortName": "Name A–Z",
+    "searchAdopted": "Search adopted…",
+    "searchMarketplace": "Search the registry — vendor, company, slug…",
+    "searchOwned": "Search your parsers…",
+    "loading": "Loading…",
+    "upvote": "Upvote",
+    "downvote": "Downvote",
+    "adoptedNote": "adopted {v}",
+    "published": "Published",
+    "draft": "Draft",
+    "adoptionsMeta": "{n} adopted",
+    "updatedMeta": "upd. {date}",
+    "versionLatest": "{v} · latest",
     "adopt": "Adopt",
-    "toastParserDeleted": "Parser deleted",
-    "toastPublished": "Published v{n}",
-    "toastUpdatedTo": "Updated to v{n}",
-    "toastAdopted": "Adopted {name}",
+    "remove": "Remove",
+    "publish": "Publish",
+    "fork": "Fork",
+    "edit": "Edit",
+    "close": "Close",
+    "provider": "Provider",
+    "adoption": "Adoption",
+    "adoptionValue": "{n} users",
+    "rating": "Rating",
+    "net": "net {n}",
+    "compatibility": "Compatibility",
+    "forkedFrom": "forked from {name}",
+    "version": "Version",
+    "fieldsExtracted": "Fields extracted · {v}",
+    "emptyOwned": "You haven't created any parsers yet. Fork one from the marketplace to start.",
+    "emptyAdopted": "No adopted parsers in this category.",
+    "emptyQuery": "No parsers match “{q}”.",
+    "emptyNothing": "Nothing here yet.",
+    "publishNotePrompt": "Describe what changed (optional):",
+    "toastAdopted": "Adopted {name} — reparsing your bills…",
     "toastRemoved": "Removed",
+    "toastPublished": "Published v{n}",
     "reparsedOne": "{label} · reparsed {n} bill",
     "reparsedOther": "{label} · reparsed {n} bills",
-    "reparsedStandalone": "Reparsed {updated} of {scanned} bills"
+    "tiers": {
+      "official": "Official",
+      "verified": "Verified",
+      "community": "Community"
+    },
+    "categories": {
+      "electricity": "Electricity",
+      "gas": "Gas",
+      "water": "Water",
+      "expensas": "Expensas",
+      "internet": "Internet",
+      "tax": "Tax",
+      "other": "Other",
+      "tv": "TV",
+      "mobile": "Mobile",
+      "insurance": "Insurance",
+      "rent": "Rent"
+    }
   },
   "app": {
     "navProfile": "Profile",
