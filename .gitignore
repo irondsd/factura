@@ -40,6 +40,9 @@ yarn-error.log*
 .react-email
 .email-out
 
+# generated parser-suggestion worker bundle (scripts/build-suggest-worker.mjs)
+worker-dist/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -26,6 +26,7 @@ import {
   reviewLabelOf,
   YoyStrip,
 } from "./parts";
+import { SelectParserModal } from "./SelectParserModal";
 
 /** The signed-in bill editor: load + edit + reparse + delete, plus the entry
  * point into the parser builder. The animated chrome lives in <BillDrawerShell>
@@ -51,6 +52,7 @@ export function BillDrawer({
   const [syncedId, setSyncedId] = useState<string | null>(null);
   const [openedId, setOpenedId] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [selectingParser, setSelectingParser] = useState(false);
 
   // Vendors belong to an property, so scope the picker to the bill's chosen
   // property (all accessible vendors until one is chosen).
@@ -71,6 +73,7 @@ export function BillDrawer({
   if (billId && billId !== openedId) {
     setOpenedId(billId);
     setConfirmingDelete(false);
+    setSelectingParser(false);
   } else if (!billId && openedId) {
     setOpenedId(null);
   }
@@ -248,13 +251,15 @@ export function BillDrawer({
                 </span>
                 {reviewKind === "needs_home" ? (
                   <Badge tone="neutral">{tb.parsedOk}</Badge>
-                ) : (
+                ) : parser ? (
                   <Button size="sm" onClick={openBuilder}>
-                    {parser
-                      ? reviewKind === "parse_failed"
-                        ? tb.fixParser
-                        : tb.editParser
-                      : tb.setupParser}
+                    {reviewKind === "parse_failed" ? tb.fixParser : tb.editParser}
+                  </Button>
+                ) : (
+                  // No parser recognized this bill — let the user pick one that
+                  // already exists in the registry before hand-building one.
+                  <Button size="sm" onClick={() => setSelectingParser(true)}>
+                    {tb.selectParser}
                   </Button>
                 )}
               </div>
@@ -321,6 +326,22 @@ export function BillDrawer({
               onConfirm={remove}
               onCancel={() => setConfirmingDelete(false)}
             />
+
+            {selectingParser && (
+              <SelectParserModal
+                billId={bill.id}
+                onClose={() => setSelectingParser(false)}
+                onAdopted={() => {
+                  onToast(tb.selectParserAdopted);
+                  utils.invalidate();
+                  setSelectingParser(false);
+                }}
+                onBuildOwn={() => {
+                  setSelectingParser(false);
+                  openBuilder();
+                }}
+              />
+            )}
           </>
         );
       }}

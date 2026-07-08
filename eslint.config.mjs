@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated, self-contained parser-suggestion worker bundle.
+    "worker-dist/**",
   ]),
 ]);
 

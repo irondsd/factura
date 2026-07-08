@@ -1,15 +1,19 @@
 {
   "name": "factura",
-  "version": "0.1.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
+    "start": "next start",
     "dev": "next dev -p 4000",
     "email": "email dev --dir emails --port 3001",
     "build": "next build",
-    "start": "next start",
+    "test": "vitest run",
+    "predev": "npm run build:worker",
+    "prebuild": "npm run build:worker",
     "lint": "eslint",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
+    "build:worker": "node scripts/build-suggest-worker.mjs",
     "validate:guides": "bun scripts/validate-guides.ts",
     "db:push": "dotenv -e .env.local drizzle-kit push",
     "db:push:prod": "dotenv -e .env.prod drizzle-kit push",
@@ -18,8 +22,7 @@
     "parser:official": "dotenv -e .env.local tsx scripts/makeParserOfficial.ts",
     "parser:official:prod": "dotenv -e .env.prod tsx scripts/makeParserOfficial.ts",
     "parser:resync": "dotenv -e .env.local tsx scripts/resyncOfficialParser.ts",
-    "parser:resync:prod": "dotenv -e .env.prod tsx scripts/resyncOfficialParser.ts",
-    "test": "vitest run"
+    "parser:resync:prod": "dotenv -e .env.prod tsx scripts/resyncOfficialParser.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
@@ -57,6 +60,7 @@
     "@types/react-dom": "^19",
     "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.10",
+    "esbuild": "^0.28.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "react-email": "^6.6.3",

@@ -28,7 +28,10 @@ import {
   publishPackage,
   unadoptPackage,
 } from "../registry";
-import { protectedProcedure, router } from "../trpc";
+import { evaluateCandidates } from "../suggest/evaluate-in-worker";
+import type { SuggestCandidate } from "../suggest/protocol";
+import { rankSuggestions, type Suggestion } from "../suggest/rank";
+import { protectedProcedure, router, scopedProcedure } from "../trpc";
 
 /** Parser packages: each is owned by one user. Only the owner edits, and a
  * package only affects another user once they deliberately `adopt` a published
@@ -210,6 +213,119 @@ export const parsersRouter = router({
           a.displayName.localeCompare(b.displayName),
       );
   }),
+
+  /** Registry-assisted recovery for an unrecognized bill: which PUBLISHED
+   * parsers (not owned, not yet adopted) recognize THIS bill, and what each
+   * extracts from it — so the user can eyeball correctness and adopt the right
+   * one. The detection/extraction runs untrusted regex, so it happens in a
+   * worker with a hard deadline (evaluateCandidates); nothing is written and no
+   * un-adopted parser ever touches a stored bill. */
+  suggestForBill: scopedProcedure
+    .input(z.object({ billId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const ids = ctx.accessiblePropertyIds;
+      const bill = await ctx.db.query.bills.findFirst({
+        where: eq(bills.id, input.billId),
+      });
+      if (!bill) throw new TRPCError({ code: "NOT_FOUND" });
+      // Same access rule as the bills router: a filed bill is gated by property,
+      // an inbox bill by uploader.
+      const allowed = bill.propertyId
+        ? ids.includes(bill.propertyId)
+        : bill.createdBy === ctx.userId;
+      if (!allowed) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const text = normalize(bill.rawText);
+
+      // Latest published version per config the user doesn't own.
+      const published = await ctx.db
+        .selectDistinctOn([parserVersions.configId], {
+          configId: parserVersions.configId,
+          versionId: parserVersions.id,
+          config: parserVersions.config,
+        })
+        .from(parserVersions)
+        .innerJoin(parserConfigs, eq(parserConfigs.id, parserVersions.configId))
+        .where(ne(parserConfigs.ownerId, ctx.userId))
+        .orderBy(parserVersions.configId, desc(parserVersions.version));
+
+      // Drop the ones already adopted — those already run in the user's set, so
+      // if they recognized the bill it wouldn't be unrecognized.
+      const adoptions = await ctx.db.query.parserAdoptions.findMany({
+        where: eq(parserAdoptions.userId, ctx.userId),
+      });
+      const adopted = new Set(adoptions.map((a) => a.configId));
+
+      const verifiedRows = await ctx.db.query.parserConfigs.findMany({
+        where: eq(parserConfigs.verified, true),
+        columns: { id: true },
+      });
+      const verified = new Set(verifiedRows.map((r) => r.id));
+
+      const adoptCounts = await ctx.db
+        .select({ configId: parserAdoptions.configId, n: count() })
+        .from(parserAdoptions)
+        .groupBy(parserAdoptions.configId);
+      const countByConfig = new Map(adoptCounts.map((c) => [c.configId, c.n]));
+
+      // Verified/popular first, so a squatter's slow regex can't starve real
+      // suggestions within the worker's time budget.
+      const metas = published
+        .filter((p) => !adopted.has(p.configId))
+        .map((p) => {
+          const c = p.config as ParserConfig;
+          return {
+            token: p.configId,
+            config: c,
+            configId: p.configId,
+            versionId: p.versionId,
+            slug: c.slug,
+            displayName: c.vendor.displayName,
+            vendorSlug: c.vendor.slug,
+            verified: verified.has(p.configId),
+            adoptionCount: countByConfig.get(p.configId) ?? 0,
+            customDefs: (c.custom ?? []).map((f) => ({
+              name: f.name,
+              unit: f.unit ?? null,
+              type: f.type,
+            })),
+          };
+        })
+        .sort(
+          (a, b) =>
+            Number(b.verified) - Number(a.verified) ||
+            b.adoptionCount - a.adoptionCount,
+        );
+
+      if (metas.length === 0) return [] as Suggestion[];
+
+      const candidates: SuggestCandidate[] = metas.map((m) => ({
+        token: m.token,
+        config: m.config,
+      }));
+      const evaluated = await evaluateCandidates(text, candidates);
+
+      const suggestions: Suggestion[] = [];
+      for (const m of metas) {
+        const r = evaluated.get(m.token);
+        if (!r) continue; // didn't detect the bill (or timed out) — not a fit
+        suggestions.push({
+          configId: m.configId,
+          versionId: m.versionId,
+          slug: m.slug,
+          displayName: m.displayName,
+          vendorSlug: m.vendorSlug,
+          verified: m.verified,
+          adoptionCount: m.adoptionCount,
+          customDefs: m.customDefs,
+          ok: r.result !== null,
+          error: r.error,
+          result: r.result,
+          score: r.score,
+        });
+      }
+      return rankSuggestions(suggestions);
+    }),
 
   /** Adopt a published package (default: its latest version) so it joins this
    * user's detection set. Reparse afterward to apply it to existing bills. */
