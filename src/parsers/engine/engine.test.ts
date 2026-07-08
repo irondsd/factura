@@ -271,8 +271,19 @@ describe("mda expensas (composite identity, extraordinarias)", () => {
     expect(r.identity).toBe("30-88888888-9:4A");
     expect(r.amount).toBe(362675.09);
     expect(r.custom.extraordinary).toBe(154500);
+    expect(r.custom.ordinary).toBe(208175.09);
     expect(r.dueDate).toBe("2026-06-10");
     expect(r.period).toBe("2026-06-01");
+  });
+
+  it("falls back to the full total as ordinaria when none is extraordinaria", () => {
+    const noExtra = fixture("mda-expensas").replace(
+      "Expensas Extraordinarias Coef. A $ 154.500,00",
+      "",
+    );
+    const r = runConfig(mdaExpensasConfig, noExtra);
+    expect(r.custom.extraordinary).toBeUndefined();
+    expect(r.custom.ordinary).toBe(362675.09);
   });
 
   it("maps a previous administrator's cupón to the same identity", () => {
@@ -280,6 +291,7 @@ describe("mda expensas (composite identity, extraordinarias)", () => {
     expect(r.identity).toBe("30-88888888-9:4A");
     expect(r.amount).toBe(115372.09);
     expect(r.custom.extraordinary).toBe(41220.6);
+    expect(r.custom.ordinary).toBe(74151.49);
     expect(r.dueDate).toBe("2024-02-12");
     expect(r.period).toBe("2024-02-01");
   });
@@ -299,6 +311,7 @@ describe("mda expensas (composite identity, extraordinarias)", () => {
     expect(r.identity).toBe("30-88888888-9:4A");
     expect(r.amount).toBe(420308.09);
     expect(r.custom.extraordinary).toBe(154500);
+    expect(r.custom.ordinary).toBe(265808.09);
     expect(r.dueDate).toBe("2025-12-10");
     expect(r.period).toBe("2025-12-01");
   });

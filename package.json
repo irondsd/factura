@@ -17,6 +17,8 @@
     "db:studio": "dotenv -e .env.local drizzle-kit studio",
     "parser:official": "dotenv -e .env.local tsx scripts/makeParserOfficial.ts",
     "parser:official:prod": "dotenv -e .env.prod tsx scripts/makeParserOfficial.ts",
+    "parser:resync": "dotenv -e .env.local tsx scripts/resyncOfficialParser.ts",
+    "parser:resync:prod": "dotenv -e .env.prod tsx scripts/resyncOfficialParser.ts",
     "test": "vitest run"
   },
   "dependencies": {
