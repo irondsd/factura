@@ -12,6 +12,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { useToast } from "@/lib/toast";
 import { type RouterOutputs, trpc } from "@/lib/trpc";
+import { PublishDialog } from "./PublishDialog";
 
 type LibraryItem = RouterOutputs["parsers"]["library"][number];
 type Tier = LibraryItem["tier"];
@@ -58,6 +59,7 @@ export default function ParsersPage() {
   const [tier, setTier] = useState<string>("all");
   const [sort, setSort] = useState<Sort>("rating");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [publishTarget, setPublishTarget] = useState<LibraryItem | null>(null);
   // Per-card chosen version (number). Falls back to adopted/stable when absent.
   const [selVersion, setSelVersion] = useState<Record<string, number>>({});
 
@@ -118,13 +120,16 @@ export default function ParsersPage() {
       () => unadopt.mutateAsync({ configId: p.configId }),
       tp.toastRemoved,
     );
-  const onPublish = async (p: LibraryItem) => {
-    const note = prompt(tp.publishNotePrompt) ?? undefined;
+  const onPublish = (p: LibraryItem) => setPublishTarget(p);
+  const doPublish = async (note: string | undefined) => {
+    const p = publishTarget;
+    if (!p) return;
     try {
       const r = await publish.mutateAsync({ id: p.configId, note });
       posthog.capture("parser_published", { version: r.version });
       await refresh();
       showToast(interpolate(tp.toastPublished, { n: r.version }));
+      setPublishTarget(null);
     } catch (e) {
       toastErr(e);
     }
@@ -565,6 +570,15 @@ export default function ParsersPage() {
           onPublish={() => onPublish(modal)}
           onFork={() => onFork(modal)}
           onEdit={() => onEdit(modal)}
+        />
+      )}
+      {publishTarget && (
+        <PublishDialog
+          key={publishTarget.configId}
+          parserName={publishTarget.name}
+          busy={publish.isPending}
+          onConfirm={doPublish}
+          onCancel={() => setPublishTarget(null)}
         />
       )}
     </div>
