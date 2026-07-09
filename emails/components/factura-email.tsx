@@ -249,9 +249,9 @@ export function FacturaEmail({
             <Text style={styles.footLine}>{footerTagline}</Text>
             <Text style={styles.footLine}>
               {footerNote}{" "}
-              <Link href={unsubscribeUrl} style={styles.dottedLink}>
+              {/* <Link href={unsubscribeUrl} style={styles.dottedLink}>
                 {unsubscribeLabel}
-              </Link>
+              </Link> */}
             </Text>
           </Section>
         </Container>
