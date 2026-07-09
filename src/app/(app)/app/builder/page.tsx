@@ -471,7 +471,7 @@ function Builder() {
         setExistingId(created.id);
         setEditingOwn(true);
       }
-      const res = await reparse.mutateAsync();
+      const res = await reparse.mutateAsync({ slug });
       showToast(
         interpolate(
           res.updated === 1

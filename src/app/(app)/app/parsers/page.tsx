@@ -84,11 +84,15 @@ export default function ParsersPage() {
 
   /** Adopt/unadopt change which parsers detect a user's bills, so always follow
    * with a reparse. */
-  const withReparse = async (run: () => Promise<unknown>, label: string) => {
+  const withReparse = async (
+    run: () => Promise<unknown>,
+    label: string,
+    slug: string,
+  ) => {
     try {
       await run();
       await refresh();
-      const res = await reparse.mutateAsync();
+      const res = await reparse.mutateAsync({ slug });
       showToast(
         interpolate(res.updated === 1 ? tp.reparsedOne : tp.reparsedOther, {
           label,
@@ -113,12 +117,14 @@ export default function ParsersPage() {
           versionId: versionIdFor(p, version),
         }),
       interpolate(tp.toastAdopted, { name: p.name }),
+      p.slug,
     );
   };
   const onRemove = (p: LibraryItem) =>
     withReparse(
       () => unadopt.mutateAsync({ configId: p.configId }),
       tp.toastRemoved,
+      p.slug,
     );
   const onPublish = (p: LibraryItem) => setPublishTarget(p);
   const doPublish = async (note: string | undefined) => {

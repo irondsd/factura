@@ -158,18 +158,29 @@ export async function reparseSingle(
   return true;
 }
 
-/** Re-run a user's current parsers over every bill they can access, writing only
+/** Re-run a user's current parsers over the bills they can access, writing only
  * where output changed. Backs the `reparse` procedure and the maintainer resync
  * script (which reparses on every user's behalf after publishing a new official
- * version). One malformed bill must not abort the batch. */
+ * version). One malformed bill must not abort the batch.
+ *
+ * `slug` scopes the run to the parser just edited/adopted: only bills that
+ * parser owns (`parserKey === slug`) or that no parser has claimed yet
+ * (`parserKey` null, so a new/edited parser can pick them up) are touched.
+ * Bills owned by a *different* parser are left untouched, so editing the
+ * Metrogas parser can't clobber a manual correction on an Edesur bill. Omit
+ * `slug` for a full resync across every parser. */
 export async function reparseUserBills(
   db: typeof Db,
   userId: string,
+  slug?: string,
 ): Promise<{ scanned: number; updated: number }> {
   const configs = await loadUserConfigs(db, userId);
   const ids = await accessibleProperties(db, userId);
+  const scope = billsScope(ids, userId);
   const all = await db.query.bills.findMany({
-    where: billsScope(ids, userId),
+    where: slug
+      ? and(scope, or(eq(bills.parserKey, slug), isNull(bills.parserKey)))
+      : scope,
   });
   let updated = 0;
   for (const bill of all) {

@@ -356,13 +356,19 @@ export const billsRouter = router({
       return updated;
     }),
 
-  /** Re-run current parsers over stored raw text for every accessible bill.
-   * Backfills new fields, rescues needs_review bills, and switches a bill to a
-   * newly-forked/adopted parser. `reparseSingle` re-parses and only writes when
-   * the output actually changes, so the count reflects real updates. */
-  reparse: scopedProcedure.mutation(async ({ ctx }) => {
-    return reparseUserBills(ctx.db, ctx.userId);
-  }),
+  /** Re-run current parsers over stored raw text. Backfills new fields, rescues
+   * needs_review bills, and switches a bill to a newly-forked/adopted parser.
+   * `reparseSingle` re-parses and only writes when the output actually changes,
+   * so the count reflects real updates.
+   *
+   * `slug` scopes the run to the parser just saved/adopted so unrelated bills
+   * (owned by other parsers) aren't re-derived — protecting their manual
+   * corrections. Omitted = full resync across every parser. */
+  reparse: scopedProcedure
+    .input(z.object({ slug: z.string().optional() }).optional())
+    .mutation(async ({ ctx, input }) => {
+      return reparseUserBills(ctx.db, ctx.userId, input?.slug);
+    }),
 
   /** Drawer "From the text" path: re-run the parser on the stored text. */
   reparseText: scopedProcedure
