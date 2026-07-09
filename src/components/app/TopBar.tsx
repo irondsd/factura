@@ -44,6 +44,16 @@ export function TopBar({ user }: { user: Session["user"] }) {
     ...(properties.data ?? []).map((p) => ({ value: p.id, label: p.nickname })),
   ];
 
+  // The selection lives in the URL (?property=<nickname>), so in-app links must
+  // carry it forward — otherwise navigating between pages would reset to "All".
+  const propNickname = propertyId
+    ? properties.data?.find((p) => p.id === propertyId)?.nickname
+    : undefined;
+  const withProperty = (href: string) =>
+    propNickname
+      ? `${href}?${new URLSearchParams({ property: propNickname.toLowerCase() })}`
+      : href;
+
   const name = user?.name ?? user?.email ?? t.profile.you;
 
   const navLink = (l: { href: string; label: string }) => {
@@ -51,7 +61,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
     return (
       <Link
         key={l.href}
-        href={l.href}
+        href={withProperty(l.href)}
         className={cn(
           "font-mono text-micro uppercase tracking-label underline-offset-4 decoration-dotted transition-colors hover:text-ink",
           active ? "text-accent underline" : "text-muted no-underline",
@@ -74,7 +84,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
     <header className="sticky top-0 z-50 border-b border-line bg-[color-mix(in_srgb,var(--card)_72%,transparent)] backdrop-blur-[6px]">
       <div className="mx-auto flex max-w-[64rem] items-center gap-5 py-3 px-5">
         <Link
-          href="/app"
+          href={withProperty("/app")}
           className="font-display font-semibold text-xl tracking-tight text-ink no-underline"
         >
           Factura<span className="text-accent">.</span>
@@ -90,7 +100,11 @@ export function TopBar({ user }: { user: Session["user"] }) {
               onChange={(v) => setPropertyId(v === "all" ? undefined : v)}
             />
           )}
-          <Link href="/app/profile" aria-label={t.app.navProfile} title={name}>
+          <Link
+            href={withProperty("/app/profile")}
+            aria-label={t.app.navProfile}
+            title={name}
+          >
             {avatarCircle}
           </Link>
         </div>
@@ -113,7 +127,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
               return (
                 <Link
                   key={l.href}
-                  href={l.href}
+                  href={withProperty(l.href)}
                   onClick={() => setMenuOpen(false)}
                   className={cn(
                     "font-mono text-[13px] uppercase tracking-label py-3 no-underline border-b border-dashed border-line transition-colors hover:text-ink",
@@ -142,7 +156,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
           )}
 
           <Link
-            href="/app/profile"
+            href={withProperty("/app/profile")}
             onClick={() => setMenuOpen(false)}
             className="mt-4 inline-flex items-center gap-2.5 no-underline"
           >
