@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../src/db/index";
-import { parserConfigs, users } from "../src/db/schema";
+import { parserAdoptions, parserConfigs, users } from "../src/db/schema";
 import { OFFICIAL_PARSER_META } from "../src/parsers/engine/configs/meta";
 import { adoptPackage, publishConfig } from "../src/server/registry";
 
@@ -8,10 +8,14 @@ import { adoptPackage, publishConfig } from "../src/server/registry";
  *
  * Two modes:
  *
- *   default (official) — promote a dev-built draft into the OFFICIAL set: an
- *     ownerless row tagged `tier='official'` (so new sign-ups auto-adopt it),
- *     published as an immutable version. Copies the chosen draft's body into the
- *     ownerless package; the original author keeps their own draft untouched.
+ *   default (official) — MOVE a user-owned parser into the OFFICIAL set. The
+ *     author's row is flipped ownerless (`ownerId=null`, `tier='official'`) in
+ *     place, so it keeps its id: every existing adopter and published version
+ *     stays attached and follows it into the official tier, and new sign-ups
+ *     auto-adopt it. The author is handed back a fresh private draft under the
+ *     same slug — they keep detecting with their own copy (own packages shadow
+ *     adopted ones) but no longer steer what adopters run. We don't steal their
+ *     parser; we take over stewardship of the public one.
  *
  *   --onlyVerified — grant the VERIFIED badge to an existing user-owned parser
  *     in place: sets `tier='verified'` on that row (keeps its owner), publishes
@@ -160,76 +164,125 @@ async function main() {
     process.exit(0);
   }
 
-  // ── Official: promote a draft into the ownerless official package ───────────
-  // Source is a user-owned draft (preferred), else the existing official row.
-  const source = (await pickCandidate()) ?? officialConfig;
-  if (!source) {
-    console.error(`No promotable parser with slug "${slug}".`);
-    process.exit(1);
-  }
-
+  // ── Official: flip a user-owned parser into the ownerless official set ───────
+  const source = await pickCandidate();
   const meta = OFFICIAL_PARSER_META[slug];
 
-  let officialId: string;
-  if (!officialConfig) {
-    const [created] = await db
-      .insert(parserConfigs)
-      .values({
+  // No user-owned row to promote: it's either already official (re-publish
+  // idempotently) or there's nothing here to act on.
+  if (!source) {
+    if (!officialConfig) {
+      console.error(
+        `No user-owned parser with slug "${slug}" to make official.`,
+      );
+      process.exit(1);
+    }
+    console.log(`"${slug}" is already official (owner-less).`);
+    if (publish) {
+      const version = await publishConfig(db, officialConfig.id);
+      console.log(`Published "${slug}" v${version.version}.`);
+    }
+    if (adoptExisting) {
+      if (!publish) {
+        console.error("--adopt-existing requires a published version.");
+        process.exit(1);
+      }
+      await adoptForAll(officialConfig.id);
+    }
+    process.exit(0);
+  }
+
+  if (source.ownerId === null) {
+    // Unreachable (pickCandidate only returns owned rows) — narrows the type.
+    console.error(`"${slug}" is already owner-less.`);
+    process.exit(1);
+  }
+  const authorId = source.ownerId;
+
+  // Postgres treats NULL owner ids as distinct in the (owner, slug) unique index,
+  // so an earlier run (or the old copy-based script) can leave a stray ownerless
+  // official row for this slug. Migrate its adopters onto the row we're promoting,
+  // then drop it, so exactly one official row survives per slug.
+  let strayAdopterIds: string[] = [];
+  await db.transaction(async (tx) => {
+    if (officialConfig && officialConfig.id !== source.id) {
+      const adoptions = await tx.query.parserAdoptions.findMany({
+        where: eq(parserAdoptions.configId, officialConfig.id),
+      });
+      strayAdopterIds = adoptions.map((a) => a.userId);
+      // Cascade drops the stray's versions, adoptions and votes.
+      await tx
+        .delete(parserConfigs)
+        .where(eq(parserConfigs.id, officialConfig.id));
+      console.log(
+        `Removed a stray official "${slug}" (${officialConfig.id}); migrating ${strayAdopterIds.length} adopter(s).`,
+      );
+    }
+
+    // Flip the author's row into the official set FIRST, freeing the
+    // (owner, slug) unique index for the replacement copy below.
+    await tx
+      .update(parserConfigs)
+      .set({
         ownerId: null,
-        slug,
-        version: source.version,
-        vendorSlug: source.vendorSlug,
-        displayName: source.displayName,
-        body: source.body,
         tier: "official",
         category: meta?.category ?? source.category,
         region: meta?.region ?? source.region,
         provider: meta?.provider ?? source.provider,
         compat: meta?.compat ?? source.compat,
-      })
-      .returning();
-    officialId = created.id;
-    console.log(`Created official "${slug}" (config ${officialId}).`);
-  } else if (source.id === officialConfig.id) {
-    await db
-      .update(parserConfigs)
-      .set({ tier: "official" })
-      .where(eq(parserConfigs.id, officialConfig.id));
-    officialId = officialConfig.id;
-    console.log(`Marked existing "${slug}" official.`);
-  } else {
-    const changed =
-      JSON.stringify(officialConfig.body) !== JSON.stringify(source.body) ||
-      officialConfig.vendorSlug !== source.vendorSlug ||
-      officialConfig.displayName !== source.displayName;
-    await db
-      .update(parserConfigs)
-      .set({
-        vendorSlug: source.vendorSlug,
-        displayName: source.displayName,
-        body: source.body,
-        tier: "official",
-        // Bump so the new publish is strictly newer — that's what makes adopters
-        // see "Update to vN" and reparse. Unchanged content keeps the version.
-        version: changed ? officialConfig.version + 1 : officialConfig.version,
         updatedAt: new Date(),
       })
-      .where(eq(parserConfigs.id, officialConfig.id));
-    officialId = officialConfig.id;
-    console.log(
-      changed
-        ? `Updated official "${slug}" to v${officialConfig.version + 1}.`
-        : `Official "${slug}" already up to date.`,
-    );
-  }
+      .where(eq(parserConfigs.id, source.id));
+
+    // Hand the author back a private, unpublished copy under the same slug so
+    // they keep detecting with their own parser. Not published → invisible in the
+    // marketplace; own packages shadow the adopted official one during detection.
+    await tx.insert(parserConfigs).values({
+      ownerId: authorId,
+      slug: source.slug,
+      version: source.version,
+      vendorSlug: source.vendorSlug,
+      displayName: source.displayName,
+      body: source.body,
+      tier: "community",
+      category: source.category,
+      region: source.region,
+      provider: source.provider,
+      compat: source.compat,
+      forkedFrom: source.forkedFrom,
+    });
+  });
+
+  const officialId = source.id;
+  const authorEmail =
+    (await db.query.users.findFirst({ where: eq(users.id, authorId) }))?.email ??
+    authorId;
+  console.log(
+    `Made "${slug}" official (config ${officialId}); left ${authorEmail} a private copy.`,
+  );
 
   if (publish) {
     // publishConfig re-checks for PII literals (account numbers etc.) and
-    // throws before anything enters the public registry.
+    // throws before anything enters the public registry. Idempotent when the
+    // author already published this version.
     const version = await publishConfig(db, officialId);
     console.log(`Published "${slug}" v${version.version}.`);
   } else {
     console.log("Skipped publish (--no-publish).");
+  }
+
+  // Re-point adopters migrated off the stray official row onto the promoted one.
+  let migrated = 0;
+  for (const uid of strayAdopterIds) {
+    try {
+      await adoptPackage(db, uid, officialId);
+      migrated++;
+    } catch {
+      // The author, a slug clash, or no published version — leave them.
+    }
+  }
+  if (strayAdopterIds.length > 0) {
+    console.log(`Re-pointed ${migrated}/${strayAdopterIds.length} adopter(s).`);
   }
 
   if (adoptExisting) {

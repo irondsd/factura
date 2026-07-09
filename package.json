@@ -20,8 +20,8 @@
     "db:seed": "dotenv -e .env.local tsx src/db/seed.ts",
     "db:seed:prod": "dotenv -e .env.prod tsx src/db/seed.ts",
     "db:studio": "dotenv -e .env.local drizzle-kit studio",
-    "parser:official": "dotenv -e .env.local tsx scripts/makeParserOfficial.ts",
-    "parser:official:prod": "dotenv -e .env.prod tsx scripts/makeParserOfficial.ts"
+    "parser:official": "dotenv -e .env.local -- tsx scripts/makeParserOfficial.ts",
+    "parser:official:prod": "dotenv -e .env.prod -- tsx scripts/makeParserOfficial.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
