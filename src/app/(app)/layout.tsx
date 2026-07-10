@@ -23,11 +23,9 @@ export default async function AppRootLayout({
       className={`${fraunces.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Providers>
-          <I18nProvider locale={locale} dictionary={dictionary}>
-            {children}
-          </I18nProvider>
-        </Providers>
+        <I18nProvider locale={locale} dictionary={dictionary}>
+          <Providers>{children}</Providers>
+        </I18nProvider>
       </body>
     </html>
   );

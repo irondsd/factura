@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 
+import { useI18n } from "@/i18n/I18nProvider";
+
 type Toast = { id: string; text: string };
 
 type ToastApi = {
@@ -28,13 +30,21 @@ export function useToasts(): ToastApi {
 
 /** Owns the toast queue and renders the bottom-right toast region. */
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = useCallback((text: string) => {
-    const id = crypto.randomUUID();
-    setToasts((t) => [...t, { id, text }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000);
+  const dismiss = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((x) => x.id !== id));
   }, []);
+
+  const showToast = useCallback(
+    (text: string) => {
+      const id = crypto.randomUUID();
+      setToasts((prev) => [...prev, { id, text }]);
+      setTimeout(() => dismiss(id), 4000);
+    },
+    [dismiss],
+  );
 
   const value = useMemo(() => ({ showToast }), [showToast]);
 
@@ -43,12 +53,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {toasts.length > 0 && (
         <div className="fixed right-4 bottom-4 z-[80] flex w-[300px] flex-col gap-2">
-          {toasts.map((t) => (
+          {toasts.map((toast) => (
             <div
-              key={t.id}
-              className="receipt-edge bg-card border border-line pt-3 px-4 pb-5 font-mono text-sm shadow-pop animate-[fd-toast-in_180ms_cubic-bezier(0.2,0,0.2,1)]"
+              key={toast.id}
+              className="receipt-edge bg-card border border-line pt-3 px-4 pb-5 font-mono text-sm shadow-pop animate-[fd-toast-in_180ms_cubic-bezier(0.2,0,0.2,1)] flex items-start gap-3"
             >
-              {t.text}
+              <span className="flex-1">{toast.text}</span>
+              <button
+                type="button"
+                onClick={() => dismiss(toast.id)}
+                aria-label={t.billDrawer.close}
+                className="bg-transparent border-none cursor-pointer text-muted text-base leading-none transition-colors hover:text-accent -mt-0.5"
+              >
+                ✕
+              </button>
             </div>
           ))}
         </div>
