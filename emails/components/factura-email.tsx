@@ -26,7 +26,7 @@ import {
   Heading,
   Hr,
   Html,
-  Link,
+  // Link,
   Preview,
   Row,
   Section,
@@ -178,10 +178,10 @@ export function FacturaEmail({
   title,
   children,
   footerNote = "You're receiving this because you have a Factura account.",
-  unsubscribeUrl = "https://example.com/unsubscribe",
+  // unsubscribeUrl = "https://example.com/unsubscribe",
   locale = "en",
   footerTagline = "Personal utility ledger · Argentina",
-  unsubscribeLabel = "Unsubscribe",
+  // unsubscribeLabel = "Unsubscribe",
 }: FacturaEmailProps) {
   return (
     <Html lang={locale}>
