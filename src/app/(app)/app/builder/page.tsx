@@ -118,6 +118,24 @@ function Builder() {
   const [bills, setBills] = useState<{ name: string; text: string }[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [seeded, setSeeded] = useState(false);
+  const [autoSeeded, setAutoSeeded] = useState(false);
+
+  // Forking/editing a parser without a bill in the URL: pull the saved parser's
+  // detection so we can autoload a couple of the user's bills it actually fits,
+  // instead of dropping them onto an empty editor. Only when no bill is pinned.
+  const autoloadDetect = useMemo(() => {
+    if (billId || !parserSlug || !presets.data) return null;
+    const preset = presets.data.find((p) => p.slug === parserSlug);
+    const detect = (preset?.body as { detect?: Body["detect"] } | undefined)
+      ?.detect;
+    if (!detect?.allOf?.length && !detect?.anyOf?.length) return null;
+    return detect;
+  }, [billId, parserSlug, presets.data]);
+
+  const matchingBills = trpc.parsers.matchingBills.useQuery(
+    { detect: autoloadDetect! },
+    { enabled: Boolean(autoloadDetect) },
+  );
 
   const [mode, setMode] = useState<Mode>("structured");
   const [existingId, setExistingId] = useState<string | null>(null);
@@ -236,6 +254,21 @@ function Builder() {
         setVendorSlug(orphan);
         setDisplayName(orphan);
       }
+    }
+  }
+
+  // Seed the autoloaded matches once, and never over a bill the user already
+  // dropped (the manual drop wins the race if it lands first).
+  if (!autoSeeded && matchingBills.data && bills.length === 0) {
+    setAutoSeeded(true);
+    if (matchingBills.data.length > 0) {
+      setBills(
+        matchingBills.data.map((b) => ({
+          name: b.fileName ?? "bill",
+          text: b.text,
+        })),
+      );
+      setActiveIdx(0);
     }
   }
 

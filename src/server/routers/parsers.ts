@@ -632,6 +632,36 @@ export const parsersRouter = router({
       return collisions;
     }),
 
+  /** Builder autoload: the newest of the user's own bills whose text this
+   * candidate detection recognizes — so opening a parser to fork/edit prefills a
+   * bill or two the parser actually fits, instead of an empty drop zone. Returns
+   * normalized text so the builder can seed directly. Own-bills only, mirroring
+   * `detectCollisions` — no cross-user data is read. */
+  matchingBills: protectedProcedure
+    .input(
+      z.object({
+        detect: detectSchema,
+        limit: z.number().int().min(1).max(5).default(3),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const probe = { detect: input.detect } as ParserConfig;
+      const userBills = await ctx.db.query.bills.findMany({
+        where: eq(bills.createdBy, ctx.userId),
+        orderBy: [desc(bills.createdAt)],
+      });
+      const matches: { id: string; fileName: string | null; text: string }[] =
+        [];
+      for (const b of userBills) {
+        const text = normalize(b.rawText);
+        if (detectScore(probe, text) !== null) {
+          matches.push({ id: b.id, fileName: b.fileName, text });
+          if (matches.length >= input.limit) break;
+        }
+      }
+      return matches;
+    }),
+
   /** How many of the user's bills currently use a preset — shown before save so
    * the reparse is explicit ("saving will re-run against N bills"). */
   usage: protectedProcedure
