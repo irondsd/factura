@@ -399,8 +399,15 @@ function Builder() {
     for (const file of Array.from(files)) {
       if (!file.name.toLowerCase().endsWith(".pdf")) continue;
       try {
-        const { default: pdfToText } = await import("react-pdftotext");
-        const raw = await pdfToText(file);
+        // Extract via the same server pdf.js as ingestion, so builder previews
+        // match exactly what a real upload will parse against.
+        const form = new FormData();
+        form.append("file", file);
+        const res = await fetch("/api/bills/extract", {
+          method: "POST",
+          body: form,
+        });
+        const raw = res.ok ? ((await res.json()).rawText as string) : "";
         if (raw.trim().length < 20) {
           showToast(interpolate(tbu.noTextFound, { file: file.name }));
           continue;

@@ -13,6 +13,11 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { formatARS, formatMonth } from "@/lib/format";
 import { trpc } from "@/lib/trpc";
 import { useToasts } from "@/providers/ToastProvider";
+import type { IngestResult } from "@/server/ingest";
+
+/** The ingest route returns the shared IngestResult, plus a "no_text" outcome for
+ * PDFs whose extracted text was too short to be a real bill. */
+type IngestApiResult = IngestResult | { outcome: "no_text" };
 
 type PendingConfirm = {
   billId: string;
@@ -22,7 +27,7 @@ type PendingConfirm = {
 };
 
 type BillIngestValue = {
-  /** Read each PDF in the browser, store it, and ingest its text. */
+  /** Upload each PDF to the ingest API, which extracts, stores, and ingests it. */
   handleFiles: (files: FileList) => Promise<void>;
   /** True while an ingest batch is in flight. */
   busy: boolean;
@@ -52,8 +57,6 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
   const [newNickname, setNewNickname] = useState("");
 
   const utils = trpc.useUtils();
-  const presignUpload = trpc.bills.presignUpload.useMutation();
-  const ingest = trpc.bills.ingest.useMutation();
   const confirmAccount = trpc.bills.confirmAccount.useMutation();
   const createProperty = trpc.properties.create.useMutation();
   const propertiesQuery = trpc.properties.list.useQuery(undefined, {
@@ -72,55 +75,28 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
           continue;
         }
         try {
-          const { default: pdfToText } = await import("react-pdftotext");
-          const rawText = await pdfToText(file);
-          if (rawText.trim().length < 20) {
-            showToast(interpolate(td.noText, { file: file.name }));
+          // Extraction + storage + ingest all happen server-side now: the file is
+          // read by one pinned pdf.js, stored (if storage is configured), and
+          // ingested in a single round-trip.
+          const form = new FormData();
+          form.append("file", file);
+          const res = await fetch("/api/bills/ingest", {
+            method: "POST",
+            body: form,
+          });
+          if (!res.ok) {
+            showToast(`✕ ${file.name}: ${res.status} ${res.statusText}`);
             continue;
           }
-
-          // Store the original PDF first (when storage is configured), then
-          // ingest the extracted text with a pointer to it.
-          let storageKey: string | undefined;
-          try {
-            const presigned = await presignUpload.mutateAsync({
-              fileName: file.name,
-            });
-            if (presigned) {
-              const res = await fetch(presigned.url, {
-                method: "PUT",
-                body: file,
-                headers: { "Content-Type": "application/pdf" },
-              });
-              if (res.ok) storageKey = presigned.key;
-              // Non-ok = storage is configured but the PUT was rejected (bucket
-              // permissions, etc.). The bill still lands text-only; log why so
-              // it's diagnosable instead of silently showing "not stored".
-              else
-                console.warn(
-                  `PDF storage upload failed for ${file.name}: ${res.status} ${res.statusText}`,
-                );
-            }
-          } catch (err) {
-            // A thrown fetch here is almost always the browser blocking the
-            // cross-origin PUT because the bucket has no matching CORS rule.
-            // Fall back to text-only so the bill still lands, but surface it.
-            console.warn(
-              `PDF storage upload errored for ${file.name} (likely bucket CORS):`,
-              err,
-            );
-          }
-
-          const result = await ingest.mutateAsync({
-            fileName: file.name,
-            rawText,
-            storageKey,
-          });
+          const result: IngestApiResult = await res.json();
           posthog.capture("bill_uploaded", {
             outcome: result.outcome,
             file_name: file.name,
           });
           switch (result.outcome) {
+            case "no_text":
+              showToast(interpolate(td.noText, { file: file.name }));
+              break;
             case "parsed":
               showToast(
                 `${result.vendorName} · ${formatMonth(result.period, locale)} · ${formatARS(result.totalAmount)}` +
@@ -159,7 +135,7 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
       setBusy(false);
       utils.invalidate();
     },
-    [ingest, presignUpload, showToast, utils, td, locale],
+    [showToast, utils, td, locale],
   );
 
   const current = confirmQueue[0];

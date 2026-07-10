@@ -41,22 +41,34 @@ function buildKey(userId: string, fileName: string): string {
   return `bills/${userId}/${crypto.randomUUID()}-${safe}`;
 }
 
-/** Presigned PUT for a direct browser → bucket upload. */
-export async function presignUpload(
+/** Upload a PDF server-side and return its key. The server now sits between the
+ * browser and the bucket (it already holds the bytes to extract text), so there's
+ * no presigned browser PUT and therefore no cross-origin CORS rule to configure. */
+export async function putObject(
   userId: string,
   fileName: string,
-): Promise<{ url: string; key: string }> {
+  bytes: Uint8Array,
+): Promise<string> {
   const key = buildKey(userId, fileName);
-  const url = await getSignedUrl(
-    client(),
+  await client().send(
     new PutObjectCommand({
       Bucket: BUCKET,
       Key: key,
+      Body: bytes,
       ContentType: "application/pdf",
     }),
-    { expiresIn: 300 },
   );
-  return { url, key };
+  return key;
+}
+
+/** Fetch a stored PDF's raw bytes — used to re-extract text from the file. */
+export async function getObjectBytes(key: string): Promise<Uint8Array> {
+  const res = await client().send(
+    new GetObjectCommand({ Bucket: BUCKET, Key: key }),
+  );
+  const bytes = await res.Body?.transformToByteArray();
+  if (!bytes) throw new Error(`Stored object ${key} has no body`);
+  return bytes;
 }
 
 /** Presigned GET so the user can view/re-download their stored PDF. */

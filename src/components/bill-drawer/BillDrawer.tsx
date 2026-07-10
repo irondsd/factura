@@ -174,14 +174,9 @@ export function BillDrawer({
             return;
           }
           try {
-            const blob = await fetch(bill.downloadUrl).then((r) => r.blob());
-            const { default: pdfToText } = await import("react-pdftotext");
-            const rawText = await pdfToText(
-              new File([blob], bill.fileName ?? "bill.pdf", {
-                type: "application/pdf",
-              }),
-            );
-            await reparseFile.mutateAsync({ id: bill.id, rawText });
+            // The server re-reads the stored PDF (same pinned pdf.js as ingest),
+            // replaces the raw text, and re-parses.
+            await reparseFile.mutateAsync({ id: bill.id });
             onToast(tb.toastReparsedFile);
             utils.invalidate();
           } catch {

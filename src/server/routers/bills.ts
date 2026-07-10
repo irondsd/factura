@@ -1,26 +1,21 @@
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
-import { after } from "next/server";
 import { z } from "zod";
 import type { db as Db } from "@/db";
 import { bills } from "@/db/schema";
-import { getPostHogClient } from "@/lib/posthog-server";
 import { billRateDate, usdRateLookup } from "../fx";
-import {
-  fileBillIntoProperty,
-  ingestBill,
-  vendorMetaFromExtra,
-} from "../ingest";
-import { assertMember, assertMemberVendor, RAW_TEXT_MAX } from "../ownership";
+import { fileBillIntoProperty, vendorMetaFromExtra } from "../ingest";
+import { assertMember, assertMemberVendor } from "../ownership";
+import { extractPdfText } from "../pdf";
 import { loadUserConfigs } from "../registry";
 import { billsScope, reparseSingle, reparseUserBills } from "../reparse";
 import {
   deleteObject,
+  getObjectBytes,
   isStorageConfigured,
   presignDownload,
-  presignUpload,
 } from "../storage";
-import { protectedProcedure, router, scopedProcedure } from "../trpc";
+import { router, scopedProcedure } from "../trpc";
 
 const period = z.string().regex(/^\d{4}-\d{2}-01$/);
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -44,49 +39,9 @@ async function loadAccessibleBill(
 }
 
 export const billsRouter = router({
-  /** Presigned PUT for a direct browser → bucket upload (storage only). */
-  presignUpload: protectedProcedure
-    .input(z.object({ fileName: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      if (!isStorageConfigured()) return null;
-      return presignUpload(ctx.userId, input.fileName);
-    }),
-
-  ingest: protectedProcedure
-    .input(
-      z.object({
-        fileName: z.string(),
-        rawText: z.string().min(20).max(RAW_TEXT_MAX),
-        storageKey: z.string().optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      // A client-supplied storageKey must live in the caller's own namespace,
-      // or `get` could later presign a download of another user's object.
-      if (
-        input.storageKey &&
-        !input.storageKey.startsWith(`bills/${ctx.userId}/`)
-      )
-        throw new TRPCError({ code: "FORBIDDEN" });
-      const result = await ingestBill(ctx.db, ctx.userId, input);
-      // Analytics must never block or fail the response — the bill is already
-      // saved. `after` runs this once the response is sent (Vercel keeps the
-      // invocation alive via waitUntil), so a slow/hung PostHog flush can't make
-      // a successful ingest look like a failed one to the client.
-      after(async () => {
-        const posthog = getPostHogClient();
-        posthog.capture({
-          distinctId: ctx.userId,
-          event: "bill_ingested",
-          properties: {
-            outcome: result.outcome,
-            file_name: input.fileName,
-          },
-        });
-        await posthog.shutdown();
-      });
-      return result;
-    }),
+  // Upload/ingest now lives in the POST /api/bills/ingest route handler — it needs
+  // the raw file bytes for server-side extraction, which tRPC's JSON transport
+  // can't carry. See src/app/api/bills/ingest/route.ts.
 
   list: scopedProcedure
     .input(
@@ -387,28 +342,30 @@ export const billsRouter = router({
       return { updated };
     }),
 
-  /** Drawer "From the file" path: the client re-extracts text from the stored
-   * PDF (pdf.js), we replace the stored text and re-run the parser. */
+  /** Drawer "From the file" path: re-extract text from the stored PDF server-side
+   * (same pinned pdf.js as ingest), replace the stored text, and re-run the parser. */
   reparseFile: scopedProcedure
-    .input(
-      z.object({
-        id: z.string().uuid(),
-        rawText: z.string().min(20).max(RAW_TEXT_MAX),
-      }),
-    )
+    .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const ids = ctx.accessiblePropertyIds;
       const bill = await loadAccessibleBill(ctx.db, ctx.userId, ids, input.id);
+      if (!bill.storageKey || !isStorageConfigured())
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No stored PDF to re-read",
+        });
+      const bytes = await getObjectBytes(bill.storageKey);
+      const rawText = await extractPdfText(bytes);
       await ctx.db
         .update(bills)
-        .set({ rawText: input.rawText })
+        .set({ rawText })
         .where(eq(bills.id, bill.id));
       const configs = await loadUserConfigs(ctx.db, ctx.userId);
       const updated = await reparseSingle(
         ctx.db,
         ctx.userId,
         ids,
-        { ...bill, rawText: input.rawText },
+        { ...bill, rawText },
         configs,
       );
       return { updated };
