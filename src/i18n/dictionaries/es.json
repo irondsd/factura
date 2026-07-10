@@ -382,7 +382,8 @@
     "noExtraFields": "Este analizador no extrae campos adicionales más allá del monto: la subida es inflación, no consumo. Agrega campos como consumo o recargos en el constructor de analizadores para graficarlos aquí.",
     "pricePer": "Precio por {unit}",
     "rebased": "Rebasado a 100 — ARS vs USD",
-    "unit": "unidad"
+    "unit": "unidad",
+    "exportCsv": "Exportar CSV"
   },
   "bills": {
     "title": "El registro",

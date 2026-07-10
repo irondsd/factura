@@ -382,7 +382,8 @@
     "noExtraFields": "This parser extracts no extra fields beyond the amount — the climb is inflation, not usage. Add fields like consumption or surcharges in the parser builder to chart them here.",
     "pricePer": "Price per {unit}",
     "rebased": "Rebased to 100 — ARS vs USD",
-    "unit": "unit"
+    "unit": "unit",
+    "exportCsv": "Export CSV"
   },
   "bills": {
     "title": "The ledger",

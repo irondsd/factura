@@ -17,6 +17,7 @@ import { FilterPill, FinePrint } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
+import { downloadTextFile, slugForFilename, toCsv } from "@/lib/csv";
 import { formatMoney } from "@/lib/format";
 import {
   defaultWindow,
@@ -191,6 +192,30 @@ function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
   );
 }
 
+/** Flatten a vendor's monthly series into one CSV — a row per month, with spend
+ * (ARS + USD) and every parser-extracted field. Money fields also get a USD
+ * column; null cells stay empty (an honest gap, not a zero). */
+function buildVendorCsv(d: VendorDetail): string {
+  const header = ["month", "spend", "spend (USD)"];
+  for (const f of d.fields) {
+    header.push(f.unit ? `${f.name} (${f.unit})` : f.name);
+    if (f.isMoney) header.push(`${f.name} (USD)`);
+  }
+  const rows = d.months.map((m, i) => {
+    const row: (string | number | null)[] = [
+      m,
+      d.spend.ARS[i],
+      d.spend.USD[i],
+    ];
+    for (const f of d.fields) {
+      row.push(f.values[i]);
+      if (f.isMoney) row.push(f.valuesUsd?.[i] ?? null);
+    }
+    return row;
+  });
+  return toCsv(header, rows);
+}
+
 function SingleVendorCharts({
   data: d,
 }: {
@@ -213,18 +238,37 @@ function SingleVendorCharts({
         100
       : null;
 
+  const exportCsv = () => {
+    const range = d.months.length
+      ? `${d.months[0]}_${d.months[d.months.length - 1]}`
+      : "range";
+    downloadTextFile(
+      `${slugForFilename(vendor.displayName)}_${range}.csv`,
+      buildVendorCsv(d),
+    );
+  };
+
   return (
     <>
-      <div className="flex items-baseline gap-[14px] mt-[18px]">
-        <Display size={28}>
-          {formatMoney(
-            knownSpend[knownSpend.length - 1] ?? null,
-            spend.currency,
-          )}
-        </Display>
-        <span className="font-mono text-xs text-muted">
-          {ti.latest} · <Delta pct={pct} /> {ti.overRange}
-        </span>
+      <div className="flex flex-wrap items-baseline justify-between gap-[14px] mt-[18px]">
+        <div className="flex items-baseline gap-[14px]">
+          <Display size={28}>
+            {formatMoney(
+              knownSpend[knownSpend.length - 1] ?? null,
+              spend.currency,
+            )}
+          </Display>
+          <span className="font-mono text-xs text-muted">
+            {ti.latest} · <Delta pct={pct} /> {ti.overRange}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={exportCsv}
+          className="font-mono text-micro uppercase tracking-[0.14em] py-[5px] px-[11px] border border-line bg-transparent text-muted cursor-pointer transition-colors hover:bg-ink hover:text-paper"
+        >
+          {ti.exportCsv}
+        </button>
       </div>
 
       <ChartCard
