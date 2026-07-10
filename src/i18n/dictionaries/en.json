@@ -760,6 +760,8 @@
     "differentEmail": "Use a different email",
     "errorInvalidCode": "That code is invalid or has expired.",
     "errorSendCode": "Couldn't send a code. Check the address and try again.",
+    "errorGoogleUnverified": "Google couldn't confirm your email. Sign in with your email and a code.",
+    "errorAccountNotLinked": "That email already has an account. Sign in with your email and a code.",
     "back": "← Back"
   },
   "legal": {

@@ -39,10 +39,23 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
-  // A failed verification redirects back here with ?error=Verification.
-  const [error, setError] = useState<string | null>(
-    params.get("error") ? tl.errorInvalidCode : null,
-  );
+  // Auth.js bounces failures back here with a ?error=<type> code. Map the ones
+  // we can hit to a fitting message rather than always blaming the OTP code:
+  //   Verification          → wrong/expired OTP code
+  //   AccessDenied          → our signIn guard rejected an unverified Google email
+  //   OAuthAccountNotLinked → email already has an account; sign in with the code
+  const [error, setError] = useState<string | null>(() => {
+    switch (params.get("error")) {
+      case null:
+        return null;
+      case "AccessDenied":
+        return tl.errorGoogleUnverified;
+      case "OAuthAccountNotLinked":
+        return tl.errorAccountNotLinked;
+      default:
+        return tl.errorInvalidCode;
+    }
+  });
 
   // Already signed in (or just verified) → leave the public login page.
   useEffect(() => {

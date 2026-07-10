@@ -28,7 +28,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // built-in Auth.js pages.
   pages: { signIn: "/login", error: "/login" },
   providers: [
-    Google,
+    // allowDangerousEmailAccountLinking lets a Google sign-in fold into an
+    // existing account with the same email (e.g. one first created via email
+    // OTP), so both routes reach the same account in either order. The flag
+    // links unconditionally, so the signIn callback below guards it: we only
+    // trust Google's email when Google says it verified it. Never enable this
+    // flag on a provider whose email we can't verify — that's the account-
+    // takeover vector the default (OAuthAccountNotLinked) exists to block.
+    Google({ allowDangerousEmailAccountLinking: true }),
     // Email one-time-password sign-in. Reuses the verification_token table the
     // adapter already manages; on verification Auth.js links by email, so a
     // user who first signed in with Google lands in the same account. We swap
@@ -54,6 +61,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    // Guards the auto-linking enabled above: only let a Google sign-in proceed
+    // when Google vouches for the email. Runs before any account linking, so a
+    // rejected login never touches an existing account. Google's OIDC ID token
+    // carries email_verified as a boolean; require it to be exactly true.
+    signIn({ account, profile }) {
+      if (account?.provider === "google") {
+        return profile?.email_verified === true;
+      }
+      return true;
+    },
     // Expose the user id on the session so tRPC can scope every query to it.
     session({ session, user }) {
       if (session.user) session.user.id = user.id;

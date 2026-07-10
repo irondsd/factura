@@ -760,6 +760,8 @@
     "differentEmail": "Usar otro correo",
     "errorInvalidCode": "Ese código no es válido o ha caducado.",
     "errorSendCode": "No se pudo enviar el código. Revisa la dirección e inténtalo de nuevo.",
+    "errorGoogleUnverified": "Google no pudo confirmar tu correo. Ingresa con tu correo y un código.",
+    "errorAccountNotLinked": "Ese correo ya tiene una cuenta. Ingresa con tu correo y un código.",
     "back": "← Volver"
   },
   "legal": {
