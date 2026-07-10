@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: factura
@@ -9,7 +9,8 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - factura_pgdata:/var/lib/postgresql/data
+      # Postgres 18+ images mount the whole dir (data lives in a version subdir).
+      - factura_pgdata:/var/lib/postgresql
 
   # S3-compatible object storage for the original PDFs (local dev only).
   minio:
