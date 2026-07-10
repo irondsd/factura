@@ -19,7 +19,8 @@ function sug(over: Partial<Suggestion> & { slug: string }): Suggestion {
   };
 }
 
-const order = (items: Suggestion[]) => rankSuggestions(items).map((s) => s.slug);
+const order = (items: Suggestion[]) =>
+  rankSuggestions(items).map((s) => s.slug);
 
 describe("rankSuggestions", () => {
   it("puts verified (official) parsers first", () => {

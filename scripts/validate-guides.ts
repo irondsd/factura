@@ -40,7 +40,11 @@ type Report = { file: string; errors: string[]; warnings: string[] };
 
 /** Pull the `export const meta = { … }` object out by brace-matching, then eval
  * it as real JS (trusted local files, any quote/comma style). */
-function extractMeta(src: string): { meta?: Meta; bodyStart: number; error?: string } {
+function extractMeta(src: string): {
+  meta?: Meta;
+  bodyStart: number;
+  error?: string;
+} {
   const marker = src.match(/export\s+const\s+meta\s*=\s*/);
   if (!marker || marker.index === undefined) {
     return { bodyStart: 0, error: "missing `export const meta = { … }` block" };
@@ -68,14 +72,18 @@ function extractMeta(src: string): { meta?: Meta; bodyStart: number; error?: str
       }
     }
   }
-  if (end === -1) return { bodyStart: 0, error: "meta block `{` is never closed" };
+  if (end === -1)
+    return { bodyStart: 0, error: "meta block `{` is never closed" };
 
   const objText = src.slice(open, end + 1);
   try {
     const meta = new Function(`return (${objText})`)() as Meta;
     return { meta, bodyStart: end + 1 };
   } catch (e) {
-    return { bodyStart: end + 1, error: `meta is not valid JS: ${(e as Error).message}` };
+    return {
+      bodyStart: end + 1,
+      error: `meta is not valid JS: ${(e as Error).message}`,
+    };
   }
 }
 
@@ -105,7 +113,9 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
 
   // ── no YAML frontmatter ───────────────────────────────────────────────────
   if (src.trimStart().startsWith("---")) {
-    errors.push("starts with `---` frontmatter; use the `export const meta` block instead");
+    errors.push(
+      "starts with `---` frontmatter; use the `export const meta` block instead",
+    );
   }
 
   // ── meta ──────────────────────────────────────────────────────────────────
@@ -127,7 +137,11 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
     str("summary");
 
     const kw = meta.keywords;
-    if (!Array.isArray(kw) || kw.length === 0 || !kw.every((k) => typeof k === "string")) {
+    if (
+      !Array.isArray(kw) ||
+      kw.length === 0 ||
+      !kw.every((k) => typeof k === "string")
+    ) {
       errors.push("meta.keywords must be a non-empty array of strings");
     } else if (kw.length < 3 || kw.length > 6) {
       warnings.push(`meta.keywords has ${kw.length} (aim for 3–6)`);
@@ -140,18 +154,28 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
     if (!pubOk) errors.push("meta.published must be a valid YYYY-MM-DD date");
     if (!updOk) errors.push("meta.updated must be a valid YYYY-MM-DD date");
     if (pubOk && updOk && (updated as string) < (published as string)) {
-      errors.push(`meta.updated (${updated}) is before meta.published (${published})`);
+      errors.push(
+        `meta.updated (${updated}) is before meta.published (${published})`,
+      );
     }
 
     // length advisories
-    if (title && title.length > 60) warnings.push(`meta.title is ${title.length} chars (aim ≤60)`);
+    if (title && title.length > 60)
+      warnings.push(`meta.title is ${title.length} chars (aim ≤60)`);
     if (description && (description.length < 120 || description.length > 170)) {
-      warnings.push(`meta.description is ${description.length} chars (aim ~150–160)`);
+      warnings.push(
+        `meta.description is ${description.length} chars (aim ~150–160)`,
+      );
     }
 
     // unexpected meta keys (typos)
     const allowedKeys = new Set([
-      "title", "description", "summary", "keywords", "published", "updated",
+      "title",
+      "description",
+      "summary",
+      "keywords",
+      "published",
+      "updated",
     ]);
     for (const k of Object.keys(meta)) {
       if (!allowedKeys.has(k)) warnings.push(`meta has unexpected key "${k}"`);
@@ -160,7 +184,9 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
 
   // ── body: no H1 (the page renders the <h1> from meta.title) ───────────────
   if (/^#[ \t]/m.test(body)) {
-    errors.push("body contains an H1 (`# …`); start sections at `##` (the page adds the H1)");
+    errors.push(
+      "body contains an H1 (`# …`); start sections at `##` (the page adds the H1)",
+    );
   }
 
   // ── internal /guias links resolve ─────────────────────────────────────────
@@ -182,7 +208,9 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
   // ── custom components must be registered ──────────────────────────────────
   for (const m of body.matchAll(/<([A-Z][A-Za-z0-9]*)/g)) {
     if (!ALLOWED_COMPONENTS.has(m[1])) {
-      errors.push(`unknown component <${m[1]}/> (not registered in mdx-components.tsx)`);
+      errors.push(
+        `unknown component <${m[1]}/> (not registered in mdx-components.tsx)`,
+      );
     }
   }
 
@@ -201,7 +229,9 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
 function main() {
   let files: string[];
   try {
-    files = readdirSync(GUIDES_DIR).filter((f) => f.endsWith(".mdx")).sort();
+    files = readdirSync(GUIDES_DIR)
+      .filter((f) => f.endsWith(".mdx"))
+      .sort();
   } catch {
     console.error(red(`Cannot read ${GUIDES_DIR}`));
     process.exit(1);

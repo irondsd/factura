@@ -1,6 +1,10 @@
 import path from "node:path";
 import { Worker } from "node:worker_threads";
-import type { CandidateResult, SuggestCandidate, WorkerMessage } from "./protocol";
+import type {
+  CandidateResult,
+  SuggestCandidate,
+  WorkerMessage,
+} from "./protocol";
 
 /** Plain-JS worker bundle, produced by scripts/build-suggest-worker.mjs at
  * build time and loaded by absolute path so no bundler ever rewrites it. */

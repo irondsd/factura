@@ -187,8 +187,10 @@ export function RangeControl({
         end: drag.origEnd,
       };
       let next: { start: number; end: number };
-      if (drag.which === "left") next = { start: Math.min(idx, prev.end), end: prev.end };
-      else if (drag.which === "right") next = { start: prev.start, end: Math.max(idx, prev.start) };
+      if (drag.which === "left")
+        next = { start: Math.min(idx, prev.end), end: prev.end };
+      else if (drag.which === "right")
+        next = { start: prev.start, end: Math.max(idx, prev.start) };
       else {
         const w = drag.origEnd - drag.origStart;
         let ns = drag.origStart + (idx - drag.grab);
@@ -306,7 +308,8 @@ export function RangeControl({
               style={{
                 left: winLeft,
                 right: winRight,
-                background: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--accent) 15%, transparent)",
                 borderLeft: "2px solid var(--accent)",
                 borderRight: "2px solid var(--accent)",
               }}

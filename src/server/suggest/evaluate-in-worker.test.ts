@@ -21,8 +21,14 @@ const good: ParserConfig = {
   detect: { allOf: [{ pattern: "ACME" }] },
   captures: [
     { pattern: "ACCT (\\d+)", outputs: { acct: { group: 1 } } },
-    { pattern: "TOTAL ([\\d.]+)", outputs: { amt: { group: 1, transform: ["numberUS"] } } },
-    { pattern: "PERIOD (\\d{4}-\\d{2}-\\d{2})", outputs: { per: { group: 1 } } },
+    {
+      pattern: "TOTAL ([\\d.]+)",
+      outputs: { amt: { group: 1, transform: ["numberUS"] } },
+    },
+    {
+      pattern: "PERIOD (\\d{4}-\\d{2}-\\d{2})",
+      outputs: { per: { group: 1 } },
+    },
     { pattern: "DUE (\\d{4}-\\d{2}-\\d{2})", outputs: { due: { group: 1 } } },
   ],
   roles: {
@@ -61,7 +67,11 @@ describe("evaluateCandidates (ReDoS-safe worker)", () => {
   it("caps total time and still returns work finished before a ReDoS candidate stalls", async () => {
     const start = Date.now();
     // good first so it streams back before the worker hangs on evil.
-    const out = await evaluateCandidates(text, [cand("acme", good), cand("evil", evil)], 400);
+    const out = await evaluateCandidates(
+      text,
+      [cand("acme", good), cand("evil", evil)],
+      400,
+    );
     const elapsed = Date.now() - start;
     expect(out.has("acme")).toBe(true); // legit suggestion preserved
     expect(out.has("evil")).toBe(false); // never finished — dropped

@@ -255,8 +255,8 @@ async function main() {
 
   const officialId = source.id;
   const authorEmail =
-    (await db.query.users.findFirst({ where: eq(users.id, authorId) }))?.email ??
-    authorId;
+    (await db.query.users.findFirst({ where: eq(users.id, authorId) }))
+      ?.email ?? authorId;
   console.log(
     `Made "${slug}" official (config ${officialId}); left ${authorEmail} a private copy.`,
   );

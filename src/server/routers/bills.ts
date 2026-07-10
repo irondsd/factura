@@ -356,10 +356,7 @@ export const billsRouter = router({
         });
       const bytes = await getObjectBytes(bill.storageKey);
       const rawText = await extractPdfText(bytes);
-      await ctx.db
-        .update(bills)
-        .set({ rawText })
-        .where(eq(bills.id, bill.id));
+      await ctx.db.update(bills).set({ rawText }).where(eq(bills.id, bill.id));
       const configs = await loadUserConfigs(ctx.db, ctx.userId);
       const updated = await reparseSingle(
         ctx.db,

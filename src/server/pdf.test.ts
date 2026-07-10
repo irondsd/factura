@@ -48,9 +48,7 @@ describe("extractPdfText", () => {
   });
 
   it("skips marked-content items that carry no glyphs", async () => {
-    resolveWith([
-      [{ str: "A" }, { type: "beginMarkedContent" }, { str: "B" }],
-    ]);
+    resolveWith([[{ str: "A" }, { type: "beginMarkedContent" }, { str: "B" }]]);
     expect(await extractPdfText(new Uint8Array([1]))).toBe("A B");
   });
 

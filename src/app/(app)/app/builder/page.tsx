@@ -649,7 +649,10 @@ function Builder() {
                   value={displayName}
                   placeholder={tbu.namePlaceholder}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className={cn("pr-8", nameStatus === "bad" && "border-accent")}
+                  className={cn(
+                    "pr-8",
+                    nameStatus === "bad" && "border-accent",
+                  )}
                 />
               </MarkedField>
               <MarkedField label={tbu.slug} status={slugStatus}>
@@ -658,7 +661,10 @@ function Builder() {
                   value={slug}
                   placeholder="aguas-andinas"
                   onChange={(e) => setSlug(e.target.value)}
-                  className={cn("pr-8", slugStatus === "bad" && "border-accent")}
+                  className={cn(
+                    "pr-8",
+                    slugStatus === "bad" && "border-accent",
+                  )}
                 />
               </MarkedField>
               <Field label={tbu.vendorGroup}>

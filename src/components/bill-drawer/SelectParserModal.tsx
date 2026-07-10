@@ -93,7 +93,11 @@ export function SelectParserModal({
         </div>
 
         <div className="flex gap-2 p-6 pt-4 border-t border-line">
-          <Button variant="outline" onClick={onBuildOwn} disabled={Boolean(busyId)}>
+          <Button
+            variant="outline"
+            onClick={onBuildOwn}
+            disabled={Boolean(busyId)}
+          >
             {tb.selectParserBuildOwn}
           </Button>
           <Button
@@ -129,7 +133,10 @@ function SuggestionCard({
   if (s.result) {
     rows.push({ label: tb.account, value: s.result.identity });
     rows.push({ label: tb.amountArs, value: formatARS(s.result.amount) });
-    rows.push({ label: tb.period, value: formatMonth(s.result.period, locale) });
+    rows.push({
+      label: tb.period,
+      value: formatMonth(s.result.period, locale),
+    });
     rows.push({ label: tb.dueDate, value: s.result.dueDate });
     for (const def of s.customDefs) {
       const raw = s.result.custom[def.name];

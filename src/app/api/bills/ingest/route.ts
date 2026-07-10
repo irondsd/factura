@@ -28,8 +28,7 @@ export async function POST(request: Request) {
 
   const isPdf =
     file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-  if (!isPdf)
-    return Response.json({ error: "Not a PDF" }, { status: 415 });
+  if (!isPdf) return Response.json({ error: "Not a PDF" }, { status: 415 });
   if (file.size > MAX_BYTES)
     return Response.json({ error: "File too large" }, { status: 413 });
 

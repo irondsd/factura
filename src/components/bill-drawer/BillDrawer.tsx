@@ -248,7 +248,9 @@ export function BillDrawer({
                   <Badge tone="neutral">{tb.parsedOk}</Badge>
                 ) : parser ? (
                   <Button size="sm" onClick={openBuilder}>
-                    {reviewKind === "parse_failed" ? tb.fixParser : tb.editParser}
+                    {reviewKind === "parse_failed"
+                      ? tb.fixParser
+                      : tb.editParser}
                   </Button>
                 ) : (
                   // No parser recognized this bill — let the user pick one that

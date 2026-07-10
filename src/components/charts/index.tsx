@@ -504,7 +504,9 @@ export function VendorShare({
                 className="inline-block w-2.5 h-2.5 flex-none"
                 style={{
                   background: isHidden ? "transparent" : s.color,
-                  boxShadow: isHidden ? `inset 0 0 0 1px ${s.color}` : undefined,
+                  boxShadow: isHidden
+                    ? `inset 0 0 0 1px ${s.color}`
+                    : undefined,
                 }}
               />
               <span className="font-mono text-xs flex-1">{s.label}</span>

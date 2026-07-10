@@ -1,5 +1,15 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, inArray, isNull, ne, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  ne,
+  or,
+} from "drizzle-orm";
 import { z } from "zod";
 import {
   bills,
@@ -427,7 +437,9 @@ export const parsersRouter = router({
     const adoptions = await ctx.db.query.parserAdoptions.findMany({
       where: eq(parserAdoptions.userId, userId),
     });
-    const adoptedVersionId = new Map(adoptions.map((a) => [a.configId, a.versionId]));
+    const adoptedVersionId = new Map(
+      adoptions.map((a) => [a.configId, a.versionId]),
+    );
 
     // Adoption counts (popularity) and vote tallies.
     const adoptCounts = await ctx.db
@@ -435,12 +447,17 @@ export const parsersRouter = router({
       .from(parserAdoptions)
       .where(inArray(parserAdoptions.configId, ids))
       .groupBy(parserAdoptions.configId);
-    const adoptionsByConfig = new Map(adoptCounts.map((c) => [c.configId, c.n]));
+    const adoptionsByConfig = new Map(
+      adoptCounts.map((c) => [c.configId, c.n]),
+    );
 
     const votes = await ctx.db.query.parserVotes.findMany({
       where: inArray(parserVotes.configId, ids),
     });
-    const voteTally = new Map<string, { up: number; down: number; mine: number }>();
+    const voteTally = new Map<
+      string,
+      { up: number; down: number; mine: number }
+    >();
     for (const v of votes) {
       const t = voteTally.get(v.configId) ?? { up: 0, down: 0, mine: 0 };
       if (v.value > 0) t.up += 1;

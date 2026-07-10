@@ -8,6 +8,10 @@ export function Input({
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> }) {
   return (
-    <input ref={ref} {...props} className={cn(FIELD_BASE, "w-full", className)} />
+    <input
+      ref={ref}
+      {...props}
+      className={cn(FIELD_BASE, "w-full", className)}
+    />
   );
 }
