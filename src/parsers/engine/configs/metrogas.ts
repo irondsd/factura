@@ -32,7 +32,8 @@ export const metrogasConfig: ParserConfig = {
       },
     },
     {
-      pattern: "CONSUMO A FACTURAR[^:]*:\\s*([\\d.,]+)",
+      // Gap bounded (not [^:]*) so the regex stays linear-time; see redos.ts.
+      pattern: "CONSUMO A FACTURAR[^:]{0,60}:\\s*([\\d.,]+)",
       flags: "i",
       outputs: { consumo: { group: 1, transform: ["numberAR"] } },
     },

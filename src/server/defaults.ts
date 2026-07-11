@@ -107,7 +107,8 @@ export async function seedParserConfigs(db: Database): Promise<number> {
     });
     if (existing) {
       // Never touch the body/version (prod parsers are the source of truth —
-      // see resyncOfficialParser to update those deliberately). Only *backfill*
+      // see scripts/resyncOfficialParsers.ts to update those deliberately).
+      // Only *backfill*
       // missing catalog metadata: `?? existing` keeps any value already set, so
       // a customized prod category/region is preserved.
       if (meta)

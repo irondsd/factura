@@ -45,7 +45,8 @@ export const mdaExpensasConfig: ParserConfig = {
 
   captures: [
     {
-      pattern: "CONSORCIO DE PROPIETARIOS.*?CUIT:\\s*([\\d-]{12,13})",
+      // Gap bounded (not .*?) so the regex stays linear-time; see redos.ts.
+      pattern: "CONSORCIO DE PROPIETARIOS.{0,120}?CUIT:\\s*([\\d-]{12,13})",
       flags: "i",
       outputs: { cuit: { group: 1 } },
     },
@@ -76,7 +77,8 @@ export const mdaExpensasConfig: ParserConfig = {
       },
     },
     {
-      pattern: "Expensas Extraordinarias[^$]*\\$\\s*([\\d.,]+)",
+      // Gap bounded (not [^$]*) so the regex stays linear-time; see redos.ts.
+      pattern: "Expensas Extraordinarias[^$]{0,60}\\$\\s*([\\d.,]+)",
       flags: "i",
       outputs: { extraordinary: { group: 1, transform: ["numberAR"] } },
     },

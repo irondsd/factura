@@ -26,9 +26,9 @@ import { adoptPackage, publishConfig } from "../src/server/registry";
  * Slugs are namespaced per owner, so several users may have an "edesur". When
  * more than one user-owned parser shares the slug, pass --owner=<email> to pick.
  *
- * Usage:
- *   npx dotenv -e .env.local tsx scripts/makeParserOfficial.ts <slug> [flags]
- *   npx dotenv -e .env.prod  tsx scripts/makeParserOfficial.ts <slug> [flags]
+ * Usage (the `--` matters: without it dotenv-cli eats the --flags):
+ *   npx dotenv -e .env.local -- tsx scripts/makeParserOfficial.ts <slug> [flags]
+ *   npx dotenv -e .env.prod  -- tsx scripts/makeParserOfficial.ts <slug> [flags]
  *
  * Flags:
  *   --onlyVerified      grant tier='verified' in place instead of promoting to

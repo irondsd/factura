@@ -42,7 +42,8 @@ export const dominijanniExpensasConfig: ParserConfig = {
       outputs: { due: { group: 1, transform: [{ parseDate: "DMY" }] } },
     },
     {
-      pattern: "Cuota\\s+Extra[^$]*\\$\\s*([\\d.,]+)",
+      // Gap bounded (not [^$]*) so the regex stays linear-time; see redos.ts.
+      pattern: "Cuota\\s+Extra[^$]{0,60}\\$\\s*([\\d.,]+)",
       flags: "i",
       outputs: { cuotaExtra: { group: 1, transform: ["numberAR"] } },
     },

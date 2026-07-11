@@ -4,6 +4,7 @@ import type { Database } from "@/db";
 import { parserAdoptions, parserConfigs, parserVersions } from "@/db/schema";
 import type { ParserConfig } from "@/parsers/engine/types";
 import { rowToConfig } from "./parsers";
+import { findUnsafeRegexes } from "./redos";
 
 type PackageRow = typeof parserConfigs.$inferSelect;
 type VersionRow = typeof parserVersions.$inferSelect;
@@ -141,6 +142,18 @@ export async function publishConfig(
     ),
   });
   if (existing) return existing;
+  // Don't let a catastrophically backtracking regex into the registry either —
+  // adopters run published patterns against their own uploads, on the request
+  // thread (ingest/reparse are not worker-isolated). Gated after the
+  // idempotency check on purpose: re-publishing an already-frozen version
+  // (e.g. seeding against existing prod rows) must stay a no-op even if that
+  // old body wouldn't pass today's gate.
+  const unsafe = await findUnsafeRegexes(rowToConfig(pkg));
+  if (unsafe.length > 0)
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Publishing is blocked: the pattern at ${unsafe[0].path} ${unsafe[0].reason}. Rewrite it without nested or overlapping quantifiers, then publish again.`,
+    });
   const [row] = await db
     .insert(parserVersions)
     .values({
