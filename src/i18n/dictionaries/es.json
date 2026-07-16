@@ -141,6 +141,7 @@
     "unsubscribe": "Cancelar suscripción",
     "headerAccount": "Cuenta",
     "headerInvitation": "Invitación",
+    "headerReport": "Resumen",
     "welcome": {
       "subject": "Bienvenido a Factura",
       "preheader": "Tu registro está listo: suelta una factura en cualquier parte para empezar.",
@@ -181,6 +182,21 @@
       "declinePrompt": "¿No esperabas esto?",
       "decline": "Rechazar",
       "footerNote": "Recibes esto porque alguien compartió una propiedad con tu cuenta de Factura."
+    },
+    "monthlyReport": {
+      "subject": "{property}: tu resumen de {month}",
+      "preheader": "{month} está completo: {total} en {count} proveedores.",
+      "eyebrow": "Resumen mensual",
+      "intro": "Ya llegaron todas las facturas esperadas de {property} para {month}. Este es el mes de un vistazo.",
+      "totalLabel": "Total del mes",
+      "usdApprox": "≈ {amount} USD",
+      "breakdownLabel": "Por proveedor",
+      "vsLastMonth": "vs. el mes pasado",
+      "vsLastYear": "vs. hace un año",
+      "noComparison": "Sin mes anterior para comparar",
+      "button": "Abre tu registro ›",
+      "voice": "Se envía cuando llega la factura de cada proveedor del mes.",
+      "footerNote": "Recibes esto porque eres miembro de esta propiedad en Factura."
     }
   },
   "charts": {
@@ -217,7 +233,7 @@
       "member": "miembro"
     },
     "leave": "Salir",
-    "addressVariantsPlaceholder": "Variantes de dirección, separadas por comas (calle + número)",
+    "addressPlaceholder": "Dirección (calle + número)",
     "people": "Personas",
     "you": " · tú",
     "memberInfo": "{email} · {role}",
@@ -781,7 +797,7 @@
         {
           "id": "what-we-collect",
           "heading": "Qué guarda Factura",
-          "body": "<p>Los datos que Factura conserva se agrupan en unas pocas categorías:</p><ul class=\"bullets\"><li><strong>Cuenta</strong>: tu dirección de correo y (si inicias sesión con Google) tu nombre y tu avatar. Esa es toda la identidad que guardamos. No hay contraseña; mira <a href=\"/security#authentication\">Seguridad</a>.</li><li><strong>Facturas</strong>: los PDF que subes, el texto extraído de ellos y los campos analizados (proveedor, monto, período de facturación, fecha de vencimiento y cualquier lectura de medidor o cifra de consumo). El archivo original se conserva para poder reprocesar una factura más adelante.</li><li><strong>Propiedades y proveedores</strong>: los apodos de propiedad y las variantes de dirección que ingresas, y las cuentas de proveedor bajo las que se archivan tus facturas.</li><li><strong>Muestras de analizador</strong>: si construyes un analizador personalizado, el texto de la factura de muestra que le adjuntas se guarda (acotado solo a tu cuenta) para poder volver a probar el analizador cuando lo editas.</li><li><strong>Técnicos</strong>: una cookie de sesión para mantener tu sesión iniciada, y registros de servidor habituales. Factura no establece cookies de publicidad ni de seguimiento entre sitios.</li></ul>"
+          "body": "<p>Los datos que Factura conserva se agrupan en unas pocas categorías:</p><ul class=\"bullets\"><li><strong>Cuenta</strong>: tu dirección de correo y (si inicias sesión con Google) tu nombre y tu avatar. Esa es toda la identidad que guardamos. No hay contraseña; mira <a href=\"/security#authentication\">Seguridad</a>.</li><li><strong>Facturas</strong>: los PDF que subes, el texto extraído de ellos y los campos analizados (proveedor, monto, período de facturación, fecha de vencimiento y cualquier lectura de medidor o cifra de consumo). El archivo original se conserva para poder reprocesar una factura más adelante.</li><li><strong>Propiedades y proveedores</strong>: los apodos de propiedad y las direcciones que ingresas, y las cuentas de proveedor bajo las que se archivan tus facturas.</li><li><strong>Muestras de analizador</strong>: si construyes un analizador personalizado, el texto de la factura de muestra que le adjuntas se guarda (acotado solo a tu cuenta) para poder volver a probar el analizador cuando lo editas.</li><li><strong>Técnicos</strong>: una cookie de sesión para mantener tu sesión iniciada, y registros de servidor habituales. Factura no establece cookies de publicidad ni de seguimiento entre sitios.</li></ul>"
         },
         {
           "id": "how-we-use-it",

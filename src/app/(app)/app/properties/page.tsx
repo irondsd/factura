@@ -98,12 +98,6 @@ export default function PropertiesPage() {
   );
   const atLimit = ownedCount >= OWNED_PROPERTY_LIMIT;
 
-  const parseVariants = (s: string) =>
-    s
-      .split(",")
-      .map((x) => x.trim())
-      .filter((x) => x.length >= 4);
-
   return (
     <div className="mx-auto max-w-[52rem] px-5 pt-8 pb-20">
       <Eyebrow>{tp.eyebrow}</Eyebrow>
@@ -224,17 +218,16 @@ export default function PropertiesPage() {
               </div>
             </div>
 
-            {/* address variants (owner) */}
+            {/* address (owner) */}
             {isOwner && (
               <Input
-                defaultValue={apt.addressVariants.join(", ")}
-                placeholder={tp.addressVariantsPlaceholder}
-                onBlur={(e) =>
-                  updateApt.mutate({
-                    id: apt.id,
-                    addressVariants: parseVariants(e.target.value),
-                  })
-                }
+                defaultValue={apt.address}
+                placeholder={tp.addressPlaceholder}
+                onBlur={(e) => {
+                  const address = e.target.value.trim();
+                  if (address !== apt.address)
+                    updateApt.mutate({ id: apt.id, address });
+                }}
                 className="mt-2.5"
               />
             )}
@@ -415,7 +408,7 @@ export default function PropertiesPage() {
             }
             if (!newNickname.trim()) return;
             createApt.mutate(
-              { nickname: newNickname.trim(), addressVariants: [] },
+              { nickname: newNickname.trim(), address: "" },
               opts(tp.toastAdded),
             );
             setNewNickname("");

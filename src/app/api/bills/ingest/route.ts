@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { auth } from "@/server/auth";
 import { ingestBill } from "@/server/ingest";
+import { maybeSendMonthlyReport } from "@/server/monthlyReport";
 import { extractPdfText } from "@/server/pdf";
 import { isStorageConfigured, putObject } from "@/server/storage";
 
@@ -70,6 +71,20 @@ export async function POST(request: Request) {
     });
     await posthog.shutdown();
   });
+
+  // If this bill filed into a property and completed its month, send the closing
+  // report. Runs after the response, never blocks the upload, and swallows errors
+  // (best-effort, like every other transactional email).
+  if (result.outcome === "parsed") {
+    const { propertyId, period } = result;
+    after(async () => {
+      try {
+        await maybeSendMonthlyReport(db, propertyId, period);
+      } catch (err) {
+        console.error("[monthly-report] send failed:", err);
+      }
+    });
+  }
 
   return Response.json(result);
 }

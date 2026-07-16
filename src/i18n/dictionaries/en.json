@@ -141,6 +141,7 @@
     "unsubscribe": "Unsubscribe",
     "headerAccount": "Account",
     "headerInvitation": "Invitation",
+    "headerReport": "Report",
     "welcome": {
       "subject": "Welcome to Factura",
       "preheader": "Your ledger is ready — drop a bill anywhere to begin.",
@@ -181,6 +182,21 @@
       "declinePrompt": "Didn't expect this?",
       "decline": "Decline",
       "footerNote": "You're receiving this because someone shared a property with your Factura account."
+    },
+    "monthlyReport": {
+      "subject": "{property}: your {month} summary",
+      "preheader": "{month} is complete — {total} across {count} vendors.",
+      "eyebrow": "Monthly report",
+      "intro": "Every expected bill for {property} is in for {month}. Here's the month at a glance.",
+      "totalLabel": "Total this month",
+      "usdApprox": "≈ {amount} USD",
+      "breakdownLabel": "By vendor",
+      "vsLastMonth": "vs. last month",
+      "vsLastYear": "vs. a year ago",
+      "noComparison": "No prior month to compare",
+      "button": "Open your ledger ›",
+      "voice": "Sent once every vendor's bill for the month is in.",
+      "footerNote": "You're receiving this because you're a member of this property on Factura."
     }
   },
   "charts": {
@@ -217,7 +233,7 @@
       "member": "member"
     },
     "leave": "Leave",
-    "addressVariantsPlaceholder": "Address variants, comma-separated (street + number)",
+    "addressPlaceholder": "Address (street + number)",
     "people": "People",
     "you": " · you",
     "memberInfo": "{email} · {role}",
@@ -781,7 +797,7 @@
         {
           "id": "what-we-collect",
           "heading": "What Factura stores",
-          "body": "<p>The data Factura keeps falls into a few groups:</p><ul class=\"bullets\"><li><strong>Account</strong> — your email address, and (if you sign in with Google) your name and avatar. That's the whole identity we hold. There is no password — see <a href=\"/en/security#authentication\">Security</a>.</li><li><strong>Bills</strong> — the PDFs you upload, the text extracted from them, and the fields parsed out (vendor, amount, billing period, due date, and any meter readings or consumption figures). The original file is kept so a bill can be re-parsed later.</li><li><strong>Properties &amp; vendors</strong> — the property nicknames and address variants you enter, and the vendor accounts your bills are filed under.</li><li><strong>Parser samples</strong> — if you build a custom parser, the sample bill text you attach to it is saved (scoped to your account only) so the parser can be re-tested when you edit it.</li><li><strong>Technical</strong> — a session cookie to keep you signed in, and ordinary server logs. Factura sets no advertising or cross-site tracking cookies.</li></ul>"
+          "body": "<p>The data Factura keeps falls into a few groups:</p><ul class=\"bullets\"><li><strong>Account</strong> — your email address, and (if you sign in with Google) your name and avatar. That's the whole identity we hold. There is no password — see <a href=\"/en/security#authentication\">Security</a>.</li><li><strong>Bills</strong> — the PDFs you upload, the text extracted from them, and the fields parsed out (vendor, amount, billing period, due date, and any meter readings or consumption figures). The original file is kept so a bill can be re-parsed later.</li><li><strong>Properties &amp; vendors</strong> — the property nicknames and addresses you enter, and the vendor accounts your bills are filed under.</li><li><strong>Parser samples</strong> — if you build a custom parser, the sample bill text you attach to it is saved (scoped to your account only) so the parser can be re-tested when you edit it.</li><li><strong>Technical</strong> — a session cookie to keep you signed in, and ordinary server logs. Factura sets no advertising or cross-site tracking cookies.</li></ul>"
         },
         {
           "id": "how-we-use-it",

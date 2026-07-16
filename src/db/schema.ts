@@ -94,7 +94,10 @@ export const properties = pgTable("properties", {
     .notNull()
     .references(() => users.id),
   nickname: text("nickname").notNull(),
-  addressVariants: text("address_variants").array().notNull().default([]),
+  // Full postal address (street + number …). Used in emails and as the address
+  // match hint at ingest. Replaced the old `address_variants` array — bills link
+  // to a property via the vendor account, so a single address is enough.
+  address: text("address").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -218,6 +221,28 @@ export const bills = pgTable(
     uniqueIndex("bill_inbox_text_hash_idx")
       .on(t.createdBy, t.textHash)
       .where(sql`${t.propertyId} is null`),
+  ],
+);
+
+/** Once-per-(property, month) log of the monthly closing report. A row exists
+ * iff the report for that property+period has been sent; the unique index makes
+ * the insert itself the concurrency guard, so two bills completing a month at
+ * once can't both fire the email. `period` is the month's first day (date). */
+export const monthlyReports = pgTable(
+  "monthly_reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    period: date("period").notNull(),
+    sentAt: timestamp("sent_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("monthly_report_property_period_idx").on(
+      t.propertyId,
+      t.period,
+    ),
   ],
 );
 

@@ -59,7 +59,7 @@ export const propertiesRouter = router({
     return props.map((p) => ({
       id: p.id,
       nickname: p.nickname,
-      addressVariants: p.addressVariants,
+      address: p.address,
       role: roleByProperty.get(p.id) ?? "member",
       members: members
         .filter((m) => m.propertyId === p.id)
@@ -79,7 +79,7 @@ export const propertiesRouter = router({
     .input(
       z.object({
         nickname: z.string().min(1).max(40),
-        addressVariants: z.array(z.string().min(4)).default([]),
+        address: z.string().max(200).default(""),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -99,7 +99,7 @@ export const propertiesRouter = router({
         ctx.db,
         ctx.userId,
         input.nickname,
-        input.addressVariants,
+        input.address,
       );
     }),
 
@@ -108,7 +108,7 @@ export const propertiesRouter = router({
       z.object({
         id: z.string().uuid(),
         nickname: z.string().min(1).max(40).optional(),
-        addressVariants: z.array(z.string().min(4)).optional(),
+        address: z.string().max(200).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -211,12 +211,14 @@ export const propertiesRouter = router({
       // is claimed on their next sign-in regardless.
       const property = await ctx.db.query.properties.findFirst({
         where: eq(properties.id, input.propertyId),
-        columns: { nickname: true },
+        columns: { nickname: true, address: true },
       });
       await sendShareInviteEmail({
         to: email,
         inviter: me?.name?.trim() || me?.email || "Someone",
-        property: property?.nickname ?? "a property",
+        // The address is more recognizable to an invitee than a short nickname
+        // ("Home"); fall back to the nickname when no address is set.
+        property: property?.address || property?.nickname || "a property",
       });
       return { ok: true };
     }),

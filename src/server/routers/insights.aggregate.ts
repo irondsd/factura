@@ -87,7 +87,10 @@ export function monthlySeries(
  * continuous stream. A vendor isn't "expected" before its first-ever bill, so
  * adding a new vendor mid-range doesn't retroactively mark older months
  * incomplete. */
-export function completeFlagsFor(months: string[], parsed: EnrichedBill[]) {
+export function completeFlagsFor(
+  months: string[],
+  parsed: Pick<EnrichedBill, "vendorId" | "period">[],
+) {
   const firstMonthByVendor = new Map<string, string>();
   for (const b of parsed) {
     if (!b.vendorId || !b.period) continue;

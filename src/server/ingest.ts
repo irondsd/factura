@@ -139,18 +139,16 @@ export function normalizeForMatch(s: string): string {
     .trim();
 }
 
-/** Address variants must be street + number; matched as substring of the
+/** The property address (street + number) matched as a substring of the
  * normalized bill text. */
 export function matchProperty(
   text: string,
-  props: { id: string; addressVariants: string[] }[],
+  props: { id: string; address: string }[],
 ): string | null {
   const haystack = normalizeForMatch(text);
   for (const p of props) {
-    for (const variant of p.addressVariants) {
-      const needle = normalizeForMatch(variant);
-      if (needle.length > 3 && haystack.includes(needle)) return p.id;
-    }
+    const needle = normalizeForMatch(p.address);
+    if (needle.length > 3 && haystack.includes(needle)) return p.id;
   }
   return null;
 }

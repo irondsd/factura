@@ -76,11 +76,11 @@ export async function createPropertyForUser(
   db: Database,
   userId: string,
   nickname: string,
-  addressVariants: string[] = [],
+  address = "",
 ): Promise<PropertyRow> {
   const [property] = await db
     .insert(properties)
-    .values({ userId, nickname, addressVariants })
+    .values({ userId, nickname, address })
     .returning();
   await db
     .insert(propertyMembers)

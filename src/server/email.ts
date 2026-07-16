@@ -26,6 +26,11 @@ import {
   type Locale,
 } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
+import { formatMonth } from "@/lib/format";
+import {
+  MonthlyReportEmail,
+  type ReportVendor,
+} from "../../emails/monthly-report";
 import { OtpEmail } from "../../emails/opt";
 import { ShareInviteEmail } from "../../emails/share-invite";
 import { WelcomeEmail } from "../../emails/welcome";
@@ -143,6 +148,40 @@ export async function sendOtpEmail(opts: { to: string; code: string }) {
     react: OtpEmail({ t, locale, code: opts.code }),
   });
   if (!sent) throw new Error("Failed to send sign-in code");
+}
+
+/** Monthly closing report — fired once per property+month when the last expected
+ * bill of that month lands. `locale` is passed explicitly (the caller already has
+ * each member's stored preference) so we don't re-query per recipient. */
+export async function sendMonthlyReportEmail(opts: {
+  to: string;
+  locale: Locale;
+  property: string;
+  /** Reporting month as "YYYY-MM-01" (or "YYYY-MM"). */
+  month: string;
+  totalArs: number;
+  totalUsd: number | null;
+  vendors: ReportVendor[];
+}) {
+  const t = (await getDictionary(opts.locale)).emails;
+  const monthLabel = formatMonth(opts.month, opts.locale);
+  return send({
+    to: opts.to,
+    subject: interpolate(t.monthlyReport.subject, {
+      property: opts.property,
+      month: monthLabel,
+    }),
+    react: MonthlyReportEmail({
+      t,
+      locale: opts.locale,
+      property: opts.property,
+      month: opts.month,
+      totalArs: opts.totalArs,
+      totalUsd: opts.totalUsd,
+      vendors: opts.vendors,
+      ledgerUrl: `${baseUrl()}/app`,
+    }),
+  });
 }
 
 /** Shared-property invite — fired when an owner invites someone by email.

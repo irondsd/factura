@@ -248,7 +248,7 @@ export const demoProperties: PropertyRow[] = [
   {
     id: PROPERTY_ID,
     nickname: "Palermo",
-    addressVariants: ["Av. Santa Fe 3200, Palermo"],
+    address: "Av. Santa Fe 3200, Palermo",
     role: "owner",
     members: [
       { userId: USER_ID, role: "owner", name: "You", email: "you@example.com" },

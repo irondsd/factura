@@ -197,7 +197,7 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
                   if (!newNickname.trim()) return;
                   const created = await createProperty.mutateAsync({
                     nickname: newNickname.trim(),
-                    addressVariants: [],
+                    address: "",
                   });
                   setNewNickname("");
                   await resolveConfirm(created.id);
