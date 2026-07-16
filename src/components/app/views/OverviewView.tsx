@@ -45,6 +45,12 @@ export function OverviewView({
   const moneySym = donut.currency === "USD" ? "US$" : "AR$";
   const slices = toSlices(d.byCurrency[donut.currency].share, d.vendors);
 
+  // The selected property lives in the URL (?property=<nickname>); carry it
+  // forward so "see all insights" keeps the selection, like the TopBar nav.
+  const insightsUrl = d.property
+    ? `${insightsHref}?${new URLSearchParams({ property: d.property.nickname.toLowerCase() })}`
+    : insightsHref;
+
   return (
     <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
       {/* hero */}
@@ -76,7 +82,7 @@ export function OverviewView({
           </p>
         </div>
         <Link
-          href={insightsHref}
+          href={insightsUrl}
           className="font-mono text-micro uppercase tracking-label border border-line py-[9px] px-[14px] text-ink no-underline transition-colors hover:border-accent hover:text-accent"
         >
           {to.seeInsights}
