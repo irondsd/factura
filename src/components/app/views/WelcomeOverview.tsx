@@ -154,10 +154,13 @@ const DEMO_SLICES = [
 function GhostDonut() {
   const r = 70;
   const c = 2 * Math.PI * r;
-  let acc = 0;
-  const arcs = DEMO_SLICES.map((s) => {
+  // Cumulative start (in %) before each slice, so segments tile the ring.
+  const starts = DEMO_SLICES.map((_, i) =>
+    DEMO_SLICES.slice(0, i).reduce((sum, s) => sum + s.value, 0),
+  );
+  const arcs = DEMO_SLICES.map((s, i) => {
     const dash = (s.value / 100) * c;
-    const arc = (
+    return (
       <circle
         key={s.id}
         cx="90"
@@ -167,11 +170,9 @@ function GhostDonut() {
         stroke={s.color}
         strokeWidth="28"
         strokeDasharray={`${dash} ${c - dash}`}
-        strokeDashoffset={-(acc / 100) * c}
+        strokeDashoffset={-(starts[i] / 100) * c}
       />
     );
-    acc += s.value;
-    return arc;
   });
   return (
     <div className="flex flex-wrap items-center gap-4 md:flex-nowrap">
