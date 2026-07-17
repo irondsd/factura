@@ -370,7 +370,22 @@
     "monthlySpend": "Monthly spend",
     "stackedByVendor": "Stacked by vendor",
     "perVendorTrend": "Per-vendor trend",
-    "spendLast12": "Spend over the last 12 months"
+    "spendLast12": "Spend over the last 12 months",
+    "welcome": {
+      "title": "Welcome. Your ledger starts with one bill.",
+      "body": "Factura reads utility PDFs and keeps the running totals for you. Drop a bill and we take it from there — originals stay saved and always at hand.",
+      "dropTitle": "Drop the bill",
+      "dropDesc": "Any utility PDF — Edesur, MetroGAS, Telecom, or your building's expensas. Drag it anywhere on this page, or",
+      "browse": "Browse for a PDF",
+      "dropFootnote": "Original saved · you can delete anything later",
+      "step1Tag": "01 · Drop",
+      "step1Body": "Any bill PDF, anywhere on the page. One at a time or a whole folder's worth.",
+      "step2Tag": "02 · We read it",
+      "step2Body": "We pull the amount, period and consumption, and keep the file safe so you can always open the original.",
+      "step3Tag": "03 · It's ledgered",
+      "step3Body": "Totals per property and month, missing-bill alerts, and the USD blue estimate — automatic.",
+      "previewLabel": "A preview of your dashboard"
+    }
   },
   "insights": {
     "title": "How your bills move",

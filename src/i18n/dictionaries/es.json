@@ -370,7 +370,22 @@
     "monthlySpend": "Gasto mensual",
     "stackedByVendor": "Apilado por proveedor",
     "perVendorTrend": "Tendencia por proveedor",
-    "spendLast12": "Gasto en los últimos 12 meses"
+    "spendLast12": "Gasto en los últimos 12 meses",
+    "welcome": {
+      "title": "Te damos la bienvenida. Tu registro empieza con una factura.",
+      "body": "Factura lee los PDF de tus servicios y lleva los totales al día por ti. Suelta una factura y nos encargamos del resto: los originales quedan guardados y siempre a mano.",
+      "dropTitle": "Suelta la factura",
+      "dropDesc": "Cualquier PDF de servicios — Edesur, MetroGAS, Telecom o las expensas de tu edificio. Suéltala en cualquier parte de la página, o",
+      "browse": "Elegir un PDF",
+      "dropFootnote": "Original guardado · puedes borrar lo que quieras después",
+      "step1Tag": "01 · Suéltala",
+      "step1Body": "Cualquier PDF de factura, en cualquier parte de la página. Una por una, o una carpeta entera.",
+      "step2Tag": "02 · La leemos",
+      "step2Body": "Extraemos el monto, el período y el consumo, y guardamos el archivo para que siempre puedas abrir el original.",
+      "step3Tag": "03 · Al registro",
+      "step3Body": "Totales por propiedad y por mes, avisos de facturas faltantes y la estimación en dólar blue — automático.",
+      "previewLabel": "Una vista previa de tu panel"
+    }
   },
   "insights": {
     "title": "Cómo se mueven tus facturas",
