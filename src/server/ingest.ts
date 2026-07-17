@@ -7,6 +7,7 @@ import { ParseError } from "@/parsers/engine/types";
 import type { ParserConfig } from "@/parsers/engine/types";
 import { normalize } from "@/parsers/normalize";
 import { ensureVendor } from "./defaults";
+import { suggestProperty } from "./match/address";
 import { accessibleProperties } from "./ownership";
 import { resultToColumns, resultToExtra } from "./parsers";
 import { loadUserConfigs } from "./registry";
@@ -25,7 +26,14 @@ export type IngestResult =
       billId: string;
       vendorName: string;
       accountNumber: string;
+      /** Best address guess, or null if the bill's text matched no property. */
       suggestedPropertyId: string | null;
+      /** Raw score behind the suggestion, 0 when there isn't one. Reported for
+       * analytics; the UI keys off `suggestionConfident`. */
+      suggestionConfidence: number;
+      /** The suggestion is strong enough AND far enough ahead of the runner-up
+       * to just ask "is this the right property?" instead of showing the picker. */
+      suggestionConfident: boolean;
     }
   | {
       outcome: "parsed";
@@ -127,30 +135,6 @@ export async function fileBillIntoProperty(
     .where(eq(bills.id, billId))
     .returning();
   return { updated, vendorId: v.id, accountId: account.id };
-}
-
-/** Lowercase, strip diacritics, collapse whitespace — for address matching. */
-export function normalizeForMatch(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-/** The property address (street + number) matched as a substring of the
- * normalized bill text. */
-export function matchProperty(
-  text: string,
-  props: { id: string; address: string }[],
-): string | null {
-  const haystack = normalizeForMatch(text);
-  for (const p of props) {
-    const needle = normalizeForMatch(p.address);
-    if (needle.length > 3 && haystack.includes(needle)) return p.id;
-  }
-  return null;
 }
 
 export type IngestInput = {
@@ -296,7 +280,7 @@ async function ingestInTx(
           where: inArray(properties.id, accessible),
         })
       : [];
-    const suggestedPropertyId = matchProperty(text, props);
+    const suggestion = suggestProperty(text, props);
     const [bill] = await db
       .insert(bills)
       .values({
@@ -310,7 +294,9 @@ async function ingestInTx(
       billId: bill.id,
       vendorName: config.vendor.displayName,
       accountNumber: result.identity,
-      suggestedPropertyId,
+      suggestedPropertyId: suggestion?.propertyId ?? null,
+      suggestionConfidence: suggestion?.confidence ?? 0,
+      suggestionConfident: suggestion?.confident ?? false,
     };
   }
 

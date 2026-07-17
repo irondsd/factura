@@ -347,6 +347,9 @@
     "newAccount": "Cuenta nueva encontrada",
     "whichProperty": "¿A qué propiedad pertenece esta cuenta? Solo se te preguntará una vez.",
     "addressMatch": "coincide la dirección",
+    "confirmProperty": "¿Esta cuenta es de esta propiedad? Solo se te preguntará una vez.",
+    "confirmYes": "Sí, es esta",
+    "confirmNo": "No — elegir otra",
     "newPropertyPlaceholder": "…o apodo de propiedad nueva",
     "skipReview": "Omitir — mantener en la bandeja de revisión",
     "uploadBill": "Subir factura"

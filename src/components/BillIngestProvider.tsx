@@ -24,6 +24,9 @@ type PendingConfirm = {
   vendorName: string;
   accountNumber: string;
   suggestedPropertyId: string | null;
+  /** The address match is strong enough to ask a yes/no instead of showing the
+   * whole picker. */
+  suggestionConfident: boolean;
 };
 
 type BillIngestValue = {
@@ -55,6 +58,8 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [confirmQueue, setConfirmQueue] = useState<PendingConfirm[]>([]);
   const [newNickname, setNewNickname] = useState("");
+  /** Set when the user rejects a confident guess, dropping them to the picker. */
+  const [picking, setPicking] = useState(false);
 
   const utils = trpc.useUtils();
   const confirmAccount = trpc.bills.confirmAccount.useMutation();
@@ -122,6 +127,7 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
                   vendorName: result.vendorName,
                   accountNumber: result.accountNumber,
                   suggestedPropertyId: result.suggestedPropertyId,
+                  suggestionConfident: result.suggestionConfident,
                 },
               ]);
               break;
@@ -144,11 +150,23 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
     await confirmAccount.mutateAsync({ billId: current.billId, propertyId });
     posthog.capture("bill_account_linked", {
       vendor_name: current.vendorName,
+      // Did the address guess survive the user's review?
+      suggestion_confident: current.suggestionConfident,
+      suggestion_accepted: propertyId === current.suggestedPropertyId,
     });
     showToast(interpolate(td.accountLinked, { vendor: current.vendorName }));
     setConfirmQueue((q) => q.slice(1));
+    setPicking(false);
     utils.invalidate();
   };
+
+  // A confident address match earns a yes/no instead of the full picker — but
+  // only once we can actually name the property, and only until the user says
+  // it's wrong.
+  const suggested = current?.suggestionConfident
+    ? propertiesQuery.data?.find((p) => p.id === current.suggestedPropertyId)
+    : undefined;
+  const confirming = Boolean(suggested) && !picking;
 
   return (
     <BillIngestContext.Provider value={{ handleFiles, busy }}>
@@ -169,61 +187,95 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
             <h2 className="mt-2 font-display text-2xl font-semibold">
               {current.vendorName} · №{current.accountNumber}
             </h2>
-            <p className="mt-2 text-sm text-muted">{td.whichProperty}</p>
-            <div className="mt-4 flex flex-col gap-2">
-              {(propertiesQuery.data ?? []).map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => resolveConfirm(p.id)}
-                  disabled={confirmAccount.isPending}
-                  className={`cursor-pointer border px-4 py-2 text-left text-sm hover:border-accent ${
-                    p.id === current.suggestedPropertyId
-                      ? "border-accent bg-accent/5"
-                      : "border-line"
-                  }`}
-                >
-                  {p.nickname}
-                  {p.id === current.suggestedPropertyId && (
-                    <span className="ml-2 text-[10px] uppercase tracking-wider text-accent">
-                      {td.addressMatch}
-                    </span>
+            <p className="mt-2 text-sm text-muted">
+              {confirming ? td.confirmProperty : td.whichProperty}
+            </p>
+
+            {confirming && suggested ? (
+              <div className="mt-4 flex flex-col gap-2">
+                <div className="border border-accent bg-accent/5 px-4 py-3">
+                  <p className="text-sm font-semibold">{suggested.nickname}</p>
+                  {suggested.address && (
+                    <p className="mt-0.5 text-xs text-muted">
+                      {suggested.address}
+                    </p>
                   )}
-                </button>
-              ))}
-              <form
-                className="mt-1 flex gap-2"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (!newNickname.trim()) return;
-                  const created = await createProperty.mutateAsync({
-                    nickname: newNickname.trim(),
-                    address: "",
-                  });
-                  setNewNickname("");
-                  await resolveConfirm(created.id);
-                }}
-              >
-                <input
-                  value={newNickname}
-                  onChange={(e) => setNewNickname(e.target.value)}
-                  placeholder={td.newPropertyPlaceholder}
-                  className="flex-1 border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-accent"
-                />
+                </div>
                 <button
-                  type="submit"
-                  disabled={createProperty.isPending}
-                  className="cursor-pointer border border-line px-3 py-2 text-[11px] uppercase tracking-wider hover:border-accent hover:text-accent"
+                  onClick={() => resolveConfirm(suggested.id)}
+                  disabled={confirmAccount.isPending}
+                  className="cursor-pointer border border-accent bg-accent/10 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/20"
                 >
-                  {t.common.add}
+                  {td.confirmYes}
                 </button>
-              </form>
-              <button
-                onClick={() => setConfirmQueue((q) => q.slice(1))}
-                className="mt-1 cursor-pointer text-[11px] uppercase tracking-wider text-muted underline decoration-dotted underline-offset-4 hover:text-accent"
-              >
-                {td.skipReview}
-              </button>
-            </div>
+                <button
+                  onClick={() => setPicking(true)}
+                  disabled={confirmAccount.isPending}
+                  className="cursor-pointer border border-line px-4 py-2 text-sm hover:border-accent"
+                >
+                  {td.confirmNo}
+                </button>
+              </div>
+            ) : (
+              <div className="mt-4 flex flex-col gap-2">
+                {(propertiesQuery.data ?? []).map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => resolveConfirm(p.id)}
+                    disabled={confirmAccount.isPending}
+                    className={`cursor-pointer border px-4 py-2 text-left text-sm hover:border-accent ${
+                      p.id === current.suggestedPropertyId
+                        ? "border-accent bg-accent/5"
+                        : "border-line"
+                    }`}
+                  >
+                    {p.nickname}
+                    {p.id === current.suggestedPropertyId && (
+                      <span className="ml-2 text-[10px] uppercase tracking-wider text-accent">
+                        {td.addressMatch}
+                      </span>
+                    )}
+                  </button>
+                ))}
+                <form
+                  className="mt-1 flex gap-2"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!newNickname.trim()) return;
+                    const created = await createProperty.mutateAsync({
+                      nickname: newNickname.trim(),
+                      address: "",
+                    });
+                    setNewNickname("");
+                    await resolveConfirm(created.id);
+                  }}
+                >
+                  <input
+                    value={newNickname}
+                    onChange={(e) => setNewNickname(e.target.value)}
+                    placeholder={td.newPropertyPlaceholder}
+                    className="flex-1 border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-accent"
+                  />
+                  <button
+                    type="submit"
+                    disabled={createProperty.isPending}
+                    className="cursor-pointer border border-line px-3 py-2 text-[11px] uppercase tracking-wider hover:border-accent hover:text-accent"
+                  >
+                    {t.common.add}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                setConfirmQueue((q) => q.slice(1));
+                setPicking(false);
+              }}
+              className="mt-3 cursor-pointer text-[11px] uppercase tracking-wider text-muted underline decoration-dotted underline-offset-4 hover:text-accent"
+            >
+              {td.skipReview}
+            </button>
           </div>
         </div>
       )}

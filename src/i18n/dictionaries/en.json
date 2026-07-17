@@ -347,6 +347,9 @@
     "newAccount": "New account found",
     "whichProperty": "Which property does this account belong to? You'll only be asked once.",
     "addressMatch": "address match",
+    "confirmProperty": "Does this account belong to this property? You'll only be asked once.",
+    "confirmYes": "Yes, that's the one",
+    "confirmNo": "No — choose another",
     "newPropertyPlaceholder": "…or new property nickname",
     "skipReview": "Skip — keep in review inbox",
     "uploadBill": "Upload bill"
