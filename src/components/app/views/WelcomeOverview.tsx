@@ -132,42 +132,92 @@ export function WelcomeOverview() {
   );
 }
 
-// Muted, on-brand vendor tones for the ghost shapes — earthy and calm so the
-// preview reads as scaffolding, not real data.
-const GHOST_TONES = [
-  "var(--vendor-sage)",
-  "var(--vendor-taupe)",
-  "var(--vendor-amber)",
-  "var(--vendor-slate-teal)",
-  "var(--vendor-earth)",
+// Demo-page vendor palette (matches src/lib/demo/fixtures.ts) so the preview
+// reads like a filled-in dashboard, not an unrelated skeleton.
+const DEMO = {
+  expensas: "var(--vendor-dark-earth)",
+  metrogas: "var(--vendor-burnt-orange)",
+  personal: "var(--vendor-taupe)",
+  edesur: "var(--vendor-sage)",
+};
+
+// Sample vendor share for the donut, in the demo's proportions.
+const DEMO_SLICES = [
+  { id: "expensas", label: "Expensas", value: 75, color: DEMO.expensas },
+  { id: "metrogas", label: "MetroGAS", value: 13, color: DEMO.metrogas },
+  { id: "edesur", label: "Edesur", value: 6, color: DEMO.edesur },
+  { id: "personal", label: "Personal", value: 6, color: DEMO.personal },
 ];
 
-/** Donut silhouette + a short skeleton legend, echoing <VendorShare>. */
+/** Donut ring in the demo colours/proportions, with the center label and legend
+ * names/percentages rendered as half-transparent skeleton bars instead of text. */
 function GhostDonut() {
-  const stops = [0, 34, 58, 78, 100];
-  const ring = `conic-gradient(${GHOST_TONES.map(
-    (c, i) => `${c} ${stops[i]}%, ${c} ${stops[i + 1]}%`,
-  ).join(", ")})`;
+  const r = 70;
+  const c = 2 * Math.PI * r;
+  let acc = 0;
+  const arcs = DEMO_SLICES.map((s) => {
+    const dash = (s.value / 100) * c;
+    const arc = (
+      <circle
+        key={s.id}
+        cx="90"
+        cy="90"
+        r={r}
+        fill="none"
+        stroke={s.color}
+        strokeWidth="28"
+        strokeDasharray={`${dash} ${c - dash}`}
+        strokeDashoffset={-(acc / 100) * c}
+      />
+    );
+    acc += s.value;
+    return arc;
+  });
   return (
     <div className="flex flex-wrap items-center gap-4 md:flex-nowrap">
-      <div
-        className="relative h-[180px] w-[180px] flex-none rounded-full"
-        style={{ background: ring }}
-      >
-        <div className="absolute inset-[30px] rounded-full bg-card" />
+      <div className="relative h-[180px] w-[180px] flex-none">
+        <svg width="180" height="180" viewBox="0 0 180 180" aria-hidden="true">
+          <g transform="rotate(-90 90 90)">{arcs}</g>
+        </svg>
+        {/* skeleton in place of the "AR$ / por proveedor" center label */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
+          <span className="h-3 w-11 rounded-sm bg-muted/35" />
+          <span className="h-1.5 w-14 rounded-sm bg-muted/25" />
+        </div>
       </div>
-      <div className="flex flex-1 flex-col gap-2">
-        {GHOST_TONES.map((c, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 flex-none" style={{ background: c }} />
-            <span className="h-2 flex-1 rounded-sm bg-line" />
-            <span className="h-2 w-7 rounded-sm bg-line" />
+      <div className="flex flex-1 flex-col gap-2.5">
+        {DEMO_SLICES.map((s) => (
+          <div key={s.id} className="flex items-center gap-2">
+            <span
+              className="h-2.5 w-2.5 flex-none"
+              style={{ background: s.color }}
+            />
+            {/* vendor name → skeleton bar */}
+            <span className="h-2.5 flex-1 rounded-sm bg-muted/30" />
+            {/* percentage → skeleton bar */}
+            <span className="h-2.5 w-8 rounded-sm bg-muted/30" />
           </div>
         ))}
       </div>
     </div>
   );
 }
+
+// Within-bar stack (bottom → top), echoing the demo's Expensas-heavy months.
+const GHOST_BAR_STACK = [
+  { color: DEMO.expensas, pct: 68 },
+  { color: DEMO.metrogas, pct: 20 },
+  { color: DEMO.personal, pct: 7 },
+  { color: DEMO.edesur, pct: 5 },
+];
+
+// Trend lines, one per demo vendor.
+const GHOST_LINE_COLORS = [
+  DEMO.expensas,
+  DEMO.metrogas,
+  DEMO.personal,
+  DEMO.edesur,
+];
 
 // Twelve months of stacked bars, each a fixed pseudo-random split — enough to
 // suggest the real stacked chart without pretending to be data.
@@ -183,18 +233,13 @@ function GhostBars() {
           className="flex flex-1 flex-col justify-end"
           style={{ height: `${h}%` }}
         >
-          <span
-            className="w-full"
-            style={{ height: "38%", background: GHOST_TONES[0] }}
-          />
-          <span
-            className="w-full"
-            style={{ height: "34%", background: GHOST_TONES[1] }}
-          />
-          <span
-            className="w-full"
-            style={{ height: "28%", background: GHOST_TONES[2] }}
-          />
+          {GHOST_BAR_STACK.map((seg, j) => (
+            <span
+              key={j}
+              className="w-full"
+              style={{ height: `${seg.pct}%`, background: seg.color }}
+            />
+          ))}
         </div>
       ))}
     </div>
@@ -214,7 +259,7 @@ function GhostSparklines() {
             <div className="flex items-center gap-[7px]">
               <span
                 className="h-2 w-2 flex-none"
-                style={{ background: GHOST_TONES[i % GHOST_TONES.length] }}
+                style={{ background: GHOST_LINE_COLORS[i] }}
               />
               <span className="h-2 w-20 rounded-sm bg-line" />
             </div>
@@ -224,7 +269,7 @@ function GhostSparklines() {
             <polyline
               points="2,22 18,16 34,19 50,9 66,13 82,5 94,8"
               fill="none"
-              stroke={GHOST_TONES[i % GHOST_TONES.length]}
+              stroke={GHOST_LINE_COLORS[i]}
               strokeWidth="1.5"
             />
           </svg>
