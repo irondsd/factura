@@ -39,6 +39,7 @@ export const meta = {
     "entender factura de electricidad",
     "consumo kWh",
   ],
+  categories: ["servicios", "leer-facturas"],
   published: "2026-06-29",
   updated: "2026-06-29",
 };
@@ -50,8 +51,32 @@ export const meta = {
 | `description` | `<meta name="description">`, OG/Twitter description            | ~150–160 chars. One compelling sentence; this is the search snippet. |
 | `summary`     | The `/guias` index cards, the homepage list, `llms.txt`        | One short sentence (~90–120 chars). Can differ from `description`.   |
 | `keywords`    | `<meta name="keywords">`                                       | 3–6 real Spanish search phrases. Lowercase.                          |
+| `categories`  | Grouping on `/guias`, the breadcrumb, related-guide picks      | 1–3 ids from the list below. **The first one is the primary.**       |
 | `published`   | Article dateline, JSON-LD `datePublished`, sitemap             | `YYYY-MM-DD`. Set once, don't change.                                |
 | `updated`     | Dateline (shown only if ≠ published), JSON-LD, sitemap lastmod | `YYYY-MM-DD`. Bump when you meaningfully edit.                       |
+
+### Choosing `categories`
+
+Categories work like tags: pick every one that genuinely applies, **most
+important first**. The first id is the guide's *primary* category — it decides
+which section the guide is grouped under on `/guias` and which crumb shows in its
+breadcrumb. The others don't move the guide; they widen where it surfaces
+(category pages, "related guides" on other articles).
+
+| id                 | Label                 | Use it for                                                          |
+| ------------------ | --------------------- | ------------------------------------------------------------------- |
+| `expensas`         | Expensas              | Anything about expensas, consorcios and gastos comunes.             |
+| `servicios`        | Servicios del hogar   | A specific utility: luz, gas, agua, internet, telefonía.            |
+| `leer-facturas`    | Cómo leer una factura | Walkthroughs of an actual bill — what each section/field means.     |
+| `ahorro-y-control` | Ahorro y control      | Reference values, detecting wrong charges, tracking spend over time. |
+| `pagos-y-tramites` | Pagos y trámites      | Paying, due dates, and paperwork like scanning or filing bills.      |
+
+Two is the usual number: one for the *topic*, one for the *task*. A vendor bill
+walkthrough is `["servicios", "leer-facturas"]`; a piece on what expensas include
+is `["expensas", "ahorro-y-control"]`. Only ids in the table are valid — the
+validator rejects anything else. The canonical list lives in
+[`categories.ts`](./categories.ts); adding a category means editing that file, so
+don't invent one inline.
 
 ---
 
@@ -134,9 +159,22 @@ Notes:
   generic button. `variant` is `"solid"` (default) or `"outline"`.
 - `<CtaRow>…</CtaRow>` → wraps buttons so they sit in a row.
 
-**Every guide should end** by tying the topic back to the product, e.g. a short
-"Léelo automáticamente" section + a `<CtaRow>` with `<DemoCta />` and
-`<SignupCta />`.
+**Related guides** — `<RelatedGuides />` renders a "Guías relacionadas" block
+with three other guides, picked automatically from the ones sharing this guide's
+`categories`. It takes no props — don't pass the slug or a list, the page fills
+it in.
+
+```mdx
+<RelatedGuides />
+```
+
+Put it **just above the closing `<CtaRow>`**, after your final paragraph. It's
+the one component whose position you control and whose content you don't, so a
+missing tag silently means no block — the validator warns if you forget it.
+
+**Every guide should end** with the same closing shape: a short "Léelo
+automáticamente" section tying the topic back to the product, then
+`<RelatedGuides />`, then a `<CtaRow>` with `<DemoCta />` and `<SignupCta />`.
 
 ---
 
@@ -145,9 +183,11 @@ Notes:
 - [ ] Primary keyword is in `title`, in the first paragraph, and in at least one `##`.
 - [ ] `description` reads like a search result and is ~150–160 chars.
 - [ ] 3–6 realistic `keywords`.
+- [ ] 1–3 `categories`, most important first (the first is the primary).
 - [ ] At least one internal link to another guide or to `/docs` / `/demo`.
-- [ ] Closing CTA section present.
+- [ ] Closing CTA section present, with `<RelatedGuides />` just above it.
 - [ ] Slug is keyword-rich, hyphenated, accent-free.
+- [ ] `npm run validate:guides` passes with no errors.
 
 ---
 
@@ -182,6 +222,7 @@ export const meta = {
   description: "",
   summary: "",
   keywords: ["", "", ""],
+  categories: ["", ""],
   published: "YYYY-MM-DD",
   updated: "YYYY-MM-DD",
 };
@@ -201,6 +242,8 @@ tenga sentido: [texto del enlace](/guias/otro-slug).
 ## Léelo automáticamente
 
 Cierre que conecta el tema con Factura.
+
+<RelatedGuides />
 
 <CtaRow>
   <DemoCta />

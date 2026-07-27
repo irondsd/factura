@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/guides/Breadcrumbs";
+import { CategoryChips } from "@/components/guides/CategoryChips";
+import { RelatedGuides } from "@/components/guides/RelatedGuides";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { guideSlugs, loadGuide } from "@/content/guias/guides";
+import { getCategory } from "@/content/guias/categories";
+import { guideSlugs, loadGuide, relatedGuides } from "@/content/guias/guides";
 import { guideMetadata } from "@/i18n/metadata";
 import { guideLd } from "@/i18n/structuredData";
 
@@ -34,6 +37,14 @@ const fmtDate = (iso: string) =>
 export default async function GuidePage({ params }: Props) {
   const { slug } = await params;
   const { Content, meta } = await loadGuide(slug);
+  const related = await relatedGuides(slug);
+
+  // Categories in the order the guide declares them: primary first, which is
+  // also the one that earns the breadcrumb crumb.
+  const categories = meta.categories
+    .map(getCategory)
+    .filter((c) => c !== undefined);
+  const primary = categories[0];
 
   return (
     <>
@@ -46,6 +57,14 @@ export default async function GuidePage({ params }: Props) {
             items={[
               { name: "Inicio", href: "/" },
               { name: "Guías", href: "/guias" },
+              ...(primary
+                ? [
+                    {
+                      name: primary.label,
+                      href: `/guias/categoria/${primary.id}`,
+                    },
+                  ]
+                : []),
               { name: meta.title, href: `/guias/${slug}` },
             ]}
           />
@@ -60,10 +79,23 @@ export default async function GuidePage({ params }: Props) {
               {meta.updated !== meta.published &&
                 ` · Actualizado el ${fmtDate(meta.updated)}`}
             </p>
+            <CategoryChips
+              categories={categories}
+              label="Temas de esta guía"
+              className="mt-5"
+            />
           </header>
 
           <div className="mt-8 border-t border-line pt-2">
-            <Content />
+            {/* `RelatedGuides` is overridden here rather than in
+                mdx-components.tsx: the global map can't know which guide is
+                rendering, so the page binds the resolved list and the MDX just
+                places a bare <RelatedGuides /> where the author wants it. */}
+            <Content
+              components={{
+                RelatedGuides: () => <RelatedGuides guides={related} />,
+              }}
+            />
           </div>
 
           <nav className="mt-14 border-t border-line pt-6">

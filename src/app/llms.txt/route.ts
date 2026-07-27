@@ -1,5 +1,8 @@
-import { allGuides } from "@/content/guias/guides";
-import { guidesIndexUrl, guideUrl } from "@/i18n/metadata";
+import {
+  guidesByPrimaryCategory,
+  nonEmptyCategories,
+} from "@/content/guias/guides";
+import { guideCategoryUrl, guidesIndexUrl, guideUrl } from "@/i18n/metadata";
 
 // Build-time generated /llms.txt. The curated product/demo/trust prose is
 // editorial and lives here as a template; the Guías list is generated from the
@@ -55,7 +58,10 @@ A live, interactive walkthrough of the app on sample data — no sign-in require
 - The signed-in application lives under https://factura.uno/app and requires authentication; it is not publicly indexable. The /demo pages above show the same screens on sample data.`;
 
 export async function GET() {
-  const guides = await allGuides();
+  const [sections, categories] = await Promise.all([
+    guidesByPrimaryCategory(),
+    nonEmptyCategories(),
+  ]);
 
   const guidesSection = [
     "## Guías",
@@ -63,9 +69,20 @@ export async function GET() {
     "Spanish-only educational guides about household utility bills (electricity, gas, water): how to read them, what the charges mean, and how to keep spending under control. Indexed for organic search; each guide links to the demo and sign-up.",
     "",
     `- [Guías index](${guidesIndexUrl}): All guides about understanding utility bills.`,
-    ...guides.map(
-      (g) => `- [${g.meta.title}](${guideUrl(g.slug)}): ${g.meta.summary}`,
+    // Hub pages first, then the guides themselves. Guides are grouped by their
+    // primary category (same rule as the index) so each one is listed exactly
+    // once, even though most carry more than one category.
+    ...categories.map(
+      (c) => `- [${c.label}](${guideCategoryUrl(c.id)}): ${c.description}`,
     ),
+    ...sections.flatMap(({ category, guides }) => [
+      "",
+      `### ${category.label}`,
+      "",
+      ...guides.map(
+        (g) => `- [${g.meta.title}](${guideUrl(g.slug)}): ${g.meta.summary}`,
+      ),
+    ]),
   ].join("\n");
 
   const body = `${PREAMBLE}\n\n${guidesSection}\n\n${AFTER}\n`;

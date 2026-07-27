@@ -10,9 +10,14 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CATEGORY_IDS, isCategoryId } from "../src/content/guias/categories";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const GUIDES_DIR = path.join(here, "../src/content/guias");
+
+// Path segments under /guias that are real routes, not guides. A guide with one
+// of these slugs would be shadowed by the route and never render.
+const RESERVED_SLUGS = new Set(["categoria"]);
 
 // Components registered in `src/mdx-components.tsx` — the only custom (capitalized)
 // JSX a guide may use. Anything else would crash the build.
@@ -21,6 +26,7 @@ const ALLOWED_COMPONENTS = new Set([
   "CtaRow",
   "DemoCta",
   "SignupCta",
+  "RelatedGuides",
 ]);
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -110,6 +116,11 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
       `filename slug "${slug}" must be lowercase, hyphen-separated, no accents/spaces`,
     );
   }
+  if (RESERVED_SLUGS.has(slug)) {
+    errors.push(
+      `slug "${slug}" is a reserved /guias route — rename the file`,
+    );
+  }
 
   // ── no YAML frontmatter ───────────────────────────────────────────────────
   if (src.trimStart().startsWith("---")) {
@@ -147,6 +158,34 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
       warnings.push(`meta.keywords has ${kw.length} (aim for 3–6)`);
     }
 
+    // ── categories (the first one is the guide's primary category) ──────────
+    const cats = meta.categories;
+    if (
+      !Array.isArray(cats) ||
+      cats.length === 0 ||
+      !cats.every((c) => typeof c === "string")
+    ) {
+      errors.push(
+        `meta.categories must be a non-empty array of ids (${CATEGORY_IDS.join(", ")})`,
+      );
+    } else {
+      for (const cat of cats as string[]) {
+        if (!isCategoryId(cat)) {
+          errors.push(
+            `meta.categories has unknown id "${cat}" — valid ids: ${CATEGORY_IDS.join(", ")}`,
+          );
+        }
+      }
+      if (new Set(cats as string[]).size !== cats.length) {
+        errors.push("meta.categories has duplicate ids");
+      }
+      if (cats.length > 3) {
+        warnings.push(
+          `meta.categories has ${cats.length} (aim for 1–3; the first is the primary)`,
+        );
+      }
+    }
+
     const published = meta.published;
     const updated = meta.updated;
     const pubOk = typeof published === "string" && isValidDate(published);
@@ -174,6 +213,7 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
       "description",
       "summary",
       "keywords",
+      "categories",
       "published",
       "updated",
     ]);
@@ -218,6 +258,11 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
   if (!/^##[ \t]/m.test(body)) warnings.push("no `##` section headings found");
   if (!/<(CtaRow|DemoCta|SignupCta|CtaButton)\b/.test(body)) {
     warnings.push("no CTA component — guides should end with a call to action");
+  }
+  // Placement is the author's job, so a missing tag just silently drops the
+  // block — worth flagging.
+  if (!/<RelatedGuides\b/.test(body)) {
+    warnings.push("no <RelatedGuides /> — add it just above the closing CTA");
   }
   if (interlinks.size === 0) {
     warnings.push("no links to other guides (interlink for SEO)");

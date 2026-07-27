@@ -1,6 +1,11 @@
 import type { MetadataRoute } from "next";
-import { allGuides } from "@/content/guias/guides";
-import { guidesIndexUrl, guideUrl, localeUrl } from "@/i18n/metadata";
+import { allGuides, nonEmptyCategories } from "@/content/guias/guides";
+import {
+  guideCategoryUrl,
+  guidesIndexUrl,
+  guideUrl,
+  localeUrl,
+} from "@/i18n/metadata";
 
 // Only genuinely public, logged-out-visible pages belong here. The
 // authenticated app (everything under /app) is disallowed in robots.ts. Each
@@ -41,7 +46,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
 
   // Guides are Spanish-only: no hreflang alternates (no /en counterpart exists).
-  const guides = await allGuides();
+  const [guides, categories] = await Promise.all([
+    allGuides(),
+    nonEmptyCategories(),
+  ]);
   const guidesEntries: MetadataRoute.Sitemap = [
     {
       url: guidesIndexUrl,
@@ -49,6 +57,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.7,
     },
+    // Category hubs sit between the index and the articles: they're listing
+    // pages, so `lastModified` tracks the newest guide they contain.
+    ...categories.map((c) => {
+      const inCategory = guides.filter((g) => g.meta.categories.includes(c.id));
+      const newest = inCategory.reduce(
+        (latest, g) => (g.meta.updated > latest ? g.meta.updated : latest),
+        inCategory[0].meta.updated,
+      );
+      return {
+        url: guideCategoryUrl(c.id),
+        lastModified: new Date(newest),
+        changeFrequency: "weekly" as const,
+        priority: 0.65,
+      };
+    }),
     ...guides.map((g) => ({
       url: guideUrl(g.slug),
       lastModified: new Date(g.meta.updated),

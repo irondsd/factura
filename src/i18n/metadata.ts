@@ -72,20 +72,25 @@ export const guidesIndexUrl = `${siteUrl}/guias`;
 /** Absolute canonical URL for a single guide. */
 export const guideUrl = (slug: string): string => `${siteUrl}/guias/${slug}`;
 
-export function guidesIndexMetadata({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}): Metadata {
+/** Absolute canonical URL for a category hub. `/categoria/` keeps these under
+ * a static segment so they never collide with a guide slug. */
+export const guideCategoryUrl = (id: string): string =>
+  `${siteUrl}/guias/categoria/${id}`;
+
+/** Shared metadata shape for the guide listing pages (the index and the category
+ * hubs) — same OG/Twitter treatment, only the canonical URL differs. */
+function guideListingMetadata(
+  url: string,
+  title: string,
+  description: string,
+): Metadata {
   return {
     title,
     description,
-    alternates: { canonical: guidesIndexUrl },
+    alternates: { canonical: url },
     openGraph: {
       type: "website",
-      url: guidesIndexUrl,
+      url,
       title,
       description,
       locale: OG_LOCALE.es,
@@ -100,6 +105,28 @@ export function guidesIndexMetadata({
       images: ["/twitter-image.png"],
     },
   };
+}
+
+export function guidesIndexMetadata({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}): Metadata {
+  return guideListingMetadata(guidesIndexUrl, title, description);
+}
+
+export function guideCategoryMetadata({
+  id,
+  title,
+  description,
+}: {
+  id: string;
+  title: string;
+  description: string;
+}): Metadata {
+  return guideListingMetadata(guideCategoryUrl(id), title, description);
 }
 
 export function guideMetadata({

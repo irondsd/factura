@@ -1,14 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/guides/Breadcrumbs";
-import { SHELL } from "@/components/landing/parts";
+import { CategoryChips } from "@/components/guides/CategoryChips";
+import { GuideList } from "@/components/guides/GuideList";
+import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { allGuides } from "@/content/guias/guides";
+import {
+  allGuides,
+  guidesByPrimaryCategory,
+  nonEmptyCategories,
+} from "@/content/guias/guides";
 import { guidesIndexMetadata } from "@/i18n/metadata";
 import { guideListLd } from "@/i18n/structuredData";
 
 // Spanish-only guides index. Copy is inlined in Spanish (no dictionary lookup):
 // the section never renders in English, so there's no translation to maintain.
+//
+// Guides are grouped by their PRIMARY category (the first id in
+// `meta.categories`), which is what keeps a multi-category guide from appearing
+// in three sections of the same page. The full tag set is what the category hubs
+// list — so a section's "ver las N" count is the hub's count, and can be larger
+// than the handful shown here.
 
 const TITLE = "Guías para entender tus facturas";
 const DESCRIPTION =
@@ -16,20 +28,19 @@ const DESCRIPTION =
 const INTRO =
   "Artículos prácticos para entender qué pagas en cada servicio y cómo llevar el control de tus facturas, sin tecnicismos.";
 
+/** How many guides each category section shows before deferring to its hub. */
+const PER_SECTION = 4;
+
 export function generateMetadata(): Metadata {
   return guidesIndexMetadata({ title: TITLE, description: DESCRIPTION });
 }
 
-const fmtDate = (iso: string) =>
-  new Intl.DateTimeFormat("es-AR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(iso));
-
 export default async function GuiasIndexPage() {
-  const guides = await allGuides();
+  const [guides, sections, categories] = await Promise.all([
+    allGuides(),
+    guidesByPrimaryCategory(),
+    nonEmptyCategories(),
+  ]);
 
   return (
     <>
@@ -63,28 +74,45 @@ export default async function GuiasIndexPage() {
           </p>
         </header>
 
-        <ul className="mt-12 mb-16 list-none p-0 border-t border-line">
-          {guides.map((g) => (
-            <li key={g.slug} className="border-b border-line">
-              <Link
-                href={`/guias/${g.slug}`}
-                className="group block no-underline py-7"
-              >
-                <div className="flex items-baseline justify-between gap-4">
-                  <h2 className="font-display font-semibold text-[22px] sm:text-[25px] tracking-tight text-ink m-0 transition-colors group-hover:text-accent">
-                    {g.meta.title}
-                  </h2>
-                  <span className="flex-none font-mono text-micro uppercase tracking-label-wide text-muted">
-                    {fmtDate(g.meta.published)}
-                  </span>
-                </div>
-                <p className="font-mono text-sm leading-[1.7] text-muted max-w-[70ch] mt-2 mb-0">
-                  {g.meta.summary}
-                </p>
-              </Link>
-            </li>
+        <CategoryChips
+          categories={categories}
+          label="Temas de las guías"
+          className="mt-8"
+        />
+
+        <div className="mt-14 mb-16 flex flex-col gap-14">
+          {sections.map(({ category, guides: shown, total }) => (
+            <section key={category.id}>
+              <div className="flex items-baseline justify-between gap-4 border-b border-line pb-3">
+                <h2 className="font-display font-semibold text-[24px] sm:text-[27px] tracking-[-0.02em] text-ink m-0">
+                  {category.label}
+                </h2>
+                <Eyebrow className="flex-none">
+                  {total} {total === 1 ? "guía" : "guías"}
+                </Eyebrow>
+              </div>
+
+              <GuideList guides={shown.slice(0, PER_SECTION)} titleAs="h3" />
+
+              {/* Shown whenever the hub holds more than this section does —
+                  either because we truncated, or because guides tagged with the
+                  category lead with a different one. */}
+              {total > Math.min(shown.length, PER_SECTION) && (
+                <Link
+                  href={`/guias/categoria/${category.id}`}
+                  // Visible label leaves the category name out — the section
+                  // heading two rows up already says it, and spelling it out
+                  // wrapped the button onto two lines on a phone. The aria-label
+                  // keeps the full phrase for anyone tabbing link to link.
+                  aria-label={`Ver las ${total} guías de ${category.label}`}
+                  className="mt-5 inline-flex items-center border border-ink px-[22px] py-[10px] font-mono text-micro uppercase tracking-label-wide text-ink no-underline transition-colors hover:bg-ink hover:text-paper"
+                >
+                  Ver las {total} guías →
+                </Link>
+              )}
+            </section>
           ))}
-        </ul>
+        </div>
       </main>
     </>
   );

@@ -1,7 +1,12 @@
 import "server-only";
 import { githubUrl, siteUrl } from "@/config/urls";
 import type { Locale } from "./config";
-import { guidesIndexUrl, guideUrl, localeUrl } from "./metadata";
+import {
+  guideCategoryUrl,
+  guidesIndexUrl,
+  guideUrl,
+  localeUrl,
+} from "./metadata";
 
 // schema.org structured data (JSON-LD) for the public landing. Builders return
 // plain objects rendered through <JsonLd>. Stable @ids let the graphs reference
@@ -144,5 +149,43 @@ export function guideListLd(
       description: g.description,
       url: guideUrl(g.slug),
     })),
+  };
+}
+
+/** CollectionPage for a category hub. Not a `Blog` — that node belongs to the
+ * /guias index, and two Blog nodes for the same set of posts would compete.
+ * The ordered ItemList tells Google these are the members of the collection. */
+export function guideCategoryLd({
+  id,
+  title,
+  description,
+  guides,
+}: {
+  id: string;
+  title: string;
+  description: string;
+  guides: { slug: string; title: string }[];
+}) {
+  const url = guideCategoryUrl(id);
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": `${url}#collection`,
+    url,
+    name: title,
+    description,
+    inLanguage: "es",
+    isPartOf: { "@id": `${guidesIndexUrl}#blog` },
+    publisher: { "@id": ORG_ID },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: guides.length,
+      itemListElement: guides.map((g, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: g.title,
+        url: guideUrl(g.slug),
+      })),
+    },
   };
 }
