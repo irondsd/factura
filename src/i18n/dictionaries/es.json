@@ -117,15 +117,11 @@
         "body": "Sin tableros que griten por atención. Solo una página tranquila que suma como un honesto recibo de papel."
       }
     ],
-    "closingTitle": "Empieza tu registro.",
-    "footer": {
-      "left": "Registro de facturas · Guardado seguro",
-      "right": "Argentina · ARS ≈ USD"
-    }
+    "closingTitle": "Empieza tu registro."
   },
   "siteChrome": {
     "footerLeft": "Guardado de forma segura · solo tuyo",
-    "footerRight": "Buenos Aires · ARS ≈ USD"
+    "footerRight": "Argentina · ARS ≈ USD"
   },
   "peek": {
     "period": "Palermo · junio de 2026 hasta ahora",

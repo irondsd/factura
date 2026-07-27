@@ -1,13 +1,19 @@
 import { Eyebrow, NAV_LINK, SHELL, Wordmark } from "@/components/landing/parts";
+import { siteNavLinks } from "@/components/landing/SiteNav";
 import { githubUrl } from "@/config/urls";
 import type { Locale } from "@/i18n/config";
 import { LandingLanguageSwitch } from "@/i18n/LandingLanguageSwitch";
 import { localizedHref } from "@/i18n/routing";
 import { getI18n } from "@/i18n/server";
 
-// Marketing sub-page footer. `showLanguageSwitch` defaults to true; the
-// Spanish-only guides pass `false`, since there is no English page to switch to.
-// The Guías link, like in the header, only appears in Spanish.
+// Footer for every public page — the landing included. It spans the full
+// viewport (the rule) with its contents in the shared SHELL column, so it lines
+// up with the header even on the landing, whose body is a much narrower column.
+//
+// `showLanguageSwitch` defaults to true; the Spanish-only guides pass `false`,
+// since there is no English page to switch to. The nav is the top-nav set (so
+// Guías still follows the Spanish-only rule in siteNavLinks) plus the legal
+// pages and the repo.
 export async function SiteFooter({
   locale,
   showLanguageSwitch = true,
@@ -16,14 +22,12 @@ export async function SiteFooter({
   showLanguageSwitch?: boolean;
 }) {
   const { t } = await getI18n(locale);
+  const { links, signIn } = siteNavLinks(t, locale);
   const footNav = [
-    { label: t.nav.docs, href: "/docs" },
-    { label: t.nav.faq, href: "/faq" },
-    { label: t.nav.demo, href: "/demo" },
-    ...(locale === "es" ? [{ label: t.nav.guides, href: "/guias" }] : []),
+    ...links,
     { label: t.nav.privacy, href: "/privacy" },
     { label: t.nav.security, href: "/security" },
-    { label: t.nav.signIn, href: "/login" },
+    signIn,
     { label: t.nav.github, href: githubUrl },
   ];
   return (

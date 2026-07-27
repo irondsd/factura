@@ -117,15 +117,11 @@
         "body": "No dashboards screaming for attention. Just a calm page that totals up like an honest slip of paper."
       }
     ],
-    "closingTitle": "Start your ledger.",
-    "footer": {
-      "left": "Bill ledger · Stored securely",
-      "right": "Argentina · ARS ≈ USD"
-    }
+    "closingTitle": "Start your ledger."
   },
   "siteChrome": {
     "footerLeft": "Stored securely · yours alone",
-    "footerRight": "Buenos Aires · ARS ≈ USD"
+    "footerRight": "Argentina · ARS ≈ USD"
   },
   "peek": {
     "period": "Palermo · June 2026 so far",
