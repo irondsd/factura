@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to the same PR cancels the previous run; pushes to main are never
+# cancelled (the group is unique per ref, and main only ever has one in flight
+# per commit anyway).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Bun is the package manager (bun.lock) and `validate:guides` shebangs bun.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      # Node is still needed: `prebuild` shells out to `npm run build:worker`,
+      # and the suggest-worker test spawns `node` directly.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cache bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Every check below runs even if an earlier one failed, so a single PR run
+      # reports all the problems instead of one at a time.
+      - name: Lint
+        if: ${{ !cancelled() }}
+        run: bun run lint
+
+      - name: Typecheck
+        if: ${{ !cancelled() }}
+        run: bun run typecheck
+
+      - name: Validate guides
+        if: ${{ !cancelled() }}
+        run: bun run validate:guides
+
+      - name: Test
+        if: ${{ !cancelled() }}
+        run: bun run test
+
+      - name: Cache Next.js build
+        if: ${{ !cancelled() }}
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('bun.lock') }}-${{ hashFiles('src/**', 'next.config.ts') }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('bun.lock') }}-
+            next-${{ runner.os }}-
+
+      # The build catches what typecheck can't: MDX compilation, static
+      # generation of the 70+ prerendered guide/category routes, route config
+      # errors. It needs no env vars — the DB client is only constructed at
+      # request time on dynamic routes.
+      - name: Build
+        if: ${{ !cancelled() }}
+        run: bun run build
