@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LedgerPeek } from "@/components/landing/LedgerPeek";
 import { Eyebrow, Perforation, Wordmark } from "@/components/landing/parts";
+import { SiteNav, siteNavLinks } from "@/components/landing/SiteNav";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { githubUrl } from "@/config/urls";
 import { allGuides } from "@/content/guias/guides";
@@ -44,14 +45,14 @@ export default async function LandingPage({ params }: Props) {
   // internal link), and add Guías to the footer nav only on es.
   const guides = locale === "es" ? await allGuides() : [];
 
-  const nav = [
-    { label: t.nav.docs, href: "/docs" },
-    { label: t.nav.faq, href: "/faq" },
-    { label: t.nav.demo, href: "/demo" },
-    ...(locale === "es" ? [{ label: t.nav.guides, href: "/guias" }] : []),
+  // The footer carries the same links as the top nav (Guías included only on
+  // es — see siteNavLinks) plus the legal pages and the repo.
+  const { links, signIn } = siteNavLinks(t, locale);
+  const footerNav = [
+    ...links,
     { label: t.nav.privacy, href: "/privacy" },
     { label: t.nav.security, href: "/security" },
-    { label: t.nav.signIn, href: "/login" },
+    signIn,
     { label: t.nav.github, href: githubUrl },
   ];
 
@@ -63,8 +64,13 @@ export default async function LandingPage({ params }: Props) {
           description: t.meta.home.description,
         })}
       />
+      {/* ── Top nav ──────────────────────────────────────────── */}
+      {/* No header bar here on purpose — just the links, quiet, at the top of
+          the column so the page still reads as one printed slip. */}
+      <SiteNav locale={locale} variant="inline" className="pt-[26px]" />
+
       {/* ── Hero ─────────────────────────────────────────────── */}
-      <section className="text-center pt-[60px] pb-[60px]">
+      <section className="text-center pt-[42px] pb-[60px]">
         <div className="mb-[22px]">
           <Eyebrow>{l.hero.eyebrow}</Eyebrow>
         </div>
@@ -202,7 +208,7 @@ export default async function LandingPage({ params }: Props) {
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-[18px]">
           <Wordmark size={22} />
           <nav className="flex flex-wrap gap-x-5 gap-y-3">
-            {nav.map((link) => (
+            {footerNav.map((link) => (
               <a
                 key={link.label}
                 href={localizedHref(link.href, locale)}
