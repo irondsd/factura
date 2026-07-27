@@ -42,6 +42,13 @@ export const CATEGORIES = [
       "Guías para entender las facturas de los servicios del hogar en Argentina: electricidad, gas, agua e internet, con un ejemplo de cada boleta.",
   },
   {
+    id: "impuestos",
+    label: "Impuestos y tasas",
+    title: "Impuestos y tasas del hogar en la Ciudad de Buenos Aires",
+    description:
+      "Guías sobre los impuestos que llegan a tu casa en CABA: Inmobiliario/ABL y Patentes de AGIP, cómo leer la boleta, cómo pagarla y qué descuentos existen.",
+  },
+  {
     id: "leer-facturas",
     label: "Cómo leer una factura",
     title: "Cómo leer una factura: guías paso a paso",
