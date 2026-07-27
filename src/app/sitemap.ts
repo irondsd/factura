@@ -61,9 +61,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // pages, so `lastModified` tracks the newest guide they contain.
     ...categories.map((c) => {
       const inCategory = guides.filter((g) => g.meta.categories.includes(c.id));
-      const newest = inCategory.reduce(
-        (latest, g) => (g.meta.updated > latest ? g.meta.updated : latest),
-        inCategory[0].meta.updated,
+      // Compare instants: `updated` carries a timezone offset, so two
+      // timestamps don't necessarily order the same way as their text.
+      const newest = Math.max(
+        ...inCategory.map((g) => Date.parse(g.meta.updated)),
       );
       return {
         url: guideCategoryUrl(c.id),

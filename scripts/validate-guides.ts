@@ -30,7 +30,11 @@ const ALLOWED_COMPONENTS = new Set([
 ]);
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+// Full ISO 8601 with an explicit offset (or Z). Google only requires the date,
+// but recommends time + timezone in markup, and the site renders the timestamp
+// visibly — so requiring it here keeps the two consistent by construction.
+const DATETIME_RE =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(Z|[+-]\d{2}:\d{2})$/;
 
 // ── tiny ANSI helpers (no deps) ─────────────────────────────────────────────
 const color = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -93,14 +97,20 @@ function extractMeta(src: string): {
   }
 }
 
-function isValidDate(s: string): boolean {
-  if (!DATE_RE.test(s)) return false;
-  const [y, m, d] = s.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
+function isValidDateTime(s: string): boolean {
+  const m = DATETIME_RE.exec(s);
+  if (!m) return false;
+  const [, y, mo, d, h, mi, sec] = m.map(Number);
+  // Reject the calendar-impossible (Feb 30) and out-of-range clock values that
+  // the regex alone would wave through.
+  const dt = new Date(Date.UTC(y, mo - 1, d));
   return (
     dt.getUTCFullYear() === y &&
-    dt.getUTCMonth() === m - 1 &&
-    dt.getUTCDate() === d
+    dt.getUTCMonth() === mo - 1 &&
+    dt.getUTCDate() === d &&
+    h < 24 &&
+    mi < 60 &&
+    sec < 60
   );
 }
 
@@ -188,11 +198,18 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
 
     const published = meta.published;
     const updated = meta.updated;
-    const pubOk = typeof published === "string" && isValidDate(published);
-    const updOk = typeof updated === "string" && isValidDate(updated);
-    if (!pubOk) errors.push("meta.published must be a valid YYYY-MM-DD date");
-    if (!updOk) errors.push("meta.updated must be a valid YYYY-MM-DD date");
-    if (pubOk && updOk && (updated as string) < (published as string)) {
+    const pubOk = typeof published === "string" && isValidDateTime(published);
+    const updOk = typeof updated === "string" && isValidDateTime(updated);
+    const format = 'full ISO 8601 with offset, e.g. "2026-06-29T09:00:00-03:00"';
+    if (!pubOk) errors.push(`meta.published must be a ${format}`);
+    if (!updOk) errors.push(`meta.updated must be a ${format}`);
+    // Compare instants, not strings — two timestamps with different offsets
+    // don't order correctly as text.
+    if (
+      pubOk &&
+      updOk &&
+      Date.parse(updated as string) < Date.parse(published as string)
+    ) {
       errors.push(
         `meta.updated (${updated}) is before meta.published (${published})`,
       );

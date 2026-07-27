@@ -40,8 +40,8 @@ export const meta = {
     "consumo kWh",
   ],
   categories: ["servicios", "leer-facturas"],
-  published: "2026-06-29",
-  updated: "2026-06-29",
+  published: "2026-06-29T09:00:00-03:00",
+  updated: "2026-06-29T09:00:00-03:00",
 };
 ```
 
@@ -52,8 +52,22 @@ export const meta = {
 | `summary`     | The `/guias` index cards, the homepage list, `llms.txt`        | One short sentence (~90–120 chars). Can differ from `description`.   |
 | `keywords`    | `<meta name="keywords">`                                       | 3–6 real Spanish search phrases. Lowercase.                          |
 | `categories`  | Grouping on `/guias`, the breadcrumb, related-guide picks      | 1–3 ids from the list below. **The first one is the primary.**       |
-| `published`   | Article dateline, JSON-LD `datePublished`, sitemap             | `YYYY-MM-DD`. Set once, don't change.                                |
-| `updated`     | Dateline (shown only if ≠ published), JSON-LD, sitemap lastmod | `YYYY-MM-DD`. Bump when you meaningfully edit.                       |
+| `published`   | Article dateline, JSON-LD `datePublished`, sitemap             | Full ISO 8601 **with offset**. Set once, don't change.               |
+| `updated`     | Dateline (shown only if ≠ published), JSON-LD, sitemap lastmod | Full ISO 8601 **with offset**. Bump when you meaningfully edit.      |
+
+### Timestamps
+
+Both dates are full ISO 8601 with a timezone offset — `2026-06-29T09:00:00-03:00`
+— not bare `YYYY-MM-DD`. `-03:00` is Argentina; use it unless you have a reason
+not to. Google only *requires* the date, but [recommends the time and timezone
+in markup](https://developers.google.com/search/docs/appearance/publication-dates)
+for precision, and it *requires* the visible date to match the structured data —
+so the page renders the same timestamp it puts in the JSON-LD, and the validator
+rejects a date without a time.
+
+Use the real time you publish at. The 15 guides written before this field existed
+all carry a nominal `T09:00:00-03:00`, because their actual publishing time was
+never recorded — don't copy that placeholder into a new guide.
 
 ### Choosing `categories`
 
@@ -198,6 +212,8 @@ automáticamente" section tying the topic back to the product, then
 - Added to `/llms.txt` (title + summary).
 - `<h1>`, the "Guía" eyebrow, the dateline, breadcrumbs, Article JSON-LD, and all
   canonical/OG metadata are generated from `meta`.
+- The **"N min de lectura"** estimate is counted from your prose at build time
+  (code blocks, tags and link targets don't count). There's no field to set.
 - No hreflang/English alternate is emitted (guides are Spanish-only by design).
 
 ---
@@ -223,8 +239,8 @@ export const meta = {
   summary: "",
   keywords: ["", "", ""],
   categories: ["", ""],
-  published: "YYYY-MM-DD",
-  updated: "YYYY-MM-DD",
+  published: "YYYY-MM-DDTHH:MM:SS-03:00",
+  updated: "YYYY-MM-DDTHH:MM:SS-03:00",
 };
 
 Párrafo de introducción con la palabra clave principal en la primera o segunda

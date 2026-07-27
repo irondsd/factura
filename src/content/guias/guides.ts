@@ -22,15 +22,73 @@ export type GuideMeta = {
   /** 1–3 category ids. The first is the guide's *primary* category — it decides
    * the index grouping and the breadcrumb. See `./categories.ts`. */
   categories: CategoryId[];
-  /** ISO date (YYYY-MM-DD) first published. */
+  /** Full ISO 8601 timestamp with offset, e.g. "2026-06-29T09:00:00-03:00",
+   * when the guide was first published. Google asks for the date and only
+   * *recommends* the time and timezone, but the extra precision is free and it
+   * keeps the visible dateline and the JSON-LD identical, which Google does
+   * require. See AUTHORING.md §2. */
   published: string;
-  /** ISO date (YYYY-MM-DD) last updated. */
+  /** Full ISO 8601 timestamp with offset, when the guide was last updated. */
   updated: string;
 };
 
-export type Guide = { slug: string; meta: GuideMeta };
+export type Guide = {
+  slug: string;
+  meta: GuideMeta;
+  /** Estimated reading time in whole minutes, from the MDX body. */
+  readingMinutes: number;
+};
 
 const DIR = path.join(process.cwd(), "src/content/guias");
+
+// Spanish informational prose, read a bit more carefully than a novel because of
+// the tables and step lists. Silent-reading research puts general Spanish text
+// near 260 wpm; 200 is the deliberate discount for this material. One constant —
+// change it here if the estimates feel off.
+const WORDS_PER_MINUTE = 200;
+
+/** Strip the `meta` export off the front of a guide's source, leaving the prose.
+ * Brace-matched rather than regexed so an object literal in the body can't cut
+ * the article short. */
+function guideBody(source: string): string {
+  const marker = source.match(/export\s+const\s+meta\s*=\s*/);
+  if (!marker || marker.index === undefined) return source;
+  const open = source.indexOf("{", marker.index);
+  if (open === -1) return source;
+
+  let depth = 0;
+  for (let i = open; i < source.length; i++) {
+    if (source[i] === "{") depth++;
+    else if (source[i] === "}" && --depth === 0) return source.slice(i + 1);
+  }
+  return source;
+}
+
+/** Words a reader actually reads: prose only, with code, image URLs, JSX tags
+ * and markdown scaffolding removed. Link *text* counts, link targets don't. */
+function countWords(body: string): number {
+  const prose = body
+    .replace(/```[\s\S]*?```/g, " ") // fenced code
+    .replace(/`[^`]*`/g, " ") // inline code
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ") // images
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1") // links → their text
+    .replace(/<[^>]+>/g, " ") // JSX / HTML tags
+    .replace(/^#{1,6}[ \t]+/gm, " ") // heading markers
+    .replace(/^[ \t]*[-*>][ \t]+/gm, " ") // list bullets, quotes
+    .replace(/^[ \t]*\|.*\|[ \t]*$/gm, (row) => row.replace(/[|-]/g, " ")) // table pipes
+    .replace(/[*_~]/g, " "); // emphasis
+
+  return prose.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+}
+
+/** Estimated reading time for a guide, in whole minutes (never below 1). */
+export function readingMinutes(slug: string): number {
+  const source = fs.readFileSync(path.join(DIR, `${slug}.mdx`), "utf8");
+  return Math.max(
+    1,
+    Math.round(countWords(guideBody(source)) / WORDS_PER_MINUTE),
+  );
+}
 
 /** Slugs of every guide (filenames without the `.mdx` extension). */
 export function guideSlugs(): string[] {
@@ -44,9 +102,7 @@ export function guideSlugs(): string[] {
  * the standard MDX `components` prop, which the article route uses to override
  * the global map with per-guide components (see the `RelatedGuides` note in
  * `src/mdx-components.tsx`). */
-export async function loadGuide(
-  slug: string,
-): Promise<{
+export async function loadGuide(slug: string): Promise<{
   Content: ComponentType<{ components?: MDXComponents }>;
   meta: GuideMeta;
 }> {
@@ -59,10 +115,13 @@ async function readAllGuides(): Promise<Guide[]> {
     guideSlugs().map(async (slug) => ({
       slug,
       meta: (await loadGuide(slug)).meta,
+      readingMinutes: readingMinutes(slug),
     })),
   );
-  return guides.sort((a, b) =>
-    b.meta.published.localeCompare(a.meta.published),
+  // Newest first. Timestamps now carry offsets, so compare instants rather than
+  // strings — "…T09:00:00-03:00" and "…T09:00:00Z" don't sort as text.
+  return guides.sort(
+    (a, b) => Date.parse(b.meta.published) - Date.parse(a.meta.published),
   );
 }
 
@@ -111,10 +170,7 @@ export async function guidesByPrimaryCategory(): Promise<
  * tiebreak bonus for sharing its primary one, then newest first. If that turns
  * up too few — a guide alone in its category — the list is topped up with the
  * newest other guides, so the block is never awkwardly short or empty. */
-export async function relatedGuides(
-  slug: string,
-  limit = 3,
-): Promise<Guide[]> {
+export async function relatedGuides(slug: string, limit = 3): Promise<Guide[]> {
   const guides = await allGuides();
   const current = guides.find((g) => g.slug === slug);
   if (!current) return [];
@@ -134,7 +190,7 @@ export async function relatedGuides(
     .sort(
       (a, b) =>
         b.score - a.score ||
-        b.guide.meta.published.localeCompare(a.guide.meta.published),
+        Date.parse(b.guide.meta.published) - Date.parse(a.guide.meta.published),
     )
     .map((r) => r.guide);
 

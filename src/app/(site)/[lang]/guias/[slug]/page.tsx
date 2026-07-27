@@ -6,7 +6,12 @@ import { RelatedGuides } from "@/components/guides/RelatedGuides";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getCategory } from "@/content/guias/categories";
-import { guideSlugs, loadGuide, relatedGuides } from "@/content/guias/guides";
+import {
+  guideSlugs,
+  loadGuide,
+  readingMinutes,
+  relatedGuides,
+} from "@/content/guias/guides";
 import { guideMetadata } from "@/i18n/metadata";
 import { guideLd } from "@/i18n/structuredData";
 
@@ -26,18 +31,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return guideMetadata({ slug, ...meta });
 }
 
-const fmtDate = (iso: string) =>
+// Rendered in Buenos Aires time, which is the offset the timestamps are authored
+// in — Google requires the visible date (and time, when shown) to match the
+// structured data, and the JSON-LD emits `meta.published` verbatim. 24-hour
+// clock: that's how Argentina writes times.
+const fmtDateTime = (iso: string) =>
   new Intl.DateTimeFormat("es-AR", {
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "UTC",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "America/Argentina/Buenos_Aires",
   }).format(new Date(iso));
 
 export default async function GuidePage({ params }: Props) {
   const { slug } = await params;
   const { Content, meta } = await loadGuide(slug);
   const related = await relatedGuides(slug);
+  const minutes = readingMinutes(slug);
 
   // Categories in the order the guide declares them: primary first, which is
   // also the one that earns the breadcrumb crumb.
@@ -74,10 +87,29 @@ export default async function GuidePage({ params }: Props) {
             <h1 className="font-display font-semibold text-[34px] sm:text-[44px] tracking-[-0.025em] leading-[1.06] mt-[18px] mb-0">
               {meta.title}
             </h1>
-            <p className="font-mono text-micro uppercase tracking-label-wide text-muted mt-5">
-              Publicado el {fmtDate(meta.published)}
-              {meta.updated !== meta.published &&
-                ` · Actualizado el ${fmtDate(meta.updated)}`}
+            {/* Wraps onto separate lines on a phone rather than truncating —
+                three timestamped items don't fit one narrow line. Separators
+                trail their item so a wrapped line never *starts* with a "·".
+                There's always a following item (the reading time), so the
+                trailing dots are never left dangling. */}
+            <p className="flex flex-wrap gap-x-2 gap-y-1 font-mono text-micro uppercase tracking-label-wide text-muted mt-5">
+              <span>
+                Publicado el{" "}
+                <time dateTime={meta.published}>
+                  {fmtDateTime(meta.published)}
+                </time>
+                <span aria-hidden="true"> ·</span>
+              </span>
+              {meta.updated !== meta.published && (
+                <span>
+                  Actualizado el{" "}
+                  <time dateTime={meta.updated}>
+                    {fmtDateTime(meta.updated)}
+                  </time>
+                  <span aria-hidden="true"> ·</span>
+                </span>
+              )}
+              <span>{minutes} min de lectura</span>
             </p>
             <CategoryChips
               categories={categories}

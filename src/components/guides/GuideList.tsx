@@ -8,12 +8,15 @@ import type { Guide } from "@/content/guias/guides";
 // Rows carry only a bottom border — whatever renders the list is responsible for
 // the top rule (on the index that's the section header's own border).
 
+// Date only — listing rows don't need the time. Formatted in Buenos Aires time,
+// the offset the timestamps are authored in: under UTC a guide published in the
+// local evening would render a day late.
 const fmtDate = (iso: string) =>
   new Intl.DateTimeFormat("es-AR", {
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "UTC",
+    timeZone: "America/Argentina/Buenos_Aires",
   }).format(new Date(iso));
 
 export function GuideList({
