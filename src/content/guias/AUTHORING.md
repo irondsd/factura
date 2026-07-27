@@ -82,6 +82,7 @@ breadcrumb. The others don't move the guide; they widen where it surfaces
 | `expensas`         | Expensas              | Anything about expensas, consorcios and gastos comunes.             |
 | `servicios`        | Servicios del hogar   | A specific utility: luz, gas, agua, internet, telefonía.            |
 | `impuestos`        | Impuestos y tasas     | Taxes and levies on the home: AGIP's Inmobiliario/ABL, Patentes.    |
+| `subsidios`        | Subsidios y tarifa social | Energy subsidies (SEF/ReSEF) and AySA's tarifa social.          |
 | `leer-facturas`    | Cómo leer una factura | Walkthroughs of an actual bill — what each section/field means.     |
 | `ahorro-y-control` | Ahorro y control      | Reference values, detecting wrong charges, tracking spend over time. |
 | `pagos-y-tramites` | Pagos y trámites      | Paying, due dates, and paperwork like scanning or filing bills.      |

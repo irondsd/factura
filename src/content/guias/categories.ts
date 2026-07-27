@@ -49,6 +49,13 @@ export const CATEGORIES = [
       "Guías sobre los impuestos que llegan a tu casa en CABA: Inmobiliario/ABL y Patentes de AGIP, cómo leer la boleta, cómo pagarla y qué descuentos existen.",
   },
   {
+    id: "subsidios",
+    label: "Subsidios y tarifa social",
+    title: "Subsidios de luz, gas y agua: quién accede y cómo pedirlos",
+    description:
+      "Guías sobre los subsidios energéticos en Argentina: el régimen SEF de luz, gas y garrafa, el registro ReSEF y la tarifa social de agua de AySA.",
+  },
+  {
     id: "leer-facturas",
     label: "Cómo leer una factura",
     title: "Cómo leer una factura: guías paso a paso",
