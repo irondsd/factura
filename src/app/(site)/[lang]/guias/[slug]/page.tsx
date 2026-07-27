@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/guides/Breadcrumbs";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { siteUrl } from "@/config/urls";
 import { guideSlugs, loadGuide } from "@/content/guias/guides";
-import { guideMetadata, guidesIndexUrl, guideUrl } from "@/i18n/metadata";
-import { breadcrumbLd, guideLd } from "@/i18n/structuredData";
+import { guideMetadata } from "@/i18n/metadata";
+import { guideLd } from "@/i18n/structuredData";
 
 // One guide article. Static set only — `dynamicParams = false` 404s any slug
 // that isn't a real `.mdx` file. (The Spanish-only guard lives in the layout.)
@@ -38,16 +38,18 @@ export default async function GuidePage({ params }: Props) {
   return (
     <>
       <JsonLd data={guideLd({ slug, ...meta })} />
-      <JsonLd
-        data={breadcrumbLd([
-          { name: "Inicio", url: siteUrl },
-          { name: "Guías", url: guidesIndexUrl },
-          { name: meta.title, url: guideUrl(slug) },
-        ])}
-      />
 
       <main className={SHELL}>
-        <article className="max-w-[680px] pt-14 pb-16">
+        <article className="max-w-[680px] pt-10 pb-16">
+          <Breadcrumbs
+            className="mb-7"
+            items={[
+              { name: "Inicio", href: "/" },
+              { name: "Guías", href: "/guias" },
+              { name: meta.title, href: `/guias/${slug}` },
+            ]}
+          />
+
           <header className="pb-2">
             <Eyebrow tone="accent">Guía</Eyebrow>
             <h1 className="font-display font-semibold text-[34px] sm:text-[44px] tracking-[-0.025em] leading-[1.06] mt-[18px] mb-0">

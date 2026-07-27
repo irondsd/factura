@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Eyebrow, SHELL } from "@/components/landing/parts";
+import { Breadcrumbs } from "@/components/guides/Breadcrumbs";
+import { SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { siteUrl } from "@/config/urls";
 import { allGuides } from "@/content/guias/guides";
-import { guidesIndexMetadata, guidesIndexUrl } from "@/i18n/metadata";
-import { breadcrumbLd, guideListLd } from "@/i18n/structuredData";
+import { guidesIndexMetadata } from "@/i18n/metadata";
+import { guideListLd } from "@/i18n/structuredData";
 
 // Spanish-only guides index. Copy is inlined in Spanish (no dictionary lookup):
 // the section never renders in English, so there's no translation to maintain.
@@ -42,17 +42,20 @@ export default async function GuiasIndexPage() {
           })),
         )}
       />
-      <JsonLd
-        data={breadcrumbLd([
-          { name: "Inicio", url: siteUrl },
-          { name: "Guías", url: guidesIndexUrl },
-        ])}
-      />
 
       <main className={SHELL}>
-        <header className="max-w-[640px] pt-14 pb-2">
-          <Eyebrow tone="accent">Guías</Eyebrow>
-          <h1 className="font-display font-semibold text-[36px] sm:text-[46px] tracking-[-0.025em] leading-[1.05] mt-[18px] mb-0">
+        <Breadcrumbs
+          className="pt-10"
+          items={[
+            { name: "Inicio", href: "/" },
+            { name: "Guías", href: "/guias" },
+          ]}
+        />
+
+        {/* No "Guías" eyebrow here — the breadcrumb above already names the
+            section, and the two stacked labels read as a duplicate. */}
+        <header className="max-w-[640px] pt-7 pb-2">
+          <h1 className="font-display font-semibold text-[36px] sm:text-[46px] tracking-[-0.025em] leading-[1.05] mt-0 mb-0">
             {TITLE}
           </h1>
           <p className="font-mono text-[15px] leading-[1.7] text-muted mt-[18px] mb-0">
