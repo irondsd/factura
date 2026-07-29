@@ -1,7 +1,5 @@
 import { cookies } from "next/headers";
-import { after } from "next/server";
 import { db } from "@/db";
-import { getPostHogClient } from "@/lib/posthog-server";
 import type { ClaimResponse } from "@/lib/probar";
 import { auth } from "@/server/auth";
 import { claimSubmissions } from "@/server/claim";
@@ -47,18 +45,10 @@ export async function POST(request: Request) {
   // cookie but not write one) from retrying these rows on every /app visit.
   jar.delete(SUBMISSION_COOKIE);
 
-  after(async () => {
-    const posthog = getPostHogClient();
-    posthog.capture({
-      distinctId: userId,
-      event: "probar_claimed",
-      properties: {
-        count: results.length,
-        claimed: results.filter((r) => r.status === "claimed").length,
-      },
-    });
-    await posthog.shutdown();
-  });
+  // The claim event is captured by the caller (ClaimSubmissions), where
+  // posthog-js already holds the identity the rest of the /probar funnel was
+  // recorded against. A server event keyed by `userId` would land on a
+  // different person than the client's `identify(email)` and break the join.
 
   return Response.json({ results } as ClaimResponse);
 }

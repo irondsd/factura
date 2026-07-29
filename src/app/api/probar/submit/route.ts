@@ -1,10 +1,8 @@
 import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
-import { after } from "next/server";
 import { and, count, eq, gt } from "drizzle-orm";
 import { db } from "@/db";
 import { billSubmissions } from "@/db/schema";
-import { getPostHogClient } from "@/lib/posthog-server";
 import {
   PUBLIC_MAX_BYTES,
   PUBLIC_MAX_PAGES,
@@ -165,20 +163,12 @@ export async function POST(request: Request) {
     maxAge: SUBMISSION_COOKIE_MAX_AGE,
   });
 
-  after(async () => {
-    const posthog = getPostHogClient();
-    posthog.capture({
-      distinctId: row.id,
-      event: "probar_submitted",
-      properties: {
-        page_count: extracted.pageCount,
-        no_text: noText,
-        keep_file: keepFile,
-        has_notify_email: notifyEmail !== null,
-      },
-    });
-    await posthog.shutdown();
-  });
+  // Analytics for /probar is captured in the browser, not here. A visitor is
+  // anonymous at this point, and the only identity that survives their later
+  // sign-in is posthog-js's own distinct_id (which `identify` merges into the
+  // account). Keying a server event by submission id would mint a fresh
+  // "person" per upload and make every funnel unjoinable. `bill_submissions`
+  // is the ground truth for counting uploads; PostHog is for the journey.
 
   const body: SubmitResponse = noText
     ? { submissionId: row.id, outcome: "no_text", pageCount: extracted.pageCount }

@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
+import posthog from "posthog-js";
 import type { ClaimResponse } from "@/lib/probar";
 import { trpc } from "@/lib/trpc";
 import { interpolate } from "@/i18n/config";
@@ -42,6 +43,16 @@ export function ClaimSubmissions() {
         if (res.ok) {
           const { results } = (await res.json()) as ClaimResponse;
           const saved = results.filter((r) => r.status === "claimed").length;
+          // The far end of a funnel that began anonymously on /probar. Captured
+          // here rather than in the route handler because posthog-js is holding
+          // the identity — `identify()` has already merged this person with the
+          // anonymous one who dropped the bills, so the whole journey joins up.
+          posthog.capture("probar_claim_completed", {
+            total: results.length,
+            claimed: saved,
+            duplicate: results.filter((r) => r.outcome === "duplicate").length,
+            already: results.filter((r) => r.status === "already").length,
+          });
           if (saved > 0) {
             showToast(interpolate(t.probar.claimedToast, { count: saved }));
             await utils.invalidate();

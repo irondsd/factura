@@ -8,7 +8,13 @@ import { useI18n } from "@/i18n/I18nProvider";
 /** The payoff: the visitor has watched us read their bills, now offer to keep
  * them. `?claim=1` is only a trigger — the submission ids travel in the httpOnly
  * cookie, so this link works on the visitor's own browser and nowhere else. */
-export function SaveCta({ count }: { count: number }) {
+export function SaveCta({
+  count,
+  onClick,
+}: {
+  count: number;
+  onClick: (count: number) => void;
+}) {
   const { t } = useI18n();
   const p = t.probar;
 
@@ -20,6 +26,7 @@ export function SaveCta({ count }: { count: number }) {
       <p className={hint}>{p.saveBody}</p>
       <Link
         href="/login?claim=1"
+        onClick={() => onClick(count)}
         className="mt-1 inline-flex items-center justify-center gap-2 bg-ink text-paper border border-ink font-mono text-micro uppercase tracking-label leading-none py-2.5 px-4 transition-colors hover:bg-accent hover:border-accent"
       >
         {p.saveButton}

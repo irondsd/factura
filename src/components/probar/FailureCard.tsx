@@ -32,7 +32,7 @@ export function FailureCard({
   pages?: number;
   chars?: number;
   truncated?: boolean;
-  onNotify: (email: string) => Promise<void>;
+  onNotify: (email: string, kind: FailureKind) => Promise<void>;
 }) {
   const { t, locale } = useI18n();
   const p = t.probar;
@@ -57,7 +57,7 @@ export function FailureCard({
     e.preventDefault();
     setBusy(true);
     try {
-      await onNotify(email.trim());
+      await onNotify(email.trim(), kind);
       setSaved(true);
     } finally {
       setBusy(false);

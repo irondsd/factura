@@ -43,7 +43,11 @@ export function SubmissionCard({
 }: {
   submission: Submission;
   solo: boolean;
-  onNotify: (submissionId: string, email: string) => Promise<void>;
+  onNotify: (
+    submissionId: string,
+    email: string,
+    kind: FailureKind,
+  ) => Promise<void>;
 }) {
   const { t } = useI18n();
   const p = t.probar;
@@ -88,7 +92,7 @@ export function SubmissionCard({
               pages={s.pageCount}
               chars={s.charCount}
               truncated={s.truncated}
-              onNotify={(email) => onNotify(s.submissionId!, email)}
+              onNotify={(email, kind) => onNotify(s.submissionId!, email, kind)}
             />
           )}
         </>

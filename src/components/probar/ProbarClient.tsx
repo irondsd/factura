@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { MAX_FILES_PER_DROP, PUBLIC_MAX_BYTES } from "@/lib/limits";
@@ -12,7 +12,10 @@ import {
 } from "@/lib/probar";
 import { useToasts } from "@/providers/ToastProvider";
 import { useWindowFileDrop } from "@/components/useWindowFileDrop";
+import * as analytics from "./analytics";
+import type { DropSource } from "./analytics";
 import { DropArea } from "./DropArea";
+import type { FailureKind } from "./FailureCard";
 import { PageDropOverlay } from "./PageDropOverlay";
 import { SaveCta } from "./SaveCta";
 import { SubmissionCard, type Submission } from "./SubmissionCard";
@@ -43,6 +46,58 @@ export function ProbarClient() {
   const [sampleBusy, setSampleBusy] = useState(false);
   const busy = running > 0;
 
+  // Running tally for the exit summary. A ref, not state: it's written from
+  // async work and read once, at teardown — rendering must never depend on it.
+  const stats = useRef({
+    startedAt: Date.now(),
+    filesSubmitted: 0,
+    parsed: 0,
+    parseFailed: 0,
+    unrecognized: 0,
+    noText: 0,
+    errors: 0,
+    saveCtaShown: false,
+    saveCtaClicked: false,
+    notifyRequested: false,
+  });
+  const tally = useCallback(
+    (
+      field: "parsed" | "parseFailed" | "unrecognized" | "noText" | "errors",
+    ) => {
+      stats.current[field] += 1;
+    },
+    [],
+  );
+
+  // "Tried it and left" can't be a funnel step, because leaving isn't an event.
+  // This is the only way to see it. Fires once, on the first hide — a visitor
+  // who backgrounds the tab and returns shouldn't be counted twice.
+  useEffect(() => {
+    let sent = false;
+    const onHide = () => {
+      if (sent || document.visibilityState !== "hidden") return;
+      const s = stats.current;
+      // Landing and leaving without trying anything is already a $pageview;
+      // reporting it again as a summary would just dilute the funnel.
+      if (s.filesSubmitted === 0) return;
+      sent = true;
+      analytics.sessionSummary({
+        filesSubmitted: s.filesSubmitted,
+        parsed: s.parsed,
+        parseFailed: s.parseFailed,
+        unrecognized: s.unrecognized,
+        noText: s.noText,
+        errors: s.errors,
+        saveCtaShown: s.saveCtaShown,
+        saveCtaClicked: s.saveCtaClicked,
+        notifyRequested: s.notifyRequested,
+        secondsOnPage: Math.round((Date.now() - s.startedAt) / 1000),
+      });
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, []);
+
   const patch = useCallback(
     (key: string, update: Partial<Submission>) => {
       setSubmissions((prev) =>
@@ -67,8 +122,10 @@ export function ProbarClient() {
    * its own request so the stepper can show real progress rather than a spinner
    * standing in for three sequential steps. */
   const run = useCallback(
-    async (submission: Submission, keep: boolean) => {
+    async (submission: Submission, keep: boolean, source: DropSource) => {
       const { key, file } = submission;
+      const startedAt = Date.now();
+      const since = () => Date.now() - startedAt;
 
       const form = new FormData();
       form.append("file", file);
@@ -81,32 +138,47 @@ export function ProbarClient() {
           method: "POST",
           body: form,
         });
-        if (res.status === 429) {
-          patch(key, { reading: false, error: p.rateLimited });
-          return;
-        }
-        if (res.status === 413) {
-          patch(key, {
-            reading: false,
-            error: interpolate(p.tooLarge, {
+        const bail = (
+          message: string,
+          errorReason: "too_large" | "rate_limited" | "upload_failed",
+        ) => {
+          patch(key, { reading: false, error: message });
+          tally("errors");
+          analytics.fileResult({
+            outcome: "error",
+            source,
+            tiersTried: 0,
+            durationMs: since(),
+            errorReason,
+          });
+        };
+        if (res.status === 429) return bail(p.rateLimited, "rate_limited");
+        if (res.status === 413)
+          return bail(
+            interpolate(p.tooLarge, {
               file: file.name,
               max: Math.round(PUBLIC_MAX_BYTES / (1024 * 1024)),
             }),
-          });
-          return;
-        }
-        if (!res.ok) {
-          patch(key, {
-            reading: false,
-            error: interpolate(p.uploadFailed, { file: file.name }),
-          });
-          return;
-        }
+            "too_large",
+          );
+        if (!res.ok)
+          return bail(
+            interpolate(p.uploadFailed, { file: file.name }),
+            "upload_failed",
+          );
         submitted = (await res.json()) as SubmitResponse;
       } catch {
         patch(key, {
           reading: false,
           error: interpolate(p.uploadFailed, { file: file.name }),
+        });
+        tally("errors");
+        analytics.fileResult({
+          outcome: "error",
+          source,
+          tiersTried: 0,
+          durationMs: since(),
+          errorReason: "upload_failed",
         });
         return;
       }
@@ -123,6 +195,14 @@ export function ProbarClient() {
             verified: { status: "skipped" },
             community: { status: "skipped" },
           },
+        });
+        tally("noText");
+        analytics.fileResult({
+          outcome: "no_text",
+          source,
+          tiersTried: 0,
+          pageCount: submitted.pageCount,
+          durationMs: since(),
         });
         return;
       }
@@ -150,11 +230,28 @@ export function ProbarClient() {
           });
           if (!res.ok) {
             patch(key, { error: p.rateLimited });
+            tally("errors");
+            analytics.fileResult({
+              outcome: "error",
+              source,
+              tiersTried: i,
+              pageCount: submitted.pageCount,
+              durationMs: since(),
+              errorReason: "rate_limited",
+            });
             return;
           }
           run = (await res.json()) as ParseResponse;
         } catch {
           patch(key, { error: interpolate(p.uploadFailed, { file: file.name }) });
+          tally("errors");
+          analytics.fileResult({
+            outcome: "error",
+            source,
+            tiersTried: i,
+            durationMs: since(),
+            errorReason: "upload_failed",
+          });
           return;
         }
 
@@ -170,6 +267,21 @@ export function ProbarClient() {
           // the remaining rows looking stuck.
           for (const rest of TIERS.slice(i + 1))
             setTier(key, rest, { status: "skipped" });
+
+          tally(run.best.ok ? "parsed" : "parseFailed");
+          analytics.fileResult({
+            outcome: run.best.ok ? "parsed" : "parse_failed",
+            source,
+            tier: run.best.tier,
+            parserSlug: run.best.slug,
+            vendorSlug: run.best.vendorSlug,
+            detectScore: run.best.score,
+            tiersTried: i + 1,
+            pageCount: submitted.pageCount,
+            charCount: submitted.charCount,
+            truncated: submitted.truncated,
+            durationMs: since(),
+          });
           return;
         }
 
@@ -183,28 +295,56 @@ export function ProbarClient() {
       }
 
       patch(key, { failure: "unrecognized" });
+      tally("unrecognized");
+      // The most commercially interesting event on the page: a real bill we
+      // can't read yet. `tiers_tried` = all of them.
+      analytics.fileResult({
+        outcome: "unrecognized",
+        source,
+        tiersTried: TIERS.length,
+        pageCount: submitted.pageCount,
+        charCount: submitted.charCount,
+        truncated: submitted.truncated,
+        durationMs: since(),
+      });
     },
-    [locale, p, patch, setTier],
+    [locale, p, patch, setTier, tally],
   );
 
   const addFiles = useCallback(
-    async (files: File[]) => {
+    async (files: File[], source: DropSource) => {
       const pdfs: File[] = [];
+      let rejected = 0;
       for (const file of files) {
         const isPdf =
           file.type === "application/pdf" ||
           file.name.toLowerCase().endsWith(".pdf");
         if (!isPdf) {
           showToast(interpolate(p.notPdf, { file: file.name }));
+          rejected += 1;
           continue;
         }
         pdfs.push(file);
       }
+      if (rejected > 0)
+        analytics.fileRejected({ reason: "not_pdf", count: rejected });
       if (pdfs.length === 0) return;
 
       const accepted = pdfs.slice(0, MAX_FILES_PER_DROP);
-      if (pdfs.length > accepted.length)
+      if (pdfs.length > accepted.length) {
         showToast(interpolate(p.tooManyFiles, { max: MAX_FILES_PER_DROP }));
+        analytics.fileRejected({
+          reason: "over_drop_limit",
+          count: pdfs.length - accepted.length,
+        });
+      }
+
+      analytics.fileSelected({
+        count: accepted.length,
+        source,
+        keepFile,
+      });
+      stats.current.filesSubmitted += accepted.length;
 
       const fresh: Submission[] = accepted.map((file) => ({
         key: crypto.randomUUID(),
@@ -235,7 +375,7 @@ export function ProbarClient() {
           for (;;) {
             const next = queue.shift();
             if (!next) return;
-            await run(next, keepFile);
+            await run(next, keepFile, source);
           }
         },
       );
@@ -249,7 +389,7 @@ export function ProbarClient() {
   // target than people expect from a page whose entire purpose is "drop a file
   // here" — and without window-level handlers the browser just opens the PDF.
   const onWindowFiles = useCallback(
-    (files: FileList) => void addFiles([...files]),
+    (files: FileList) => void addFiles([...files], "drop"),
     [addFiles],
   );
   const dragging = useWindowFileDrop({ onFiles: onWindowFiles });
@@ -261,9 +401,10 @@ export function ProbarClient() {
     try {
       const res = await fetch(SAMPLE_URL);
       const blob = await res.blob();
-      await addFiles([
-        new File([blob], "edesur-ejemplo.pdf", { type: "application/pdf" }),
-      ]);
+      await addFiles(
+        [new File([blob], "edesur-ejemplo.pdf", { type: "application/pdf" })],
+        "sample",
+      );
     } catch {
       showToast(interpolate(p.uploadFailed, { file: "edesur-ejemplo.pdf" }));
     } finally {
@@ -271,23 +412,53 @@ export function ProbarClient() {
     }
   }, [addFiles, p, showToast]);
 
-  const notify = useCallback(async (submissionId: string, email: string) => {
-    await fetch("/api/probar/notify", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ submissionId, email }),
-    });
+  const notify = useCallback(
+    async (submissionId: string, email: string, outcome: FailureKind) => {
+      await fetch("/api/probar/notify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ submissionId, email }),
+      });
+      stats.current.notifyRequested = true;
+      analytics.notifyRequested(outcome);
+    },
+    [],
+  );
+
+  const onBrowse = useCallback(
+    (files: File[]) => void addFiles(files, "browse"),
+    [addFiles],
+  );
+
+  const onKeepFileChange = useCallback((keep: boolean) => {
+    setKeepFile(keep);
+    // Only a real change is reported, so the default-on state never looks like
+    // a decision someone made.
+    analytics.keepFileToggled(keep);
   }, []);
 
   const saved = submissions.filter((s) => s.match?.ok).length;
+
+  // Reported once per visit, the first time the offer actually appears.
+  useEffect(() => {
+    if (saved > 0 && !stats.current.saveCtaShown) {
+      stats.current.saveCtaShown = true;
+      analytics.saveCtaShown(saved);
+    }
+  }, [saved]);
+
+  const onSaveClick = useCallback((count: number) => {
+    stats.current.saveCtaClicked = true;
+    analytics.saveCtaClicked(count);
+  }, []);
 
   return (
     <div className="flex flex-col gap-8">
       <PageDropOverlay active={dragging} />
       <DropArea
-        onFiles={addFiles}
+        onFiles={onBrowse}
         keepFile={keepFile}
-        onKeepFileChange={setKeepFile}
+        onKeepFileChange={onKeepFileChange}
         onSample={useSample}
         sampleBusy={sampleBusy}
         busy={busy}
@@ -307,7 +478,7 @@ export function ProbarClient() {
         </div>
       )}
 
-      {saved > 0 && <SaveCta count={saved} />}
+      {saved > 0 && <SaveCta count={saved} onClick={onSaveClick} />}
     </div>
   );
 }
