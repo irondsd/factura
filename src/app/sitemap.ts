@@ -17,6 +17,7 @@ const LANDING: {
   priority: number;
 }[] = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
+  { path: "/probar", changeFrequency: "weekly", priority: 0.9 },
   { path: "/docs", changeFrequency: "weekly", priority: 0.8 },
   { path: "/faq", changeFrequency: "weekly", priority: 0.8 },
   { path: "/demo", changeFrequency: "weekly", priority: 0.8 },

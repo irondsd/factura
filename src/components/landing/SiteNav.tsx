@@ -24,6 +24,7 @@ export function siteNavLinks(
 ): { links: NavLink[]; signIn: NavLink } {
   return {
     links: [
+      { label: t.nav.try, href: "/probar" },
       { label: t.nav.docs, href: "/docs" },
       { label: t.nav.faq, href: "/faq" },
       { label: t.nav.demo, href: "/demo" },

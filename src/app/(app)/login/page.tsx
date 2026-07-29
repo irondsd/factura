@@ -35,6 +35,12 @@ function LoginForm() {
   const { t } = useI18n();
   const tl = t.login;
 
+  // Visitors sent here from /probar have bills waiting in the submissions
+  // cookie. Carrying the flag through sign-in is what tells /app to claim them;
+  // it's a bare flag, not a path, so it can't be used as an open redirect.
+  const claim = params.get("claim") === "1";
+  const callbackUrl = claim ? "/app?claim=1" : "/app";
+
   const [step, setStep] = useState<Step>("choose");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -59,8 +65,8 @@ function LoginForm() {
 
   // Already signed in (or just verified) → leave the public login page.
   useEffect(() => {
-    if (status === "authenticated") router.replace("/app");
-  }, [status, router]);
+    if (status === "authenticated") router.replace(callbackUrl);
+  }, [status, router, callbackUrl]);
 
   useEffect(() => {
     if (status === "authenticated" && session?.user?.email) {
@@ -93,7 +99,7 @@ function LoginForm() {
     const qs = new URLSearchParams({
       token: code.trim(),
       email,
-      callbackUrl: "/app",
+      callbackUrl,
     });
     window.location.href = `/api/auth/callback/resend?${qs.toString()}`;
   }
@@ -113,7 +119,7 @@ function LoginForm() {
             <button
               onClick={() => {
                 posthog.capture("sign_in_google_clicked");
-                signIn("google", { callbackUrl: "/app" });
+                signIn("google", { callbackUrl });
               }}
               className="mt-7 inline-flex w-full items-center justify-center gap-3 font-mono text-[13px] text-ink bg-paper border border-line py-3 px-4 cursor-pointer transition-colors hover:border-accent"
             >

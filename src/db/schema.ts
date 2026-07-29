@@ -365,3 +365,138 @@ export const parserSamples = pgTable(
   },
   (t) => [index("parser_sample_slug_idx").on(t.userId, t.slug)],
 );
+
+/** Terminal state of a public submission's tier cascade. `pending` is the state
+ * between upload and the first parse step; `no_text` is a scanned/image PDF we
+ * couldn't read at all. Mirrors IngestResult's vocabulary minus the outcomes
+ * that only mean something once a bill has an owner (duplicate,
+ * unknown_account) — those are decided later, when the submission is claimed. */
+export const submissionOutcome = pgEnum("submission_outcome", [
+  "pending",
+  "no_text",
+  "unrecognized",
+  "parse_failed",
+  "parsed",
+]);
+
+/** One anonymous drop on the public /probar page. This is the only table a
+ * logged-out visitor can write to, so it is deliberately self-contained: it has
+ * no foreign key into `properties` or `property_members`, grants access to
+ * nothing, and cannot become a bill on its own. A submission turns into a real
+ * bill only when the visitor signs in and claims it — and claiming re-runs the
+ * normal `ingestBill` under that user's own parser set, so nothing the public
+ * cascade matched is trusted into an account on the cascade's say-so. */
+export const billSubmissions = pgTable(
+  "bill_submissions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // ── Capability ───────────────────────────────────────────────────────────
+    /** SHA-256 of the per-submission secret handed to the browser in the
+     * `probar_subs` cookie. The id alone is NOT authorization: uuids leak
+     * through logs, Referer headers and shared screenshots, and a leaked one
+     * must not let anyone read this bill's text or claim it into their account.
+     * A cookie of bare ids would be no better — httpOnly stops a script
+     * *reading* a cookie, not a client *forging* one. Stored hashed so a DB dump
+     * isn't a pile of usable bearer tokens. */
+    secretHash: text("secret_hash").notNull(),
+
+    // ── File ─────────────────────────────────────────────────────────────────
+    fileName: text("file_name").notNull(),
+    fileBytes: integer("file_bytes").notNull(),
+    pageCount: integer("page_count"),
+    /** S3 key under `submissions/<id>/`. Null means no object exists for this
+     * row: storage wasn't configured, the retention sweep removed it, or a claim
+     * TRANSFERRED it to `bills.storage_key`. Transfer rather than share, because
+     * `bills.delete` calls `deleteObject` — a key held by two rows would leave
+     * this one pointing at nothing. */
+    storageKey: text("storage_key"),
+    /** When the sweep removed the object. Informational; the live "is there a
+     * file?" test is `storage_key is not null`. */
+    fileDeletedAt: timestamp("file_deleted_at"),
+    /** The "keep my file" checkbox, checked by default. False AND never claimed
+     * ⇒ the sweep deletes the S3 object after SUBMISSION_FILE_GRACE_DAYS.
+     * Claiming keeps the file regardless — saving a bill to your account is
+     * asking us to hold it. This flag wins unconditionally, including for
+     * unrecognized bills: a checkbox that doesn't delete the file is a lie, and
+     * the extracted text below (the part that's useful for building a parser) is
+     * kept either way. */
+    keepFile: boolean("keep_file").notNull().default(true),
+
+    // ── Extraction & parse ───────────────────────────────────────────────────
+    rawText: text("raw_text").notNull(),
+    textHash: text("text_hash").notNull(),
+    outcome: submissionOutcome("outcome").notNull().default("pending"),
+    /** Which cascade step produced `result`. Frozen here rather than read back
+     * off parser_configs, because a parser's tier changes underneath us
+     * (makeParserOfficial promotes rows in place) and this row has to keep
+     * explaining what the visitor was actually shown. */
+    matchedTier: parserTier("matched_tier"),
+    matchedConfigId: uuid("matched_config_id").references(
+      () => parserConfigs.id,
+      { onDelete: "set null" },
+    ),
+    /** The exact published snapshot that matched. Claim adopts THIS version, so
+     * the bill the user ends up with is parsed by the parser they watched work. */
+    matchedVersionId: uuid("matched_version_id").references(
+      () => parserVersions.id,
+      { onDelete: "set null" },
+    ),
+    /** Slug + vendor name copied at match time, so the row stays readable after
+     * the parser is unpublished or its owner's account is deleted. */
+    matchedSlug: text("matched_slug"),
+    matchedVendorName: text("matched_vendor_name"),
+    /** The engine's ParsedResult: identity, amount, period, dueDate, custom. */
+    result: jsonb("result"),
+    /** ParseError message when a parser recognized the bill but couldn't extract
+     * it — the single most useful signal for improving that parser. */
+    parseError: text("parse_error"),
+
+    // ── Follow-up ────────────────────────────────────────────────────────────
+    /** Optional address the visitor left to hear back about an unrecognized
+     * bill. Unverified — anyone can type anyone's address — so it is never
+     * linked to an account, never used to authenticate, and receives at most one
+     * notice ever (`notified_at`). */
+    notifyEmail: text("notify_email"),
+    notifiedAt: timestamp("notified_at"),
+
+    // ── Claim ────────────────────────────────────────────────────────────────
+    claimedByUserId: uuid("claimed_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    claimedAt: timestamp("claimed_at"),
+    claimedBillId: uuid("claimed_bill_id").references(() => bills.id, {
+      onDelete: "set null",
+    }),
+
+    // ── Abuse control ────────────────────────────────────────────────────────
+    /** HMAC-SHA256(AUTH_SECRET, client IP), hex-truncated. A plain digest of an
+     * IP is not anonymization — the whole v4 space is 2^32 values and reverses
+     * in seconds — so the keying is what makes this a pseudonym rather than the
+     * address itself. Used only to spot floods and enforce the daily cap that
+     * the in-process limiter can't (see rateLimit.ts). */
+    ipHash: text("ip_hash"),
+    userAgent: text("user_agent"),
+    /** Which language the drop came from, so a follow-up email matches it. */
+    locale: userLocale("locale").notNull().default("es"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    // The retention sweep's only query. Partial, because the overwhelming
+    // majority of rows keep their file and must never enter this index.
+    index("bill_submission_sweep_idx")
+      .on(t.createdAt)
+      .where(
+        sql`${t.keepFile} = false and ${t.claimedByUserId} is null and ${t.storageKey} is not null`,
+      ),
+    // Per-IP daily cap and flood forensics. The in-process token bucket dies
+    // with the instance; this index is what makes the sustained limit real.
+    index("bill_submission_ip_idx").on(t.ipHash, t.createdAt),
+    // "How many people have dropped this exact bill?" — ranks which parser to
+    // write next, without scanning raw_text. Deliberately NOT unique: two
+    // visitors dropping the same bill are two independent events, and dedup is a
+    // claim-time concern `ingestBill` already owns.
+    index("bill_submission_text_hash_idx").on(t.textHash),
+    index("bill_submission_claimed_idx").on(t.claimedByUserId),
+  ],
+);

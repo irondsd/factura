@@ -48,5 +48,4 @@ worker-dist/
 next-env.d.ts
 .playwright-mcp
 
-samples/
 .claude/

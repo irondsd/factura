@@ -8,9 +8,11 @@ import { cookies } from "next/headers";
 import { db } from "@/db";
 import { authAccounts, sessions, users, verificationTokens } from "@/db/schema";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
+import { claimSubmissions } from "./claim";
 import { createPropertyForUser } from "./defaults";
 import { sendOtpEmail, sendWelcomeEmail } from "./email";
 import { adoptOfficialDefaults } from "./registry";
+import { parseTickets, SUBMISSION_COOKIE } from "./submissions";
 
 /** How long a one-time code stays valid (matches the copy in emails/opt.tsx). */
 const OTP_TTL_SECONDS = 10 * 60;
@@ -93,6 +95,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         await createPropertyForUser(db, user.id, "Home");
         await adoptOfficialDefaults(db, user.id);
+
+        // Sign-ups arriving from /probar carry the bills they dropped while
+        // logged out. Claiming here means the account is non-empty on first
+        // paint even if the OAuth redirect loses ?claim=1.
+        //
+        // MUST run after the two calls above: ingest files a bill into the
+        // user's property and parses with their adopted set, and both of those
+        // are created there. Best-effort — a claim failure must never break
+        // sign-up. Note we can only READ the cookie in an Auth.js event, so
+        // /app?claim=1 will retry these same rows; claimSubmissions is
+        // idempotent per submission, and that retry is what clears the cookie.
+        try {
+          const tickets = parseTickets(
+            (await cookies()).get(SUBMISSION_COOKIE)?.value,
+          );
+          if (tickets.length > 0) await claimSubmissions(db, user.id, tickets);
+        } catch (err) {
+          console.error("[auth] claiming /probar submissions failed:", err);
+        }
+
         if (user.email)
           await sendWelcomeEmail({ to: user.email, name: user.name });
       }

@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { getDocument } = vi.hoisted(() => ({ getDocument: vi.fn() }));
 vi.mock("pdfjs-serverless", () => ({ getDocument }));
 
-import { extractPdfText } from "./pdf";
+import { extractPdfDocument, extractPdfText } from "./pdf";
 
 type Item = { str: string } | { type: string };
 
@@ -79,5 +79,45 @@ describe("extractPdfText", () => {
     getDocument.mockReturnValue({ promise: Promise.resolve(doc) });
     await extractPdfText(new Uint8Array([1]));
     expect(doc.destroy).toHaveBeenCalledOnce();
+  });
+});
+
+describe("extractPdfDocument", () => {
+  beforeEach(() => {
+    getDocument.mockReset();
+  });
+
+  it("reports the page count and reads every page by default", async () => {
+    resolveWith([[{ str: "a" }], [{ str: "b" }], [{ str: "c" }]]);
+    expect(await extractPdfDocument(new Uint8Array([1]))).toEqual({
+      text: "a\nb\nc",
+      pageCount: 3,
+      truncated: false,
+    });
+  });
+
+  it("stops at maxPages and flags the read as truncated", async () => {
+    // The public-drop guard: a document may declare far more pages than we're
+    // willing to spend time on, and `pageCount` must still report the real total.
+    resolveWith([[{ str: "a" }], [{ str: "b" }], [{ str: "c" }]]);
+    expect(
+      await extractPdfDocument(new Uint8Array([1]), { maxPages: 2 }),
+    ).toEqual({ text: "a\nb", pageCount: 3, truncated: true });
+  });
+
+  it("does not flag truncation when maxPages exceeds the document", async () => {
+    resolveWith([[{ str: "a" }]]);
+    const out = await extractPdfDocument(new Uint8Array([1]), { maxPages: 30 });
+    expect(out).toEqual({ text: "a", pageCount: 1, truncated: false });
+  });
+
+  it("never fetches a page beyond the cap", async () => {
+    // Truncation has to happen before `getPage`, not after — the whole point is
+    // to not do the work.
+    const doc = fakeDoc([[{ str: "a" }], [{ str: "b" }], [{ str: "c" }]]);
+    const getPage = vi.spyOn(doc, "getPage");
+    getDocument.mockReturnValue({ promise: Promise.resolve(doc) });
+    await extractPdfDocument(new Uint8Array([1]), { maxPages: 1 });
+    expect(getPage).toHaveBeenCalledTimes(1);
   });
 });

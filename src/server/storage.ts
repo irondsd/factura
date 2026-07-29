@@ -35,21 +35,13 @@ function client(): S3Client {
   return cached;
 }
 
-/** Filesystem-safe, collision-free key namespaced per user. */
-function buildKey(userId: string, fileName: string): string {
+/** Filesystem-safe, collision-free key under `<prefix>/<scope>/`. */
+function buildKey(prefix: string, scope: string, fileName: string): string {
   const safe = fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80);
-  return `bills/${userId}/${crypto.randomUUID()}-${safe}`;
+  return `${prefix}/${scope}/${crypto.randomUUID()}-${safe}`;
 }
 
-/** Upload a PDF server-side and return its key. The server now sits between the
- * browser and the bucket (it already holds the bytes to extract text), so there's
- * no presigned browser PUT and therefore no cross-origin CORS rule to configure. */
-export async function putObject(
-  userId: string,
-  fileName: string,
-  bytes: Uint8Array,
-): Promise<string> {
-  const key = buildKey(userId, fileName);
+async function put(key: string, bytes: Uint8Array): Promise<string> {
   await client().send(
     new PutObjectCommand({
       Bucket: BUCKET,
@@ -59,6 +51,32 @@ export async function putObject(
     }),
   );
   return key;
+}
+
+/** Upload a PDF server-side and return its key. The server now sits between the
+ * browser and the bucket (it already holds the bytes to extract text), so there's
+ * no presigned browser PUT and therefore no cross-origin CORS rule to configure. */
+export function putObject(
+  userId: string,
+  fileName: string,
+  bytes: Uint8Array,
+): Promise<string> {
+  return put(buildKey("bills", userId, fileName), bytes);
+}
+
+/** Upload a PDF dropped on the public /probar page, keyed by submission rather
+ * than by user — there is no user yet. The separate `submissions/` prefix keeps
+ * anonymous uploads identifiable in the bucket, which is what makes the
+ * retention sweep auditable and lets a lifecycle rule target them if you ever
+ * want one. On claim the object is NOT moved: the key transfers to
+ * `bills.storageKey` as-is and the submission row gives it up, so exactly one
+ * row owns each object (see claimSubmissions). */
+export function putSubmissionObject(
+  submissionId: string,
+  fileName: string,
+  bytes: Uint8Array,
+): Promise<string> {
+  return put(buildKey("submissions", submissionId, fileName), bytes);
 }
 
 /** Fetch a stored PDF's raw bytes — used to re-extract text from the file. */

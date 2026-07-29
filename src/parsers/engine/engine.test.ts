@@ -9,7 +9,7 @@ import { mdaExpensasConfig } from "./configs/mda-expensas";
 import { metrogasConfig } from "./configs/metrogas";
 import { telecomConfig } from "./configs/telecom";
 import { evalExpr } from "./expr";
-import { runConfig, selectConfig } from "./evaluate";
+import { pickBestScored, runConfig, selectConfig } from "./evaluate";
 import { applyTransforms } from "./transforms";
 import { ParseError, type ParserConfig } from "./types";
 
@@ -183,6 +183,70 @@ describe("detection (step 1)", () => {
   it("has unique slugs", () => {
     const slugs = ENGINE_CONFIGS.map((c) => c.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
+  });
+});
+
+// The tie rule, tested directly rather than only through selectConfig. It has a
+// second caller now — the public /probar cascade scores in a worker and can't
+// call selectConfig — so a change here silently changes both.
+describe("pickBestScored", () => {
+  it("returns the single highest scorer", () => {
+    expect(
+      pickBestScored([
+        { item: "a", score: 1 },
+        { item: "b", score: 5 },
+        { item: "c", score: 3 },
+      ]),
+    ).toEqual({ item: "b", score: 5 });
+  });
+
+  it("returns the only candidate", () => {
+    expect(pickBestScored([{ item: "a", score: 0 }])).toEqual({
+      item: "a",
+      score: 0,
+    });
+  });
+
+  it("returns null for an empty set", () => {
+    expect(pickBestScored([])).toBeNull();
+  });
+
+  it("refuses to guess when the top two tie", () => {
+    // Two parsers claim the bill equally well; picking either would file it
+    // under the wrong vendor half the time.
+    expect(
+      pickBestScored([
+        { item: "a", score: 4 },
+        { item: "b", score: 4 },
+      ]),
+    ).toBeNull();
+  });
+
+  it("is unbothered by a tie below the winner", () => {
+    expect(
+      pickBestScored([
+        { item: "a", score: 9 },
+        { item: "b", score: 2 },
+        { item: "c", score: 2 },
+      ]),
+    ).toEqual({ item: "a", score: 9 });
+  });
+
+  it("does not depend on input order", () => {
+    const items = [
+      { item: "a", score: 1 },
+      { item: "b", score: 5 },
+    ];
+    expect(pickBestScored(items)).toEqual(pickBestScored([...items].reverse()));
+  });
+
+  it("does not mutate the caller's array", () => {
+    const items = [
+      { item: "a", score: 1 },
+      { item: "b", score: 5 },
+    ];
+    pickBestScored(items);
+    expect(items.map((i) => i.item)).toEqual(["a", "b"]);
   });
 });
 

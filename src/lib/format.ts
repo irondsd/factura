@@ -69,6 +69,25 @@ export function formatMonth(month: string, locale: Locale = "es"): string {
   return monthFmt[locale].format(new Date(`${month.slice(0, 7)}-01T00:00:00Z`));
 }
 
+const dayFmt: Record<Locale, Intl.DateTimeFormat> = {
+  es: new Intl.DateTimeFormat(INTL_TAG.es, {
+    dateStyle: "long",
+    timeZone: "UTC",
+  }),
+  en: new Intl.DateTimeFormat(INTL_TAG.en, {
+    dateStyle: "long",
+    timeZone: "UTC",
+  }),
+};
+
+/** "2026-06-01" -> "1 de junio de 2026" (es) / "June 1, 2026" (en). For dates a
+ * reader is meant to act on, like a due date. UTC so a stored date never shifts
+ * a day for a reader west of Greenwich. */
+export function formatDate(iso: string, locale: Locale = "es"): string {
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? iso : dayFmt[locale].format(d);
+}
+
 /** "2026-06" -> "Jun" (en) / "jun." (es) */
 export function formatMonthShort(month: string, locale: Locale = "es"): string {
   return monthShortFmt[locale].format(
