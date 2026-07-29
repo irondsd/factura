@@ -229,7 +229,24 @@ export function ProbarClient() {
             }),
           });
           if (!res.ok) {
-            patch(key, { error: p.rateLimited });
+            // Distinguish the failures rather than blaming them all on the
+            // limiter: a 404 means this browser no longer holds the ticket for
+            // the submission (its cookie expired, or was cleared mid-drop), and
+            // telling someone to "try again in a bit" would be a lie — only
+            // re-uploading recovers it.
+            const [message, errorReason] =
+              res.status === 429
+                ? ([p.rateLimited, "rate_limited"] as const)
+                : res.status === 404
+                  ? ([
+                      interpolate(p.sessionLost, { file: file.name }),
+                      "session_lost",
+                    ] as const)
+                  : ([
+                      interpolate(p.uploadFailed, { file: file.name }),
+                      "upload_failed",
+                    ] as const);
+            patch(key, { error: message });
             tally("errors");
             analytics.fileResult({
               outcome: "error",
@@ -237,7 +254,7 @@ export function ProbarClient() {
               tiersTried: i,
               pageCount: submitted.pageCount,
               durationMs: since(),
-              errorReason: "rate_limited",
+              errorReason,
             });
             return;
           }

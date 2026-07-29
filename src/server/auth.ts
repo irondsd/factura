@@ -12,7 +12,7 @@ import { claimSubmissions } from "./claim";
 import { createPropertyForUser } from "./defaults";
 import { sendOtpEmail, sendWelcomeEmail } from "./email";
 import { adoptOfficialDefaults } from "./registry";
-import { parseTickets, SUBMISSION_COOKIE } from "./submissions";
+import { readTickets } from "./submissions";
 
 /** How long a one-time code stays valid (matches the copy in emails/opt.tsx). */
 const OTP_TTL_SECONDS = 10 * 60;
@@ -107,9 +107,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // /app?claim=1 will retry these same rows; claimSubmissions is
         // idempotent per submission, and that retry is what clears the cookie.
         try {
-          const tickets = parseTickets(
-            (await cookies()).get(SUBMISSION_COOKIE)?.value,
-          );
+          const tickets = readTickets((await cookies()).getAll());
           if (tickets.length > 0) await claimSubmissions(db, user.id, tickets);
         } catch (err) {
           console.error("[auth] claiming /probar submissions failed:", err);

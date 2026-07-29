@@ -1110,6 +1110,7 @@
     "tooLarge": "✕ {file}: larger than {max} MB",
     "uploadFailed": "✕ {file}: we couldn't process it",
     "rateLimited": "△ Too many files at once — try again in a bit",
+    "sessionLost": "✕ {file}: this bill's session was lost — upload it again",
     "stepReading": "Reading the PDF…",
     "tierOfficial": "Official parsers",
     "tierVerified": "Verified parsers",

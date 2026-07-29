@@ -1110,6 +1110,7 @@
     "tooLarge": "✕ {file}: el archivo supera los {max} MB",
     "uploadFailed": "✕ {file}: no pudimos procesarlo",
     "rateLimited": "△ Demasiados archivos seguidos — probá de nuevo en un rato",
+    "sessionLost": "✕ {file}: se perdió la sesión de esta factura — subila de nuevo",
     "stepReading": "Leyendo el PDF…",
     "tierOfficial": "Analizadores oficiales",
     "tierVerified": "Analizadores verificados",

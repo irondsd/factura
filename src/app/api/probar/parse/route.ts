@@ -6,7 +6,7 @@ import { type ParseResponse, type Tier, TIERS } from "@/lib/probar";
 import { normalize } from "@/parsers/normalize";
 import { limitKey, PROBAR_PARSE, take } from "@/server/rateLimit";
 import { runTier } from "@/server/submissions/cascade";
-import { loadOwnedSubmission, parseTickets, SUBMISSION_COOKIE } from "@/server/submissions";
+import { findTicket, loadOwnedSubmission } from "@/server/submissions";
 
 // The worker the cascade spawns needs Node's worker_threads.
 export const runtime = "nodejs";
@@ -45,9 +45,7 @@ export async function POST(request: Request) {
   // httpOnly cookie. 404 rather than 401/403 on every failure, so a caller with
   // a guessed id can't learn whether it exists.
   const jar = await cookies();
-  const ticket = parseTickets(jar.get(SUBMISSION_COOKIE)?.value).find(
-    (t) => t.id === submissionId,
-  );
+  const ticket = findTicket(jar.getAll(), submissionId);
   if (!ticket) return Response.json({ error: "Not found" }, { status: 404 });
 
   const row = await loadOwnedSubmission(db, ticket.id, ticket.secret);

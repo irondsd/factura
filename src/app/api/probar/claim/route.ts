@@ -4,7 +4,7 @@ import type { ClaimResponse } from "@/lib/probar";
 import { auth } from "@/server/auth";
 import { claimSubmissions } from "@/server/claim";
 import { limitKey, PROBAR_CLAIM, take } from "@/server/rateLimit";
-import { parseTickets, SUBMISSION_COOKIE } from "@/server/submissions";
+import { readTickets, trackedCookieNames } from "@/server/submissions";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -36,14 +36,17 @@ export async function POST(request: Request) {
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const jar = await cookies();
-  const tickets = parseTickets(jar.get(SUBMISSION_COOKIE)?.value);
+  const tickets = readTickets(jar.getAll());
   if (tickets.length === 0) return Response.json({ results: [] } as ClaimResponse);
 
   const results = await claimSubmissions(db, userId, tickets);
 
-  // Spent. Clearing it is also what stops the sign-up path (which can read the
-  // cookie but not write one) from retrying these rows on every /app visit.
-  jar.delete(SUBMISSION_COOKIE);
+  // Spent. Clearing them is also what stops the sign-up path (which can read
+  // the cookies but not write them) from retrying these rows on every /app
+  // visit. `path` must match what /submit set, or the browser scopes the expiry
+  // to /api/probar/claim and the originals survive.
+  for (const name of trackedCookieNames(jar.getAll()))
+    jar.delete({ name, path: "/" });
 
   // The claim event is captured by the caller (ClaimSubmissions), where
   // posthog-js already holds the identity the rest of the /probar funnel was

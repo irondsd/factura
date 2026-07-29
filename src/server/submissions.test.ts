@@ -1,29 +1,184 @@
 import { describe, expect, it } from "vitest";
 import {
-  appendTicket,
+  evictableCookieNames,
+  findTicket,
+  LEGACY_SUBMISSION_COOKIE,
   MAX_TRACKED_SUBMISSIONS,
   mintTicket,
-  parseTickets,
+  parseLegacyTickets,
+  readTickets,
   secretMatches,
-  serializeTickets,
+  submissionCookieName,
+  submissionCookieValue,
+  trackedCookieNames,
   hashSecret,
 } from "./submissions";
 
 const ID_A = "11111111-1111-4111-8111-111111111111";
 const ID_B = "22222222-2222-4222-8222-222222222222";
 const SECRET = "abcdefghijklmnopqrstuvwx";
+const OTHER_SECRET = "zzzzzzzzzzzzzzzzzzzzzzzz";
 
-describe("parseTickets", () => {
+/** One `probar_sub_<id>` cookie as /submit would have written it. */
+const cookie = (id: string, secret = SECRET, atSec = 1_700_000_000) => ({
+  name: submissionCookieName(id),
+  value: submissionCookieValue(secret, atSec * 1000),
+});
+
+const legacy = (raw: string) => ({ name: LEGACY_SUBMISSION_COOKIE, value: raw });
+
+// The regression this whole layout exists for: /submit used to rebuild one
+// shared cookie from the value it was sent, so two concurrent uploads each
+// wrote `<their own ticket>` over the other's and one file lost its ticket
+// entirely — then 404'd on its next /parse call. Independent cookie names are
+// what make a parallel drop survivable.
+describe("concurrent submits", () => {
+  it("keeps every ticket when responses interleave", () => {
+    const jar = [cookie(ID_A, SECRET, 1000), cookie(ID_B, OTHER_SECRET, 1000)];
+    expect(findTicket(jar, ID_A)).toEqual({
+      id: ID_A,
+      secret: SECRET,
+      issuedAt: 1_000_000,
+    });
+    expect(findTicket(jar, ID_B)).toEqual({
+      id: ID_B,
+      secret: OTHER_SECRET,
+      issuedAt: 1_000_000,
+    });
+  });
+
+  it("evicts nothing while under the cap", () => {
+    expect(evictableCookieNames([cookie(ID_A), cookie(ID_B)])).toEqual([]);
+  });
+});
+
+describe("readTickets", () => {
+  it("reads per-submission cookies, newest first", () => {
+    expect(
+      readTickets([cookie(ID_A, SECRET, 1000), cookie(ID_B, SECRET, 2000)]),
+    ).toEqual([
+      { id: ID_B, secret: SECRET, issuedAt: 2_000_000 },
+      { id: ID_A, secret: SECRET, issuedAt: 1_000_000 },
+    ]);
+  });
+
+  it("ignores unrelated cookies", () => {
+    expect(
+      readTickets([
+        { name: "session", value: "whatever" },
+        { name: "probar_sub_not-a-uuid", value: SECRET },
+        cookie(ID_A),
+      ]),
+    ).toEqual([{ id: ID_A, secret: SECRET, issuedAt: 1_700_000_000_000 }]);
+  });
+
+  // Every value here is attacker-controlled: each must be dropped quietly
+  // rather than throwing or reaching the DB.
+  it.each([
+    ["empty value", ""],
+    ["timestamp only", ".abc"],
+    ["secret too short", "short.abc"],
+    ["cookie-hostile chars", "abc;def=ghi jkl.abc"],
+  ])("drops a cookie with %s", (_label, value) => {
+    expect(readTickets([{ name: submissionCookieName(ID_A), value }])).toEqual(
+      [],
+    );
+  });
+
+  it("accepts a value with no timestamp", () => {
+    // A missing stamp costs the ticket its place in the eviction order, never
+    // its validity.
+    expect(
+      readTickets([{ name: submissionCookieName(ID_A), value: SECRET }]),
+    ).toEqual([{ id: ID_A, secret: SECRET, issuedAt: 0 }]);
+  });
+
+  it("still reads tickets from the legacy cookie", () => {
+    // A visitor who dropped bills before the split must keep them claimable.
+    expect(readTickets([legacy(`${ID_A}:${SECRET}|${ID_B}:${SECRET}`)])).toEqual([
+      { id: ID_A, secret: SECRET, issuedAt: 0 },
+      { id: ID_B, secret: SECRET, issuedAt: 0 },
+    ]);
+  });
+
+  it("prefers the per-submission cookie over a legacy entry for the same id", () => {
+    const out = readTickets([legacy(`${ID_A}:${OTHER_SECRET}`), cookie(ID_A)]);
+    expect(out).toEqual([
+      { id: ID_A, secret: SECRET, issuedAt: 1_700_000_000_000 },
+    ]);
+  });
+
+  it("truncates an oversized jar", () => {
+    // Otherwise one forged jar turns a single claim request into unbounded DB
+    // work.
+    const jar = Array.from({ length: MAX_TRACKED_SUBMISSIONS + 25 }, (_, i) =>
+      cookie(`${ID_A.slice(0, -2)}${String(i % 100).padStart(2, "0")}`),
+    );
+    expect(readTickets(jar)).toHaveLength(MAX_TRACKED_SUBMISSIONS);
+  });
+
+  it("returns nothing for an empty jar", () => {
+    expect(readTickets([])).toEqual([]);
+  });
+});
+
+describe("findTicket", () => {
+  it("returns null for an id the browser doesn't hold", () => {
+    // This is the 404 the parse route answers with — the ticket is the only
+    // authorization an anonymous submission has.
+    expect(findTicket([cookie(ID_A)], ID_B)).toBeNull();
+  });
+});
+
+describe("evictableCookieNames", () => {
+  it("drops the oldest beyond the cap", () => {
+    const jar = Array.from({ length: MAX_TRACKED_SUBMISSIONS + 3 }, (_, i) =>
+      cookie(
+        `${ID_A.slice(0, -2)}${String(i % 100).padStart(2, "0")}`,
+        SECRET,
+        1000 + i,
+      ),
+    );
+    // The three oldest are the three written first.
+    expect(evictableCookieNames(jar)).toEqual(jar.slice(0, 3).map((c) => c.name));
+  });
+
+  it("sweeps junk probar_sub_ cookies", () => {
+    // A forged jar full of unparseable entries must not hold real tickets out
+    // of the cap.
+    const junk = { name: submissionCookieName(ID_B), value: "nope" };
+    expect(evictableCookieNames([cookie(ID_A), junk])).toEqual([junk.name]);
+  });
+
+  it("never evicts the legacy cookie", () => {
+    // It holds tickets for ids that have no cookie of their own.
+    expect(evictableCookieNames([legacy(`${ID_A}:${SECRET}`)])).toEqual([]);
+  });
+});
+
+describe("trackedCookieNames", () => {
+  it("names every cookie a spent claim must clear", () => {
+    expect(
+      trackedCookieNames([
+        { name: "session", value: "x" },
+        cookie(ID_A),
+        legacy(`${ID_B}:${SECRET}`),
+      ]),
+    ).toEqual([submissionCookieName(ID_A), LEGACY_SUBMISSION_COOKIE]);
+  });
+});
+
+describe("parseLegacyTickets", () => {
   it("parses a well-formed cookie", () => {
-    expect(parseTickets(`${ID_A}:${SECRET}|${ID_B}:${SECRET}`)).toEqual([
+    expect(parseLegacyTickets(`${ID_A}:${SECRET}|${ID_B}:${SECRET}`)).toEqual([
       { id: ID_A, secret: SECRET },
       { id: ID_B, secret: SECRET },
     ]);
   });
 
   it("returns nothing for a missing or empty cookie", () => {
-    expect(parseTickets(undefined)).toEqual([]);
-    expect(parseTickets("")).toEqual([]);
+    expect(parseLegacyTickets(undefined)).toEqual([]);
+    expect(parseLegacyTickets("")).toEqual([]);
   });
 
   // The cookie is entirely attacker-controlled: every one of these must be
@@ -38,74 +193,29 @@ describe("parseTickets", () => {
     ["only a separator", ":"],
     ["pipes only", "|||"],
   ])("drops %s", (_label, raw) => {
-    expect(parseTickets(raw)).toEqual([]);
+    expect(parseLegacyTickets(raw)).toEqual([]);
   });
 
   it("keeps the valid entries around an invalid one", () => {
-    expect(parseTickets(`${ID_A}:${SECRET}|garbage|${ID_B}:${SECRET}`)).toEqual([
+    expect(
+      parseLegacyTickets(`${ID_A}:${SECRET}|garbage|${ID_B}:${SECRET}`),
+    ).toEqual([
       { id: ID_A, secret: SECRET },
       { id: ID_B, secret: SECRET },
     ]);
   });
 
   it("keeps the first entry when an id repeats", () => {
-    const out = parseTickets(`${ID_A}:${SECRET}|${ID_A}:zzzzzzzzzzzzzzzzzzzzzzzz`);
+    const out = parseLegacyTickets(`${ID_A}:${SECRET}|${ID_A}:${OTHER_SECRET}`);
     expect(out).toEqual([{ id: ID_A, secret: SECRET }]);
   });
 
   it("truncates an oversized cookie", () => {
-    // Otherwise one forged cookie turns a single claim request into unbounded
-    // DB work.
     const many = Array.from(
       { length: MAX_TRACKED_SUBMISSIONS + 25 },
       (_, i) => `${ID_A.slice(0, -2)}${String(i % 100).padStart(2, "0")}:${SECRET}`,
     ).join("|");
-    expect(parseTickets(many)).toHaveLength(MAX_TRACKED_SUBMISSIONS);
-  });
-
-  it("round-trips through serializeTickets", () => {
-    const tickets = [
-      { id: ID_A, secret: SECRET },
-      { id: ID_B, secret: SECRET },
-    ];
-    expect(parseTickets(serializeTickets(tickets))).toEqual(tickets);
-  });
-});
-
-describe("serializeTickets", () => {
-  it("keeps the most recent tickets when over the cap", () => {
-    const tickets = Array.from(
-      { length: MAX_TRACKED_SUBMISSIONS + 3 },
-      (_, i) => ({
-        id: `${ID_A.slice(0, -2)}${String(i % 100).padStart(2, "0")}`,
-        secret: SECRET,
-      }),
-    );
-    const kept = parseTickets(serializeTickets(tickets));
-    expect(kept).toHaveLength(MAX_TRACKED_SUBMISSIONS);
-    expect(kept.at(-1)).toEqual(tickets.at(-1));
-  });
-});
-
-describe("appendTicket", () => {
-  it("adds to an existing cookie", () => {
-    const out = appendTicket(`${ID_A}:${SECRET}`, { id: ID_B, secret: SECRET });
-    expect(parseTickets(out)).toHaveLength(2);
-  });
-
-  it("replaces the entry for an id instead of duplicating it", () => {
-    const out = appendTicket(`${ID_A}:${SECRET}`, {
-      id: ID_A,
-      secret: "zzzzzzzzzzzzzzzzzzzzzzzz",
-    });
-    expect(parseTickets(out)).toEqual([
-      { id: ID_A, secret: "zzzzzzzzzzzzzzzzzzzzzzzz" },
-    ]);
-  });
-
-  it("works from an empty cookie", () => {
-    expect(parseTickets(appendTicket(undefined, { id: ID_A, secret: SECRET })))
-      .toEqual([{ id: ID_A, secret: SECRET }]);
+    expect(parseLegacyTickets(many)).toHaveLength(MAX_TRACKED_SUBMISSIONS);
   });
 });
 
@@ -115,7 +225,18 @@ describe("mintTicket", () => {
     expect(ticket.id).toBe(ID_A);
     expect(secretHash).toBe(hashSecret(ticket.secret));
     // Must survive its own parser, or the cookie we just set is unreadable.
-    expect(parseTickets(serializeTickets([ticket]))).toEqual([ticket]);
+    const at = Date.now();
+    expect(
+      findTicket(
+        [
+          {
+            name: submissionCookieName(ID_A),
+            value: submissionCookieValue(ticket.secret, at),
+          },
+        ],
+        ID_A,
+      ),
+    ).toEqual({ ...ticket, issuedAt: Math.floor(at / 1000) * 1000 });
   });
 
   it("never repeats a secret", () => {

@@ -22,9 +22,10 @@ import {
 } from "@/server/rateLimit";
 import { isStorageConfigured, putSubmissionObject } from "@/server/storage";
 import {
-  appendTicket,
+  evictableCookieNames,
   mintTicket,
-  SUBMISSION_COOKIE,
+  submissionCookieName,
+  submissionCookieValue,
   SUBMISSION_COOKIE_MAX_AGE,
 } from "@/server/submissions";
 
@@ -151,17 +152,32 @@ export async function POST(request: Request) {
     .set({ secretHash, storageKey })
     .where(eq(billSubmissions.id, row.id));
 
+  // This ticket gets its OWN cookie. A drop uploads several files at once, and
+  // rewriting one shared cookie from a value read at request time meant the
+  // last response to land won and the other files lost their ticket — see the
+  // note in @/server/submissions.
   const jar = await cookies();
-  jar.set(SUBMISSION_COOKIE, appendTicket(jar.get(SUBMISSION_COOKIE)?.value, ticket), {
+  const name = submissionCookieName(row.id);
+  const value = submissionCookieValue(ticket.secret, Date.now());
+  const options = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     // Lax is doing real work beyond privacy: it's what makes the authenticated
     // /api/probar/claim CSRF-proof, since a cross-site POST carries neither this
     // cookie nor the Auth.js session cookie.
-    sameSite: "lax",
+    sameSite: "lax" as const,
     path: "/",
     maxAge: SUBMISSION_COOKIE_MAX_AGE,
-  });
+  };
+  jar.set(name, value, options);
+
+  // Trim the tail so the jar can't grow without bound. Counting the cookie just
+  // set, since it isn't in `getAll()` yet. Concurrency-safe: parallel submits
+  // pick the same already-old ids and neither can drop the other's new ticket.
+  for (const stale of evictableCookieNames([...jar.getAll(), { name, value }]))
+    // `path` must match the cookie being cleared, or the browser scopes the
+    // expiry to /api/probar/submit and the original survives untouched.
+    jar.delete({ name: stale, path: "/" });
 
   // Analytics for /probar is captured in the browser, not here. A visitor is
   // anonymous at this point, and the only identity that survives their later

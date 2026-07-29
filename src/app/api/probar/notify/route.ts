@@ -3,11 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { billSubmissions } from "@/db/schema";
 import { limitKey, PROBAR_CLAIM, take } from "@/server/rateLimit";
-import {
-  loadOwnedSubmission,
-  parseTickets,
-  SUBMISSION_COOKIE,
-} from "@/server/submissions";
+import { findTicket, loadOwnedSubmission } from "@/server/submissions";
 
 export const runtime = "nodejs";
 
@@ -43,9 +39,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid body" }, { status: 400 });
 
   const jar = await cookies();
-  const ticket = parseTickets(jar.get(SUBMISSION_COOKIE)?.value).find(
-    (t) => t.id === submissionId,
-  );
+  const ticket = findTicket(jar.getAll(), submissionId);
   if (!ticket) return Response.json({ error: "Not found" }, { status: 404 });
 
   const row = await loadOwnedSubmission(db, ticket.id, ticket.secret);

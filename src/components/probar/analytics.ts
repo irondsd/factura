@@ -73,7 +73,12 @@ export function fileResult(props: {
   truncated?: boolean;
   durationMs: number;
   /** Why it failed before parsing could even start. */
-  errorReason?: "too_large" | "rate_limited" | "upload_failed" | null;
+  errorReason?:
+    | "too_large"
+    | "rate_limited"
+    | "upload_failed"
+    | "session_lost"
+    | null;
 }) {
   posthog.capture("probar_file_result", {
     outcome: props.outcome,
