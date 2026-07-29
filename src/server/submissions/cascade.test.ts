@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { TIERS } from "@/lib/probar";
 import type { ParsedResult, ParserConfig } from "@/parsers/engine/types";
 import type { CandidateResult } from "../suggest/protocol";
 import { rankTierRun, type TierCandidate } from "./cascade";
@@ -44,6 +45,15 @@ function verdict(
     },
   ];
 }
+
+describe("TIERS", () => {
+  it("runs most-trusted first", () => {
+    // The cascade short-circuits on the first match, so this array IS the trust
+    // policy: reorder it and a community parser can claim a bill an official
+    // one would have handled. Nothing else would fail if it were wrong.
+    expect(TIERS).toEqual(["official", "verified", "community"]);
+  });
+});
 
 describe("rankTierRun", () => {
   it("reports no match when no candidate detected the bill", () => {

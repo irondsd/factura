@@ -87,11 +87,18 @@ export function mintTicket(id: string): { ticket: Ticket; secretHash: string } {
   return { ticket: { id, secret }, secretHash: hashSecret(secret) };
 }
 
-/** Constant-time compare of two hex digests of equal length. */
-function hashMatches(a: string, b: string): boolean {
-  const left = Buffer.from(a, "hex");
-  const right = Buffer.from(b, "hex");
-  if (left.length === 0 || left.length !== right.length) return false;
+/** Does `secret` open the capability recorded as `storedHash`?
+ *
+ * Constant-time, so a caller can't narrow a secret by timing repeated guesses.
+ * Tolerant of a malformed or truncated `storedHash` (returns false rather than
+ * throwing) because a corrupted row must fail closed, not 500. Pure — unit
+ * tested in submissions.test.ts. */
+export function secretMatches(storedHash: string, secret: string): boolean {
+  const left = Buffer.from(storedHash, "hex");
+  const right = Buffer.from(hashSecret(secret), "hex");
+  // A hex string that didn't decode to a full digest can't be a real hash;
+  // treating a length mismatch as "no" also keeps timingSafeEqual from throwing.
+  if (left.length !== right.length || left.length === 0) return false;
   return timingSafeEqual(left, right);
 }
 
@@ -111,5 +118,5 @@ export async function loadOwnedSubmission(
     where: eq(billSubmissions.id, id),
   });
   if (!row) return null;
-  return hashMatches(row.secretHash, hashSecret(secret)) ? row : null;
+  return secretMatches(row.secretHash, secret) ? row : null;
 }

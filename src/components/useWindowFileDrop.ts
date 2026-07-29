@@ -2,6 +2,29 @@
 
 import { useEffect, useRef, useState } from "react";
 
+/** The drag-tracking state machine, lifted out of the effect so it can be
+ * tested without a DOM.
+ *
+ * `dragenter`/`dragleave` fire once per element the cursor crosses, not once
+ * per page, so "is a drag happening" is a depth count rather than a boolean.
+ * Non-file drags are ignored entirely — a text or link drag that decremented a
+ * counter it never incremented would strand the affordance on screen.
+ *
+ * Pure; unit-tested in useWindowFileDrop.test.ts. */
+export function dragStep(
+  depth: number,
+  event: "enter" | "leave" | "drop",
+  carriesFiles: boolean,
+): { depth: number; dragging: boolean } {
+  if (event === "drop") return { depth: 0, dragging: false };
+  if (!carriesFiles) return { depth, dragging: depth > 0 };
+  // Clamped at zero: a leave without a matching enter (the cursor entered
+  // before the listener attached) must not drive the count negative, or the
+  // next real enter would leave `dragging` false.
+  const next = event === "enter" ? depth + 1 : Math.max(0, depth - 1);
+  return { depth: next, dragging: next > 0 };
+}
+
 /** Window-wide file drag-and-drop: returns whether a file drag is in progress,
  * and calls `onFiles` when one is dropped anywhere on the page.
  *
@@ -32,27 +55,21 @@ export function useWindowFileDrop({
     const carriesFiles = (e: DragEvent) =>
       e.dataTransfer?.types.includes("Files") ?? false;
 
+    const step = (e: DragEvent, event: "enter" | "leave" | "drop") => {
+      const next = dragStep(depth.current, event, carriesFiles(e));
+      depth.current = next.depth;
+      setDragging(next.dragging);
+    };
+
     const onDragEnter = (e: DragEvent) => {
-      if (!carriesFiles(e)) return;
-      e.preventDefault();
-      depth.current += 1;
-      setDragging(true);
+      if (carriesFiles(e)) e.preventDefault();
+      step(e, "enter");
     };
-    // Guarded by the same check as enter, so a text or link drag can't
-    // decrement a counter it never incremented and strand `dragging` on.
-    const onDragLeave = (e: DragEvent) => {
-      if (!carriesFiles(e)) return;
-      depth.current -= 1;
-      if (depth.current <= 0) {
-        depth.current = 0;
-        setDragging(false);
-      }
-    };
+    const onDragLeave = (e: DragEvent) => step(e, "leave");
     const onDragOver = (e: DragEvent) => e.preventDefault();
     const onDrop = (e: DragEvent) => {
       e.preventDefault();
-      depth.current = 0;
-      setDragging(false);
+      step(e, "drop");
       if (e.dataTransfer?.files.length) onFiles(e.dataTransfer.files);
     };
 

@@ -8,6 +8,61 @@ import { loadOwnedSubmission, type Ticket } from "./submissions";
 
 export type ClaimStatus = "claimed" | "already" | "invalid";
 
+// ── Pure decisions (unit-tested in claim.test.ts) ────────────────────────────
+// The two judgement calls in a claim, lifted out of the DB work so they can be
+// tested without a database — the same pure-helpers / DB-helpers split
+// registry.ts uses. Getting either wrong is silent: the bill still saves, it
+// just saves wrong.
+
+/** Should claiming this submission also adopt the parser that read it?
+ *
+ * Yes for verified/community matches: a fresh account auto-adopts OFFICIAL
+ * parsers only, so without this a bill the visitor watched parse correctly
+ * would land in their inbox blank. No for official (already adopted) and no
+ * when nothing matched (there's nothing to adopt). */
+export function shouldAdoptMatched(row: {
+  matchedConfigId: string | null;
+  matchedVersionId: string | null;
+  matchedTier: "official" | "verified" | "community" | null;
+}): boolean {
+  return Boolean(
+    row.matchedConfigId &&
+      row.matchedVersionId &&
+      row.matchedTier &&
+      row.matchedTier !== "official",
+  );
+}
+
+/** What happens to the submission's stored PDF once ingest has run.
+ *
+ * Exactly one row may point at an S3 object, because `bills.delete` calls
+ * `deleteObject` — a key held by both a bill and a submission would leave one
+ * of them dangling. So the object is always transferred, never shared:
+ *
+ * - `transfer`  the new bill takes the key; the submission gives it up.
+ * - `fill-existing` the duplicate bill has no file of its own, so it inherits
+ *   ours — a real gain for a bill that was ingested text-only.
+ * - `delete-ours` the duplicate bill already has its own file; ours is
+ *   redundant and should be removed from the bucket.
+ * - `none` there was never an object (storage unconfigured, or already swept).
+ */
+export type StorageKeyAction =
+  | "transfer"
+  | "fill-existing"
+  | "delete-ours"
+  | "none";
+
+export function storageKeyPlan(input: {
+  submissionStorageKey: string | null;
+  outcome: IngestResult["outcome"];
+  /** Only meaningful when `outcome` is "duplicate". */
+  existingBillHasStorageKey?: boolean;
+}): StorageKeyAction {
+  if (!input.submissionStorageKey) return "none";
+  if (input.outcome !== "duplicate") return "transfer";
+  return input.existingBillHasStorageKey ? "delete-ours" : "fill-existing";
+}
+
 export type ClaimResult = {
   submissionId: string;
   status: ClaimStatus;
@@ -77,9 +132,9 @@ async function claimOne(
   // would land in the inbox blank. A slug CONFLICT (registry.adoptPackage) means
   // they already run a different parser by that name — ingest then falls through
   // to `unrecognized`, which is the pre-existing behavior for that situation.
-  if (row.matchedConfigId && row.matchedVersionId && row.matchedTier !== "official") {
+  if (shouldAdoptMatched(row)) {
     try {
-      await adoptPackage(db, userId, row.matchedConfigId, row.matchedVersionId);
+      await adoptPackage(db, userId, row.matchedConfigId!, row.matchedVersionId!);
     } catch {
       // Non-fatal by design — see above.
     }
@@ -97,23 +152,24 @@ async function claimOne(
       storageKey: row.storageKey ?? undefined,
     });
 
-    // Hand the stored object to whichever row keeps it, so exactly one ever
-    // points at it — `bills.delete` calls deleteObject, and a shared key would
-    // leave a dangling pointer behind.
+    // Hand the stored object to whichever row keeps it — see storageKeyPlan.
     let orphanedKey: string | null = null;
-    if (row.storageKey && result.outcome === "duplicate") {
-      const existing = await tx.query.bills.findFirst({
-        where: eq(bills.id, result.billId),
+    if (row.storageKey) {
+      const existing =
+        result.outcome === "duplicate"
+          ? await tx.query.bills.findFirst({ where: eq(bills.id, result.billId) })
+          : null;
+      const plan = storageKeyPlan({
+        submissionStorageKey: row.storageKey,
+        outcome: result.outcome,
+        existingBillHasStorageKey: Boolean(existing?.storageKey),
       });
-      if (existing && !existing.storageKey) {
-        // They have this bill text-only (uploaded before storage was wired up,
-        // or via a path that didn't keep the original). Fill in the missing PDF.
+      if (plan === "fill-existing") {
         await tx
           .update(bills)
           .set({ storageKey: row.storageKey })
           .where(eq(bills.id, result.billId));
-      } else {
-        // They already have both the bill and its file; ours is redundant.
+      } else if (plan === "delete-ours") {
         orphanedKey = row.storageKey;
       }
     }

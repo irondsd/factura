@@ -3,7 +3,11 @@ import {
   type Bucket,
   clientIp,
   consume,
+  hashIp,
   type LimitSpec,
+  limitKey,
+  PROBAR_CLAIM,
+  PROBAR_PARSE,
   PROBAR_SUBMIT,
 } from "./rateLimit";
 import { MAX_FILES_PER_DROP } from "@/lib/limits";
@@ -83,6 +87,84 @@ describe("PROBAR_SUBMIT", () => {
       expect(out.ok).toBe(true);
       bucket = out.bucket;
     }
+  });
+
+  it("admits the whole cascade for a full drop", () => {
+    // Each file costs up to three parse calls; if the parse bucket couldn't
+    // cover a legitimate maximum drop, the last cards would fail with a
+    // rate-limit message the visitor did nothing to deserve.
+    let bucket: Bucket | undefined;
+    for (let i = 0; i < MAX_FILES_PER_DROP * 3; i++) {
+      const out = consume(bucket, PROBAR_PARSE, 1, T0);
+      expect(out.ok).toBe(true);
+      bucket = out.bucket;
+    }
+  });
+
+  it("keeps every public spec finite and refilling", () => {
+    // A zero refill would make a spent bucket permanent for the life of the
+    // instance — an accidental ban rather than a throttle.
+    for (const spec of [PROBAR_SUBMIT, PROBAR_PARSE, PROBAR_CLAIM]) {
+      expect(spec.capacity).toBeGreaterThan(0);
+      expect(spec.refillPerSec).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("hashIp", () => {
+  it("is stable for the same address", () => {
+    expect(hashIp("1.2.3.4")).toBe(hashIp("1.2.3.4"));
+  });
+
+  it("separates different addresses", () => {
+    expect(hashIp("1.2.3.4")).not.toBe(hashIp("1.2.3.5"));
+  });
+
+  it("does not contain the address it came from", () => {
+    expect(hashIp("203.0.113.7")).not.toContain("203.0.113.7");
+  });
+
+  it("is keyed, not a bare digest of the address", () => {
+    // IPv4 is a 2^32 space, so an unkeyed sha256 reverses by brute force in
+    // seconds and would be storing the address in all but name. Changing the
+    // key must change the output.
+    const before = process.env.AUTH_SECRET;
+    process.env.AUTH_SECRET = "key-one";
+    const one = hashIp("1.2.3.4");
+    process.env.AUTH_SECRET = "key-two";
+    const two = hashIp("1.2.3.4");
+    process.env.AUTH_SECRET = before;
+    expect(one).not.toBe(two);
+  });
+});
+
+describe("limitKey", () => {
+  const req = (headers: Record<string, string>) =>
+    new Request("https://example.test", { headers });
+
+  it("scopes the bucket per endpoint", () => {
+    const h = { "x-forwarded-for": "1.2.3.4" };
+    expect(limitKey(req(h), "probar:submit")).not.toBe(
+      limitKey(req(h), "probar:parse"),
+    );
+  });
+
+  it("separates callers within one scope", () => {
+    expect(limitKey(req({ "x-forwarded-for": "1.2.3.4" }), "s")).not.toBe(
+      limitKey(req({ "x-forwarded-for": "5.6.7.8" }), "s"),
+    );
+  });
+
+  it("never puts a raw address in the key", () => {
+    expect(limitKey(req({ "x-forwarded-for": "203.0.113.7" }), "s")).not.toContain(
+      "203.0.113.7",
+    );
+  });
+
+  it("shares one conservative bucket when the address is unknown", () => {
+    // Better to throttle an un-attributable caller than to hand out an
+    // unlimited lane to anyone who strips the header.
+    expect(limitKey(req({}), "s")).toBe("s:unknown");
   });
 });
 

@@ -4,6 +4,7 @@ import {
   MAX_TRACKED_SUBMISSIONS,
   mintTicket,
   parseTickets,
+  secretMatches,
   serializeTickets,
   hashSecret,
 } from "./submissions";
@@ -127,5 +128,52 @@ describe("mintTicket", () => {
   it("does not store the secret itself", () => {
     const { ticket, secretHash } = mintTicket(ID_A);
     expect(secretHash).not.toContain(ticket.secret);
+  });
+});
+
+// This is the whole authorization boundary for an anonymous submission: it
+// decides who may read a stranger's bill text and who may claim it into an
+// account. Everything below is a way of getting it wrong.
+describe("secretMatches", () => {
+  it("accepts the secret it was minted with", () => {
+    const { ticket, secretHash } = mintTicket(ID_A);
+    expect(secretMatches(secretHash, ticket.secret)).toBe(true);
+  });
+
+  it("rejects a different secret", () => {
+    const { secretHash } = mintTicket(ID_A);
+    const other = mintTicket(ID_A);
+    expect(secretMatches(secretHash, other.ticket.secret)).toBe(false);
+  });
+
+  it("rejects a secret that only shares a prefix", () => {
+    // Guards against a comparison that stops early.
+    const { ticket, secretHash } = mintTicket(ID_A);
+    expect(secretMatches(secretHash, `${ticket.secret.slice(0, -1)}Z`)).toBe(
+      false,
+    );
+    expect(secretMatches(secretHash, ticket.secret.slice(0, -1))).toBe(false);
+  });
+
+  it("rejects an empty secret against an empty hash", () => {
+    // The dangerous degenerate case: two empty buffers compare equal, which
+    // would make a blank secret open a row whose hash failed to decode.
+    expect(secretMatches("", "")).toBe(false);
+  });
+
+  // A corrupted or truncated row must fail closed rather than throw a 500.
+  it.each([
+    ["empty hash", ""],
+    ["not hex", "zzzz"],
+    ["truncated digest", "abcd"],
+    ["over-long digest", "a".repeat(80)],
+  ])("rejects and does not throw on %s", (_label, storedHash) => {
+    const { ticket } = mintTicket(ID_A);
+    expect(() => secretMatches(storedHash, ticket.secret)).not.toThrow();
+    expect(secretMatches(storedHash, ticket.secret)).toBe(false);
+  });
+
+  it("agrees with hashSecret", () => {
+    expect(secretMatches(hashSecret(SECRET), SECRET)).toBe(true);
   });
 });
