@@ -2,7 +2,7 @@
 
 import { Badge, RowBox, microLabel } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
-import { formatARS, formatMonth } from "@/lib/format";
+import { formatARS, formatDate, formatMonth } from "@/lib/format";
 import type { TierMatch } from "@/lib/probar";
 import type { TypedValue } from "@/parsers/engine/types";
 
@@ -28,7 +28,7 @@ export function ExtractedFields({ match }: { match: TierMatch }) {
   const rows: [string, string][] = [
     [p.fieldAmount, formatARS(result.amount)],
     [p.fieldPeriod, formatMonth(result.period, locale)],
-    [p.fieldDueDate, result.dueDate],
+    [p.fieldDueDate, formatDate(result.dueDate, locale)],
     [p.fieldAccount, result.identity],
   ];
 

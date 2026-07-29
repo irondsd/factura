@@ -11,7 +11,9 @@ import {
   TIERS,
 } from "@/lib/probar";
 import { useToasts } from "@/providers/ToastProvider";
+import { useWindowFileDrop } from "@/components/useWindowFileDrop";
 import { DropArea } from "./DropArea";
+import { PageDropOverlay } from "./PageDropOverlay";
 import { SaveCta } from "./SaveCta";
 import { SubmissionCard, type Submission } from "./SubmissionCard";
 import type { TierState } from "./TierStepper";
@@ -36,8 +38,10 @@ export function ProbarClient() {
 
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [keepFile, setKeepFile] = useState(true);
-  const [busy, setBusy] = useState(false);
+  /** How many drops are in flight; >0 means busy. */
+  const [running, setRunning] = useState(0);
   const [sampleBusy, setSampleBusy] = useState(false);
+  const busy = running > 0;
 
   const patch = useCallback(
     (key: string, update: Partial<Submission>) => {
@@ -216,10 +220,13 @@ export function ProbarClient() {
         match: null,
         failure: null,
       }));
-      // Replace rather than append: each drop is its own experiment, and a
-      // growing pile would push the results the visitor came for off-screen.
-      setSubmissions(fresh);
-      setBusy(true);
+      // Append. Dropping a second bill must not hide the first — people compare
+      // results across their bills, and a later drop silently replacing an
+      // earlier one reads as the page losing their work.
+      setSubmissions((prev) => [...prev, ...fresh]);
+      // A counter, not a boolean: overlapping drops each finish independently,
+      // and the first one to end must not un-busy the ones still running.
+      setRunning((n) => n + 1);
 
       const queue = [...fresh];
       const workers = Array.from(
@@ -233,10 +240,19 @@ export function ProbarClient() {
         },
       );
       await Promise.all(workers);
-      setBusy(false);
+      setRunning((n) => n - 1);
     },
     [keepFile, p, run, showToast],
   );
+
+  // The whole viewport is the drop target. A bordered box alone is a smaller
+  // target than people expect from a page whose entire purpose is "drop a file
+  // here" — and without window-level handlers the browser just opens the PDF.
+  const onWindowFiles = useCallback(
+    (files: FileList) => void addFiles([...files]),
+    [addFiles],
+  );
+  const dragging = useWindowFileDrop({ onFiles: onWindowFiles });
 
   /** Fetch the committed sample and push it through the identical pipeline —
    * no `sample=1` branch on the server to keep honest. */
@@ -267,6 +283,7 @@ export function ProbarClient() {
 
   return (
     <div className="flex flex-col gap-8">
+      <PageDropOverlay active={dragging} />
       <DropArea
         onFiles={addFiles}
         keepFile={keepFile}
@@ -274,6 +291,7 @@ export function ProbarClient() {
         onSample={useSample}
         sampleBusy={sampleBusy}
         busy={busy}
+        dragging={dragging}
       />
 
       {submissions.length > 0 && (

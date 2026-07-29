@@ -1,6 +1,6 @@
 "use client";
 
-import { type DragEvent, useRef, useState } from "react";
+import { useRef } from "react";
 import { Button, Checkbox, microLabel, hint } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -10,11 +10,14 @@ import {
   SUBMISSION_FILE_GRACE_DAYS,
 } from "@/lib/limits";
 
-/** The drop target, the retention choice, and the sample-bill escape hatch.
+/** The click-to-browse target, the retention choice, and the sample-bill escape
+ * hatch.
  *
- * Modeled on the builder's local DropZone rather than the app's global
- * DropOverlay: this is one bounded region on a public page, not a
- * whole-window handler behind an auth gate. */
+ * Deliberately carries NO drag handlers of its own: the whole page is the drop
+ * target (see useWindowFileDrop in ProbarClient), and a local `onDrop` here
+ * would fire alongside the window one and add every file twice. This box is the
+ * visual affordance and the click path; `dragging` only mirrors the page-wide
+ * state so it highlights with everything else. */
 export function DropArea({
   onFiles,
   keepFile,
@@ -22,6 +25,7 @@ export function DropArea({
   onSample,
   sampleBusy,
   busy,
+  dragging,
 }: {
   onFiles: (files: File[]) => void;
   keepFile: boolean;
@@ -29,31 +33,22 @@ export function DropArea({
   onSample: () => void;
   sampleBusy: boolean;
   busy: boolean;
+  dragging: boolean;
 }) {
   const { t } = useI18n();
   const p = t.probar;
   const inputRef = useRef<HTMLInputElement>(null);
-  const [over, setOver] = useState(false);
-
-  function handleDrop(e: DragEvent) {
-    e.preventDefault();
-    setOver(false);
-    onFiles([...e.dataTransfer.files]);
-  }
 
   return (
     <div className="flex flex-col gap-3">
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setOver(true);
-        }}
-        onDragLeave={() => setOver(false)}
-        onDrop={handleDrop}
+      <button
+        type="button"
         onClick={() => inputRef.current?.click()}
         className={cn(
-          "flex flex-col items-center justify-center gap-2 border border-dashed px-5 py-12 text-center transition-colors cursor-pointer",
-          over ? "border-accent bg-card" : "border-line hover:border-accent",
+          "flex w-full flex-col items-center justify-center gap-2 border border-dashed px-5 py-12 text-center transition-colors cursor-pointer",
+          dragging
+            ? "border-accent bg-card"
+            : "border-line hover:border-accent",
           busy && "opacity-60",
         )}
       >
@@ -61,19 +56,21 @@ export function DropArea({
         <span className={microLabel}>
           {interpolate(p.dropSubtitle, { max: MAX_FILES_PER_DROP })}
         </span>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="application/pdf,.pdf"
-          multiple
-          hidden
-          onChange={(e) => {
-            onFiles([...(e.target.files ?? [])]);
-            // Let the same file be picked again after it's cleared.
-            e.target.value = "";
-          }}
-        />
-      </div>
+      </button>
+      {/* Sibling, not a child of the button: a nested interactive element is
+          invalid HTML and its click would bubble back into the opener. */}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf,.pdf"
+        multiple
+        hidden
+        onChange={(e) => {
+          onFiles([...(e.target.files ?? [])]);
+          // Let the same file be picked again after it's cleared.
+          e.target.value = "";
+        }}
+      />
 
       <div className="flex flex-col gap-1.5">
         <Checkbox

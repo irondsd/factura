@@ -1147,6 +1147,7 @@
     "saveTitle": "Save {count} bill(s) to your account",
     "saveBody": "Sign in and we'll add them to your ledger automatically, with vendor and account already linked.",
     "saveButton": "Sign in and save",
-    "claimedToast": "✓ {count} bill(s) added to your account"
+    "claimedToast": "✓ {count} bill(s) added to your account",
+    "dropOverlayHint": "Drop anywhere on the page"
   }
 }

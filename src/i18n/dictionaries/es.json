@@ -1147,6 +1147,7 @@
     "saveTitle": "Guardá {count} factura(s) en tu cuenta",
     "saveBody": "Iniciá sesión y las agregamos automáticamente a tu registro, con proveedor y cuenta ya vinculados.",
     "saveButton": "Ingresar y guardar",
-    "claimedToast": "✓ {count} factura(s) agregada(s) a tu cuenta"
+    "claimedToast": "✓ {count} factura(s) agregada(s) a tu cuenta",
+    "dropOverlayHint": "Soltá donde quieras de la página"
   }
 }

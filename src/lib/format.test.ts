@@ -3,6 +3,7 @@ import {
   currentMonth,
   formatARS,
   formatMoney,
+  formatDate,
   formatMonth,
   formatMonthShort,
   formatUSD,
@@ -47,6 +48,23 @@ describe("formatMoney", () => {
   it("renders an em-dash for null", () => {
     expect(formatMoney(null, "ARS")).toBe("—");
     expect(formatMoney(undefined, "USD")).toBe("—");
+  });
+});
+
+describe("formatDate", () => {
+  it("formats an ISO date per locale", () => {
+    expect(formatDate("2026-06-01", "en")).toBe("June 1, 2026");
+    expect(formatDate("2026-06-01", "es")).toBe("1 de junio de 2026");
+  });
+
+  it("does not shift a day for readers west of UTC", () => {
+    // Parsed as UTC, not local midnight — otherwise a due date renders as the
+    // day before for anyone in the Americas, which is exactly who uses this.
+    expect(formatDate("2026-01-01", "en")).toBe("January 1, 2026");
+  });
+
+  it("returns the input unchanged when it isn't a date", () => {
+    expect(formatDate("not-a-date", "en")).toBe("not-a-date");
   });
 });
 

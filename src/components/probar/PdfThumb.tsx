@@ -20,6 +20,14 @@ import { TextPreview } from "./TextPreview";
  *
  * On any failure — render error, missing canvas support, chunk that won't load —
  * it falls back to the text preview, so there is no path that shows nothing. */
+/** Intrinsic render height in CSS pixels, oversampled below for high-DPI. Fixed
+ * on purpose: the DISPLAY height changes when a second file arrives and the
+ * layout switches from solo to stacked, and re-rendering on every such change
+ * would restart pdf.js on a canvas it is already drawing into ("cannot use the
+ * same canvas during multiple render operations"). Rendering once and letting
+ * CSS scale the result means the effect depends only on the file. */
+const RENDER_HEIGHT = 440;
+
 export function PdfThumb({
   file,
   text,
@@ -36,6 +44,11 @@ export function PdfThumb({
 
   useEffect(() => {
     let cancelled = false;
+    // pdf.js render tasks keep running after the effect is torn down, so hold
+    // the handle and cancel it — otherwise a torn-down render and its
+    // replacement can collide on the same canvas.
+    let task: { cancel: () => void } | null = null;
+
     void (async () => {
       try {
         const { getDocument } = await import("pdfjs-serverless");
@@ -51,27 +64,33 @@ export function PdfThumb({
         const context = canvas.getContext("2d");
         if (!context) throw new Error("no 2d context");
 
-        // Fit the page to the requested height, then oversample for crisp text
-        // on high-DPI screens (capped, since this is a thumbnail).
+        // Oversample for crisp text on high-DPI screens, capped — it's a
+        // thumbnail, not a reader.
         const base = page.getViewport({ scale: 1 });
         const dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
-        const viewport = page.getViewport({ scale: (height / base.height) * dpr });
+        const viewport = page.getViewport({
+          scale: (RENDER_HEIGHT / base.height) * dpr,
+        });
         canvas.width = Math.floor(viewport.width);
         canvas.height = Math.floor(viewport.height);
-        canvas.style.height = `${height}px`;
-        canvas.style.width = `${Math.floor(viewport.width / dpr)}px`;
 
-        await page.render({ canvasContext: context, viewport, canvas }).promise;
+        const render = page.render({ canvasContext: context, viewport, canvas });
+        task = render;
+        await render.promise;
         await doc.destroy();
         if (!cancelled) setRendered(true);
       } catch {
+        // A cancelled render rejects too; that isn't a failure worth falling
+        // back for, and the guard keeps it from becoming one.
         if (!cancelled) setFailed(true);
       }
     })();
+
     return () => {
       cancelled = true;
+      task?.cancel();
     };
-  }, [file, height]);
+  }, [file]);
 
   if (failed) return <TextPreview text={text} compact />;
 
@@ -80,10 +99,12 @@ export function PdfThumb({
       className="receipt-edge bg-card border border-line flex items-start justify-center overflow-hidden"
       style={{ height }}
     >
+      {/* Rendered at a fixed resolution; the container's height drives the
+          displayed size, so a layout change never restarts the render. */}
       <canvas
         ref={canvasRef}
         aria-label={file.name}
-        className={rendered ? "block" : "invisible"}
+        className={`h-full w-auto max-w-full object-contain ${rendered ? "block" : "invisible"}`}
       />
     </div>
   );
