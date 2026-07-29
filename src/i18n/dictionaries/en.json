@@ -34,6 +34,10 @@
     "demoBills": {
       "title": "Demo · Bills",
       "description": "A live demo of Factura's bill ledger: every parsed bill per vendor and month with peso and USD amounts. Open one to see the extracted fields and text — on sample data."
+    },
+    "probar": {
+      "title": "Try your bill",
+      "description": "Drop a bill PDF and see what Factura reads from it: vendor, amount, period and due date. No account, nothing to install."
     }
   },
   "nav": {
@@ -47,7 +51,8 @@
     "github": "GitHub",
     "overview": "Overview",
     "insights": "Insights",
-    "bills": "Bills"
+    "bills": "Bills",
+    "try": "Try it"
   },
   "months": {
     "short": {
@@ -1087,5 +1092,61 @@
       "eyebrow": "Language",
       "help": "This is the English version. You can switch languages at any time."
     }
+  },
+  "probar": {
+    "eyebrow": "Try it",
+    "title": "Drop a bill and see what we read",
+    "intro": "No account, nothing to install. Upload a bill PDF and we'll show you exactly what we extract from it.",
+    "dropTitle": "Drop your bills here",
+    "dropSubtitle": "PDF · up to {max} files · or click to choose",
+    "dropBrowse": "Choose files",
+    "sampleHint": "No bill handy?",
+    "sampleButton": "Try a sample one",
+    "sampleLoading": "Preparing the sample…",
+    "keepFile": "Keep my file to improve the parsers",
+    "keepFileHelp": "Uncheck and we delete the original PDF within {days} days. We keep the text we extracted either way, and if you save the bill to your account the file stays with you.",
+    "tooManyFiles": "△ {max} files at a time — the rest were skipped",
+    "notPdf": "✕ {file}: not a PDF",
+    "tooLarge": "✕ {file}: larger than {max} MB",
+    "uploadFailed": "✕ {file}: we couldn't process it",
+    "rateLimited": "△ Too many files at once — try again in a bit",
+    "stepReading": "Reading the PDF…",
+    "tierOfficial": "Official parsers",
+    "tierVerified": "Verified parsers",
+    "tierCommunity": "Community parsers",
+    "tierPending": "waiting",
+    "tierRunning": "trying…",
+    "tierSkipped": "not needed",
+    "tierMiss": "no match ({count})",
+    "tierMatch": "match",
+    "tierAmbiguous": "two matches — ambiguous",
+    "recognized": "We recognized this bill",
+    "vendorLabel": "Vendor",
+    "parserLabel": "Parser",
+    "fieldsTitle": "Extracted data",
+    "fieldAmount": "Amount",
+    "fieldPeriod": "Period",
+    "fieldDueDate": "Due date",
+    "fieldAccount": "Account no.",
+    "pagesLabel": "{count} page(s)",
+    "failedTitle": "We don't recognize this bill yet",
+    "failedBody": "Thanks for trying it — this is exactly what we need to add support. We'll work on a parser for this vendor as soon as we can.",
+    "parseFailedTitle": "We recognized the vendor, but couldn't read the data",
+    "parseFailedBody": "We could tell this is a {vendor} bill, but the parser couldn't extract every field. It's logged for us to fix.",
+    "noTextTitle": "This PDF has no text",
+    "noTextBody": "It looks like a scan or a photo. We can't read images yet — if you still have the original PDF from your provider, that one will work.",
+    "safetyNote": "Your file is stored encrypted and shared with no one. There's more on the privacy page.",
+    "whatWeSaw": "Here's what we read",
+    "whatWeSawHelp": "{pages} page(s) · {chars} characters of text",
+    "truncated": "Showing only the start of the document.",
+    "notifyLabel": "Email me when it's supported",
+    "notifyPlaceholder": "you@email.com",
+    "notifyButton": "Notify me",
+    "notifySaved": "Done — we'll write when it's ready.",
+    "notifyHelp": "Only for this notice. No account is created and you're not added to a list.",
+    "saveTitle": "Save {count} bill(s) to your account",
+    "saveBody": "Sign in and we'll add them to your ledger automatically, with vendor and account already linked.",
+    "saveButton": "Sign in and save",
+    "claimedToast": "✓ {count} bill(s) added to your account"
   }
 }

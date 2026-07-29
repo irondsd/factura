@@ -34,6 +34,10 @@
     "demoBills": {
       "title": "Demo · Facturas",
       "description": "Una demo en vivo del registro de facturas de Factura: cada factura analizada por proveedor y mes, con montos en pesos y dólares. Abre una para ver los campos extraídos y el texto, con datos de muestra."
+    },
+    "probar": {
+      "title": "Probá tu factura",
+      "description": "Soltá el PDF de tu factura y mirá qué datos extrae Factura: proveedor, importe, período y vencimiento. Sin cuenta, sin instalar nada."
     }
   },
   "nav": {
@@ -47,7 +51,8 @@
     "github": "GitHub",
     "overview": "Resumen",
     "insights": "Análisis",
-    "bills": "Facturas"
+    "bills": "Facturas",
+    "try": "Probar"
   },
   "months": {
     "short": {
@@ -1087,5 +1092,61 @@
       "eyebrow": "Idioma",
       "help": "Esta es la versión en español. Puedes cambiar de idioma en cualquier momento."
     }
+  },
+  "probar": {
+    "eyebrow": "Probalo",
+    "title": "Soltá una factura y mirá qué leemos",
+    "intro": "Sin cuenta, sin instalar nada. Subí el PDF de una factura y te mostramos exactamente qué datos extraemos de él.",
+    "dropTitle": "Soltá tus facturas acá",
+    "dropSubtitle": "PDF · hasta {max} archivos · o hacé clic para elegir",
+    "dropBrowse": "Elegir archivos",
+    "sampleHint": "¿No tenés una factura a mano?",
+    "sampleButton": "Probar con una de ejemplo",
+    "sampleLoading": "Preparando el ejemplo…",
+    "keepFile": "Guardá mi archivo para mejorar los analizadores",
+    "keepFileHelp": "Si lo desmarcás, borramos el PDF original dentro de {days} días. El texto que extrajimos lo conservamos igual, y si guardás la factura en tu cuenta el archivo queda con vos.",
+    "tooManyFiles": "△ Máximo {max} archivos por vez — ignoramos el resto",
+    "notPdf": "✕ {file}: no es un PDF",
+    "tooLarge": "✕ {file}: el archivo supera los {max} MB",
+    "uploadFailed": "✕ {file}: no pudimos procesarlo",
+    "rateLimited": "△ Demasiados archivos seguidos — probá de nuevo en un rato",
+    "stepReading": "Leyendo el PDF…",
+    "tierOfficial": "Analizadores oficiales",
+    "tierVerified": "Analizadores verificados",
+    "tierCommunity": "Analizadores de la comunidad",
+    "tierPending": "en espera",
+    "tierRunning": "probando…",
+    "tierSkipped": "no hizo falta",
+    "tierMiss": "sin coincidencias ({count})",
+    "tierMatch": "coincidencia",
+    "tierAmbiguous": "dos coincidencias — ambiguo",
+    "recognized": "Reconocimos esta factura",
+    "vendorLabel": "Proveedor",
+    "parserLabel": "Analizador",
+    "fieldsTitle": "Datos extraídos",
+    "fieldAmount": "Importe",
+    "fieldPeriod": "Período",
+    "fieldDueDate": "Vencimiento",
+    "fieldAccount": "N° de cuenta",
+    "pagesLabel": "{count} página(s)",
+    "failedTitle": "Todavía no reconocemos esta factura",
+    "failedBody": "Gracias por probarla — es justo lo que necesitamos para agregar soporte. Vamos a trabajar en un analizador para este proveedor lo antes posible.",
+    "parseFailedTitle": "Reconocimos el proveedor, pero no pudimos leer los datos",
+    "parseFailedBody": "Reconocimos que es una factura de {vendor}, pero el analizador no pudo extraer todos los datos. Ya lo registramos para corregirlo.",
+    "noTextTitle": "Este PDF no tiene texto",
+    "noTextBody": "Parece un escaneo o una foto. Todavía no leemos imágenes: si tenés el PDF original que descargaste del proveedor, ese sí va a funcionar.",
+    "safetyNote": "Tu archivo se guarda cifrado y no se comparte con nadie. Podés leer más en la página de privacidad.",
+    "whatWeSaw": "Esto es lo que leímos",
+    "whatWeSawHelp": "{pages} página(s) · {chars} caracteres de texto",
+    "truncated": "Mostramos solo el principio del documento.",
+    "notifyLabel": "Avisame cuando lo soportemos",
+    "notifyPlaceholder": "tu@email.com",
+    "notifyButton": "Avisarme",
+    "notifySaved": "Listo — te escribimos cuando esté.",
+    "notifyHelp": "Solo para este aviso. No creamos ninguna cuenta ni te sumamos a una lista.",
+    "saveTitle": "Guardá {count} factura(s) en tu cuenta",
+    "saveBody": "Iniciá sesión y las agregamos automáticamente a tu registro, con proveedor y cuenta ya vinculados.",
+    "saveButton": "Ingresar y guardar",
+    "claimedToast": "✓ {count} factura(s) agregada(s) a tu cuenta"
   }
 }

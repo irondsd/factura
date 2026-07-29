@@ -13,6 +13,7 @@ import {
 import posthog from "posthog-js";
 import { AppContext } from "@/components/app/context";
 import { AppFooter } from "@/components/app/AppFooter";
+import { ClaimSubmissions } from "@/components/app/ClaimSubmissions";
 import { TopBar } from "@/components/app/TopBar";
 import { BillIngestProvider } from "@/components/BillIngestProvider";
 import { DropOverlay } from "@/components/DropOverlay";
@@ -87,6 +88,7 @@ function AppShell({
         </div>
         <DropOverlay />
         <UploadFab />
+        <ClaimSubmissions />
       </BillIngestProvider>
     </AppContext.Provider>
   );

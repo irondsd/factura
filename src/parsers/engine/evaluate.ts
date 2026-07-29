@@ -29,6 +29,21 @@ export function detectScore(config: ParserConfig, text: string): number | null {
   return score;
 }
 
+/** Highest-scoring item, or null when nothing qualifies or the top two tie.
+ * A tie means two parsers claim the bill equally well — guessing between them
+ * would silently file the bill under the wrong vendor, so the caller must send
+ * it to review instead. Split out from `selectConfig` because callers that score
+ * elsewhere (the public /probar cascade scores in a worker and never holds the
+ * configs) need the same rule, and two copies of it would drift. */
+export function pickBestScored<T>(
+  scored: { item: T; score: number }[],
+): { item: T; score: number } | null {
+  const ranked = [...scored].sort((a, b) => b.score - a.score);
+  if (ranked.length === 0) return null;
+  if (ranked.length > 1 && ranked[0].score === ranked[1].score) return null;
+  return ranked[0];
+}
+
 /** Pick the best-matching config. Returns undefined when nothing qualifies or
  * the top two tie (ambiguous → caller should send to review rather than guess). */
 export function selectConfig(
@@ -36,13 +51,10 @@ export function selectConfig(
   text: string,
 ): ParserConfig | undefined {
   const scored = configs
-    .map((c) => ({ c, s: detectScore(c, text) }))
-    .filter((x): x is { c: ParserConfig; s: number } => x.s !== null)
-    .sort((a, b) => b.s - a.s);
+    .map((c) => ({ item: c, score: detectScore(c, text) }))
+    .filter((x): x is { item: ParserConfig; score: number } => x.score !== null);
 
-  if (scored.length === 0) return undefined;
-  if (scored.length > 1 && scored[0].s === scored[1].s) return undefined;
-  return scored[0].c;
+  return pickBestScored(scored)?.item;
 }
 
 // ── Extraction (step 2) ──────────────────────────────────────────────────────
