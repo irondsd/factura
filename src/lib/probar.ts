@@ -74,3 +74,12 @@ export type ClaimResponse = {
 /** How much normalized text the "what we read" panel shows. Long enough to
  * recognize your own bill, short enough not to dump a whole document. */
 export const TEXT_PREVIEW_CHARS = 1200;
+
+/** Ceiling on the visitor's "who is this bill from?" answer. A vendor name, not
+ * a paragraph — enforced on the server, mirrored on the input's maxLength so the
+ * field stops accepting characters it would silently drop. */
+export const VENDOR_GUESS_MAX = 120;
+
+/** Ceiling on a "you read this wrong" report. Room to name a field, quote the
+ * wrong value and the right one, without becoming a place to paste a document. */
+export const REPORT_MESSAGE_MAX = 2000;

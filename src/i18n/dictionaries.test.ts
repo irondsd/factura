@@ -60,6 +60,8 @@ describe("dictionary interpolation placeholders", () => {
       "pages",
       "chars",
       "vendor",
+      "tier",
+      "slug",
     ]);
     const unknown: string[] = [];
     for (const [path, value] of esStrings) {

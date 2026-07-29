@@ -1,0 +1,36 @@
+/* Indeterminate progress hairline for the "Leyendo la letra chica…" state.
+   Deliberately not a percentage: extraction and the parser cascade report
+   nothing to interpolate, so a filling bar would be an invented number. This
+   says "still working" and nothing more. */
+.bar {
+  height: 3px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+.bar > i {
+  display: block;
+  width: 25%;
+  height: 100%;
+  background: var(--accent);
+  animation: sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(400%);
+  }
+}
+
+/* A bar that sweeps forever is the kind of motion this setting exists to stop.
+   The hairline stays, dimmed, so the state still reads as in-progress. */
+@media (prefers-reduced-motion: reduce) {
+  .bar > i {
+    animation: none;
+    width: 100%;
+    opacity: 0.5;
+  }
+}

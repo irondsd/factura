@@ -459,6 +459,20 @@ export const billSubmissions = pgTable(
      * notice ever (`notified_at`). */
     notifyEmail: text("notify_email"),
     notifiedAt: timestamp("notified_at"),
+    /** Who the visitor says this bill is from, typed on a submission no parser
+     * recognized. The single cheapest way to find out which parser to write
+     * next: `raw_text` says what the bill contains, this says what to call it.
+     * Free text and unverified — it names a vendor, never a person — so it is a
+     * hint for us to read, never matched against `vendors` automatically. */
+    vendorGuess: text("vendor_guess"),
+    /** "You read this wrong" — the visitor's own account of which field is
+     * wrong and what the right value is, reported against a bill a parser DID
+     * recognize. Worth more than any metric we could compute: it's a labelled
+     * extraction bug on a document we still hold the text of. `report_email` is
+     * as inert as `notify_email` above; both are optional. */
+    reportMessage: text("report_message"),
+    reportEmail: text("report_email"),
+    reportedAt: timestamp("reported_at"),
 
     // ── Claim ────────────────────────────────────────────────────────────────
     claimedByUserId: uuid("claimed_by_user_id").references(() => users.id, {

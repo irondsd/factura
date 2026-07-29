@@ -15,10 +15,15 @@ import { useWindowFileDrop } from "@/components/useWindowFileDrop";
 import * as analytics from "./analytics";
 import type { DropSource } from "./analytics";
 import { DropArea } from "./DropArea";
-import type { FailureKind } from "./FailureCard";
+import { NotifyCard } from "./NotifyCard";
 import { PageDropOverlay } from "./PageDropOverlay";
+import { ResultsHeader } from "./ResultsHeader";
 import { SaveCta } from "./SaveCta";
-import { SubmissionCard, type Submission } from "./SubmissionCard";
+import {
+  SubmissionCard,
+  SubmissionTextDialog,
+  type Submission,
+} from "./SubmissionCard";
 import type { TierState } from "./TierStepper";
 
 /** How many files are uploaded/parsed at once. A full drop is up to 10 files ×
@@ -41,6 +46,16 @@ export function ProbarClient() {
 
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [keepFile, setKeepFile] = useState(true);
+  /** Which submission's extracted text is open in the dialog. Held here rather
+   * than per card so two dialogs can never be open at once. */
+  const [textFor, setTextFor] = useState<string | null>(null);
+  /** The address the visitor left for unreadable bills, and which submissions it
+   * has actually been saved against. Kept at page level because a bill dropped
+   * AFTER the address was given still has to be covered by it. */
+  const [notified, setNotified] = useState<{
+    email: string;
+    ids: Set<string>;
+  } | null>(null);
   /** How many drops are in flight; >0 means busy. */
   const [running, setRunning] = useState(0);
   const [sampleBusy, setSampleBusy] = useState(false);
@@ -116,6 +131,49 @@ export function ProbarClient() {
       );
     },
     [],
+  );
+
+  /** Mirror of `notified`, readable from the async pipeline without making every
+   * callback below depend on the state that changes when an address is given. */
+  const notifiedRef = useRef<{ email: string; ids: Set<string> } | null>(null);
+
+  /** Save an address against submissions and remember which ones it now covers.
+   * Throws on failure so the card can say so — an address silently dropped is a
+   * promise silently broken. */
+  const saveNotify = useCallback(
+    async (submissionIds: string[], email: string) => {
+      const res = await fetch("/api/probar/notify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ submissionIds, email }),
+      });
+      if (!res.ok) throw new Error("notify failed");
+      const merged = {
+        email,
+        ids: new Set([...(notifiedRef.current?.ids ?? []), ...submissionIds]),
+      };
+      notifiedRef.current = merged;
+      setNotified(merged);
+    },
+    [],
+  );
+
+  /** Extend an address already on file to a bill that has just failed.
+   *
+   * Someone who left their address, then dropped two more bills we also can't
+   * read, has already answered this question — asking again is the repetition the
+   * single card exists to remove. Silent by design: no second confirmation, no
+   * second funnel event, and the card's file list is what states the scope. */
+  const cover = useCallback(
+    (submissionId: string) => {
+      const on = notifiedRef.current;
+      if (!on) return;
+      void saveNotify([submissionId], on.email).catch(() => {
+        // The visitor already has their confirmation and the earlier bills are
+        // still covered; `uncovered` reopens the form if this never lands.
+      });
+    },
+    [saveNotify],
   );
 
   /** Upload one file, then walk the tiers until one recognizes it. Each tier is
@@ -197,6 +255,7 @@ export function ProbarClient() {
           },
         });
         tally("noText");
+        cover(submitted.submissionId);
         analytics.fileResult({
           outcome: "no_text",
           source,
@@ -286,6 +345,8 @@ export function ProbarClient() {
             setTier(key, rest, { status: "skipped" });
 
           tally(run.best.ok ? "parsed" : "parseFailed");
+          // A recognized-but-unreadable bill is still one we owe an answer on.
+          if (!run.best.ok) cover(submitted.submissionId);
           analytics.fileResult({
             outcome: run.best.ok ? "parsed" : "parse_failed",
             source,
@@ -313,6 +374,7 @@ export function ProbarClient() {
 
       patch(key, { failure: "unrecognized" });
       tally("unrecognized");
+      cover(submitted.submissionId);
       // The most commercially interesting event on the page: a real bill we
       // can't read yet. `tiers_tried` = all of them.
       analytics.fileResult({
@@ -325,7 +387,7 @@ export function ProbarClient() {
         durationMs: since(),
       });
     },
-    [locale, p, patch, setTier, tally],
+    [cover, locale, p, patch, setTier, tally],
   );
 
   const addFiles = useCallback(
@@ -376,6 +438,7 @@ export function ProbarClient() {
         tiers: pendingTiers(),
         match: null,
         failure: null,
+        reported: false,
       }));
       // Append. Dropping a second bill must not hide the first — people compare
       // results across their bills, and a later drop silently replacing an
@@ -429,15 +492,46 @@ export function ProbarClient() {
     }
   }, [addFiles, p, showToast]);
 
+  /** The visitor asking to be notified — one address, every unread bill, one
+   * request. Reported to analytics, unlike `cover`, because this one is an act. */
   const notify = useCallback(
-    async (submissionId: string, email: string, outcome: FailureKind) => {
-      await fetch("/api/probar/notify", {
+    async (submissionIds: string[], email: string) => {
+      await saveNotify(submissionIds, email);
+      stats.current.notifyRequested = true;
+      analytics.notifyRequested("unrecognized");
+    },
+    [saveNotify],
+  );
+
+  /** "You read this wrong", against one bill. Throws so the dialog can keep the
+   * text the visitor typed instead of closing on a write that didn't land. */
+  const report = useCallback(
+    async (submissionId: string, message: string, email: string) => {
+      const res = await fetch("/api/probar/report", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ submissionId, email }),
+        body: JSON.stringify({ submissionId, message, email }),
       });
-      stats.current.notifyRequested = true;
-      analytics.notifyRequested(outcome);
+      if (!res.ok) throw new Error("report failed");
+      setSubmissions((prev) =>
+        prev.map((s) =>
+          s.submissionId === submissionId ? { ...s, reported: true } : s,
+        ),
+      );
+    },
+    [],
+  );
+
+  /** The vendor hint, saved as it's typed. Rejects on failure so the field can
+   * retry on the next keystroke rather than treating the value as delivered. */
+  const saveVendorGuess = useCallback(
+    async (submissionId: string, vendor: string) => {
+      const res = await fetch("/api/probar/hint", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ submissionId, vendor }),
+      });
+      if (!res.ok) throw new Error("hint failed");
     },
     [],
   );
@@ -454,7 +548,23 @@ export function ProbarClient() {
     analytics.keepFileToggled(keep);
   }, []);
 
-  const saved = submissions.filter((s) => s.match?.ok).length;
+  // The two closing offers are counted independently, because a drop can earn
+  // both: bills we read are worth saving to an account, bills we couldn't are
+  // worth an address. All-parsed shows only the save offer, all-failed only the
+  // notify one, and a mixed drop gets both — withholding either because the
+  // other applies would drop the more valuable half of a real visit.
+  const savable = submissions.filter((s) => s.match?.ok);
+  const unread = submissions.filter(
+    (s) => s.failure !== null && s.submissionId !== null,
+  );
+  const saved = savable.length;
+  // "Sin analizador" is only true of a bill nothing recognized; one a parser
+  // claimed and then misread is a different failure and gets neutral wording.
+  const allUnrecognized = unread.every((s) => s.failure !== "parse_failed");
+
+  const reading = submissions.filter(
+    (s) => !s.error && (s.reading || (!s.match && !s.failure)),
+  ).length;
 
   // Reported once per visit, the first time the offer actually appears.
   useEffect(() => {
@@ -468,6 +578,16 @@ export function ProbarClient() {
     stats.current.saveCtaClicked = true;
     analytics.saveCtaClicked(count);
   }, []);
+
+  const openText = useCallback((s: Submission) => setTextFor(s.key), []);
+  const textSubmission = submissions.find((s) => s.key === textFor) ?? null;
+
+  // Bills that failed but that the address on file was never saved against. Only
+  // ever non-empty briefly — `cover()` in the pipeline writes them as they fail —
+  // but it's what keeps the card's "done" state honest if that write loses.
+  const uncovered = notified
+    ? unread.map((s) => s.submissionId!).filter((id) => !notified.ids.has(id))
+    : [];
 
   return (
     <div className="flex flex-col gap-8">
@@ -483,19 +603,51 @@ export function ProbarClient() {
       />
 
       {submissions.length > 0 && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
+          <ResultsHeader
+            total={submissions.length}
+            parsed={saved}
+            reading={reading}
+            unparsed={unread.length}
+            errored={submissions.filter((s) => s.error !== null).length}
+            onFiles={onBrowse}
+            busy={busy}
+          />
           {submissions.map((s) => (
             <SubmissionCard
               key={s.key}
               submission={s}
               solo={submissions.length === 1}
-              onNotify={notify}
+              onViewText={openText}
+              onReport={report}
+              onSaveVendorGuess={saveVendorGuess}
             />
           ))}
         </div>
       )}
 
+      {unread.length > 0 && (
+        <NotifyCard
+          fileNames={unread.map((s) => s.file.name)}
+          allUnrecognized={allUnrecognized}
+          saved={notified !== null && uncovered.length === 0}
+          onSubmit={(email) =>
+            notify(
+              unread.map((s) => s.submissionId!),
+              email,
+            )
+          }
+        />
+      )}
+
       {saved > 0 && <SaveCta count={saved} onClick={onSaveClick} />}
+
+      {textSubmission && (
+        <SubmissionTextDialog
+          submission={textSubmission}
+          onClose={() => setTextFor(null)}
+        />
+      )}
     </div>
   );
 }

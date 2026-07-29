@@ -130,3 +130,9 @@ export const PROBAR_SUBMIT: LimitSpec = { capacity: 12, refillPerSec: 1 / 60 };
 // drop fits inside one burst.
 export const PROBAR_PARSE: LimitSpec = { capacity: 60, refillPerSec: 1 / 2 };
 export const PROBAR_CLAIM: LimitSpec = { capacity: 10, refillPerSec: 1 / 60 };
+// The "who is this bill from?" field saves itself as you type, so this bucket is
+// sized for typing rather than for submitting: several unrecognized bills in one
+// drop, each debounced to a request per pause, plus corrections. Deliberately
+// generous — the write is one indexed UPDATE of one short string, and throttling
+// it silently loses the answer someone actually typed.
+export const PROBAR_HINT: LimitSpec = { capacity: 40, refillPerSec: 1 / 5 };

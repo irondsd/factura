@@ -108,6 +108,37 @@ export function notifyRequested(outcome: ResultOutcome) {
   posthog.capture("probar_notify_requested", { outcome });
 }
 
+/** Someone opened the extracted text. The measurement of whether "show me what
+ * you read" is a promise anyone actually cashes in — it's the page's central
+ * claim, and if nobody ever opens it that's worth knowing. */
+export function textViewed(outcome: ResultOutcome) {
+  posthog.capture("probar_text_viewed", { outcome });
+}
+
+/** A correction against a bill we DID read: the parser returned something and
+ * the person holding the paper says it's wrong. The message itself stays on the
+ * submission row — it can quote an amount or an address. */
+export function reportSubmitted(props: {
+  outcome: ResultOutcome;
+  tier?: Tier | null;
+  parserSlug?: string | null;
+  withEmail: boolean;
+}) {
+  posthog.capture("probar_report_submitted", {
+    outcome: props.outcome,
+    matched_tier: props.tier ?? null,
+    parser_slug: props.parserSlug ?? null,
+    with_email: props.withEmail,
+  });
+}
+
+/** Someone told us who an unrecognized bill is from. The name they typed is a
+ * vendor, but it's still their input — it stays out of the event and goes only
+ * to the submission row. */
+export function vendorGuessSaved() {
+  posthog.capture("probar_vendor_guess_saved");
+}
+
 export function saveCtaShown(billCount: number) {
   posthog.capture("probar_save_cta_shown", { bill_count: billCount });
 }
