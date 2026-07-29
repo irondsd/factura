@@ -74,7 +74,10 @@ describe("shouldAdoptMatched", () => {
 describe("storageKeyPlan", () => {
   it("hands the object to the new bill", () => {
     expect(
-      storageKeyPlan({ submissionStorageKey: "submissions/a/x.pdf", outcome: "parsed" }),
+      storageKeyPlan({
+        submissionStorageKey: "submissions/a/x.pdf",
+        outcome: "parsed",
+      }),
     ).toBe("transfer");
   });
 
@@ -87,9 +90,9 @@ describe("storageKeyPlan", () => {
       "parse_failed",
       "unknown_account",
     ] as const) {
-      expect(
-        storageKeyPlan({ submissionStorageKey: "k", outcome }),
-      ).toBe("transfer");
+      expect(storageKeyPlan({ submissionStorageKey: "k", outcome })).toBe(
+        "transfer",
+      );
     }
   });
 

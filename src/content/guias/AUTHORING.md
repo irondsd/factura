@@ -59,9 +59,9 @@ export const meta = {
 
 Both dates are full ISO 8601 with a timezone offset — `2026-06-29T09:00:00-03:00`
 — not bare `YYYY-MM-DD`. `-03:00` is Argentina; use it unless you have a reason
-not to. Google only *requires* the date, but [recommends the time and timezone
+not to. Google only _requires_ the date, but [recommends the time and timezone
 in markup](https://developers.google.com/search/docs/appearance/publication-dates)
-for precision, and it *requires* the visible date to match the structured data —
+for precision, and it _requires_ the visible date to match the structured data —
 so the page renders the same timestamp it puts in the JSON-LD, and the validator
 rejects a date without a time.
 
@@ -72,22 +72,22 @@ never recorded — don't copy that placeholder into a new guide.
 ### Choosing `categories`
 
 Categories work like tags: pick every one that genuinely applies, **most
-important first**. The first id is the guide's *primary* category — it decides
+important first**. The first id is the guide's _primary_ category — it decides
 which section the guide is grouped under on `/guias` and which crumb shows in its
 breadcrumb. The others don't move the guide; they widen where it surfaces
 (category pages, "related guides" on other articles).
 
-| id                 | Label                 | Use it for                                                          |
-| ------------------ | --------------------- | ------------------------------------------------------------------- |
-| `expensas`         | Expensas              | Anything about expensas, consorcios and gastos comunes.             |
-| `servicios`        | Servicios del hogar   | A specific utility: luz, gas, agua, internet, telefonía.            |
-| `impuestos`        | Impuestos y tasas     | Taxes and levies on the home: AGIP's Inmobiliario/ABL, Patentes.    |
-| `subsidios`        | Subsidios y tarifa social | Energy subsidies (SEF/ReSEF) and AySA's tarifa social.          |
-| `leer-facturas`    | Cómo leer una factura | Walkthroughs of an actual bill — what each section/field means.     |
-| `ahorro-y-control` | Ahorro y control      | Reference values, detecting wrong charges, tracking spend over time. |
-| `pagos-y-tramites` | Pagos y trámites      | Paying, due dates, and paperwork like scanning or filing bills.      |
+| id                 | Label                     | Use it for                                                           |
+| ------------------ | ------------------------- | -------------------------------------------------------------------- |
+| `expensas`         | Expensas                  | Anything about expensas, consorcios and gastos comunes.              |
+| `servicios`        | Servicios del hogar       | A specific utility: luz, gas, agua, internet, telefonía.             |
+| `impuestos`        | Impuestos y tasas         | Taxes and levies on the home: AGIP's Inmobiliario/ABL, Patentes.     |
+| `subsidios`        | Subsidios y tarifa social | Energy subsidies (SEF/ReSEF) and AySA's tarifa social.               |
+| `leer-facturas`    | Cómo leer una factura     | Walkthroughs of an actual bill — what each section/field means.      |
+| `ahorro-y-control` | Ahorro y control          | Reference values, detecting wrong charges, tracking spend over time. |
+| `pagos-y-tramites` | Pagos y trámites          | Paying, due dates, and paperwork like scanning or filing bills.      |
 
-Two is the usual number: one for the *topic*, one for the *task*. A vendor bill
+Two is the usual number: one for the _topic_, one for the _task_. A vendor bill
 walkthrough is `["servicios", "leer-facturas"]`; a piece on what expensas include
 is `["expensas", "ahorro-y-control"]`. Only ids in the table are valid — the
 validator rejects anything else. The canonical list lives in

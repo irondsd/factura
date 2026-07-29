@@ -27,9 +27,9 @@ export function shouldAdoptMatched(row: {
 }): boolean {
   return Boolean(
     row.matchedConfigId &&
-      row.matchedVersionId &&
-      row.matchedTier &&
-      row.matchedTier !== "official",
+    row.matchedVersionId &&
+    row.matchedTier &&
+    row.matchedTier !== "official",
   );
 }
 
@@ -134,7 +134,12 @@ async function claimOne(
   // to `unrecognized`, which is the pre-existing behavior for that situation.
   if (shouldAdoptMatched(row)) {
     try {
-      await adoptPackage(db, userId, row.matchedConfigId!, row.matchedVersionId!);
+      await adoptPackage(
+        db,
+        userId,
+        row.matchedConfigId!,
+        row.matchedVersionId!,
+      );
     } catch {
       // Non-fatal by design — see above.
     }
@@ -157,7 +162,9 @@ async function claimOne(
     if (row.storageKey) {
       const existing =
         result.outcome === "duplicate"
-          ? await tx.query.bills.findFirst({ where: eq(bills.id, result.billId) })
+          ? await tx.query.bills.findFirst({
+              where: eq(bills.id, result.billId),
+            })
           : null;
       const plan = storageKeyPlan({
         submissionStorageKey: row.storageKey,

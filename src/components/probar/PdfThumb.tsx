@@ -74,7 +74,11 @@ export function PdfThumb({
         canvas.width = Math.floor(viewport.width);
         canvas.height = Math.floor(viewport.height);
 
-        const render = page.render({ canvasContext: context, viewport, canvas });
+        const render = page.render({
+          canvasContext: context,
+          viewport,
+          canvas,
+        });
         task = render;
         await render.promise;
         await doc.destroy();

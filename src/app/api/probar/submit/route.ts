@@ -187,7 +187,11 @@ export async function POST(request: Request) {
   // is the ground truth for counting uploads; PostHog is for the journey.
 
   const body: SubmitResponse = noText
-    ? { submissionId: row.id, outcome: "no_text", pageCount: extracted.pageCount }
+    ? {
+        submissionId: row.id,
+        outcome: "no_text",
+        pageCount: extracted.pageCount,
+      }
     : {
         submissionId: row.id,
         outcome: "pending",

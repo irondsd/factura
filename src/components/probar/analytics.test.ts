@@ -29,7 +29,10 @@ describe("abandonmentFlags", () => {
   it("does not flag success when they clicked through to save", () => {
     expect(
       flags({ filesSubmitted: 1, parsed: 1, saveCtaClicked: true }),
-    ).toEqual({ abandoned_after_success: false, abandoned_after_failure: false });
+    ).toEqual({
+      abandoned_after_success: false,
+      abandoned_after_failure: false,
+    });
   });
 
   it("flags an unrecognized bill the visitor walked away from", () => {
@@ -43,7 +46,10 @@ describe("abandonmentFlags", () => {
   it("does not flag failure when they asked to be notified", () => {
     expect(
       flags({ filesSubmitted: 1, unrecognized: 1, notifyRequested: true }),
-    ).toEqual({ abandoned_after_success: false, abandoned_after_failure: false });
+    ).toEqual({
+      abandoned_after_success: false,
+      abandoned_after_failure: false,
+    });
   });
 
   it("never counts a visitor who submitted nothing", () => {
@@ -88,7 +94,10 @@ describe("abandonmentFlags", () => {
         unrecognized: 1,
         saveCtaClicked: true,
       }),
-    ).toEqual({ abandoned_after_success: false, abandoned_after_failure: false });
+    ).toEqual({
+      abandoned_after_success: false,
+      abandoned_after_failure: false,
+    });
   });
 
   it("counts an upload error as a failure the visitor left after", () => {

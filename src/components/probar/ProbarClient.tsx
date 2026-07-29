@@ -113,25 +113,19 @@ export function ProbarClient() {
     return () => document.removeEventListener("visibilitychange", onHide);
   }, []);
 
-  const patch = useCallback(
-    (key: string, update: Partial<Submission>) => {
-      setSubmissions((prev) =>
-        prev.map((s) => (s.key === key ? { ...s, ...update } : s)),
-      );
-    },
-    [],
-  );
+  const patch = useCallback((key: string, update: Partial<Submission>) => {
+    setSubmissions((prev) =>
+      prev.map((s) => (s.key === key ? { ...s, ...update } : s)),
+    );
+  }, []);
 
-  const setTier = useCallback(
-    (key: string, tier: Tier, state: TierState) => {
-      setSubmissions((prev) =>
-        prev.map((s) =>
-          s.key === key ? { ...s, tiers: { ...s.tiers, [tier]: state } } : s,
-        ),
-      );
-    },
-    [],
-  );
+  const setTier = useCallback((key: string, tier: Tier, state: TierState) => {
+    setSubmissions((prev) =>
+      prev.map((s) =>
+        s.key === key ? { ...s, tiers: { ...s.tiers, [tier]: state } } : s,
+      ),
+    );
+  }, []);
 
   /** Mirror of `notified`, readable from the async pipeline without making every
    * callback below depend on the state that changes when an address is given. */
@@ -319,7 +313,9 @@ export function ProbarClient() {
           }
           run = (await res.json()) as ParseResponse;
         } catch {
-          patch(key, { error: interpolate(p.uploadFailed, { file: file.name }) });
+          patch(key, {
+            error: interpolate(p.uploadFailed, { file: file.name }),
+          });
           tally("errors");
           analytics.fileResult({
             outcome: "error",

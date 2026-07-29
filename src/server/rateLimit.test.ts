@@ -156,9 +156,9 @@ describe("limitKey", () => {
   });
 
   it("never puts a raw address in the key", () => {
-    expect(limitKey(req({ "x-forwarded-for": "203.0.113.7" }), "s")).not.toContain(
-      "203.0.113.7",
-    );
+    expect(
+      limitKey(req({ "x-forwarded-for": "203.0.113.7" }), "s"),
+    ).not.toContain("203.0.113.7");
   });
 
   it("shares one conservative bucket when the address is unknown", () => {

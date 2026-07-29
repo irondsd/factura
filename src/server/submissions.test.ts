@@ -25,7 +25,10 @@ const cookie = (id: string, secret = SECRET, atSec = 1_700_000_000) => ({
   value: submissionCookieValue(secret, atSec * 1000),
 });
 
-const legacy = (raw: string) => ({ name: LEGACY_SUBMISSION_COOKIE, value: raw });
+const legacy = (raw: string) => ({
+  name: LEGACY_SUBMISSION_COOKIE,
+  value: raw,
+});
 
 // The regression this whole layout exists for: /submit used to rebuild one
 // shared cookie from the value it was sent, so two concurrent uploads each
@@ -95,7 +98,9 @@ describe("readTickets", () => {
 
   it("still reads tickets from the legacy cookie", () => {
     // A visitor who dropped bills before the split must keep them claimable.
-    expect(readTickets([legacy(`${ID_A}:${SECRET}|${ID_B}:${SECRET}`)])).toEqual([
+    expect(
+      readTickets([legacy(`${ID_A}:${SECRET}|${ID_B}:${SECRET}`)]),
+    ).toEqual([
       { id: ID_A, secret: SECRET, issuedAt: 0 },
       { id: ID_B, secret: SECRET, issuedAt: 0 },
     ]);
@@ -140,7 +145,9 @@ describe("evictableCookieNames", () => {
       ),
     );
     // The three oldest are the three written first.
-    expect(evictableCookieNames(jar)).toEqual(jar.slice(0, 3).map((c) => c.name));
+    expect(evictableCookieNames(jar)).toEqual(
+      jar.slice(0, 3).map((c) => c.name),
+    );
   });
 
   it("sweeps junk probar_sub_ cookies", () => {
@@ -213,7 +220,8 @@ describe("parseLegacyTickets", () => {
   it("truncates an oversized cookie", () => {
     const many = Array.from(
       { length: MAX_TRACKED_SUBMISSIONS + 25 },
-      (_, i) => `${ID_A.slice(0, -2)}${String(i % 100).padStart(2, "0")}:${SECRET}`,
+      (_, i) =>
+        `${ID_A.slice(0, -2)}${String(i % 100).padStart(2, "0")}:${SECRET}`,
     ).join("|");
     expect(parseLegacyTickets(many)).toHaveLength(MAX_TRACKED_SUBMISSIONS);
   });

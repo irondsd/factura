@@ -127,9 +127,7 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
     );
   }
   if (RESERVED_SLUGS.has(slug)) {
-    errors.push(
-      `slug "${slug}" is a reserved /guias route — rename the file`,
-    );
+    errors.push(`slug "${slug}" is a reserved /guias route — rename the file`);
   }
 
   // ── no YAML frontmatter ───────────────────────────────────────────────────
@@ -200,7 +198,8 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
     const updated = meta.updated;
     const pubOk = typeof published === "string" && isValidDateTime(published);
     const updOk = typeof updated === "string" && isValidDateTime(updated);
-    const format = 'full ISO 8601 with offset, e.g. "2026-06-29T09:00:00-03:00"';
+    const format =
+      'full ISO 8601 with offset, e.g. "2026-06-29T09:00:00-03:00"';
     if (!pubOk) errors.push(`meta.published must be a ${format}`);
     if (!updOk) errors.push(`meta.updated must be a ${format}`);
     // Compare instants, not strings — two timestamps with different offsets

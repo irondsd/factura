@@ -84,7 +84,9 @@ describe("dictionary interpolation placeholders", () => {
 
 describe("interpolate", () => {
   it("substitutes every token it is given", () => {
-    expect(interpolate("up to {max} files", { max: 10 })).toBe("up to 10 files");
+    expect(interpolate("up to {max} files", { max: 10 })).toBe(
+      "up to 10 files",
+    );
   });
 
   it("leaves an unknown token visible rather than blank", () => {

@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { dragStep } from "./useWindowFileDrop";
 
 /** Replay a sequence of drag events from a clean state. */
-function replay(
-  events: ["enter" | "leave" | "drop", boolean][],
-): { depth: number; dragging: boolean } {
+function replay(events: ["enter" | "leave" | "drop", boolean][]): {
+  depth: number;
+  dragging: boolean;
+} {
   let state = { depth: 0, dragging: false };
   for (const [event, carriesFiles] of events) {
     state = dragStep(state.depth, event, carriesFiles);
@@ -21,7 +22,12 @@ describe("dragStep", () => {
   });
 
   it("clears it when the drag leaves", () => {
-    expect(replay([["enter", files], ["leave", files]])).toEqual({
+    expect(
+      replay([
+        ["enter", files],
+        ["leave", files],
+      ]),
+    ).toEqual({
       depth: 0,
       dragging: false,
     });
@@ -54,7 +60,10 @@ describe("dragStep", () => {
 
   it("ignores a non-file drag entirely", () => {
     // Dragging selected text or a link across the page must not offer to upload.
-    expect(replay([["enter", notFiles]])).toEqual({ depth: 0, dragging: false });
+    expect(replay([["enter", notFiles]])).toEqual({
+      depth: 0,
+      dragging: false,
+    });
   });
 
   it("is not disturbed by a non-file drag crossing an active one", () => {
@@ -108,7 +117,10 @@ describe("dragStep", () => {
   });
 
   it("can raise again after a completed drop", () => {
-    const afterDrop = replay([["enter", files], ["drop", files]]);
+    const afterDrop = replay([
+      ["enter", files],
+      ["drop", files],
+    ]);
     expect(dragStep(afterDrop.depth, "enter", files)).toEqual({
       depth: 1,
       dragging: true,

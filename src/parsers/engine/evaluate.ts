@@ -52,7 +52,9 @@ export function selectConfig(
 ): ParserConfig | undefined {
   const scored = configs
     .map((c) => ({ item: c, score: detectScore(c, text) }))
-    .filter((x): x is { item: ParserConfig; score: number } => x.score !== null);
+    .filter(
+      (x): x is { item: ParserConfig; score: number } => x.score !== null,
+    );
 
   return pickBestScored(scored)?.item;
 }

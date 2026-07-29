@@ -37,7 +37,8 @@ export async function POST(request: Request) {
 
   const jar = await cookies();
   const tickets = readTickets(jar.getAll());
-  if (tickets.length === 0) return Response.json({ results: [] } as ClaimResponse);
+  if (tickets.length === 0)
+    return Response.json({ results: [] } as ClaimResponse);
 
   const results = await claimSubmissions(db, userId, tickets);
 

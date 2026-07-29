@@ -13,7 +13,9 @@ export const runtime = "nodejs";
 export const maxDuration = 30;
 
 function isTier(value: unknown): value is Tier {
-  return typeof value === "string" && (TIERS as readonly string[]).includes(value);
+  return (
+    typeof value === "string" && (TIERS as readonly string[]).includes(value)
+  );
 }
 
 /** Run ONE trust tier against a submission. The browser calls this once per tier

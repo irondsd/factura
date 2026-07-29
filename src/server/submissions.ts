@@ -69,7 +69,10 @@ export function submissionCookieName(id: string): string {
  * which of the visitor's OWN tickets get dropped first when they exceed the
  * cap. It is never an input to authorization — that's `secret`, checked against
  * the row's hash. Pure. */
-export function submissionCookieValue(secret: string, issuedAtMs: number): string {
+export function submissionCookieValue(
+  secret: string,
+  issuedAtMs: number,
+): string {
   return `${secret}.${Math.floor(issuedAtMs / 1000).toString(36)}`;
 }
 
@@ -174,7 +177,11 @@ export function evictableCookieNames(
   cookies: CookiePair[],
   keep = MAX_TRACKED_SUBMISSIONS,
 ): string[] {
-  const kept = new Set(readTickets(cookies).slice(0, keep).map((t) => t.id));
+  const kept = new Set(
+    readTickets(cookies)
+      .slice(0, keep)
+      .map((t) => t.id),
+  );
   return cookies
     .map((c) => c.name)
     .filter((name) => name.startsWith(SUBMISSION_COOKIE_PREFIX))
