@@ -236,12 +236,24 @@ body {
     50% / var(--zz) 100%;
 }
 
-/* Ledger ruling behind extracted text */
+/* Ledger ruling behind extracted text.
+   Each rule sits on the boundary BETWEEN two line boxes — which is also the
+   exact centre of the visual gap between them — so the text reads as sitting on
+   ruled paper rather than being underlined.
+   `background-origin: content-box` is what makes that true: tiled from the
+   default padding box, a pane's padding-top shifts every rule up by that much
+   and they land under (or through) the glyphs. Clipping stays at the border box,
+   so the lines still run the full width of the pane.
+   Pitch is a variable: a denser pane retunes `--ruled-line`. Never pair this
+   class with a `leading-*` utility — the text would move and the ruling
+   wouldn't. */
 .ruled {
-  line-height: 1.75rem;
+  --ruled-line: 1.75rem;
+  line-height: var(--ruled-line);
+  background-origin: content-box;
   background-image: repeating-linear-gradient(
-    transparent 0 calc(1.75rem - 1px),
-    rgb(33 29 22 / 0.08) calc(1.75rem - 1px) 1.75rem
+    transparent 0 calc(var(--ruled-line) - 1px),
+    rgb(33 29 22 / 0.08) calc(var(--ruled-line) - 1px) var(--ruled-line)
   );
 }
 

@@ -572,7 +572,11 @@ function Builder() {
               ))}
             </div>
           )}
-          <pre className="ruled font-mono text-xs leading-[1.55] whitespace-pre-wrap break-words bg-paper border border-line py-2.5 px-3 h-[62vh] overflow-y-auto m-0 text-ink">
+          {/* Tighter ruling than the default: this pane is a whole bill's text
+              at 12px and has to stay scannable. Retuned through `--ruled-line`
+              rather than a `leading-*` utility, which would move the text off
+              the lines. */}
+          <pre className="ruled [--ruled-line:1.25rem] font-mono text-xs whitespace-pre-wrap break-words bg-paper border border-line py-2.5 px-3 h-[62vh] overflow-y-auto m-0 text-ink">
             {activeText ? (
               <HighlightedText text={activeText} spans={spans} />
             ) : (

@@ -59,7 +59,9 @@ export function ExtractedTextDialog({
       onClose={onClose}
       width={720}
     >
-      <pre className="ruled max-h-[52vh] overflow-auto border border-line bg-paper p-3.5 font-mono text-[10.5px] leading-[1.75rem] whitespace-pre-wrap break-words text-ink/80">
+      {/* No `leading-*` here on purpose: `.ruled` owns the line height, and any
+          utility that changes it would slide the text off the ruling. */}
+      <pre className="ruled max-h-[52vh] overflow-auto border border-line bg-paper p-3.5 font-mono text-[10.5px] whitespace-pre-wrap break-words text-ink/80">
         {text}
       </pre>
       <div className="flex flex-wrap items-center gap-4">
