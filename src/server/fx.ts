@@ -80,6 +80,28 @@ export async function usdRateLookup(
   return (date) => (date ? pickRate(rows, date) : null);
 }
 
+/** Raw blue-rate points for the `days` ending at `to`, oldest → newest.
+ *
+ * `usdRateLookup` answers "what was the rate on this day?"; the forecaster needs
+ * the *shape* of the recent series instead, to read a drift off it. */
+export async function recentFxSeries(
+  db: typeof Db,
+  to: string,
+  days = 90,
+): Promise<{ date: string; rate: number }[]> {
+  await ensureFxRates(db);
+  const from = new Date(`${to}T00:00:00Z`);
+  from.setUTCDate(from.getUTCDate() - days);
+  const rows = await db.query.fxRates.findMany({
+    where: and(
+      gte(fxRates.date, from.toISOString().slice(0, 10)),
+      lte(fxRates.date, to),
+    ),
+    orderBy: [fxRates.date],
+  });
+  return rows.map((r) => ({ date: r.date, rate: Number(r.venta) }));
+}
+
 /** Rate date for a bill: due date if known, else its period month. */
 export function billRateDate(bill: {
   dueDate: string | null;

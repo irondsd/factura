@@ -305,13 +305,23 @@ export function pointEstimate(
   const growth = levelGrowth(sorted);
   const anchor = yoyAnchor(sorted, target);
 
-  const span = monthsBetween(sorted[0].month, lastObserved!) + 1;
-  const yoy = anchor != null && growth != null ? anchor * growth : null;
-  const w = yoy == null ? 0 : blendWeight(span);
-  const base = yoy == null ? baseline : w * yoy + (1 - w) * baseline;
-
+  // The two estimators are anchored to different months, so only one of them
+  // takes the gap factor.
+  //
+  // B is a level as of the newest bill, so it has to be carried forward to the
+  // target. A is already *at* the target: `levelGrowth` is a twelve-month rate,
+  // so `amount[target−12] × levelGrowth` estimates the level twelve months
+  // after target−12 — which is the target. Applying gapFactor to A as well
+  // would charge for drift twice, the exact mistake the FX split exists to
+  // avoid, and it shows up as a systematic overshoot of one month's inflation.
   const gap = monthsBetween(lastObserved!, target);
-  const point = base * gapFactor(gap, household, fx);
+  const baselinePoint = baseline * gapFactor(gap, household, fx);
+  const yoyPoint = anchor != null && growth != null ? anchor * growth : null;
+
+  const span = monthsBetween(sorted[0].month, lastObserved!) + 1;
+  const w = yoyPoint == null ? 0 : blendWeight(span);
+  const point =
+    yoyPoint == null ? baselinePoint : w * yoyPoint + (1 - w) * baselinePoint;
 
   const basis: Basis =
     w > 0 ? "yoy" : sorted.length >= RECENT ? "baseline" : "carry";

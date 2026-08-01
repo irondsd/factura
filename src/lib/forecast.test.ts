@@ -397,11 +397,40 @@ describe("pointEstimate", () => {
   });
 
   it("recovers a seasonal spike riding on top of a trend", () => {
-    // 3%/month inflation AND a 3x August. Both must come out.
+    // 3%/month inflation AND a 3x August. Both must come out, tightly — a loose
+    // tolerance here is what hid the double-counting bug below.
     const h = series("2026-07", 30, 100_000, 1.03, { 8: 3 });
     const r = pointEstimate(h, "2026-08", null, null);
-    const lastJuly = h.find((o) => o.month === "2026-07")!.amount;
-    near(r.point, lastJuly * 3, 0.12);
+    const truth = 100_000 * 1.03 ** 30 * 3; // the month after the history ends
+    near(r.point, truth, 0.02);
+  });
+
+  it("does not apply the gap factor to the YoY anchor as well", () => {
+    // Regression. `levelGrowth` is a twelve-month rate, so the anchor already
+    // lands on the target month; carrying it forward again overshoots by
+    // exactly one month's drift. Caught only on a series that both grows and
+    // has seasonality — with flat amounts the gap factor is 1 and hides it.
+    const h = series("2026-07", 30, 100_000, 1.02, { 8: 3 });
+    const truth = 100_000 * 1.02 ** 30 * 3;
+    const r = pointEstimate(h, "2026-08", 1.02, 1.02);
+    near(r.point, truth, 0.01);
+    // The failure mode was a *systematic* overshoot, not noise.
+    expect(r.point!).toBeLessThan(truth * 1.015);
+  });
+
+  it("tracks a seasonal account through a sharp turning point", () => {
+    // Winter peak into the shoulder month: a 36% drop the baseline can't see.
+    const winter: Record<number, number> = { 6: 3, 7: 3, 8: 3, 5: 1.9, 9: 1.9 };
+    for (const [end, target] of [
+      ["2026-07", "2026-08"],
+      ["2026-08", "2026-09"],
+      ["2026-09", "2026-10"],
+    ]) {
+      const h = series(end, 30, 40_000, 1.02, winter);
+      const m = Number(target.slice(5, 7));
+      const truth = 40_000 * 1.02 ** 30 * (winter[m] ?? 1);
+      near(pointEstimate(h, target, null, null).point, truth, 0.02);
+    }
   });
 
   it("is not derailed by an estimated reading and its true-up", () => {

@@ -2,10 +2,10 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { db as Db } from "@/db";
 import { bills, properties, vendorAccounts, vendors } from "@/db/schema";
-import { detectCadence, isDue } from "@/lib/forecast";
+import { forecast, type Observation } from "@/lib/forecast";
 import { resolveWindowMonths } from "@/lib/insights";
 import type { FieldType } from "@/parsers/engine/types";
-import { billRateDate, usdRateLookup } from "../fx";
+import { billRateDate, recentFxSeries, usdRateLookup } from "../fx";
 import { accessibleProperties, scopeIds } from "../ownership";
 import { loadUserConfigs } from "../registry";
 import { protectedProcedure, router } from "../trpc";
@@ -126,9 +126,28 @@ export const insightsRouter = router({
             })
           : null;
 
+      // What the forecaster reads: (month, ARS total) per account. Every other
+      // column — and every parser-extracted custom field — is deliberately out
+      // of reach, so the model can't come to depend on data that only some
+      // vendors' parsers produce.
+      const histories = new Map<string, Observation[]>();
+      for (const b of parsed) {
+        if (!b.accountId || !b.period || b.totalAmount == null) continue;
+        const list = histories.get(b.accountId) ?? [];
+        list.push({
+          month: b.period.slice(0, 7),
+          amount: Number(b.totalAmount),
+        });
+        histories.set(b.accountId, list);
+      }
+      // Every account in scope, this one included — that's the shared drift
+      // signal, and an account's own history belongs in the pool.
+      const household = [...histories.values()];
+      const fx = await recentFxSeries(ctx.db, `${now}-01`);
+
       // Awaiting model: each active account either has a bill this month, or
-      // we show its last received bill (calm, not "missing"). Accounts that
-      // aren't on-cycle this month drop out entirely — see below.
+      // we show its last received bill (calm, not "missing") alongside what we
+      // expect it to come in at. Accounts that aren't on-cycle drop out.
       const awaiting = accounts.flatMap((a) => {
         const v = vendorById.get(a.vendorId)!;
         const past = parsed
@@ -137,13 +156,18 @@ export const insightsRouter = router({
         const thisMonth = past.find((b) => b.period === `${now}-01`);
         const last = past[0];
 
+        const f = forecast({
+          history: histories.get(a.id) ?? [],
+          household,
+          fx,
+          target: now,
+        });
+
         // A bi-monthly (or quarterly, or annual) account is not "awaiting"
         // anything in the months it simply doesn't bill. Without this it nags
-        // every month and inflates the expected count. A bill that actually
-        // arrived always counts, whatever the inferred cadence says.
-        const cadence = detectCadence(past.map((b) => b.period!.slice(0, 7)));
-        const lastObserved = last?.period ? last.period.slice(0, 7) : null;
-        if (!thisMonth && !isDue(lastObserved, now, cadence)) return [];
+        // every month and inflates both the expected count and the total. A
+        // bill that actually arrived always counts, whatever cadence says.
+        if (!thisMonth && !f.due) return [];
 
         return [
           {
@@ -158,12 +182,25 @@ export const insightsRouter = router({
             lastPeriod: last?.period ? last.period.slice(0, 7) : null,
             lastAmount:
               last?.totalAmount != null ? Number(last.totalAmount) : null,
+            expected: f.point,
+            expectedLow: f.low,
+            expectedHigh: f.high,
+            basis: f.basis,
+            confidence: f.confidence,
           },
         ];
       });
       const received = awaiting.filter((a) => a.received);
       const thisMonthTotal = received.reduce((s, a) => s + (a.amount ?? 0), 0);
       const thisMonthUsd = received.reduce((s, a) => s + (a.usd ?? 0), 0);
+
+      // The hero number: what's confirmed, plus what we expect from everything
+      // still awaiting. An account with no history contributes nothing rather
+      // than a guess, so this reads low rather than inventing a figure.
+      const expectedTotal = awaiting.reduce(
+        (s, a) => s + (a.received ? (a.amount ?? 0) : (a.expected ?? 0)),
+        0,
+      );
 
       const months = monthList(now, 12);
       const completeFlags = completeFlagsFor(months, parsed);
@@ -191,6 +228,7 @@ export const insightsRouter = router({
         month: now,
         thisMonthTotal,
         thisMonthUsd,
+        expectedTotal,
         billsIn: received.length,
         billsExpected: awaiting.length,
         awaiting,
