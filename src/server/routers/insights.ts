@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { db as Db } from "@/db";
 import { bills, properties, vendorAccounts, vendors } from "@/db/schema";
+import { detectCadence, isDue } from "@/lib/forecast";
 import { resolveWindowMonths } from "@/lib/insights";
 import type { FieldType } from "@/parsers/engine/types";
 import { billRateDate, usdRateLookup } from "../fx";
@@ -126,29 +127,39 @@ export const insightsRouter = router({
           : null;
 
       // Awaiting model: each active account either has a bill this month, or
-      // we show its last received bill (calm, not "missing").
-      const awaiting = accounts.map((a) => {
+      // we show its last received bill (calm, not "missing"). Accounts that
+      // aren't on-cycle this month drop out entirely — see below.
+      const awaiting = accounts.flatMap((a) => {
         const v = vendorById.get(a.vendorId)!;
-        const thisMonth = parsed.find(
-          (b) => b.accountId === a.id && b.period === `${now}-01`,
-        );
         const past = parsed
           .filter((b) => b.accountId === a.id && b.period)
           .sort((x, y) => (x.period! < y.period! ? 1 : -1));
+        const thisMonth = past.find((b) => b.period === `${now}-01`);
         const last = past[0];
-        return {
-          accountId: a.id,
-          vendor: vendorMeta(v),
-          received: Boolean(thisMonth),
-          amount:
-            thisMonth?.totalAmount != null
-              ? Number(thisMonth.totalAmount)
-              : null,
-          usd: thisMonth?.usdAmount ?? null,
-          lastPeriod: last?.period ? last.period.slice(0, 7) : null,
-          lastAmount:
-            last?.totalAmount != null ? Number(last.totalAmount) : null,
-        };
+
+        // A bi-monthly (or quarterly, or annual) account is not "awaiting"
+        // anything in the months it simply doesn't bill. Without this it nags
+        // every month and inflates the expected count. A bill that actually
+        // arrived always counts, whatever the inferred cadence says.
+        const cadence = detectCadence(past.map((b) => b.period!.slice(0, 7)));
+        const lastObserved = last?.period ? last.period.slice(0, 7) : null;
+        if (!thisMonth && !isDue(lastObserved, now, cadence)) return [];
+
+        return [
+          {
+            accountId: a.id,
+            vendor: vendorMeta(v),
+            received: Boolean(thisMonth),
+            amount:
+              thisMonth?.totalAmount != null
+                ? Number(thisMonth.totalAmount)
+                : null,
+            usd: thisMonth?.usdAmount ?? null,
+            lastPeriod: last?.period ? last.period.slice(0, 7) : null,
+            lastAmount:
+              last?.totalAmount != null ? Number(last.totalAmount) : null,
+          },
+        ];
       });
       const received = awaiting.filter((a) => a.received);
       const thisMonthTotal = received.reduce((s, a) => s + (a.amount ?? 0), 0);
