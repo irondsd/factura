@@ -4,6 +4,7 @@
 
 import {
   anchorLevel,
+  detectPairing,
   type FxPoint,
   fxDrift,
   gapFactor,
@@ -12,8 +13,10 @@ import {
   normalizeHistory,
   type Observation,
   ownDrift,
+  pairSeries,
   pointEstimate,
   recentLevel,
+  seasonalLevel,
 } from "../../src/lib/forecast";
 import { shiftMonth } from "../../src/lib/format";
 import { monthsBetween } from "../../src/lib/insights";
@@ -23,8 +26,19 @@ import { monthsBetween } from "../../src/lib/insights";
 // decision stays re-testable rather than merely remembered. It was worse than
 // carrying the last amount forward in every history tier and in five of seven
 // vendors — most sharply on the gas account it was written for (22.2% vs 5.7%
-// median APE). If more history, or a calmer currency, ever changes that, this
-// is what to re-run before putting it back into `src/lib/forecast.ts`.
+// median APE).
+//
+// That verdict has since been half overturned, and keeping these rungs runnable
+// is what made it possible to see how. The estimators below are still bad; the
+// idea behind them was not. They were reading the raw monthly series, which for
+// a bi-monthly account is a sawtooth — so they were fitting the billing
+// artefact rather than the season. Collapse each two-month pair to a point
+// first and seasonality becomes the largest single win in the model (see
+// `seasonalFactors` in src/lib/forecast.ts, and the `seas` rung below, which is
+// the same idea done on the right series).
+//
+// Worth remembering the shape of that mistake: a negative result about an
+// estimator can turn out to be a result about the series it was handed.
 
 const amountsIn = (
   index: Map<string, number>,
@@ -223,6 +237,31 @@ export const RUNGS: {
           driftFor(sorted, household),
           fxDrift(fx, target),
         )
+      );
+    },
+  },
+  // The two halves of the bi-monthly split, scored separately, so it stays
+  // visible that the win comes from the new-pair months and not from
+  // re-labelling the easy ones.
+  {
+    key: "seas",
+    short: "seas",
+    label: "seasonal level on the pair series, no repeat ratio",
+    predict: ({ history, target }) => {
+      const positives = normalizeHistory(history).filter((o) => o.amount > 0);
+      const last = positives.at(-1);
+      if (!last) return null;
+      const pairing = detectPairing(positives);
+      if (!pairing) return last.amount;
+      const start = (m: string) =>
+        (Number(m.slice(0, 4)) * 12 + Number(m.slice(5, 7)) - 1) % 2 ===
+        pairing.phase
+          ? m
+          : shiftMonth(m, -1);
+      if (start(target) === start(last.month)) return last.amount;
+      return (
+        seasonalLevel(pairSeries(positives, pairing.phase), start(target), 6, 2) ??
+        last.amount
       );
     },
   },

@@ -4,6 +4,7 @@ import {
   anchorLevel,
   band,
   detectCadence,
+  detectPairing,
   forecast,
   fxDrift,
   gapFactor,
@@ -16,8 +17,10 @@ import {
   type Observation,
   OUTLIER_RATIO,
   ownDrift,
+  pairSeries,
   pointEstimate,
   recentLevel,
+  seasonalLevel,
   selfBacktestError,
 } from "./forecast";
 
@@ -383,11 +386,11 @@ describe("pointEstimate", () => {
     near(r.point, 100_000 * 1.1 ** 3);
   });
 
-  it("ignores seasonality, which measurement did not support", () => {
-    // A planted 3x August. The model must NOT reach for it: on real bills the
-    // YoY blend scored 18.0% median APE against carry's 5.7%, and worst of all
-    // on the seasonal gas account it was written for. See the note at the top
-    // of forecast.ts before changing this.
+  it("ignores seasonality on a monthly account, which measurement did not support", () => {
+    // A planted 3x August on an account that bills every month. The model must
+    // NOT reach for it: on real bills a seasonal estimator only paid once the
+    // series was collapsed by billing pair, and reading a season off a monthly
+    // account was measured worse than carry (6.8% vs 5.7% median APE).
     const h = series("2026-07", 30, 100_000, 1, { 8: 3 });
     const r = pointEstimate(h, "2026-08", null, null);
     expect(r.basis).toBe("baseline");
@@ -397,11 +400,22 @@ describe("pointEstimate", () => {
   it("is not derailed by an estimated reading and its true-up", () => {
     const clean = series("2026-07", 24, 100_000, 1.02);
     const dirty = clean.map((o) =>
-      o.month === "2026-07" ? { ...o, amount: o.amount * 8 } : o,
+      o.month === "2026-07" ? { ...o, amount: o.amount * 25 } : o,
     );
     const a = pointEstimate(clean, "2026-08", null, null).point!;
     const b = pointEstimate(dirty, "2026-08", null, null).point!;
     expect(Math.abs(b - a) / a).toBeLessThan(0.1);
+  });
+
+  it("forecasts from the last real bill when the newest one is zero", () => {
+    // A credited or zero-balance month is a real row and a useless level.
+    // Carrying it forward would put $0 on the dashboard as the expected bill.
+    const h = [
+      ...series("2026-06", 6, 100_000, 1),
+      { month: "2026-07", amount: 0 },
+    ];
+    const r = pointEstimate(h, "2026-08", null, null);
+    near(r.point, 100_000);
   });
 
   it("forecasts zero on an off-cycle month for a bi-monthly account", () => {
@@ -435,14 +449,173 @@ describe("pointEstimate", () => {
     expect(stale.point!).toBeGreaterThan(fresh.point!);
   });
 
-  it("does not turn a 10x month into a 10x forecast", () => {
+  it("does not turn an order-of-magnitude mis-parse into the headline figure", () => {
+    // The guard sits at 20x because anything tighter was measured rejecting
+    // real seasonal steps — a gas account's winter onset is an 18x jump. What
+    // it still catches is the parse that read a meter number as a total.
     const h = [
       { month: "2026-05", amount: 100_000 },
       { month: "2026-06", amount: 1_000_000 },
-      { month: "2026-07", amount: 10_000_000 },
+      { month: "2026-07", amount: 50_000_000 },
     ];
     const r = pointEstimate(h, "2026-08", null, MAX_DRIFT);
     expect(r.point!).toBeLessThanOrEqual(1_000_000 * MAX_DRIFT);
+  });
+});
+
+// ── Bi-monthly billing ───────────────────────────────────────────────────────
+
+/** A bi-monthly meter: each two-month pair takes one value, with the second
+ * month a shade off the first. `pairs` are read oldest → newest and the run
+ * ends on the second month of the last pair. */
+function bimonthly(end: string, pairs: number[], wobble = 1.01): Observation[] {
+  const out: Observation[] = [];
+  pairs.forEach((amount, i) => {
+    const start = shiftMonth(end, -2 * (pairs.length - 1 - i) - 1);
+    out.push({ month: start, amount });
+    out.push({ month: shiftMonth(start, 1), amount: amount * wobble });
+  });
+  return out;
+}
+
+describe("detectPairing", () => {
+  it("finds the pair phase in a bi-monthly series", () => {
+    // Pairs start on 2025-01, 2025-03, … — odd calendar months, which are the
+    // even absolute month indices, so phase 0.
+    const h = bimonthly("2026-06", [10, 90, 20, 80, 30, 70, 40, 60]);
+    expect(detectPairing(h)).toMatchObject({ phase: 0 });
+  });
+
+  it("finds the other phase when pairs start on even calendar months", () => {
+    const h = bimonthly("2026-07", [10, 90, 20, 80, 30, 70, 40, 60]);
+    expect(detectPairing(h)).toMatchObject({ phase: 1 });
+  });
+
+  it("reads no pairing into a smooth monthly series", () => {
+    // The failure that would matter: inventing a sawtooth in an account that
+    // does not have one hands the seasonal estimator a series it will misread.
+    expect(detectPairing(series("2026-07", 30, 100_000, 1.03))).toBeNull();
+  });
+
+  it("reads no pairing into a flat series", () => {
+    expect(detectPairing(series("2026-07", 30, 100_000, 1))).toBeNull();
+  });
+
+  it("holds off until there are transitions of both parities to compare", () => {
+    expect(detectPairing(bimonthly("2026-06", [10, 90]))).toBeNull();
+  });
+});
+
+describe("pairSeries", () => {
+  it("collapses each pair to one point keyed by the pair's first month", () => {
+    const h = bimonthly("2026-06", [10, 90, 20, 80], 1);
+    expect(pairSeries(h, 0)).toEqual([
+      { month: "2025-11", amount: 10 },
+      { month: "2026-01", amount: 90 },
+      { month: "2026-03", amount: 20 },
+      { month: "2026-05", amount: 80 },
+    ]);
+  });
+
+  it("drops non-positive amounts rather than averaging them in", () => {
+    const h: Observation[] = [
+      { month: "2026-05", amount: 100 },
+      { month: "2026-06", amount: 0 },
+    ];
+    expect(pairSeries(h, 0)).toEqual([{ month: "2026-05", amount: 100 }]);
+  });
+});
+
+describe("seasonalLevel", () => {
+  // A gas-shaped year on the pair series: a winter peak, a flat trough, and a
+  // shoulder either side. `bimonthly` lays pairs down ending on `end`, so with
+  // 18 pairs ending 2026-06 the last pair starts 2026-05 and slot k of the
+  // year carries shape[(k + 3) % 6].
+  const SHAPE = [1, 1, 3, 4, 2, 1.2];
+  const seasonal = (n = 18, growth = 1) =>
+    pairSeries(
+      bimonthly(
+        "2026-06",
+        Array.from(
+          { length: n },
+          (_, i) => 10_000 * SHAPE[i % 6] * growth ** i,
+        ),
+        1,
+      ),
+      0,
+    );
+
+  it("puts each slot of the year where the planted season put it", () => {
+    const s = seasonal();
+    near(seasonalLevel(s, "2026-11", 6, 2), 30_000, 0.1); // the 3x slot
+    near(seasonalLevel(s, "2027-01", 6, 2), 40_000, 0.1); // the peak
+    near(seasonalLevel(s, "2027-03", 6, 2), 20_000, 0.1); // the shoulder
+    // ...and the trough is below all of them, which is the ordering that
+    // decides whether a forecast reads as sensible.
+    expect(seasonalLevel(s, "2026-07", 6, 2)!).toBeLessThan(20_000);
+  });
+
+  it("overstates the swing on a de-trended series, which is a known trade", () => {
+    // The window doubles up the opposite season, so troughs come out lower
+    // than they are: 6,000 against a planted 10,000. This is not a bug to fix
+    // in isolation — see seasonalFactors, where the same bias is what offsets
+    // the compression every median-based level suffers under a trend. Pinned
+    // here so that removing it is a deliberate act with a backtest attached.
+    const trough = seasonalLevel(seasonal(), "2026-07", 6, 2)!;
+    expect(trough).toBeLessThan(10_000);
+    expect(trough).toBeGreaterThan(4_000);
+  });
+
+  it("separates the season from a trend running through it", () => {
+    // The season must not absorb the growth, nor the growth the season.
+    const s = seasonal(18, 1.05);
+    const peak = seasonalLevel(s, "2027-01", 6, 2)!;
+    const trough = seasonalLevel(s, "2026-07", 6, 2)!;
+    expect(peak / trough).toBeGreaterThan(2.5);
+    // ...and the level must be the one the series has actually reached, not
+    // the one it started at 18 pairs ago.
+    expect(trough).toBeGreaterThan(10_000);
+  });
+
+  it("is null before there is a year of pairs to read a season from", () => {
+    expect(seasonalLevel(seasonal(4), "2026-07", 6, 2)).toBeNull();
+  });
+});
+
+describe("pointEstimate on a bi-monthly account", () => {
+  it("carries the pair forward into its second month", () => {
+    // The easy half: we already hold the reading this month belongs to.
+    const h = bimonthly("2026-06", [10, 90, 20, 80, 30, 70, 40, 60]);
+    // Drop the final month so the target IS the second half of the last pair.
+    const r = pointEstimate(h.slice(0, -1), "2026-06", null, null);
+    near(r.point, 60, 0.05);
+  });
+
+  it("reaches for the season on a new pair instead of carrying", () => {
+    // The hard half, and the whole point of the pair split: on real bills
+    // carrying here scored 29.8% median APE against the seasonal estimator's
+    // 4.1%. The account is sitting on a 1.2x shoulder and heading into winter,
+    // so carry and season disagree about which way the next bill moves.
+    const shape = [1, 1, 3, 4, 2, 1.2];
+    const pairs = Array.from({ length: 18 }, (_, i) => 10_000 * shape[i % 6]);
+    const h = bimonthly("2026-06", pairs, 1);
+
+    const summer = pointEstimate(h, "2026-07", null, null);
+    expect(summer.basis).toBe("yoy");
+    // Carry would have said 12,000 for a slot the season puts at 10,000.
+    expect(summer.point!).toBeLessThan(12_000);
+
+    // Two pairs on, the same history must forecast the winter peak instead —
+    // the direction carry cannot produce at all, since it has one number.
+    const winter = pointEstimate(h, "2026-11", null, null);
+    near(winter.point, 30_000, 0.1);
+  });
+
+  it("falls back to the level when there is no season to read yet", () => {
+    const h = bimonthly("2026-06", [10, 90, 20, 80, 30, 70]);
+    const r = pointEstimate(h, "2026-07", null, null);
+    expect(r.basis).toBe("baseline");
+    expect(r.point).not.toBeNull();
   });
 });
 

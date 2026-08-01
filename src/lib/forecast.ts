@@ -153,20 +153,32 @@ export function normalizeHistory(history: Observation[]): Observation[] {
 //     YoY blend (±1 or exact anchor)   18.0%
 //     median of last 3                 19.9%
 //
-// Two results in there are worth keeping in view, because they are the reason
-// this file is short:
+// Drift did not pay at a one-month horizon. Argentine monthly inflation fell
+// steeply across the window, and a drift measured from trailing ratios lags a
+// decelerating trend, so it over-predicts. See `gapFactor`'s caller for what
+// survived. A damped drift (last × drift^α for α of 0.25 to 0.75) was measured
+// too: it moved the median by tenths of a point, and which α won flipped from
+// one time slice to the next, which is what noise looks like.
 //
-//  1. Seasonality did not pay. The year-over-year anchor was WORSE than carrying
-//     the last amount forward in every slice, most sharply on the gas account it
-//     was written for (5.7% vs 22.2%). Tiered tariffs and fixed charges smooth
-//     the *amount* far more than the consumption behind it, so month-to-month
-//     persistence beats a seasonal shape. The consumption chart is dramatic; the
-//     peso series is not.
+// Carrying the last amount forward is still the level this model is built on.
+// What has since been layered over it is NOT a better level estimator but a
+// correction to a specific, mechanical way it was wrong — see "Bi-monthly
+// billing" below. That correction took the same 147 predictions from 5.7%
+// median / 69.1% p90 to 4.6% / 54.5%, and it did so by fixing the half of the
+// months that carry got badly wrong rather than by nudging the half it already
+// got right.
 //
-//  2. Drift did not pay either, at a one-month horizon. Argentine monthly
-//     inflation fell steeply across the window, and a drift measured from
-//     trailing ratios lags a decelerating trend, so it over-predicts. See
-//     `gapFactor`'s caller for what survived.
+// One earlier conclusion has been overturned and is worth flagging, because the
+// reasoning that produced it was sound and still misled. Seasonality was
+// originally measured as WORSE than carry in every slice (22.2% against 5.7% on
+// the gas account it was written for), and read as evidence that tiered tariffs
+// smooth the peso series even where consumption swings. That was the wrong
+// lesson. The year-over-year estimator was being scored on the raw monthly
+// series, which for a bi-monthly account is a sawtooth — so it was fitting the
+// billing artefact, not the season. Collapsing each two-month pair to one point
+// first and the season is not just readable, it is the single largest win in
+// this file. A negative result about an estimator can be a result about the
+// series it was handed.
 //
 // Re-run `npm run forecast:backtest` before adding anything back. The harness
 // still carries the discarded candidates so any of this can be re-measured.
@@ -183,17 +195,24 @@ export function recentLevel(history: Observation[]): number | null {
 /** How far the newest bill may diverge from the median of the three before it
  * before we stop believing it.
  *
- * Measured, not chosen. At 4x the guard cost 0.7pp of overall accuracy and
- * 2.3pp on Edesur — it was rejecting real tariff resets, which Argentina serves
- * up as discrete step changes. At 8x it costs 0.1pp overall and nothing at all
- * on Edesur, while still catching the kind of garbage that actually appears in
- * the data (two bills in the backtest set have non-positive totals).
+ * Measured, not chosen, and loosened twice as the model learned to explain
+ * jumps it used to have to suppress. At 4x the guard cost 0.7pp of overall
+ * accuracy — it was rejecting real tariff resets, which Argentina serves up as
+ * discrete step changes. At 8x and 12x it still fires exactly twice on the
+ * backtest set, both times on MetroGAS's genuine winter onset (2.8k → 50k, an
+ * 18x step), turning a 0% error into a 95% one and costing 12pp of p90 for a
+ * tenth of a point of median.
  *
- * The one account it still costs anything is gas, at +0.4pp: a genuine winter
- * peak can be more than 8x the surrounding months, so the guard occasionally
- * rejects a real bill there. Judged worth it — the downside it protects against
- * is a mis-parsed total becoming the headline figure on the dashboard. */
-export const OUTLIER_RATIO = 8;
+ * At 20x it stops firing on real data altogether. That is the right place for
+ * it, because the garbage it was originally written for is now caught earlier
+ * and better: the two non-positive totals in the backtest set are dropped by
+ * `pointEstimate` before the level is ever computed. What is left for a ratio
+ * test to catch is the order-of-magnitude parse error — a meter reading or an
+ * account number scraped in as a total — and those miss by far more than 20x.
+ *
+ * The guard is defensive, not accuracy machinery. On this data every threshold
+ * that changes any prediction makes it worse. */
+export const OUTLIER_RATIO = 20;
 
 /** The level to forecast from: the newest bill, unless it is wildly out of line
  * with the ones before it, in which case their median.
@@ -287,6 +306,242 @@ export function gapFactor(
   return clampDrift(f) ** gap;
 }
 
+// ── Bi-monthly billing ───────────────────────────────────────────────────────
+// Argentine gas and electricity meters are read every second month. The vendor
+// still issues a bill every month, so the *record* cadence is monthly — but the
+// amounts arrive in near-identical pairs: a reading month, then a second month
+// that barely moves off it, then a jump to the next reading.
+//
+// Measured on real bills, the contrast is not subtle. On the long MetroGAS
+// account the median month-over-month move is 1.3% inside a pair and 88% across
+// one; on the long Edesur account, 11% against 37%. Carrying the last amount
+// forward therefore gets one month in two almost exactly right and the other
+// badly wrong — which is precisely the shape of the error this model used to
+// have (a 5.7% median sitting under a 69% p90).
+//
+// Splitting those two months apart is what makes seasonality readable. It is
+// also why the year-over-year estimator lost the original bake-off: run on the
+// raw monthly series it was fitting a sawtooth, not a season.
+
+const monthIndex = (month: string) => {
+  const [y, m] = month.split("-").map(Number);
+  return y * 12 + (m - 1);
+};
+
+/** A detected two-month billing pair. `phase` is the parity of each pair's
+ * FIRST month; `within`/`across` are the median |log| moves inside a pair and
+ * between pairs, kept for the diagnostics that justify the detection. */
+export type Pairing = { phase: number; within: number; across: number };
+
+/** How many consecutive-month transitions of each parity it takes before the
+ * contrast between them is worth believing. Three of each needs about seven
+ * months of history. */
+const MIN_PAIR_TRANSITIONS = 3;
+
+/** How much bigger the across-pair move must be than the within-pair one, and
+ * how big it must be in absolute terms. Both guard against reading a pairing
+ * into a smooth series, where the two parities differ only by noise.
+ *
+ * Neither threshold is load-bearing: the detection is unchanged over
+ * MIN_PAIR_TRANSITIONS 2–4 and PAIR_CONTRAST 1.8–3.5, because the accounts that
+ * pair are separated from the ones that don't by an order of magnitude, not by
+ * a hair. */
+const PAIR_CONTRAST = 2.5;
+const MIN_PAIR_JUMP = 0.1;
+
+/** Whether this account bills in two-month pairs, and on which parity.
+ *
+ * Read off the account's own series, never the vendor: the same vendor bills
+ * some accounts monthly and some bi-monthly, and a vendor allow-list would be
+ * wrong for exactly the accounts nobody has looked at yet. */
+export function detectPairing(history: Observation[]): Pairing | null {
+  const sorted = normalizeHistory(history);
+  const jumps: number[][] = [[], []];
+  for (let i = 1; i < sorted.length; i++) {
+    const [a, b] = [sorted[i - 1], sorted[i]];
+    if (monthsBetween(a.month, b.month) !== 1) continue;
+    if (a.amount <= 0 || b.amount <= 0) continue;
+    jumps[monthIndex(a.month) % 2].push(Math.abs(Math.log(b.amount / a.amount)));
+  }
+  if (jumps.some((j) => j.length < MIN_PAIR_TRANSITIONS)) return null;
+
+  const [m0, m1] = [medianOf(jumps[0])!, medianOf(jumps[1])!];
+  const within = Math.min(m0, m1);
+  const across = Math.max(m0, m1);
+  if (across < within * PAIR_CONTRAST || across < MIN_PAIR_JUMP) return null;
+  return { phase: m0 < m1 ? 0 : 1, within, across };
+}
+
+/** The month a given month's billing pair starts in. */
+const pairStart = (month: string, phase: number) =>
+  monthIndex(month) % 2 === phase ? month : shiftMonth(month, -1);
+
+/** One value per billing pair, keyed by the pair's first month. Collapsing the
+ * sawtooth is what leaves a series with a season in it. */
+export function pairSeries(
+  history: Observation[],
+  phase: number,
+): Observation[] {
+  const groups = new Map<string, number[]>();
+  for (const o of normalizeHistory(history)) {
+    if (o.amount <= 0) continue;
+    const start = pairStart(o.month, phase);
+    groups.set(start, [...(groups.get(start) ?? []), o.amount]);
+  }
+  return [...groups]
+    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+    .map(([month, amounts]) => ({ month, amount: medianOf(amounts)! }));
+}
+
+/** Slots per year of the pair series, and months per slot. */
+const PAIR_PERIOD = 6;
+const PAIR_STEP = 2;
+
+/** Which slot-of-the-year a month falls in. `monthIndex % 12` is just the
+ * zero-based calendar month, so this is stable across years. */
+const slotOf = (month: string, step: number) =>
+  Math.floor((monthIndex(month) % 12) / step);
+
+/** Widest seasonal swing we'll believe, either way. */
+const MAX_SEASONAL_FACTOR = 5;
+
+// ── Seasonality ──────────────────────────────────────────────────────────────
+
+/** Multiplicative seasonal factors, one per slot of the year.
+ *
+ * Each observation is divided by a local level — the median of the year of
+ * observations centred on it — and each slot's factor is the median of its own
+ * ratios across years. Dividing by a *local* level is what keeps inflation out
+ * of the seasonal estimate: the window is symmetric in time, so a trend across
+ * it largely cancels, while a season does not.
+ *
+ * The window spans `period + 1` slots, one MORE than a full cycle, and the slot
+ * it doubles up on is the one half a year away. That is a deliberate choice
+ * over three alternatives, and the reasoning is worth keeping because the
+ * textbook answer measured worse:
+ *
+ *   symmetric, period+1 slots   4.6%  <- ships
+ *   folded ends, period slots   5.1%
+ *   one cycle, period slots     5.1%
+ *   2xm centred moving average  5.4%  (and p90 62.6% against 54.5%)
+ *
+ * On a *de-trended* synthetic the symmetric window is plainly the worst of the
+ * four: doubling the opposite season pulls every level away from the middle and
+ * the recovered factors come out amplified (0.44 where the truth is 0.57). The
+ * other three recover the planted season exactly.
+ *
+ * Add a trend and that reverses. A median is not a centred filter — it returns
+ * the middle *value*, and once a season shuffles the ordering, the slot it
+ * lands on is no longer the middle in *time*. So every median-based level lags
+ * a rising series, which compresses the factors. Under 10%-per-pair growth the
+ * one-cycle window recovers 1.89 against a truth of 2.29; the symmetric window,
+ * amplifying, lands on 2.44. Two biases pointing opposite ways, and on
+ * Argentine bills they very nearly cancel.
+ *
+ * The honest summary: this is not the unbiased estimator, it is the one whose
+ * bias offsets the one we cannot remove without giving up the median. It won on
+ * real data in every time slice tried (2024-01, 2025-01, 2025-07, 2026-01), by
+ * the widest margin on the most recent. If the series ever stops trending —
+ * Argentine inflation is not a law of nature — re-measure, because the ranking
+ * above is a fact about trending data, not about filters.
+ *
+ * Null when there isn't enough history to separate season from trend, which is
+ * the honest answer for most of an account's first year. */
+export function seasonalFactors(
+  series: Observation[],
+  period: number,
+  step: number,
+): Map<number, number> | null {
+  if (series.length < period + 2) return null;
+  const index = new Map(series.map((o) => [o.month, o.amount]));
+  const half = Math.floor(period / 2);
+  const ratios = new Map<number, number[]>();
+
+  for (const o of series) {
+    const window: number[] = [];
+    for (let k = -half; k <= half; k++) {
+      const v = index.get(shiftMonth(o.month, k * step));
+      if (v != null && v > 0) window.push(Math.log(v));
+    }
+    // Geometric, not arithmetic: these are ratios, and one winter peak would
+    // drag an arithmetic mean level up and flatten the factor it belongs to.
+    if (window.length < period - 2) continue;
+    const level = Math.exp(medianOf(window)!);
+    if (level <= 0) continue;
+    const slot = slotOf(o.month, step);
+    ratios.set(slot, [...(ratios.get(slot) ?? []), o.amount / level]);
+  }
+  if (ratios.size < period - 1) return null;
+
+  const raw = new Map([...ratios].map(([slot, vs]) => [slot, medianOf(vs)!]));
+  // Renormalise to geometric mean 1, or the factors smuggle a level shift into
+  // every prediction on top of the season they're supposed to carry.
+  const gm = Math.exp(
+    [...raw.values()].reduce((t, v) => t + Math.log(v), 0) / raw.size,
+  );
+  return new Map(
+    [...raw].map(([slot, v]) => [
+      slot,
+      Math.min(MAX_SEASONAL_FACTOR, Math.max(1 / MAX_SEASONAL_FACTOR, v / gm)),
+    ]),
+  );
+}
+
+/** How many recent observations the deseasonalised level reads. Two is jumpier
+ * and four lags; three measured best, and the difference between them is small
+ * enough that this is a shrug, not a finding. */
+const SEASONAL_LEVEL_POINTS = 3;
+
+/** Level × season: deseasonalise the newest observations, take their median as
+ * the current level, then re-apply the target slot's factor.
+ *
+ * Deliberately no trend term. Lifting the level to the target at the series'
+ * own growth rate was measured and was worse — it adds variance to an estimate
+ * that is already only one slot ahead. */
+export function seasonalLevel(
+  series: Observation[],
+  target: string,
+  period: number,
+  step: number,
+): number | null {
+  const factors = seasonalFactors(series, period, step);
+  if (!factors) return null;
+  const targetFactor = factors.get(slotOf(target, step));
+  if (targetFactor == null) return null;
+
+  const deseasonalized: number[] = [];
+  for (const o of series.slice(-SEASONAL_LEVEL_POINTS)) {
+    const f = factors.get(slotOf(o.month, step));
+    if (f != null && f > 0) deseasonalized.push(o.amount / f);
+  }
+  const level = medianOf(deseasonalized);
+  return level == null ? null : level * targetFactor;
+}
+
+/** How far the second month of a pair typically sits from the first. Usually
+ * within a couple of percent of 1, but consistently so, and clamped hard —
+ * the point is to shave a known bias, not to extrapolate. */
+const MIN_REPEAT_RATIO = 0.85;
+const MAX_REPEAT_RATIO = 1.2;
+
+export function withinPairRatio(
+  history: Observation[],
+  phase: number,
+): number {
+  const sorted = normalizeHistory(history).filter((o) => o.amount > 0);
+  const ratios: number[] = [];
+  for (let i = 1; i < sorted.length; i++) {
+    const [a, b] = [sorted[i - 1], sorted[i]];
+    if (monthsBetween(a.month, b.month) !== 1) continue;
+    if (monthIndex(a.month) % 2 !== phase) continue;
+    ratios.push(b.amount / a.amount);
+  }
+  const r = medianOf(ratios.slice(-6));
+  return r == null
+    ? 1
+    : Math.min(MAX_REPEAT_RATIO, Math.max(MIN_REPEAT_RATIO, r));
+}
+
 // ── Point estimate ───────────────────────────────────────────────────────────
 
 /** The forecast without its band. Split out from `forecast` because
@@ -307,7 +562,14 @@ export function pointEstimate(
     return { point: null, basis: "none", cadence, due: true };
   if (!due) return { point: 0, basis: "carry", cadence, due: false };
 
-  const base = anchorLevel(sorted)!;
+  // A non-positive total is a real row — a credit, or a zero-balance month —
+  // but a useless level. Carrying one forward forecasts $0, which is both
+  // wrong and the single most alarming thing the dashboard could say.
+  const positives = sorted.filter((o) => o.amount > 0);
+  const last = positives.at(-1);
+  if (!last) return { point: null, basis: "none", cadence, due };
+
+  const { base, basis } = level(positives, target);
 
   // Drift bridges only the months we have NO bill for — hence `gap - 1`.
   //
@@ -323,11 +585,59 @@ export function pointEstimate(
   // clearly wrong in an inflationary economy. So drift still applies to the
   // genuinely unobserved months, and this is the one part of the model that is
   // reasoned rather than measured.
-  const gap = monthsBetween(lastObserved!, target);
+  const gap = monthsBetween(last.month, target);
   const point = base * gapFactor(gap - 1, household, fx);
 
-  const basis: Basis = sorted.length >= RECENT ? "baseline" : "carry";
   return { point, basis, cadence, due };
+}
+
+/** The level to forecast from, and which estimator produced it.
+ *
+ * Three cases, in order of how much structure the account has shown:
+ *
+ *  - A bi-monthly account whose target month is the *second* of a pair we
+ *    already hold the first of. The two barely differ, so the newest bill is
+ *    almost the answer; `withinPairRatio` shaves the small standing bias.
+ *  - A bi-monthly account facing a *new* pair. This is the hard half, and the
+ *    one carry-forward gets badly wrong (29.8% median APE against 4.1% here).
+ *    Seasonality on the pair series is what fixes it.
+ *  - Everything else: the newest bill, outlier-guarded. Nothing beat it, and
+ *    the whole first half of this file is about why.
+ *
+ * `positives` must be non-empty and already stripped of non-positive totals. */
+function level(
+  positives: Observation[],
+  target: string,
+): { base: number; basis: Basis } {
+  const last = positives.at(-1)!;
+  const pairing = detectPairing(positives);
+
+  if (!pairing) {
+    return {
+      base: anchorLevel(positives)!,
+      basis: positives.length >= RECENT ? "baseline" : "carry",
+    };
+  }
+
+  const targetPair = pairStart(target, pairing.phase);
+  if (targetPair === pairStart(last.month, pairing.phase)) {
+    return {
+      base: last.amount * withinPairRatio(positives, pairing.phase),
+      basis: "baseline",
+    };
+  }
+
+  const seasonal = seasonalLevel(
+    pairSeries(positives, pairing.phase),
+    targetPair,
+    PAIR_PERIOD,
+    PAIR_STEP,
+  );
+  // Under a year of pairs there is no season to read yet, and the newest bill
+  // is the wrong pair — but it is still the only level we have.
+  return seasonal == null
+    ? { base: anchorLevel(positives)!, basis: "baseline" }
+    : { base: seasonal, basis: "yoy" };
 }
 
 // ── Confidence band ──────────────────────────────────────────────────────────
@@ -342,19 +652,19 @@ export const MIN_BAND = 0.04;
 export const MAX_BAND = 0.6;
 
 /** Band width before there's enough history to measure one, taken from the
- * backtest's per-tier medians for the model that actually ships (13.7% at 1–2
- * bills, 5.5% at 3–12 months, 4.5% past a year). `baseline` covers the last two
- * and takes the more cautious of them.
+ * backtest's median APE grouped by the basis that produced it: 13.7% over 20
+ * `carry` predictions, 3.9% over 112 `baseline`, 4.2% over 15 `yoy`.
  *
- * `yoy` is unreachable — the year-over-year estimator lost the bake-off and was
- * removed — but stays in the table because the `forecast_basis` Postgres enum
- * still carries the value, and dropping a value from a live enum is far more
- * trouble than an unused entry here. */
+ * `yoy` now means something — it is the seasonal estimator on the pair series —
+ * having been dead weight kept only for the `forecast_basis` Postgres enum. Its
+ * default is close to unreachable in practice: reaching it takes eight billing
+ * pairs, by which point `selfBacktestError` has long since had enough points to
+ * measure a band directly and this table is not consulted. */
 const DEFAULT_BAND: Record<Basis, number> = {
   none: MAX_BAND,
   carry: 0.14,
-  baseline: 0.06,
-  yoy: 0.06,
+  baseline: 0.05,
+  yoy: 0.05,
 };
 
 /** Fewest scored predictions worth deriving a band from. */

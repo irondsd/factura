@@ -20,10 +20,15 @@ import { type Account, backtest, render } from "./backtest/core";
  * production if it beats the simpler ones. If plain `last amount` wins, that is
  * the answer, and the complexity above it should come out.
  *
- * The constants in src/lib/forecast.ts (blend ramp, the 0.6/0.4 drift split,
- * MIN/MAX_DRIFT, the default band widths) are starting values chosen by
- * argument, not measurement. This script is how they get replaced with measured
- * ones — the per-tier medians are what `band()`'s defaults should be set to.
+ * Several constants in src/lib/forecast.ts have already been replaced this way
+ * — OUTLIER_RATIO, the seasonal window, `band()`'s defaults — and the ones that
+ * have not (the 0.6/0.4 drift split, MIN/MAX_DRIFT) are still starting values
+ * chosen by argument. This script is how they get replaced with measured ones.
+ *
+ * Run it before and after any change to the model, and check both columns: the
+ * median says how the typical forecast does, the p90 says how bad the visible
+ * failures are, and a change that improves one while wrecking the other is
+ * usually not the improvement it looks like.
  *
  * Read-only. It never writes anything.
  *
