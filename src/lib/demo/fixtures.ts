@@ -11,6 +11,7 @@
 // "awaiting" — so the demo rolls forward on its own (June → July → …) while the
 // figures stay stable. See `revalidate` on the /demo pages for the cadence.
 
+import { forecast, type Observation } from "@/lib/forecast";
 import { type InsightsWindow, monthRange } from "@/lib/insights";
 import { vendorColorVar } from "@/lib/vendorColors";
 import type { RouterOutputs } from "@/lib/trpc";
@@ -268,24 +269,67 @@ export const demoVendors: VendorRow[] = VENDORS.map((v) => ({
 }));
 
 // ── Public fixtures: insights ───────────────────────────────────────────────
+/** How much history the demo hands the forecaster. Longer than the 12 months
+ * the charts show, so the year-over-year term has two full cycles to work with
+ * — MetroGAS's winter peak is the whole point of the demo's awaiting card. */
+const DEMO_FORECAST_HISTORY = 30;
+
+/** Every month this vendor has billed, as the forecaster reads it. The demo's
+ * amounts are a pure function of the calendar month, so this is real synthetic
+ * history rather than a stub — /demo shows the same estimate the app computes. */
+function demoHistory(key: VendorKey, now: string): Observation[] {
+  return monthList(now, DEMO_FORECAST_HISTORY)
+    .filter((m) => hasBill(key, m, now))
+    .map((month) => ({ month, amount: amountARS(key, month) }));
+}
+
+/** The history the forecast is made from: everything up to *last* month.
+ *
+ * The signed-in app freezes a forecast before the bill arrives and never
+ * revises it. The demo has no `forecasts` table to read, so it reproduces that
+ * by withholding the current month from the model — which is what makes the
+ * over/under chip on a received card honest rather than a figure computed with
+ * the answer already in hand. */
+function demoPredictionHistory(key: VendorKey, now: string): Observation[] {
+  return demoHistory(key, now).filter((o) => o.month !== now);
+}
+
 export function demoOverview(): Overview {
   const now = nowMonth();
   const months = monthList(now, 12);
   const completeFlags = completeFlagsFor(months, now);
   const vendors = VENDORS.map(vendorMeta);
+  const household = VENDORS.map((v) => demoPredictionHistory(v.key, now));
 
   const awaiting = VENDORS.map((v) => {
     const received = hasBill(v.key, now, now);
     const past = months.filter((m) => m !== now && hasBill(v.key, m, now));
     const lastMonth = past[past.length - 1] ?? null;
+    const amount = received ? amountARS(v.key, now) : null;
+    // No fx series in the demo: gapFactor falls back to the household drift,
+    // which the fixtures' own inflation curve supplies.
+    const f = forecast({
+      history: demoPredictionHistory(v.key, now),
+      household,
+      target: now,
+    });
     return {
       accountId: v.accountId,
       vendor: vendorMeta(v),
       received,
-      amount: received ? amountARS(v.key, now) : null,
+      amount,
       usd: received ? usdOf(amountARS(v.key, now), now) : null,
       lastPeriod: lastMonth,
       lastAmount: lastMonth ? amountARS(v.key, lastMonth) : null,
+      expected: f.point,
+      expectedLow: f.low,
+      expectedHigh: f.high,
+      basis: f.basis,
+      confidence: f.confidence,
+      vsExpected:
+        amount != null && f.point != null && f.point > 0
+          ? amount / f.point - 1
+          : null,
     };
   });
   const received = awaiting.filter((a) => a.received);
@@ -295,6 +339,10 @@ export function demoOverview(): Overview {
     month: now,
     thisMonthTotal: received.reduce((s, a) => s + (a.amount ?? 0), 0),
     thisMonthUsd: received.reduce((s, a) => s + (a.usd ?? 0), 0),
+    expectedTotal: awaiting.reduce(
+      (s, a) => s + (a.received ? (a.amount ?? 0) : (a.expected ?? 0)),
+      0,
+    ),
     billsIn: received.length,
     billsExpected: awaiting.length,
     awaiting,

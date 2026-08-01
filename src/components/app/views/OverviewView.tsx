@@ -18,6 +18,7 @@ import {
   formatMonth,
   formatMonthShort,
   formatUSD,
+  roundSignificant,
 } from "@/lib/format";
 import { toSlices } from "@/lib/insights";
 import type { RouterOutputs } from "@/lib/trpc";
@@ -42,6 +43,12 @@ export function OverviewView({
   const trend = useChartCurrency();
 
   const pending = d.billsExpected - d.billsIn;
+  // Lead with what the month is expected to cost rather than what has landed so
+  // far. A partial-month accumulator reads "$0" for the first week of every
+  // month — the loudest element on the screen saying the least. Needs an actual
+  // estimate to show: an account with no history contributes nothing, so a
+  // brand-new property falls back to the plain total rather than "≈ $0".
+  const showExpected = pending > 0 && d.expectedTotal > 0;
   const moneySym = donut.currency === "USD" ? "US$" : "AR$";
   const slices = toSlices(d.byCurrency[donut.currency].share, d.vendors);
 
@@ -58,26 +65,52 @@ export function OverviewView({
         <div>
           <Eyebrow>
             {d.property ? d.property.nickname : t.common.allProperties} ·{" "}
-            {formatMonth(d.month, locale)} {to.soFar}
+            {formatMonth(d.month, locale)}
+            {/* "so far" describes a partial total, not a whole-month estimate. */}
+            {!showExpected && ` ${to.soFar}`}
           </Eyebrow>
           <div className="mt-2">
-            <Display size={44}>{formatMoney(d.thisMonthTotal, "ARS")}</Display>
+            <Display size={44}>
+              {showExpected
+                ? `≈ ${formatMoney(roundSignificant(d.expectedTotal), "ARS")}`
+                : formatMoney(d.thisMonthTotal, "ARS")}
+            </Display>
           </div>
           <p className="font-mono text-[13px] text-muted mt-2">
-            {interpolate(to.billsIn, {
-              in: d.billsIn,
-              expected: d.billsExpected,
-            })}
-            {d.thisMonthUsd > 0 && (
-              <span> · ≈ {formatUSD(d.thisMonthUsd)}</span>
-            )}
-            {pending > 0 && (
-              <span>
-                {" · "}
-                {pending === 1
-                  ? to.awaitingOne
-                  : interpolate(to.awaitingOther, { n: pending })}
-              </span>
+            {showExpected ? (
+              <>
+                {to.expected}
+                {d.thisMonthTotal > 0 && (
+                  <span>
+                    {" · "}
+                    {formatMoney(d.thisMonthTotal, "ARS")} {to.confirmed}
+                  </span>
+                )}
+                <span>
+                  {" · "}
+                  {pending === 1
+                    ? to.awaitingOne
+                    : interpolate(to.awaitingOther, { n: pending })}
+                </span>
+              </>
+            ) : (
+              <>
+                {interpolate(to.billsIn, {
+                  in: d.billsIn,
+                  expected: d.billsExpected,
+                })}
+                {d.thisMonthUsd > 0 && (
+                  <span> · ≈ {formatUSD(d.thisMonthUsd)}</span>
+                )}
+                {pending > 0 && (
+                  <span>
+                    {" · "}
+                    {pending === 1
+                      ? to.awaitingOne
+                      : interpolate(to.awaitingOther, { n: pending })}
+                  </span>
+                )}
+              </>
             )}
           </p>
         </div>
@@ -116,10 +149,34 @@ export function OverviewView({
                     <p className="font-mono text-micro text-muted mt-[3px]">
                       {to.received}
                     </p>
+                    {/* Only ever present when we committed to a number before
+                     * this bill arrived — so it reads as a score, not a
+                     * post-hoc comparison. */}
+                    {a.vsExpected != null && (
+                      <p className="mt-1 flex items-center gap-1">
+                        <Delta pct={a.vsExpected * 100} />
+                        <span className="font-mono text-micro text-muted">
+                          {to.vsExpected}
+                        </span>
+                      </p>
+                    )}
                   </>
                 ) : (
                   <>
-                    <p className="font-mono text-xs text-muted mt-2.5 leading-[1.5]">
+                    {/* The estimate sits where a received card puts its amount,
+                     * so an awaiting card reads as an itemization of the hero
+                     * rather than a hole. Muted and prefixed "≈" to keep the
+                     * distinction between an estimate and a bill. */}
+                    {a.expected != null && a.expected > 0 && (
+                      <p className="font-display font-semibold text-lg mt-2.5 tracking-tight text-muted">
+                        ≈ {formatMoney(roundSignificant(a.expected), "ARS")}
+                      </p>
+                    )}
+                    <p
+                      className={`font-mono text-xs text-muted leading-[1.5] ${
+                        a.expected != null && a.expected > 0 ? "mt-1" : "mt-2.5"
+                      }`}
+                    >
                       {to.last}{" "}
                       {a.lastPeriod
                         ? `${formatMonthShort(a.lastPeriod, locale)} ${a.lastPeriod.slice(0, 4)}`

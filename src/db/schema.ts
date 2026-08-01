@@ -224,6 +224,61 @@ export const bills = pgTable(
   ],
 );
 
+/** Which estimator produced a forecast. `none` (no history at all) is absent by
+ * construction: there is nothing to store when there was nothing to predict. */
+export const forecastBasis = pgEnum("forecast_basis", [
+  "carry",
+  "baseline",
+  "yoy",
+]);
+
+export const forecastConfidence = pgEnum("forecast_confidence", [
+  "low",
+  "medium",
+  "high",
+]);
+
+/** What we told the user a bill would come in at, frozen at the moment we first
+ * told them. One row per (account, period).
+ *
+ * This table has exactly one consumer: the "+12% vs expected" readout. It has
+ * NO analytical role — model evaluation and band calibration recompute from
+ * `bills` instead, because the forecaster is pure and takes its target month as
+ * an argument, so any past prediction is reproducible on demand. Keeping those
+ * two jobs apart is what makes the rules here simple:
+ *
+ *  - The first forecast for a period is frozen; recomputes never overwrite it.
+ *    Otherwise the over/under would compare against a figure revised with
+ *    hindsight, and the model would grade its own homework.
+ *  - Periods before this feature shipped stay empty and are NOT backfilled. We
+ *    didn't predict them, so there is no over/under to show.
+ *  - A formula change never rewrites existing rows. A row is a historical fact
+ *    ("on 2026-08-01 we said ≈$613k"), not an opinion to be updated — hence no
+ *    model-version column.
+ *
+ * A row is only ever written for an account that had NOT yet billed that period.
+ * "Predicting" a bill already sitting in the history isn't a prediction. */
+export const forecasts = pgTable(
+  "forecasts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => vendorAccounts.id, { onDelete: "cascade" }),
+    /** The month's first day, matching `bills.period`. */
+    period: date("period").notNull(),
+    pointArs: numeric("point_ars", { precision: 12, scale: 2 }).notNull(),
+    lowArs: numeric("low_ars", { precision: 12, scale: 2 }).notNull(),
+    highArs: numeric("high_ars", { precision: 12, scale: 2 }).notNull(),
+    basis: forecastBasis("basis").notNull(),
+    confidence: forecastConfidence("confidence").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  // Unique, so the insert itself is the concurrency guard — two tabs opening the
+  // overview at once can't both write. Same trick as `monthly_reports`.
+  (t) => [uniqueIndex("forecast_account_period_idx").on(t.accountId, t.period)],
+);
+
 /** Once-per-(property, month) log of the monthly closing report. A row exists
  * iff the report for that property+period has been sent; the unique index makes
  * the insert itself the concurrency guard, so two bills completing a month at
