@@ -357,6 +357,8 @@
   },
   "overview": {
     "soFar": "hasta ahora",
+    "expected": "esperado",
+    "confirmed": "confirmado",
     "seeInsights": "Ver todos los análisis ›",
     "billsIn": "{in} de {expected} facturas cargadas",
     "awaitingOne": "1 pendiente",

@@ -357,6 +357,8 @@
   },
   "overview": {
     "soFar": "so far",
+    "expected": "expected",
+    "confirmed": "confirmed",
     "seeInsights": "See all insights ›",
     "billsIn": "{in} of {expected} bills in",
     "awaitingOne": "1 awaiting",

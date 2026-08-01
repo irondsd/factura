@@ -7,6 +7,7 @@ import {
   formatMonth,
   formatMonthShort,
   formatUSD,
+  roundSignificant,
   shiftMonth,
 } from "./format";
 
@@ -114,5 +115,34 @@ describe("shiftMonth", () => {
 describe("currentMonth", () => {
   it("returns a YYYY-MM string", () => {
     expect(currentMonth()).toMatch(/^\d{4}-\d{2}$/);
+  });
+});
+
+describe("roundSignificant", () => {
+  it("keeps three significant figures by default", () => {
+    expect(roundSignificant(613112)).toBe(613000);
+    expect(roundSignificant(84892)).toBe(84900);
+    expect(roundSignificant(1234)).toBe(1230);
+  });
+
+  it("rounds rather than truncates", () => {
+    expect(roundSignificant(29778)).toBe(29800);
+    expect(roundSignificant(996)).toBe(996);
+    expect(roundSignificant(9996)).toBe(10000);
+  });
+
+  it("leaves small values alone", () => {
+    expect(roundSignificant(42)).toBe(42);
+    expect(roundSignificant(0)).toBe(0);
+  });
+
+  it("handles negatives and honours the digit count", () => {
+    expect(roundSignificant(-613112)).toBe(-613000);
+    expect(roundSignificant(613112, 2)).toBe(610000);
+  });
+
+  it("is 0 for a non-finite input rather than NaN", () => {
+    expect(roundSignificant(Number.NaN)).toBe(0);
+    expect(roundSignificant(Number.POSITIVE_INFINITY)).toBe(0);
   });
 });

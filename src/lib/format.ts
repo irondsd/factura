@@ -42,6 +42,17 @@ export function formatMoney(
   return currency === "USD" ? formatUSD(value) : arsWhole.format(Number(value));
 }
 
+/** Round to `digits` significant figures.
+ *
+ * For forecasts, which are estimates: rendering one to the peso ("≈ $613.112")
+ * claims a precision the model does not have, and invites the reader to treat
+ * it as a bill. "≈ $613.000" says the same thing honestly. */
+export function roundSignificant(value: number, digits = 3): number {
+  if (!Number.isFinite(value) || value === 0) return 0;
+  const scale = 10 ** (digits - 1 - Math.floor(Math.log10(Math.abs(value))));
+  return Math.round(value * scale) / scale;
+}
+
 // Month names follow the UI language. Currency above stays es-AR (the product
 // is ARS-based), but "June 2026" vs "junio de 2026" tracks the active locale.
 const INTL_TAG: Record<Locale, string> = { es: "es-AR", en: "en" };
