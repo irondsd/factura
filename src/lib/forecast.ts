@@ -124,24 +124,6 @@ const clampDrift = (f: number) => Math.min(MAX_DRIFT, Math.max(MIN_DRIFT, f));
 /** How many recent observations the baseline and level statistics read. */
 const RECENT = 3;
 
-function byMonth(history: Observation[]): Map<string, number> {
-  return new Map(history.map((o) => [o.month, o.amount]));
-}
-
-/** Observations falling inside an inclusive "YYYY-MM" window. */
-function amountsIn(
-  index: Map<string, number>,
-  lo: string,
-  hi: string,
-): number[] {
-  const out: number[] = [];
-  for (let m = lo; m <= hi; m = shiftMonth(m, 1)) {
-    const v = index.get(m);
-    if (v != null) out.push(v);
-  }
-  return out;
-}
-
 /** History sorted oldest → newest, de-duplicated by month (last wins). */
 export function normalizeHistory(history: Observation[]): Observation[] {
   const index = new Map<string, number>();
@@ -153,62 +135,86 @@ export function normalizeHistory(history: Observation[]): Observation[] {
     .sort((a, b) => (a.month < b.month ? -1 : 1));
 }
 
-// ── Estimator B: recent baseline ─────────────────────────────────────────────
+// ── The level estimator ──────────────────────────────────────────────────────
+// The most recent bill, guarded against a single bad one.
+//
+// This is deliberately the simplest thing that could work, and it is here
+// because measurement put it here. A backtest over real bills (2024-02 →
+// 2026-07, 11 accounts, 147 predictions) scored it against every more elaborate
+// candidate, and it won in every history tier and in five of seven vendors:
+//
+//     last amount                       5.7% median APE
+//     last amount × drift^(gap-1)       5.7%   <- what ships, plus the guard
+//     outlier-guarded last (8x)         5.8%
+//     outlier-guarded last (4x)         6.4%
+//     last amount × drift^gap           7.8%
+//     median of last 3 × drift^gap     13.5%
+//     de-trended median × drift^gap    14.9%
+//     YoY blend (±1 or exact anchor)   18.0%
+//     median of last 3                 19.9%
+//
+// Two results in there are worth keeping in view, because they are the reason
+// this file is short:
+//
+//  1. Seasonality did not pay. The year-over-year anchor was WORSE than carrying
+//     the last amount forward in every slice, most sharply on the gas account it
+//     was written for (5.7% vs 22.2%). Tiered tariffs and fixed charges smooth
+//     the *amount* far more than the consumption behind it, so month-to-month
+//     persistence beats a seasonal shape. The consumption chart is dramatic; the
+//     peso series is not.
+//
+//  2. Drift did not pay either, at a one-month horizon. Argentine monthly
+//     inflation fell steeply across the window, and a drift measured from
+//     trailing ratios lags a decelerating trend, so it over-predicts. See
+//     `gapFactor`'s caller for what survived.
+//
+// Re-run `npm run forecast:backtest` before adding anything back. The harness
+// still carries the discarded candidates so any of this can be re-measured.
 
-/** Median of the last few observed amounts. Always available with any history,
- * and the fallback every other estimator degrades into. */
+/** Median of the last few observed amounts. No longer the production
+ * estimator — it lags a trending series by about a month, which measured at
+ * 19.9% against carry's 5.7% — but the backtest harness still scores it, so it
+ * stays exported. */
 export function recentLevel(history: Observation[]): number | null {
   const sorted = normalizeHistory(history);
   return medianOf(sorted.slice(-RECENT).map((o) => o.amount));
 }
 
-// ── Estimator A: year-over-year anchor ───────────────────────────────────────
-
-/** How much this account's level has risen over the last twelve months: two
- * 3-month windows exactly a year apart, both anchored to the newest observation
- * rather than to the target month.
+/** How far the newest bill may diverge from the median of the three before it
+ * before we stop believing it.
  *
- * Anchoring to history (not the target) keeps this a clean 12-month growth
- * regardless of how stale the data is — extrapolating from the last bill to the
- * target month is `gapFactor`'s job, and doing it in both places would
- * double-count. Null when either window is empty. */
-export function levelGrowth(history: Observation[]): number | null {
-  const sorted = normalizeHistory(history);
-  const anchor = sorted.at(-1)?.month;
-  if (!anchor) return null;
-  const index = byMonth(sorted);
+ * Measured, not chosen. At 4x the guard cost 0.7pp of overall accuracy and
+ * 2.3pp on Edesur — it was rejecting real tariff resets, which Argentina serves
+ * up as discrete step changes. At 8x it costs 0.1pp overall and nothing at all
+ * on Edesur, while still catching the kind of garbage that actually appears in
+ * the data (two bills in the backtest set have non-positive totals).
+ *
+ * The one account it still costs anything is gas, at +0.4pp: a genuine winter
+ * peak can be more than 8x the surrounding months, so the guard occasionally
+ * rejects a real bill there. Judged worth it — the downside it protects against
+ * is a mis-parsed total becoming the headline figure on the dashboard. */
+export const OUTLIER_RATIO = 8;
 
-  const recent = medianOf(amountsIn(index, shiftMonth(anchor, -2), anchor));
-  const yearAgo = medianOf(
-    amountsIn(index, shiftMonth(anchor, -14), shiftMonth(anchor, -12)),
-  );
-  if (recent == null || yearAgo == null || yearAgo <= 0) return null;
-  return recent / yearAgo;
-}
-
-/** The same month one year before the target, which already carries that
- * month's seasonality. Tolerates being one month out so a single missed upload
- * doesn't drop the whole estimator; prefers the exact month. */
-export function yoyAnchor(
+/** The level to forecast from: the newest bill, unless it is wildly out of line
+ * with the ones before it, in which case their median.
+ *
+ * Carrying the last amount forward is what the measurement endorses, but it
+ * takes the newest observation entirely on trust — one mis-parsed total would
+ * become the headline figure on the dashboard. This keeps carry's accuracy in
+ * the normal case and its blast radius small in the abnormal one. */
+export function anchorLevel(
   history: Observation[],
-  target: string,
+  maxRatio = OUTLIER_RATIO,
 ): number | null {
-  const index = byMonth(normalizeHistory(history));
-  for (const offset of [-12, -13, -11]) {
-    const v = index.get(shiftMonth(target, offset));
-    if (v != null) return v;
-  }
-  return null;
-}
+  const sorted = normalizeHistory(history);
+  const last = sorted.at(-1);
+  if (!last) return null;
 
-/** How much to trust the YoY anchor over the recent baseline: nothing at twelve
- * months of history, fully by twenty-four.
- *
- * This is what lets the seasonal term ship inert on day one — with one cycle of
- * data a month-of-year reading is fitted noise, so it contributes nothing until
- * it has earned the right to. No history-length branch anywhere else. */
-export function blendWeight(monthsOfHistory: number): number {
-  return Math.min(1, Math.max(0, (monthsOfHistory - 12) / 12));
+  const prior = medianOf(sorted.slice(-4, -1).map((o) => o.amount));
+  if (prior == null || prior <= 0 || last.amount <= 0) return last.amount;
+
+  const ratio = last.amount / prior;
+  return ratio > maxRatio || ratio < 1 / maxRatio ? prior : last.amount;
 }
 
 // ── Drift: extrapolating past the newest bill ────────────────────────────────
@@ -301,45 +307,54 @@ export function pointEstimate(
     return { point: null, basis: "none", cadence, due: true };
   if (!due) return { point: 0, basis: "carry", cadence, due: false };
 
-  const baseline = recentLevel(sorted)!;
-  const growth = levelGrowth(sorted);
-  const anchor = yoyAnchor(sorted, target);
+  const base = anchorLevel(sorted)!;
 
-  // The two estimators are anchored to different months, so only one of them
-  // takes the gap factor.
+  // Drift bridges only the months we have NO bill for — hence `gap - 1`.
   //
-  // B is a level as of the newest bill, so it has to be carried forward to the
-  // target. A is already *at* the target: `levelGrowth` is a twelve-month rate,
-  // so `amount[target−12] × levelGrowth` estimates the level twelve months
-  // after target−12 — which is the target. Applying gapFactor to A as well
-  // would charge for drift twice, the exact mistake the FX split exists to
-  // avoid, and it shows up as a systematic overshoot of one month's inflation.
+  // Measured, at a one-month horizon drift makes the forecast worse: 5.7% →
+  // 7.8% median APE. The newest bill already embeds the current price level, so
+  // extrapolating from it adds a noisy, biased estimate on top of a good one.
+  // The bias has a cause: Argentine monthly inflation fell steeply across the
+  // backtest window, and a drift read off trailing ratios lags a decelerating
+  // trend, so it over-predicts.
+  //
+  // Past one month we have no measurement — a walk-forward backtest almost
+  // always has gap = 1 — but a four-month-old amount with no adjustment is
+  // clearly wrong in an inflationary economy. So drift still applies to the
+  // genuinely unobserved months, and this is the one part of the model that is
+  // reasoned rather than measured.
   const gap = monthsBetween(lastObserved!, target);
-  const baselinePoint = baseline * gapFactor(gap, household, fx);
-  const yoyPoint = anchor != null && growth != null ? anchor * growth : null;
+  const point = base * gapFactor(gap - 1, household, fx);
 
-  const span = monthsBetween(sorted[0].month, lastObserved!) + 1;
-  const w = yoyPoint == null ? 0 : blendWeight(span);
-  const point =
-    yoyPoint == null ? baselinePoint : w * yoyPoint + (1 - w) * baselinePoint;
-
-  const basis: Basis =
-    w > 0 ? "yoy" : sorted.length >= RECENT ? "baseline" : "carry";
+  const basis: Basis = sorted.length >= RECENT ? "baseline" : "carry";
   return { point, basis, cadence, due };
 }
 
 // ── Confidence band ──────────────────────────────────────────────────────────
 
-/** Widest and narrowest band we'll claim, whatever the measurement says. */
-export const MIN_BAND = 0.1;
+/** Widest and narrowest band we'll claim, whatever the measurement says.
+ *
+ * The floor came down from 0.10 because the measured errors went below it: the
+ * backtest put a mature account's typical miss at 4.5%, and a band that cannot
+ * be tighter than ±10% would have been claiming more uncertainty than the model
+ * actually has. */
+export const MIN_BAND = 0.04;
 export const MAX_BAND = 0.6;
 
-/** Band width before there's enough history to measure one. */
+/** Band width before there's enough history to measure one, taken from the
+ * backtest's per-tier medians for the model that actually ships (13.7% at 1–2
+ * bills, 5.5% at 3–12 months, 4.5% past a year). `baseline` covers the last two
+ * and takes the more cautious of them.
+ *
+ * `yoy` is unreachable — the year-over-year estimator lost the bake-off and was
+ * removed — but stays in the table because the `forecast_basis` Postgres enum
+ * still carries the value, and dropping a value from a live enum is far more
+ * trouble than an unused entry here. */
 const DEFAULT_BAND: Record<Basis, number> = {
   none: MAX_BAND,
-  carry: 0.35,
-  baseline: 0.25,
-  yoy: 0.18,
+  carry: 0.14,
+  baseline: 0.06,
+  yoy: 0.06,
 };
 
 /** Fewest scored predictions worth deriving a band from. */

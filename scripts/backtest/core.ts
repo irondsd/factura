@@ -3,12 +3,11 @@
 // that loads real bills and calls this.
 
 import {
-  blendWeight,
+  anchorLevel,
   type FxPoint,
   fxDrift,
   gapFactor,
   householdDrift,
-  levelGrowth,
   medianOf,
   normalizeHistory,
   type Observation,
@@ -18,6 +17,63 @@ import {
 } from "../../src/lib/forecast";
 import { shiftMonth } from "../../src/lib/format";
 import { monthsBetween } from "../../src/lib/insights";
+
+// ── Retired candidates ───────────────────────────────────────────────────────
+// The year-over-year machinery, kept here after it lost the bake-off so the
+// decision stays re-testable rather than merely remembered. It was worse than
+// carrying the last amount forward in every history tier and in five of seven
+// vendors — most sharply on the gas account it was written for (22.2% vs 5.7%
+// median APE). If more history, or a calmer currency, ever changes that, this
+// is what to re-run before putting it back into `src/lib/forecast.ts`.
+
+const amountsIn = (
+  index: Map<string, number>,
+  lo: string,
+  hi: string,
+): number[] => {
+  const out: number[] = [];
+  for (let m = lo; m <= hi; m = shiftMonth(m, 1)) {
+    const v = index.get(m);
+    if (v != null) out.push(v);
+  }
+  return out;
+};
+
+/** Twelve-month growth: two 3-month windows a year apart, anchored to the
+ * newest observation rather than the target. */
+export function levelGrowth(history: Observation[]): number | null {
+  const sorted = normalizeHistory(history);
+  const anchor = sorted.at(-1)?.month;
+  if (!anchor) return null;
+  const index = new Map(sorted.map((o) => [o.month, o.amount]));
+
+  const recent = medianOf(amountsIn(index, shiftMonth(anchor, -2), anchor));
+  const yearAgo = medianOf(
+    amountsIn(index, shiftMonth(anchor, -14), shiftMonth(anchor, -12)),
+  );
+  if (recent == null || yearAgo == null || yearAgo <= 0) return null;
+  return recent / yearAgo;
+}
+
+/** The same month a year before the target, tolerating being ±1 month out. */
+export function yoyAnchor(
+  history: Observation[],
+  target: string,
+): number | null {
+  const index = new Map(
+    normalizeHistory(history).map((o) => [o.month, o.amount]),
+  );
+  for (const offset of [-12, -13, -11]) {
+    const v = index.get(shiftMonth(target, offset));
+    if (v != null) return v;
+  }
+  return null;
+}
+
+/** Ramp from no seasonal weight at twelve months to full at twenty-four. */
+export function blendWeight(monthsOfHistory: number): number {
+  return Math.min(1, Math.max(0, (monthsOfHistory - 12) / 12));
+}
 
 export type Account = {
   accountId: string;
@@ -136,10 +192,44 @@ export const RUNGS: {
       );
     },
   },
+  // Every threshold here is passed EXPLICITLY, never left to the production
+  // default. A rung that reads a live constant is not a control: it silently
+  // re-labels itself whenever production changes, and two rows that should
+  // differ quietly collapse into the same measurement.
+  {
+    key: "guard",
+    short: "guard4",
+    label: "outlier-guarded last amount, no drift (4x)",
+    predict: ({ history }) => anchorLevel(history, 4),
+  },
+  {
+    key: "guard8",
+    short: "guard8",
+    label: "outlier-guarded last amount, no drift (8x)",
+    predict: ({ history }) => anchorLevel(history, 8),
+  },
+  {
+    key: "carry+gapdrift",
+    short: "last×g-1",
+    label: "last amount × drift^(gap-1), no guard",
+    predict: ({ history, target, household, fx }) => {
+      const sorted = normalizeHistory(history);
+      const last = sorted.at(-1);
+      if (!last) return null;
+      return (
+        last.amount *
+        gapFactor(
+          monthsBetween(last.month, target) - 1,
+          driftFor(sorted, household),
+          fxDrift(fx, target),
+        )
+      );
+    },
+  },
   {
     key: "full",
-    short: "yoy",
-    label: "full model (YoY blend, ±1 anchor)",
+    short: "prod",
+    label: "production model (src/lib/forecast.ts)",
     predict: ({ history, target, household, fx }) =>
       pointEstimate(
         history,
@@ -149,40 +239,50 @@ export const RUNGS: {
       ).point,
   },
   {
+    key: "yoy",
+    short: "yoy",
+    label: "retired: YoY blend, ±1 anchor",
+    predict: ({ history, target, household, fx }) =>
+      yoyBlend(history, target, household, fx, { exactAnchor: false }),
+  },
+  {
     key: "yoy-exact",
     short: "yoyExact",
-    label: "YoY blend, exact anchor only",
-    predict: ({ history, target, household, fx }) => {
-      const sorted = normalizeHistory(history);
-      const anchorMonth = sorted.at(-1)?.month;
-      const baseline = recentLevel(sorted);
-      if (!anchorMonth || baseline == null) return null;
-      const drift = driftFor(sorted, household);
-      const b =
-        baseline *
-        gapFactor(
-          monthsBetween(anchorMonth, target),
-          drift,
-          fxDrift(fx, target),
-        );
-
-      // Exactly target−12, with no ±1 tolerance. Production tolerates being a
-      // month out so one missed upload doesn't drop the estimator — harmless on
-      // a smooth series, but on gas at a May or September turning point the
-      // neighbouring month is a different season entirely, and that is exactly
-      // where the YoY term is supposed to be earning its place.
-      const exact = sorted.find(
-        (o) => o.month === shiftMonth(target, -12),
-      )?.amount;
-      const growth = levelGrowth(sorted);
-      if (exact == null || growth == null) return b;
-
-      const span = monthsBetween(sorted[0].month, anchorMonth) + 1;
-      const w = blendWeight(span);
-      return w * (exact * growth) + (1 - w) * b;
-    },
+    label: "retired: YoY blend, exact anchor only",
+    predict: ({ history, target, household, fx }) =>
+      yoyBlend(history, target, household, fx, { exactAnchor: true }),
   },
 ];
+
+/** The retired YoY blend, with the ±1 anchor tolerance switchable. Measured
+ * identical either way on real data — the tolerance was never the problem. */
+function yoyBlend(
+  history: Observation[],
+  target: string,
+  household: Observation[][],
+  fx: FxPoint[],
+  opts: { exactAnchor: boolean },
+): number | null {
+  const sorted = normalizeHistory(history);
+  const anchorMonth = sorted.at(-1)?.month;
+  const baseline = recentLevel(sorted);
+  if (!anchorMonth || baseline == null) return null;
+
+  const drift = driftFor(sorted, household);
+  const b =
+    baseline *
+    gapFactor(monthsBetween(anchorMonth, target), drift, fxDrift(fx, target));
+
+  const anchor = opts.exactAnchor
+    ? (sorted.find((o) => o.month === shiftMonth(target, -12))?.amount ?? null)
+    : yoyAnchor(sorted, target);
+  const growth = levelGrowth(sorted);
+  if (anchor == null || growth == null) return b;
+
+  const span = monthsBetween(sorted[0].month, anchorMonth) + 1;
+  const w = blendWeight(span);
+  return w * (anchor * growth) + (1 - w) * b;
+}
 
 /** Which degradation tier a prediction was made at, so the per-tier medians can
  * be read straight into `band()`'s defaults. */

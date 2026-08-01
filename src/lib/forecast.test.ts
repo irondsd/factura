@@ -1,25 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { shiftMonth } from "./format";
 import {
+  anchorLevel,
   band,
-  blendWeight,
   detectCadence,
   forecast,
   fxDrift,
   gapFactor,
   householdDrift,
   isDue,
-  levelGrowth,
   MAX_CADENCE,
   MAX_DRIFT,
   medianOf,
   MIN_BAND,
   type Observation,
+  OUTLIER_RATIO,
   ownDrift,
   pointEstimate,
   recentLevel,
   selfBacktestError,
-  yoyAnchor,
 } from "./forecast";
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -187,58 +186,6 @@ describe("recentLevel", () => {
   });
 });
 
-describe("levelGrowth", () => {
-  it("recovers a known twelve-month growth", () => {
-    // 3%/month compounding => 1.03^12 ≈ 1.4258 over a year.
-    near(levelGrowth(series("2026-07", 24, 100, 1.03)), 1.03 ** 12);
-  });
-
-  it("is null without a window a year back", () => {
-    expect(levelGrowth(series("2026-07", 6, 100, 1.03))).toBeNull();
-  });
-
-  it("is anchored to the newest bill, not to today", () => {
-    // Same history read at two different times must give the same growth —
-    // extrapolating to the target month is gapFactor's job, not this one's.
-    const h = series("2026-03", 24, 100, 1.03);
-    near(levelGrowth(h), 1.03 ** 12);
-  });
-});
-
-describe("yoyAnchor", () => {
-  const h = series("2026-07", 24, 100, 1);
-
-  it("finds the same month a year earlier", () => {
-    expect(yoyAnchor(h, "2026-08")).toBe(
-      h.find((o) => o.month === "2025-08")!.amount,
-    );
-  });
-
-  it("tolerates being a month out when that upload is missing", () => {
-    const gappy = h.filter((o) => o.month !== "2025-08");
-    expect(yoyAnchor(gappy, "2026-08")).toBe(
-      gappy.find((o) => o.month === "2025-07")!.amount,
-    );
-  });
-
-  it("is null when nothing is near a year back", () => {
-    expect(yoyAnchor(series("2026-07", 6, 100, 1), "2026-08")).toBeNull();
-  });
-});
-
-describe("blendWeight", () => {
-  it("is inert at twelve months and full at twenty-four", () => {
-    expect(blendWeight(12)).toBe(0);
-    expect(blendWeight(24)).toBe(1);
-    expect(blendWeight(18)).toBe(0.5);
-  });
-
-  it("clamps outside that ramp", () => {
-    expect(blendWeight(3)).toBe(0);
-    expect(blendWeight(60)).toBe(1);
-  });
-});
-
 describe("ownDrift", () => {
   it("recovers a steady monthly growth", () => {
     near(ownDrift(series("2026-07", 12, 100, 1.05)), 1.05);
@@ -353,6 +300,53 @@ describe("gapFactor", () => {
   });
 });
 
+describe("anchorLevel", () => {
+  it("is the newest observation, not a median of recent ones", () => {
+    // The whole finding: on a trending series the newest bill is the best
+    // predictor, and a median of the last three lands about a month stale.
+    const h = series("2026-07", 6, 100_000, 1.05);
+    expect(anchorLevel(h)).toBe(h.at(-1)!.amount);
+    expect(anchorLevel(h)).not.toBe(recentLevel(h));
+  });
+
+  it("rejects a newest bill that is wildly out of line", () => {
+    const h: Observation[] = [
+      { month: "2026-05", amount: 100_000 },
+      { month: "2026-06", amount: 102_000 },
+      { month: "2026-07", amount: 101_000 },
+      { month: "2026-08", amount: 50_000_000 }, // a mis-parse
+    ];
+    expect(anchorLevel(h)).toBe(101_000);
+  });
+
+  it("rejects an implausibly small one too", () => {
+    const h: Observation[] = [
+      { month: "2026-05", amount: 100_000 },
+      { month: "2026-06", amount: 102_000 },
+      { month: "2026-07", amount: 101_000 },
+      { month: "2026-08", amount: 12 },
+    ];
+    expect(anchorLevel(h)).toBe(101_000);
+  });
+
+  it("accepts a large but believable jump", () => {
+    // A real tariff reset, just under the threshold. Trusting it is the point:
+    // over-eager guarding would reintroduce the lag carry exists to avoid.
+    const h: Observation[] = [
+      { month: "2026-05", amount: 100_000 },
+      { month: "2026-06", amount: 100_000 },
+      { month: "2026-07", amount: 100_000 },
+      { month: "2026-08", amount: 100_000 * (OUTLIER_RATIO - 0.5) },
+    ];
+    expect(anchorLevel(h)).toBe(100_000 * (OUTLIER_RATIO - 0.5));
+  });
+
+  it("trusts a lone observation, having nothing to compare it against", () => {
+    expect(anchorLevel([{ month: "2026-07", amount: 999 }])).toBe(999);
+    expect(anchorLevel([])).toBeNull();
+  });
+});
+
 describe("pointEstimate", () => {
   it("has nothing to say with no history", () => {
     const r = pointEstimate([], "2026-08", null, null);
@@ -367,80 +361,43 @@ describe("pointEstimate", () => {
       null,
     );
     expect(r.basis).toBe("carry");
-    near(r.point, 105_000);
-  });
-
-  it("uses the recent baseline before a year of history exists", () => {
-    const r = pointEstimate(
-      series("2026-07", 6, 100_000, 1),
-      "2026-08",
-      null,
-      null,
-    );
-    expect(r.basis).toBe("baseline");
+    // No drift at a one-month horizon — see the note in pointEstimate.
     near(r.point, 100_000);
   });
 
-  it("leaves the seasonal term inert at exactly twelve months", () => {
-    // A planted August spike must NOT show up yet — one cycle is fitted noise.
-    const h = series("2026-07", 12, 100_000, 1, { 8: 3 });
+  it("does not apply drift over the first month", () => {
+    // Measured: at gap 1, drift made the forecast worse (5.7% -> 7.8% median
+    // APE). The newest bill already embeds the current level; extrapolating
+    // from it adds a biased estimate on top of a good one.
+    const h = series("2026-07", 6, 100_000, 1);
+    const withDrift = pointEstimate(h, "2026-08", 1.3, 1.3).point!;
+    const without = pointEstimate(h, "2026-08", null, null).point!;
+    expect(withDrift).toBe(without);
+  });
+
+  it("applies drift only to months with no bill at all", () => {
+    // Stale history: three unobserved months between the last bill and the
+    // target, so drift bridges three, not four.
+    const h = series("2026-04", 6, 100_000, 1);
+    const r = pointEstimate(h, "2026-08", 1.1, 1.1);
+    near(r.point, 100_000 * 1.1 ** 3);
+  });
+
+  it("ignores seasonality, which measurement did not support", () => {
+    // A planted 3x August. The model must NOT reach for it: on real bills the
+    // YoY blend scored 18.0% median APE against carry's 5.7%, and worst of all
+    // on the seasonal gas account it was written for. See the note at the top
+    // of forecast.ts before changing this.
+    const h = series("2026-07", 30, 100_000, 1, { 8: 3 });
     const r = pointEstimate(h, "2026-08", null, null);
     expect(r.basis).toBe("baseline");
     near(r.point, 100_000);
-  });
-
-  it("recovers a planted seasonal spike once two cycles exist", () => {
-    const h = series("2026-07", 24, 100_000, 1, { 8: 3 });
-    const r = pointEstimate(h, "2026-08", null, null);
-    expect(r.basis).toBe("yoy");
-    near(r.point, 300_000);
-  });
-
-  it("recovers a seasonal spike riding on top of a trend", () => {
-    // 3%/month inflation AND a 3x August. Both must come out, tightly — a loose
-    // tolerance here is what hid the double-counting bug below.
-    const h = series("2026-07", 30, 100_000, 1.03, { 8: 3 });
-    const r = pointEstimate(h, "2026-08", null, null);
-    const truth = 100_000 * 1.03 ** 30 * 3; // the month after the history ends
-    near(r.point, truth, 0.02);
-  });
-
-  it("does not apply the gap factor to the YoY anchor as well", () => {
-    // Regression. `levelGrowth` is a twelve-month rate, so the anchor already
-    // lands on the target month; carrying it forward again overshoots by
-    // exactly one month's drift. Caught only on a series that both grows and
-    // has seasonality — with flat amounts the gap factor is 1 and hides it.
-    const h = series("2026-07", 30, 100_000, 1.02, { 8: 3 });
-    const truth = 100_000 * 1.02 ** 30 * 3;
-    const r = pointEstimate(h, "2026-08", 1.02, 1.02);
-    near(r.point, truth, 0.01);
-    // The failure mode was a *systematic* overshoot, not noise.
-    expect(r.point!).toBeLessThan(truth * 1.015);
-  });
-
-  it("tracks a seasonal account through a sharp turning point", () => {
-    // Winter peak into the shoulder month: a 36% drop the baseline can't see.
-    const winter: Record<number, number> = { 6: 3, 7: 3, 8: 3, 5: 1.9, 9: 1.9 };
-    for (const [end, target] of [
-      ["2026-07", "2026-08"],
-      ["2026-08", "2026-09"],
-      ["2026-09", "2026-10"],
-    ]) {
-      const h = series(end, 30, 40_000, 1.02, winter);
-      const m = Number(target.slice(5, 7));
-      const truth = 40_000 * 1.02 ** 30 * (winter[m] ?? 1);
-      near(pointEstimate(h, target, null, null).point, truth, 0.02);
-    }
   });
 
   it("is not derailed by an estimated reading and its true-up", () => {
     const clean = series("2026-07", 24, 100_000, 1.02);
     const dirty = clean.map((o) =>
-      o.month === "2026-06"
-        ? { ...o, amount: o.amount * 0.05 }
-        : o.month === "2026-07"
-          ? { ...o, amount: o.amount * 1.95 }
-          : o,
+      o.month === "2026-07" ? { ...o, amount: o.amount * 8 } : o,
     );
     const a = pointEstimate(clean, "2026-08", null, null).point!;
     const b = pointEstimate(dirty, "2026-08", null, null).point!;
@@ -463,17 +420,18 @@ describe("pointEstimate", () => {
   });
 
   it("leans on the gap factor when the history is stale", () => {
-    // Last bill four months before the target: drift does most of the work.
-    const h = series("2026-03", 6, 100_000, 1);
     const fresh = pointEstimate(
       series("2026-07", 6, 100_000, 1),
       "2026-08",
       1.1,
       null,
     );
-    const stale = pointEstimate(h, "2026-07", 1.1, null);
-    near(fresh.point, 110_000);
-    near(stale.point, 100_000 * 1.1 ** 4);
+    const stale = pointEstimate(
+      series("2026-03", 6, 100_000, 1),
+      "2026-07",
+      1.1,
+      null,
+    );
     expect(stale.point!).toBeGreaterThan(fresh.point!);
   });
 
@@ -496,9 +454,13 @@ describe("selfBacktestError", () => {
   });
 
   it("is wide on a noisy series", () => {
+    // Scattered between 0.5x and 2x, deterministically. Deliberately NOT an
+    // alternating series: `anchorLevel`'s outlier guard rejects every other
+    // observation of a regular flip-flop and lands on the right value each
+    // time, which makes a metronome look like a well-behaved account.
     const noisy = months("2026-07", 24).map((month, i) => ({
       month,
-      amount: 100_000 * (i % 2 === 0 ? 0.3 : 2.4),
+      amount: 100_000 * (0.5 + (((i * 62) % 97) / 97) * 1.5),
     }));
     expect(selfBacktestError(noisy)!).toBeGreaterThan(0.3);
   });
@@ -519,8 +481,8 @@ describe("selfBacktestError", () => {
 describe("band", () => {
   it("widens as the basis weakens when there is nothing measured", () => {
     const carry = band(100, "carry", null);
-    const yoy = band(100, "yoy", null);
-    expect(yoy.high - yoy.low).toBeLessThan(carry.high - carry.low);
+    const baseline = band(100, "baseline", null);
+    expect(baseline.high - baseline.low).toBeLessThan(carry.high - carry.low);
   });
 
   it("prefers a measured error over the default", () => {
@@ -530,13 +492,13 @@ describe("band", () => {
   });
 
   it("never claims a band tighter than the floor", () => {
-    expect(band(100, "yoy", 0).low).toBe(100 * (1 - MIN_BAND));
+    expect(band(100, "baseline", 0).low).toBe(100 * (1 - MIN_BAND));
   });
 
   it("reports confidence from the band width", () => {
-    expect(band(100, "yoy", 0.12).confidence).toBe("high");
-    expect(band(100, "yoy", 0.25).confidence).toBe("medium");
-    expect(band(100, "yoy", 0.5).confidence).toBe("low");
+    expect(band(100, "baseline", 0.12).confidence).toBe("high");
+    expect(band(100, "baseline", 0.25).confidence).toBe("medium");
+    expect(band(100, "baseline", 0.5).confidence).toBe("low");
   });
 });
 
@@ -546,7 +508,7 @@ describe("forecast", () => {
       history: series("2026-07", 24, 100_000, 1.02),
       target: "2026-08",
     });
-    expect(r.basis).toBe("yoy");
+    expect(r.basis).toBe("baseline");
     expect(r.low!).toBeLessThan(r.point!);
     expect(r.high!).toBeGreaterThan(r.point!);
     expect(r.due).toBe(true);
@@ -561,17 +523,23 @@ describe("forecast", () => {
     });
   });
 
-  it("prefers the household drift over the account's own", () => {
-    // This account looks flat; its housemates are all climbing 20%/month.
-    const history = series("2026-07", 6, 100_000, 1);
+  it("prefers the household drift over the account's own, once drift applies", () => {
+    // Drift only bridges months with no bill, so this needs a stale account to
+    // be observable at all. Fresh history is deliberately drift-free.
+    const history = series("2026-04", 6, 100_000, 1);
     const household = [
       history,
-      series("2026-07", 6, 5_000, 1.2),
-      series("2026-07", 6, 900, 1.2),
+      series("2026-04", 6, 5_000, 1.2),
+      series("2026-04", 6, 900, 1.2),
     ];
     const alone = forecast({ history, target: "2026-08" }).point!;
     const pooled = forecast({ history, household, target: "2026-08" }).point!;
     expect(pooled).toBeGreaterThan(alone);
+
+    const fresh = series("2026-07", 6, 100_000, 1);
+    expect(
+      forecast({ history: fresh, household, target: "2026-08" }).point,
+    ).toBe(forecast({ history: fresh, target: "2026-08" }).point);
   });
 
   it("reports an off-cycle month as not due, with no band", () => {
@@ -585,5 +553,18 @@ describe("forecast", () => {
       due: false,
       cadence: 2,
     });
+  });
+});
+
+describe("anchorLevel threshold", () => {
+  it("is adjustable, so the harness can score alternative thresholds", () => {
+    const h: Observation[] = [
+      { month: "2026-05", amount: 100_000 },
+      { month: "2026-06", amount: 100_000 },
+      { month: "2026-07", amount: 100_000 },
+      { month: "2026-08", amount: 600_000 }, // 6x — a big but possible reset
+    ];
+    expect(anchorLevel(h, 4)).toBe(100_000); // rejected at 4x
+    expect(anchorLevel(h, 8)).toBe(600_000); // trusted at 8x
   });
 });

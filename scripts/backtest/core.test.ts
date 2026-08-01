@@ -152,8 +152,10 @@ describe("backtest", () => {
     // drift up.
     const mine = series("2026-07", 12, 100_000, 1);
     const other = series("2026-07", 12, 50_000, 1.4);
+    // Read through a drift-sensitive rung: the production model deliberately
+    // applies no drift at a one-month horizon, so pooling is invisible there.
     const mineIn = (r: ReturnType<typeof backtest>) =>
-      r.perAccount.get("mine")!.get("full")!.summary().median;
+      r.perAccount.get("mine")!.get("median+gap")!.summary().median;
     expect(
       mineIn(
         backtest(
@@ -241,5 +243,25 @@ describe("render", () => {
     const r = backtest([account("a", series("2026-07", 24, 100_000, 1))], noFx);
     expect(render(r)).not.toContain("BY ACCOUNT");
     expect(render(r, { verbose: true })).toContain("BY ACCOUNT");
+  });
+});
+
+describe("rung independence", () => {
+  it("pins its own thresholds instead of reading production's", () => {
+    // Regression. `guard4` once called anchorLevel() with no argument, so it
+    // tracked OUTLIER_RATIO — and when that moved from 4 to 8 the two rows
+    // silently became the same measurement, destroying the comparison that
+    // justified the change.
+    const h: Observation[] = [
+      { month: "2026-04", amount: 100_000 },
+      { month: "2026-05", amount: 100_000 },
+      { month: "2026-06", amount: 100_000 },
+      { month: "2026-07", amount: 600_000 }, // 6x: over 4, under 8
+      { month: "2026-08", amount: 600_000 },
+    ];
+    const r = backtest([account("a", h)], noFx);
+    const g4 = r.overall.get("guard")!.summary().median;
+    const g8 = r.overall.get("guard8")!.summary().median;
+    expect(g4).not.toBe(g8);
   });
 });
