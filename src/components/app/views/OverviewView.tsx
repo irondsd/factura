@@ -149,6 +149,17 @@ export function OverviewView({
                     <p className="font-mono text-micro text-muted mt-[3px]">
                       {to.received}
                     </p>
+                    {/* Only ever present when we committed to a number before
+                     * this bill arrived — so it reads as a score, not a
+                     * post-hoc comparison. */}
+                    {a.vsExpected != null && (
+                      <p className="mt-1 flex items-center gap-1">
+                        <Delta pct={a.vsExpected * 100} />
+                        <span className="font-mono text-micro text-muted">
+                          {to.vsExpected}
+                        </span>
+                      </p>
+                    )}
                   </>
                 ) : (
                   <>

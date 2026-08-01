@@ -1,7 +1,13 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { db as Db } from "@/db";
-import { bills, properties, vendorAccounts, vendors } from "@/db/schema";
+import {
+  bills,
+  forecasts,
+  properties,
+  vendorAccounts,
+  vendors,
+} from "@/db/schema";
 import { forecast, type Observation } from "@/lib/forecast";
 import { resolveWindowMonths } from "@/lib/insights";
 import type { FieldType } from "@/parsers/engine/types";
@@ -143,7 +149,26 @@ export const insightsRouter = router({
       // Every account in scope, this one included — that's the shared drift
       // signal, and an account's own history belongs in the pool.
       const household = [...histories.values()];
-      const fx = await recentFxSeries(ctx.db, `${now}-01`);
+      const period = `${now}-01`;
+      const fx = await recentFxSeries(ctx.db, period);
+
+      // What we already told the user to expect this month. Once a period has a
+      // stored row it IS the forecast for that period — hero, cards and the
+      // over/under all read the same figure, and it stops drifting day to day
+      // as the blue rate moves. Recomputation only happens where no row exists.
+      const savedRows = accounts.length
+        ? await ctx.db.query.forecasts.findMany({
+            where: and(
+              inArray(
+                forecasts.accountId,
+                accounts.map((a) => a.id),
+              ),
+              eq(forecasts.period, period),
+            ),
+          })
+        : [];
+      const savedBy = new Map(savedRows.map((r) => [r.accountId, r]));
+      const fresh: (typeof forecasts.$inferInsert)[] = [];
 
       // Awaiting model: each active account either has a bill this month, or
       // we show its last received bill (calm, not "missing") alongside what we
@@ -169,27 +194,62 @@ export const insightsRouter = router({
         // bill that actually arrived always counts, whatever cadence says.
         if (!thisMonth && !f.due) return [];
 
+        // A stored row wins over anything recomputed now — that is the freeze.
+        const saved = savedBy.get(a.id);
+        const expected = saved ? Number(saved.pointArs) : f.point;
+        const amount =
+          thisMonth?.totalAmount != null ? Number(thisMonth.totalAmount) : null;
+
+        // Only record a prediction for an account that hasn't billed yet.
+        // "Predicting" a bill already sitting in the history isn't a
+        // prediction, and storing one would make the over/under readout
+        // compare against a figure produced with the answer in hand.
+        if (!saved && !thisMonth && f.point != null && f.point > 0) {
+          fresh.push({
+            accountId: a.id,
+            period,
+            pointArs: String(f.point),
+            lowArs: String(f.low ?? f.point),
+            highArs: String(f.high ?? f.point),
+            basis: f.basis as "carry" | "baseline" | "yoy",
+            confidence: f.confidence,
+          });
+        }
+
         return [
           {
             accountId: a.id,
             vendor: vendorMeta(v),
             received: Boolean(thisMonth),
-            amount:
-              thisMonth?.totalAmount != null
-                ? Number(thisMonth.totalAmount)
-                : null,
+            amount,
             usd: thisMonth?.usdAmount ?? null,
             lastPeriod: last?.period ? last.period.slice(0, 7) : null,
             lastAmount:
               last?.totalAmount != null ? Number(last.totalAmount) : null,
-            expected: f.point,
-            expectedLow: f.low,
-            expectedHigh: f.high,
-            basis: f.basis,
-            confidence: f.confidence,
+            expected,
+            expectedLow: saved ? Number(saved.lowArs) : f.low,
+            expectedHigh: saved ? Number(saved.highArs) : f.high,
+            basis: saved ? saved.basis : f.basis,
+            confidence: saved ? saved.confidence : f.confidence,
+            // How the real bill landed against what we said it would be. Only
+            // ever present when a stored row exists, which by the rule above
+            // means we committed to the number before the bill arrived.
+            vsExpected:
+              saved && amount != null && Number(saved.pointArs) > 0
+                ? amount / Number(saved.pointArs) - 1
+                : null,
           },
         ];
       });
+
+      // Write-on-read, like `ensureFxRates` above it: the forecast has to be
+      // frozen the first time anyone looks at the month, and that first look is
+      // this query. `onConflictDoNothing` against the unique index means two
+      // concurrent readers can't both write — the loser keeps its own figure for
+      // this one response and picks up the stored one on the next load.
+      if (fresh.length > 0) {
+        await ctx.db.insert(forecasts).values(fresh).onConflictDoNothing();
+      }
       const received = awaiting.filter((a) => a.received);
       const thisMonthTotal = received.reduce((s, a) => s + (a.amount ?? 0), 0);
       const thisMonthUsd = received.reduce((s, a) => s + (a.usd ?? 0), 0);

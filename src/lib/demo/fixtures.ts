@@ -283,21 +283,33 @@ function demoHistory(key: VendorKey, now: string): Observation[] {
     .map((month) => ({ month, amount: amountARS(key, month) }));
 }
 
+/** The history the forecast is made from: everything up to *last* month.
+ *
+ * The signed-in app freezes a forecast before the bill arrives and never
+ * revises it. The demo has no `forecasts` table to read, so it reproduces that
+ * by withholding the current month from the model — which is what makes the
+ * over/under chip on a received card honest rather than a figure computed with
+ * the answer already in hand. */
+function demoPredictionHistory(key: VendorKey, now: string): Observation[] {
+  return demoHistory(key, now).filter((o) => o.month !== now);
+}
+
 export function demoOverview(): Overview {
   const now = nowMonth();
   const months = monthList(now, 12);
   const completeFlags = completeFlagsFor(months, now);
   const vendors = VENDORS.map(vendorMeta);
-  const household = VENDORS.map((v) => demoHistory(v.key, now));
+  const household = VENDORS.map((v) => demoPredictionHistory(v.key, now));
 
   const awaiting = VENDORS.map((v) => {
     const received = hasBill(v.key, now, now);
     const past = months.filter((m) => m !== now && hasBill(v.key, m, now));
     const lastMonth = past[past.length - 1] ?? null;
+    const amount = received ? amountARS(v.key, now) : null;
     // No fx series in the demo: gapFactor falls back to the household drift,
     // which the fixtures' own inflation curve supplies.
     const f = forecast({
-      history: demoHistory(v.key, now),
+      history: demoPredictionHistory(v.key, now),
       household,
       target: now,
     });
@@ -305,7 +317,7 @@ export function demoOverview(): Overview {
       accountId: v.accountId,
       vendor: vendorMeta(v),
       received,
-      amount: received ? amountARS(v.key, now) : null,
+      amount,
       usd: received ? usdOf(amountARS(v.key, now), now) : null,
       lastPeriod: lastMonth,
       lastAmount: lastMonth ? amountARS(v.key, lastMonth) : null,
@@ -314,6 +326,10 @@ export function demoOverview(): Overview {
       expectedHigh: f.high,
       basis: f.basis,
       confidence: f.confidence,
+      vsExpected:
+        amount != null && f.point != null && f.point > 0
+          ? amount / f.point - 1
+          : null,
     };
   });
   const received = awaiting.filter((a) => a.received);
