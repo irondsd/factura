@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { FxPoint, Observation } from "../../src/lib/forecast";
 import { shiftMonth } from "../../src/lib/format";
-import { type Account, backtest, quantile, render, tierOf } from "./core";
+import {
+  type Account,
+  backtest,
+  bestRung,
+  quantile,
+  render,
+  RUNGS,
+  tierOf,
+} from "./core";
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -34,6 +42,10 @@ const account = (
 });
 
 const noFx: FxPoint[] = [];
+
+/** Median APE for one rung of a whole report. */
+const med = (r: ReturnType<typeof backtest>, key: string) =>
+  r.overall.get(key)!.summary().median;
 
 describe("quantile", () => {
   it("interpolates between neighbours", () => {
@@ -71,30 +83,57 @@ describe("backtest", () => {
       noFx,
     );
     expect(r.scored).toBeGreaterThan(15);
-    expect(r.overall.get("full")!.summary().median).toBeLessThan(0.01);
+    expect(med(r, "full")).toBeLessThan(0.01);
   });
 
-  it("ranks the rungs correctly on a seasonal account", () => {
-    // The whole reason the ladder exists: on a series with both a trend and
-    // seasonality, each rung should beat the one above it.
-    const h = series("2026-07", 36, 40_000, 1.02, { 6: 3, 7: 3, 8: 3 });
-    const r = backtest([account("gas", h)], noFx);
-    const median = (k: string) => r.overall.get(k)!.summary().median;
-
-    expect(median("median+gap")).toBeLessThan(median("median"));
-    expect(median("full")).toBeLessThan(median("median+gap"));
-  });
-
-  it("reports the trend-only rungs as worse than carry is not assumed", () => {
-    // On a purely inflating series with no seasonality the YoY blend should not
-    // be *worse* than the simpler rungs — a regression here means the blend is
-    // actively harmful on the common case.
+  it("scores every rung on the same predictions", () => {
     const r = backtest(
-      [account("expensas", series("2026-07", 36, 200_000, 1.03))],
+      [account("a", series("2026-07", 30, 100_000, 1.02))],
       noFx,
     );
-    const median = (k: string) => r.overall.get(k)!.summary().median;
-    expect(median("full")).toBeLessThanOrEqual(median("carry"));
+    for (const rung of RUNGS) {
+      expect(r.overall.get(rung.key)!.n).toBe(r.scored);
+    }
+  });
+
+  it("de-trending removes the lag a plain median has on a rising series", () => {
+    // The failure the real backtest exposed: median-of-3 lands on the middle
+    // observation, so on an inflating series it is ~1 month stale. De-trending
+    // before taking the median should recover that without losing robustness.
+    const r = backtest(
+      [account("expensas", series("2026-07", 30, 200_000, 1.05))],
+      noFx,
+    );
+    expect(med(r, "detrended")).toBeLessThan(med(r, "median"));
+  });
+
+  it("keeps de-trending robust to a single wild outlier", () => {
+    // Robustness is the only reason to use a median at all — if de-trending
+    // gave that up it would just be a slower `carry`.
+    const clean = series("2026-07", 30, 100_000, 1.02);
+    const spiked = clean.map((o, i) =>
+      i === clean.length - 2 ? { ...o, amount: o.amount * 40 } : o,
+    );
+    const r = backtest([account("a", spiked)], noFx);
+    expect(med(r, "detrended")).toBeLessThan(med(r, "carry"));
+  });
+
+  it("ranks the rungs correctly on a strongly seasonal account", () => {
+    const h = series("2026-07", 36, 40_000, 1.02, { 6: 3, 7: 3, 8: 3 });
+    const r = backtest([account("gas", h)], noFx);
+    expect(med(r, "median+gap")).toBeLessThan(med(r, "median"));
+    expect(med(r, "full")).toBeLessThan(med(r, "median+gap"));
+  });
+
+  it("shows the exact-anchor variant surviving a missing seasonal month", () => {
+    // Gas at a turning point with one upload missing: the ±1 tolerance grabs a
+    // neighbouring month from a different season. The exact-anchor rung
+    // declines to guess and falls back to the baseline instead.
+    const winter: Record<number, number> = { 6: 4, 7: 4, 8: 4, 5: 2, 9: 2 };
+    const full = series("2026-08", 36, 12_000, 1.02, winter);
+    const gappy = full.filter((o) => !o.month.endsWith("-09"));
+    const r = backtest([account("gas", gappy)], noFx);
+    expect(med(r, "yoy-exact")).toBeLessThanOrEqual(med(r, "full"));
   });
 
   it("never lets a prediction see its own month or later", () => {
@@ -105,30 +144,34 @@ describe("backtest", () => {
       i === clean.length - 1 ? { ...o, amount: 10_000_000 } : o,
     );
     const r = backtest([account("leaky", spiked)], noFx);
-    // The last month is ~100x the level, so its APE must be ~99%.
     expect(Math.max(...r.overall.get("full")!.apes)).toBeGreaterThan(0.9);
   });
 
   it("keeps household pooling inside a property", () => {
     // A wildly inflating account in ANOTHER property must not drag this one's
-    // drift up. Same series, two arrangements, same score.
+    // drift up.
     const mine = series("2026-07", 12, 100_000, 1);
     const other = series("2026-07", 12, 50_000, 1.4);
-    const separate = backtest(
-      [account("mine", mine, "p1"), account("other", other, "p2")],
-      noFx,
-    );
-    const together = backtest(
-      [account("mine", mine, "p1"), account("other", other, "p1")],
-      noFx,
-    );
     const mineIn = (r: ReturnType<typeof backtest>) =>
-      r.perAccount.get("mine")!.summary().median;
-    expect(mineIn(separate)).toBeLessThan(mineIn(together));
+      r.perAccount.get("mine")!.get("full")!.summary().median;
+    expect(
+      mineIn(
+        backtest(
+          [account("mine", mine, "p1"), account("other", other, "p2")],
+          noFx,
+        ),
+      ),
+    ).toBeLessThan(
+      mineIn(
+        backtest(
+          [account("mine", mine, "p1"), account("other", other, "p1")],
+          noFx,
+        ),
+      ),
+    );
   });
 
   it("counts an off-cycle month as a cadence miss instead of a huge error", () => {
-    // Bi-monthly for two years, then a bill lands in an off-cycle month.
     const h: Observation[] = [];
     for (let i = 0; i < 12; i++) {
       h.push({ month: shiftMonth("2026-01", -2 * i), amount: 50_000 });
@@ -136,9 +179,7 @@ describe("backtest", () => {
     h.push({ month: "2026-02", amount: 50_000 }); // off-cycle
     const r = backtest([account("gas", h)], noFx);
     expect(r.cadenceMisses).toBeGreaterThan(0);
-    // Excluded, not folded in — a classification error would otherwise show up
-    // as a 100% magnitude error and swamp everything.
-    expect(r.overall.get("full")!.summary().median).toBeLessThan(0.1);
+    expect(med(r, "full")).toBeLessThan(0.1);
   });
 
   it("honours --from", () => {
@@ -156,21 +197,44 @@ describe("backtest", () => {
   });
 });
 
-describe("render", () => {
-  it("produces a report naming every rung", () => {
-    const out = render(
-      backtest([account("a", series("2026-07", 24, 100_000, 1.02))], noFx),
+describe("bestRung", () => {
+  it("picks the lowest median and reports the gain over plain carry", () => {
+    const r = backtest(
+      [account("gas", series("2026-07", 36, 40_000, 1.02, { 7: 3, 8: 3 }))],
+      noFx,
     );
-    for (const label of [
-      "last amount",
-      "median of last 3",
-      "median × drift^gap",
-      "full model",
-      "BY TIER",
-      "BY VENDOR",
-    ]) {
-      expect(out).toContain(label);
+    const best = bestRung(r.overall)!;
+    expect(best.median).toBe(
+      Math.min(
+        ...RUNGS.map((x) => r.overall.get(x.key)!.summary().median).filter(
+          (v) => Number.isFinite(v),
+        ),
+      ),
+    );
+    expect(best.vsCarry).toBeGreaterThanOrEqual(0);
+  });
+
+  it("is null for a slice with no scored predictions", () => {
+    expect(bestRung(new Map())).toBeNull();
+  });
+});
+
+describe("render", () => {
+  it("produces a report naming every rung and both matrices", () => {
+    const out = render(
+      backtest([account("a", series("2026-07", 30, 100_000, 1.02))], noFx),
+    );
+    for (const rung of RUNGS) expect(out).toContain(rung.label);
+    for (const heading of ["BY TIER", "BY VENDOR"]) {
+      expect(out).toContain(heading);
     }
+  });
+
+  it("marks the winning rung in each matrix row", () => {
+    const out = render(
+      backtest([account("a", series("2026-07", 30, 100_000, 1.02))], noFx),
+    );
+    expect(out).toContain("*");
   });
 
   it("omits the per-account section unless asked", () => {

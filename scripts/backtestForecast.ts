@@ -15,10 +15,10 @@ import { type Account, backtest, render } from "./backtest/core";
  * its target month as an argument, every past prediction is reproducible, which
  * is what makes this work over history from before the feature shipped.
  *
- * It scores four rungs of increasing complexity. The point is not to admire the
- * bottom row: a rung only earns its place if it beats the one above it. If
- * "median × drift^gap" ties the full model on your data, the YoY blend is
- * costing complexity for nothing and should be reconsidered.
+ * It scores several candidate models side by side on identical inputs. The
+ * point is not to admire the bottom row: a rung only earns its place in
+ * production if it beats the simpler ones. If plain `last amount` wins, that is
+ * the answer, and the complexity above it should come out.
  *
  * The constants in src/lib/forecast.ts (blend ramp, the 0.6/0.4 drift split,
  * MIN/MAX_DRIFT, the default band widths) are starting values chosen by
@@ -34,13 +34,21 @@ import { type Account, backtest, render } from "./backtest/core";
  *   --vendor=<slug>   only score accounts of one vendor (e.g. --vendor=edesur)
  *   --from=<YYYY-MM>  ignore target months before this one
  *   --verbose         add a per-account breakdown
+ *   --p90             rank the matrices by p90 instead of median APE — a model
+ *                     can be typically excellent and occasionally catastrophic,
+ *                     and on a hero number the tail is what loses trust
  *
  * The scoring itself lives in ./backtest/core.ts, which has no database in it
  * and is unit-tested — a harness that judges the model has to be trustworthy
  * itself.
  */
 
-type Args = { vendor?: string; from?: string; verbose: boolean };
+type Args = {
+  vendor?: string;
+  from?: string;
+  verbose: boolean;
+  stat: "median" | "p90";
+};
 
 function parseArgs(): Args {
   const argv = process.argv.slice(2);
@@ -55,6 +63,7 @@ function parseArgs(): Args {
     vendor: flagValue("vendor"),
     from,
     verbose: argv.includes("--verbose"),
+    stat: argv.includes("--p90") ? "p90" : "median",
   };
 }
 
@@ -129,7 +138,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(render(report, { verbose: args.verbose }));
+  console.log(render(report, { verbose: args.verbose, stat: args.stat }));
   process.exit(0);
 }
 
