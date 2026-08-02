@@ -57,13 +57,17 @@ export function Eyebrow({
   children,
   tone = "muted",
   className,
+  as: Tag = "p",
 }: {
   children: ReactNode;
   tone?: "muted" | "accent";
   className?: string;
+  /** `div` for an eyebrow that holds interactive, non-phrasing content — a
+   * popover trigger and its panel can't live inside a `<p>`. */
+  as?: "p" | "div";
 }) {
   return (
-    <p
+    <Tag
       className={cn(
         "font-mono text-micro uppercase tracking-[0.22em]",
         tone === "accent" ? "text-accent" : "text-muted",
@@ -71,7 +75,7 @@ export function Eyebrow({
       )}
     >
       {children}
-    </p>
+    </Tag>
   );
 }
 

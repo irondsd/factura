@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { OverviewView } from "@/components/app/views/OverviewView";
+import { DemoOverview } from "@/components/demo/DemoOverview";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
 import { localizedHref } from "@/i18n/routing";
 import { getI18n } from "@/i18n/server";
-import { demoOverview } from "@/lib/demo/fixtures";
 
 // Static, but regenerated daily so the demo's "current month" rolls forward
 // with the calendar (the dataset itself is anchored and stable — see fixtures).
@@ -26,9 +25,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function DemoOverviewPage({ params }: Props) {
   const locale = toLocale((await params).lang);
   return (
-    <OverviewView
-      data={demoOverview()}
-      insightsHref={localizedHref("/demo/insights", locale)}
-    />
+    <DemoOverview insightsHref={localizedHref("/demo/insights", locale)} />
   );
 }

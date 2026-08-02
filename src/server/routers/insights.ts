@@ -110,16 +110,27 @@ function boundsOf(parsed: EnrichedBill[]): {
 }
 
 export const insightsRouter = router({
-  /** Overview screen: this-month snapshot + last-12 trend + vendor share. */
+  /** Overview screen: a month snapshot + last-12 trend + vendor share.
+   *
+   * `month` picks which snapshot the hero and the vendor cards describe. It
+   * defaults to (and can never exceed) the current month; a past month reads as
+   * a closed one — what the ledger holds, no forecast, nothing awaited. The
+   * trend and share below stay anchored to today whatever is selected, because
+   * "last 12 complete months" is a property of the ledger, not of the pick. */
   overview: protectedProcedure
     .input(
       z.object({
         propertyId: z.string().uuid().optional(),
+        month: monthTag.optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const { propertyId } = input;
       const now = nowMonth();
+      // A future month has no ledger and no forecast to show, so the pick is
+      // clamped rather than trusted.
+      const target = input.month && input.month < now ? input.month : now;
+      const isCurrentMonth = target === now;
       const scopeIds = await resolveScope(ctx.db, ctx.userId, propertyId);
       const parsed = await loadParsed(ctx.db, scopeIds);
       const accounts = await loadActiveAccounts(ctx.db, scopeIds);
@@ -149,13 +160,15 @@ export const insightsRouter = router({
       // Every account in scope, this one included — that's the shared drift
       // signal, and an account's own history belongs in the pool.
       const household = [...histories.values()];
-      const period = `${now}-01`;
-      const fx = await recentFxSeries(ctx.db, period);
+      const period = `${target}-01`;
+      // Only the forecaster reads this, and it only runs for the current month.
+      const fx = isCurrentMonth ? await recentFxSeries(ctx.db, period) : [];
 
-      // What we already told the user to expect this month. Once a period has a
-      // stored row it IS the forecast for that period — hero, cards and the
+      // What we already told the user to expect in this month. Once a period has
+      // a stored row it IS the forecast for that period — hero, cards and the
       // over/under all read the same figure, and it stops drifting day to day
-      // as the blue rate moves. Recomputation only happens where no row exists.
+      // as the blue rate moves. Recomputation only happens where no row exists,
+      // which in a closed month is nowhere.
       const savedRows = accounts.length
         ? await ctx.db.query.forecasts.findMany({
             where: and(
@@ -173,30 +186,41 @@ export const insightsRouter = router({
       // Awaiting model: each active account either has a bill this month, or
       // we show its last received bill (calm, not "missing") alongside what we
       // expect it to come in at. Accounts that aren't on-cycle drop out.
+      //
+      // A closed month has nothing to await: the cards are exactly the bills
+      // that landed, and the forecaster never runs — its own history already
+      // contains the answer, so anything it produced there would be hindsight
+      // wearing a prediction's clothes. The stored row for that period is still
+      // read, because that one WAS committed before the bill arrived.
       const awaiting = accounts.flatMap((a) => {
         const v = vendorById.get(a.vendorId)!;
         const past = parsed
           .filter((b) => b.accountId === a.id && b.period)
           .sort((x, y) => (x.period! < y.period! ? 1 : -1));
-        const thisMonth = past.find((b) => b.period === `${now}-01`);
-        const last = past[0];
+        const thisMonth = past.find((b) => b.period === period);
+        // The most recent bill at or before the month on screen — "last May ·
+        // $32.000" has to mean last relative to the month being read.
+        const last = past.find((b) => b.period! <= period);
 
-        const f = forecast({
-          history: histories.get(a.id) ?? [],
-          household,
-          fx,
-          target: now,
-        });
+        const f = isCurrentMonth
+          ? forecast({
+              history: histories.get(a.id) ?? [],
+              household,
+              fx,
+              target,
+            })
+          : null;
 
         // A bi-monthly (or quarterly, or annual) account is not "awaiting"
         // anything in the months it simply doesn't bill. Without this it nags
         // every month and inflates both the expected count and the total. A
         // bill that actually arrived always counts, whatever cadence says.
-        if (!thisMonth && !f.due) return [];
+        // In a closed month there is no cadence to consult: no bill, no card.
+        if (!thisMonth && !f?.due) return [];
 
         // A stored row wins over anything recomputed now — that is the freeze.
         const saved = savedBy.get(a.id);
-        const expected = saved ? Number(saved.pointArs) : f.point;
+        const expected = saved ? Number(saved.pointArs) : (f?.point ?? null);
         const amount =
           thisMonth?.totalAmount != null ? Number(thisMonth.totalAmount) : null;
 
@@ -204,7 +228,7 @@ export const insightsRouter = router({
         // "Predicting" a bill already sitting in the history isn't a
         // prediction, and storing one would make the over/under readout
         // compare against a figure produced with the answer in hand.
-        if (!saved && !thisMonth && f.point != null && f.point > 0) {
+        if (!saved && !thisMonth && f && f.point != null && f.point > 0) {
           fresh.push({
             accountId: a.id,
             period,
@@ -227,10 +251,10 @@ export const insightsRouter = router({
             lastAmount:
               last?.totalAmount != null ? Number(last.totalAmount) : null,
             expected,
-            expectedLow: saved ? Number(saved.lowArs) : f.low,
-            expectedHigh: saved ? Number(saved.highArs) : f.high,
-            basis: saved ? saved.basis : f.basis,
-            confidence: saved ? saved.confidence : f.confidence,
+            expectedLow: saved ? Number(saved.lowArs) : (f?.low ?? null),
+            expectedHigh: saved ? Number(saved.highArs) : (f?.high ?? null),
+            basis: saved ? saved.basis : (f?.basis ?? null),
+            confidence: saved ? saved.confidence : (f?.confidence ?? null),
             // How the real bill landed against what we said it would be. Only
             // ever present when a stored row exists, which by the rule above
             // means we committed to the number before the bill arrived.
@@ -265,6 +289,18 @@ export const insightsRouter = router({
       const months = monthList(now, 12);
       const completeFlags = completeFlagsFor(months, parsed);
 
+      // What the month switcher can reach: every month the ledger has a bill
+      // for, plus the current one — which is always selectable even on a brand
+      // new account, since it's the month the forecast is about.
+      const selectableMonths = [
+        ...new Set([
+          ...parsed
+            .map((b) => b.period?.slice(0, 7))
+            .filter((m): m is string => m != null && m <= now),
+          now,
+        ]),
+      ].sort();
+
       const presentVendorIds = new Set(
         parsed.map((b) => b.vendorId).filter((x): x is string => Boolean(x)),
       );
@@ -285,7 +321,9 @@ export const insightsRouter = router({
         property: property
           ? { id: property.id, nickname: property.nickname }
           : null,
-        month: now,
+        month: target,
+        isCurrentMonth,
+        selectableMonths,
         thisMonthTotal,
         thisMonthUsd,
         expectedTotal,

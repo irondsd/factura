@@ -274,51 +274,61 @@ export const demoVendors: VendorRow[] = VENDORS.map((v) => ({
  * — MetroGAS's winter peak is the whole point of the demo's awaiting card. */
 const DEMO_FORECAST_HISTORY = 30;
 
-/** Every month this vendor has billed, as the forecaster reads it. The demo's
- * amounts are a pure function of the calendar month, so this is real synthetic
- * history rather than a stub — /demo shows the same estimate the app computes. */
-function demoHistory(key: VendorKey, now: string): Observation[] {
-  return monthList(now, DEMO_FORECAST_HISTORY)
-    .filter((m) => hasBill(key, m, now))
-    .map((month) => ({ month, amount: amountARS(key, month) }));
-}
-
-/** The history the forecast is made from: everything up to *last* month.
+/** The history the forecast for `target` is made from: every month this vendor
+ * billed, up to the one *before* it.
  *
  * The signed-in app freezes a forecast before the bill arrives and never
  * revises it. The demo has no `forecasts` table to read, so it reproduces that
- * by withholding the current month from the model — which is what makes the
+ * by withholding the target month from the model — which is what makes the
  * over/under chip on a received card honest rather than a figure computed with
- * the answer already in hand. */
-function demoPredictionHistory(key: VendorKey, now: string): Observation[] {
-  return demoHistory(key, now).filter((o) => o.month !== now);
+ * the answer already in hand. The demo's amounts are a pure function of the
+ * calendar month, so this is real synthetic history rather than a stub: /demo
+ * shows the same estimate the app computes. */
+function demoPredictionHistory(
+  key: VendorKey,
+  target: string,
+  now: string,
+): Observation[] {
+  return monthList(target, DEMO_FORECAST_HISTORY)
+    .filter((m) => m !== target && m >= EPOCH && hasBill(key, m, now))
+    .map((month) => ({ month, amount: amountARS(key, month) }));
 }
 
-export function demoOverview(): Overview {
+/** Overview for `month` (defaults to, and never exceeds, the current month).
+ * A past month reads as a closed one: what the ledger holds, nothing awaited.
+ * The trend and share below stay anchored to today either way — see the
+ * matching note on the `overview` procedure. */
+export function demoOverview(month?: string): Overview {
   const now = nowMonth();
+  const target = month && month >= EPOCH && month < now ? month : now;
+  const isCurrentMonth = target === now;
   const months = monthList(now, 12);
   const completeFlags = completeFlagsFor(months, now);
   const vendors = VENDORS.map(vendorMeta);
-  const household = VENDORS.map((v) => demoPredictionHistory(v.key, now));
+  const household = VENDORS.map((v) =>
+    demoPredictionHistory(v.key, target, now),
+  );
 
   const awaiting = VENDORS.map((v) => {
-    const received = hasBill(v.key, now, now);
-    const past = months.filter((m) => m !== now && hasBill(v.key, m, now));
+    const received = hasBill(v.key, target, now);
+    const past = monthList(target, 2).filter(
+      (m) => m !== target && hasBill(v.key, m, now),
+    );
     const lastMonth = past[past.length - 1] ?? null;
-    const amount = received ? amountARS(v.key, now) : null;
+    const amount = received ? amountARS(v.key, target) : null;
     // No fx series in the demo: gapFactor falls back to the household drift,
     // which the fixtures' own inflation curve supplies.
     const f = forecast({
-      history: demoPredictionHistory(v.key, now),
+      history: demoPredictionHistory(v.key, target, now),
       household,
-      target: now,
+      target,
     });
     return {
       accountId: v.accountId,
       vendor: vendorMeta(v),
       received,
       amount,
-      usd: received ? usdOf(amountARS(v.key, now), now) : null,
+      usd: received ? usdOf(amountARS(v.key, target), target) : null,
       lastPeriod: lastMonth,
       lastAmount: lastMonth ? amountARS(v.key, lastMonth) : null,
       expected: f.point,
@@ -336,7 +346,10 @@ export function demoOverview(): Overview {
 
   return {
     property: demoProperty,
-    month: now,
+    month: target,
+    isCurrentMonth,
+    // The demo's ledger runs unbroken from EPOCH to today.
+    selectableMonths: monthRange(EPOCH, now),
     thisMonthTotal: received.reduce((s, a) => s + (a.amount ?? 0), 0),
     thisMonthUsd: received.reduce((s, a) => s + (a.usd ?? 0), 0),
     expectedTotal: awaiting.reduce(

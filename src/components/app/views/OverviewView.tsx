@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MonthSwitcher } from "@/components/app/MonthSwitcher";
 import {
   ChartCard,
   Delta,
@@ -13,9 +14,9 @@ import {
 } from "@/components/charts";
 import { useI18n } from "@/i18n/I18nProvider";
 import { interpolate } from "@/i18n/config";
+import { cn } from "@/lib/cn";
 import {
   formatMoney,
-  formatMonth,
   formatMonthShort,
   formatUSD,
   roundSignificant,
@@ -28,13 +29,22 @@ type Overview = RouterOutputs["insights"]["overview"];
 /** Presentational Overview screen. The data is injected by the caller (tRPC in
  * the signed-in app, static fixtures in /demo); everything interactive here —
  * the per-chart ARS/USD toggles — is local client state over that same data.
- * `insightsHref` lets the demo point the "see all insights" link at /demo. */
+ * `insightsHref` lets the demo point the "see all insights" link at /demo.
+ *
+ * The month on screen is the caller's state too: `onMonthChange` hands back a
+ * pick from the switcher, and the next `data` is that month's snapshot. */
 export function OverviewView({
   data: d,
   insightsHref = "/app/insights",
+  onMonthChange,
+  pending = false,
 }: {
   data: Overview;
   insightsHref?: string;
+  onMonthChange: (month: string) => void;
+  /** The snapshot on screen is a month behind the pick — fade it out until the
+   * new one lands, so a switch reads as a transition rather than a flicker. */
+  pending?: boolean;
 }) {
   const { t, locale } = useI18n();
   const to = t.overview;
@@ -42,13 +52,14 @@ export function OverviewView({
   const bars = useChartCurrency();
   const trend = useChartCurrency();
 
-  const pending = d.billsExpected - d.billsIn;
+  const awaited = d.billsExpected - d.billsIn;
   // Lead with what the month is expected to cost rather than what has landed so
   // far. A partial-month accumulator reads "$0" for the first week of every
   // month — the loudest element on the screen saying the least. Needs an actual
   // estimate to show: an account with no history contributes nothing, so a
   // brand-new property falls back to the plain total rather than "≈ $0".
-  const showExpected = pending > 0 && d.expectedTotal > 0;
+  // A closed month is never expected: it's what the ledger holds.
+  const showExpected = d.isCurrentMonth && awaited > 0 && d.expectedTotal > 0;
   const moneySym = donut.currency === "USD" ? "US$" : "AR$";
   const slices = toSlices(d.byCurrency[donut.currency].share, d.vendors);
 
@@ -58,16 +69,30 @@ export function OverviewView({
     ? `${insightsHref}?${new URLSearchParams({ property: d.property.nickname.toLowerCase() })}`
     : insightsHref;
 
+  // Everything the month switcher governs fades together while the next
+  // snapshot loads; the charts below it don't move with the pick.
+  const fade = cn(
+    "transition-[opacity,transform] duration-200",
+    pending && "opacity-40 translate-y-[3px]",
+  );
+
   return (
     <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
       {/* hero */}
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <Eyebrow>
-            {d.property ? d.property.nickname : t.common.allProperties} ·{" "}
-            {formatMonth(d.month, locale)}
-            {/* "so far" describes a partial total, not a whole-month estimate. */}
-            {!showExpected && ` ${to.soFar}`}
+        <div className={fade}>
+          <Eyebrow as="div" className="flex flex-wrap items-center gap-x-2.5">
+            <span>
+              {d.property ? d.property.nickname : t.common.allProperties} ·
+            </span>
+            <MonthSwitcher
+              month={d.month}
+              selectable={d.selectableMonths}
+              onSelect={onMonthChange}
+            />
+            {/* "so far" describes a partial total, not a whole-month estimate —
+                and never a closed month, which is neither. */}
+            {d.isCurrentMonth && !showExpected && <span>{to.soFar}</span>}
           </Eyebrow>
           <div className="mt-2">
             <Display size={44}>
@@ -88,26 +113,34 @@ export function OverviewView({
                 )}
                 <span>
                   {" · "}
-                  {pending === 1
+                  {awaited === 1
                     ? to.awaitingOne
-                    : interpolate(to.awaitingOther, { n: pending })}
+                    : interpolate(to.awaitingOther, { n: awaited })}
                 </span>
               </>
             ) : (
               <>
-                {interpolate(to.billsIn, {
-                  in: d.billsIn,
-                  expected: d.billsExpected,
-                })}
+                {/* A closed month has no expectation left to report against, so
+                    it counts what it holds rather than "4 of 4". */}
+                {d.isCurrentMonth
+                  ? interpolate(to.billsIn, {
+                      in: d.billsIn,
+                      expected: d.billsExpected,
+                    })
+                  : `${to.closed} · ${
+                      d.billsIn === 1
+                        ? to.inLedgerOne
+                        : interpolate(to.inLedgerOther, { n: d.billsIn })
+                    }`}
                 {d.thisMonthUsd > 0 && (
                   <span> · ≈ {formatUSD(d.thisMonthUsd)}</span>
                 )}
-                {pending > 0 && (
+                {awaited > 0 && (
                   <span>
                     {" · "}
-                    {pending === 1
+                    {awaited === 1
                       ? to.awaitingOne
-                      : interpolate(to.awaitingOther, { n: pending })}
+                      : interpolate(to.awaitingOther, { n: awaited })}
                   </span>
                 )}
               </>
@@ -122,10 +155,17 @@ export function OverviewView({
         </Link>
       </div>
 
-      {/* awaiting model */}
-      {d.awaiting.length > 0 && (
-        <div className="mt-7">
-          <Eyebrow className="mb-3">{to.thisMonth}</Eyebrow>
+      {/* awaiting model — in a closed month, simply what the ledger holds */}
+      {(d.awaiting.length > 0 || !d.isCurrentMonth) && (
+        <div className={cn("mt-7", fade)}>
+          <Eyebrow className="mb-3">
+            {d.isCurrentMonth ? to.thisMonth : to.closedMonth}
+          </Eyebrow>
+          {d.awaiting.length === 0 && (
+            <p className="font-mono text-[13px] text-muted">
+              {to.noBillsThisMonth}
+            </p>
+          )}
           <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(184px,1fr))]">
             {d.awaiting.map((a) => (
               <div
@@ -147,7 +187,7 @@ export function OverviewView({
                       {formatMoney(a.amount, "ARS")}
                     </p>
                     <p className="font-mono text-micro text-muted mt-[3px]">
-                      {to.received}
+                      {d.isCurrentMonth ? to.received : to.settled}
                     </p>
                     {/* Only ever present when we committed to a number before
                      * this bill arrived — so it reads as a score, not a

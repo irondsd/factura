@@ -218,22 +218,30 @@ body {
 }
 
 /* Torn-receipt zigzag along the bottom edge */
-.receipt-edge {
+.receipt-edge,
+.receipt-edge-sm {
   --zz: 11px;
-  -webkit-mask: conic-gradient(
+  --receipt-tear: conic-gradient(
       from -45deg at bottom,
       #0000,
       #000 1deg 89deg,
       #0000 90deg
     )
     50% / var(--zz) 100%;
-  mask: conic-gradient(
-      from -45deg at bottom,
-      #0000,
-      #000 1deg 89deg,
-      #0000 90deg
-    )
-    50% / var(--zz) 100%;
+}
+.receipt-edge {
+  -webkit-mask: var(--receipt-tear);
+  mask: var(--receipt-tear);
+}
+
+/* The same tear, but only from the `sm` breakpoint up. For a surface that is a
+   receipt popover on a desktop and a flush bottom sheet on a phone — a torn
+   edge along the bottom of the screen would just leak the page through. */
+@media (min-width: 40rem) {
+  .receipt-edge-sm {
+    -webkit-mask: var(--receipt-tear);
+    mask: var(--receipt-tear);
+  }
 }
 
 /* Ledger ruling behind extracted text.
