@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Session } from "next-auth";
-import { useState } from "react";
-import { Segmented } from "@/components/charts/primitives";
+import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 import { BurgerButton } from "./BurgerButton";
 import { useApp } from "./context";
+import { PropertySelector } from "./PropertySelector";
 
 export function TopBar({ user }: { user: Session["user"] }) {
   const pathname = usePathname();
@@ -18,6 +18,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
   const { t } = useI18n();
   const properties = trpc.properties.list.useQuery();
   const [menuOpen, setMenuOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
 
   const NAV = [
     { href: "/app", label: t.nav.overview },
@@ -33,16 +34,30 @@ export function TopBar({ user }: { user: Session["user"] }) {
     setMenuOpen(false);
   }
 
+  // Anything outside the bar dismisses the menu — the burger is inside it, so
+  // tapping it still toggles rather than closing twice. `pointerdown` fires on
+  // the touch itself, which `mousedown` can't be relied on to do.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (!headerRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("pointerdown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
   // The property switcher is meaningless on the management pages, and there's
   // nothing to switch between when the user has a single property.
   const onProfile =
     pathname === "/app/profile" || pathname === "/app/properties";
   const showSwitcher = !onProfile && (properties.data?.length ?? 0) > 1;
-  const propValue = propertyId ?? "all";
-  const propOptions = [
-    { value: "all", label: t.app.propertyAll },
-    ...(properties.data ?? []).map((p) => ({ value: p.id, label: p.nickname })),
-  ];
 
   // The selection lives in the URL (?property=<nickname>), so in-app links must
   // carry it forward — otherwise navigating between pages would reset to "All".
@@ -81,7 +96,10 @@ export function TopBar({ user }: { user: Session["user"] }) {
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-[color-mix(in_srgb,var(--card)_72%,transparent)] backdrop-blur-[6px]">
+    <header
+      ref={headerRef}
+      className="sticky top-0 z-50 border-b border-line bg-[color-mix(in_srgb,var(--card)_72%,transparent)] backdrop-blur-[6px]"
+    >
       <div className="mx-auto flex max-w-[64rem] items-center gap-5 py-3 px-5">
         <Link
           href={withProperty("/app")}
@@ -90,35 +108,38 @@ export function TopBar({ user }: { user: Session["user"] }) {
           Factura<span className="text-accent">.</span>
         </Link>
 
-        {/* Desktop: inline nav + property picker + avatar */}
+        {/* Desktop: inline nav. */}
         <nav className="hidden gap-4 md:flex">{NAV.map(navLink)}</nav>
-        <div className="ml-auto hidden items-center gap-2.5 md:flex">
+
+        {/* The property switcher rides at both sizes — on a phone it sits
+            beside the burger rather than inside the menu, so switching
+            properties costs one tap instead of three. */}
+        <div className="ml-auto flex items-center gap-2.5">
           {showSwitcher && (
-            <Segmented
-              options={propOptions}
-              value={propValue}
-              onChange={(v) => setPropertyId(v === "all" ? undefined : v)}
+            <PropertySelector
+              properties={properties.data ?? []}
+              value={propertyId}
+              onChange={setPropertyId}
             />
           )}
           <Link
             href={withProperty("/app/profile")}
             aria-label={t.app.navProfile}
             title={name}
+            className="hidden md:inline-flex"
           >
             {avatarCircle}
           </Link>
+          <BurgerButton
+            open={menuOpen}
+            onToggle={() => setMenuOpen((o) => !o)}
+            openLabel={t.app.menuOpen}
+            closeLabel={t.app.menuClose}
+          />
         </div>
-
-        {/* Mobile: burger only */}
-        <BurgerButton
-          open={menuOpen}
-          onToggle={() => setMenuOpen((o) => !o)}
-          openLabel={t.app.menuOpen}
-          closeLabel={t.app.menuClose}
-        />
       </div>
 
-      {/* Mobile menu: nav links, property picker, profile */}
+      {/* Mobile menu: nav links + profile. */}
       {menuOpen && (
         <div className="flex flex-col gap-1 border-t border-line bg-card pt-2 px-5 pb-[18px] md:hidden">
           <nav className="flex flex-col">
@@ -139,21 +160,6 @@ export function TopBar({ user }: { user: Session["user"] }) {
               );
             })}
           </nav>
-
-          {showSwitcher && (
-            <div className="mt-[14px]">
-              <p className="font-mono text-[10px] uppercase tracking-label-wide text-muted mb-2">
-                {t.app.propertyLabel}
-              </p>
-              <div className="overflow-x-auto [-webkit-overflow-scrolling:touch] pb-0.5">
-                <Segmented
-                  options={propOptions}
-                  value={propValue}
-                  onChange={(v) => setPropertyId(v === "all" ? undefined : v)}
-                />
-              </div>
-            </div>
-          )}
 
           <Link
             href={withProperty("/app/profile")}
