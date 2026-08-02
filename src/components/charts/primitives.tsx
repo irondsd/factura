@@ -1,7 +1,8 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 
 export type ChartCurrency = "ARS" | "USD";
 
@@ -180,6 +181,23 @@ export function useChartCurrency(initial: ChartCurrency = "ARS") {
     setCurrency,
     toggle: <CurrencyToggle value={currency} onChange={setCurrency} />,
   };
+}
+
+/** True for the first beat after mount, then permanently false.
+ *
+ * Charts use it to play their entrance once — arriving over the skeleton — and
+ * then hold still: with recharts' animation left on, every currency toggle,
+ * legend click and month pick would replay the whole grow-in, which reads as a
+ * reload rather than a filter. Off entirely under reduced-motion, where the
+ * charts should simply be there. */
+export function useEntranceAnimation(ms = 800) {
+  const still = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setOn(false), ms);
+    return () => clearTimeout(id);
+  }, [ms]);
+  return on && !still;
 }
 
 /** Trend delta chip: ▲ up (accent, "bad" for spend) / ▼ down / · flat. */

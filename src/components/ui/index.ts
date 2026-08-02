@@ -10,6 +10,7 @@ export { Badge } from "./Badge";
 export { FilterPill } from "./FilterPill";
 export { Field } from "./Field";
 export { Avatar } from "./Avatar";
+export { Bone } from "./Bone";
 export { FinePrint } from "./FinePrint";
 export { Section } from "./Section";
 export { Label } from "./Label";

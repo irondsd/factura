@@ -3,9 +3,9 @@
 import { keepPreviousData } from "@tanstack/react-query";
 import { useState } from "react";
 import { useApp } from "@/components/app/context";
+import { OverviewSkeleton } from "@/components/app/views/OverviewSkeleton";
 import { OverviewView } from "@/components/app/views/OverviewView";
 import { WelcomeOverview } from "@/components/app/views/WelcomeOverview";
-import { FinePrint } from "@/components/ui";
 import { trpc } from "@/lib/trpc";
 
 export default function OverviewPage() {
@@ -31,8 +31,10 @@ export default function OverviewPage() {
     { placeholderData: keepPreviousData },
   );
 
+  // The ledger's first answer. A skeleton of the screen it's about to become,
+  // rather than a line of text the page then has to jump past.
   if (!overview.data) {
-    return <FinePrint className="mx-auto max-w-[64rem] px-5 py-8" />;
+    return <OverviewSkeleton />;
   }
 
   // A brand-new account has no parsed bills (no vendors present) and no active

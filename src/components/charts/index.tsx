@@ -249,6 +249,7 @@ export function StackedBarsFx({
   currency = "ARS",
   completeFlags,
   height = 220,
+  animate = false,
 }: {
   months: string[];
   stacks: Record<string, number>[];
@@ -256,6 +257,10 @@ export function StackedBarsFx({
   currency?: string;
   completeFlags?: boolean[];
   height?: number;
+  /** Grow the bars up from the axis on this render — the entrance out of the
+   * skeleton. Off by default so data changes don't replay it; see
+   * `useEntranceAnimation`. */
+  animate?: boolean;
 }) {
   const { locale } = useI18n();
   // Rank vendors once by their summed spend over the whole period, then use that
@@ -315,7 +320,9 @@ export function StackedBarsFx({
             dataKey={v.id}
             stackId="a"
             fill={v.color}
-            isAnimationActive={false}
+            isAnimationActive={animate}
+            animationDuration={650}
+            animationEasing="ease-out"
           >
             {data.map((_, i) => (
               <Cell key={i} fillOpacity={complete(i) ? 1 : 0.4} />
@@ -342,6 +349,7 @@ export function SpendOverTime({
   completeFlags,
   height = 220,
   className,
+  animate = false,
 }: {
   months: string[];
   stacks: Record<string, number>[];
@@ -350,6 +358,7 @@ export function SpendOverTime({
   completeFlags?: boolean[];
   height?: number;
   className?: string;
+  animate?: boolean;
 }) {
   const { hidden, toggle } = useHiddenSet();
   const shown = vendors.filter((v) => !hidden.has(v.id));
@@ -362,6 +371,7 @@ export function SpendOverTime({
         currency={currency}
         completeFlags={completeFlags}
         height={height}
+        animate={animate}
       />
       <Legend
         items={vendors.map((v) => ({
@@ -384,6 +394,7 @@ export function DonutFx({
   thickness = 30,
   centerLabel,
   centerSub,
+  animate = false,
 }: {
   // `id` keeps Cell keys unique when slices share a label (same vendor name in
   // different properties); falls back to label otherwise.
@@ -392,6 +403,8 @@ export function DonutFx({
   thickness?: number;
   centerLabel?: string;
   centerSub?: string;
+  /** Sweep the ring in on this render — the entrance out of the skeleton. */
+  animate?: boolean;
 }) {
   const r = size / 2 - 2;
   return (
@@ -408,7 +421,9 @@ export function DonutFx({
         endAngle={-270}
         paddingAngle={0.6}
         stroke="none"
-        isAnimationActive={false}
+        isAnimationActive={animate}
+        animationDuration={650}
+        animationEasing="ease-out"
       >
         {slices.map((s) => (
           <Cell key={s.id ?? s.label} fill={s.color} />
@@ -470,11 +485,13 @@ export function VendorShare({
   centerLabel,
   centerSub,
   emptyLabel,
+  animate = false,
 }: {
   slices: Slice[];
   centerLabel?: string;
   centerSub?: string;
   emptyLabel?: string;
+  animate?: boolean;
 }) {
   const { t } = useI18n();
   const { hidden, toggle } = useHiddenSet();
@@ -485,7 +502,12 @@ export function VendorShare({
   const total = shown.reduce((a, s) => a + s.value, 0) || 1;
   return (
     <div className="flex flex-wrap items-center gap-4 md:flex-nowrap">
-      <DonutFx slices={shown} centerLabel={centerLabel} centerSub={centerSub} />
+      <DonutFx
+        slices={shown}
+        centerLabel={centerLabel}
+        centerSub={centerSub}
+        animate={animate}
+      />
       <div className="flex flex-col gap-2 flex-1">
         {slices.map((s) => {
           const isHidden = hidden.has(s.id);

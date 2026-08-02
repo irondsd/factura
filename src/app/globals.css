@@ -9,6 +9,12 @@
   --accent: #d9480f;
   --ok: #6f7d52; /* muted olive — positive/valid state, pairs with --accent */
 
+  /* Skeleton fill. One step lighter than --line so a bone reads as a soft
+     placeholder on both the paper page and a --card surface, rather than as a
+     border that lost its box. --bone-hi is the travelling shimmer highlight. */
+  --bone: #e6dfcd;
+  --bone-hi: #f1ead9;
+
   /* Vendor palette — warm/muted earthy hues. Vendors store a color by *name*
      (see lib/vendorColors); these vars and the .vbg-* utilities below are the
      single source for the actual hex. Keep the name list in lib/vendorColors in
@@ -121,6 +127,31 @@
   .fd-td {
     @apply font-mono text-[13px] py-3 px-0;
     border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  }
+
+  /* Skeleton fill for a value the page doesn't know yet. See ui/Bone. */
+  .fd-bone {
+    color: transparent;
+    border-radius: 2px;
+    background-color: var(--bone);
+    background-image: linear-gradient(
+      90deg,
+      var(--bone) 0%,
+      var(--bone-hi) 50%,
+      var(--bone) 100%
+    );
+    background-size: 220% 100%;
+    animation: fd-bone-shimmer 1.5s linear infinite;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    user-select: none;
+  }
+  /* A text bone pads past the glyph box so it reads as a filled line rather
+     than a tight highlight. Padding on an *inline* box never grows the line
+     box — which is why a text bone is inline and why swapping it for the real
+     text moves nothing. */
+  .fd-bone-text {
+    padding: 0.24em 0.14em;
   }
 }
 
@@ -273,5 +304,32 @@ body {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* Bone shimmer: a highlight band sweeping left across the fill. */
+@keyframes fd-bone-shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -20% 0;
+  }
+}
+
+/* The loaded screen arriving over its skeleton. */
+@keyframes fd-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fd-bone {
+    animation: none;
+    background-image: none;
   }
 }

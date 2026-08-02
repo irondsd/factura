@@ -10,6 +10,7 @@ import {
   SparklineFx,
   SpendOverTime,
   useChartCurrency,
+  useEntranceAnimation,
   VendorShare,
 } from "@/components/charts";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -51,6 +52,10 @@ export function OverviewView({
   const donut = useChartCurrency();
   const bars = useChartCurrency();
   const trend = useChartCurrency();
+  // The screen arrives over its skeleton: the text fades up into the bones it
+  // replaces, and the charts draw themselves once on the way in. Both are
+  // first-mount only — a currency toggle or a month pick isn't an arrival.
+  const entering = useEntranceAnimation();
 
   const awaited = d.billsExpected - d.billsIn;
   // Lead with what the month is expected to cost rather than what has landed so
@@ -88,7 +93,7 @@ export function OverviewView({
   const monthTone = !d.isCurrentMonth && !d.closed ? "accent" : "muted";
 
   return (
-    <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
+    <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20 motion-safe:animate-[fd-fade-in_360ms_ease-out]">
       {/* hero */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className={fade}>
@@ -258,6 +263,7 @@ export function OverviewView({
             slices={slices}
             centerLabel={moneySym}
             centerSub={to.byVendor}
+            animate={entering}
           />
         </ChartCard>
 
@@ -273,6 +279,7 @@ export function OverviewView({
             currency={bars.currency}
             completeFlags={d.completeFlags}
             height={210}
+            animate={entering}
           />
         </ChartCard>
       </div>
