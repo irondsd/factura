@@ -165,17 +165,22 @@ export function MonthSwitcher({
       {open && (
         <>
           {/* Scrim behind the sheet. Phone only: the popover dismisses on an
-              outside click, which needs no surface of its own. */}
+              outside click, which needs no surface of its own.
+
+              Both layers clear z-50, where the app's persistent chrome lives —
+              top bar, drop overlay, and the upload FAB, which is fixed to the
+              same corner the sheet comes up from. They stay under the drawer
+              (70) and the modals (90+), which are meant to cover this. */}
           <div
             onClick={() => setOpen(false)}
-            className="fixed inset-0 z-40 bg-[rgb(33_29_22/0.3)] sm:hidden"
+            className="fixed inset-0 z-[60] bg-[rgb(33_29_22/0.3)] sm:hidden"
           />
           <div
             role="dialog"
             aria-label={to.pickMonth}
             className={cn(
               // Phone: a bottom sheet, flush with the edge of the screen.
-              "fixed inset-x-0 bottom-0 z-50 border-t border-line bg-card px-[18px] pt-2.5 pb-[30px] shadow-[0_-8px_30px_-12px_rgb(33_29_22/0.35)]",
+              "fixed inset-x-0 bottom-0 z-[61] border-t border-line bg-card px-[18px] pt-2.5 pb-[30px] shadow-[0_-8px_30px_-12px_rgb(33_29_22/0.35)]",
               // sm+: a torn receipt hanging off the month label.
               "receipt-edge-sm sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-[calc(100%+10px)] sm:w-[min(560px,calc(100vw-2.5rem))] sm:border sm:px-4 sm:pt-3.5 sm:pb-[26px] sm:shadow-pop",
             )}
