@@ -368,6 +368,7 @@
     "settled": "settled · in ledger",
     "closed": "closed",
     "closedMonth": "Closed month",
+    "incompleteMonth": "Incomplete month",
     "inLedgerOne": "1 bill in ledger",
     "inLedgerOther": "{n} bills in ledger",
     "noBillsThisMonth": "No bills in this month.",

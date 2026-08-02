@@ -295,9 +295,10 @@ function demoPredictionHistory(
 }
 
 /** Overview for `month` (defaults to, and never exceeds, the current month).
- * A past month reads as a closed one: what the ledger holds, nothing awaited.
- * The trend and share below stay anchored to today either way — see the
- * matching note on the `overview` procedure. */
+ * A month is closed once every vendor's bill is in — the demo's ledger is
+ * unbroken behind it, so only the current month is ever open. The trend and
+ * share below stay anchored to today whatever is picked — see the matching
+ * note on the `overview` procedure. */
 export function demoOverview(month?: string): Overview {
   const now = nowMonth();
   const target = month && month >= EPOCH && month < now ? month : now;
@@ -348,8 +349,13 @@ export function demoOverview(month?: string): Overview {
     property: demoProperty,
     month: target,
     isCurrentMonth,
-    // The demo's ledger runs unbroken from EPOCH to today.
-    selectableMonths: monthRange(EPOCH, now),
+    closed: received.length === awaiting.length,
+    // The demo's ledger runs unbroken from EPOCH to today, and every vendor
+    // bills every month — so the only month still owed anything is this one.
+    monthOptions: monthRange(EPOCH, now).map((m) => ({
+      month: m,
+      closed: VENDORS.every((v) => hasBill(v.key, m, now)),
+    })),
     thisMonthTotal: received.reduce((s, a) => s + (a.amount ?? 0), 0),
     thisMonthUsd: received.reduce((s, a) => s + (a.usd ?? 0), 0),
     expectedTotal: awaiting.reduce(

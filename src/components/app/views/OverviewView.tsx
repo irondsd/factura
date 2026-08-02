@@ -58,8 +58,9 @@ export function OverviewView({
   // month — the loudest element on the screen saying the least. Needs an actual
   // estimate to show: an account with no history contributes nothing, so a
   // brand-new property falls back to the plain total rather than "≈ $0".
-  // A closed month is never expected: it's what the ledger holds.
-  const showExpected = d.isCurrentMonth && awaited > 0 && d.expectedTotal > 0;
+  // A month with a bill still missing leads with the estimate whether or not it
+  // has ended — a June that never got its gas bill is not a smaller June.
+  const showExpected = awaited > 0 && d.expectedTotal > 0;
   const moneySym = donut.currency === "USD" ? "US$" : "AR$";
   const slices = toSlices(d.byCurrency[donut.currency].share, d.vendors);
 
@@ -76,6 +77,16 @@ export function OverviewView({
     pending && "opacity-40 translate-y-[3px]",
   );
 
+  // Three states, not two: the month you're in, a month that's done, and a past
+  // month still owed a bill. The last one is the one worth colouring — it's an
+  // upload the reader can still go and make.
+  const monthLabel = d.isCurrentMonth
+    ? to.thisMonth
+    : d.closed
+      ? to.closedMonth
+      : to.incompleteMonth;
+  const monthTone = !d.isCurrentMonth && !d.closed ? "accent" : "muted";
+
   return (
     <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
       {/* hero */}
@@ -87,7 +98,7 @@ export function OverviewView({
             </span>
             <MonthSwitcher
               month={d.month}
-              selectable={d.selectableMonths}
+              options={d.monthOptions}
               onSelect={onMonthChange}
             />
             {/* "so far" describes a partial total, not a whole-month estimate —
@@ -122,16 +133,16 @@ export function OverviewView({
               <>
                 {/* A closed month has no expectation left to report against, so
                     it counts what it holds rather than "4 of 4". */}
-                {d.isCurrentMonth
-                  ? interpolate(to.billsIn, {
-                      in: d.billsIn,
-                      expected: d.billsExpected,
-                    })
-                  : `${to.closed} · ${
+                {!d.isCurrentMonth && d.closed
+                  ? `${to.closed} · ${
                       d.billsIn === 1
                         ? to.inLedgerOne
                         : interpolate(to.inLedgerOther, { n: d.billsIn })
-                    }`}
+                    }`
+                  : interpolate(to.billsIn, {
+                      in: d.billsIn,
+                      expected: d.billsExpected,
+                    })}
                 {d.thisMonthUsd > 0 && (
                   <span> · ≈ {formatUSD(d.thisMonthUsd)}</span>
                 )}
@@ -158,8 +169,8 @@ export function OverviewView({
       {/* awaiting model — in a closed month, simply what the ledger holds */}
       {(d.awaiting.length > 0 || !d.isCurrentMonth) && (
         <div className={cn("mt-7", fade)}>
-          <Eyebrow className="mb-3">
-            {d.isCurrentMonth ? to.thisMonth : to.closedMonth}
+          <Eyebrow className="mb-3" tone={monthTone}>
+            {monthLabel}
           </Eyebrow>
           {d.awaiting.length === 0 && (
             <p className="font-mono text-[13px] text-muted">

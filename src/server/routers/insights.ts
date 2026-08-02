@@ -8,8 +8,13 @@ import {
   vendorAccounts,
   vendors,
 } from "@/db/schema";
-import { forecast, type Observation } from "@/lib/forecast";
-import { resolveWindowMonths } from "@/lib/insights";
+import {
+  detectCadence,
+  forecast,
+  isDue,
+  type Observation,
+} from "@/lib/forecast";
+import { monthRange, resolveWindowMonths } from "@/lib/insights";
 import type { FieldType } from "@/parsers/engine/types";
 import { billRateDate, recentFxSeries, usdRateLookup } from "../fx";
 import { accessibleProperties, scopeIds } from "../ownership";
@@ -94,6 +99,25 @@ const windowInput = { from: monthTag.optional(), to: monthTag.optional() };
 const windowMonths = (from?: string, to?: string) =>
   resolveWindowMonths(from, to, nowMonth());
 
+/** Whether `account` was expected to bill in `month`, judged only on what the
+ * ledger knew going into it — the same cadence test the forecaster applies,
+ * without the estimate. `billed` is every month the account has a bill for.
+ *
+ * Two silences are not a missing bill: a month before the account's first bill
+ * (it didn't exist yet), and an off-cycle month for anything that doesn't bill
+ * monthly. An account with no bills at all is only ever expected *now* — that's
+ * the prompt-for-a-first-upload case, and it says nothing about last March. */
+function expectedIn(
+  billed: string[],
+  month: string,
+  isCurrentMonth: boolean,
+): boolean {
+  if (billed.length === 0) return isCurrentMonth;
+  if (month < billed[0]) return false;
+  const before = billed.filter((m) => m < month);
+  return isDue(before[before.length - 1] ?? null, month, detectCadence(before));
+}
+
 /** The selectable span for the range control: earliest parsed bill → this month.
  * Drives the custom-range dropdowns and drag bar; `earliest` is null with no data. */
 function boundsOf(parsed: EnrichedBill[]): {
@@ -113,10 +137,14 @@ export const insightsRouter = router({
   /** Overview screen: a month snapshot + last-12 trend + vendor share.
    *
    * `month` picks which snapshot the hero and the vendor cards describe. It
-   * defaults to (and can never exceed) the current month; a past month reads as
-   * a closed one — what the ledger holds, no forecast, nothing awaited. The
-   * trend and share below stay anchored to today whatever is selected, because
-   * "last 12 complete months" is a property of the ledger, not of the pick. */
+   * defaults to (and can never exceed) the current month. A past month gets the
+   * same treatment as this one — including estimates for bills that never
+   * arrived — with the model's view of history cut off at that month so the
+   * estimate isn't made with the answer in hand. `closed` says whether every
+   * bill due that month is in; `monthOptions` says the same for every month the
+   * switcher can reach. The trend and share below stay anchored to today
+   * whatever is selected, because "last 12 complete months" is a property of
+   * the ledger, not of the pick. */
   overview: protectedProcedure
     .input(
       z.object({
@@ -157,18 +185,45 @@ export const insightsRouter = router({
         });
         histories.set(b.accountId, list);
       }
+      // What the model is allowed to know. Estimating a past month from a
+      // history that already contains it — or the months after it — is
+      // hindsight wearing a prediction's clothes, so for anything but the
+      // current month the record is cut off at the month being read.
+      const knowable = (obs: Observation[]) =>
+        isCurrentMonth ? obs : obs.filter((o) => o.month < target);
       // Every account in scope, this one included — that's the shared drift
       // signal, and an account's own history belongs in the pool.
-      const household = [...histories.values()];
+      const household = [...histories.values()]
+        .map(knowable)
+        .filter((h) => h.length > 0);
       const period = `${target}-01`;
-      // Only the forecaster reads this, and it only runs for the current month.
-      const fx = isCurrentMonth ? await recentFxSeries(ctx.db, period) : [];
+      const fx = await recentFxSeries(ctx.db, period);
+
+      // Which months are fully accounted for. A month is closed when every
+      // account that was due to bill in it actually did — the same question the
+      // charts' completeness flags ask, but per account and cadence-aware, so a
+      // bi-monthly vendor's off month doesn't read as a hole. Both the header
+      // and the month switcher's markers come from this one function, so they
+      // can't disagree about which months still need a bill.
+      const billedBy = new Map(
+        accounts.map((a) => [
+          a.id,
+          (histories.get(a.id) ?? []).map((o) => o.month).sort(),
+        ]),
+      );
+      const closedIn = (m: string) => {
+        const due = accounts.filter((a) =>
+          expectedIn(billedBy.get(a.id)!, m, m === now),
+        );
+        return (
+          due.length > 0 && due.every((a) => billedBy.get(a.id)!.includes(m))
+        );
+      };
 
       // What we already told the user to expect in this month. Once a period has
       // a stored row it IS the forecast for that period — hero, cards and the
       // over/under all read the same figure, and it stops drifting day to day
-      // as the blue rate moves. Recomputation only happens where no row exists,
-      // which in a closed month is nowhere.
+      // as the blue rate moves. Recomputation only happens where no row exists.
       const savedRows = accounts.length
         ? await ctx.db.query.forecasts.findMany({
             where: and(
@@ -183,15 +238,14 @@ export const insightsRouter = router({
       const savedBy = new Map(savedRows.map((r) => [r.accountId, r]));
       const fresh: (typeof forecasts.$inferInsert)[] = [];
 
-      // Awaiting model: each active account either has a bill this month, or
-      // we show its last received bill (calm, not "missing") alongside what we
+      // Awaiting model: each active account either has a bill that month, or we
+      // show its last received bill (calm, not "missing") alongside what we
       // expect it to come in at. Accounts that aren't on-cycle drop out.
       //
-      // A closed month has nothing to await: the cards are exactly the bills
-      // that landed, and the forecaster never runs — its own history already
-      // contains the answer, so anything it produced there would be hindsight
-      // wearing a prediction's clothes. The stored row for that period is still
-      // read, because that one WAS committed before the bill arrived.
+      // A past month runs the same model, not a narrower one. A bill that never
+      // arrived is still missing in September just as it was in June, and the
+      // estimate beside it is what says how big the hole is — dropping the card
+      // would quietly restate an incomplete month as a smaller complete one.
       const awaiting = accounts.flatMap((a) => {
         const v = vendorById.get(a.vendorId)!;
         const past = parsed
@@ -202,33 +256,40 @@ export const insightsRouter = router({
         // $32.000" has to mean last relative to the month being read.
         const last = past.find((b) => b.period! <= period);
 
-        const f = isCurrentMonth
-          ? forecast({
-              history: histories.get(a.id) ?? [],
-              household,
-              fx,
-              target,
-            })
-          : null;
-
         // A bi-monthly (or quarterly, or annual) account is not "awaiting"
         // anything in the months it simply doesn't bill. Without this it nags
         // every month and inflates both the expected count and the total. A
         // bill that actually arrived always counts, whatever cadence says.
-        // In a closed month there is no cadence to consult: no bill, no card.
-        if (!thisMonth && !f?.due) return [];
+        if (
+          !thisMonth &&
+          !expectedIn(billedBy.get(a.id)!, target, isCurrentMonth)
+        )
+          return [];
+
+        const f = forecast({
+          history: knowable(histories.get(a.id) ?? []),
+          household,
+          fx,
+          target,
+        });
 
         // A stored row wins over anything recomputed now — that is the freeze.
         const saved = savedBy.get(a.id);
-        const expected = saved ? Number(saved.pointArs) : (f?.point ?? null);
+        const expected = saved ? Number(saved.pointArs) : f.point;
         const amount =
           thisMonth?.totalAmount != null ? Number(thisMonth.totalAmount) : null;
 
-        // Only record a prediction for an account that hasn't billed yet.
-        // "Predicting" a bill already sitting in the history isn't a
-        // prediction, and storing one would make the over/under readout
-        // compare against a figure produced with the answer in hand.
-        if (!saved && !thisMonth && f && f.point != null && f.point > 0) {
+        // Only record a prediction for an account that hasn't billed yet, and
+        // only for the month we're actually living in. "Predicting" a bill
+        // already sitting in the history isn't a prediction, and backdating one
+        // into a month that has come and gone is not a forecast we ever made.
+        if (
+          isCurrentMonth &&
+          !saved &&
+          !thisMonth &&
+          f.point != null &&
+          f.point > 0
+        ) {
           fresh.push({
             accountId: a.id,
             period,
@@ -251,10 +312,10 @@ export const insightsRouter = router({
             lastAmount:
               last?.totalAmount != null ? Number(last.totalAmount) : null,
             expected,
-            expectedLow: saved ? Number(saved.lowArs) : (f?.low ?? null),
-            expectedHigh: saved ? Number(saved.highArs) : (f?.high ?? null),
-            basis: saved ? saved.basis : (f?.basis ?? null),
-            confidence: saved ? saved.confidence : (f?.confidence ?? null),
+            expectedLow: saved ? Number(saved.lowArs) : f.low,
+            expectedHigh: saved ? Number(saved.highArs) : f.high,
+            basis: saved ? saved.basis : f.basis,
+            confidence: saved ? saved.confidence : f.confidence,
             // How the real bill landed against what we said it would be. Only
             // ever present when a stored row exists, which by the rule above
             // means we committed to the number before the bill arrived.
@@ -289,17 +350,17 @@ export const insightsRouter = router({
       const months = monthList(now, 12);
       const completeFlags = completeFlagsFor(months, parsed);
 
-      // What the month switcher can reach: every month the ledger has a bill
-      // for, plus the current one — which is always selectable even on a brand
-      // new account, since it's the month the forecast is about.
-      const selectableMonths = [
-        ...new Set([
-          ...parsed
-            .map((b) => b.period?.slice(0, 7))
-            .filter((m): m is string => m != null && m <= now),
-          now,
-        ]),
-      ].sort();
+      // What the month switcher can reach, and which of those months still owe
+      // a bill. The span runs unbroken from the earliest bill to today rather
+      // than skipping to the months that have one: a month with nothing in it
+      // at all is the biggest hole there is, and leaving it unreachable would
+      // hide it. `closed` is what the switcher marks — the whole point being
+      // that an incomplete month is visible before you go looking for it.
+      const earliest = boundsOf(parsed).earliest;
+      const monthOptions = monthRange(earliest ?? now, now).map((m) => ({
+        month: m,
+        closed: closedIn(m),
+      }));
 
       const presentVendorIds = new Set(
         parsed.map((b) => b.vendorId).filter((x): x is string => Boolean(x)),
@@ -323,7 +384,8 @@ export const insightsRouter = router({
           : null,
         month: target,
         isCurrentMonth,
-        selectableMonths,
+        closed: closedIn(target),
+        monthOptions,
         thisMonthTotal,
         thisMonthUsd,
         expectedTotal,

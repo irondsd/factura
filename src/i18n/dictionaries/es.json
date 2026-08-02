@@ -368,6 +368,7 @@
     "settled": "liquidada · en el registro",
     "closed": "cerrado",
     "closedMonth": "Mes cerrado",
+    "incompleteMonth": "Mes incompleto",
     "inLedgerOne": "1 factura en el registro",
     "inLedgerOther": "{n} facturas en el registro",
     "noBillsThisMonth": "No hay facturas en este mes.",
