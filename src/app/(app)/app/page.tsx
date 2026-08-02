@@ -9,7 +9,7 @@ import { WelcomeOverview } from "@/components/app/views/WelcomeOverview";
 import { trpc } from "@/lib/trpc";
 
 export default function OverviewPage() {
-  const { propertyId } = useApp();
+  const { propertyId, propertyReady } = useApp();
   // Which month the forecast block describes. `undefined` means "the current
   // one" and lets the server decide what that is, so the page can't disagree
   // with the ledger about today.
@@ -26,9 +26,14 @@ export default function OverviewPage() {
 
   const overview = trpc.insights.overview.useQuery(
     { propertyId, month },
-    // Keep the month you were reading on screen while the next one loads: the
-    // whole page would otherwise drop to a skeleton on every pick.
-    { placeholderData: keepPreviousData },
+    {
+      // Keep the month you were reading on screen while the next one loads: the
+      // whole page would otherwise drop to a skeleton on every pick.
+      placeholderData: keepPreviousData,
+      // Idle until the URL's property name has resolved — asking now would ask
+      // about every property and paint that answer first.
+      enabled: propertyReady,
+    },
   );
 
   // The ledger's first answer. A skeleton of the screen it's about to become,

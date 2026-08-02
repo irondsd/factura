@@ -12,17 +12,26 @@ import { trpc } from "@/lib/trpc";
 // query stays idle until an actual vendor is picked (enabled gate). Both queries
 // keep the previous window's data on screen while a new range loads, so dragging
 // the range control (or switching presets) never flashes the charts to a spinner.
+// Both also wait on `propertyReady`: until the URL's `?property=` name resolves
+// to an id, asking would chart every property and then replace it.
 const source: InsightsSource = {
-  useSeries: (propertyId, win) =>
-    trpc.insights.series.useQuery(
+  useSeries: (propertyId, win) => {
+    const { propertyReady } = useApp();
+    return trpc.insights.series.useQuery(
       { propertyId, ...win },
-      { placeholderData: keepPreviousData },
-    ).data,
-  useVendorDetail: (propertyId, vendorId, win) =>
-    trpc.insights.vendorDetail.useQuery(
+      { enabled: propertyReady, placeholderData: keepPreviousData },
+    ).data;
+  },
+  useVendorDetail: (propertyId, vendorId, win) => {
+    const { propertyReady } = useApp();
+    return trpc.insights.vendorDetail.useQuery(
       { propertyId, vendorId, ...win },
-      { enabled: vendorId !== "all", placeholderData: keepPreviousData },
-    ).data,
+      {
+        enabled: propertyReady && vendorId !== "all",
+        placeholderData: keepPreviousData,
+      },
+    ).data;
+  },
 };
 
 export default function InsightsPage() {

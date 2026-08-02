@@ -59,6 +59,11 @@ function AppShell({
     return match?.id;
   }, [rawParam, properties.data]);
 
+  // A name can only be resolved once the list is here. Until then the choice is
+  // unknown — consumers that treat `undefined` as "All" would otherwise load
+  // and paint every property before the real selection arrives.
+  const propertyReady = !rawParam || properties.data !== undefined;
+
   const setPropertyId = useCallback(
     (id?: string) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -74,8 +79,8 @@ function AppShell({
   );
 
   const value = useMemo(
-    () => ({ propertyId, setPropertyId }),
-    [propertyId, setPropertyId],
+    () => ({ propertyId, propertyReady, setPropertyId }),
+    [propertyId, propertyReady, setPropertyId],
   );
 
   return (
