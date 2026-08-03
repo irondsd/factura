@@ -1,3 +1,4 @@
+import { accountRouter } from "./routers/account";
 import { billsRouter } from "./routers/bills";
 import {
   accountsRouter,
@@ -15,6 +16,7 @@ export const appRouter = router({
   accounts: accountsRouter,
   insights: insightsRouter,
   parsers: parsersRouter,
+  account: accountRouter,
 });
 
 export type AppRouter = typeof appRouter;

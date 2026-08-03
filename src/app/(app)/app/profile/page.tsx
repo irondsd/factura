@@ -74,6 +74,20 @@ export default function ProfilePage() {
       <Button variant="outline" onClick={() => router.push("/app/parsers")}>
         {tp.parsers.manage}
       </Button>
+
+      {/* danger — the deletion itself lives on its own page, outside the app
+          shell, so the confirmation survives the session it destroys */}
+      <h2 className="mt-14 mb-1">
+        <Eyebrow tone="accent">{tp.danger.eyebrow}</Eyebrow>
+      </h2>
+      <p className={help}>{tp.danger.help}</p>
+      <Button
+        variant="outline"
+        className="border-accent text-accent"
+        onClick={() => router.push("/delete-account")}
+      >
+        {tp.danger.manage}
+      </Button>
     </div>
   );
 }

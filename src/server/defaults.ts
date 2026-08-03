@@ -99,9 +99,14 @@ export async function seedParserConfigs(db: Database): Promise<number> {
   for (const config of ENGINE_CONFIGS) {
     const { slug, version, vendor, ...body } = config;
     const meta = OFFICIAL_PARSER_META[slug];
+    // Ownerless is no longer the same thing as official: a published community
+    // package is orphaned (rather than deleted) when its author deletes their
+    // account, so the tier has to be part of the match or one of those could be
+    // mistaken for the platform row of the same slug.
     const existing = await db.query.parserConfigs.findFirst({
       where: and(
         isNull(parserConfigs.ownerId),
+        eq(parserConfigs.tier, "official"),
         eq(parserConfigs.slug, config.slug),
       ),
     });
