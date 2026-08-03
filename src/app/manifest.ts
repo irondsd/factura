@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { SHARE_ACTION } from "@/lib/shareTarget";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -23,7 +24,10 @@ export default function manifest(): MetadataRoute.Manifest {
     // wouldn't ride along with it. Chromium-only: WebKit has never shipped
     // share_target, so iOS keeps using the upload button.
     share_target: {
-      action: "/share-target",
+      // Imported, not spelled out: this is the copy production actually obeys,
+      // and a rename here with the worker left behind kills the feature with
+      // every test still green.
+      action: SHARE_ACTION,
       method: "POST",
       enctype: "multipart/form-data",
       // `accept` is what keeps Factura out of the share sheet for photos and

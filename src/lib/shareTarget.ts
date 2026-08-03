@@ -8,6 +8,13 @@
 export const SHARE_CACHE = "factura-share-target";
 export const SHARE_PREFIX = "/__shared/";
 
+/** The path Android POSTs a share to. Four things have to agree on it and only
+ * this one is importable: the manifest's `share_target.action` (which is what
+ * the browser actually obeys), the worker's own copy in public/sw.js, the
+ * fallback route's directory name, and the proxy matcher's exclusion list —
+ * the last two can't import it, so shareTarget.test.ts asserts them instead. */
+export const SHARE_ACTION = "/share-target";
+
 /** Query param carrying the share id onto /app. */
 export const SHARE_PARAM = "share";
 

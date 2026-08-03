@@ -1,6 +1,8 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { config as proxyConfig } from "@/proxy";
 import {
+  SHARE_ACTION,
   SHARE_CACHE,
   SHARE_DENIED,
   SHARE_PREFIX,
@@ -43,7 +45,10 @@ function install(entries: Record<string, Blob>) {
   return store;
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 describe("takeSharedFiles", () => {
   it("rebuilds the shared files, names and all", async () => {
@@ -121,6 +126,30 @@ describe("takeSharedFiles", () => {
   });
 });
 
+/* The share path is spelled out in four places and only one of them can import
+ * it. The worker's copy is pinned by the round-trip tests below (they POST to
+ * SHARE_ACTION, so a worker listening elsewhere simply never answers) and the
+ * manifest now imports it outright — these cover the two that can't. */
+describe("the share path everything has to agree on", () => {
+  it("has a fallback route handler sitting at it", () => {
+    // The directory name *is* the route, so it can't reference the constant.
+    // Without this, renaming SHARE_ACTION leaves first-launch shares — before
+    // the worker is running — hitting a 404 instead of a graceful retry.
+    const route = new URL(`../app${SHARE_ACTION}/route.ts`, import.meta.url);
+    expect(existsSync(route)).toBe(true);
+  });
+
+  it("is excluded from the proxy's landing-page rewrite", () => {
+    // Next statically analyzes the matcher, so it has to stay a literal — the
+    // only way to tie it to SHARE_ACTION is to run it. A share that slips
+    // through gets rewritten to /es/share-target and 404s.
+    const matcher = new RegExp(`^${proxyConfig.matcher[0]}$`);
+    expect(matcher.test(SHARE_ACTION)).toBe(false);
+    // Positive control: the matcher is doing something, not just never matching.
+    expect(matcher.test("/precios")).toBe(true);
+  });
+});
+
 /** Stand-ins for the worker's `GET /api/auth/session` probe: a live session, no
  * session at all, and an endpoint that can't be reached. */
 const session = {
@@ -168,7 +197,10 @@ type Worker = ReturnType<typeof loadServiceWorker>;
 /** Push a share POST through the worker's fetch handler. Returns the reply plus
  * the request itself, so a test can check the body was never even read. */
 async function share(worker: Worker, form: FormData) {
-  const request = new Request(`${ORIGIN}/share-target`, {
+  // Built from the exported constant, the same one the manifest hands Android —
+  // so this stands in for the real browser rather than for public/sw.js's
+  // private copy of the path. If those two ever disagree, nothing responds.
+  const request = new Request(`${ORIGIN}${SHARE_ACTION}`, {
     method: "POST",
     body: form,
   });
@@ -298,10 +330,19 @@ describe("public/sw.js", () => {
       [key("stale", 0, "old.pdf")]: new Blob(["%PDF old"]),
     });
     vi.stubGlobal("caches", caches);
+    // This is the one path that's *meant* to throw, so the worker's warning is
+    // expected output, not a symptom. Assert on it rather than muting it: it's
+    // the only breadcrumb explaining a share that failed for reasons the page
+    // can't see, and it keeps the stack trace out of a passing test run.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const worker = loadServiceWorker(caches, session.unreachable);
 
     const { response } = await share(worker, oneBill());
 
+    expect(warn).toHaveBeenCalledWith(
+      "[sw] could not check the session:",
+      expect.any(TypeError),
+    );
     // Can't confirm a session, so nothing new is written — but an unanswerable
     // check mustn't destroy a share that may still be waiting to be consumed.
     expect([...store.keys()].join()).toContain("old.pdf");
