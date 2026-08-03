@@ -30,8 +30,10 @@ type PendingConfirm = {
 };
 
 type BillIngestValue = {
-  /** Upload each PDF to the ingest API, which extracts, stores, and ingests it. */
-  handleFiles: (files: FileList) => Promise<void>;
+  /** Upload each PDF to the ingest API, which extracts, stores, and ingests it.
+   * Takes a `FileList` straight off an <input> or a drop, or a plain array —
+   * which is what a share from the Android share sheet arrives as. */
+  handleFiles: (files: FileList | File[]) => Promise<void>;
   /** True while an ingest batch is in flight. */
   busy: boolean;
 };
@@ -69,7 +71,7 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
   });
 
   const handleFiles = useCallback(
-    async (files: FileList) => {
+    async (files: FileList | File[]) => {
       setBusy(true);
       for (const file of Array.from(files)) {
         const isPdf =

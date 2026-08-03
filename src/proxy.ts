@@ -14,8 +14,8 @@ import { LOCALE_COOKIE, type Locale } from "@/i18n/config";
 //     language). Signed-in visitors are left untouched: their saved preference
 //     (set via the in-app switch, mirrored to the DB) must win over passive
 //     browsing, and is never silently overridden.
-// The matcher excludes /app, /login, /delete-account, /api, /_next, and files,
-// so the app keeps its cookie-driven locale untouched.
+// The matcher excludes /app, /login, /delete-account, /api, /share-target,
+// /_next, and files, so the app keeps its cookie-driven locale untouched.
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
@@ -71,10 +71,11 @@ export function proxy(request: NextRequest): NextResponse {
 
 export const config = {
   // Run on landing paths only — exclude the app, auth, account deletion, API,
-  // the PostHog reverse proxy (/ingest/*, rewritten in next.config), Next
-  // internals, and any file with an extension (favicon, sitemap.xml,
-  // robots.txt, og images…).
+  // the share-target endpoint (a PWA share POST, which has no business being
+  // rewritten into the localized landing tree), the PostHog reverse proxy
+  // (/ingest/*, rewritten in next.config), Next internals, and any file with an
+  // extension (favicon, sitemap.xml, robots.txt, og images…).
   matcher: [
-    "/((?!api|ingest|_next/static|_next/image|app|login|delete-account|.*\\..*).*)",
+    "/((?!api|ingest|_next/static|_next/image|app|login|delete-account|share-target|.*\\..*).*)",
   ],
 };
