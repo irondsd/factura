@@ -812,6 +812,7 @@
     "errorSendCode": "Couldn't send a code. Check the address and try again.",
     "errorGoogleUnverified": "Google couldn't confirm your email. Sign in with your email and a code.",
     "errorAccountNotLinked": "That email already has an account. Sign in with your email and a code.",
+    "shareSignIn": "Sign in to save a shared bill — nothing was stored on this device. Share it again once you're in.",
     "back": "← Back"
   },
   "legal": {

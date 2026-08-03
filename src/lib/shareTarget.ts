@@ -11,6 +11,11 @@ export const SHARE_PREFIX = "/__shared/";
 /** Query param carrying the share id onto /app. */
 export const SHARE_PARAM = "share";
 
+/** Sent to /login instead of a share id when the share arrived with no session.
+ * The worker refuses to write a bill it can't file under anyone, so there is no
+ * id to hand over: the user signs in and shares again. */
+export const SHARE_DENIED = "denied";
+
 /** Take the files a share left behind, clearing them as we go — a share is
  * consumed once. Returns `[]` when there's nothing under the id: an already
  * consumed share, or the `failed` sentinel the worker (or the route-handler

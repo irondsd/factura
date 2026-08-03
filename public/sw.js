@@ -10,12 +10,22 @@
  * in the Cache API and the app is sent to a plain GET, which does carry the
  * session — from there the normal in-app upload path takes over.
  *
- * This file is served raw from /public, so it can't import anything. The three
+ * Nothing is written for a signed-out share. The worker asks Auth.js who the
+ * user is first (that fetch is same-origin, so the cookie rides along) and, if
+ * the answer is nobody, refuses the share and sends them to /login without ever
+ * reading the body — a bill it can't file under an account has no business
+ * sitting on the device.
+ *
+ * This file is served raw from /public, so it can't import anything. The
  * constants below are mirrored in src/lib/shareTarget.ts; keep them in sync. */
 
 const SHARE_CACHE = "factura-share-target";
 const SHARE_PREFIX = "/__shared/";
 const SHARE_ACTION = "/share-target";
+const SHARE_DENIED = "denied";
+// Auth.js exposes the current session here. The share POST can't carry the
+// cookie, but a fetch the worker makes itself is same-origin and does.
+const SESSION_ENDPOINT = "/api/auth/session";
 
 self.addEventListener("install", () => {
   // Nothing to precache, so there's no reason to sit in "waiting": take over
@@ -36,7 +46,43 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(receiveShare(request));
 });
 
+/** Is there a live session on this device? `null` when the question can't be
+ * answered at all (offline, endpoint down) — that's not a "yes", so nothing
+ * gets written either way, but it's not grounds for shoving someone at a login
+ * screen they may not need. */
+async function hasSession() {
+  try {
+    const res = await fetch(SESSION_ENDPOINT, {
+      credentials: "include",
+      cache: "no-store",
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    const session = await res.json();
+    return Boolean(session && session.user);
+  } catch (err) {
+    console.warn("[sw] could not check the session:", err);
+    return null;
+  }
+}
+
 async function receiveShare(request) {
+  // Settle who this is *before* touching the body. A bill is a private
+  // document, so a share that arrives without a session is refused outright:
+  // the file is never written to the device, and there's nothing left behind
+  // for the next person to sign in on this browser. The user signs in and
+  // shares again — the POST body is not worth persisting to save them a step.
+  const signedIn = await hasSession();
+  if (signedIn === false) {
+    // Also a good moment to drop anything an earlier share abandoned: with no
+    // session there is nobody those files can still belong to. Only on a
+    // definite "no" — an unanswerable check is not grounds for deleting a
+    // share that may yet be consumed.
+    await clearShares();
+    return seeOther(`/login?share=${SHARE_DENIED}`);
+  }
+  if (signedIn === null) return seeOther("/app?share=failed");
+
   // An id the page can't confuse with a real share: when it finds nothing under
   // this one it tells the user the share didn't come through.
   let shareId = "failed";
@@ -46,11 +92,11 @@ async function receiveShare(request) {
       .getAll("file")
       .filter((file) => file instanceof File && file.size > 0);
     if (files.length > 0) {
-      const cache = await caches.open(SHARE_CACHE);
       // One share at a time. The page deletes what it consumes, so anything
       // still here belongs to a share the user abandoned — a new share
       // supersedes it rather than letting the cache grow forever.
-      for (const stale of await cache.keys()) await cache.delete(stale);
+      await clearShares();
+      const cache = await caches.open(SHARE_CACHE);
       shareId = crypto.randomUUID();
       await Promise.all(
         files.map((file, index) =>
@@ -71,10 +117,22 @@ async function receiveShare(request) {
     console.error("[sw] share target failed:", err);
   }
 
-  // 303 turns the share POST into a GET navigation — the whole reason this is
-  // handled in the worker instead of on the server.
-  return Response.redirect(
-    new URL(`/app?share=${shareId}`, self.location.origin),
-    303,
-  );
+  return seeOther(`/app?share=${shareId}`);
+}
+
+/** Empty the share cache. Best-effort: failing to tidy up is never a reason to
+ * fail the share itself. */
+async function clearShares() {
+  try {
+    const cache = await caches.open(SHARE_CACHE);
+    for (const stale of await cache.keys()) await cache.delete(stale);
+  } catch (err) {
+    console.warn("[sw] could not clear the share cache:", err);
+  }
+}
+
+/** 303 turns the share POST into a GET navigation — the whole reason this is
+ * handled in the worker instead of on the server. */
+function seeOther(path) {
+  return Response.redirect(new URL(path, self.location.origin), 303);
 }

@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { SHARE_CACHE, SHARE_PREFIX, takeSharedFiles } from "./shareTarget";
+import {
+  SHARE_CACHE,
+  SHARE_DENIED,
+  SHARE_PREFIX,
+  takeSharedFiles,
+} from "./shareTarget";
 
 const ORIGIN = "https://factura.test";
 
@@ -112,20 +117,37 @@ describe("takeSharedFiles", () => {
     // would silently strand every shared file.
     expect(SHARE_CACHE).toBe("factura-share-target");
     expect(SHARE_PREFIX).toBe("/__shared/");
+    expect(SHARE_DENIED).toBe("denied");
   });
 });
+
+/** Stand-ins for the worker's `GET /api/auth/session` probe: a live session, no
+ * session at all, and an endpoint that can't be reached. */
+const session = {
+  live: async () =>
+    Response.json({ user: { email: "vecina@factura.test" }, expires: "…" }),
+  none: async () => Response.json({}),
+  unreachable: async () => {
+    throw new TypeError("Failed to fetch");
+  },
+};
 
 /** Runs the real public/sw.js against a fake worker global, so the two halves
  * of the share flow are tested against each other rather than against a
  * restatement of the key format. The worker is served raw and never imported,
  * so this is the only thing standing between a typo in it and a share sheet
- * that quietly drops bills. */
-function loadServiceWorker(cacheStorage: unknown) {
+ * that quietly drops bills. `fetch` is injected rather than stubbed globally so
+ * each test can say who is signed in. */
+function loadServiceWorker(
+  cacheStorage: unknown,
+  sessionFetch: () => Promise<Response> = session.live,
+) {
   const source = readFileSync(
     new URL("../../public/sw.js", import.meta.url),
     "utf8",
   );
   const listeners = new Map<string, (event: unknown) => void>();
+  const asked: string[] = [];
   const self = {
     addEventListener: (type: string, fn: (event: unknown) => void) =>
       listeners.set(type, fn),
@@ -133,28 +155,39 @@ function loadServiceWorker(cacheStorage: unknown) {
     skipWaiting: () => {},
     clients: { claim: async () => {} },
   };
-  new Function("self", "caches", source)(self, cacheStorage);
-  return listeners;
+  const fetchImpl = (url: string) => {
+    asked.push(url);
+    return sessionFetch();
+  };
+  new Function("self", "caches", "fetch", source)(self, cacheStorage, fetchImpl);
+  return { listeners, asked };
 }
 
-/** Push a share POST through the worker's fetch handler and return its reply. */
-async function share(
-  listeners: Map<string, (event: unknown) => void>,
-  form: FormData,
-) {
+type Worker = ReturnType<typeof loadServiceWorker>;
+
+/** Push a share POST through the worker's fetch handler. Returns the reply plus
+ * the request itself, so a test can check the body was never even read. */
+async function share(worker: Worker, form: FormData) {
   const request = new Request(`${ORIGIN}/share-target`, {
     method: "POST",
     body: form,
   });
   let responded: Promise<Response> | undefined;
-  listeners.get("fetch")?.({
+  worker.listeners.get("fetch")?.({
     request,
     respondWith: (value: Promise<Response>) => {
       responded = value;
     },
   });
   if (!responded) throw new Error("the worker did not answer the share POST");
-  return responded;
+  return { response: await responded, request };
+}
+
+/** A share carrying one PDF. */
+function oneBill(name = "bill.pdf") {
+  const form = new FormData();
+  form.append("file", new File(["%PDF-1.4"], name, { type: "application/pdf" }));
+  return form;
 }
 
 describe("public/sw.js", () => {
@@ -162,7 +195,7 @@ describe("public/sw.js", () => {
     const { caches } = fakeCaches({});
     vi.stubGlobal("caches", caches);
     vi.stubGlobal("window", { location: { origin: ORIGIN } });
-    const listeners = loadServiceWorker(caches);
+    const worker = loadServiceWorker(caches);
 
     const form = new FormData();
     form.append(
@@ -177,7 +210,7 @@ describe("public/sw.js", () => {
         type: "application/pdf",
       }),
     );
-    const response = await share(listeners, form);
+    const { response } = await share(worker, form);
 
     // 303 is what turns the cookie-less share POST into a GET the session
     // survives — the entire reason this runs in a worker.
@@ -200,9 +233,9 @@ describe("public/sw.js", () => {
   it("sends the page the `failed` id when the share carried no file", async () => {
     const { caches } = fakeCaches({});
     vi.stubGlobal("caches", caches);
-    const listeners = loadServiceWorker(caches);
+    const worker = loadServiceWorker(caches);
 
-    const response = await share(listeners, new FormData());
+    const { response } = await share(worker, new FormData());
 
     expect(new URL(response.headers.get("location") ?? "").search).toBe(
       "?share=failed",
@@ -214,13 +247,67 @@ describe("public/sw.js", () => {
       [key("stale", 0, "old.pdf")]: new Blob(["%PDF old"]),
     });
     vi.stubGlobal("caches", caches);
-    const listeners = loadServiceWorker(caches);
+    const worker = loadServiceWorker(caches);
 
-    const form = new FormData();
-    form.append("file", new File(["%PDF new"], "new.pdf"));
-    await share(listeners, form);
+    await share(worker, oneBill("new.pdf"));
 
     expect([...store.keys()].join()).not.toContain("old.pdf");
     expect([...store.keys()].join()).toContain("new.pdf");
+  });
+
+  it("settles who is signed in before it reads the shared file", async () => {
+    const { caches } = fakeCaches({});
+    vi.stubGlobal("caches", caches);
+    const worker = loadServiceWorker(caches, session.none);
+
+    const { request } = await share(worker, oneBill());
+
+    expect(worker.asked).toEqual(["/api/auth/session"]);
+    // The whole point: with no session the body is never even consumed, so
+    // there was never a moment where the bill existed outside the request.
+    expect(request.bodyUsed).toBe(false);
+  });
+
+  it("stores nothing and sends a signed-out sharer to log in", async () => {
+    const { store, caches } = fakeCaches({});
+    vi.stubGlobal("caches", caches);
+    const worker = loadServiceWorker(caches, session.none);
+
+    const { response } = await share(worker, oneBill("private.pdf"));
+
+    expect(store.size).toBe(0);
+    const location = new URL(response.headers.get("location") ?? "");
+    expect(location.pathname).toBe("/login");
+    expect(location.searchParams.get("share")).toBe(SHARE_DENIED);
+  });
+
+  it("clears an abandoned share once there's no session to file it under", async () => {
+    const { store, caches } = fakeCaches({
+      [key("stale", 0, "old.pdf")]: new Blob(["%PDF old"]),
+    });
+    vi.stubGlobal("caches", caches);
+    const worker = loadServiceWorker(caches, session.none);
+
+    await share(worker, oneBill());
+
+    expect(store.size).toBe(0);
+  });
+
+  it("stores nothing when the session can't be checked, and asks for a retry", async () => {
+    const { store, caches } = fakeCaches({
+      [key("stale", 0, "old.pdf")]: new Blob(["%PDF old"]),
+    });
+    vi.stubGlobal("caches", caches);
+    const worker = loadServiceWorker(caches, session.unreachable);
+
+    const { response } = await share(worker, oneBill());
+
+    // Can't confirm a session, so nothing new is written — but an unanswerable
+    // check mustn't destroy a share that may still be waiting to be consumed.
+    expect([...store.keys()].join()).toContain("old.pdf");
+    expect([...store.keys()].join()).not.toContain("bill.pdf");
+    const location = new URL(response.headers.get("location") ?? "");
+    expect(location.pathname).toBe("/app");
+    expect(location.searchParams.get("share")).toBe("failed");
   });
 });

@@ -7,6 +7,7 @@ import { type FormEvent, Suspense, useEffect, useState } from "react";
 import posthog from "posthog-js";
 import { Button, Input } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
+import { SHARE_DENIED, SHARE_PARAM } from "@/lib/shareTarget";
 
 // Sign-in flow, all on /login:
 //   choose → "Continue with Google" or "Sign in with email"
@@ -40,6 +41,11 @@ function LoginForm() {
   // it's a bare flag, not a path, so it can't be used as an open redirect.
   const claim = params.get("claim") === "1";
   const callbackUrl = claim ? "/app?claim=1" : "/app";
+
+  // Sent here by the share-target worker, which refuses to stash a bill it has
+  // no session to file under. Say so, or landing on a login screen out of the
+  // Android share sheet reads as the share having vanished.
+  const shareDenied = params.get(SHARE_PARAM) === SHARE_DENIED;
 
   const [step, setStep] = useState<Step>("choose");
   const [email, setEmail] = useState("");
@@ -110,6 +116,12 @@ function LoginForm() {
         <span className="font-display font-semibold text-[34px] tracking-tight">
           Factura<span className="text-accent">.</span>
         </span>
+
+        {shareDenied && (
+          <p className="font-mono text-[11px] text-accent leading-[1.6] mt-4">
+            {tl.shareSignIn}
+          </p>
+        )}
 
         {step === "choose" && (
           <>

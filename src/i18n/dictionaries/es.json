@@ -812,6 +812,7 @@
     "errorSendCode": "No se pudo enviar el código. Revisa la dirección e inténtalo de nuevo.",
     "errorGoogleUnverified": "Google no pudo confirmar tu correo. Ingresa con tu correo y un código.",
     "errorAccountNotLinked": "Ese correo ya tiene una cuenta. Ingresa con tu correo y un código.",
+    "shareSignIn": "Ingresa para guardar una factura compartida — no se guardó nada en este dispositivo. Vuelve a compartirla cuando hayas ingresado.",
     "back": "← Volver"
   },
   "legal": {

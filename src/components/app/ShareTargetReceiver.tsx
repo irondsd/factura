@@ -37,9 +37,12 @@ export function ShareTargetReceiver() {
       const files = await takeSharedFiles(shareId);
       posthog.capture("bill_shared_in", { file_count: files.length });
       if (files.length === 0) {
-        // Either the worker couldn't stash the files, or it wasn't running yet
-        // and the route-handler fallback sent us here. Registering it is the
-        // first thing this app subtree does, so a retry works.
+        // The worker couldn't stash the files, or couldn't reach Auth.js to
+        // check the session, or wasn't running yet and the route-handler
+        // fallback sent us here. Registering it is the first thing this app
+        // subtree does, and we're plainly signed in, so a retry works. (A share
+        // that arrived with no session never gets this far: the worker sends it
+        // to /login instead, having written nothing.)
         showToast(t.drop.shareFailed);
         return;
       }
