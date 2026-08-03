@@ -6,6 +6,24 @@ const nextConfig: NextConfig = {
   // `src/content/guias` and are pulled in via dynamic import (not file routing),
   // but `pageExtensions` is still required for `@next/mdx` to wire the loader.
   pageExtensions: ["ts", "tsx", "js", "jsx", "md", "mdx"],
+  async headers() {
+    return [
+      {
+        // The share-target worker is the one file that must never be served
+        // stale: a cached copy would keep handling shares with old logic long
+        // after a deploy. `Service-Worker-Allowed` lets it claim the whole
+        // origin even though it only ever answers /share-target.
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

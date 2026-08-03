@@ -353,7 +353,8 @@
     "confirmNo": "No — elegir otra",
     "newPropertyPlaceholder": "…o apodo de propiedad nueva",
     "skipReview": "Omitir — mantener en la bandeja de revisión",
-    "uploadBill": "Subir factura"
+    "uploadBill": "Subir factura",
+    "shareFailed": "△ No se pudo leer la factura compartida — intenta compartirla de nuevo"
   },
   "overview": {
     "soFar": "hasta ahora",

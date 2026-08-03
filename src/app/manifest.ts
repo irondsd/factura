@@ -15,6 +15,23 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/app?source=pwa",
     scope: "/",
     display: "standalone",
+    // Puts Factura in the Android share sheet for PDFs, so a bill can go from
+    // the bank's app straight into the ledger without the download → open →
+    // upload detour. Files require a POST, whose multipart body is caught by
+    // the service worker (see public/sw.js) rather than by a route handler —
+    // the POST is a cross-site navigation, so the SameSite=Lax session cookie
+    // wouldn't ride along with it. Chromium-only: WebKit has never shipped
+    // share_target, so iOS keeps using the upload button.
+    share_target: {
+      action: "/share-target",
+      method: "POST",
+      enctype: "multipart/form-data",
+      // `accept` is what keeps Factura out of the share sheet for photos and
+      // links — it's only offered for the PDFs it can actually ingest.
+      params: {
+        files: [{ name: "file", accept: ["application/pdf", ".pdf"] }],
+      },
+    },
     background_color: "#f3efe6",
     theme_color: "#1f1a17",
     icons: [

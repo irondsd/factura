@@ -353,7 +353,8 @@
     "confirmNo": "No — choose another",
     "newPropertyPlaceholder": "…or new property nickname",
     "skipReview": "Skip — keep in review inbox",
-    "uploadBill": "Upload bill"
+    "uploadBill": "Upload bill",
+    "shareFailed": "△ Couldn't read the shared bill — try sharing it again"
   },
   "overview": {
     "soFar": "so far",
