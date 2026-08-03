@@ -1,12 +1,14 @@
-import { and, count, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   bills,
+  parserAdoptions,
   parserConfigs,
   parserVersions,
   properties,
   propertyMembers,
   users,
+  vendors,
 } from "@/db/schema";
 import {
   deleteBills,
@@ -17,7 +19,9 @@ import {
   disposition,
   handOverProperties,
 } from "../account";
-import { protectedProcedure, router } from "../trpc";
+import { billRateDate, usdRateLookup } from "../fx";
+import { protectedProcedure, router, scopedProcedure } from "../trpc";
+import { summarizeLedger } from "./account.stats";
 
 /** Permanent account deletion. `summary` is what the confirmation screen reads;
  * the mutations are the run itself, called in listed order by the delete page so
@@ -200,4 +204,99 @@ export const accountRouter = router({
   finalize: protectedProcedure.mutation(({ ctx }) =>
     deleteUserRecord(ctx.db, ctx.userId),
   ),
+
+  /** The profile page's stat cards: the whole ledger the caller can see, not a
+   * selected property — this is an account-level page, so it counts every
+   * property they're a member of plus their own unfiled inbox. See
+   * account.stats.ts for why USD does the ranking. */
+  stats: scopedProcedure.query(async ({ ctx }) => {
+    const ids = ctx.accessiblePropertyIds;
+    // The inbox belongs to its uploader, not to a property, so it is scoped by
+    // creator — same split as `summary` above.
+    const inboxScope = and(
+      isNull(bills.propertyId),
+      eq(bills.createdBy, ctx.userId),
+    )!;
+
+    const [rows, vendorRows, own] = await Promise.all([
+      ctx.db.query.bills.findMany({
+        where: ids.length
+          ? or(inArray(bills.propertyId, ids), inboxScope)!
+          : inboxScope,
+        columns: {
+          createdBy: true,
+          storageKey: true,
+          totalAmount: true,
+          period: true,
+          dueDate: true,
+          vendorId: true,
+        },
+      }),
+      ids.length
+        ? ctx.db.query.vendors.findMany({
+            where: inArray(vendors.propertyId, ids),
+            columns: { id: true, displayName: true },
+          })
+        : Promise.resolve([]),
+      ctx.db.query.parserConfigs.findMany({
+        where: eq(parserConfigs.ownerId, ctx.userId),
+        columns: { id: true },
+      }),
+    ]);
+
+    const rateFor = await usdRateLookup(ctx.db, rows.map(billRateDate));
+    const enriched = rows.map((b) => {
+      const rate = rateFor(billRateDate(b));
+      return {
+        ...b,
+        usdAmount:
+          rate && b.totalAmount !== null ? Number(b.totalAmount) / rate : null,
+      };
+    });
+
+    const nameById = new Map(vendorRows.map((v) => [v.id, v.displayName]));
+    const ledger = summarizeLedger(enriched, {
+      userId: ctx.userId,
+      now: new Date().toISOString().slice(0, 7),
+      vendorName: (id) => (id ? (nameById.get(id) ?? null) : null),
+    });
+
+    // Parser standing: what the caller has written, how much of it is public,
+    // and — the only number here with someone else on the other end of it — how
+    // many other people run one of their packages.
+    const ownIds = own.map((r) => r.id);
+    const [publishedRows, adopterRows, adoptedRows] = await Promise.all([
+      ownIds.length
+        ? ctx.db
+            .selectDistinct({ configId: parserVersions.configId })
+            .from(parserVersions)
+            .where(inArray(parserVersions.configId, ownIds))
+        : Promise.resolve([]),
+      ownIds.length
+        ? ctx.db
+            .selectDistinct({ userId: parserAdoptions.userId })
+            .from(parserAdoptions)
+            .where(
+              and(
+                inArray(parserAdoptions.configId, ownIds),
+                ne(parserAdoptions.userId, ctx.userId),
+              ),
+            )
+        : Promise.resolve([]),
+      ctx.db
+        .select({ total: count() })
+        .from(parserAdoptions)
+        .where(eq(parserAdoptions.userId, ctx.userId)),
+    ]);
+
+    return {
+      ...ledger,
+      parsers: {
+        created: ownIds.length,
+        published: publishedRows.length,
+        adopters: adopterRows.length,
+        adopted: adoptedRows[0]?.total ?? 0,
+      },
+    };
+  }),
 });

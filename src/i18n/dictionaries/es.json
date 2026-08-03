@@ -1091,6 +1091,45 @@
     "you": "Tú",
     "viaGoogle": "vía Google",
     "signOut": "Cerrar sesión",
+    "stats": {
+      "eyebrow": "Tu historial",
+      "bills": {
+        "label": "Facturas cargadas",
+        "filesOne": "1 archivo guardado",
+        "filesOther": "{n} archivos guardados",
+        "filesNone": "sin archivos guardados",
+        "mine": "cargaste {n}"
+      },
+      "total": {
+        "label": "Total registrado",
+        "asBilled": "{amount} como se facturó",
+        "counted": "sobre {n} facturas"
+      },
+      "since": {
+        "label": "Registrando desde",
+        "months": "{covered} de {span} meses con datos",
+        "one": "primer mes de datos"
+      },
+      "parsers": {
+        "label": "Analizadores creados",
+        "publishedOne": "1 publicado",
+        "publishedOther": "{n} publicados",
+        "publishedNone": "ninguno publicado",
+        "adoptersOne": "1 persona lo adoptó",
+        "adoptersOther": "{n} personas lo adoptaron",
+        "adoptedLabel": "Analizadores adoptados",
+        "adoptedHelp": "de la biblioteca"
+      },
+      "biggest": {
+        "label": "Factura más alta",
+        "noVendor": "Sin proveedor"
+      },
+      "topMonth": {
+        "label": "Mes más caro",
+        "billsOne": "{amount} · 1 factura",
+        "billsOther": "{amount} · {n} facturas"
+      }
+    },
     "properties": {
       "eyebrow": "propiedades",
       "help": "Tus propiedades guardan sus facturas, proveedores y cuentas. Invita a tu pareja o compañero de piso para que también puedan ver y agregar facturas.",

@@ -1091,6 +1091,45 @@
     "you": "You",
     "viaGoogle": "via Google",
     "signOut": "Sign out",
+    "stats": {
+      "eyebrow": "Your record",
+      "bills": {
+        "label": "Bills uploaded",
+        "filesOne": "1 file stored",
+        "filesOther": "{n} files stored",
+        "filesNone": "no files stored",
+        "mine": "you added {n}"
+      },
+      "total": {
+        "label": "Total tracked",
+        "asBilled": "{amount} as billed",
+        "counted": "across {n} bills"
+      },
+      "since": {
+        "label": "Tracking since",
+        "months": "{covered} of {span} months with data",
+        "one": "first month of data"
+      },
+      "parsers": {
+        "label": "Parsers created",
+        "publishedOne": "1 published",
+        "publishedOther": "{n} published",
+        "publishedNone": "none published",
+        "adoptersOne": "adopted by 1 person",
+        "adoptersOther": "adopted by {n} people",
+        "adoptedLabel": "Parsers adopted",
+        "adoptedHelp": "from the library"
+      },
+      "biggest": {
+        "label": "Biggest bill",
+        "noVendor": "No vendor"
+      },
+      "topMonth": {
+        "label": "Priciest month",
+        "billsOne": "{amount} · 1 bill",
+        "billsOther": "{amount} · {n} bills"
+      }
+    },
     "properties": {
       "eyebrow": "properties",
       "help": "Your properties hold their bills, vendors and accounts. Invite a partner or flatmate so they can see and add bills too.",

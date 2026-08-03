@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import posthog from "posthog-js";
+import { ProfileStats } from "@/components/app/ProfileStats";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Avatar, Button } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -49,6 +50,10 @@ export default function ProfilePage() {
           {tp.signOut}
         </Button>
       </div>
+
+      {/* the account's own record — heading and all, hidden until there is a
+          ledger to describe */}
+      <ProfileStats />
 
       {/* language — Phase 1: simple switch to the opposite language */}
       <h2 className="mt-10 mb-1">

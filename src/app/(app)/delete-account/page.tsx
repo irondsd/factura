@@ -300,7 +300,29 @@ export default function DeleteAccountPage() {
             {td.account}: <span className="text-ink">{data.email}</span>
           </p>
 
-          <h2 className="mt-8 mb-2">
+          {properties.length > 0 && (
+            <>
+              <h2 className="mt-8 mb-2">
+                <Eyebrow>{td.propertiesEyebrow}</Eyebrow>
+              </h2>
+              <div className="flex flex-col gap-3">
+                {properties.map((p) => (
+                  <PropertyCard
+                    key={p.id}
+                    property={p}
+                    decision={decisions[p.id]}
+                    onDecide={(d) =>
+                      setDecisions((prev) => ({ ...prev, [p.id]: d }))
+                    }
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* The tally is the consequence of the decisions above, so it reads
+              after them and moves as they change. */}
+          <h2 className="mt-9 mb-2">
             <Eyebrow>{td.summaryEyebrow}</Eyebrow>
           </h2>
           <div className="grid grid-cols-3 gap-px border border-line bg-line">
@@ -324,26 +346,6 @@ export default function DeleteAccountPage() {
               </li>
             )}
           </ul>
-
-          {properties.length > 0 && (
-            <>
-              <h2 className="mt-9 mb-2">
-                <Eyebrow>{td.propertiesEyebrow}</Eyebrow>
-              </h2>
-              <div className="flex flex-col gap-3">
-                {properties.map((p) => (
-                  <PropertyCard
-                    key={p.id}
-                    property={p}
-                    decision={decisions[p.id]}
-                    onDecide={(d) =>
-                      setDecisions((prev) => ({ ...prev, [p.id]: d }))
-                    }
-                  />
-                ))}
-              </div>
-            </>
-          )}
 
           <h2 className="mt-9 mb-2">
             <Eyebrow>{td.parsersEyebrow}</Eyebrow>
