@@ -15,6 +15,28 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+/** Every timestamp column in this file is `timestamptz` (`withTimezone: true`),
+ * and new ones must be too.
+ *
+ * A bare `timestamp()` is `timestamp without time zone`, and with postgres.js
+ * that makes reads and writes disagree. Drizzle writes a JS Date as its ISO
+ * string, so UTC lands in the column, and `defaultNow()` writes DB-side UTC as
+ * well — but on the way back postgres.js builds a Date by reading those naive
+ * digits in the *client process's* zone. (Drizzle's own fix-up appends "+0000"
+ * only when the driver returns a string; postgres.js returns a Date, so nothing
+ * corrects it.) Net effect: every value read back on a non-UTC host is off by
+ * that host's offset — invisible in production on a UTC box, wrong on every dev
+ * machine outside UTC.
+ *
+ * That isn't only cosmetic. Anything compared against `Date.now()` is wrong by
+ * the same offset: session and OTP expiry (`session.expires`,
+ * `verification_token.expires`), and both windows over
+ * `bill_submissions.created_at` — the per-IP daily cap and the retention
+ * sweep's cutoff, which deletes files and is run from a developer's shell
+ * against prod.
+ *
+ * `timestamptz` stores an instant rather than a zone, so the round-trip is
+ * unambiguous in both directions no matter where the client runs. */
 export const billStatus = pgEnum("bill_status", ["parsed", "needs_review"]);
 
 export const memberRole = pgEnum("member_role", ["owner", "member"]);
@@ -39,12 +61,17 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name"),
   email: text("email").notNull().unique(),
-  emailVerified: timestamp("email_verified", { mode: "date" }),
+  emailVerified: timestamp("email_verified", {
+    mode: "date",
+    withTimezone: true,
+  }),
   image: text("image"),
   // Preferred language. Source of truth for server-sent emails, which can't
   // read the client locale cookie. Defaults to Spanish for existing rows.
   locale: userLocale("locale").notNull().default("es"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const authAccounts = pgTable(
@@ -72,7 +99,7 @@ export const sessions = pgTable("session", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  expires: timestamp("expires", { mode: "date" }).notNull(),
+  expires: timestamp("expires", { mode: "date", withTimezone: true }).notNull(),
 });
 
 export const verificationTokens = pgTable(
@@ -80,7 +107,10 @@ export const verificationTokens = pgTable(
   {
     identifier: text("identifier").notNull(),
     token: text("token").notNull(),
-    expires: timestamp("expires", { mode: "date" }).notNull(),
+    expires: timestamp("expires", {
+      mode: "date",
+      withTimezone: true,
+    }).notNull(),
   },
   (t) => [primaryKey({ columns: [t.identifier, t.token] })],
 );
@@ -98,7 +128,9 @@ export const properties = pgTable("properties", {
   // match hint at ingest. Replaced the old `address_variants` array — bills link
   // to a property via the vendor account, so a single address is enough.
   address: text("address").notNull().default(""),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 /** Who can access an property and at what level. The owner is just a row with
@@ -114,7 +146,9 @@ export const propertyMembers = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     role: memberRole("role").notNull().default("member"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.propertyId, t.userId] })],
 );
@@ -134,7 +168,9 @@ export const propertyInvites = pgTable(
     invitedBy: uuid("invited_by")
       .notNull()
       .references(() => users.id),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [uniqueIndex("property_invite_email_idx").on(t.propertyId, t.email)],
 );
@@ -152,7 +188,9 @@ export const vendors = pgTable(
     // A color *name* from the vendor palette (see lib/vendorColors). Assigned
     // randomly on creation, user-editable. Hex values live in CSS, not here.
     color: text("color").notNull().default("taupe"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [uniqueIndex("vendor_property_slug_idx").on(t.propertyId, t.slug)],
 );
@@ -170,7 +208,9 @@ export const vendorAccounts = pgTable(
     accountNumber: text("account_number").notNull(),
     label: text("label"),
     active: boolean("active").notNull().default(true),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [
     uniqueIndex("vendor_account_number_idx").on(t.vendorId, t.accountNumber),
@@ -210,7 +250,9 @@ export const bills = pgTable(
     parserKey: text("parser_key"),
     parserVersion: numeric("parser_version"),
     extra: jsonb("extra").notNull().default({}),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   // Dedup is per-property once a bill is filed (either member re-uploading the
   // same bill collapses), and per-uploader while it sits unfiled in the inbox.
@@ -272,7 +314,9 @@ export const forecasts = pgTable(
     highArs: numeric("high_ars", { precision: 12, scale: 2 }).notNull(),
     basis: forecastBasis("basis").notNull(),
     confidence: forecastConfidence("confidence").notNull(),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   // Unique, so the insert itself is the concurrency guard — two tabs opening the
   // overview at once can't both write. Same trick as `monthly_reports`.
@@ -291,7 +335,7 @@ export const monthlyReports = pgTable(
       .notNull()
       .references(() => properties.id, { onDelete: "cascade" }),
     period: date("period").notNull(),
-    sentAt: timestamp("sent_at").notNull().defaultNow(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex("monthly_report_property_period_idx").on(
@@ -332,8 +376,12 @@ export const parserConfigs = pgTable(
     compat: text("compat"),
     // Label of the parser this was forked from, e.g. "Edesur v4".
     forkedFrom: text("forked_from"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   // Slugs are namespaced per owner: two users may each have an "edesur" (e.g. a
   // fork). `bills.parserKey` stays unambiguous because a user can't adopt two
@@ -359,7 +407,9 @@ export const parserVersions = pgTable(
     // Optional changelog line entered at publish time; shown in the library's
     // per-parser version history.
     note: text("note"),
-    publishedAt: timestamp("published_at").notNull().defaultNow(),
+    publishedAt: timestamp("published_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [uniqueIndex("parser_version_config_idx").on(t.configId, t.version)],
 );
@@ -377,7 +427,9 @@ export const parserVotes = pgTable(
       .notNull()
       .references(() => parserConfigs.id, { onDelete: "cascade" }),
     value: integer("value").notNull(), // +1 or -1
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.configId] })],
 );
@@ -398,7 +450,9 @@ export const parserAdoptions = pgTable(
     versionId: uuid("version_id")
       .notNull()
       .references(() => parserVersions.id, { onDelete: "cascade" }),
-    adoptedAt: timestamp("adopted_at").notNull().defaultNow(),
+    adoptedAt: timestamp("adopted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.configId] })],
 );
@@ -416,7 +470,9 @@ export const parserSamples = pgTable(
     slug: text("slug").notNull(),
     fileName: text("file_name"),
     rawText: text("raw_text").notNull(),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [index("parser_sample_slug_idx").on(t.userId, t.slug)],
 );
@@ -468,7 +524,7 @@ export const billSubmissions = pgTable(
     storageKey: text("storage_key"),
     /** When the sweep removed the object. Informational; the live "is there a
      * file?" test is `storage_key is not null`. */
-    fileDeletedAt: timestamp("file_deleted_at"),
+    fileDeletedAt: timestamp("file_deleted_at", { withTimezone: true }),
     /** The "keep my file" checkbox, checked by default. False AND never claimed
      * ⇒ the sweep deletes the S3 object after SUBMISSION_FILE_GRACE_DAYS.
      * Claiming keeps the file regardless — saving a bill to your account is
@@ -513,7 +569,7 @@ export const billSubmissions = pgTable(
      * linked to an account, never used to authenticate, and receives at most one
      * notice ever (`notified_at`). */
     notifyEmail: text("notify_email"),
-    notifiedAt: timestamp("notified_at"),
+    notifiedAt: timestamp("notified_at", { withTimezone: true }),
     /** Who the visitor says this bill is from, typed on a submission no parser
      * recognized. The single cheapest way to find out which parser to write
      * next: `raw_text` says what the bill contains, this says what to call it.
@@ -527,13 +583,13 @@ export const billSubmissions = pgTable(
      * as inert as `notify_email` above; both are optional. */
     reportMessage: text("report_message"),
     reportEmail: text("report_email"),
-    reportedAt: timestamp("reported_at"),
+    reportedAt: timestamp("reported_at", { withTimezone: true }),
 
     // ── Claim ────────────────────────────────────────────────────────────────
     claimedByUserId: uuid("claimed_by_user_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    claimedAt: timestamp("claimed_at"),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
     claimedBillId: uuid("claimed_bill_id").references(() => bills.id, {
       onDelete: "set null",
     }),
@@ -548,7 +604,9 @@ export const billSubmissions = pgTable(
     userAgent: text("user_agent"),
     /** Which language the drop came from, so a follow-up email matches it. */
     locale: userLocale("locale").notNull().default("es"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [
     // The retention sweep's only query. Partial, because the overwhelming
