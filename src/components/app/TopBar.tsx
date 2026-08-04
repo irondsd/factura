@@ -56,7 +56,9 @@ export function TopBar({ user }: { user: Session["user"] }) {
   // The property switcher is meaningless on the management pages, and there's
   // nothing to switch between when the user has a single property.
   const onProfile =
-    pathname === "/app/profile" || pathname === "/app/properties";
+    pathname === "/app/profile" ||
+    pathname === "/app/properties" ||
+    pathname === "/app/sessions";
   const showSwitcher = !onProfile && (properties.data?.length ?? 0) > 1;
 
   // The selection lives in the URL (?property=<nickname>), so in-app links must

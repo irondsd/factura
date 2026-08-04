@@ -1146,10 +1146,47 @@
       "eyebrow": "Language",
       "help": "This is the English version. You can switch languages at any time."
     },
+    "sessions": {
+      "eyebrow": "Sessions",
+      "help": "See which browsers your account is open in, and close the ones you don't recognise.",
+      "manage": "Manage sessions →"
+    },
     "danger": {
       "eyebrow": "Danger zone",
       "help": "Deleting your account permanently erases your bills, the original PDFs and your properties. This can't be undone.",
       "manage": "Delete my account →"
+    }
+  },
+  "sessions": {
+    "eyebrow": "Sessions",
+    "title": "Where your account is open",
+    "help": "Every browser you've signed in from shows up here, with when it was last active. If you don't recognise one, revoke it — it loses access immediately.",
+    "browsers": "Browsers",
+    "browsersHelp": "An unused session expires on its own after 30 days.",
+    "current": "Current",
+    "installed": "App",
+    "unknownBrowser": "Unknown browser",
+    "unknownIp": "Unknown IP",
+    "unknownLocation": "Unknown location",
+    "now": "now",
+    "lastActive": "last active {when}",
+    "startedOn": "Signed in on {date}",
+    "revoke": "Revoke",
+    "revokeOthers": "Sign out everywhere else",
+    "loading": "Loading sessions…",
+    "toastRevoked": "Session revoked",
+    "toastRevokedOthers": "Signed out everywhere else",
+    "confirmRevoke": {
+      "eyebrow": "Revoke session",
+      "title": "Revoke this session?",
+      "description": "{device} will lose access to your account immediately."
+    },
+    "confirmOthers": {
+      "eyebrow": "Sign out",
+      "title": "Sign out everywhere else?",
+      "description": "This closes {count} sessions in other browsers. This one stays open.",
+      "descriptionOne": "This closes 1 session in another browser. This one stays open.",
+      "confirm": "Sign out others"
     }
   },
   "deleteAccount": {

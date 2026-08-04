@@ -14,6 +14,7 @@ import posthog from "posthog-js";
 import { AppContext } from "@/components/app/context";
 import { AppFooter } from "@/components/app/AppFooter";
 import { ClaimSubmissions } from "@/components/app/ClaimSubmissions";
+import { DisplayModeProbe } from "@/components/app/DisplayModeProbe";
 import { ShareTargetReceiver } from "@/components/app/ShareTargetReceiver";
 import { TopBar } from "@/components/app/TopBar";
 import { BillIngestProvider } from "@/components/BillIngestProvider";
@@ -95,6 +96,7 @@ function AppShell({
         <DropOverlay />
         <UploadFab />
         <ClaimSubmissions />
+        <DisplayModeProbe />
         <ShareTargetReceiver />
       </BillIngestProvider>
     </AppContext.Provider>

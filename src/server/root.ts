@@ -7,6 +7,7 @@ import {
 } from "./routers/catalog";
 import { insightsRouter } from "./routers/insights";
 import { parsersRouter } from "./routers/parsers";
+import { sessionsRouter } from "./routers/sessions";
 import { router } from "./trpc";
 
 export const appRouter = router({
@@ -17,6 +18,7 @@ export const appRouter = router({
   insights: insightsRouter,
   parsers: parsersRouter,
   account: accountRouter,
+  sessions: sessionsRouter,
 });
 
 export type AppRouter = typeof appRouter;

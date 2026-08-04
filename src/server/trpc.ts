@@ -2,12 +2,20 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { db } from "@/db";
 import { auth } from "./auth";
 import { accessibleProperties } from "./ownership";
+import { currentSessionToken } from "./sessions";
 
 /** Resolve the signed-in user from the Auth.js session cookie. userId is null
- * for anonymous requests; protectedProcedure rejects those. */
+ * for anonymous requests; protectedProcedure rejects those.
+ *
+ * `sessionToken` is the caller's own cookie value, carried so the sessions
+ * router can tell which row is this browser and refuse to revoke it. It stays
+ * on the server — never put it in a procedure's return value. */
 export async function createContext() {
-  const session = await auth();
-  return { db, userId: session?.user?.id ?? null };
+  const [session, sessionToken] = await Promise.all([
+    auth(),
+    currentSessionToken(),
+  ]);
+  return { db, userId: session?.user?.id ?? null, sessionToken };
 }
 
 export type Context = Awaited<ReturnType<typeof createContext>>;

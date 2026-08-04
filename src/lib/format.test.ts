@@ -6,6 +6,7 @@ import {
   formatDate,
   formatMonth,
   formatMonthShort,
+  formatRelativeTime,
   formatUSD,
   roundSignificant,
   shiftMonth,
@@ -144,5 +145,43 @@ describe("roundSignificant", () => {
   it("is 0 for a non-finite input rather than NaN", () => {
     expect(roundSignificant(Number.NaN)).toBe(0);
     expect(roundSignificant(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+});
+
+describe("formatRelativeTime", () => {
+  const now = Date.parse("2026-08-04T12:00:00Z");
+  const ago = (seconds: number) => new Date(now - seconds * 1000).toISOString();
+
+  it("reads anything under a minute as now", () => {
+    expect(formatRelativeTime(ago(0), "en", now)).toBe("now");
+    expect(formatRelativeTime(ago(59), "en", now)).toBe("now");
+    expect(formatRelativeTime(ago(5), "es", now)).toBe("ahora");
+  });
+
+  it("picks the largest unit that fits", () => {
+    expect(formatRelativeTime(ago(60), "en", now)).toBe("1 minute ago");
+    expect(formatRelativeTime(ago(90 * 60), "en", now)).toBe("1 hour ago");
+    expect(formatRelativeTime(ago(3 * 24 * 3600), "en", now)).toBe(
+      "3 days ago",
+    );
+    // numeric: "auto" — the calendar word wins over "1 year ago".
+    expect(formatRelativeTime(ago(400 * 24 * 3600), "en", now)).toBe(
+      "last year",
+    );
+  });
+
+  it("uses the calendar words each language has", () => {
+    expect(formatRelativeTime(ago(24 * 3600), "en", now)).toBe("yesterday");
+    expect(formatRelativeTime(ago(24 * 3600), "es", now)).toBe("ayer");
+  });
+
+  it("never reads into the future for a clock a little ahead", () => {
+    expect(
+      formatRelativeTime(new Date(now + 30_000).toISOString(), "en", now),
+    ).toBe("now");
+  });
+
+  it("returns the input unchanged when it isn't a date", () => {
+    expect(formatRelativeTime("not-a-date", "en", now)).toBe("not-a-date");
   });
 });
