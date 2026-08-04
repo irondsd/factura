@@ -99,6 +99,41 @@ export function formatDate(iso: string, locale: Locale = "es"): string {
   return Number.isNaN(d.getTime()) ? iso : dayFmt[locale].format(d);
 }
 
+const relativeFmt: Record<Locale, Intl.RelativeTimeFormat> = {
+  es: new Intl.RelativeTimeFormat(INTL_TAG.es, { numeric: "auto" }),
+  en: new Intl.RelativeTimeFormat(INTL_TAG.en, { numeric: "auto" }),
+};
+
+// Largest unit first: the first one the elapsed time clears is the one used, so
+// 90 minutes reads "1 hour ago" rather than "90 minutes ago".
+const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ["year", 365 * 24 * 60 * 60],
+  ["month", 30 * 24 * 60 * 60],
+  ["day", 24 * 60 * 60],
+  ["hour", 60 * 60],
+  ["minute", 60],
+];
+
+/** A past timestamp as "hace 5 minutos" / "5 minutes ago". Anything under a
+ * minute is "ahora" / "now" — for a last-active reading, second-level precision
+ * is noise. Coarse by design: the units above are nominal lengths, so this is
+ * for prose, never for arithmetic. */
+export function formatRelativeTime(
+  iso: string,
+  locale: Locale = "es",
+  now: number = Date.now(),
+): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return iso;
+  const elapsed = Math.max(0, Math.round((now - then) / 1000));
+  const [unit, size] = RELATIVE_UNITS.find(([, s]) => elapsed >= s) ?? [
+    "second" as const,
+    1,
+  ];
+  const value = unit === "second" ? 0 : Math.floor(elapsed / size);
+  return relativeFmt[locale].format(-value, unit);
+}
+
 /** "2026-06" -> "Jun" (en) / "jun." (es) */
 export function formatMonthShort(month: string, locale: Locale = "es"): string {
   return monthShortFmt[locale].format(

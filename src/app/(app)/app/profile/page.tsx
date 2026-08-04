@@ -80,6 +80,15 @@ export default function ProfilePage() {
         {tp.parsers.manage}
       </Button>
 
+      {/* sessions — every browser holding a key to this account */}
+      <h2 className="mt-10 mb-1">
+        <Eyebrow>{tp.sessions.eyebrow}</Eyebrow>
+      </h2>
+      <p className={help}>{tp.sessions.help}</p>
+      <Button variant="outline" onClick={() => router.push("/app/sessions")}>
+        {tp.sessions.manage}
+      </Button>
+
       {/* danger — the deletion itself lives on its own page, outside the app
           shell, so the confirmation survives the session it destroys */}
       <h2 className="mt-14 mb-1">

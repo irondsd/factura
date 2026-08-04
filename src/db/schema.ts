@@ -67,12 +67,48 @@ export const authAccounts = pgTable(
   (t) => [primaryKey({ columns: [t.provider, t.providerAccountId] })],
 );
 
+// The adapter only ever writes sessionToken/userId/expires; everything below is
+// ours, filled in around it (see src/server/auth.ts) so the sessions page can
+// describe a session without the token ever leaving the server.
 export const sessions = pgTable("session", {
   sessionToken: text("session_token").primaryKey(),
+  // Public handle for a session. The token is the credential — it must never
+  // reach the client — so the sessions list and its revoke button address rows
+  // by this id instead.
+  id: uuid("id").notNull().defaultRandom().unique(),
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  expires: timestamp("expires", { mode: "date" }).notNull(),
+  // `withTimezone` on all three, unlike the rest of the schema, because these
+  // are the only timestamps the app compares against the *server's* clock
+  // (`Date.now()` in the heartbeat) rather than against each other.
+  //
+  // A bare `timestamp` is stored naive: postgres.js hands back a Date built by
+  // reading that naive value in the CLIENT's timezone, while both `now()` and
+  // drizzle's own writes put UTC in it. On a UTC host the two agree and nothing
+  // shows; anywhere else — every dev machine outside UTC — every reading comes
+  // back shifted by the local offset, which is enough to stall the heartbeat
+  // for the length of that offset. `timestamptz` stores an absolute instant, so
+  // the round trip is exact wherever the process runs.
+  expires: timestamp("expires", { mode: "date", withTimezone: true }).notNull(),
+  // Where the session was signed in from, and where it was last seen. All of
+  // these are refreshed on the throttled heartbeat, so a session that moves
+  // networks shows where it is now rather than where it was born.
+  userAgent: text("user_agent"),
+  ip: text("ip"),
+  // City and ISO country code, read off the CDN's geolocation headers — the
+  // country stays a code so the UI can name it in the reader's language.
+  city: text("city"),
+  country: text("country"),
+  // The surface the session was last used from: a raw CSS display-mode keyword
+  // ("browser", "standalone", …), or null from a client that never reported.
+  displayMode: text("display_mode"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  lastActiveAt: timestamp("last_active_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const verificationTokens = pgTable(

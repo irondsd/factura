@@ -1144,10 +1144,47 @@
       "eyebrow": "Idioma",
       "help": "Esta es la versión en español. Puedes cambiar de idioma en cualquier momento."
     },
+    "sessions": {
+      "eyebrow": "Sesiones",
+      "help": "Mira desde qué navegadores está abierta tu cuenta y cierra los que no reconozcas.",
+      "manage": "Gestionar sesiones →"
+    },
     "danger": {
       "eyebrow": "Zona de peligro",
       "help": "Eliminar tu cuenta borra de forma permanente tus facturas, los PDF originales y tus propiedades. No se puede deshacer.",
       "manage": "Eliminar mi cuenta →"
+    }
+  },
+  "sessions": {
+    "eyebrow": "Sesiones",
+    "title": "Dónde está abierta tu cuenta",
+    "help": "Cada navegador donde iniciaste sesión aparece aquí, con su última actividad. Si hay uno que no reconoces, revócalo: pierde el acceso de inmediato.",
+    "browsers": "Navegadores",
+    "browsersHelp": "Una sesión sin uso caduca sola a los 30 días.",
+    "current": "Actual",
+    "installed": "App",
+    "unknownBrowser": "Navegador desconocido",
+    "unknownIp": "IP desconocida",
+    "unknownLocation": "Ubicación desconocida",
+    "now": "ahora",
+    "lastActive": "última actividad {when}",
+    "startedOn": "Iniciada el {date}",
+    "revoke": "Revocar",
+    "revokeOthers": "Cerrar las demás sesiones",
+    "loading": "Cargando sesiones…",
+    "toastRevoked": "Sesión revocada",
+    "toastRevokedOthers": "Se cerraron las demás sesiones",
+    "confirmRevoke": {
+      "eyebrow": "Revocar sesión",
+      "title": "¿Revocar esta sesión?",
+      "description": "{device} perderá el acceso a tu cuenta de inmediato."
+    },
+    "confirmOthers": {
+      "eyebrow": "Cerrar sesiones",
+      "title": "¿Cerrar las demás sesiones?",
+      "description": "Se cerrarán {count} sesiones en otros navegadores. Esta seguirá abierta.",
+      "descriptionOne": "Se cerrará 1 sesión en otro navegador. Esta seguirá abierta.",
+      "confirm": "Cerrar las demás"
     }
   },
   "deleteAccount": {
