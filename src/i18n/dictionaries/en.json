@@ -353,7 +353,8 @@
     "confirmNo": "No — choose another",
     "newPropertyPlaceholder": "…or new property nickname",
     "skipReview": "Skip — keep in review inbox",
-    "uploadBill": "Upload bill"
+    "uploadBill": "Upload bill",
+    "shareFailed": "△ Couldn't read the shared bill — try sharing it again"
   },
   "overview": {
     "soFar": "so far",
@@ -811,6 +812,7 @@
     "errorSendCode": "Couldn't send a code. Check the address and try again.",
     "errorGoogleUnverified": "Google couldn't confirm your email. Sign in with your email and a code.",
     "errorAccountNotLinked": "That email already has an account. Sign in with your email and a code.",
+    "shareSignIn": "Sign in to save a shared bill — nothing was stored on this device. Share it again once you're in.",
     "back": "← Back"
   },
   "legal": {

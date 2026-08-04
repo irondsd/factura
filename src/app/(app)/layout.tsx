@@ -1,4 +1,5 @@
 import "../globals.css";
+import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 import { fraunces, plexMono } from "@/config/fonts";
 import { metadata, viewport } from "@/config/meta";
 import { getDictionary } from "@/i18n/dictionaries";
@@ -26,6 +27,7 @@ export default async function AppRootLayout({
         <I18nProvider locale={locale} dictionary={dictionary}>
           <Providers>{children}</Providers>
         </I18nProvider>
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );
