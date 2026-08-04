@@ -6,6 +6,15 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- END:nextjs-agent-rules -->
 
+# Package manager
+
+Use `bun`. `bun.lock` is the tracked lockfile and it's what pins the versions
+this project actually runs on. Fall back to `npm` only when `bun` isn't
+installed on the machine — and when you do, don't commit the
+`package-lock.json` it leaves behind: npm resolves the caret ranges in
+`package.json` independently of `bun.lock`, so a stray npm lockfile pins a
+second, conflicting set of versions.
+
 # Verifying changes
 
 Don't start the dev server to test `/app/*` (authenticated app) features without
