@@ -1,20 +1,81 @@
 "use client";
 
 import { Badge, microLabel } from "@/components/ui";
+import type { Locale } from "@/i18n/config";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatARS, formatDate, formatMonth } from "@/lib/format";
-import type { Tier, TierMatch } from "@/lib/probar";
+import type { CustomFieldDef, Tier, TierMatch } from "@/lib/probar";
 import type { TypedValue } from "@/parsers/engine/types";
 
-/** Render one extracted custom value with its unit, if the parser declared one. */
-function formatCustom(value: TypedValue, unit: string | null): string {
+/** Parser authors name their own custom fields, so there is no fixed vocabulary
+ * to translate — `consumption`, `Fixed Charge` and `cuotaExtra` are all names
+ * someone typed into the builder. The names the official parsers use are worth
+ * spelling out (a Spanish page shouldn't hand a visitor "LATESURCHARGE"), and
+ * everything else falls back to the author's own name, split into words. */
+function customLabel(name: string, known: Record<string, string>): string {
+  const key = name.replace(/[\s_-]+/g, "").toLowerCase();
+  return (
+    known[key] ??
+    name
+      .replace(/[_-]+/g, " ")
+      .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+      .trim()
+  );
+}
+
+/** Render one extracted custom value the way its parser declared it: money as
+ * pesos, a quantity with its unit, and both grouped in the page's language —
+ * `toLocaleString()` with no argument would hand an es-AR reader 13,850. */
+function formatCustom(
+  value: TypedValue,
+  def: CustomFieldDef,
+  locale: Locale,
+): string {
   if (typeof value === "object")
-    return `${value.value.toLocaleString()} ${value.unit}`;
-  if (typeof value === "number")
-    return unit ? `${value.toLocaleString()} ${unit}` : value.toLocaleString();
+    return `${value.value.toLocaleString(locale)} ${value.unit}`.trim();
+  if (typeof value === "number") {
+    if (def.type === "money") return formatARS(value);
+    const n = value.toLocaleString(locale);
+    return def.unit ? `${n} ${def.unit}` : n;
+  }
   return value;
+}
+
+/** One label/value line. Only the amount gets display type — it's the field the
+ * visitor checks first, and the one a wrong answer gets caught on. */
+function Row({
+  label,
+  value,
+  first,
+  big = false,
+}: {
+  label: string;
+  value: string;
+  first: boolean;
+  big?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-baseline justify-between gap-4 py-2.5",
+        !first && "border-t border-dotted border-line",
+      )}
+    >
+      <span className={cn(microLabel, "shrink-0")}>{label}</span>
+      <span
+        className={cn(
+          "min-w-0 text-right break-words",
+          big
+            ? "font-display text-lg leading-tight sm:text-2xl"
+            : "font-mono text-[13px] text-ink",
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  );
 }
 
 /** Everything the matching parser pulled out of this bill: the vendor it
@@ -22,9 +83,10 @@ function formatCustom(value: TypedValue, unit: string | null): string {
  * defines — consumption, surcharges, data usage.
  *
  * Showing all of it IS the demo: the visitor holds their own bill next to it and
- * decides for themselves whether we got it right. Which is also why the amount
- * is set larger than the rest — it's the field they check first, and the one a
- * wrong answer gets caught on. */
+ * decides for themselves whether we got it right. The custom fields sit under
+ * their own heading rather than extending the list of roles, because "we also
+ * read your kWh" is a different (and more surprising) claim than "we read the
+ * amount" — and because a parser that defines none shouldn't leave a gap. */
 export function ExtractedFields({ match }: { match: TierMatch }) {
   const { t, locale } = useI18n();
   const p = t.probar;
@@ -44,10 +106,17 @@ export function ExtractedFields({ match }: { match: TierMatch }) {
     [p.fieldAccount, result.identity],
   ];
 
+  // Field names are parser data, not dictionary keys — the lookup is a courtesy
+  // for the ones we ship, so it's indexed rather than typed key by key.
+  const known = p.customFieldNames as Record<string, string>;
+  const customRows: [string, string][] = [];
   for (const def of match.customDefs) {
     const value = result.custom[def.name];
     if (value === undefined) continue;
-    rows.push([def.name, formatCustom(value, def.unit)]);
+    customRows.push([
+      customLabel(def.name, known),
+      formatCustom(value, def, locale),
+    ]);
   }
 
   return (
@@ -70,27 +139,26 @@ export function ExtractedFields({ match }: { match: TierMatch }) {
 
       <div className="flex flex-col">
         {rows.map(([label, value], i) => (
-          <div
+          <Row
             key={label}
-            className={cn(
-              "flex items-baseline justify-between gap-4 py-2.5",
-              i > 0 && "border-t border-dotted border-line",
-            )}
-          >
-            <span className={cn(microLabel, "shrink-0")}>{label}</span>
-            <span
-              className={cn(
-                "min-w-0 text-right break-words",
-                i === 0
-                  ? "font-display text-lg leading-tight sm:text-2xl"
-                  : "font-mono text-[13px] text-ink",
-              )}
-            >
-              {value}
-            </span>
-          </div>
+            label={label}
+            value={value}
+            first={i === 0}
+            big={i === 0}
+          />
         ))}
       </div>
+
+      {customRows.length > 0 && (
+        <div className="flex flex-col gap-1 border-t border-line pt-3">
+          <span className={microLabel}>{p.customTitle}</span>
+          <div className="flex flex-col">
+            {customRows.map(([label, value], i) => (
+              <Row key={label} label={label} value={value} first={i === 0} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
