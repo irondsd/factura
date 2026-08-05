@@ -26,7 +26,7 @@ import {
 } from "@/parsers/engine/evaluate";
 import { ParseError, type ParserConfig } from "@/parsers/engine/types";
 import { normalize } from "@/parsers/normalize";
-import { fieldsOf, rowToConfig } from "../parsers";
+import { fieldsOf, ownerPublishState, rowToConfig } from "../parsers";
 import {
   configInputSchema,
   detectSchema,
@@ -194,10 +194,27 @@ export const parsersRouter = router({
       return row;
     }),
 
+  /** Delete an owned package outright. Owner-only, and refused once anyone else
+   * has adopted it: the row cascades to `parser_versions` and `parser_adoptions`,
+   * so one owner's click would silently stop every adopter's bills from being
+   * recognized. The owner's own bills are untouched (`bills.parserKey` is a plain
+   * slug) — they simply fall to whatever parser wins next, which is the point
+   * when the deleted copy was shadowing an official one. */
   delete: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       await assertOwnsPackage(ctx.db, ctx.userId, input.id);
+      const [row] = await ctx.db
+        .select({ n: count() })
+        .from(parserAdoptions)
+        .where(eq(parserAdoptions.configId, input.id));
+      // You can't adopt your own package, so every adoption row is someone else.
+      const adopters = row?.n ?? 0;
+      if (adopters > 0)
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `${adopters} ${adopters === 1 ? "person has" : "people have"} adopted this parser — deleting it would remove it from their library too. Publish a corrected version instead.`,
+        });
       await ctx.db.delete(parserConfigs).where(eq(parserConfigs.id, input.id));
       return { ok: true };
     }),
@@ -468,7 +485,8 @@ export const parsersRouter = router({
 
     return rows.map((r) => {
       const owned = r.ownerId === userId;
-      const versions = (versionsByConfig.get(r.id) ?? []).map((v) => ({
+      const published = versionsByConfig.get(r.id) ?? [];
+      const versions = published.map((v) => ({
         versionId: v.id,
         version: v.version,
         note: v.note,
@@ -492,12 +510,14 @@ export const parsersRouter = router({
         : null;
       const rel = owned ? "owned" : adoptedVid ? "adopted" : null;
       const tally = voteTally.get(r.id) ?? { up: 0, down: 0, mine: 0 };
-      // "published" = the current draft is frozen as a version; otherwise the
-      // owner has unpublished changes (or never published).
+      // Read off the real version rows, never `stable` — that folds in the
+      // synthetic draft row above, which made a never-published draft look
+      // published (and disabled its publish button).
       const ownerStatus = owned
-        ? stable >= Number(r.version)
-          ? "published"
-          : "unpublished"
+        ? ownerPublishState(
+            Number(r.version),
+            published.map((v) => v.version),
+          )
         : null;
       const lastUpdated = owned
         ? r.updatedAt.toISOString()

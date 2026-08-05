@@ -4,12 +4,14 @@ import { createPortal } from "react-dom";
 import { Display } from "@/components/charts/primitives";
 import { Button, Label, Select } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
+import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import {
   catLabel,
   fmtDate,
   type LibraryItem,
   type ParserLabels,
+  publishState,
   TierBadge,
   versionOptions,
 } from "./shared";
@@ -26,6 +28,7 @@ export function ParserModal({
   onAdopt,
   onRemove,
   onPublish,
+  onDelete,
   onFork,
   onEdit,
 }: {
@@ -38,10 +41,13 @@ export function ParserModal({
   onAdopt: () => void;
   onRemove: () => void;
   onPublish: () => void;
+  onDelete: () => void;
   onFork: () => void;
   onEdit: () => void;
 }) {
+  const { t } = useI18n();
   const net = p.up - p.down;
+  const owned = p.rel === "owned" ? publishState(tp, p) : null;
   const options = versionOptions(tp, p);
   const sel =
     p.versions.find((v) => v.version === selVersion) ?? p.versions[0] ?? null;
@@ -177,17 +183,25 @@ export function ParserModal({
 
         {/* actions */}
         <div className="flex gap-2 mt-6 flex-wrap">
-          {p.rel === "owned" ? (
+          {owned ? (
             <>
               <Button
-                variant={p.ownerStatus === "published" ? "outline" : "solid"}
-                disabled={busy || p.ownerStatus === "published"}
+                variant={owned.done ? "outline" : "solid"}
+                disabled={busy || owned.done}
                 onClick={onPublish}
               >
-                {p.ownerStatus === "published" ? tp.published : tp.publish}
+                {owned.action}
               </Button>
               <Button variant="ghost" onClick={onEdit}>
                 {tp.edit}
+              </Button>
+              <Button
+                variant="danger"
+                className="ml-auto"
+                disabled={busy}
+                onClick={onDelete}
+              >
+                {t.common.delete}
               </Button>
             </>
           ) : p.rel === "adopted" ? (

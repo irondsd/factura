@@ -3,6 +3,7 @@
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Input } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
+import { DeleteParserDialog } from "./DeleteParserDialog";
 import { FilterRail } from "./FilterRail";
 import { ParserCard } from "./ParserCard";
 import { ParserModal } from "./ParserModal";
@@ -89,6 +90,7 @@ export default function ParsersPage() {
                   onAdopt={lib.onAdopt}
                   onRemove={lib.onRemove}
                   onPublish={lib.onPublish}
+                  onDelete={lib.onDelete}
                 />
               ))}
             </div>
@@ -108,6 +110,7 @@ export default function ParsersPage() {
           onAdopt={() => lib.onAdopt(modal)}
           onRemove={() => lib.onRemove(modal)}
           onPublish={() => lib.onPublish(modal)}
+          onDelete={() => lib.onDelete(modal)}
           onFork={() => lib.onFork(modal)}
           onEdit={() => lib.onEdit(modal)}
         />
@@ -119,6 +122,18 @@ export default function ParsersPage() {
           busy={lib.publishPending}
           onConfirm={lib.doPublish}
           onCancel={() => lib.setPublishTarget(null)}
+        />
+      )}
+      {lib.deleteTarget && (
+        <DeleteParserDialog
+          key={lib.deleteTarget.configId}
+          parserName={lib.deleteTarget.name}
+          billCount={lib.deleteBillCount}
+          shadowedName={lib.shadowedBy(lib.deleteTarget)?.name ?? null}
+          adopters={lib.deleteTarget.adoptions}
+          busy={lib.deletePending}
+          onConfirm={lib.doDelete}
+          onCancel={() => lib.setDeleteTarget(null)}
         />
       )}
     </div>

@@ -33,6 +33,7 @@ export function useParserLibrary() {
   const adopt = trpc.parsers.adopt.useMutation();
   const unadopt = trpc.parsers.unadopt.useMutation();
   const publish = trpc.parsers.publish.useMutation();
+  const remove = trpc.parsers.delete.useMutation();
   const vote = trpc.parsers.vote.useMutation();
 
   const [tab, setTabState] = useState<TabKey>("adopted");
@@ -42,15 +43,25 @@ export function useParserLibrary() {
   const [sort, setSort] = useState<Sort>("rating");
   const [openId, setOpenId] = useState<string | null>(null);
   const [publishTarget, setPublishTarget] = useState<LibraryItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<LibraryItem | null>(null);
   // Per-card chosen version (number). Falls back to adopted/stable when absent.
   const [selVersion, setSelVersion] = useState<Record<string, number>>({});
+
+  // How many bills currently carry the doomed parser's slug — the delete
+  // dialog's "nothing will re-read them" warning needs a real number, so it's
+  // fetched only while that dialog is open.
+  const deleteUsage = trpc.parsers.usage.useQuery(
+    { slug: deleteTarget?.slug ?? "" },
+    { enabled: deleteTarget !== null },
+  );
 
   const items = useMemo(() => lib.data ?? [], [lib.data]);
   const busy =
     reparse.isPending ||
     adopt.isPending ||
     unadopt.isPending ||
-    publish.isPending;
+    publish.isPending ||
+    remove.isPending;
 
   const selectedVersion = (p: LibraryItem): number =>
     selVersion[p.configId] ?? p.adoptedVersion ?? p.stable;
@@ -66,13 +77,14 @@ export function useParserLibrary() {
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  /** Adopt/unadopt change which parsers detect a user's bills, so always follow
-   * with a reparse. */
+  /** Adopt/unadopt/delete change which parsers detect a user's bills, so always
+   * follow with a reparse. Returns whether the action went through, so a caller
+   * can keep its dialog open when it didn't. */
   const withReparse = async (
     run: () => Promise<unknown>,
     label: string,
     slug: string,
-  ) => {
+  ): Promise<boolean> => {
     try {
       await run();
       await refresh();
@@ -84,8 +96,10 @@ export function useParserLibrary() {
         }),
       );
       utils.invalidate();
+      return true;
     } catch (e) {
       toastErr(e);
+      return false;
     }
   };
 
@@ -126,6 +140,33 @@ export function useParserLibrary() {
     } catch (e) {
       toastErr(e);
     }
+  };
+
+  const onDelete = (p: LibraryItem) => setDeleteTarget(p);
+
+  /** The adopted parser an owned one is shadowing: detection keys on slug and
+   * the user's own package wins (`mergeConfigSets`), so this is exactly what
+   * takes over once the copy is deleted. */
+  const shadowedBy = (p: LibraryItem): LibraryItem | null =>
+    items.find(
+      (x) =>
+        x.configId !== p.configId && x.rel === "adopted" && x.slug === p.slug,
+    ) ?? null;
+
+  const doDelete = async () => {
+    const p = deleteTarget;
+    if (!p) return;
+    // Reparse under the deleted parser's slug so its bills fall through to
+    // whatever wins now — the official parser it was shadowing, or nothing.
+    const ok = await withReparse(
+      () => remove.mutateAsync({ id: p.configId }),
+      tp.toastDeleted,
+      p.slug,
+    );
+    if (!ok) return; // toasted already; leave the dialog up with its context
+    posthog.capture("parser_deleted", { slug: p.slug, display_name: p.name });
+    setDeleteTarget(null);
+    setOpenId(null);
   };
 
   const onFork = (p: LibraryItem) =>
@@ -247,6 +288,7 @@ export function useParserLibrary() {
     isLoading: lib.isLoading,
     busy,
     publishPending: publish.isPending,
+    deletePending: remove.isPending || reparse.isPending,
     // tab + filters
     tab,
     setTab,
@@ -276,11 +318,19 @@ export function useParserLibrary() {
     modal,
     publishTarget,
     setPublishTarget,
+    deleteTarget,
+    setDeleteTarget,
+    // Null until the count query lands; the dialog omits the line until then
+    // rather than claiming zero bills and correcting itself a beat later.
+    deleteBillCount: deleteUsage.data?.count ?? null,
+    shadowedBy,
     // actions
     onAdopt,
     onRemove,
     onPublish,
     doPublish,
+    onDelete,
+    doDelete,
     onFork,
     onEdit,
     onBack,
