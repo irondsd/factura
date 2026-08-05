@@ -36,6 +36,29 @@ export function resultToExtra(result: ParsedResult) {
   return { accountNumber: result.identity, fields: result.custom };
 }
 
+/** Where an owner's package sits between its editable draft and its published
+ * history. Three states, not two: `draft` = never published (nothing exists for
+ * anyone to adopt); `published` = the current draft is frozen as a version;
+ * `unpublished` = it was published before, but the draft has moved ahead since. */
+export type OwnerPublishState = "draft" | "published" | "unpublished";
+
+/** Classify a package from its draft revision and the versions actually frozen
+ * in `parser_versions`.
+ *
+ * `publishedVersions` must come from the version rows themselves, NOT from the
+ * list the library renders: an owned package with nothing published still gets a
+ * synthetic display row carrying the DRAFT number, and deriving the state from
+ * that made a never-published draft claim it was published. */
+export function ownerPublishState(
+  draftVersion: number,
+  publishedVersions: readonly number[],
+): OwnerPublishState {
+  if (publishedVersions.length === 0) return "draft";
+  return Math.max(...publishedVersions) >= draftVersion
+    ? "published"
+    : "unpublished";
+}
+
 /** The names of the fields a config extracts — the four semantic roles
  * (identity surfaced as `accountNumber`) plus every custom field by name. Drives
  * the parser library's "fields extracted" chips. */

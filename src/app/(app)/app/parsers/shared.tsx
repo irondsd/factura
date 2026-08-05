@@ -68,6 +68,24 @@ export function catLabel(tp: ParserLabels, key: string | null): string {
   return (tp.categories as Record<string, string>)[key] ?? key;
 }
 
+/** How an owned parser's publish state renders: its badge copy + tone, and
+ * whether the publish button still has anything to do. Three states, because
+ * "never published" and "published, then edited" both need the owner to be able
+ * to publish — only a draft that's already frozen is done. */
+export function publishState(tp: ParserLabels, p: LibraryItem) {
+  const done = p.ownerStatus === "published";
+  return {
+    done,
+    tone: (done ? "accent" : "neutral") as "accent" | "neutral",
+    badge: done
+      ? tp.published
+      : p.ownerStatus === "unpublished"
+        ? tp.unpublishedChanges
+        : tp.draft,
+    action: done ? tp.published : tp.publish,
+  };
+}
+
 /** Version dropdown options — the newest entry is tagged "latest". */
 export function versionOptions(tp: ParserLabels, p: LibraryItem) {
   return p.versions.map((v, i) => ({
