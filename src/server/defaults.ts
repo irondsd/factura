@@ -10,6 +10,7 @@ import { ENGINE_CONFIGS } from "@/parsers/engine/configs";
 import { OFFICIAL_PARSER_META } from "@/parsers/engine/configs/meta";
 import { pickVendorColor } from "@/lib/vendorColors";
 import { publishConfig } from "./registry";
+import { resolveVendorBySlug } from "./vendors";
 
 type VendorRow = typeof vendors.$inferSelect;
 type PropertyRow = typeof properties.$inferSelect;
@@ -17,18 +18,19 @@ type PropertyRow = typeof properties.$inferSelect;
 /** Get an property's vendor for a slug, creating it from preset metadata if it
  * doesn't exist yet. Vendors belong to a property, so this is the single point
  * where a bill being *filed* into an property materializes its vendor row.
- * Idempotent per (propertyId, slug). */
+ * Idempotent per (propertyId, slug).
+ *
+ * The lookup goes through `resolveVendorBySlug`, so a slug the property has
+ * already learned as an alias returns the vendor it was merged into instead of
+ * minting a second row for the same biller. Without that, every change of
+ * winning parser — adopting the official version of a private copy, an upgrade
+ * that renames the vendor — silently forked the household's history in two. */
 export async function ensureVendor(
   db: Database,
   propertyId: string,
   vendor: { slug: string; displayName: string },
 ): Promise<VendorRow> {
-  const existing = await db.query.vendors.findFirst({
-    where: and(
-      eq(vendors.propertyId, propertyId),
-      eq(vendors.slug, vendor.slug),
-    ),
-  });
+  const existing = await resolveVendorBySlug(db, propertyId, vendor.slug);
   if (existing) return existing;
   // Assign a random color, avoiding ones already used in this property.
   const siblings = await db.query.vendors.findMany({

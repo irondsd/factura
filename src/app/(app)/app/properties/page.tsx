@@ -5,12 +5,13 @@ import { useMemo, useState } from "react";
 import posthog from "posthog-js";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { Button, Checkbox, Input } from "@/components/ui";
+import { Button, Checkbox, Input, Select } from "@/components/ui";
 import { VendorColorPicker } from "@/components/VendorColorPicker";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { OWNED_PROPERTY_LIMIT } from "@/lib/limits";
+import type { VendorColorName } from "@/lib/vendorColors";
 import { useToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
 
@@ -36,6 +37,7 @@ export default function PropertiesPage() {
   const properties = trpc.properties.list.useQuery();
   const pendingInvites = trpc.properties.pendingInvites.useQuery();
   const vendors = trpc.vendors.list.useQuery();
+  const vendorAliases = trpc.vendors.aliases.useQuery();
   const accounts = trpc.accounts.list.useQuery();
 
   const invalidate = () => utils.invalidate();
@@ -77,8 +79,23 @@ export default function PropertiesPage() {
   const updateVendor = trpc.vendors.update.useMutation({
     onSuccess: invalidate,
   });
+  const mergeVendors = trpc.vendors.merge.useMutation({
+    onSuccess: () => {
+      posthog.capture("vendors_merged");
+      invalidate();
+    },
+  });
+  const unlinkAlias = trpc.vendors.unlinkAlias.useMutation({
+    onSuccess: invalidate,
+  });
   const updateAccount = trpc.accounts.update.useMutation({
     onSuccess: invalidate,
+  });
+  const mergeAccounts = trpc.accounts.merge.useMutation({
+    onSuccess: () => {
+      posthog.capture("accounts_merged");
+      invalidate();
+    },
   });
   const deleteAccount = trpc.accounts.delete.useMutation({
     onSuccess: invalidate,
@@ -301,39 +318,35 @@ export default function PropertiesPage() {
             {aptVendors.length > 0 && (
               <>
                 <p className={subhead}>{tp.vendors}</p>
+                {isOwner && aptVendors.length > 1 && (
+                  <p className={help}>{tp.mergeVendorHelp}</p>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {aptVendors.map((v) => (
-                    <div key={v.id} className="flex items-center gap-2">
-                      <VendorColorPicker
-                        value={v.color}
-                        onChange={
-                          isOwner
-                            ? (color) =>
-                                updateVendor.mutate({ id: v.id, color })
-                            : undefined
-                        }
-                      />
-                      {isOwner ? (
-                        <Input
-                          defaultValue={v.displayName}
-                          onBlur={(e) => {
-                            if (
-                              e.target.value.trim() &&
-                              e.target.value !== v.displayName
-                            )
-                              updateVendor.mutate({
-                                id: v.id,
-                                displayName: e.target.value.trim(),
-                              });
-                          }}
-                          className="flex-1 font-semibold"
-                        />
-                      ) : (
-                        <span className="flex-1 font-mono text-[13px] font-semibold">
-                          {v.displayName}
-                        </span>
+                    <VendorCell
+                      key={v.id}
+                      vendor={v}
+                      others={aptVendors.filter((o) => o.id !== v.id)}
+                      aliases={(vendorAliases.data ?? []).filter(
+                        (a) => a.vendorId === v.id,
                       )}
-                    </div>
+                      isOwner={isOwner}
+                      onColor={(color) =>
+                        updateVendor.mutate({ id: v.id, color })
+                      }
+                      onRename={(displayName) =>
+                        updateVendor.mutate({ id: v.id, displayName })
+                      }
+                      onMerge={(targetId) =>
+                        mergeVendors.mutate(
+                          { sourceId: v.id, targetId },
+                          opts(tp.toastVendorsMerged),
+                        )
+                      }
+                      onUnlinkAlias={(id) =>
+                        unlinkAlias.mutate({ id }, { onError: toastErr })
+                      }
+                    />
                   ))}
                 </div>
               </>
@@ -344,40 +357,30 @@ export default function PropertiesPage() {
               <>
                 <p className={subhead}>{tp.accounts}</p>
                 {aptAccounts.map((a) => (
-                  <div key={a.id} className={row}>
-                    <span className="w-[130px] font-mono font-semibold text-[13px]">
-                      {vendorName(a.vendorId)}
-                    </span>
-                    <span className="font-mono text-xs text-muted">
-                      №{a.accountNumber}
-                    </span>
-                    {isOwner && (
-                      <Checkbox
-                        label={tp.expectedMonthly}
-                        checked={a.active}
-                        onChange={(e) =>
-                          updateAccount.mutate({
-                            id: a.id,
-                            active: e.target.checked,
-                          })
-                        }
-                      />
+                  <AccountRow
+                    key={a.id}
+                    account={a}
+                    vendorName={vendorName(a.vendorId)}
+                    // Only accounts of the SAME vendor can merge: two numbers
+                    // under one biller is the split we're undoing; two vendors
+                    // is what the vendor merge above is for.
+                    siblings={aptAccounts.filter(
+                      (o) => o.id !== a.id && o.vendorId === a.vendorId,
                     )}
-                    {isOwner && (
-                      <button
-                        aria-label={tp.deleteAria}
-                        onClick={() =>
-                          deleteAccount.mutate(
-                            { id: a.id },
-                            { onError: toastErr },
-                          )
-                        }
-                        className={iconX}
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
+                    isOwner={isOwner}
+                    onToggleActive={(active) =>
+                      updateAccount.mutate({ id: a.id, active })
+                    }
+                    onMerge={(targetId) =>
+                      mergeAccounts.mutate(
+                        { sourceId: a.id, targetId },
+                        opts(tp.toastAccountsMerged),
+                      )
+                    }
+                    onDelete={() =>
+                      deleteAccount.mutate({ id: a.id }, { onError: toastErr })
+                    }
+                  />
                 ))}
               </>
             )}
@@ -472,6 +475,221 @@ export default function PropertiesPage() {
         }}
         onCancel={() => setShowLimitDialog(false)}
       />
+    </div>
+  );
+}
+
+/** One vendor: colour, name, the other slugs it answers to, and — the reason
+ * this cell exists — the way to fold a duplicate of the same biller into it.
+ * Renaming both rows to match is what people try first and it changes nothing,
+ * because every screen groups by vendor id. */
+function VendorCell({
+  vendor,
+  others,
+  aliases,
+  isOwner,
+  onColor,
+  onRename,
+  onMerge,
+  onUnlinkAlias,
+}: {
+  vendor: { id: string; displayName: string; color: string };
+  others: { id: string; displayName: string }[];
+  aliases: { id: string; slug: string }[];
+  isOwner: boolean;
+  onColor: (color: VendorColorName) => void;
+  onRename: (displayName: string) => void;
+  onMerge: (targetId: string) => void;
+  onUnlinkAlias: (id: string) => void;
+}) {
+  const { t } = useI18n();
+  const tp = t.properties;
+  const [merging, setMerging] = useState(false);
+  const [targetId, setTargetId] = useState("");
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        <VendorColorPicker
+          value={vendor.color}
+          onChange={isOwner ? onColor : undefined}
+        />
+        {isOwner ? (
+          <Input
+            defaultValue={vendor.displayName}
+            onBlur={(e) => {
+              if (
+                e.target.value.trim() &&
+                e.target.value !== vendor.displayName
+              )
+                onRename(e.target.value.trim());
+            }}
+            className="flex-1 font-semibold"
+          />
+        ) : (
+          <span className="flex-1 font-mono text-[13px] font-semibold">
+            {vendor.displayName}
+          </span>
+        )}
+        {isOwner && others.length > 0 && !merging && (
+          <button
+            onClick={() => setMerging(true)}
+            className="font-mono text-micro uppercase tracking-[0.14em] text-muted bg-transparent border-none cursor-pointer transition-colors hover:text-accent"
+          >
+            {tp.merge}
+          </button>
+        )}
+      </div>
+
+      {merging && (
+        <div className="flex items-center gap-2 pl-7">
+          <Select
+            value={targetId}
+            onChange={(e) => setTargetId(e.target.value)}
+            className="flex-1"
+          >
+            <option value="">{tp.mergeIntoPlaceholder}</option>
+            {others.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.displayName}
+              </option>
+            ))}
+          </Select>
+          <Button
+            variant="outline"
+            disabled={!targetId}
+            onClick={() => {
+              onMerge(targetId);
+              setMerging(false);
+              setTargetId("");
+            }}
+          >
+            {tp.merge}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setMerging(false);
+              setTargetId("");
+            }}
+          >
+            {t.common.cancel}
+          </Button>
+        </div>
+      )}
+
+      {aliases.length > 0 && (
+        <p className="flex flex-wrap items-center gap-1.5 pl-7 font-mono text-micro text-muted">
+          <span>{tp.alsoKnownAs}</span>
+          {aliases.map((a) => (
+            <span key={a.id} className="border border-line px-1.5 py-0.5">
+              {a.slug}
+              {isOwner && (
+                <button
+                  aria-label={tp.unlinkAliasAria}
+                  onClick={() => onUnlinkAlias(a.id)}
+                  className="ml-1 bg-transparent border-none text-muted cursor-pointer transition-colors hover:text-accent"
+                >
+                  ✕
+                </button>
+              )}
+            </span>
+          ))}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** One account number under a vendor. `siblings` are the other accounts of the
+ * SAME vendor — the second row a parser upgrade leaves behind when the identity
+ * it reads off the bill changes shape. */
+function AccountRow({
+  account,
+  vendorName,
+  siblings,
+  isOwner,
+  onToggleActive,
+  onMerge,
+  onDelete,
+}: {
+  account: { id: string; accountNumber: string; active: boolean };
+  vendorName: string;
+  siblings: { id: string; accountNumber: string }[];
+  isOwner: boolean;
+  onToggleActive: (active: boolean) => void;
+  onMerge: (targetId: string) => void;
+  onDelete: () => void;
+}) {
+  const { t } = useI18n();
+  const tp = t.properties;
+  const [merging, setMerging] = useState(false);
+  const [targetId, setTargetId] = useState("");
+
+  return (
+    <div className={row}>
+      <span className="w-[130px] font-mono font-semibold text-[13px]">
+        {vendorName}
+      </span>
+      <span className="font-mono text-xs text-muted">
+        №{account.accountNumber}
+      </span>
+      {isOwner && !merging && (
+        <Checkbox
+          label={tp.expectedMonthly}
+          checked={account.active}
+          onChange={(e) => onToggleActive(e.target.checked)}
+        />
+      )}
+      {isOwner && merging && (
+        <>
+          <Select
+            value={targetId}
+            onChange={(e) => setTargetId(e.target.value)}
+            className="max-w-[220px]"
+          >
+            <option value="">{tp.mergeIntoPlaceholder}</option>
+            {siblings.map((s) => (
+              <option key={s.id} value={s.id}>
+                №{s.accountNumber}
+              </option>
+            ))}
+          </Select>
+          <Button
+            variant="outline"
+            disabled={!targetId}
+            onClick={() => {
+              onMerge(targetId);
+              setMerging(false);
+              setTargetId("");
+            }}
+          >
+            {tp.merge}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setMerging(false);
+              setTargetId("");
+            }}
+          >
+            {t.common.cancel}
+          </Button>
+        </>
+      )}
+      {isOwner && siblings.length > 0 && !merging && (
+        <button
+          onClick={() => setMerging(true)}
+          className="font-mono text-micro uppercase tracking-[0.14em] text-muted bg-transparent border-none cursor-pointer transition-colors hover:text-accent"
+        >
+          {tp.merge}
+        </button>
+      )}
+      {isOwner && !merging && (
+        <button aria-label={tp.deleteAria} onClick={onDelete} className={iconX}>
+          ✕
+        </button>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { Database } from "@/db";
-import { bills, properties, vendorAccounts, vendors } from "@/db/schema";
+import { bills, properties, vendorAccounts } from "@/db/schema";
 import { runConfig, selectConfig } from "@/parsers/engine/evaluate";
 import { ParseError } from "@/parsers/engine/types";
 import type { ParserConfig } from "@/parsers/engine/types";
@@ -11,6 +11,7 @@ import { suggestProperty } from "./match/address";
 import { accessibleProperties } from "./ownership";
 import { resultToColumns, resultToExtra } from "./parsers";
 import { loadUserConfigs } from "./registry";
+import { vendorIdsForSlug } from "./vendors";
 
 export type IngestResult =
   | { outcome: "duplicate"; billId: string }
@@ -61,7 +62,13 @@ export function vendorMetaExtra(config: ParserConfig) {
 
 /** Find an existing account for `vendorSlug` + `accountNumber` in one of the
  * given properties. Vendors are per-property, so the match is on vendor slug
- * across the caller's accessible properties. */
+ * across the caller's accessible properties.
+ *
+ * The slug is resolved through `vendorIdsForSlug` rather than compared to
+ * `vendors.slug` directly: once a property has learned that two slugs mean the
+ * same biller, a bill from the newly-winning parser must land on the account it
+ * already has, not on a fresh one under a fresh vendor. Candidates come back
+ * canonical-first, and that order decides ties. */
 export async function findAccountMatch(
   db: Database,
   accessible: string[],
@@ -71,23 +78,26 @@ export async function findAccountMatch(
   { accountId: string; propertyId: string; vendorId: string } | undefined
 > {
   if (accessible.length === 0) return undefined;
-  const [row] = await db
+  const candidates = await vendorIdsForSlug(db, accessible, vendorSlug);
+  if (candidates.length === 0) return undefined;
+  const rows = await db
     .select({
       accountId: vendorAccounts.id,
       propertyId: vendorAccounts.propertyId,
-      vendorId: vendors.id,
+      vendorId: vendorAccounts.vendorId,
     })
     .from(vendorAccounts)
-    .innerJoin(vendors, eq(vendorAccounts.vendorId, vendors.id))
     .where(
       and(
         inArray(vendorAccounts.propertyId, accessible),
-        eq(vendors.slug, vendorSlug),
+        inArray(vendorAccounts.vendorId, candidates),
         eq(vendorAccounts.accountNumber, accountNumber),
       ),
-    )
-    .limit(1);
-  return row;
+    );
+  if (rows.length <= 1) return rows[0];
+  return rows.sort(
+    (a, b) => candidates.indexOf(a.vendorId) - candidates.indexOf(b.vendorId),
+  )[0];
 }
 
 /** Read the vendor identity back off an unfiled bill's `extra`. */

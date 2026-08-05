@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import type { db as Db } from "@/db";
-import { bills } from "@/db/schema";
+import { bills, vendorAccounts, vendors } from "@/db/schema";
 import { runConfig, selectConfig } from "@/parsers/engine/evaluate";
 import type { ParserConfig } from "@/parsers/engine/types";
 import { normalize } from "@/parsers/normalize";
@@ -13,6 +13,7 @@ import {
 import { accessibleProperties } from "./ownership";
 import { resultToColumns, resultToExtra } from "./parsers";
 import { loadUserConfigs } from "./registry";
+import { knownVendorSlugs, recordVendorAlias } from "./vendors";
 
 /** Reparse — re-run a user's parsers over stored bills and write changed output
  * back. Deliberately free of any Next-only import (no `../trpc`, no
@@ -51,10 +52,122 @@ function canonical(v: unknown): string {
   );
 }
 
+/** Should the parser's vendor slug be recorded as another name for the vendor a
+ * bill is already filed under?
+ *
+ * Only asked when a re-parse KEPT the bill on its existing vendor and the
+ * parser that now wins calls that biller something else — which is exactly the
+ * moment a household adopts the official version of a private parser, or a
+ * parser upgrade renames its vendor. Learning it here is what makes the fix
+ * automatic: the *next* bill from that parser arrives through ingest, where the
+ * only thing to match on is the slug, and without the alias it would open a
+ * second vendor all over again.
+ *
+ * The one thing that must not happen is re-pointing a slug that already means
+ * something in this property — that would silently move another vendor's future
+ * bills — so any slug already in use, canonical or aliased, is refused. What
+ * remains is the case of a mis-detecting parser: it would bind its slug to the
+ * vendor whose bill it wrongly claimed. That parser is already rewriting the
+ * bill's amount and period, so it is a parser bug rather than a new failure
+ * mode, and the alias is visible and removable on the property page. */
+export function shouldLearnAlias(input: {
+  /** `vendor.slug` of the config that just won. */
+  parserVendorSlug: string;
+  /** Canonical slug of the vendor the bill stayed on. */
+  vendorSlug: string;
+  /** Slugs already resolving to a vendor in this property (canonical + alias). */
+  knownSlugs: string[];
+}): boolean {
+  if (input.parserVendorSlug === input.vendorSlug) return false;
+  return !input.knownSlugs.includes(input.parserVendorSlug);
+}
+
+/** Which account a re-parsed, already-filed bill should point at.
+ *
+ * A bill used to keep whatever `accountId` it had while its `vendorId` was
+ * rewritten to a freshly-created vendor, leaving the two columns describing
+ * different billers — the quiet half of the same bug. The account is therefore
+ * always resolved against the vendor the bill ends up on:
+ *
+ *  - an account of that vendor carrying the identity the parser just read wins;
+ *  - otherwise the bill keeps its current account, provided that account belongs
+ *    to this vendor. Keeping it is what preserves continuity when a parser
+ *    upgrade changes the identity FORMAT (`0016` → `30-62914040-5:0016`): the
+ *    number stored on the account is stale, but the bill stays on the thread its
+ *    forecasts and history are attached to, and guessing that two differently
+ *    shaped identities are the same account is not a guess worth making;
+ *  - otherwise nothing, because an account belonging to some other vendor is
+ *    definitively the wrong answer. */
+export function reconcileAccount(input: {
+  currentAccountId: string | null;
+  /** Account of the resolved vendor whose number equals the parsed identity. */
+  identityAccountId: string | null;
+  /** Every account id belonging to the resolved vendor. */
+  vendorAccountIds: string[];
+}): string | null {
+  if (input.identityAccountId) return input.identityAccountId;
+  if (
+    input.currentAccountId &&
+    input.vendorAccountIds.includes(input.currentAccountId)
+  )
+    return input.currentAccountId;
+  return null;
+}
+
+/** Settle vendor + account for a bill that is already filed into a property.
+ *
+ * The vendor the bill is filed under WINS over the one the parser proposes.
+ * Re-parsing changes how a document is read, never who sent it — and taking the
+ * parser's word here is precisely what forked one household's Expensas history
+ * into two vendors the moment the winning parser changed. Only a bill that has
+ * no vendor at all falls back to materializing the parser's. */
+async function refileInPlace(
+  db: typeof Db,
+  bill: BillRow,
+  propertyId: string,
+  config: ParserConfig,
+  identity: string,
+): Promise<{ vendorId: string; accountId: string | null }> {
+  const current = bill.vendorId
+    ? await db.query.vendors.findFirst({ where: eq(vendors.id, bill.vendorId) })
+    : undefined;
+  // A vendor from another property can't be this bill's vendor; treat it as
+  // absent rather than filing the bill under someone else's row.
+  const kept = current?.propertyId === propertyId ? current : undefined;
+  const vendor = kept ?? (await ensureVendor(db, propertyId, config.vendor));
+
+  if (kept && config.vendor.slug !== kept.slug) {
+    const knownSlugs = await knownVendorSlugs(db, propertyId);
+    if (
+      shouldLearnAlias({
+        parserVendorSlug: config.vendor.slug,
+        vendorSlug: kept.slug,
+        knownSlugs,
+      })
+    )
+      await recordVendorAlias(db, kept, config.vendor.slug);
+  }
+
+  const accounts = await db.query.vendorAccounts.findMany({
+    where: eq(vendorAccounts.vendorId, vendor.id),
+    columns: { id: true, accountNumber: true },
+  });
+  return {
+    vendorId: vendor.id,
+    accountId: reconcileAccount({
+      currentAccountId: bill.accountId,
+      identityAccountId:
+        accounts.find((a) => a.accountNumber === identity)?.id ?? null,
+      vendorAccountIds: accounts.map((a) => a.id),
+    }),
+  };
+}
+
 /** Re-run the user's parsers over one bill's stored raw text and write the
  * parsed fields back. A matched account files the bill into its property; an
- * already-filed bill keeps its property (vendor materialized there); an unfiled
- * bill with no known account stays in the inbox with the vendor deferred.
+ * already-filed bill keeps its property AND the vendor it is filed under (see
+ * `refileInPlace`); an unfiled bill with no known account stays in the inbox
+ * with the vendor deferred.
  *
  * The write is skipped when re-running produces exactly what's already stored.
  * Critically, "is this stale?" is decided by re-running and comparing output —
@@ -106,11 +219,18 @@ export async function reparseSingle(
     };
   } else if (bill.propertyId) {
     // Filed already, but no matching account row — keep it in its property and
-    // materialize the vendor there.
-    const vendor = await ensureVendor(db, bill.propertyId, config.vendor);
+    // reconcile who it belongs to against what the parser now says.
+    const filed = await refileInPlace(
+      db,
+      bill,
+      bill.propertyId,
+      config,
+      result.identity,
+    );
     patch = {
       ...common,
-      vendorId: vendor.id,
+      vendorId: filed.vendorId,
+      accountId: filed.accountId,
       extra: resultToExtra(result),
       status: "parsed",
     };

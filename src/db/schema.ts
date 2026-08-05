@@ -231,6 +231,49 @@ export const vendors = pgTable(
   (t) => [uniqueIndex("vendor_property_slug_idx").on(t.propertyId, t.slug)],
 );
 
+/** Other slugs that mean this vendor, inside this property.
+ *
+ * A parser's `vendor.slug` is how a bill's biller is *proposed*; the vendor row
+ * is who the household actually banks with. Those two drifted apart every time
+ * the winning parser changed — adopting the official parser over a private copy,
+ * an upgrade that renames the vendor, a fork with its own slug — and
+ * `ensureVendor` dutifully created a second vendor in the same property, which
+ * split the bills page into two chips and every chart into two series.
+ *
+ * A row here says "slug X also resolves to vendor V here", so the property (not
+ * the parser) owns the mapping. Two ways one appears: a merge folds the source
+ * vendor's slug in, and a reparse that keeps an already-filed bill on its
+ * existing vendor records the new parser's slug. Either way the effect is
+ * durable — the *reason* a deleted vendor used to come back is that a full
+ * reparse re-runs the old parser, which still emits the old slug; with an alias
+ * that slug now lands on the surviving row instead of resurrecting the dead one.
+ *
+ * Unique on (propertyId, slug): a slug resolves to at most one vendor per
+ * property. Resolution checks canonical slugs first, so an alias can never
+ * shadow a real vendor even if a stale row survives. */
+export const vendorAliases = pgTable(
+  "vendor_aliases",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vendorId: uuid("vendor_id")
+      .notNull()
+      .references(() => vendors.id, { onDelete: "cascade" }),
+    // Denormalized from the vendor so the uniqueness that matters — one slug,
+    // one vendor, per property — is a DB constraint rather than a convention,
+    // and so resolution is a single indexed lookup with no join.
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("vendor_alias_property_slug_idx").on(t.propertyId, t.slug),
+  ],
+);
+
 export const vendorAccounts = pgTable(
   "vendor_accounts",
   {

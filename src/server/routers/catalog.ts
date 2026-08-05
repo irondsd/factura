@@ -8,6 +8,7 @@ import {
   propertyMembers,
   users,
   vendorAccounts,
+  vendorAliases,
   vendors,
 } from "@/db/schema";
 import { VENDOR_COLOR_NAMES } from "@/lib/vendorColors";
@@ -21,6 +22,7 @@ import {
   scopeIds,
 } from "../ownership";
 import { protectedProcedure, router, scopedProcedure } from "../trpc";
+import { mergeAccounts, mergeVendors } from "../vendors";
 
 export const propertiesRouter = router({
   /** Every property the user can access (owned + shared), each with the
@@ -410,6 +412,20 @@ export const vendorsRouter = router({
       });
     }),
 
+  /** The extra slugs each vendor answers to, for the property page's "also
+   * known as" list. Separate from `list` so the vendor row shape stays what
+   * every other consumer (bills, drawer, builder, MCP) already expects. */
+  aliases: scopedProcedure
+    .input(z.object({ propertyId: z.string().uuid().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const scope = scopeIds(ctx.accessiblePropertyIds, input?.propertyId);
+      if (scope.length === 0) return [];
+      return ctx.db.query.vendorAliases.findMany({
+        where: inArray(vendorAliases.propertyId, scope),
+        orderBy: [asc(vendorAliases.createdAt)],
+      });
+    }),
+
   update: protectedProcedure
     .input(
       z
@@ -431,6 +447,63 @@ export const vendorsRouter = router({
         .where(eq(vendors.id, id))
         .returning();
       return updated;
+    }),
+
+  /** Fold one vendor into another: the same biller, split across two rows
+   * because the parser that reads its bills changed its slug. Every bill and
+   * account moves to `targetId`, the source's slug is kept as an alias so a
+   * later reparse resolves to the survivor instead of re-creating it, and the
+   * source row is deleted.
+   *
+   * Renaming both rows to the same display name is the obvious thing to try and
+   * does nothing, because bills and insights group by `vendorId` — this is the
+   * operation that was previously only possible with direct database access. */
+  merge: protectedProcedure
+    .input(
+      z
+        .object({
+          sourceId: z.string().uuid(),
+          targetId: z.string().uuid(),
+        })
+        .refine((v) => v.sourceId !== v.targetId, {
+          message: "Pick a different vendor to merge into",
+        }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [source, target] = await Promise.all([
+        ctx.db.query.vendors.findFirst({
+          where: eq(vendors.id, input.sourceId),
+        }),
+        ctx.db.query.vendors.findFirst({
+          where: eq(vendors.id, input.targetId),
+        }),
+      ]);
+      if (!source || !target) throw new TRPCError({ code: "NOT_FOUND" });
+      // Both sides checked against the same property, so a merge can never move
+      // bills across the property boundary that authorization is built on.
+      if (source.propertyId !== target.propertyId)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Vendors belong to different properties",
+        });
+      await assertMember(ctx.db, ctx.userId, source.propertyId, "owner");
+      await mergeVendors(ctx.db, source, target);
+      return { ok: true };
+    }),
+
+  /** Drop a learned alias. The bills already filed under the vendor stay put —
+   * this only stops FUTURE bills carrying that slug from resolving here, which
+   * is the escape hatch if a mis-detecting parser taught the wrong name. */
+  unlinkAlias: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const alias = await ctx.db.query.vendorAliases.findFirst({
+        where: eq(vendorAliases.id, input.id),
+      });
+      if (!alias) throw new TRPCError({ code: "NOT_FOUND" });
+      await assertMember(ctx.db, ctx.userId, alias.propertyId, "owner");
+      await ctx.db.delete(vendorAliases).where(eq(vendorAliases.id, input.id));
+      return { ok: true };
     }),
 });
 
@@ -499,6 +572,52 @@ export const accountsRouter = router({
         .where(eq(vendorAccounts.id, id))
         .returning();
       return updated;
+    }),
+
+  /** Fold one account into another: the same physical account materialized
+   * twice because a parser upgrade changed the identity format it reads off the
+   * bill (`0016` → `30-62914040-5:0016`). Bills and frozen forecasts move to
+   * the target and the source row is deleted.
+   *
+   * Deliberately manual. Matching those two strings automatically is a guess,
+   * and the household that genuinely has two meters with one vendor would pay
+   * for it by having its two accounts silently welded together. */
+  merge: protectedProcedure
+    .input(
+      z
+        .object({
+          sourceId: z.string().uuid(),
+          targetId: z.string().uuid(),
+        })
+        .refine((v) => v.sourceId !== v.targetId, {
+          message: "Pick a different account to merge into",
+        }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [source, target] = await Promise.all([
+        ctx.db.query.vendorAccounts.findFirst({
+          where: eq(vendorAccounts.id, input.sourceId),
+        }),
+        ctx.db.query.vendorAccounts.findFirst({
+          where: eq(vendorAccounts.id, input.targetId),
+        }),
+      ]);
+      if (!source || !target) throw new TRPCError({ code: "NOT_FOUND" });
+      if (source.propertyId !== target.propertyId)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Accounts belong to different properties",
+        });
+      // Across vendors this would file a bill under one vendor's account while
+      // its `vendorId` names another; that split is `vendors.merge`'s job.
+      if (source.vendorId !== target.vendorId)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Merge the vendors first — these accounts are under two",
+        });
+      await assertMember(ctx.db, ctx.userId, source.propertyId, "owner");
+      await mergeAccounts(ctx.db, source, target);
+      return { ok: true };
     }),
 
   delete: protectedProcedure
