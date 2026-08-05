@@ -5,7 +5,7 @@ import { ENGINE_CONFIGS } from "@/parsers/engine/configs";
 import { edesurConfig } from "@/parsers/engine/configs/edesur";
 import { runConfig } from "@/parsers/engine/evaluate";
 import { normalize } from "@/parsers/normalize";
-import { fieldsOf, rowToConfig } from "./parsers";
+import { fieldsOf, ownerPublishState, rowToConfig } from "./parsers";
 
 /** Each preset, the way seedParserConfigs stores it: metadata in columns, the
  * rest as a JSON-serialized `body`. */
@@ -64,6 +64,39 @@ describe("DB round-trip (rowToConfig)", () => {
       expect(restored.vendor).toEqual(config.vendor);
     });
   }
+});
+
+describe("ownerPublishState", () => {
+  it("reports a draft with no published versions as never published", () => {
+    // The regression: the library pushes a synthetic display row carrying the
+    // DRAFT number for this case, and deriving the state from that row made
+    // `stable >= draft` true, so the card claimed PUBLISHED and the publish
+    // button sat disabled as already-done.
+    expect(ownerPublishState(3, [])).toBe("draft");
+  });
+
+  it("still reports a brand-new v1 draft as never published", () => {
+    expect(ownerPublishState(1, [])).toBe("draft");
+  });
+
+  it("reports the draft as published when its version is frozen", () => {
+    expect(ownerPublishState(4, [1, 2, 3, 4])).toBe("published");
+  });
+
+  it("reports unpublished changes when the draft moved past the last publish", () => {
+    expect(ownerPublishState(5, [1, 2, 3, 4])).toBe("unpublished");
+  });
+
+  it("reads the newest published version, not the last one listed", () => {
+    expect(ownerPublishState(3, [3, 1, 2])).toBe("published");
+    expect(ownerPublishState(4, [3, 1, 2])).toBe("unpublished");
+  });
+
+  it("treats a published version ahead of the draft as published", () => {
+    // Shouldn't happen (publishing freezes the draft's own number), but the
+    // comparison must not flip to `unpublished` and re-offer the button.
+    expect(ownerPublishState(2, [3])).toBe("published");
+  });
 });
 
 describe("fieldsOf", () => {

@@ -2,6 +2,7 @@
 
 import { Badge, Button, Select } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
+import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import {
   catLabel,
@@ -9,6 +10,7 @@ import {
   fmtDate,
   type LibraryItem,
   type ParserLabels,
+  publishState,
   type TabKey,
   TierBadge,
   versionOptions,
@@ -69,7 +71,8 @@ function VoteWidget({
 }
 
 /** The primary button in a card's right column — publish/remove/adopt depending
- * on the viewer's relationship to the parser. */
+ * on the viewer's relationship to the parser. An owned parser also gets its
+ * delete, the only way to retire a copy that's shadowing an official parser. */
 function CardAction({
   p,
   busy,
@@ -77,6 +80,7 @@ function CardAction({
   onAdopt,
   onRemove,
   onPublish,
+  onDelete,
 }: {
   p: LibraryItem;
   busy: boolean;
@@ -84,18 +88,25 @@ function CardAction({
   onAdopt: () => void;
   onRemove: () => void;
   onPublish: () => void;
+  onDelete: () => void;
 }) {
+  const { t } = useI18n();
   if (p.rel === "owned") {
-    const done = p.ownerStatus === "published";
+    const state = publishState(tp, p);
     return (
-      <Button
-        size="sm"
-        variant={done ? "outline" : "solid"}
-        disabled={busy || done}
-        onClick={onPublish}
-      >
-        {done ? tp.published : tp.publish}
-      </Button>
+      <div className="flex items-center gap-1.5">
+        <Button size="sm" variant="ghost" disabled={busy} onClick={onDelete}>
+          {t.common.delete}
+        </Button>
+        <Button
+          size="sm"
+          variant={state.done ? "outline" : "solid"}
+          disabled={busy || state.done}
+          onClick={onPublish}
+        >
+          {state.action}
+        </Button>
+      </div>
     );
   }
   if (p.rel === "adopted") {
@@ -124,6 +135,7 @@ export function ParserCard({
   onAdopt,
   onRemove,
   onPublish,
+  onDelete,
 }: {
   p: LibraryItem;
   tab: TabKey;
@@ -136,8 +148,12 @@ export function ParserCard({
   onAdopt: (p: LibraryItem) => void;
   onRemove: (p: LibraryItem) => void;
   onPublish: (p: LibraryItem) => void;
+  onDelete: (p: LibraryItem) => void;
 }) {
   const adoptedElsewhere = tab === "marketplace" && p.rel === "adopted";
+  // Null unless the viewer owns it — carries the badge copy for its three
+  // publish states (never published / published / edited since).
+  const owned = p.rel === "owned" ? publishState(tp, p) : null;
   return (
     <div
       onClick={() => onOpen(p.configId)}
@@ -161,11 +177,7 @@ export function ParserCard({
               {interpolate(tp.adoptedNote, { v: `v${p.adoptedVersion}` })}
             </span>
           )}
-          {p.rel === "owned" && (
-            <Badge tone={p.ownerStatus === "published" ? "accent" : "neutral"}>
-              {p.ownerStatus === "published" ? tp.published : tp.draft}
-            </Badge>
-          )}
+          {owned && <Badge tone={owned.tone}>{owned.badge}</Badge>}
         </div>
         <div className="font-mono text-xs text-muted mt-1">
           {p.slug}
@@ -208,6 +220,7 @@ export function ParserCard({
           onAdopt={() => onAdopt(p)}
           onRemove={() => onRemove(p)}
           onPublish={() => onPublish(p)}
+          onDelete={() => onDelete(p)}
         />
       </div>
     </div>
