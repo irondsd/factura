@@ -169,7 +169,9 @@ function sessionsCount(
   d: Dict["sessions"],
 ): ReactNode {
   const open =
-    rows.length === 1 ? d.openOne : interpolate(d.openOther, { n: rows.length });
+    rows.length === 1
+      ? d.openOne
+      : interpolate(d.openOther, { n: rows.length });
   if (!rows.some((s) => s.current)) return open;
   return (
     <>

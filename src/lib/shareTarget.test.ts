@@ -188,7 +188,11 @@ function loadServiceWorker(
     asked.push(url);
     return sessionFetch();
   };
-  new Function("self", "caches", "fetch", source)(self, cacheStorage, fetchImpl);
+  new Function("self", "caches", "fetch", source)(
+    self,
+    cacheStorage,
+    fetchImpl,
+  );
   return { listeners, asked };
 }
 
@@ -218,7 +222,10 @@ async function share(worker: Worker, form: FormData) {
 /** A share carrying one PDF. */
 function oneBill(name = "bill.pdf") {
   const form = new FormData();
-  form.append("file", new File(["%PDF-1.4"], name, { type: "application/pdf" }));
+  form.append(
+    "file",
+    new File(["%PDF-1.4"], name, { type: "application/pdf" }),
+  );
   return form;
 }
 

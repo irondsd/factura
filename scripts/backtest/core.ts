@@ -260,8 +260,12 @@ export const RUNGS: {
           : shiftMonth(m, -1);
       if (start(target) === start(last.month)) return last.amount;
       return (
-        seasonalLevel(pairSeries(positives, pairing.phase), start(target), 6, 2) ??
-        last.amount
+        seasonalLevel(
+          pairSeries(positives, pairing.phase),
+          start(target),
+          6,
+          2,
+        ) ?? last.amount
       );
     },
   },

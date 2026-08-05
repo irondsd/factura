@@ -361,7 +361,9 @@ export function detectPairing(history: Observation[]): Pairing | null {
     const [a, b] = [sorted[i - 1], sorted[i]];
     if (monthsBetween(a.month, b.month) !== 1) continue;
     if (a.amount <= 0 || b.amount <= 0) continue;
-    jumps[monthIndex(a.month) % 2].push(Math.abs(Math.log(b.amount / a.amount)));
+    jumps[monthIndex(a.month) % 2].push(
+      Math.abs(Math.log(b.amount / a.amount)),
+    );
   }
   if (jumps.some((j) => j.length < MIN_PAIR_TRANSITIONS)) return null;
 
@@ -524,10 +526,7 @@ export function seasonalLevel(
 const MIN_REPEAT_RATIO = 0.85;
 const MAX_REPEAT_RATIO = 1.2;
 
-export function withinPairRatio(
-  history: Observation[],
-  phase: number,
-): number {
+export function withinPairRatio(history: Observation[], phase: number): number {
   const sorted = normalizeHistory(history).filter((o) => o.amount > 0);
   const ratios: number[] = [];
   for (let i = 1; i < sorted.length; i++) {
