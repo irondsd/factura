@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Segmented } from "@/components/charts/primitives";
+import { SegmentedControl } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { useMediaQuery } from "@/lib/useMediaQuery";
@@ -17,6 +17,12 @@ const SEGMENTED_MAX = 2;
 
 /** Below this the switcher is always a dropdown, however few properties. */
 export const NARROW = "(max-width: 768px)";
+
+/** Height of the switcher in both its forms. The dropdown trigger below is not
+ * a `SegmentedControl`, so it re-states the geometry `size={28}` derives —
+ * `min-h-7` is 28px, and 13px/11px are that size's padding and type. Crossing
+ * from two properties to three must not resize the top bar. */
+const PROPERTY_SIZE = 28;
 
 const ALL = "all";
 
@@ -75,10 +81,15 @@ export function PropertySelector({
 
   if (!narrow && properties.length <= SEGMENTED_MAX) {
     return (
-      <Segmented
+      <SegmentedControl
         options={options}
         value={current}
         onChange={select}
+        size={PROPERTY_SIZE}
+        // The top bar is a translucent, blurred card; a solid segment row would
+        // punch an opaque hole in it.
+        transparent
+        label={t.app.propertyLabel}
         className={className}
       />
     );
@@ -94,7 +105,7 @@ export function PropertySelector({
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "inline-flex cursor-pointer items-center gap-2 border py-[5px] px-[11px] font-mono text-micro uppercase tracking-[0.14em] transition-colors",
+          "inline-flex min-h-7 cursor-pointer items-center gap-2 border px-[13px] font-mono text-micro uppercase tracking-label transition-colors",
           open
             ? "border-ink bg-ink text-paper"
             : "border-line bg-transparent text-muted hover:text-ink",
@@ -124,7 +135,7 @@ export function PropertySelector({
                 aria-selected={active}
                 onClick={() => select(o.value)}
                 className={cn(
-                  "block w-full cursor-pointer border-b border-dashed border-line py-2.5 px-3 text-left font-mono text-micro uppercase tracking-[0.14em] transition-colors last:border-b-0",
+                  "block w-full cursor-pointer border-b border-dashed border-line py-2.5 px-3 text-left font-mono text-micro uppercase tracking-label transition-colors last:border-b-0",
                   active
                     ? "bg-ink text-paper"
                     : "text-muted hover:bg-[color-mix(in_srgb,var(--ink)_7%,transparent)] hover:text-ink",

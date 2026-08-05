@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { cn } from "@/lib/cn";
+import { SegmentedControl } from "@/components/ui";
 import { setLocale } from "./actions";
 import { type Locale, localeNames } from "./config";
 import { useI18n } from "./I18nProvider";
@@ -20,40 +20,11 @@ const INVITE: Record<Locale, string> = {
 // under a reader who just switched.
 const ORDER: Locale[] = ["en", "es"];
 
-/** One segment of the EN/ES control. Inverts when it is the language you are
- * already in; the wrapper draws the only border, so segments carry none. */
-function Segment({
-  code,
-  active,
-  disabled,
-  onClick,
-}: {
-  code: Locale;
-  active: boolean;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={localeNames[code]}
-      aria-pressed={active}
-      // Only the in-flight switch disables a segment. The active one stays
-      // focusable so a keyboard reader can still land on it and hear which
-      // language is on; clicking it is a no-op.
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "font-mono text-micro uppercase tracking-label py-[5px] px-2.5 transition-colors",
-        active
-          ? "bg-ink text-paper cursor-default"
-          : "bg-transparent text-muted hover:text-accent cursor-pointer",
-      )}
-    >
-      {code}
-    </button>
-  );
-}
+const OPTIONS = ORDER.map((code) => ({
+  value: code,
+  label: code,
+  ariaLabel: localeNames[code],
+}));
 
 export function LanguageSwitch() {
   const { locale, t } = useI18n();
@@ -79,17 +50,15 @@ export function LanguageSwitch() {
         {t.profile.language.help}{" "}
         <span className="text-ink">{INVITE[target]}</span>
       </p>
-      <div className="flex border border-line">
-        {ORDER.map((code) => (
-          <Segment
-            key={code}
-            code={code}
-            active={code === locale}
-            disabled={pending}
-            onClick={() => switchTo(code)}
-          />
-        ))}
-      </div>
+      <SegmentedControl
+        options={OPTIONS}
+        value={locale}
+        onChange={switchTo}
+        // Only the in-flight switch disables the control; picking the language
+        // that is already on is a no-op (`switchTo` guards).
+        disabled={pending}
+        label={t.profile.language.help}
+      />
     </div>
   );
 }

@@ -15,6 +15,7 @@ export { FinePrint } from "./FinePrint";
 export { Section } from "./Section";
 export { Label } from "./Label";
 export { Tab, tabClass } from "./Tab";
+export { SegmentedControl, type SegmentedOption } from "./SegmentedControl";
 export { StatusLine } from "./StatusLine";
 export { ErrorBox } from "./ErrorBox";
 export { RowBox } from "./RowBox";

@@ -7,12 +7,18 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  SegmentedControl,
+  type SegmentedOption,
+} from "@/components/ui/SegmentedControl";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatMonthShort } from "@/lib/format";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import {
   activeRangeChip,
   type InsightsWindow,
+  type RangeChip,
   RANGE_PRESETS,
 } from "@/lib/insights";
 
@@ -27,6 +33,16 @@ const PRESETS = RANGE_PRESETS.map((count) => ({
   key: String(count) as "6" | "12" | "24",
   count,
 }));
+
+/** Heights for the preset row. Five labels wide is the most any control in the
+ * app carries, and at 36 the Spanish set ("Personalizado") measures 382px —
+ * wider than a 375px phone, and it can't shrink below its own words. The row
+ * steps down to the property switcher's height where there isn't room; the
+ * media query answers `false` while hydrating, so 36 is the one that renders
+ * on the server. */
+const SIZE = 36;
+const SIZE_NARROW = 28;
+const NARROW = "(max-width: 768px)";
 
 /** "2024-09" → "Sep 2024" (locale-aware short month + full year). */
 function tag(month: string, locale: Parameters<typeof formatMonthShort>[1]) {
@@ -53,6 +69,7 @@ export function RangeControl({
   className?: string;
 }) {
   const { t, locale } = useI18n();
+  const narrow = useMediaQuery(NARROW);
   const ti = t.insights;
   const n = span.length;
   const den = Math.max(1, n - 1);
@@ -220,41 +237,36 @@ export function RangeControl({
   const winRight = `${((1 - dispEnd / den) * 100).toFixed(2)}%`;
   const readout = `${tag(span[dispStart], locale)} – ${tag(span[dispEnd], locale)} · ${dispEnd - dispStart + 1} ${ti.rangeUnit}`;
 
-  const chipCls = (active: boolean) =>
-    cn(
-      "font-mono text-[11.5px] uppercase tracking-[0.07em] px-[13px] py-2 cursor-pointer transition-colors border-r border-line last:border-r-0",
-      active ? "bg-ink text-paper" : "bg-transparent text-muted",
-    );
+  const chips: SegmentedOption<RangeChip>[] = [
+    ...PRESETS.map((p) => ({
+      value: p.key,
+      label: ti[`range${p.key}` as "range6" | "range12" | "range24"],
+    })),
+    { value: "all", label: ti.rangeAll },
+    { value: "custom", label: ti.rangeCustom, ariaExpanded: panelOpen },
+  ];
+
+  const pickChip = (chip: RangeChip) => {
+    if (chip === "custom") return toggleCustom();
+    if (chip === "all") return selectAll();
+    const p = PRESETS.find((x) => x.key === chip);
+    if (p) preset(p);
+  };
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
-      <div className="inline-flex border border-line bg-card">
-        {PRESETS.map((p) => (
-          <button
-            key={p.key}
-            type="button"
-            onClick={() => preset(p)}
-            className={chipCls(mode === p.key)}
-          >
-            {ti[`range${p.key}` as "range6" | "range12" | "range24"]}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={selectAll}
-          className={chipCls(mode === "all")}
-        >
-          {ti.rangeAll}
-        </button>
-        <button
-          type="button"
-          onClick={toggleCustom}
-          aria-expanded={panelOpen}
-          className={chipCls(mode === "custom")}
-        >
-          {ti.rangeCustom}
-        </button>
-      </div>
+      <SegmentedControl
+        options={chips}
+        value={mode}
+        onChange={pickChip}
+        // The largest step on the scale: this one heads a screen rather than
+        // sitting in a corner, and shares the row with a 34px display title.
+        size={narrow ? SIZE_NARROW : SIZE}
+        // Five word-length labels in a row: without the hairlines the presets
+        // read as one long string rather than as separate choices.
+        dividers
+        label={ti.rangeCustomTitle}
+      />
 
       {panelOpen && (
         <div

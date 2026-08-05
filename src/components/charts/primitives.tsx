@@ -1,6 +1,10 @@
 "use client";
 
 import { type ReactNode, useEffect, useState } from "react";
+import {
+  SegmentedControl,
+  type SegmentedOption,
+} from "@/components/ui/SegmentedControl";
 import { cn } from "@/lib/cn";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 
@@ -102,44 +106,13 @@ export function Display({
   );
 }
 
-export type SegmentedOption<T extends string | number> = {
-  value: T;
-  label: string;
-};
+const CURRENCIES: SegmentedOption<ChartCurrency>[] = [
+  { value: "ARS", label: "ARS" },
+  { value: "USD", label: "USD" },
+];
 
-export function Segmented<T extends string | number>({
-  options,
-  value,
-  onChange,
-  className,
-}: {
-  options: SegmentedOption<T>[];
-  value: T;
-  onChange: (v: T) => void;
-  className?: string;
-}) {
-  return (
-    <span className={cn("inline-flex border border-line", className)}>
-      {options.map((o) => {
-        const active = o.value === value;
-        return (
-          <button
-            key={String(o.value)}
-            onClick={() => onChange(o.value)}
-            className={cn(
-              "font-mono text-micro uppercase tracking-[0.14em] py-[5px] px-[11px] border-none cursor-pointer transition-colors",
-              active ? "bg-ink text-paper" : "bg-transparent text-muted",
-            )}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-    </span>
-  );
-}
-
-/** Compact ARS/USD switch for a chart's top-right corner. */
+/** Compact ARS/USD switch for a chart's top-right corner — the smallest step on
+ * the scale, since it rides beside a card title rather than carrying a screen. */
 export function CurrencyToggle({
   value,
   onChange,
@@ -150,25 +123,13 @@ export function CurrencyToggle({
   className?: string;
 }) {
   return (
-    <span className={cn("inline-flex border border-line", className)}>
-      {(["ARS", "USD"] as const).map((c) => {
-        const active = c === value;
-        return (
-          <button
-            key={c}
-            type="button"
-            onClick={() => onChange(c)}
-            aria-pressed={active}
-            className={cn(
-              "font-mono text-[10px] tracking-[0.12em] py-[3px] px-[7px] border-none cursor-pointer transition-colors",
-              active ? "bg-ink text-paper" : "bg-transparent text-muted",
-            )}
-          >
-            {c}
-          </button>
-        );
-      })}
-    </span>
+    <SegmentedControl
+      options={CURRENCIES}
+      value={value}
+      onChange={onChange}
+      size={22}
+      className={className}
+    />
   );
 }
 
