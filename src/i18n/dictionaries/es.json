@@ -1132,29 +1132,42 @@
         "billsOther": "{amount} · {n} facturas"
       }
     },
-    "properties": {
-      "eyebrow": "propiedades",
-      "help": "Tus propiedades guardan sus facturas, proveedores y cuentas. Invita a tu pareja o compañero de piso para que también puedan ver y agregar facturas.",
-      "manage": "Gestionar propiedades →"
-    },
-    "parsers": {
-      "eyebrow": "Analizadores",
-      "help": "Los analizadores convierten los PDF de facturas en datos estructurados. Gestiona los tuyos, publícalos o adopta los de otros: la mayoría nunca necesita tocar esto.",
-      "manage": "Gestionar analizadores →"
+    "manage": "Gestionar →",
+    "backOffice": {
+      "eyebrow": "Administración"
     },
     "language": {
       "eyebrow": "Idioma",
-      "help": "Esta es la versión en español. Puedes cambiar de idioma en cualquier momento."
+      "help": "Esta es la versión en español."
+    },
+    "properties": {
+      "name": "Propiedades",
+      "help": "Guardan sus facturas, proveedores y cuentas.",
+      "none": "ninguna todavía",
+      "sharedOne": "1 compartida",
+      "sharedOther": "{n} compartidas"
+    },
+    "parsers": {
+      "name": "Analizadores",
+      "help": "Convierten los PDF de facturas en datos estructurados.",
+      "none": "ninguno todavía",
+      "publishedOne": "1 publicado",
+      "publishedOther": "{n} publicados",
+      "adoptedOne": "1 adoptado",
+      "adoptedOther": "{n} adoptados"
     },
     "sessions": {
-      "eyebrow": "Sesiones",
-      "help": "Mira desde qué navegadores está abierta tu cuenta y cierra los que no reconozcas.",
-      "manage": "Gestionar sesiones →"
+      "name": "Sesiones",
+      "help": "Los navegadores y las apps con acceso a tu cuenta.",
+      "openOne": "1 abierta",
+      "openOther": "{n} abiertas",
+      "thisOne": "esta incluida"
     },
     "danger": {
       "eyebrow": "Zona de peligro",
       "help": "Eliminar tu cuenta borra de forma permanente tus facturas, los PDF originales y tus propiedades. No se puede deshacer.",
-      "manage": "Eliminar mi cuenta →"
+      "helpCounted": "Eliminar tu cuenta borra {n} facturas, sus PDF originales y tus propiedades. No se puede deshacer.",
+      "manage": "Eliminar mi cuenta"
     }
   },
   "sessions": {

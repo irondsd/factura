@@ -1132,29 +1132,42 @@
         "billsOther": "{amount} · {n} bills"
       }
     },
-    "properties": {
-      "eyebrow": "properties",
-      "help": "Your properties hold their bills, vendors and accounts. Invite a partner or flatmate so they can see and add bills too.",
-      "manage": "Manage properties →"
-    },
-    "parsers": {
-      "eyebrow": "Parsers",
-      "help": "Parsers turn bill PDFs into structured data. Manage your own, publish them, or adopt others' — most people never need to touch this.",
-      "manage": "Manage parsers →"
+    "manage": "Manage →",
+    "backOffice": {
+      "eyebrow": "Back office"
     },
     "language": {
       "eyebrow": "Language",
-      "help": "This is the English version. You can switch languages at any time."
+      "help": "This is the English version."
+    },
+    "properties": {
+      "name": "Properties",
+      "help": "They hold their bills, vendors and accounts.",
+      "none": "none yet",
+      "sharedOne": "1 shared",
+      "sharedOther": "{n} shared"
+    },
+    "parsers": {
+      "name": "Parsers",
+      "help": "They turn bill PDFs into structured data.",
+      "none": "none yet",
+      "publishedOne": "1 published",
+      "publishedOther": "{n} published",
+      "adoptedOne": "1 adopted",
+      "adoptedOther": "{n} adopted"
     },
     "sessions": {
-      "eyebrow": "Sessions",
-      "help": "See which browsers your account is open in, and close the ones you don't recognise.",
-      "manage": "Manage sessions →"
+      "name": "Sessions",
+      "help": "The browsers and apps with access to your account.",
+      "openOne": "1 open",
+      "openOther": "{n} open",
+      "thisOne": "this one included"
     },
     "danger": {
       "eyebrow": "Danger zone",
       "help": "Deleting your account permanently erases your bills, the original PDFs and your properties. This can't be undone.",
-      "manage": "Delete my account →"
+      "helpCounted": "Deleting your account erases {n} bills, their original PDFs and your properties. This can't be undone.",
+      "manage": "Delete my account"
     }
   },
   "sessions": {

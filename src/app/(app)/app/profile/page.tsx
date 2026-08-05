@@ -1,8 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import posthog from "posthog-js";
+import { BackOffice } from "@/components/app/BackOffice";
+import { DangerZone } from "@/components/app/DangerZone";
 import { ProfileStats } from "@/components/app/ProfileStats";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Avatar, Button } from "@/components/ui";
@@ -10,15 +11,12 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { LanguageSwitch } from "@/i18n/LanguageSwitch";
 
 export default function ProfilePage() {
-  const router = useRouter();
   const { data: session } = useSession();
   const { t } = useI18n();
   const tp = t.profile;
 
   const user = session?.user;
   const name = user?.name ?? user?.email ?? tp.you;
-
-  const help = "font-mono text-xs text-muted mb-3 max-w-[520px] leading-[1.6]";
 
   return (
     <div className="mx-auto max-w-[52rem] px-5 pt-8 pb-20">
@@ -55,53 +53,17 @@ export default function ProfilePage() {
           ledger to describe */}
       <ProfileStats />
 
-      {/* language — Phase 1: simple switch to the opposite language */}
-      <h2 className="mt-10 mb-1">
+      {/* language — a two-segment switch, its invitation always readable from
+          the language you're stuck in */}
+      <h2 className="mt-10 mb-2.5">
         <Eyebrow>{tp.language.eyebrow}</Eyebrow>
       </h2>
-      <p className={help}>{tp.language.help}</p>
       <LanguageSwitch />
 
-      {/* properties — manage on the dedicated page */}
-      <h2 className="mt-10 mb-1">
-        <Eyebrow>{tp.properties.eyebrow}</Eyebrow>
-      </h2>
-      <p className={help}>{tp.properties.help}</p>
-      <Button variant="outline" onClick={() => router.push("/app/properties")}>
-        {tp.properties.manage}
-      </Button>
+      {/* the pages this one hands off to, each with its own live count */}
+      <BackOffice />
 
-      {/* parsers — link out to the dedicated library (power-user surface) */}
-      <h2 className="mt-10 mb-1">
-        <Eyebrow>{tp.parsers.eyebrow}</Eyebrow>
-      </h2>
-      <p className={help}>{tp.parsers.help}</p>
-      <Button variant="outline" onClick={() => router.push("/app/parsers")}>
-        {tp.parsers.manage}
-      </Button>
-
-      {/* sessions — every browser holding a key to this account */}
-      <h2 className="mt-10 mb-1">
-        <Eyebrow>{tp.sessions.eyebrow}</Eyebrow>
-      </h2>
-      <p className={help}>{tp.sessions.help}</p>
-      <Button variant="outline" onClick={() => router.push("/app/sessions")}>
-        {tp.sessions.manage}
-      </Button>
-
-      {/* danger — the deletion itself lives on its own page, outside the app
-          shell, so the confirmation survives the session it destroys */}
-      <h2 className="mt-14 mb-1">
-        <Eyebrow tone="accent">{tp.danger.eyebrow}</Eyebrow>
-      </h2>
-      <p className={help}>{tp.danger.help}</p>
-      <Button
-        variant="outline"
-        className="border-accent text-accent"
-        onClick={() => router.push("/delete-account")}
-      >
-        {tp.danger.manage}
-      </Button>
+      <DangerZone />
     </div>
   );
 }
