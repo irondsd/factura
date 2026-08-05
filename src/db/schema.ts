@@ -602,3 +602,174 @@ export const billSubmissions = pgTable(
     index('bill_submission_claimed_idx').on(t.claimedByUserId),
   ],
 )
+
+// ── MCP access ──────────────────────────────────────────────────────────────
+// Two ways to hold a key to an account from outside the browser, both feeding
+// the same bearer check in src/server/mcp/resolve.ts:
+//
+//   • an OAuth 2.1 grant, minted by an MCP client that walked the consent flow
+//     (oauth_client → oauth_code → oauth_grant → oauth_token), and
+//   • a personal access token the user minted by hand (api_token), for clients
+//     that only know how to send a fixed Authorization header.
+//
+// EVERY secret in this section is stored as a SHA-256 hex digest, never in the
+// clear. Plain SHA-256 rather than bcrypt/argon2 on purpose: these are 256-bit
+// values from `randomBytes`, so there is no dictionary to run and no work factor
+// worth paying — the slow hashes exist for human-chosen passwords. What matters
+// is the same property `bill_submissions.secret_hash` is after: a database dump
+// must not be a pile of usable bearer tokens.
+
+/** Access tokens are short-lived and presented on every MCP call; refresh tokens
+ * are long-lived and presented only at the token endpoint. Same table because
+ * they share a lifecycle — revoking a grant must take both. */
+export const oauthTokenKind = pgEnum('oauth_token_kind', ['access', 'refresh'])
+
+/** An MCP client that registered itself at /api/oauth/register (RFC 7591).
+ *
+ * Registration is open, because that is the point: a client this deployment has
+ * never heard of — someone's editor, a CLI, a competing assistant — has to be
+ * able to present itself without us provisioning anything by hand. A row here
+ * is therefore NOT a statement of trust. It carries no access on its own; only
+ * a user walking the consent screen turns one into an `oauth_grant`. Treat every
+ * string in it as attacker-controlled display text, `client_name` above all —
+ * it is rendered on the consent screen, which is exactly where a lie would pay
+ * off. See the note on the consent page. */
+export const oauthClients = pgTable('oauth_client', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  /** The public `client_id` handed back at registration and echoed on every
+   * /authorize and /token call. Separate from `id` so the value on the wire
+   * stays a plain opaque string. */
+  clientId: text('client_id').notNull().unique(),
+  /** Null for a public client — the common case. An MCP client running on a
+   * user's machine cannot keep a secret, which is why OAuth 2.1 leans on PKCE
+   * instead; we only store a secret when a confidential client asks for one. */
+  clientSecretHash: text('client_secret_hash'),
+  name: text('client_name').notNull(),
+  /** Exact-match allowlist for the redirect. The single most important field
+   * here: matching it loosely (prefix, subdomain, "starts with") is the classic
+   * way authorization codes get delivered to somebody else. */
+  redirectUris: jsonb('redirect_uris').$type<string[]>().notNull(),
+  clientUri: text('client_uri'),
+  logoUri: text('logo_uri'),
+  softwareId: text('software_id'),
+  tokenEndpointAuthMethod: text('token_endpoint_auth_method').notNull().default('none'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/** One authorization code, in flight between the consent screen and the token
+ * endpoint. Rows live for a minute or two and are deleted the moment they are
+ * exchanged — single use is a spec requirement, not an optimization.
+ *
+ * The code points at the user directly rather than at a grant, so that a code
+ * that is never exchanged leaves nothing behind: "connected" means tokens
+ * exist, and an abandoned consent must not show up on the account's
+ * connected-apps list. */
+export const oauthCodes = pgTable(
+  'oauth_code',
+  {
+    codeHash: text('code_hash').primaryKey(),
+    clientId: uuid('client_id')
+      .notNull()
+      .references(() => oauthClients.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Frozen from the /authorize call. The token exchange requires the same
+     * value back, so a code cannot be redirected somewhere else on redemption. */
+    redirectUri: text('redirect_uri').notNull(),
+    /** PKCE S256 challenge. `plain` is not accepted anywhere in this flow. */
+    codeChallenge: text('code_challenge').notNull(),
+    scope: text('scope').notNull(),
+    /** RFC 8707 resource indicator — which MCP endpoint the resulting token is
+     * for. Recorded for audit; the live check is at both endpoints, which
+     * refuse any value that isn't this deployment's own MCP URL. */
+    resource: text('resource'),
+    expires: timestamp('expires', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('oauth_code_expires_idx').on(t.expires)],
+)
+
+/** "Claude is connected to my account" — the durable relationship, and the row
+ * the connected-apps list draws. Tokens rotate underneath it; this is what the
+ * user recognizes and what the revoke button deletes. */
+export const oauthGrants = pgTable(
+  'oauth_grant',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    clientId: uuid('client_id')
+      .notNull()
+      .references(() => oauthClients.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    scope: text('scope').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Refreshed on a throttled heartbeat by the MCP endpoint, same shape as
+     * `session.last_active_at` — every call already loads this row, and this
+     * bounds how often it also writes one. */
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Re-consenting must land on the existing grant rather than stacking a
+    // second one, or the connected-apps list grows a duplicate row per approval
+    // and revoking one leaves the others live.
+    uniqueIndex('oauth_grant_client_user_idx').on(t.clientId, t.userId),
+    index('oauth_grant_user_idx').on(t.userId),
+  ],
+)
+
+export const oauthTokens = pgTable(
+  'oauth_token',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    grantId: uuid('grant_id')
+      .notNull()
+      .references(() => oauthGrants.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull().unique(),
+    kind: oauthTokenKind('kind').notNull(),
+    expires: timestamp('expires', { withTimezone: true }).notNull(),
+    /** Set when a refresh token is rotated out, instead of deleting the row.
+     * A rotated token presented a second time is the signature of a stolen one —
+     * the legitimate client already moved on — so the exchange treats it as
+     * theft and revokes the whole grant rather than merely failing. Keeping the
+     * spent row is what makes that detectable at all. */
+    replacedAt: timestamp('replaced_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('oauth_token_grant_idx').on(t.grantId),
+    // Drives the expiry sweep. Access tokens turn over hourly, so this table is
+    // the one place here that accumulates rows worth deleting on a schedule.
+    index('oauth_token_expires_idx').on(t.expires),
+  ],
+)
+
+/** A token the user minted by hand on the connections page and pasted into a
+ * client's config. No OAuth dance, no client identity — just a bearer string
+ * bound to an account, for the clients (and scripts) that can only send a fixed
+ * header. Shown once, at creation; after that only `hint` remains, which is why
+ * the list can name a token without being able to reconstruct it. */
+export const apiTokens = pgTable(
+  'api_token',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** User-supplied label ("Claude on the laptop"). Display only. */
+    name: text('name').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    /** Last few characters of the token, so a user with several can tell which
+     * row is the one in their config file. Not a secret and not sufficient to
+     * reconstruct anything. */
+    hint: text('hint').notNull(),
+    /** Null means it never expires — the user's choice at creation. */
+    expires: timestamp('expires', { withTimezone: true }),
+    /** Null until the token is first presented, so the list can say "never
+     * used" rather than implying it was used the moment it was made. */
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('api_token_user_idx').on(t.userId)],
+)

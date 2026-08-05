@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { AccessTokens } from "@/components/app/AccessTokens";
+import { ConnectedApps } from "@/components/app/ConnectedApps";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Badge, Bone, Button } from "@/components/ui";
@@ -122,9 +124,12 @@ export default function SessionsPage() {
         ))
       )}
 
-      {/* Connected apps (MCP) get their own section here — same page, because
+      {/* Connected apps (MCP) and hand-made tokens, on this page as planned:
           "who holds a key to this account" is one question, and the answer has
-          to be revocable in one place. */}
+          to be revocable in one place. Both take the page's shared class strings
+          so the three sections stay visually one list. */}
+      <ConnectedApps help={help} card={card} meta={meta} />
+      <AccessTokens help={help} card={card} meta={meta} />
 
       <ConfirmDialog
         open={revoking !== null}

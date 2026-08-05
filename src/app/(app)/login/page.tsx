@@ -7,6 +7,7 @@ import { type FormEvent, Suspense, useEffect, useState } from "react";
 import posthog from "posthog-js";
 import { Button, Input } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
+import { safeNext } from "@/lib/nextPath";
 import { SHARE_DENIED, SHARE_PARAM } from "@/lib/shareTarget";
 
 // Sign-in flow, all on /login:
@@ -40,7 +41,14 @@ function LoginForm() {
   // cookie. Carrying the flag through sign-in is what tells /app to claim them;
   // it's a bare flag, not a path, so it can't be used as an open redirect.
   const claim = params.get("claim") === "1";
-  const callbackUrl = claim ? "/app?claim=1" : "/app";
+  // An MCP client's consent screen bounces here when the browser has no session,
+  // and has to be able to send the user back to the request they interrupted.
+  // `safeNext` is what keeps that from being an open redirect: only a path on
+  // this origin survives it, so `?next=https://evil.example` — or the
+  // protocol-relative `//evil.example`, which is the one people forget — lands
+  // on /app like any other junk.
+  const callbackUrl =
+    safeNext(params.get("next")) ?? (claim ? "/app?claim=1" : "/app");
 
   // Sent here by the share-target worker, which refuses to stash a bill it has
   // no session to file under. Say so, or landing on a login screen out of the

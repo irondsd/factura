@@ -1187,7 +1187,70 @@
       "description": "This closes {count} sessions in other browsers. This one stays open.",
       "descriptionOne": "This closes 1 session in another browser. This one stays open.",
       "confirm": "Sign out others"
+    },
+    "apps": {
+      "eyebrow": "Connected apps",
+      "help": "Assistants and tools you've given permission to read your account. Each one keeps access until you disconnect it.",
+      "empty": "No apps connected yet.",
+      "disconnect": "Disconnect",
+      "canRead": "Can read your bills, your spending and your properties. Cannot change anything.",
+      "connectedOn": "Connected on {date}",
+      "loading": "Loading apps…",
+      "toastRevoked": "App disconnected",
+      "confirm": {
+        "eyebrow": "Disconnect app",
+        "title": "Disconnect this app?",
+        "description": "{app} will lose access to your account immediately."
+      }
+    },
+    "tokens": {
+      "eyebrow": "Access tokens",
+      "help": "For clients that can only send a fixed token in their config. They work like a connected app, but with no consent screen: whoever holds the token is in.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Claude on the laptop",
+      "expiryLabel": "Expires",
+      "expiryDays": "{days} days",
+      "expiryNever": "Never",
+      "create": "Create token",
+      "empty": "No tokens yet.",
+      "loading": "Loading tokens…",
+      "neverUsed": "never used",
+      "expiresOn": "expires {date}",
+      "noExpiry": "no expiry",
+      "copied": "Token copied",
+      "copyFailed": "Couldn't copy. Select it and copy by hand.",
+      "toastRevoked": "Token revoked",
+      "reveal": {
+        "eyebrow": "Your new token",
+        "onlyOnce": "This is the only time you'll see it: it's stored hashed and cannot be recovered. Copy it now — if you lose it, revoke it and make another.",
+        "copy": "Copy",
+        "done": "Done"
+      },
+      "confirm": {
+        "eyebrow": "Revoke token",
+        "title": "Revoke this token?",
+        "description": "Whatever is using “{name}” will lose access immediately."
+      }
     }
+  },
+  "consent": {
+    "eyebrow": "Access request",
+    "title": "{app} wants access to your account",
+    "callback": "It will send you back to {host}",
+    "unverified": "This app describes itself: the name was chosen by whoever registered it, and Factura does not verify it. The address above is real — that's where your data will go.",
+    "willBeAbleTo": "It will be able to",
+    "permissions": [
+      "Read your bills and their history",
+      "Read your spending summaries and trends",
+      "Read your properties and vendors"
+    ],
+    "dataLeaves": "Whatever the app reads travels to its servers as part of the conversation. Only allow this if you trust whoever runs it.",
+    "readOnly": "It will not be able to create, change or delete anything, and it cannot reach the original PDF of your bills.",
+    "revocable": "You can disconnect it at any time from Sessions, in your profile.",
+    "allow": "Allow",
+    "deny": "Cancel",
+    "problem": "Could not continue",
+    "problemHelp": "This app can't be connected to your account right now. The problem is in how it made the request, so there's nothing for you to fix here — tell whoever builds it. The technical detail:"
   },
   "deleteAccount": {
     "eyebrow": "Danger zone",

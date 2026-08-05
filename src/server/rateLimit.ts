@@ -136,3 +136,18 @@ export const PROBAR_CLAIM: LimitSpec = { capacity: 10, refillPerSec: 1 / 60 };
 // generous — the write is one indexed UPDATE of one short string, and throttling
 // it silently loses the answer someone actually typed.
 export const PROBAR_HINT: LimitSpec = { capacity: 40, refillPerSec: 1 / 5 };
+
+// Dynamic client registration is open to the internet — that is the point, and
+// also the exposure: every call writes a row nobody asked for. Tight, because a
+// legitimate client registers ONCE and then reuses its client_id forever, so
+// even a handful per hour is generous for real use.
+export const OAUTH_REGISTER: LimitSpec = { capacity: 5, refillPerSec: 1 / 600 };
+// Token exchange and refresh. Sized for a client reconnecting several accounts
+// or retrying a flaky network, not for grinding at codes — which PKCE and the
+// two-minute code lifetime already make pointless.
+export const OAUTH_TOKEN: LimitSpec = { capacity: 30, refillPerSec: 1 / 20 };
+// MCP calls. An assistant working through a question fires several tools in a
+// row, and a burst that trips the limiter mid-answer is worse than useless, so
+// this is deliberately roomy: it is here to stop a runaway loop, not to meter
+// legitimate use. Every call past it is an authenticated one.
+export const MCP_CALL: LimitSpec = { capacity: 120, refillPerSec: 2 };

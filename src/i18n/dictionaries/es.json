@@ -1187,7 +1187,70 @@
       "description": "Se cerrarán {count} sesiones en otros navegadores. Esta seguirá abierta.",
       "descriptionOne": "Se cerrará 1 sesión en otro navegador. Esta seguirá abierta.",
       "confirm": "Cerrar las demás"
+    },
+    "apps": {
+      "eyebrow": "Apps conectadas",
+      "help": "Asistentes y herramientas a las que les diste permiso para leer tu cuenta. Cada una mantiene el acceso hasta que la desconectes.",
+      "empty": "Todavía no conectaste ninguna app.",
+      "disconnect": "Desconectar",
+      "canRead": "Puede leer tus facturas, tus gastos y tus propiedades. No puede modificar nada.",
+      "connectedOn": "Conectada el {date}",
+      "loading": "Cargando apps…",
+      "toastRevoked": "App desconectada",
+      "confirm": {
+        "eyebrow": "Desconectar app",
+        "title": "¿Desconectar esta app?",
+        "description": "{app} perderá el acceso a tu cuenta de inmediato."
+      }
+    },
+    "tokens": {
+      "eyebrow": "Tokens de acceso",
+      "help": "Para clientes que solo saben enviar un token fijo en la configuración. Funcionan igual que una app conectada, pero sin pantalla de permiso: quien tenga el token entra.",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Claude en la laptop",
+      "expiryLabel": "Vence",
+      "expiryDays": "{days} días",
+      "expiryNever": "Nunca",
+      "create": "Crear token",
+      "empty": "Todavía no creaste ningún token.",
+      "loading": "Cargando tokens…",
+      "neverUsed": "sin usar",
+      "expiresOn": "vence el {date}",
+      "noExpiry": "sin vencimiento",
+      "copied": "Token copiado",
+      "copyFailed": "No se pudo copiar. Selecciónalo y cópialo a mano.",
+      "toastRevoked": "Token revocado",
+      "reveal": {
+        "eyebrow": "Tu token nuevo",
+        "onlyOnce": "Esta es la única vez que vas a verlo: se guarda cifrado y no hay forma de recuperarlo. Cópialo ahora; si lo pierdes, revócalo y crea otro.",
+        "copy": "Copiar",
+        "done": "Listo"
+      },
+      "confirm": {
+        "eyebrow": "Revocar token",
+        "title": "¿Revocar este token?",
+        "description": "Lo que esté usando «{name}» perderá el acceso de inmediato."
+      }
     }
+  },
+  "consent": {
+    "eyebrow": "Permiso de acceso",
+    "title": "{app} quiere acceder a tu cuenta",
+    "callback": "Te va a devolver a {host}",
+    "unverified": "Esta app se identifica sola: el nombre lo eligió quien la registró y Factura no lo verifica. La dirección de arriba sí es real — es adonde van a llegar tus datos.",
+    "willBeAbleTo": "Va a poder",
+    "permissions": [
+      "Leer tus facturas y su historial",
+      "Leer tus resúmenes de gasto y tus tendencias",
+      "Leer tus propiedades y proveedores"
+    ],
+    "dataLeaves": "Lo que la app lea viaja a sus servidores como parte de la conversación. Concédelo solo si confías en quien la opera.",
+    "readOnly": "No va a poder crear, modificar ni borrar nada, y no accede al PDF original de tus facturas.",
+    "revocable": "Puedes desconectarla cuando quieras desde Sesiones, en tu perfil.",
+    "allow": "Permitir",
+    "deny": "Cancelar",
+    "problem": "No se pudo continuar",
+    "problemHelp": "Esta app no se puede conectar con tu cuenta ahora mismo. El problema está en cómo hizo el pedido, así que no hay nada que puedas corregir aquí — avísale a quien la desarrolla. El detalle técnico:"
   },
   "deleteAccount": {
     "eyebrow": "Zona de peligro",

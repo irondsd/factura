@@ -26,6 +26,31 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      // OAuth discovery. The specs put these at /.well-known/*, but a source
+      // directory named `.well-known` is hidden on every filesystem this repo
+      // gets checked out on, so the handlers live at ordinary paths and the
+      // well-known URLs are mapped onto them.
+      //
+      // Each document is served at two shapes because clients disagree about
+      // which to try: the bare path, and RFC 9728's path-insertion form
+      // (/.well-known/oauth-protected-resource/api/mcp). There is only one MCP
+      // resource here, so both answer with the same document.
+      {
+        source: "/.well-known/oauth-authorization-server",
+        destination: "/api/oauth/metadata/authorization-server",
+      },
+      {
+        source: "/.well-known/oauth-authorization-server/:path*",
+        destination: "/api/oauth/metadata/authorization-server",
+      },
+      {
+        source: "/.well-known/oauth-protected-resource",
+        destination: "/api/oauth/metadata/protected-resource",
+      },
+      {
+        source: "/.well-known/oauth-protected-resource/:path*",
+        destination: "/api/oauth/metadata/protected-resource",
+      },
       {
         source: "/ingest/static/:path*",
         destination: "https://us-assets.i.posthog.com/static/:path*",
