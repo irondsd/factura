@@ -394,4 +394,22 @@ describe("dominijanni expensas (region slice, arrears)", () => {
     expect(r.period).toBe("2026-05-01");
     expect(r.custom.extraordinary).toBeUndefined();
   });
+
+  it("breaks out the AySA and CONSTRUCCIONES shares", () => {
+    // Both repeat in the prior receipt with a different AySA cent, so these
+    // values are also the proof the region slice held.
+    expect(r.custom.water).toBe(48571.87);
+    expect(r.custom.construction).toBe(30464.97);
+  });
+
+  it("omits a share the aviso doesn't break out", () => {
+    const noWater = fixture("dominijanni-expensas").replace(
+      "AySA........................... 4,7234 % $ 48.571,87",
+      "",
+    );
+    const parsed = runConfig(dominijanniExpensasConfig, noWater);
+    expect(parsed.custom.water).toBeUndefined();
+    expect(parsed.custom.construction).toBe(30464.97);
+    expect(parsed.amount).toBe(165347.16);
+  });
 });

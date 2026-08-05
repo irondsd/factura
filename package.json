@@ -22,6 +22,8 @@
     "db:studio": "dotenv -e .env.local drizzle-kit studio",
     "parser:official": "dotenv -e .env.local -- tsx scripts/makeParserOfficial.ts",
     "parser:official:prod": "dotenv -e .env.prod -- tsx scripts/makeParserOfficial.ts",
+    "parser:update": "dotenv -e .env.local -- tsx scripts/updateOfficialParser.ts",
+    "parser:update:prod": "dotenv -e .env.prod -- tsx scripts/updateOfficialParser.ts",
     "sample:pdf": "tsx scripts/makeSamplePdf.ts",
     "submissions:cleanup": "dotenv -e .env.local -- tsx scripts/cleanupSubmissionFiles.ts",
     "submissions:cleanup:prod": "dotenv -e .env.prod -- tsx scripts/cleanupSubmissionFiles.ts",
