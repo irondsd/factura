@@ -12,16 +12,45 @@
 # needed — only Docker and a running db (`docker compose up -d db`).
 #
 # Usage:
-#   NEON_DATABASE_URL="postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require" \
-#     ./scripts/sync-local-db.sh
+#   ./scripts/sync-local-db.sh                    # reads DATABASE_URL from .env.prod
+#   ./scripts/sync-local-db.sh path/to/other.env  # or from another env file
 #
 # Env:
-#   NEON_DATABASE_URL  (required) Neon connection string. Use the DIRECT host;
-#                      this script strips "-pooler" for you if present.
+#   NEON_DATABASE_URL  (optional) Neon connection string; overrides the env file.
+#   PROD_ENV_FILE      (optional) env file to read DATABASE_URL from.
+#                      Default: .env.prod at the repo root.
+# Either way the DIRECT host is used; this script strips "-pooler" for you.
 
 set -euo pipefail
 
-: "${NEON_DATABASE_URL:?Set NEON_DATABASE_URL to the Neon connection string}"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="${1:-${PROD_ENV_FILE:-$REPO_ROOT/.env.prod}}"
+
+# Read a key from a dotenv file without sourcing it — values here are unquoted
+# and contain `?`/`&`, which the shell would happily mangle.
+read_env() {
+  local key="$1" file="$2" line
+  line="$(grep -m1 -E "^[[:space:]]*(export[[:space:]]+)?${key}=" "$file" || true)"
+  [[ -n "$line" ]] || return 1
+  line="${line#*=}"
+  # strip one layer of surrounding quotes, if present
+  [[ "$line" == \"*\" || "$line" == \'*\' ]] && line="${line:1:${#line}-2}"
+  printf '%s' "$line"
+}
+
+if [[ -z "${NEON_DATABASE_URL:-}" ]]; then
+  [[ -f "$ENV_FILE" ]] || {
+    echo "✗ No env file at $ENV_FILE — pass one as \$1, or set NEON_DATABASE_URL." >&2
+    exit 1
+  }
+  NEON_DATABASE_URL="$(read_env DATABASE_URL "$ENV_FILE")" || {
+    echo "✗ No DATABASE_URL found in $ENV_FILE." >&2
+    exit 1
+  }
+  echo "▸ Using DATABASE_URL from ${ENV_FILE/#$REPO_ROOT\//}"
+fi
+
+: "${NEON_DATABASE_URL:?DATABASE_URL is empty}"
 
 # The pooler (PgBouncer, transaction mode) can choke on pg_dump; use the direct endpoint.
 SOURCE_URL="${NEON_DATABASE_URL/-pooler/}"
