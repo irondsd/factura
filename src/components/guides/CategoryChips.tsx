@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Button } from "@/components/ui";
 import type { Category } from "@/content/guias/categories";
 
 // Row of category links. On the /guias index it's the topic switcher (and the
@@ -23,12 +23,9 @@ export function CategoryChips({
       <ul className="flex flex-wrap gap-2 list-none p-0 m-0">
         {categories.map((c) => (
           <li key={c.id}>
-            <Link
-              href={`/guias/categoria/${c.id}`}
-              className="inline-flex items-center border border-line px-3 py-[7px] font-mono text-micro uppercase tracking-label-wide text-muted no-underline transition-colors hover:border-accent hover:text-accent"
-            >
+            <Button href={`/guias/categoria/${c.id}`} size="sm">
               {c.label}
-            </Link>
+            </Button>
           </li>
         ))}
       </ul>

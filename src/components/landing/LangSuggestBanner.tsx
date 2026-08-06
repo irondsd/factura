@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui";
 import { LOCALE_COOKIE, type Locale } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { oppositePath } from "@/i18n/routing";
@@ -64,20 +65,12 @@ export function LangSuggestBanner() {
         {t.meta.suggestText}
       </p>
       <div className="mt-2.5 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={accept}
-          className="font-mono text-micro uppercase tracking-label leading-none border border-ink bg-ink text-paper py-2 px-3 cursor-pointer transition-colors hover:bg-accent hover:border-accent"
-        >
+        <Button type="button" variant="solid" onClick={accept}>
           {t.meta.switchTo}
-        </button>
-        <button
-          type="button"
-          onClick={dismiss}
-          className="font-mono text-micro uppercase tracking-label text-muted cursor-pointer bg-transparent border-none hover:text-accent transition-colors"
-        >
+        </Button>
+        <Button type="button" variant="quiet" onClick={dismiss}>
           {t.meta.suggestDismiss}
-        </button>
+        </Button>
       </div>
     </div>
   );

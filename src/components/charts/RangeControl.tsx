@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { Button } from "@/components/ui";
 import {
   SegmentedControl,
   type SegmentedOption,
@@ -345,16 +346,16 @@ export function RangeControl({
 
           <div className="flex justify-between items-center">
             <span className="font-mono text-[11px] text-muted">{readout}</span>
-            <button
+            <Button
               type="button"
+              variant="solid"
               onClick={() => {
                 setPanelOpen(false);
                 setOpenDropdown(null);
               }}
-              className="font-mono text-[11px] uppercase tracking-[0.06em] text-paper bg-ink px-[15px] py-2 cursor-pointer"
             >
               {ti.rangeApply}
-            </button>
+            </Button>
           </div>
         </div>
       )}

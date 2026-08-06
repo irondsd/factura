@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { microLabel } from "@/components/ui";
+import { Button, microLabel } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { Modal } from "./Modal";
@@ -65,13 +65,9 @@ export function ExtractedTextDialog({
         {text}
       </pre>
       <div className="flex flex-wrap items-center gap-4">
-        <button
-          type="button"
-          onClick={() => void copy()}
-          className="cursor-pointer border-b border-dotted border-accent font-mono text-xs text-accent transition-colors hover:text-ink hover:border-ink"
-        >
+        <Button type="button" variant="link" onClick={() => void copy()}>
           {copied ? p.copiedText : p.copyText}
-        </button>
+        </Button>
         {partial && <span className={microLabel}>{p.truncated}</span>}
       </div>
     </Modal>

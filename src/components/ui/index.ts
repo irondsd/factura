@@ -2,7 +2,7 @@
 // hairline borders, one accent. Ported from the design bundle.
 
 export { microLabel, hint } from "./styles";
-export { Button, buttonClass } from "./Button";
+export { Button, type ButtonSize, type ButtonVariant } from "./Button";
 export { Input } from "./Input";
 export { Select } from "./Select";
 export { Checkbox } from "./Checkbox";

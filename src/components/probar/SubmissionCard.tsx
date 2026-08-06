@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { microLabel, hint } from "@/components/ui";
+import { Button, microLabel, hint } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
@@ -151,13 +151,9 @@ export function SubmissionCard({
 
           {hasText && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-3.5">
-              <button
-                type="button"
-                onClick={viewText}
-                className="cursor-pointer border-b border-dotted border-accent font-mono text-xs text-accent transition-colors hover:border-ink hover:text-ink"
-              >
+              <Button type="button" variant="link" onClick={viewText}>
                 {`› ${p.viewText}`}
-              </button>
+              </Button>
               <span className={microLabel}>
                 {/* Grouped in the page's language, not the browser's: an
                     es-AR reader expects 13.850, and `toLocaleString()` with no
@@ -175,13 +171,13 @@ export function SubmissionCard({
                   ) : (
                     <>
                       {p.reportPrompt}{" "}
-                      <button
+                      <Button
                         type="button"
+                        variant="link"
                         onClick={() => setReporting(true)}
-                        className="cursor-pointer border-b border-dotted border-accent text-accent transition-colors hover:border-ink hover:text-ink"
                       >
                         {p.reportCta}
-                      </button>
+                      </Button>
                     </>
                   )}
                 </span>

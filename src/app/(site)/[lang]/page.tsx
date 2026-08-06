@@ -5,6 +5,7 @@ import { LedgerPeek } from "@/components/landing/LedgerPeek";
 import { Eyebrow, Perforation, Wordmark } from "@/components/landing/parts";
 import { SiteNav } from "@/components/landing/SiteNav";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { Button } from "@/components/ui";
 import { allGuides } from "@/content/guias/guides";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
@@ -204,16 +205,13 @@ export default async function LandingPage({ params }: Props) {
   );
 }
 
-// Solid "get started" call to action. Mirrors the app's <Button variant="solid"
-// size="lg"> classes, rendered as a Link since it navigates.
+// Solid "get started" call to action — the app's button, navigating. Wide
+// enough to be the page's obvious target rather than sized to its label.
 function Cta({ children }: { children: React.ReactNode }) {
   return (
-    <Link
-      href="/login"
-      className="inline-flex items-center justify-center gap-2 whitespace-nowrap min-w-[280px] py-2.5 px-4 font-mono text-xs uppercase tracking-label leading-none border border-ink bg-ink text-paper no-underline transition-colors hover:bg-accent hover:border-accent"
-    >
+    <Button href="/login" variant="solid" size="lg" className="min-w-[280px]">
       {children}
-    </Link>
+    </Button>
   );
 }
 

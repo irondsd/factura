@@ -8,7 +8,7 @@ import {
   LineChartFx,
   useChartCurrency,
 } from "@/components/charts";
-import { FinePrint } from "@/components/ui";
+import { Button, FinePrint } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
@@ -82,13 +82,9 @@ export function SingleVendorCharts({
             {ti.latest} · <Delta pct={pct} /> {ti.overRange}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={exportCsv}
-          className="font-mono text-micro uppercase tracking-[0.14em] py-[5px] px-[11px] border border-line bg-transparent text-muted cursor-pointer transition-colors hover:bg-ink hover:text-paper"
-        >
+        <Button type="button" size="sm" onClick={exportCsv}>
           {ti.exportCsv}
-        </button>
+        </Button>
       </div>
 
       <ChartCard

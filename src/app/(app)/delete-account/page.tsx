@@ -268,12 +268,9 @@ export default function DeleteAccountPage() {
 
   return (
     <Shell>
-      <button
-        onClick={() => router.push("/app/profile")}
-        className="font-mono text-micro uppercase tracking-label text-muted hover:text-accent cursor-pointer bg-transparent border-none p-0"
-      >
+      <Button variant="quiet" onClick={() => router.push("/app/profile")}>
         {td.back}
-      </button>
+      </Button>
       <Eyebrow tone="accent" className="mt-6">
         {td.eyebrow}
       </Eyebrow>
@@ -389,7 +386,6 @@ export default function DeleteAccountPage() {
               <Button
                 variant="solid"
                 disabled={!ready}
-                className={cn(!ready && "opacity-50 cursor-not-allowed")}
                 onClick={() => {
                   posthog.capture("account_deletion_started", {
                     properties_deleted: totals.properties,

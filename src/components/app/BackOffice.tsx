@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { Eyebrow } from "@/components/charts/primitives";
-import { Bone, buttonClass } from "@/components/ui";
+import { Bone, Button } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
@@ -58,12 +57,9 @@ function Row({
       </div>
       {/* The ghost's transparent border is already in the box, so the accent
           hover outline costs no reflow. */}
-      <Link
-        href={href}
-        className={cn(buttonClass("ghost"), "hover:border-accent")}
-      >
+      <Button href={href} variant="ghost" className="hover:border-accent">
         {t.profile.manage}
-      </Link>
+      </Button>
     </div>
   );
 }

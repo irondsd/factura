@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { hint } from "@/components/ui";
+import { Button, hint } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -30,13 +29,15 @@ export function SaveCta({
         </h2>
         <p className={hint}>{p.saveBody}</p>
       </div>
-      <Link
+      <Button
         href="/login?claim=1"
         onClick={() => onClick(count)}
-        className="inline-flex flex-none items-center justify-center gap-2 border border-ink bg-ink px-5 py-3.5 font-mono text-micro leading-none tracking-label text-paper uppercase transition-colors hover:border-accent hover:bg-accent"
+        variant="solid"
+        size="lg"
+        className="flex-none"
       >
         {p.saveButton}
-      </Link>
+      </Button>
     </div>
   );
 }

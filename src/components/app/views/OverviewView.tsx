@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { MonthSwitcher } from "@/components/app/MonthSwitcher";
 import {
   ChartCard,
@@ -13,6 +12,7 @@ import {
   useEntranceAnimation,
   VendorShare,
 } from "@/components/charts";
+import { Button } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
 import { interpolate } from "@/i18n/config";
 import { cn } from "@/lib/cn";
@@ -163,12 +163,7 @@ export function OverviewView({
             )}
           </p>
         </div>
-        <Link
-          href={insightsUrl}
-          className="font-mono text-micro uppercase tracking-label border border-line py-[9px] px-[14px] text-ink no-underline transition-colors hover:border-accent hover:text-accent"
-        >
-          {to.seeInsights}
-        </Link>
+        <Button href={insightsUrl} className="h-9.5">{to.seeInsights}</Button>
       </div>
 
       {/* awaiting model — in a closed month, simply what the ledger holds */}

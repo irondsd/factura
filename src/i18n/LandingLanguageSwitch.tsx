@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { Button } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { LOCALE_COOKIE } from "./config";
 import { useI18n } from "./I18nProvider";
@@ -25,15 +26,13 @@ export function LandingLanguageSwitch({ className }: { className?: string }) {
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="quiet"
       onClick={switchTo}
-      className={cn(
-        "font-mono text-micro uppercase tracking-[0.16em] text-muted no-underline whitespace-nowrap transition-colors hover:text-accent cursor-pointer bg-transparent border-none p-0",
-        className,
-      )}
+      className={cn("whitespace-nowrap", className)}
     >
       {t.meta.switchTo}
-    </button>
+    </Button>
   );
 }

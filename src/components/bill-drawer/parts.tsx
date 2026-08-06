@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Delta } from "@/components/charts/primitives";
-import { Field, Input, microLabel, Select } from "@/components/ui";
+import { Button, Field, Input, microLabel, Select } from "@/components/ui";
 import type { Dictionary } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
@@ -136,13 +136,9 @@ export function DrawerHeader({
         </h2>
         <p className="font-mono text-micro text-muted mt-1">{fileName}</p>
       </div>
-      <button
-        onClick={onClose}
-        aria-label={t.billDrawer.close}
-        className="bg-transparent border-none cursor-pointer text-muted text-base leading-none transition-colors hover:text-accent"
-      >
+      <Button variant="icon" onClick={onClose} aria-label={t.billDrawer.close}>
         ✕
-      </button>
+      </Button>
     </div>
   );
 }

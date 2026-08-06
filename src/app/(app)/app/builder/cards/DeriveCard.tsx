@@ -1,6 +1,6 @@
 "use client";
 
-import { Input, Select, hint, microLabel } from "@/components/ui";
+import { Button, Input, Select, hint, microLabel } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { ValueRec } from "@/parsers/builder/evaluate";
 import type { BuilderDerive, DeriveKind } from "@/parsers/builder/model";
@@ -12,7 +12,6 @@ import {
   ValueOption,
   ValuePicker,
   XBtn,
-  arrowBtn,
 } from "./shared";
 
 const DERIVE_KIND_VALUES: DeriveKind[] = [
@@ -164,22 +163,24 @@ export function DeriveCard({
         </Select>
         <span className="ml-auto inline-flex items-center gap-1">
           <ValueChip value={rec?.value} error={rec?.error} />
-          <button
+          <Button
             type="button"
+            variant="icon"
+            size="sm"
             onClick={moveUp}
             title={td.moveUp}
-            className={arrowBtn}
           >
             ▲
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="icon"
+            size="sm"
             onClick={moveDown}
             title={td.moveDown}
-            className={arrowBtn}
           >
             ▼
-          </button>
+          </Button>
           <XBtn onClick={onRemove} title={td.remove} />
         </span>
       </div>

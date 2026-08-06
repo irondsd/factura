@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Breadcrumbs } from "@/components/guides/Breadcrumbs";
 import { CategoryChips } from "@/components/guides/CategoryChips";
 import { GuideList } from "@/components/guides/GuideList";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { Button } from "@/components/ui";
 import {
   allGuides,
   guidesByPrimaryCategory,
@@ -98,17 +98,19 @@ export default async function GuiasIndexPage() {
                   either because we truncated, or because guides tagged with the
                   category lead with a different one. */}
               {total > Math.min(shown.length, PER_SECTION) && (
-                <Link
+                <Button
                   href={`/guias/categoria/${category.id}`}
+                  variant="invert"
+                  size="lg"
                   // Visible label leaves the category name out — the section
                   // heading two rows up already says it, and spelling it out
                   // wrapped the button onto two lines on a phone. The aria-label
                   // keeps the full phrase for anyone tabbing link to link.
                   aria-label={`Ver las ${total} guías de ${category.label}`}
-                  className="mt-5 inline-flex items-center border border-ink px-[22px] py-[10px] font-mono text-micro uppercase tracking-label-wide text-ink no-underline transition-colors hover:bg-ink hover:text-paper"
+                  className="mt-5"
                 >
                   Ver las {total} guías →
-                </Link>
+                </Button>
               )}
             </section>
           ))}

@@ -73,14 +73,14 @@ export function ParserModal({
               {p.region ? ` · ${p.region}` : ""}
             </div>
           </div>
-          <button
+          <Button
             type="button"
+            variant="icon"
             onClick={onClose}
-            className="font-mono text-base text-muted cursor-pointer leading-none"
             aria-label={tp.close}
           >
             ✕
-          </button>
+          </Button>
         </div>
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-3.5 mt-5">

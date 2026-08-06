@@ -136,25 +136,28 @@ function LoginForm() {
             <p className="font-mono text-sm text-muted leading-[1.6] mt-4">
               {tl.tagline}
             </p>
-            <button
+            <Button
+              size="lg"
               onClick={() => {
                 posthog.capture("sign_in_google_clicked");
                 signIn("google", { callbackUrl });
               }}
-              className="mt-7 inline-flex w-full items-center justify-center gap-3 font-mono text-[13px] text-ink bg-paper border border-line py-3 px-4 cursor-pointer transition-colors hover:border-accent"
+              className="mt-7 w-full gap-3"
             >
               <GoogleG />
               {tl.google}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
               onClick={() => {
                 setError(null);
                 setStep("email");
               }}
-              className="mt-3 inline-flex w-full items-center justify-center gap-3 font-mono text-[13px] text-muted py-3 px-4 cursor-pointer transition-colors hover:text-accent"
+              className="mt-3 w-full"
             >
               {tl.emailButton}
-            </button>
+            </Button>
             <p className="font-mono text-[10.5px] text-muted leading-[1.6] mt-5">
               {tl.privacyNote}
             </p>
@@ -186,16 +189,16 @@ function LoginForm() {
               >
                 {busy ? tl.sending : tl.sendCode}
               </Button>
-              <button
+              <Button
                 type="button"
+                variant="quiet"
                 onClick={() => {
                   setStep("choose");
                   setError(null);
                 }}
-                className="font-mono text-[11px] text-muted hover:text-accent transition-colors cursor-pointer"
               >
                 {tl.otherWays}
-              </button>
+              </Button>
             </form>
           </>
         )}
@@ -230,17 +233,17 @@ function LoginForm() {
               >
                 {busy ? tl.verifying : tl.signIn}
               </Button>
-              <button
+              <Button
                 type="button"
+                variant="quiet"
                 onClick={() => {
                   setStep("email");
                   setCode("");
                   setError(null);
                 }}
-                className="font-mono text-[11px] text-muted hover:text-accent transition-colors cursor-pointer"
               >
                 {tl.differentEmail}
-              </button>
+              </Button>
             </form>
           </>
         )}

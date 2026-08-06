@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { SiteFooter } from "@/components/landing/Footer";
 import { SiteHeader } from "@/components/landing/Header";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { Button } from "@/components/ui";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
 import { getI18n } from "@/i18n/server";
@@ -79,12 +79,9 @@ export default async function FaqPage({ params }: Props) {
           <p className="font-mono text-sm text-muted m-0 mb-[22px]">
             {f.ctaBody}
           </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center font-mono text-[13px] uppercase tracking-[0.12em] no-underline border border-ink bg-ink text-paper py-3 px-[26px] transition-colors hover:bg-transparent hover:text-ink"
-          >
+          <Button href="/login" variant="solid" size="xl">
             {f.ctaButton}
-          </Link>
+          </Button>
         </section>
       </main>
 

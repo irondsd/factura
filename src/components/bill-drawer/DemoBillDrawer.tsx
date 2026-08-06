@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { Badge, microLabel } from "@/components/ui";
+import { Badge, Button, microLabel } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
 import { demoBill, demoProperties, demoVendors } from "@/lib/demo/fixtures";
 import { cn } from "@/lib/cn";
@@ -106,12 +105,9 @@ export function DemoBillDrawer({
               <p className="font-mono text-[11px] text-muted leading-[1.6] mb-2.5">
                 {tb.demoNote}
               </p>
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap py-2 px-3 font-mono text-micro uppercase tracking-label leading-none border border-ink bg-ink text-paper no-underline transition-colors hover:bg-accent hover:border-accent"
-              >
+              <Button href="/login" variant="solid">
                 {tb.demoSignIn}
-              </Link>
+              </Button>
             </div>
           </>
         );

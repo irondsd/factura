@@ -137,19 +137,17 @@ export function XBtn({
 }) {
   const { t } = useI18n();
   return (
-    <button
+    <Button
       type="button"
+      variant="icon"
+      size="sm"
       onClick={onClick}
       title={title ?? t.builder.shared.remove}
-      className="border-none bg-transparent cursor-pointer text-muted hover:text-accent text-xs font-mono px-0.5 leading-none"
     >
       ✕
-    </button>
+    </Button>
   );
 }
-
-export const arrowBtn =
-  "border-none bg-transparent cursor-pointer text-muted hover:text-accent text-[10px] font-mono px-0.5 leading-none";
 
 // ── Value Picker ──────────────────────────────────────────────────────────────
 function useClickAway(
@@ -407,14 +405,15 @@ export function FallbackChain({
             }}
           />
           {i > 0 && (
-            <button
+            <Button
               type="button"
+              variant="icon"
+              size="sm"
               onClick={() => onChange(move(refs, i, -1))}
               title={ts.earlier}
-              className={arrowBtn}
             >
               ‹
-            </button>
+            </Button>
           )}
         </span>
       ))}

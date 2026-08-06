@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import posthog from "posthog-js";
+import { Button } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { formatARS, formatMonth } from "@/lib/format";
@@ -203,20 +204,19 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
                     </p>
                   )}
                 </div>
-                <button
+                <Button
+                  variant="solid"
                   onClick={() => resolveConfirm(suggested.id)}
                   disabled={confirmAccount.isPending}
-                  className="cursor-pointer border border-accent bg-accent/10 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/20"
                 >
                   {td.confirmYes}
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setPicking(true)}
                   disabled={confirmAccount.isPending}
-                  className="cursor-pointer border border-line px-4 py-2 text-sm hover:border-accent"
                 >
                   {td.confirmNo}
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="mt-4 flex flex-col gap-2">
@@ -258,26 +258,23 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
                     placeholder={td.newPropertyPlaceholder}
                     className="flex-1 border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-accent"
                   />
-                  <button
-                    type="submit"
-                    disabled={createProperty.isPending}
-                    className="cursor-pointer border border-line px-3 py-2 text-[11px] uppercase tracking-wider hover:border-accent hover:text-accent"
-                  >
+                  <Button type="submit" disabled={createProperty.isPending}>
                     {t.common.add}
-                  </button>
+                  </Button>
                 </form>
               </div>
             )}
 
-            <button
+            <Button
+              variant="quiet"
               onClick={() => {
                 setConfirmQueue((q) => q.slice(1));
                 setPicking(false);
               }}
-              className="mt-3 cursor-pointer text-[11px] uppercase tracking-wider text-muted underline decoration-dotted underline-offset-4 hover:text-accent"
+              className="mt-3"
             >
               {td.skipReview}
-            </button>
+            </Button>
           </div>
         </div>
       )}

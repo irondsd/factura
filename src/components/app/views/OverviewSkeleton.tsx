@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import {
   ChartCard,
   CurrencyToggle,
   Display,
   Eyebrow,
 } from "@/components/charts";
-import { Bone } from "@/components/ui";
+import { Bone, Button } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
 
 /** First paint of the Overview, before the ledger answers.
@@ -100,12 +99,7 @@ export function OverviewSkeleton() {
             <Bone chars={42} />
           </p>
         </div>
-        <Link
-          href="/app/insights"
-          className="font-mono text-micro uppercase tracking-label border border-line py-[9px] px-[14px] text-ink no-underline transition-colors hover:border-accent hover:text-accent"
-        >
-          {to.seeInsights}
-        </Link>
+        <Button href="/app/insights">{to.seeInsights}</Button>
       </div>
 
       {/* awaiting model — the label is one of three ("this month" / "closed" /

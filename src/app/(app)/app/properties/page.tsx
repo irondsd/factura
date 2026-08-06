@@ -22,8 +22,6 @@ const subhead =
   "font-mono text-[10px] uppercase tracking-[0.16em] text-muted mt-[18px] mb-2";
 const row =
   "flex flex-wrap items-center gap-2.5 py-2 border-t border-dashed border-line";
-const iconX =
-  "ml-auto bg-transparent border-none text-muted cursor-pointer transition-colors hover:text-accent";
 
 export default function PropertiesPage() {
   const { data: session } = useSession();
@@ -266,7 +264,9 @@ export default function PropertiesPage() {
                   })}
                 </span>
                 {isOwner && m.email.toLowerCase() !== myEmail && (
-                  <button
+                  <Button
+                    variant="icon"
+                    size="sm"
                     aria-label={tp.removeAria}
                     onClick={() =>
                       removeMember.mutate(
@@ -274,10 +274,10 @@ export default function PropertiesPage() {
                         opts(tp.toastMemberRemoved),
                       )
                     }
-                    className={iconX}
+                    className="ml-auto"
                   >
                     ✕
-                  </button>
+                  </Button>
                 )}
               </div>
             ))}
@@ -288,7 +288,9 @@ export default function PropertiesPage() {
                   {tp.invitedPending}
                 </span>
                 {isOwner && (
-                  <button
+                  <Button
+                    variant="icon"
+                    size="sm"
                     aria-label={tp.revokeAria}
                     onClick={() =>
                       revokeInvite.mutate(
@@ -296,10 +298,10 @@ export default function PropertiesPage() {
                         opts(tp.toastInviteRevoked),
                       )
                     }
-                    className={iconX}
+                    className="ml-auto"
                   >
                     ✕
-                  </button>
+                  </Button>
                 )}
               </div>
             ))}
@@ -532,12 +534,9 @@ function VendorCell({
           </span>
         )}
         {isOwner && others.length > 0 && !merging && (
-          <button
-            onClick={() => setMerging(true)}
-            className="font-mono text-micro uppercase tracking-[0.14em] text-muted bg-transparent border-none cursor-pointer transition-colors hover:text-accent"
-          >
+          <Button variant="quiet" onClick={() => setMerging(true)}>
             {tp.merge}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -585,13 +584,15 @@ function VendorCell({
             <span key={a.id} className="border border-line px-1.5 py-0.5">
               {a.slug}
               {isOwner && (
-                <button
+                <Button
+                  variant="icon"
+                  size="sm"
                   aria-label={tp.unlinkAliasAria}
                   onClick={() => onUnlinkAlias(a.id)}
-                  className="ml-1 bg-transparent border-none text-muted cursor-pointer transition-colors hover:text-accent"
+                  className="ml-1"
                 >
                   ✕
-                </button>
+                </Button>
               )}
             </span>
           ))}
@@ -678,17 +679,20 @@ function AccountRow({
         </>
       )}
       {isOwner && siblings.length > 0 && !merging && (
-        <button
-          onClick={() => setMerging(true)}
-          className="font-mono text-micro uppercase tracking-[0.14em] text-muted bg-transparent border-none cursor-pointer transition-colors hover:text-accent"
-        >
+        <Button variant="quiet" onClick={() => setMerging(true)}>
           {tp.merge}
-        </button>
+        </Button>
       )}
       {isOwner && !merging && (
-        <button aria-label={tp.deleteAria} onClick={onDelete} className={iconX}>
+        <Button
+          variant="icon"
+          size="sm"
+          aria-label={tp.deleteAria}
+          onClick={onDelete}
+          className="ml-auto"
+        >
           ✕
-        </button>
+        </Button>
       )}
     </div>
   );

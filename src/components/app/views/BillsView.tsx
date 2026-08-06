@@ -2,7 +2,7 @@
 
 import { type ComponentType, useMemo, useState } from "react";
 import { Display, Eyebrow } from "@/components/charts/primitives";
-import { Badge, FilterPill, Select } from "@/components/ui";
+import { Badge, Button, FilterPill, Select } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
@@ -308,18 +308,8 @@ function PageBtn({
   children: React.ReactNode;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      {...rest}
-      className={cn(
-        "inline-flex items-center gap-1.5 font-mono text-micro uppercase tracking-[0.08em] px-2.5 h-7 border border-line bg-transparent transition-colors",
-        disabled
-          ? "cursor-not-allowed text-[color-mix(in_srgb,var(--muted)_45%,transparent)]"
-          : "cursor-pointer text-ink",
-      )}
-    >
+    <Button size="sm" onClick={onClick} disabled={disabled} {...rest}>
       {children}
-    </button>
+    </Button>
   );
 }

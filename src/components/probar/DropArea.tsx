@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { Checkbox, microLabel, hint } from "@/components/ui";
+import { Button, Checkbox, microLabel, hint } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
@@ -68,14 +68,14 @@ export function DropArea({
         </button>
         <p className={cn(hint, "mt-2.5")}>
           {p.sampleHint}{" "}
-          <button
+          <Button
             type="button"
+            variant="link"
             onClick={onSample}
             disabled={sampleBusy || busy}
-            className="cursor-pointer border-b border-dotted border-accent text-accent transition-colors hover:border-ink hover:text-ink disabled:cursor-default disabled:opacity-60"
           >
             {sampleBusy ? p.sampleLoading : p.sampleButton}
-          </button>
+          </Button>
         </p>
       </div>
       <input

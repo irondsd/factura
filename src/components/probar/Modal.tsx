@@ -2,7 +2,7 @@
 
 import { type ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { microLabel } from "@/components/ui";
+import { Button, microLabel } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 
@@ -86,14 +86,15 @@ export function Modal({
             <h2 className="font-display text-xl leading-tight">{title}</h2>
             {subtitle && <span className={microLabel}>{subtitle}</span>}
           </div>
-          <button
+          <Button
             type="button"
+            variant="icon"
             onClick={onClose}
             aria-label={t.probar.close}
-            className="-mt-1 -mr-1 cursor-pointer p-1 font-mono text-sm text-muted transition-colors hover:text-accent"
+            className="-mt-1 -mr-1"
           >
             ✕
-          </button>
+          </Button>
         </div>
         {children}
       </div>

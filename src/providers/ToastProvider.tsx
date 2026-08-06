@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 
+import { Button } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
 
 type Toast = { id: string; text: string };
@@ -59,14 +60,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               className="receipt-edge bg-card border border-line pt-3 px-4 pb-5 font-mono text-sm shadow-pop animate-[fd-toast-in_180ms_cubic-bezier(0.2,0,0.2,1)] flex items-start gap-3"
             >
               <span className="flex-1">{toast.text}</span>
-              <button
+              <Button
                 type="button"
+                variant="icon"
                 onClick={() => dismiss(toast.id)}
                 aria-label={t.billDrawer.close}
-                className="bg-transparent border-none cursor-pointer text-muted text-base leading-none transition-colors hover:text-accent -mt-0.5"
+                className="-mt-0.5"
               >
                 ✕
-              </button>
+              </Button>
             </div>
           ))}
         </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wordmark } from "@/components/landing/parts";
+import { Button } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
 import { localizedHref } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
@@ -47,12 +48,9 @@ export function DemoTopBar() {
         </nav>
 
         <div className="ml-auto items-center gap-4 hidden sm:flex">
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center whitespace-nowrap py-1.5 px-3 font-mono text-micro uppercase tracking-label leading-none border border-ink bg-ink text-paper no-underline transition-colors hover:bg-accent hover:border-accent"
-          >
+          <Button href="/login" variant="solid" size="sm">
             {t.nav.signIn}
-          </Link>
+          </Button>
         </div>
       </div>
     </header>

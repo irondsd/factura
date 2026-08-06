@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { Button } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatMonth } from "@/lib/format";
@@ -192,14 +193,15 @@ export function MonthSwitcher({
               <span className="font-mono text-[10px] uppercase tracking-label text-muted">
                 {to.pickMonth}
               </span>
-              <button
+              <Button
                 type="button"
+                variant="icon"
                 onClick={() => close(true)}
                 aria-label={to.closePicker}
-                className="cursor-pointer p-1.5 font-mono text-[13px] text-muted sm:hidden"
+                className="sm:hidden"
               >
                 ✕
-              </button>
+              </Button>
             </div>
 
             {/* A year row is a fixed height at each size — the cells below set

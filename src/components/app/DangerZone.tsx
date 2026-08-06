@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { buttonClass } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { trpc } from "@/lib/trpc";
@@ -35,9 +34,9 @@ export function DangerZone() {
           {help}
         </p>
       </div>
-      <Link href="/delete-account" className={buttonClass("danger", "lg")}>
+      <Button href="/delete-account" variant="danger" size="lg">
         {td.manage}
-      </Link>
+      </Button>
     </div>
   );
 }
