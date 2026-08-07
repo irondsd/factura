@@ -206,7 +206,7 @@ errors if `meta.faq` is set without `<Faq />` in the body, or the reverse.
 
 ```mdx
 faq: [
-  { q: "¿Por qué mi factura vino tan cara?", a: "Compara los kWh, no los pesos…" },
+{ q: "¿Por qué mi factura vino tan cara?", a: "Compara los kWh, no los pesos…" },
 ],
 ```
 

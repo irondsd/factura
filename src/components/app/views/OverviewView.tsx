@@ -163,7 +163,9 @@ export function OverviewView({
             )}
           </p>
         </div>
-        <Button href={insightsUrl} className="h-9.5">{to.seeInsights}</Button>
+        <Button href={insightsUrl} className="h-9.5">
+          {to.seeInsights}
+        </Button>
       </div>
 
       {/* awaiting model — in a closed month, simply what the ledger holds */}

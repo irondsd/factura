@@ -98,10 +98,7 @@ function countWords(body: string): number {
  * `guideBody` strips — but it renders on the page like any other prose, and a
  * six-question FAQ is a couple of minutes of reading. Callers already hold the
  * meta, so threading it through beats re-parsing the block here. */
-export function readingMinutes(
-  slug: string,
-  faq?: GuideMeta["faq"],
-): number {
+export function readingMinutes(slug: string, faq?: GuideMeta["faq"]): number {
   const source = fs.readFileSync(path.join(DIR, `${slug}.mdx`), "utf8");
   const faqWords = (faq ?? []).reduce(
     (n, { q, a }) => n + countWords(`${q} ${a}`),
