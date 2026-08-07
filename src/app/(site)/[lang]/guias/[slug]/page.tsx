@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/guides/Breadcrumbs";
 import { CategoryChips } from "@/components/guides/CategoryChips";
+import { Faq } from "@/components/guides/Faq";
 import { RelatedGuides } from "@/components/guides/RelatedGuides";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -13,7 +14,7 @@ import {
   relatedGuides,
 } from "@/content/guias/guides";
 import { guideMetadata } from "@/i18n/metadata";
-import { guideLd } from "@/i18n/structuredData";
+import { faqPageLd, guideLd } from "@/i18n/structuredData";
 
 // One guide article. Static set only — `dynamicParams = false` 404s any slug
 // that isn't a real `.mdx` file. (The Spanish-only guard lives in the layout.)
@@ -50,7 +51,7 @@ export default async function GuidePage({ params }: Props) {
   const { slug } = await params;
   const { Content, meta } = await loadGuide(slug);
   const related = await relatedGuides(slug);
-  const minutes = readingMinutes(slug);
+  const minutes = readingMinutes(slug, meta.faq);
 
   // Categories in the order the guide declares them: primary first, which is
   // also the one that earns the breadcrumb crumb.
@@ -62,6 +63,12 @@ export default async function GuidePage({ params }: Props) {
   return (
     <>
       <JsonLd data={guideLd({ slug, ...meta })} />
+      {/* Only when the guide actually renders the questions below — FAQPage
+          markup for Q&A a visitor can't see on the page is a spam signal, and
+          binding both to `meta.faq` is what makes that impossible here. */}
+      {meta.faq && meta.faq.length > 0 && (
+        <JsonLd data={faqPageLd(meta.faq, "es")} />
+      )}
 
       <main className={SHELL}>
         <article className="max-w-[680px] pt-10 pb-16">
@@ -126,6 +133,7 @@ export default async function GuidePage({ params }: Props) {
             <Content
               components={{
                 RelatedGuides: () => <RelatedGuides guides={related} />,
+                Faq: () => <Faq items={meta.faq ?? []} />,
               }}
             />
           </div>

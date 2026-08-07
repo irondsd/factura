@@ -10,10 +10,33 @@ export const meta = {
     "partida abl",
     "segundo vencimiento abl",
     "agip boleta inmobiliario",
+    "vfh valuacion fiscal homogenea",
   ],
   categories: ["impuestos", "leer-facturas"],
   published: "2026-07-27T15:05:00-03:00",
-  updated: "2026-07-27T15:05:00-03:00",
+  updated: "2026-08-07T10:00:00-03:00",
+  faq: [
+    {
+      q: "¿Qué es el número de partida en la boleta de ABL?",
+      a: "Es el identificador del inmueble ante AGIP, y va acompañado de un dígito verificador. No cambia con las ventas: identifica a la propiedad, no al titular. Es el dato que necesitas para cualquier consulta, pago o trámite sobre ese inmueble.",
+    },
+    {
+      q: "¿Por qué la boleta de ABL trae dos importes distintos?",
+      a: "Porque trae dos vencimientos. El primero es el importe que corresponde si pagas en fecha; el segundo, más alto, ya incluye el recargo por pago fuera de término. Son la misma cuota, no dos conceptos distintos.",
+    },
+    {
+      q: "¿Qué es la VFH en la boleta de AGIP?",
+      a: "La Valuación Fiscal Homogénea es el valor que la Ciudad asigna a tu inmueble y sobre el que se calcula el tributo. Si sube la VFH, sube la cuota aunque no hayan cambiado las alícuotas. Un salto repentino sin que hayas hecho obra es algo que vale la pena revisar.",
+    },
+    {
+      q: "¿Qué pasa si me salteo una cuota del ABL?",
+      a: "La numeración de las cuotas avanza de a una, así que un salto en el número te avisa de inmediato que quedó una sin pagar. Las cuotas impagas acumulan intereses y quedan registradas como deuda sobre la partida, que es del inmueble y sigue con él.",
+    },
+    {
+      q: "¿Conviene pagar el ABL anual o en cuotas mensuales?",
+      a: "Depende de si la bonificación por pago anual compensa el costo de adelantar todo el año de una vez. La boleta muestra ambas opciones y las bonificaciones vigentes en el detalle, así que la comparación se puede hacer con la boleta a la vista.",
+    },
+  ],
 };
 
 La **boleta de ABL** de AGIP entra en una sola carilla, y aun así casi nadie mira más allá del importe. Es una lástima, porque en esa carilla están el número que identifica tu inmueble para siempre, dos fechas de vencimiento con importes distintos y el desglose que te dice exactamente en qué se va tu dinero.
@@ -91,6 +114,8 @@ No hace falta auditar la boleta entera todos los meses. Con estos cuatro control
 La boleta de ABL es mensual, cambia de monto varias veces al año y trae dos importes distintos según cuándo pagues. Seguirla a mano es exactamente el tipo de tarea que se abandona al tercer mes.
 
 Factura lee la boleta de AGIP en PDF, extrae la partida, la cuota, el vencimiento y el total, y arma la serie completa por ti. Así ves cuánto creció el ABL en el año y lo comparas con tus [expensas](/guias/como-leer-un-recibo-de-expensas) y tus servicios en el mismo tablero. Si solo tienes el papel, mira cómo [escanearlo con el celular](/guias/como-escanear-una-factura-con-el-celular).
+
+<Faq />
 
 <RelatedGuides />
 

@@ -25,6 +25,7 @@ const ALLOWED_COMPONENTS = new Set([
   "CtaButton",
   "CtaRow",
   "DemoCta",
+  "Faq",
   "ProbarCta",
   "SignupCta",
   "RelatedGuides",
@@ -195,6 +196,56 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
       }
     }
 
+    // ── faq (optional) ──────────────────────────────────────────────────────
+    // The markup and the rendered block are both built from this list, so the
+    // only way they can disagree is if the body forgets to place <Faq />. That
+    // mismatch is the thing worth catching: FAQPage JSON-LD describing Q&A the
+    // visitor can't see is exactly what Google's spam guidance is aimed at.
+    const faq = meta.faq;
+    const placesFaq = /<Faq\b/.test(body);
+    if (faq !== undefined) {
+      if (!Array.isArray(faq) || faq.length === 0) {
+        errors.push("meta.faq must be a non-empty array of { q, a } objects");
+      } else {
+        faq.forEach((item, i) => {
+          const ok =
+            item !== null &&
+            typeof item === "object" &&
+            typeof (item as Record<string, unknown>).q === "string" &&
+            ((item as Record<string, unknown>).q as string).trim() !== "" &&
+            typeof (item as Record<string, unknown>).a === "string" &&
+            ((item as Record<string, unknown>).a as string).trim() !== "";
+          if (!ok) {
+            errors.push(
+              `meta.faq[${i}] must be { q: "…", a: "…" } with both non-empty`,
+            );
+            return;
+          }
+          // Answers are plain text on purpose (see GuideMeta.faq): the schema
+          // string and the rendered string have to be byte-identical, and a
+          // markdown link would render as literal brackets in the <dd>.
+          const a = (item as Record<string, string>).a;
+          if (/\[[^\]]*\]\([^)]*\)|<[a-zA-Z]/.test(a)) {
+            errors.push(
+              `meta.faq[${i}].a contains markup — answers are plain text; put links in the prose`,
+            );
+          }
+        });
+        if (faq.length < 3) {
+          warnings.push(
+            `meta.faq has ${faq.length} (aim for 4–6 real search questions)`,
+          );
+        }
+        if (!placesFaq) {
+          errors.push(
+            "meta.faq is set but the body never places <Faq /> — the markup would describe questions the page doesn't show",
+          );
+        }
+      }
+    } else if (placesFaq) {
+      errors.push("body places <Faq /> but meta.faq is missing");
+    }
+
     const published = meta.published;
     const updated = meta.updated;
     const pubOk = typeof published === "string" && isValidDateTime(published);
@@ -233,6 +284,7 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
       "categories",
       "published",
       "updated",
+      "faq",
     ]);
     for (const k of Object.keys(meta)) {
       if (!allowedKeys.has(k)) warnings.push(`meta has unexpected key "${k}"`);

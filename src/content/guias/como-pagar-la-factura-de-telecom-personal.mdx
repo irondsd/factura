@@ -13,7 +13,33 @@ export const meta = {
   ],
   categories: ["servicios", "pagos-y-tramites"],
   published: "2026-08-07T11:35:00-03:00",
-  updated: "2026-08-07T11:35:00-03:00",
+  updated: "2026-08-07T12:15:00-03:00",
+  faq: [
+    {
+      q: "¿Cuánto tarda en acreditarse el pago de la factura de Personal?",
+      a: "Depende del canal, y la diferencia importa solo cuando estás sobre el vencimiento. La app y el sitio de Personal acreditan al instante; Mercado Pago y el home banking pueden tardar hasta 24 horas; las redes de cobranza como Rapipago o Pago Fácil, entre 24 y 48 horas hábiles. Si ya estás atrasado, usa un canal instantáneo.",
+    },
+    {
+      q: "¿Qué pasa si no pago la factura de Personal?",
+      a: "El atraso escala por etapas: primero se aplica un recargo por mora, alrededor de los diez días llega la suspensión parcial con corte de llamadas salientes y datos, cerca de los veinte la suspensión total, y hacia los sesenta días la baja de la línea con pérdida del número. Los plazos son orientativos, pero el orden es siempre ese y la pérdida del número no se revierte pagando después.",
+    },
+    {
+      q: "¿Cómo pago una factura de Personal ya vencida?",
+      a: "Por los mismos canales de siempre, con el importe actualizado por el recargo. El servicio se restablece solo, en general dentro de las 24 a 48 horas de acreditado el pago, así que conviene elegir un canal que acredite al instante.",
+    },
+    {
+      q: "¿Cómo adhiero al débito automático de Personal?",
+      a: "Desde la app o el sitio de Personal, eligiendo el servicio y la opción de débito automático, con tarjeta de crédito o CBU. Ten en cuenta que la adhesión no rige de inmediato: suele empezar en el ciclo siguiente, así que la factura en curso la pagas igual por otro canal.",
+    },
+    {
+      q: "¿Puedo pedir una prórroga si no llego a pagar a tiempo?",
+      a: "Sí, existe la promesa de pago, que se solicita por atención al cliente y posterga la suspensión unos días. No cancela el recargo por mora, pero evita quedarte sin servicio mientras tanto.",
+    },
+    {
+      q: "¿Qué número necesito para pagar la factura de Personal?",
+      a: "Según el canal, el referente de pago —la serie larga de dígitos del resumen— para home banking, cajeros y transferencias; el número de línea o el DNI del titular en varios canales digitales; o el código de barras de la factura en las redes de cobranza.",
+    },
+  ],
 };
 
 **Pagar la factura de Telecom Personal** se puede hacer por media docena de canales distintos, y la diferencia entre ellos no es el precio sino el tiempo: algunos acreditan al instante y otros tardan hasta 48 horas hábiles. Esa distinción deja de ser un detalle el día que pagas sobre el vencimiento, o después.
@@ -76,6 +102,8 @@ Si sabes que no vas a llegar, existe la **promesa de pago**: se solicita por ate
 El vencimiento es el dato que más caro sale olvidar, y también el más fácil de perder de vista cuando tienes seis servicios con seis fechas distintas.
 
 Factura lee tu resumen de Personal en PDF, extrae el total, el período y el vencimiento, y los deja junto a los del resto de tus servicios en un solo tablero. Además ves la evolución del abono mes a mes, que es donde aparecen los aumentos que el débito automático te esconde. Si tu internet es de otra empresa, mira también cómo leer la [factura de iPlan](/guias/como-leer-la-factura-de-iplan).
+
+<Faq />
 
 <RelatedGuides />
 

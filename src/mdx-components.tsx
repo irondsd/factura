@@ -134,11 +134,12 @@ const components: MDXComponents = {
   DemoCta,
   ProbarCta,
   SignupCta,
-  // <RelatedGuides /> needs to know which guide it's in, and `useMDXComponents`
-  // takes no arguments — so the article route overrides this entry with a bound
-  // one via the `components` prop. This no-op is the fallback for any other
-  // renderer: nothing to relate to, so nothing to show.
+  // <RelatedGuides /> and <Faq /> need to know which guide they're in, and
+  // `useMDXComponents` takes no arguments — so the article route overrides these
+  // entries with bound ones via the `components` prop. These no-ops are the
+  // fallback for any other renderer: no guide context, so nothing to show.
   RelatedGuides: () => null,
+  Faq: () => null,
 };
 
 export function useMDXComponents(): MDXComponents {

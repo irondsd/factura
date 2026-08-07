@@ -9,10 +9,38 @@ export const meta = {
     "como leer factura edesur",
     "consumo edesur kwh",
     "vencimiento edesur",
+    "cargo fijo edesur",
+    "lectura estimada edesur",
   ],
   categories: ["servicios", "leer-facturas"],
   published: "2026-07-12T09:00:00-03:00",
-  updated: "2026-07-12T09:00:00-03:00",
+  updated: "2026-08-07T10:00:00-03:00",
+  faq: [
+    {
+      q: "¿Por qué mi factura de Edesur vino tan cara?",
+      a: "Hay tres causas posibles y conviene descartarlas en orden: consumiste más kWh que el período anterior, cambió la tarifa o el subsidio que te corresponde, o la lectura fue estimada y el ajuste llegó todo junto en esta boleta. El único dato que distingue una de otra es el consumo en kWh: si los kWh son parecidos a los del período anterior y el total subió igual, el aumento no es tuyo, es de la tarifa.",
+    },
+    {
+      q: "¿Qué es el cargo fijo en la factura de Edesur?",
+      a: "Es el importe que pagas por tener el suministro conectado, aunque no consumas un solo kWh. Cubre la disponibilidad de la red, no la energía. Por eso una casa cerrada un mes entero igual recibe una factura con importe.",
+    },
+    {
+      q: "¿Qué significa lectura estimada en la factura de Edesur?",
+      a: "Significa que nadie pudo leer el medidor en ese período y el consumo se calculó a partir de tu historial. No es un error, pero sí un número provisorio: cuando se toma la lectura real, la diferencia se ajusta en la factura siguiente, que puede venir bastante más alta o más baja de lo habitual.",
+    },
+    {
+      q: "¿Cómo sé si tengo subsidio aplicado en la factura de Edesur?",
+      a: "El subsidio aparece como una línea de bonificación o descuento dentro del detalle de cargos, junto con el segmento que te fue asignado. Si el detalle no muestra ninguna bonificación, tu suministro está facturado sin subsidio.",
+    },
+    {
+      q: "¿Qué pasa si pago la factura de Edesur después del vencimiento?",
+      a: "La boleta suele traer un segundo vencimiento con un importe mayor, que ya incluye el recargo por mora. Pagar después de esa segunda fecha sigue sumando intereses y, si la deuda se acumula, habilita el corte del suministro.",
+    },
+    {
+      q: "¿Dónde encuentro el número de cliente de Edesur?",
+      a: "Está en el encabezado de la factura, identificado como Cliente y seguido de una serie de dígitos. Es el dato que te piden para pagar, hacer un reclamo o dar de alta el suministro en cualquier gestor de gastos.",
+    },
+  ],
 };
 
 La **factura de Edesur** llega cada uno o dos meses y, entre logos, cuadros de impuestos y códigos de barras, es fácil perder de vista lo único que de verdad importa: cuánto pagas, cuándo vence y cuánta electricidad consumiste. En esta guía te mostramos cómo leer tu factura de Edesur de principio a fin, con un ejemplo para ubicar cada dato.
@@ -50,6 +78,47 @@ Busca la línea **"Energía Consumida"** expresada en kWh. Este es el dato más 
 
 En el cupón de pago está el **total a pagar** junto al **primer vencimiento**. Suele haber un segundo vencimiento con recargo: pagar después de la primera fecha activa intereses. Si tu factura trae código de barras, ese código contiene el importe y la fecha de vencimiento codificados, lo que permite validar que el total impreso no tenga errores.
 
+## Qué es el cargo fijo y por qué lo pagas igual
+
+El detalle de cargos separa dos conceptos que conviene no confundir:
+
+- **Cargo fijo.** Un importe por tener el suministro conectado y disponible, independiente de lo que consumas. Se paga aunque el consumo del período sea cero.
+- **Cargo variable.** Lo que efectivamente consumiste, calculado sobre los kWh del período.
+
+Esa es la razón por la que un departamento vacío o una casa de fin de semana igual reciben factura: el cargo fijo, más los impuestos que se calculan sobre él, no dependen del uso. Sobre ambos cargos se aplican después el IVA y los tributos provinciales y municipales que correspondan a tu domicilio, lo que explica que el total final sea bastante mayor que la suma de energía y cargo fijo.
+
+## Lectura real y lectura estimada
+
+Cada factura indica si el consumo del período surge de una **lectura real** del medidor o de una **lectura estimada**. La estimación se usa cuando no se pudo acceder al medidor, y se calcula a partir de tu historial de consumo.
+
+Una estimación no es un error, pero sí es provisoria. Cuando se toma la lectura real siguiente, la diferencia entre lo estimado y lo realmente consumido se ajusta de golpe. Ese es el mecanismo detrás de la mayoría de las facturas que "vienen carísimas sin motivo": no consumiste más ese mes, se está regularizando lo que se subestimó antes.
+
+Si ves dos o tres períodos estimados seguidos, conviene anticiparse y revisar el medidor por tu cuenta para saber qué ajuste se viene.
+
+## Por qué tu factura de Edesur vino más cara
+
+Cuando el total sube, hay tres explicaciones posibles y se descartan en este orden:
+
+1. **Consumiste más.** Compara los kWh de este período con los del anterior y con los del mismo período del año pasado. Si los kWh subieron, el resto de la factura solo está siguiendo al consumo.
+2. **Cambió la tarifa o tu subsidio.** Si los kWh se mantuvieron y el total subió igual, el aumento no es tuyo. Revisa el detalle de cargos: cambió el precio de la energía, o cambió la bonificación que se te aplica.
+3. **Llegó un ajuste por lectura estimada.** Fíjate si el período anterior figuraba como estimado.
+
+El punto importante es que **el total en pesos no te dice nada por sí solo** en un contexto de tarifas que se actualizan varias veces al año. Los kWh sí. Es la única serie que puedes comparar entre años sin corregir por nada.
+
+## El subsidio en la factura: cómo verlo
+
+Si tu hogar tiene un subsidio energético asignado, la factura lo muestra como una **línea de bonificación o descuento** dentro del detalle de cargos, junto con el segmento que te corresponde. Si no aparece ninguna línea de ese tipo, tu suministro se está facturando sin subsidio.
+
+Vale la pena revisarlo cada tanto: la asignación se actualiza y una baja de segmento se refleja directamente en el total. Si no sabes en qué situación estás, empieza por [cómo saber si tengo subsidio de luz y gas](/guias/como-saber-si-tengo-subsidio-de-luz-y-gas), y si nunca te inscribiste, mira [cómo inscribirse al ReSEF paso a paso](/guias/como-inscribirse-al-resef-paso-a-paso). Para entender qué cubre el beneficio y a quién le corresponde, están [subsidio de luz: cómo funciona](/guias/subsidio-de-luz-como-funciona) y [quién puede pedir los subsidios de luz y gas](/guias/subsidios-de-luz-y-gas-quien-puede-pedirlos).
+
+## Si pagaste tarde o encontraste un error
+
+**Pago fuera de término.** La boleta trae un segundo vencimiento con un importe mayor, que ya incluye el recargo. Después de esa fecha los intereses siguen corriendo y la deuda acumulada habilita el corte del suministro.
+
+**Error de facturación.** Si el consumo facturado no se parece a tu historial, o los datos del titular no coinciden, el reclamo se inicia ante Edesur y queda registrado con un número de reclamo: guárdalo. Si no obtienes respuesta, el ENRE es el organismo que regula a las distribuidoras del área metropolitana y recibe reclamos de usuarios.
+
+En cualquiera de los dos casos vas a necesitar las boletas anteriores para sostener el planteo, que es exactamente el motivo por el que conviene tenerlas todas en un mismo lugar y no repartidas en el correo.
+
 <ProbarCta vendor="Edesur">
   Arrastra el PDF y mira en pantalla qué datos extrae Factura: el total, el
   vencimiento y los kWh del período. No hace falta crear una cuenta.
@@ -60,6 +129,8 @@ En el cupón de pago está el **total a pagar** junto al **primer vencimiento**.
 Leer una factura de Edesur suelta es fácil; el problema es ver la tendencia. ¿Estás consumiendo más kWh que el verano pasado? ¿El aumento del total es por tarifa o por consumo? Para responder eso necesitas todas tus boletas juntas.
 
 Factura lee tu factura de Edesur en PDF, extrae el número de cliente, el vencimiento, el total y el **consumo en kWh**, y arma automáticamente la serie mes a mes. Así distingues de un vistazo cuánto del aumento es tarifa y cuánto es consumo. Si además usas gas, tu boleta de [MetroGAS](/guias/como-leer-la-factura-de-metrogas) se suma al mismo tablero, y puedes contrastar la luz con el resto de tus servicios. ¿Solo tienes la boleta en papel? Aprende a [escanear una factura con el celular](/guias/como-escanear-una-factura-con-el-celular) para digitalizarla.
+
+<Faq />
 
 <RelatedGuides />
 

@@ -195,6 +195,34 @@ and a bill that fails is a normal, useful outcome — `/probar` asks who it's fr
 and takes an address to write back. Promising a clean read sets up the one
 disappointment this card can cause.
 
+**FAQ** — `<Faq />` renders a "Preguntas frecuentes" block from `meta.faq`. Like
+`<RelatedGuides />` it takes no props: the article route injects the list, so the
+body controls placement and `meta` controls content. Put it **after your closing
+section, just above `<RelatedGuides />`**.
+
+Declaring `meta.faq` also emits `FAQPage` JSON-LD, built from the same list — the
+markup can never claim a question the page doesn't visibly answer. The validator
+errors if `meta.faq` is set without `<Faq />` in the body, or the reverse.
+
+```mdx
+faq: [
+  { q: "¿Por qué mi factura vino tan cara?", a: "Compara los kWh, no los pesos…" },
+],
+```
+
+Rules that matter:
+
+- **Answers are plain text.** No markdown, no HTML — the rendered text and the
+  schema text have to be identical, and a markdown link would render as literal
+  brackets. Put links in the prose instead. The validator rejects markup here.
+- **4–6 questions**, phrased the way someone would actually search — "¿por qué mi
+  factura de Edenor vino el doble?", not "Consideraciones sobre la facturación".
+- **Answer in 2–4 sentences.** These target long-tail queries and "People also
+  ask"; a full section belongs in the body, not here.
+- Don't expect a rich result. Google restricted FAQ rich results to government
+  and health sites in 2023 — the payoff is the visible answers ranking for
+  questions the body doesn't cover, not a fancier snippet.
+
 **Related guides** — `<RelatedGuides />` renders a "Guías relacionadas" block
 with three other guides, picked automatically from the ones sharing this guide's
 `categories`. It takes no props — don't pass the slug or a list, the page fills

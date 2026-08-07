@@ -9,10 +9,34 @@ export const meta = {
     "como leer factura iplan",
     "internet iplan",
     "vencimiento iplan",
+    "aumento abono internet",
+    "factura internet empresa",
   ],
   categories: ["servicios", "leer-facturas"],
   published: "2026-07-12T09:00:00-03:00",
-  updated: "2026-07-12T09:00:00-03:00",
+  updated: "2026-08-07T10:00:00-03:00",
+  faq: [
+    {
+      q: "¿Por qué aumentó mi abono de iPlan si no cambié de plan?",
+      a: "En internet los aumentos rara vez llegan como un salto único y anunciado. Se acumulan por goteo: ajustes de precio del abono, promociones de bonificación que vencen y cargos por única vez que se suman un mes y desaparecen al siguiente. Comparar la factura contra la del mismo mes del año anterior, y no contra la del mes pasado, es lo que hace visible el aumento real.",
+    },
+    {
+      q: "¿Qué es un cargo por única vez en la factura de iPlan?",
+      a: "Es un concepto que se factura una sola vez y no forma parte del abono mensual: instalación, un cambio de equipamiento, una mudanza del enlace o un servicio puntual. Conviene identificarlos porque inflan el total de ese mes sin que tu costo recurrente haya cambiado.",
+    },
+    {
+      q: "¿Qué significa ancho de banda simétrico en la factura?",
+      a: "Que la velocidad de subida es igual a la de bajada. Es la diferencia principal entre un enlace dedicado, pensado para trabajo, y una conexión hogareña, donde la subida suele ser mucho menor. Si pagas por un enlace simétrico, es el concepto que justifica la diferencia de precio.",
+    },
+    {
+      q: "¿Qué pasa si pago la factura de iPlan fuera de término?",
+      a: "Además del recargo por mora, en telecomunicaciones el atraso sostenido puede derivar en el corte del servicio. En una conexión de trabajo eso suele costar mucho más que el recargo, así que el vencimiento conviene tratarlo como una fecha dura.",
+    },
+    {
+      q: "¿Dónde encuentro el número de cuenta de iPlan?",
+      a: "Está en el encabezado del resumen, junto a los datos del titular. Es el identificador que te van a pedir para cualquier gestión y el que usa cualquier app de control de gastos para agrupar tus boletas.",
+    },
+  ],
 };
 
 La **factura de iPlan** es la boleta mensual de tu conexión de internet dedicada. iPlan trabaja mucho con oficinas, comercios y pymes, así que su resumen suele traer servicios que no aparecen en un plan hogareño típico: IP fija, ancho de banda simétrico o enlaces adicionales. Saber leer la factura de iPlan te ayuda a confirmar que pagas exactamente por lo que contrataste.
@@ -56,6 +80,8 @@ En el resumen está el **total a pagar** y la **fecha de vencimiento**. Como en 
 En una conexión de trabajo, el gasto de internet se vuelve invisible: es un débito fijo que nadie audita hasta que llega un ajuste fuerte. Ver la evolución del abono a lo largo del año te da contexto para renegociar o cambiar de plan.
 
 Factura lee tu factura de iPlan en PDF, extrae el número de cuenta, el total y el vencimiento, y arma el histórico por vos. Así detectas cada ajuste de precio a tiempo y comparas iPlan con el resto de tus servicios en un solo tablero. Si también tienes servicios de Telecom, mira cómo leer la [factura de Personal](/guias/como-leer-la-factura-de-personal).
+
+<Faq />
 
 <RelatedGuides />
 

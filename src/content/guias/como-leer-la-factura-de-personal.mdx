@@ -13,7 +13,33 @@ export const meta = {
   ],
   categories: ["servicios", "leer-facturas"],
   published: "2026-07-12T09:00:00-03:00",
-  updated: "2026-08-07T11:30:00-03:00",
+  updated: "2026-08-07T12:15:00-03:00",
+  faq: [
+    {
+      q: "¿Qué es el código de gestión personal (CGP) y dónde lo encuentro?",
+      a: "Es el código que identifica tu cuenta ante Telecom y que te piden para registrarte en Mi Cuenta, para identificarte cuando llamas a atención al cliente y para algunos pagos por transferencia. Suele estar en el margen superior derecho de la factura, dentro del bloque de datos de la cuenta. Cuando alguien busca el número de gestión de la factura de Telecom, se refiere a este código.",
+    },
+    {
+      q: "¿Cuál es la diferencia entre el referente de pago y el número de cliente?",
+      a: "El número de cliente identifica tu cuenta ante Telecom; el referente de pago es la serie larga de dígitos que se usa para abonar en home banking, cajeros y transferencias. Sirven para cosas distintas y no son intercambiables: el canal de pago te va a pedir el referente, no el número de cliente.",
+    },
+    {
+      q: "¿Por qué subió mi factura de Personal si no cambié de plan?",
+      a: "Casi siempre porque se cayó una bonificación, no porque haya subido el precio del servicio. Los descuentos de tipo primeros seis meses vencen sin aviso y el total salta al mes siguiente. Revisa el bloque de cargos y descuentos antes que el detalle del abono: ahí es donde aparece el cambio.",
+    },
+    {
+      q: "¿Por qué el total del combo no es la suma de los servicios que aparecen?",
+      a: "Porque el detalle lista cada servicio a precio de lista y la bonificación por combo se aplica después, en el bloque de cargos y descuentos. La suma de los renglones del abono siempre va a dar más que el total real mientras el descuento esté vigente.",
+    },
+    {
+      q: "¿Qué diferencia hay entre la factura A y la factura B de Telecom?",
+      a: "La factura B se emite cuando el servicio está a nombre de una persona e incluye el IVA dentro de los importes que ves. La factura A se emite a empresas y monotributistas con CUIT inscripto, y discrimina el IVA en una línea aparte. El contenido es el mismo, pero en la factura A el subtotal del abono no incluye el IVA y el total sí.",
+    },
+    {
+      q: "¿La factura de la línea fija de Telecom es la misma que la de Personal?",
+      a: "Sí. Personal es la marca comercial de Telecom Argentina, la misma empresa detrás de Fibertel y Flow, así que el formato de la boleta y los campos son idénticos. Si solo tienes línea fija, es la misma factura con un único renglón en el detalle del abono.",
+    },
+  ],
 };
 
 La **factura de Telecom Personal** reúne en un mismo resumen tus servicios: internet y Flow, la línea móvil, el teléfono fijo o un combo de varios. Entre promociones, descuentos que vencen y cargos por única vez, el total cambia seguido, así que saber leer la factura de Personal te ayuda a detectar cuándo se cae una promo o aparece un cargo que no esperabas.
@@ -81,6 +107,8 @@ El contenido es el mismo —los mismos servicios, el mismo vencimiento— pero c
 Con internet y telefonía, el enemigo silencioso es el "aumento por goteo": promos que se caen, ajustes de precio, cargos por única vez. Mes a mes casi no se notan; en el año, sí.
 
 Factura lee tu factura de Personal en PDF, extrae el referente de pago, el total y el vencimiento, y arma el histórico de tu abono. Así ves el instante exacto en que el precio pega un salto y lo comparas con el resto de tus servicios en el mismo tablero. ¿Contrataste internet con otra empresa? Mira también cómo leer la [factura de iPlan](/guias/como-leer-la-factura-de-iplan). Y si solo tienes la boleta en papel, aprende a [escanearla con el celular](/guias/como-escanear-una-factura-con-el-celular).
+
+<Faq />
 
 <RelatedGuides />
 

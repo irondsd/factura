@@ -9,10 +9,38 @@ export const meta = {
     "como leer factura edenor",
     "consumo edenor kwh",
     "vencimiento edenor",
+    "cargo fijo edenor",
+    "reclamo edenor factura",
   ],
   categories: ["servicios", "leer-facturas"],
   published: "2026-07-12T09:00:00-03:00",
-  updated: "2026-07-12T09:00:00-03:00",
+  updated: "2026-08-07T10:00:00-03:00",
+  faq: [
+    {
+      q: "¿Por qué la factura de Edenor me vino el doble que el mes pasado?",
+      a: "Compara primero los kWh, no los pesos. Si los kWh son parecidos y el total se duplicó, el cambio vino de la tarifa o de tu subsidio. Si los kWh también se duplicaron, el consumo es real y casi siempre se explica por climatización. Y si el período anterior figuraba como estimado, lo que estás pagando ahora incluye el ajuste de aquella estimación.",
+    },
+    {
+      q: "¿Qué es el cargo fijo de Edenor y se puede evitar?",
+      a: "Es lo que pagas por tener el suministro conectado, consumas o no. No se puede evitar mientras el medidor esté dado de alta a tu nombre, y es la razón por la que una propiedad desocupada sigue recibiendo facturas con importe.",
+    },
+    {
+      q: "¿Cómo comparo dos facturas de Edenor si una es mensual y la otra bimestral?",
+      a: "No compares los totales. Divide los kWh de cada boleta por la cantidad de días del período y compara el consumo diario promedio. Es la única forma de poner en la misma escala una boleta de un mes y una de dos.",
+    },
+    {
+      q: "¿Dónde veo si tengo subsidio en la factura de Edenor?",
+      a: "Dentro del detalle de cargos, como una línea de bonificación o descuento con el segmento asignado a tu hogar. Si el detalle no muestra ninguna, el suministro se factura sin subsidio.",
+    },
+    {
+      q: "¿Cómo hago un reclamo por una factura mal facturada de Edenor?",
+      a: "El reclamo se inicia ante Edenor y siempre genera un número de reclamo: anótalo, es lo que acredita el trámite. Si no hay respuesta o no estás conforme, el ENRE es el organismo que regula a las distribuidoras del área metropolitana y recibe reclamos de usuarios. Ten a mano las boletas anteriores, porque el planteo se sostiene mostrando tu historial de consumo.",
+    },
+    {
+      q: "¿Qué pasa si pago la factura de Edenor fuera de término?",
+      a: "La boleta trae un segundo vencimiento con un importe mayor que ya incluye el recargo. Pasada esa fecha los intereses siguen corriendo y la deuda acumulada puede derivar en el corte del suministro.",
+    },
+  ],
 };
 
 La **factura de Edenor** concentra en una sola hoja tu número de cliente, el período consumido, un largo detalle de cargos e impuestos y el cupón de pago. Saber leer la factura de Edenor te permite verificar que te estén cobrando bien y, sobre todo, entender por qué el total sube o baja cada mes.
@@ -50,6 +78,48 @@ El dato más importante para tu bolsillo son los **kWh consumidos**. La tarifa s
 
 En el cupón encontrarás el **total a pagar** y el **primer vencimiento**. Casi siempre hay una segunda fecha con recargo por mora. Paga antes de la primera para no sumar intereses al mes siguiente.
 
+## Por qué el total no es solo la energía que usaste
+
+Si sumas el precio de los kWh que consumiste, el número te va a dar bastante menos que el total del cupón. La diferencia está en los otros tres componentes del detalle de cargos:
+
+- **Cargo fijo.** Se paga por tener el suministro conectado y disponible, sin relación con el consumo del período.
+- **Cargo variable.** La energía propiamente dicha, calculada sobre los kWh.
+- **Impuestos y contribuciones.** IVA más los tributos provinciales y municipales que correspondan al domicilio, aplicados sobre los cargos anteriores.
+
+Como los impuestos se calculan sobre la base, un aumento en el precio de la energía se amplifica en el total final. Y como el cargo fijo no depende del uso, una propiedad desocupada sigue generando factura con importe todos los períodos.
+
+## Lectura estimada: la causa más frecuente de una boleta desproporcionada
+
+Cada factura aclara si el consumo del período surge de una **lectura real** del medidor o de una **estimación** basada en tu historial. Cuando no se puede acceder al medidor, se estima.
+
+El problema no es la estimación en sí, sino el ajuste que viene después. Al tomarse la lectura real, la diferencia acumulada se liquida entera en una sola boleta. Esa es la factura que llega "sin explicación" al triple de lo habitual, y casi nunca corresponde a un consumo real de ese período.
+
+Si ves dos o más períodos estimados consecutivos, anota vos mismo el número del medidor. Te da una estimación propia del ajuste que se viene y, si el que llega no coincide, tienes con qué reclamar.
+
+## Cómo comparar dos facturas de Edenor sin equivocarte
+
+Comparar totales en pesos entre dos períodos no dice casi nada cuando las tarifas se actualizan varias veces al año. La comparación que sí sirve tiene tres reglas:
+
+1. **Compara kWh, no pesos.** Es la única unidad estable.
+2. **Normaliza por días.** Divide los kWh por la cantidad de días del período. Así una boleta mensual y una bimestral quedan en la misma escala.
+3. **Compara contra el mismo período del año anterior**, no contra el mes pasado. La electricidad es estacional: enero contra julio no te dice nada útil.
+
+Hecho eso, la pregunta "¿es tarifa o soy yo?" tiene respuesta objetiva: si tu consumo diario promedio se mantuvo y el total subió, el aumento no salió de tu casa.
+
+## Subsidios: dónde se ven en la boleta
+
+Cuando tu hogar tiene un subsidio energético asignado, la factura lo refleja como una **línea de bonificación o descuento** en el detalle de cargos, con el segmento correspondiente. La ausencia de esa línea significa que el suministro se factura sin subsidio.
+
+Conviene revisarlo cada tanto, porque un cambio de segmento se nota de inmediato en el total. Si no tienes claro en qué situación estás, empieza por [cómo saber si tengo subsidio de luz y gas](/guias/como-saber-si-tengo-subsidio-de-luz-y-gas). Si nunca te inscribiste, mira [cómo inscribirse al ReSEF paso a paso](/guias/como-inscribirse-al-resef-paso-a-paso), y para el detalle de quién califica, [quién puede pedir los subsidios de luz y gas](/guias/subsidios-de-luz-y-gas-quien-puede-pedirlos).
+
+## Reclamos y pagos fuera de término
+
+**Si pagas tarde,** el segundo vencimiento ya trae el recargo incorporado. Pasada esa fecha los intereses siguen corriendo, y una deuda sostenida habilita el corte del servicio.
+
+**Si crees que la factura está mal,** el reclamo se inicia ante Edenor y genera un número de reclamo que conviene guardar. Cuando no hay respuesta satisfactoria, el ENRE regula a las distribuidoras del área metropolitana y recibe reclamos de usuarios.
+
+En los dos casos el argumento se construye igual: mostrando tu historial. Un reclamo con seis boletas ordenadas al lado pesa muchísimo más que uno donde solo tienes la factura del mes que te pareció cara.
+
 <ProbarCta vendor="Edenor">
   Arrastra el PDF y mira en pantalla qué datos extrae Factura: el total, el
   vencimiento y los kWh del período. No hace falta crear una cuenta.
@@ -59,7 +129,9 @@ En el cupón encontrarás el **total a pagar** y el **primer vencimiento**. Casi
 
 Una factura de Edenor te dice cuánto pagas este mes; lo que no te dice es la tendencia. Para saber si tu consumo sube de verdad —o si solo subió la tarifa— necesitas todas tus boletas ordenadas en una misma serie.
 
-Factura lee tu factura de Edenor en PDF, extrae el número de cliente, el vencimiento, el total y el **consumo en kWh**, y arma el histórico por vos. De un vistazo ves cuánto del aumento es tarifa y cuánto es consumo, y puedes comparar la luz con tu [gas](/guias/como-leer-la-factura-de-metrogas) y tu [agua](/guias/como-leer-la-factura-de-aysa) en el mismo tablero.
+Factura lee tu factura de Edenor en PDF, extrae el número de cliente, el vencimiento, el total y el **consumo en kWh**, y arma el histórico por ti. De un vistazo ves cuánto del aumento es tarifa y cuánto es consumo, y puedes comparar la luz con tu [gas](/guias/como-leer-la-factura-de-metrogas) y tu [agua](/guias/como-leer-la-factura-de-aysa) en el mismo tablero.
+
+<Faq />
 
 <RelatedGuides />
 

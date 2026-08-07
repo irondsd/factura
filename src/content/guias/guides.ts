@@ -30,6 +30,17 @@ export type GuideMeta = {
   published: string;
   /** Full ISO 8601 timestamp with offset, when the guide was last updated. */
   updated: string;
+  /** Optional Q&A block, rendered where the body places `<Faq />` and emitted
+   * as FAQPage JSON-LD. One list feeds both, so the markup can never claim a
+   * question the page doesn't visibly answer — which is the condition Google
+   * puts on the markup being legitimate at all.
+   *
+   * Note this buys no FAQ rich result: since 2023 Google shows those only for
+   * government and health sites. The value is the visible answers competing for
+   * long-tail queries and "People also ask"; the markup is for Bing and for the
+   * LLM crawlers that read it. Answers are plain text — put links in the prose,
+   * not here, so the rendered text and the schema text stay identical. */
+  faq?: { q: string; a: string }[];
 };
 
 export type Guide = {
@@ -81,12 +92,24 @@ function countWords(body: string): number {
   return prose.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
 }
 
-/** Estimated reading time for a guide, in whole minutes (never below 1). */
-export function readingMinutes(slug: string): number {
+/** Estimated reading time for a guide, in whole minutes (never below 1).
+ *
+ * `faq` is passed in because the Q&A lives in the `meta` block, which
+ * `guideBody` strips — but it renders on the page like any other prose, and a
+ * six-question FAQ is a couple of minutes of reading. Callers already hold the
+ * meta, so threading it through beats re-parsing the block here. */
+export function readingMinutes(
+  slug: string,
+  faq?: GuideMeta["faq"],
+): number {
   const source = fs.readFileSync(path.join(DIR, `${slug}.mdx`), "utf8");
+  const faqWords = (faq ?? []).reduce(
+    (n, { q, a }) => n + countWords(`${q} ${a}`),
+    0,
+  );
   return Math.max(
     1,
-    Math.round(countWords(guideBody(source)) / WORDS_PER_MINUTE),
+    Math.round((countWords(guideBody(source)) + faqWords) / WORDS_PER_MINUTE),
   );
 }
 
@@ -112,11 +135,10 @@ export async function loadGuide(slug: string): Promise<{
 
 async function readAllGuides(): Promise<Guide[]> {
   const guides = await Promise.all(
-    guideSlugs().map(async (slug) => ({
-      slug,
-      meta: (await loadGuide(slug)).meta,
-      readingMinutes: readingMinutes(slug),
-    })),
+    guideSlugs().map(async (slug) => {
+      const { meta } = await loadGuide(slug);
+      return { slug, meta, readingMinutes: readingMinutes(slug, meta.faq) };
+    }),
   );
   // Newest first. Timestamps now carry offsets, so compare instants rather than
   // strings — "…T09:00:00-03:00" and "…T09:00:00Z" don't sort as text.
