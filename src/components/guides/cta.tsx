@@ -45,3 +45,57 @@ export function SignupCta({ children }: { children?: React.ReactNode }) {
     </CtaButton>
   );
 }
+
+/** The CTA that asks for nothing, for the middle of a bill walkthrough.
+ *
+ * The closing <SignupCta/> asks a stranger to open an account on the strength of
+ * prose. This one lands where the reader already has the PDF the guide is about
+ * open in front of them, and asks only that they drop it — the product argues
+ * for itself in a way a paragraph can't.
+ *
+ * It deliberately promises a look, not a result: "mira qué datos extrae", never
+ * "la leemos". Plenty of vendors have no parser yet, and a bill we can't read is
+ * still worth the drop — /probar collects the vendor hint and an address, and
+ * those samples are how the next parser gets written.
+ *
+ * `vendor` names the issuer in the headline; omit it on guides that aren't about
+ * one company's bill. `noun` is what that document is actually called — AGIP
+ * sends a *boleta* and an administración sends a *liquidación*, and calling
+ * either one a "factura" is the kind of small wrongness a reader notices.
+ * `children` replaces the body copy when a guide wants to name the fields that
+ * matter to it (kWh, m³, unidades funcionales). */
+export function ProbarCta({
+  vendor,
+  noun = "factura",
+  children,
+}: {
+  vendor?: string;
+  noun?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="receipt-edge my-10 flex flex-col gap-4 border border-accent/55 bg-card px-5 pt-6 pb-11 sm:flex-row sm:items-center sm:gap-6">
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent">
+          Sin cuenta
+        </span>
+        <h3 className="font-display text-xl leading-tight sm:text-2xl">
+          {vendor
+            ? `¿Tienes tu ${noun} de ${vendor} a mano?`
+            : `¿Tienes tu ${noun} a mano?`}
+        </h3>
+        {/* A div, not a <p>: MDX wraps block children in their own paragraph,
+            and a <p> inside a <p> is invalid HTML that React re-nests at
+            hydration. The child-paragraph reset keeps either shape looking the
+            same — same trick as the blockquote in mdx-components.tsx. */}
+        <div className="font-mono text-[14px] leading-[1.7] text-muted [&_p]:my-0">
+          {children ??
+            "Arrastra el PDF y mira en pantalla qué datos extrae Factura: importe, vencimiento y período. No hace falta crear una cuenta."}
+        </div>
+      </div>
+      <Button href="/probar" variant="solid" size="lg" className="sm:flex-none">
+        Probar con mi factura
+      </Button>
+    </div>
+  );
+}

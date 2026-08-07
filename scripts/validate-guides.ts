@@ -25,6 +25,7 @@ const ALLOWED_COMPONENTS = new Set([
   "CtaButton",
   "CtaRow",
   "DemoCta",
+  "ProbarCta",
   "SignupCta",
   "RelatedGuides",
 ]);

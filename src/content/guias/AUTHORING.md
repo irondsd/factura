@@ -174,6 +174,26 @@ Notes:
 - `<CtaButton href="/docs" variant="outline">Leer los docs</CtaButton>` →
   generic button. `variant` is `"solid"` (default) or `"outline"`.
 - `<CtaRow>…</CtaRow>` → wraps buttons so they sit in a row.
+- `<ProbarCta vendor="Edesur" noun="boleta">copy…</ProbarCta>` → a full-width
+  card pointing at `/probar`. All three optional: `vendor` names the issuer in
+  the headline, `noun` is what the document is called (defaults to `"factura"` —
+  use `"boleta"` for AGIP, `"liquidación"` for expensas), and the children
+  replace the default body copy.
+
+**`<ProbarCta />` — where and how.** Put it **mid-article, right before the
+closing "automáticamente" section**, not in the footer CTA row. The whole point
+is that it reaches the reader while the bill the guide describes is still open in
+front of them; by the closing row they've already decided. One per guide.
+
+It belongs in any guide walking through a real document — the `leer-facturas`
+category, essentially. Skip it on conceptual pieces (what expensas are, how a
+subsidy works) where the reader has no PDF in hand.
+
+Keep the copy honest about the outcome: **"mira qué datos extrae"**, never "la
+leemos" or "la procesamos correctamente". Most vendors don't have a parser yet,
+and a bill that fails is a normal, useful outcome — `/probar` asks who it's from
+and takes an address to write back. Promising a clean read sets up the one
+disappointment this card can cause.
 
 **Related guides** — `<RelatedGuides />` renders a "Guías relacionadas" block
 with three other guides, picked automatically from the ones sharing this guide's

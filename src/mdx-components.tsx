@@ -1,6 +1,12 @@
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
-import { CtaButton, CtaRow, DemoCta, SignupCta } from "@/components/guides/cta";
+import {
+  CtaButton,
+  CtaRow,
+  DemoCta,
+  ProbarCta,
+  SignupCta,
+} from "@/components/guides/cta";
 import { cn } from "@/lib/cn";
 
 // Global MDX component map — REQUIRED by `@next/mdx` in the App Router. Maps the
@@ -126,6 +132,7 @@ const components: MDXComponents = {
   CtaButton,
   CtaRow,
   DemoCta,
+  ProbarCta,
   SignupCta,
   // <RelatedGuides /> needs to know which guide it's in, and `useMDXComponents`
   // takes no arguments — so the article route overrides this entry with a bound
