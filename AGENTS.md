@@ -68,7 +68,7 @@ curl -s -X POST http://localhost:4000/api/bills/ingest \
 
 That returns a parsed Edesur bill and it shows up in the ledger. Repeat with
 other PDFs to build up history. Reading the session token straight out of the
-local DB is fine *because it is the local DB* — never do this against
+local DB is fine _because it is the local DB_ — never do this against
 `.env.prod`, and never point any of this at the production database.
 
 ## What still needs the user

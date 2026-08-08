@@ -11,6 +11,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CATEGORY_IDS, isCategoryId } from "../src/content/guias/categories";
+import { CHART_IDS, isChartId } from "../src/content/guias/data/inflacion";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const GUIDES_DIR = path.join(here, "../src/content/guias");
@@ -26,6 +27,7 @@ const ALLOWED_COMPONENTS = new Set([
   "CtaRow",
   "DemoCta",
   "Faq",
+  "InflacionChart",
   "ProbarCta",
   "SignupCta",
   "RelatedGuides",
@@ -319,6 +321,23 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
     if (!ALLOWED_COMPONENTS.has(m[1])) {
       errors.push(
         `unknown component <${m[1]}/> (not registered in mdx-components.tsx)`,
+      );
+    }
+  }
+
+  // ── <InflacionChart /> names a chart that exists ──────────────────────────
+  // The component indexes its registry by this string, so a typo renders
+  // `undefined` and crashes the build with a stack trace pointing at the
+  // component rather than at the guide that miswrote it.
+  for (const m of body.matchAll(/<InflacionChart\b([^>]*)>/g)) {
+    const prop = /chart\s*=\s*"([^"]*)"/.exec(m[1]);
+    if (!prop) {
+      errors.push(
+        `<InflacionChart /> needs a chart="…" prop — one of: ${CHART_IDS.join(", ")}`,
+      );
+    } else if (!isChartId(prop[1])) {
+      errors.push(
+        `<InflacionChart chart="${prop[1]}" /> is not a known chart — valid ids: ${CHART_IDS.join(", ")}`,
       );
     }
   }

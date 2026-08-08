@@ -7,6 +7,7 @@ import {
   ProbarCta,
   SignupCta,
 } from "@/components/guides/cta";
+import { InflacionChart } from "@/components/guides/InflacionChart";
 import { cn } from "@/lib/cn";
 
 // Global MDX component map — REQUIRED by `@next/mdx` in the App Router. Maps the
@@ -132,6 +133,9 @@ const components: MDXComponents = {
   CtaButton,
   CtaRow,
   DemoCta,
+  // Reads its data from `content/guias/data/inflacion`; a guide passes only the
+  // `chart` id, so no chart data ever lives in an .mdx file.
+  InflacionChart,
   ProbarCta,
   SignupCta,
   // <RelatedGuides /> and <Faq /> need to know which guide they're in, and

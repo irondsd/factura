@@ -1,0 +1,100 @@
+export const meta = {
+  title: "Cuánto aumentó el gas y por qué explota en invierno",
+  description:
+    "Cuánto aumentó el gas en Argentina desde 2023, por qué la factura de invierno se multiplica y cómo distinguir el aumento de tarifa del salto por consumo.",
+  summary:
+    "La suba del gas frente a la inflación, el efecto de la estacionalidad invernal y cómo saber cuál de los dos te golpeó.",
+  keywords: [
+    "cuánto aumentó el gas",
+    "factura de gas cara invierno",
+    "aumento tarifa gas 2026",
+    "inflación gas argentina",
+    "metrogas factura alta",
+  ],
+  categories: ["inflacion", "servicios"],
+  published: "2026-08-08T14:00:00-03:00",
+  updated: "2026-08-08T14:00:00-03:00",
+  faq: [
+    {
+      q: "¿Cuánto aumentó el gas desde 2023?",
+      a: "El INDEC releva el gas junto con la electricidad y otros combustibles: esa apertura del IPC se multiplicó por más de nueve en el Gran Buenos Aires entre noviembre de 2023 y junio de 2026, frente a poco más de cuatro del nivel general de precios.",
+    },
+    {
+      q: "¿Por qué mi factura de gas de invierno es tan alta?",
+      a: "Porque el consumo de calefacción multiplica varias veces el consumo de verano, y porque muchas boletas son bimestrales, así que el período incluye dos meses fríos completos. Sobre ese consumo mucho mayor se aplica la misma tarifa, y el resultado es una factura que puede ser cinco o diez veces la de enero.",
+    },
+    {
+      q: "¿Cómo sé si me aumentó la tarifa o consumí más?",
+      a: "Mirando los metros cúbicos, no los pesos. Divide el importe por los m³ del período para obtener el precio por metro cúbico y compara ese número contra el mismo período del año anterior. Si el precio unitario está estable, lo que cambió fue tu consumo.",
+    },
+    {
+      q: "¿Existe algún descuento en la factura de gas en invierno?",
+      a: "Sí. Además del subsidio por nivel de ingresos, existe una bonificación específica para el consumo invernal en las zonas más frías del país, y un régimen aparte para quienes usan garrafa en lugar de gas de red.",
+    },
+    {
+      q: "¿Conviene pagar el gas en cuotas?",
+      a: "Muchas distribuidoras ofrecen planes que reparten la factura de invierno en varios meses. No reducen lo que pagas, pero evitan el impacto de un solo vencimiento enorme. Conviene revisar si el plan tiene interés antes de aceptarlo.",
+    },
+  ],
+};
+
+La factura de gas tiene una particularidad que ninguna otra comparte: puede ser diez veces más cara en julio que en enero sin que haya cambiado ninguna tarifa. Por eso, preguntarse **cuánto aumentó el gas** requiere separar dos cosas que llegan juntas y se confunden todo el tiempo: la suba de precio y el salto de consumo.
+
+## Cuánto subió, de verdad
+
+El INDEC no publica un índice solo para el gas: lo releva dentro de la apertura _Electricidad, gas y otros combustibles_. Desde noviembre de 2023, esa serie del Gran Buenos Aires se movió así:
+
+<InflacionChart chart="luz-y-gas" />
+
+Multiplicación por más de nueve, contra poco más de cuatro del nivel general de precios. La causa es la misma que en la electricidad: la energía se vendía muy por debajo de su costo y desde diciembre de 2023 esa diferencia se fue trasladando a las boletas. Es una recomposición de nivel, no un aumento sobre un precio normal.
+
+Puesto en contexto con el resto de los gastos del hogar, el gas y la luz encabezan la tabla con comodidad:
+
+<InflacionChart chart="cuanto-subio-cada-servicio" />
+
+## Por qué el invierno duele el doble
+
+Sobre esa tarifa mucho más alta se monta la estacionalidad, y ahí aparece el efecto que hace que julio sea insoportable:
+
+- **El consumo de calefacción multiplica el consumo base.** En verano una vivienda usa gas para cocinar y calentar agua. En invierno suma la calefacción, que en muchos hogares es varias veces todo lo anterior junto.
+- **Muchas boletas son bimestrales.** Un período de julio–agosto acumula dos meses fríos completos en un solo vencimiento.
+- **Los cargos fijos no compensan.** La parte fija del cuadro tarifario no baja en verano lo suficiente como para suavizar la diferencia.
+
+El resultado es que la factura de invierno puede ser cinco o diez veces la de enero **sin que haya habido ningún aumento**. Y como esa boleta llega justo cuando la tarifa efectivamente subió unos puntos, es fácil atribuirle al aumento un salto que en realidad fue de consumo.
+
+## Cómo separar las dos causas
+
+Hay una sola forma confiable y es sencilla:
+
+1. Toma el importe de la factura y los **m³** consumidos en el período.
+2. Divide importe por m³. Eso es tu **precio por metro cúbico**.
+3. Compara ese precio unitario contra el **mismo período del año anterior**, nunca contra el bimestre anterior.
+
+Si el precio unitario subió poco y la factura mucho, el aumento vino de tu consumo. Si el precio unitario se disparó, fue tarifa. Es la misma lógica que aplicamos a toda la serie en [cómo medir tu inflación personal](/guias/como-medir-tu-inflacion-personal), donde el precio unitario es la única serie que mide inflación de verdad.
+
+Dónde encontrar cada uno de esos números en la boleta está en [cómo leer la factura de Metrogas](/guias/como-leer-la-factura-de-metrogas).
+
+## Lo que se puede gestionar
+
+- **El subsidio por ingresos.** Es la palanca más grande. Si el hogar califica y no está registrado, la diferencia en una factura de invierno es considerable: ver [cómo funciona el subsidio de gas](/guias/subsidio-de-gas-como-funciona).
+- **La bonificación por zona fría**, para las regiones donde el consumo invernal es estructuralmente mayor.
+- **El régimen de garrafa**, si no tienes gas de red: [subsidio de garrafa, cómo cobrarlo](/guias/subsidio-de-garrafa-como-cobrarlo).
+- **Los planes de pago en cuotas** que ofrecen las distribuidoras para repartir la boleta de invierno. No reducen el total, pero evitan el golpe de un solo vencimiento; conviene confirmar si tienen interés.
+
+<ProbarCta vendor="Metrogas" noun="factura">
+  Arrastra el PDF y mira en pantalla qué datos extrae Factura: importe,
+  vencimiento, período y los m³ consumidos. No hace falta crear una cuenta.
+</ProbarCta>
+
+## Léelo automáticamente
+
+La comparación que importa —esta factura de invierno contra la del invierno pasado, en precio por m³— exige tener guardada la del año pasado con su consumo. Factura la guarda: lee cada boleta, registra los m³ y el importe, y arma la serie de precio unitario junto con el resto de tus servicios, en pesos y en dólares. Cuando llegue la boleta de julio vas a poder responder en un vistazo si el problema fue la tarifa o el termostato.
+
+<Faq />
+
+<RelatedGuides />
+
+<CtaRow>
+  <DemoCta />
+  <SignupCta />
+</CtaRow>

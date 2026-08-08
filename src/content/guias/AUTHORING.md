@@ -83,6 +83,7 @@ breadcrumb. The others don't move the guide; they widen where it surfaces
 | `servicios`        | Servicios del hogar       | A specific utility: luz, gas, agua, internet, telefonía.             |
 | `impuestos`        | Impuestos y tasas         | Taxes and levies on the home: AGIP's Inmobiliario/ABL, Patentes.     |
 | `subsidios`        | Subsidios y tarifa social | Energy subsidies (SEF/ReSEF) and AySA's tarifa social.               |
+| `inflacion`        | Inflación                 | Inflation itself, and how it moves the price of a household service. |
 | `leer-facturas`    | Cómo leer una factura     | Walkthroughs of an actual bill — what each section/field means.      |
 | `ahorro-y-control` | Ahorro y control          | Reference values, detecting wrong charges, tracking spend over time. |
 | `pagos-y-tramites` | Pagos y trámites          | Paying, due dates, and paperwork like scanning or filing bills.      |
@@ -194,6 +195,31 @@ leemos" or "la procesamos correctamente". Most vendors don't have a parser yet,
 and a bill that fails is a normal, useful outcome — `/probar` asks who it's from
 and takes an address to write back. Promising a clean read sets up the one
 disappointment this card can cause.
+
+**Charts** — `<InflacionChart chart="luz-y-gas" />` drops a chart into the body.
+It takes one prop, the id of a chart in the registry; the data and the drawing
+both live in the code, so a guide never carries numbers of its own:
+
+```mdx
+<InflacionChart chart="servicios-vs-general" />
+```
+
+| `chart`                      | Shows                                                     |
+| ---------------------------- | --------------------------------------------------------- |
+| `servicios-vs-general`       | Luz y gas + vivienda + IPC general, todos desde nov-2023. |
+| `cuanto-subio-cada-servicio` | Barras: por cuánto se multiplicó cada gasto.              |
+| `pesos-vs-dolares`           | La energía del hogar en pesos y en dólares.               |
+| `luz-y-gas`                  | Energía contra el IPC general.                            |
+| `expensas`                   | Expensas y alquiler contra el IPC general.                |
+| `agua-y-vivienda`            | La división vivienda (donde entra el agua) contra el IPC. |
+| `internet-y-celular`         | Telefonía e internet contra el IPC general.               |
+
+The series come from [`data/inflacion.ts`](./data/inflacion.ts) — INDEC's IPC for
+GBA rebased to November 2023 = 100, plus the dólar blue. That file's header
+explains how to extend them when INDEC publishes a new month; **if you quote a
+figure from a chart in your prose, re-check it after a refresh.** Adding a new
+chart means adding its id to `CHART_IDS` there and its spec in
+`components/guides/InflacionChart.tsx`. The validator rejects an unknown id.
 
 **FAQ** — `<Faq />` renders a "Preguntas frecuentes" block from `meta.faq`. Like
 `<RelatedGuides />` it takes no props: the article route injects the list, so the

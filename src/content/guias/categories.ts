@@ -56,6 +56,13 @@ export const CATEGORIES = [
       "Guías sobre los subsidios energéticos en Argentina: el régimen SEF de luz, gas y garrafa, el registro ReSEF y la tarifa social de agua de AySA.",
   },
   {
+    id: "inflacion",
+    label: "Inflación",
+    title: "Inflación en Argentina: qué le pasa a lo que pagas cada mes",
+    description:
+      "Guías sobre la inflación argentina y los servicios del hogar: cuánto subieron la luz, el gas, el agua y las expensas, y cómo medir tu propia inflación.",
+  },
+  {
     id: "leer-facturas",
     label: "Cómo leer una factura",
     title: "Cómo leer una factura: guías paso a paso",

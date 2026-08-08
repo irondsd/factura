@@ -1,0 +1,107 @@
+export const meta = {
+  title: "Qué es la inflación y cómo afecta lo que pagas",
+  description:
+    "Qué es la inflación, cómo la mide el INDEC con el IPC y por qué el número que sale en las noticias casi nunca coincide con lo que subieron tus facturas.",
+  summary:
+    "La inflación explicada sin economía difícil: qué mide el IPC, qué no mide, y por qué tu inflación real es otra.",
+  keywords: [
+    "qué es la inflación",
+    "cómo se mide la inflación",
+    "ipc indec",
+    "inflación argentina explicada",
+    "inflación personal",
+  ],
+  categories: ["inflacion"],
+  published: "2026-08-08T09:00:00-03:00",
+  updated: "2026-08-08T09:00:00-03:00",
+  faq: [
+    {
+      q: "¿Qué es la inflación en palabras simples?",
+      a: "Es la pérdida de poder de compra del dinero. Si con $100.000 el año pasado llenabas el changuito y hoy te alcanza para la mitad, hubo inflación. Se mide como el aumento promedio de los precios, no de un precio en particular.",
+    },
+    {
+      q: "¿Quién mide la inflación en Argentina?",
+      a: "El INDEC, a través del Índice de Precios al Consumidor (IPC). Publica el dato del mes anterior alrededor del día 13 de cada mes, con aperturas por región y por rubro. También existen índices privados y provinciales, que suelen dar valores parecidos.",
+    },
+    {
+      q: "¿Por qué mis gastos suben más que la inflación oficial?",
+      a: "Porque el IPC promedia el consumo de un hogar típico y tu hogar no es el promedio. Si vives en departamento en la Ciudad de Buenos Aires y pagas expensas, luz, gas y agua, estás muy expuesto a los rubros que más subieron desde 2023. Un hogar sin auto, o uno que cocina en casa, arma una canasta distinta.",
+    },
+    {
+      q: "¿Qué diferencia hay entre un aumento nominal y uno real?",
+      a: "El aumento nominal es el número que cambia en la factura. El aumento real es cuánto subió ese precio comparado con todo lo demás. Si tu boleta sube 30% y los precios en general suben 33%, en términos reales el servicio se abarató, aunque pagues más pesos.",
+    },
+    {
+      q: "¿Sirve mirar los precios en dólares?",
+      a: "Sirve como segunda vara, no como verdad absoluta. Convertir a dólares saca del medio la parte del aumento que es solo el peso perdiendo valor, y deja a la vista el cambio de precio relativo. Es útil para comparar años, no tanto para comparar meses.",
+    },
+  ],
+};
+
+Todos convivimos con la inflación, pero pocas veces alguien se detiene a explicar **qué es la inflación** y, sobre todo, qué relación tiene ese porcentaje que sale en las noticias con la factura de luz que te llegó esta mañana. La respuesta corta es: menos de la que imaginas.
+
+Esta guía abre nuestra serie sobre inflación y servicios del hogar. Empieza por lo básico —qué se mide, quién lo mide y con qué método— y termina en la parte que más te sirve: por qué el dato oficial y tu bolsillo casi nunca cuentan la misma historia.
+
+## Qué es la inflación, en una línea
+
+La inflación es la **pérdida de poder de compra del dinero**, medida como el aumento promedio y sostenido de los precios.
+
+Las dos palabras que importan son _promedio_ y _sostenido_. Que el tomate se dispare una semana por una helada no es inflación: es un precio puntual moviéndose. Que casi todos los precios suban, mes tras mes, sí lo es. Y como es un promedio, siempre hay cosas que suben mucho más y cosas que suben mucho menos que el número que se publica.
+
+Visto al revés: la inflación no es que las cosas valgan más, es que tu dinero vale menos. Es el mismo fenómeno mirado desde el otro lado del mostrador, y esa segunda forma de decirlo explica mejor por qué duele.
+
+## Cómo se mide: el IPC del INDEC
+
+En Argentina la inflación oficial la publica el **INDEC** mediante el **Índice de Precios al Consumidor (IPC)**. El mecanismo es más simple de lo que suena:
+
+1. Se define una **canasta** de bienes y servicios que representa lo que consume un hogar típico: alimentos, alquiler, transporte, luz, gas, internet, salud, educación y el resto.
+2. Cada rubro recibe un **ponderador**, un peso según cuánto pesa en el gasto de ese hogar promedio. Los alimentos pesan mucho más que los libros, porque se gasta más en comer que en leer.
+3. Todos los meses se relevan miles de precios en comercios reales de todo el país.
+4. El resultado se publica alrededor del día 13 del mes siguiente, con dos números que conviene no confundir: la **variación mensual** (cuánto subieron los precios en ese mes) y la **variación interanual** (cuánto subieron respecto del mismo mes del año anterior).
+
+El IPC se organiza en doce **divisiones**. La que manda en esta serie de guías es la cuarta: _Vivienda, agua, electricidad, gas y otros combustibles_, es decir, casi todo lo que te llega como factura.
+
+## Por qué "la inflación" nunca es tu inflación
+
+Aquí está el punto que casi nadie explica. El IPC describe el hogar promedio del país. **Tu hogar no es el promedio de nada.**
+
+Si vives en un departamento en CABA, pagas expensas, no tienes auto y viajas en subte, tu canasta se parece muy poco a la de una casa en el interior con auto propio y garrafa. Los dos hogares leen el mismo titular —"la inflación fue de 1,9%"— y viven meses completamente distintos.
+
+La brecha no es teórica. Estos son los rubros del Gran Buenos Aires medidos desde noviembre de 2023, el último mes antes de la corrección de tarifas:
+
+<InflacionChart chart="cuanto-subio-cada-servicio" />
+
+Mientras el nivel general se multiplicó por poco más de cuatro, la energía del hogar se multiplicó por más de nueve. Un hogar cuyo gasto está concentrado en luz, gas y transporte vivió una inflación muy superior a la que se publicó cada mes, y no porque el INDEC se equivoque: porque el promedio no lo representa.
+
+## Nominal y real: la distinción que cambia todo
+
+Cuando miras un aumento hay dos preguntas distintas escondidas en la misma cifra:
+
+- **Aumento nominal:** cuánto creció el número de la factura. Es lo que te cobran.
+- **Aumento real:** cuánto creció ese precio _comparado con todo lo demás_. Es lo que te cuesta.
+
+Un servicio que sube 30% en un año donde todo sube 33% se abarató en términos reales, aunque tu resumen bancario diga lo contrario. Y un servicio que sube 50% en el mismo año no subió 50%: subió 50% nominal y alrededor de 13% real. Esa segunda cifra es la que explica por qué algunos meses el sueldo alcanza y otros no.
+
+Hay una tercera vara, muy argentina y muy útil: **mirar el precio en dólares**. Convertir la factura al tipo de cambio del día quita del medio la parte del aumento que es solo el peso perdiendo valor. Lo que queda es el cambio de precio genuino. Lo desarrollamos en [la inflación en Argentina](/guias/la-inflacion-en-argentina-por-que-es-distinta), donde se ve cuánta parte de la suba de tarifas fue peso y cuánta fue tarifa.
+
+## Qué hacer con todo esto
+
+Saber qué es la inflación no la frena, pero cambia dos cosas concretas:
+
+- **Deja de comparar pesos con pesos a un año de distancia.** No significan lo mismo. Compara consumos (kWh, m³) o compara contra un índice.
+- **Deja de usar el dato del INDEC como si fuera tu dato.** Es un promedio nacional. Lo que te sirve es tu propia canasta: tus facturas, con tus montos y tus pesos relativos.
+
+Esa segunda idea tiene nombre —**inflación personal**— y se puede calcular. Cómo hacerlo, mes a mes y sin planillas, está en [cómo medir tu propia inflación](/guias/como-medir-tu-inflacion-personal).
+
+## Léelo automáticamente
+
+Para medir tu inflación necesitas algo aburrido: el historial completo de tus facturas, ordenado y con los montos bien leídos. Factura hace exactamente eso. Subes las boletas, extrae el importe, el período y el consumo, y arma la serie de cada servicio en pesos y en dólares, para que puedas ver cuánto subió lo tuyo en lugar de cuánto subió el promedio del país.
+
+<Faq />
+
+<RelatedGuides />
+
+<CtaRow>
+  <DemoCta />
+  <SignupCta />
+</CtaRow>
