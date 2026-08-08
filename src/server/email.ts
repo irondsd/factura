@@ -130,7 +130,12 @@ export async function sendWelcomeEmail(opts: {
  * RESEND_API_KEY) we log the code to the server console so sign-in still works
  * without a mail provider. */
 export async function sendOtpEmail(opts: { to: string; code: string }) {
-  if (!process.env.RESEND_API_KEY) {
+  // Printing a live sign-in code is a development affordance and nothing else —
+  // it's what lets an agent sign itself in (see AGENTS.md). Gate it on the
+  // build, not just the missing key: a production deploy that lost its key must
+  // fall through and throw below rather than quietly writing credentials into a
+  // log aggregator.
+  if (!process.env.RESEND_API_KEY && process.env.NODE_ENV !== "production") {
     console.warn(
       `[email] RESEND_API_KEY unset — OTP for ${opts.to}: ${opts.code}`,
     );
