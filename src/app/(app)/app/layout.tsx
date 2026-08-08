@@ -21,6 +21,7 @@ import { BillIngestProvider } from "@/components/BillIngestProvider";
 import { DropOverlay } from "@/components/DropOverlay";
 import { UploadFab } from "@/components/UploadFab";
 import { useI18n } from "@/i18n/I18nProvider";
+import { loginHref } from "@/lib/nextPath";
 import { trpc } from "@/lib/trpc";
 
 /** Query-string key holding the selected property's nickname. Absent = "All". */
@@ -111,9 +112,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { t } = useI18n();
 
-  // Signed out → leave the app for the public login flow.
+  // Signed out → leave the app for the public login flow, carrying the page
+  // that was asked for so signing in returns to it. Without this, a shared
+  // /app/bills?property=depto link — or a share-target hand-off — quietly
+  // becomes "/app" the moment it passes through sign-in. Read from `location`
+  // rather than useSearchParams: this runs on the client only, and the hook
+  // would drag a Suspense boundary up around the whole app shell.
   useEffect(() => {
-    if (status === "unauthenticated") router.replace("/login");
+    if (status === "unauthenticated") {
+      router.replace(
+        loginHref(window.location.pathname + window.location.search),
+      );
+    }
   }, [status, router]);
 
   // Identify the user in PostHog once the session is known.

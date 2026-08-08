@@ -1,295 +1,52 @@
-"use client";
-
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
-import { type FormEvent, Suspense, useEffect, useState } from "react";
-import posthog from "posthog-js";
-import { Button, Input } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
-import { safeNext } from "@/lib/nextPath";
+import { redirect } from "next/navigation";
+import { loginTarget } from "@/lib/nextPath";
 import { SHARE_DENIED, SHARE_PARAM } from "@/lib/shareTarget";
+import { auth } from "@/server/auth";
+import { LoginForm } from "./LoginForm";
 
-// Sign-in flow, all on /login:
-//   choose → "Continue with Google" or "Sign in with email"
-//   email  → enter address, we send a 6-digit code
-//   code   → enter the code to verify
-// The email steps drive the NextAuth "resend" provider: step "email" triggers
-// it (redirect:false so we stay on the page); step "code" hits the provider's
-// verification callback, which sets the session cookie and links to the
-// matching account (incl. Google).
-type Step = "choose" | "email" | "code";
-
-export default function LoginPage() {
-  // useSearchParams (read in LoginForm) needs a Suspense boundary so the page
-  // can be statically prerendered.
-  return (
-    <Suspense>
-      <LoginForm />
-    </Suspense>
-  );
+/** A repeated query parameter is a malformed request, not a list — take the
+ * first so every check below sees a single unambiguous value. */
+function one(value: string | string[] | undefined): string | null {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value[0] ?? null;
+  return null;
 }
 
-function LoginForm() {
-  const router = useRouter();
-  const params = useSearchParams();
-  const { status, data: session } = useSession();
-  const { t } = useI18n();
-  const tl = t.login;
+/** The sign-in page, gated on the server so an already-signed-in visitor never
+ * loads it at all.
+ *
+ * Every "Ingresar"/"Comenzar" button on the landing points here rather than at
+ * /app, and this is what makes that the right call: the session is resolved
+ * before a byte of the form ships, so a signed-in visitor gets a 307 straight
+ * to where they were going, while everyone else — the majority arriving from a
+ * marketing page — gets the small login card and none of the app's bundle.
+ *
+ * The cost is that /login is rendered per request instead of prerendered, which
+ * buys nothing to lose: it's `disallow`ed in robots.txt and has no SEO value.
+ */
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const resolved = await searchParams;
+  // Where sign-in leads. `next` is what carries a deep link across the flow —
+  // /oauth/authorize sets it, so does the app's own auth gate — and `claim` is
+  // the flag /probar sets for bills dropped while logged out. loginTarget runs
+  // `next` through safeNext, so a hostile ?next= can only land on /app.
+  const target = loginTarget(one(resolved.next), one(resolved.claim) === "1");
 
-  // Visitors sent here from /probar have bills waiting in the submissions
-  // cookie. Carrying the flag through sign-in is what tells /app to claim them;
-  // it's a bare flag, not a path, so it can't be used as an open redirect.
-  const claim = params.get("claim") === "1";
-  // An MCP client's consent screen bounces here when the browser has no session,
-  // and has to be able to send the user back to the request they interrupted.
-  // `safeNext` is what keeps that from being an open redirect: only a path on
-  // this origin survives it, so `?next=https://evil.example` — or the
-  // protocol-relative `//evil.example`, which is the one people forget — lands
-  // on /app like any other junk.
-  const callbackUrl =
-    safeNext(params.get("next")) ?? (claim ? "/app?claim=1" : "/app");
-
-  // Sent here by the share-target worker, which refuses to stash a bill it has
-  // no session to file under. Say so, or landing on a login screen out of the
-  // Android share sheet reads as the share having vanished.
-  const shareDenied = params.get(SHARE_PARAM) === SHARE_DENIED;
-
-  const [step, setStep] = useState<Step>("choose");
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
-  // Auth.js bounces failures back here with a ?error=<type> code. Map the ones
-  // we can hit to a fitting message rather than always blaming the OTP code:
-  //   Verification          → wrong/expired OTP code
-  //   AccessDenied          → our signIn guard rejected an unverified Google email
-  //   OAuthAccountNotLinked → email already has an account; sign in with the code
-  const [error, setError] = useState<string | null>(() => {
-    switch (params.get("error")) {
-      case null:
-        return null;
-      case "AccessDenied":
-        return tl.errorGoogleUnverified;
-      case "OAuthAccountNotLinked":
-        return tl.errorAccountNotLinked;
-      default:
-        return tl.errorInvalidCode;
-    }
-  });
-
-  // Already signed in (or just verified) → leave the public login page.
-  useEffect(() => {
-    if (status === "authenticated") router.replace(callbackUrl);
-  }, [status, router, callbackUrl]);
-
-  useEffect(() => {
-    if (status === "authenticated" && session?.user?.email) {
-      posthog.identify(session.user.email, {
-        email: session.user.email,
-        name: session.user.name ?? undefined,
-      });
-    }
-  }, [status, session]);
-
-  async function requestCode(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setBusy(true);
-    const res = await signIn("resend", { email, redirect: false });
-    setBusy(false);
-    if (res?.error) {
-      setError(tl.errorSendCode);
-      return;
-    }
-    posthog.capture("sign_in_email_code_requested");
-    setStep("code");
-  }
-
-  function verifyCode(e: FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    // The email provider verifies via a GET to its callback with the raw code;
-    // on success it sets the session cookie and redirects to callbackUrl.
-    const qs = new URLSearchParams({
-      token: code.trim(),
-      email,
-      callbackUrl,
-    });
-    window.location.href = `/api/auth/callback/resend?${qs.toString()}`;
-  }
+  const session = await auth();
+  if (session?.user) redirect(target);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-5 py-10 text-center">
-      <div className="receipt-edge bg-card border border-line pt-10 px-11 pb-14 w-full max-w-[420px]">
-        <span className="font-display font-semibold text-[34px] tracking-tight">
-          Factura<span className="text-accent">.</span>
-        </span>
-
-        {shareDenied && (
-          <p className="font-mono text-[11px] text-accent leading-[1.6] mt-4">
-            {tl.shareSignIn}
-          </p>
-        )}
-
-        {step === "choose" && (
-          <>
-            <p className="font-mono text-sm text-muted leading-[1.6] mt-4">
-              {tl.tagline}
-            </p>
-            <Button
-              size="lg"
-              onClick={() => {
-                posthog.capture("sign_in_google_clicked");
-                signIn("google", { callbackUrl });
-              }}
-              className="mt-7 w-full gap-3"
-            >
-              <GoogleG />
-              {tl.google}
-            </Button>
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={() => {
-                setError(null);
-                setStep("email");
-              }}
-              className="mt-3 w-full"
-            >
-              {tl.emailButton}
-            </Button>
-            <p className="font-mono text-[10.5px] text-muted leading-[1.6] mt-5">
-              {tl.privacyNote}
-            </p>
-          </>
-        )}
-
-        {step === "email" && (
-          <>
-            <p className="font-mono text-sm text-muted leading-[1.6] mt-4">
-              {tl.emailPrompt}
-            </p>
-            <form onSubmit={requestCode} className="mt-7 flex flex-col gap-3">
-              <Input
-                type="email"
-                name="email"
-                required
-                autoFocus
-                placeholder={tl.emailPlaceholder}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="text-center"
-              />
-              <Button
-                type="submit"
-                variant="solid"
-                size="lg"
-                disabled={busy}
-                className="w-full"
-              >
-                {busy ? tl.sending : tl.sendCode}
-              </Button>
-              <Button
-                type="button"
-                variant="quiet"
-                onClick={() => {
-                  setStep("choose");
-                  setError(null);
-                }}
-              >
-                {tl.otherWays}
-              </Button>
-            </form>
-          </>
-        )}
-
-        {step === "code" && (
-          <>
-            <p className="font-mono text-sm text-muted leading-[1.6] mt-4">
-              {tl.codeSentPrefix}
-              <span className="text-ink">{email}</span>
-              {tl.codeSentSuffix}
-            </p>
-            <form onSubmit={verifyCode} className="mt-7 flex flex-col gap-3">
-              <Input
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={6}
-                required
-                autoFocus
-                placeholder="000000"
-                value={code}
-                onChange={(e) =>
-                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                className="text-center text-lg tracking-[0.5em]"
-              />
-              <Button
-                type="submit"
-                variant="solid"
-                size="lg"
-                disabled={busy || code.length < 6}
-                className="w-full"
-              >
-                {busy ? tl.verifying : tl.signIn}
-              </Button>
-              <Button
-                type="button"
-                variant="quiet"
-                onClick={() => {
-                  setStep("email");
-                  setCode("");
-                  setError(null);
-                }}
-              >
-                {tl.differentEmail}
-              </Button>
-            </form>
-          </>
-        )}
-
-        {error && (
-          <p className="font-mono text-[11px] text-accent leading-[1.6] mt-4">
-            {error}
-          </p>
-        )}
-
-        <Link
-          href="/"
-          className="block font-mono text-[10.5px] uppercase tracking-label-wide text-muted mt-8 hover:text-accent transition-colors"
-        >
-          {tl.back}
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function GoogleG() {
-  return (
-    <svg
-      viewBox="0 0 18 18"
-      width="17"
-      height="17"
-      aria-hidden="true"
-      className="flex-none"
-    >
-      <path
-        fill="#4285F4"
-        d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
-      />
-      <path
-        fill="#34A853"
-        d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"
-      />
-      <path
-        fill="#EA4335"
-        d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-      />
-    </svg>
+    <LoginForm
+      callbackUrl={target}
+      errorCode={one(resolved.error)}
+      // Sent here by the share-target worker, which refuses to stash a bill it
+      // has no session to file under. Say so, or landing on a login screen out
+      // of the Android share sheet reads as the share having vanished.
+      shareDenied={one(resolved[SHARE_PARAM]) === SHARE_DENIED}
+    />
   );
 }
