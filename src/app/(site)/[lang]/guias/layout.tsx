@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { BackToTop } from "@/components/guides/BackToTop";
 import { SiteFooter } from "@/components/landing/Footer";
 import { SiteHeader } from "@/components/landing/Header";
 
@@ -24,6 +25,9 @@ export default async function GuiasLayout({
       <SiteHeader active="/guias" locale="es" />
       {children}
       <SiteFooter locale="es" showLanguageSwitch={false} />
+      {/* Here rather than on the article page: the index and the category
+          listings are just as long, and the header is equally far away. */}
+      <BackToTop />
     </>
   );
 }
