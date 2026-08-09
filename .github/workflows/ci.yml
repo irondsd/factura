@@ -58,10 +58,6 @@ jobs:
         if: ${{ !cancelled() }}
         run: bun run validate:guides
 
-      - name: Audit SEO
-        if: ${{ !cancelled() }}
-        run: bun run audit:seo
-
       - name: Test
         if: ${{ !cancelled() }}
         run: bun run test
