@@ -15,8 +15,12 @@ export const meta = {
   ],
   categories: ["servicios", "leer-facturas"],
   published: "2026-07-12T09:00:00-03:00",
-  updated: "2026-08-07T10:00:00-03:00",
+  updated: "2026-08-09T11:30:00-03:00",
   faq: [
+    {
+      q: "¿Qué significa R1CA o R2.3PR en la factura de MetroGAS?",
+      a: "Es tu categoría de cliente seguida de la zona. La parte R indica el rango de consumo anual en el que estás, calculado sobre los últimos 12 meses, y hay nueve categorías residenciales entre R1 y R4. Las dos letras finales dicen dónde se presta el servicio: CA es Capital Federal y PR es Gran Buenos Aires. Con ese código completo buscas tu fila en el cuadro tarifario.",
+    },
     {
       q: "¿Por qué la factura de MetroGAS viene tanto más cara en invierno?",
       a: "Porque la calefacción es, de lejos, el mayor consumo de gas de una casa. Entre un mes de verano y uno de pleno invierno el consumo en m³ se multiplica varias veces, y el total lo sigue. No es un error de facturación: es estacionalidad, y por eso el invierno solo se compara contra el invierno anterior.",
@@ -70,6 +74,45 @@ El corazón de la boleta es el **consumo a facturar**, expresado en metros cúbi
 ### 3. Total y vencimiento
 
 Busca **"TOTAL A PAGAR"** y la fecha de vencimiento en el cupón. A diferencia de la luz, la boleta de gas suele traer un único vencimiento, así que anótalo bien para no pagar con recargo.
+
+## Tu categoría de cliente: por qué el gas se cobra distinto que la luz
+
+Aquí está la diferencia más importante entre una boleta de gas y una de luz, y la que más confusión genera: **en electricidad la categoría se define por lo que consumes en el mes; en gas, por lo que consumiste en todo el año.**
+
+MetroGAS ubica a cada usuario residencial en una de **nueve categorías**, y las asigna sumando el consumo de los últimos 12 meses —seis bimestres, porque el gas se factura cada dos meses—:
+
+| Categoría | Consumo anual (m³) |
+| --------- | ------------------ |
+| **R1**    | Hasta 500          |
+| **R2.1**  | De 501 a 650       |
+| **R2.2**  | De 651 a 800       |
+| **R2.3**  | De 801 a 1.000     |
+| **R3.1**  | De 1.001 a 1.250   |
+| **R3.2**  | De 1.251 a 1.500   |
+| **R3.3**  | De 1.501 a 1.800   |
+| **R3.4**  | De 1.801 a 3.000   |
+| **R4**    | Más de 3.000       |
+
+La categoría se recalcula en cada facturación, así que **puede cambiar sola**: un invierno frío empuja el acumulado de doce meses hacia arriba y te mueve a la categoría siguiente, donde el cargo fijo y el precio del m³ son mayores. Y por la misma razón el efecto no se revierte de inmediato: hasta que ese invierno caro no sale de la ventana de doce meses, sigue pesando en tu categoría.
+
+### CA o PR: dónde está tu suministro
+
+Al código de categoría se le agrega la zona, porque el cuadro tarifario tiene valores distintos según dónde se preste el servicio:
+
+- **CA** — Capital Federal.
+- **PR** — Gran Buenos Aires.
+
+Así, en tu factura vas a ver algo como **R1CA**: categoría R1, servicio en Capital Federal. Ese código completo es el que tienes que buscar en el cuadro tarifario; sin él, no hay forma de saber qué fila te corresponde.
+
+### Cómo llegar a tu cuadro tarifario
+
+MetroGAS publica el cuadro completo y lo organiza en tres pasos, que es la forma más rápida de verificar tu boleta:
+
+1. **Identifica tu categoría de cliente** en la factura (el `R…` con su `CA` o `PR`).
+2. **Fíjate si eres beneficiario** de algún régimen: el subsidio del SEF o el de zona fría cambian la tabla que te aplica.
+3. **Busca tu cuadro tarifario** y compara el cargo fijo y el precio del m³ con los de tu boleta.
+
+El detalle vive en las páginas oficiales de [cuadros tarifarios](https://www.metrogas.com.ar/hogares/cuadros-tarifarios/) y [categorías de clientes](https://www.metrogas.com.ar/informacion-util/categorias-de-clientes/) de MetroGAS. Las categorías que empiezan con otra letra —P, G, GNC y algunas más— son para uso no residencial: si tu boleta es de tu casa, siempre vas a estar en una R.
 
 ## El subsidio de gas en la boleta
 
