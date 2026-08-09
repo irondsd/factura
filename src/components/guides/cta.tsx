@@ -44,8 +44,11 @@ export function CtaRow({ children }: { children: React.ReactNode }) {
  * validator requires the field). It's a hook, not a summary — the question the
  * guide's reader already has, and what an account does about it.
  *
- * The button is `solid`: ink at rest, accent on hover, same as the landing
- * page's primary action. Row on a desktop, stacked on a phone. */
+ * The button is `accent` rather than the landing page's `solid` — the two fills
+ * swapped, accent at rest and ink on hover. This one sits inside a bordered,
+ * card-coloured strip that a skimmer's eye reads as one grey block, and an ink
+ * fill in there is another rectangle; the orange is the only thing in the band
+ * that isn't. Row on a desktop, stacked on a phone. */
 export function TopCta({ children }: { children: React.ReactNode }) {
   return (
     <aside className="mt-7 flex flex-col gap-3 border border-line bg-card px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
@@ -58,7 +61,7 @@ export function TopCta({ children }: { children: React.ReactNode }) {
           full width of the block — it's a button, not a banner. */}
       <Button
         href="/login"
-        variant="solid"
+        variant="accent"
         size="lg"
         className="self-start sm:flex-none sm:self-auto"
       >
