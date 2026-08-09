@@ -14,7 +14,7 @@ export const meta = {
   ],
   categories: ["servicios", "leer-facturas"],
   published: "2026-07-12T09:00:00-03:00",
-  updated: "2026-08-07T10:00:00-03:00",
+  updated: "2026-08-09T11:30:00-03:00",
   faq: [
     {
       q: "¿Por qué mi factura de Edesur vino tan cara?",
@@ -87,6 +87,45 @@ El detalle de cargos separa dos conceptos que conviene no confundir:
 
 Esa es la razón por la que un departamento vacío o una casa de fin de semana igual reciben factura: el cargo fijo, más los impuestos que se calculan sobre él, no dependen del uso. Sobre ambos cargos se aplican después el IVA y los tributos provinciales y municipales que correspondan a tu domicilio, lo que explica que el total final sea bastante mayor que la suma de energía y cargo fijo.
 
+## El cuadro tarifario de Edesur: cómo encontrar tu fila
+
+Ni el cargo fijo ni el precio del kWh son un número único. Los dos salen del **cuadro tarifario**, una tabla que fija el ente regulador por resolución —las verás citadas como "Resolución ENReGE", desde que el ENRE y el ENARGAS se unificaron en un solo organismo para luz y gas— y que se actualiza varias veces al año. Tu factura aplica una fila de esa tabla, y saber cuál es lo que te permite verificarla.
+
+### Primero: tu tarifa
+
+El cuadro se abre en tres tarifas según el tamaño de la demanda, y los hogares están todos en la primera:
+
+- **Tarifa 1 — pequeñas demandas.** Aquí entran los hogares (categorías R), los comercios (G) y el alumbrado público (AP).
+- **Tarifa 2 — medianas demandas.**
+- **Tarifa 3 — grandes demandas.**
+
+Las tarifas 2 y 3 no se cobran solo por energía consumida: suman cargos por **potencia contratada** y **potencia adquirida**, y distinguen el consumo por franja horaria (pico, resto y valle). Si tu boleta es residencial, nada de eso te aplica; si administras un local grande o un consorcio con demanda propia, es exactamente ahí donde hay que mirar.
+
+### Segundo: tu categoría dentro de la Tarifa 1
+
+Dentro de la Tarifa 1, la letra dice el tipo de usuario y el número, el rango de consumo:
+
+| Código        | Consumo mensual  |
+| ------------- | ---------------- |
+| **T1-R1**     | Hasta 150 kWh    |
+| **T1-R2**     | De 151 a 400 kWh |
+| **T1-R3**     | De 401 a 500 kWh |
+| **T1-R4**     | De 501 a 600 kWh |
+| **T1-R5**     | De 601 a 700 kWh |
+| **T1-R6**     | Más de 700 kWh   |
+
+Las categorías **G1, G2 y G3** son el equivalente para uso general —comercios y oficinas, con rangos propios mucho más amplios— y **AP** es el alumbrado público, que no tiene cargo fijo y se factura solo por energía. Un hogar siempre es una R.
+
+Cada categoría R tiene su propio **cargo fijo mensual** y su propio **precio del kWh**, y los dos suben con el rango. Ese es el detalle que sorprende: pasar de R2 a R3 no encarece un poco el kWh, cambia también el cargo fijo a una escala varias veces mayor. Un mes en que te pasas del umbral por poco puede costar bastante más de lo que sugiere ese consumo extra.
+
+### Tercero: con subsidio o sin subsidio
+
+Cada fila del cuadro trae además dos columnas de precio: **sin subsidio** y **con subsidio**. La bonificación no cambia el cargo fijo, solo el precio de la energía, y —esta es la parte que casi nadie tiene presente— **no se aplica a todo lo que consumas**: cubre un bloque mensual de consumo, hoy los primeros 300 kWh del mes, y todo lo que pase de ahí se factura al precio pleno.
+
+Por eso un hogar con subsidio que consume mucho ve una factura que sube más rápido de lo esperado: la parte bonificada está topeada y el excedente entra al precio de lista. Cómo funciona el beneficio en detalle está en [subsidio de luz: cómo funciona](/guias/subsidio-de-luz-como-funciona).
+
+Los valores del cuadro se publican **sin IVA** ni los demás tributos, así que nunca van a coincidir con lo que dice tu cupón: son la base sobre la que después se calcula todo lo demás. El cuadro vigente está siempre en la [página de cuadros tarifarios de Edesur](https://www.edesur.com.ar/tarifas-cuadro-tarifario/).
+
 ## Lectura real y lectura estimada
 
 Cada factura indica si el consumo del período surge de una **lectura real** del medidor o de una **lectura estimada**. La estimación se usa cuando no se pudo acceder al medidor, y se calcula a partir de tu historial de consumo.
@@ -100,7 +139,7 @@ Si ves dos o tres períodos estimados seguidos, conviene anticiparse y revisar e
 Cuando el total sube, hay tres explicaciones posibles y se descartan en este orden:
 
 1. **Consumiste más.** Compara los kWh de este período con los del anterior y con los del mismo período del año pasado. Si los kWh subieron, el resto de la factura solo está siguiendo al consumo.
-2. **Cambió la tarifa o tu subsidio.** Si los kWh se mantuvieron y el total subió igual, el aumento no es tuyo. Revisa el detalle de cargos: cambió el precio de la energía, o cambió la bonificación que se te aplica.
+2. **Cambió la tarifa, tu categoría o tu subsidio.** Si los kWh se mantuvieron y el total subió igual, el aumento no es tuyo. Revisa el detalle de cargos: cambió el precio de la energía, cambió la bonificación que se te aplica, o cruzaste el umbral de tu rango de consumo y pasaste a la categoría de arriba.
 3. **Llegó un ajuste por lectura estimada.** Fíjate si el período anterior figuraba como estimado.
 
 El punto importante es que **el total en pesos no te dice nada por sí solo** en un contexto de tarifas que se actualizan varias veces al año. Los kWh sí. Es la única serie que puedes comparar entre años sin corregir por nada.
