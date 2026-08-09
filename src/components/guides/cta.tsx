@@ -31,6 +31,43 @@ export function CtaRow({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-wrap gap-3 my-8">{children}</div>;
 }
 
+/** The one-line CTA between the article header and the first paragraph.
+ *
+ * The closing block only reaches the readers who finish; this one is for the
+ * ones who skim the intro and bounce. It stays deliberately thin — one line of
+ * copy and a single button — because at this point in the page the visitor came
+ * for an answer and hasn't been given it yet, and a card here would read as an
+ * ad in front of the article.
+ *
+ * The copy is `meta.cta`, not a child, so the *page* places it: an author can't
+ * accidentally push it below the fold, and a guide can't ship without one (the
+ * validator requires the field). It's a hook, not a summary — the question the
+ * guide's reader already has, and what an account does about it.
+ *
+ * The button is `solid`: ink at rest, accent on hover, same as the landing
+ * page's primary action. Row on a desktop, stacked on a phone. */
+export function TopCta({ children }: { children: React.ReactNode }) {
+  return (
+    <aside className="mt-7 flex flex-col gap-3 border border-line bg-card px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+      {/* `text-pretty` because the copy is one or two lines at the article's
+          column width, and the second line is otherwise a two-word orphan. */}
+      <p className="font-mono text-[13.5px] leading-[1.55] text-pretty text-ink/90 m-0">
+        {children}
+      </p>
+      {/* `self-start` so the stacked phone layout doesn't hand the button the
+          full width of the block — it's a button, not a banner. */}
+      <Button
+        href="/login"
+        variant="solid"
+        size="lg"
+        className="self-start sm:flex-none sm:self-auto"
+      >
+        Crear una cuenta
+      </Button>
+    </aside>
+  );
+}
+
 /** The block every guide ends with, below <RelatedGuides />.
  *
  * It used to be a bare <CtaRow/> holding the two buttons, which asked a reader

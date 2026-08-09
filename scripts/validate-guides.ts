@@ -159,6 +159,7 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
     const title = str("title");
     const description = str("description");
     str("summary");
+    const cta = str("cta");
 
     const kw = meta.keywords;
     if (
@@ -277,12 +278,22 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
         `meta.description is ${description.length} chars (aim ~150–160)`,
       );
     }
+    // The <TopCta /> banner sets this beside the button in the 680px article
+    // column, in 13.5px mono — which is 54 characters before it wraps to a
+    // second line. It's a hook, not a `summary`: the button already says what
+    // the action is, so the line only has to give a reason to take it.
+    if (cta && cta.length > 54) {
+      warnings.push(
+        `meta.cta is ${cta.length} chars — over ~54 it wraps to a second line beside the button`,
+      );
+    }
 
     // unexpected meta keys (typos)
     const allowedKeys = new Set([
       "title",
       "description",
       "summary",
+      "cta",
       "keywords",
       "categories",
       "published",

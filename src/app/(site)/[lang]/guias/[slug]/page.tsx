@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/guides/Breadcrumbs";
 import { CategoryChips } from "@/components/guides/CategoryChips";
+import { TopCta } from "@/components/guides/cta";
 import { Faq } from "@/components/guides/Faq";
 import { RelatedGuides } from "@/components/guides/RelatedGuides";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
@@ -124,6 +125,12 @@ export default async function GuidePage({ params }: Props) {
               className="mt-5"
             />
           </header>
+
+          {/* Above the article, not in it: the reader who bounces after the
+              intro never reaches the closing <ClosingCta />, and this is the
+              only offer they'll see. Copy comes from `meta.cta` so placement
+              stays the page's call and the wording stays the guide's. */}
+          <TopCta>{meta.cta}</TopCta>
 
           <div className="mt-8 border-t border-line pt-2">
             {/* `RelatedGuides` is overridden here rather than in

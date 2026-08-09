@@ -34,6 +34,7 @@ export const meta = {
     "Aprende a entender tu factura de electricidad: cargos fijos, consumo en kWh, impuestos y el total a pagar, explicados con un ejemplo simple.",
   summary:
     "Qué significa cada sección de la factura de electricidad y cómo identificar lo que realmente estás pagando.",
+  cta: "¿Tu factura de luz subió? Mira cuánto y por qué.",
   keywords: [
     "cómo leer una factura de luz",
     "entender factura de electricidad",
@@ -50,6 +51,7 @@ export const meta = {
 | `title`       | Browser `<title>`, the on-page `<h1>`, OG/Twitter, JSON-LD     | ~50–60 chars. Put the primary keyword near the front.                |
 | `description` | `<meta name="description">`, OG/Twitter description            | ~150–160 chars. One compelling sentence; this is the search snippet. |
 | `summary`     | The `/guias` index cards, the homepage list, `llms.txt`        | One short sentence (~90–120 chars). Can differ from `description`.   |
+| `cta`         | The one-line CTA banner above the article (see §5)             | **≤54 chars** — one line beside the button. A hook, not a summary.   |
 | `keywords`    | `<meta name="keywords">`                                       | 3–6 real Spanish search phrases. Lowercase.                          |
 | `categories`  | Grouping on `/guias`, the breadcrumb, related-guide picks      | 1–3 ids from the list below. **The first one is the primary.**       |
 | `published`   | Article dateline, JSON-LD `datePublished`, sitemap             | Full ISO 8601 **with offset**. Set once, don't change.               |
@@ -159,6 +161,25 @@ Notes:
   `[qué son las expensas](/guias/que-son-las-expensas-en-argentina)`
 - External links open in a new tab automatically.
 - **Interlink between guides** whenever relevant — it helps SEO and readers.
+
+**The top banner is `meta.cta`, not a tag.** The article route renders a thin
+one-line CTA between the header and your first paragraph — copy on the left, a
+single "Crear una cuenta" button on the right (stacked on a phone). There is no
+component to place: write the line in `meta.cta` and it appears.
+
+It exists for the reader who skims the intro and leaves, so it has to work
+before the article has explained anything. The shape that works is **a question
+this guide's reader already has, then what an account does about it**:
+
+```js
+cta: "¿Tu factura de Edesur subió? Mira cuánto y por qué.",
+cta: "¿Cuánto se fue en obras este año? Sepáralo.",
+```
+
+**Budget: 54 characters.** That's what fits on one line beside the button in the
+article column, and the validator warns past it. It buys a question and a verb,
+which is the whole line — no "regístrate gratis" tacked on the end (the button
+says that), and no reusing `summary`: this is a hook, not a description.
 
 **CTA components** — these are available directly in the body, no import needed:
 
@@ -301,6 +322,7 @@ copy.
 - [ ] 3–6 realistic `keywords`.
 - [ ] 1–3 `categories`, most important first (the first is the primary).
 - [ ] At least one internal link to another guide or to `/docs` / `/demo`.
+- [ ] `meta.cta` is a hook for this guide, one line, ≤54 chars.
 - [ ] `<ClosingCta />` present with its own `title` and copy, `<RelatedGuides />`
       just above it.
 - [ ] Slug is keyword-rich, hyphenated, accent-free.
@@ -340,6 +362,7 @@ export const meta = {
   title: "",
   description: "",
   summary: "",
+  cta: "",
   keywords: ["", "", ""],
   categories: ["", ""],
   published: "YYYY-MM-DDTHH:MM:SS-03:00",

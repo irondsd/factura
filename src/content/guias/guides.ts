@@ -17,6 +17,10 @@ export type GuideMeta = {
   description: string;
   /** Short blurb shown on the /guias index cards. */
   summary: string;
+  /** One line of copy for the `<TopCta />` banner the article route renders
+   * between the header and the first paragraph — the hook for the reader who
+   * skims the intro and leaves. Written per guide; see AUTHORING.md §5. */
+  cta: string;
   /** SEO keywords for <meta name="keywords">. */
   keywords: string[];
   /** 1–3 category ids. The first is the guide's *primary* category — it decides
