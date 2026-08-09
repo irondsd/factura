@@ -54,6 +54,11 @@ const BTN_VARIANTS = {
   // Fills with the accent on hover — the same move `danger` makes. A primary
   // action with no hover state at all reads as one that isn't listening.
   solid: "bg-ink text-paper border-ink hover:bg-accent hover:border-accent",
+  // `solid` with the two fills swapped: accent at rest, ink on hover. For the
+  // one CTA on a page that has to be found before it's read — inside a bordered
+  // block, where an ink fill is just another dark rectangle. Everywhere a
+  // primary action sits on open page, `solid` is still the one.
+  accent: "bg-accent text-paper border-accent hover:bg-ink hover:border-ink",
   outline:
     "bg-transparent text-ink border-line hover:border-accent hover:text-accent",
   // `solid`'s outlined twin: a full-strength ink rule rather than the hairline
