@@ -34,6 +34,14 @@ export type SeoOptions = {
    * whose title is already at the ~60-char limit the SERP truncates at. */
   titleAbsolute?: boolean;
   description: string;
+  /** Social-card copy, when the click-hook should differ from the search copy.
+   * Both default to `title`/`description`. */
+  ogTitle?: string;
+  ogDescription?: string;
+  /** Keep the page out of the index while leaving it readable at its URL.
+   * `follow` stays on: the page is unlisted, not disowned, and its links should
+   * still carry crawlers to the guides it references. */
+  noindex?: boolean;
   /** `article` for anything with a publication date; `website` otherwise. */
   type?: "website" | "article";
   /** Per-page keywords. Google ignores the tag, but it costs nothing and other
@@ -57,6 +65,9 @@ export function buildMetadata({
   title,
   titleAbsolute,
   description,
+  ogTitle,
+  ogDescription,
+  noindex,
   type = "website",
   keywords,
   languages,
@@ -65,12 +76,23 @@ export function buildMetadata({
   publishedTime,
   modifiedTime,
 }: SeoOptions): Metadata {
-  const cards: OgImage[] = images ?? [{ ...ogImage, alt: title }];
+  const social = ogTitle ?? title;
+  const socialDescription = ogDescription ?? description;
+  const cards: OgImage[] = images ?? [{ ...ogImage, alt: social }];
 
   return {
     title: titleAbsolute ? { absolute: title } : title,
     description,
     ...(keywords?.length ? { keywords } : {}),
+    ...(noindex
+      ? {
+          robots: {
+            index: false,
+            follow: true,
+            googleBot: { index: false, follow: true },
+          },
+        }
+      : {}),
     alternates: {
       canonical: url,
       ...(languages ? { languages } : {}),
@@ -79,8 +101,8 @@ export function buildMetadata({
       type,
       url,
       siteName,
-      title,
-      description,
+      title: social,
+      description: socialDescription,
       locale: ogLocale[locale],
       ...(alternateLocale
         ? { alternateLocale: ogLocale[alternateLocale] }
@@ -90,8 +112,8 @@ export function buildMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title,
-      description,
+      title: social,
+      description: socialDescription,
       images: [twitterImage],
     },
   };

@@ -48,7 +48,7 @@ export const meta = {
 
 | Field         | Used for                                                       | Rules / length                                                       |
 | ------------- | -------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `title`       | Browser `<title>`, the on-page `<h1>`, OG/Twitter, JSON-LD     | ~50–60 chars. Put the primary keyword near the front.                |
+| `title`       | Browser `<title>`, the on-page `<h1>`, OG/Twitter, JSON-LD     | **≤60 chars** (validator errors above that) — see below.             |
 | `description` | `<meta name="description">`, OG/Twitter description            | ~150–160 chars. One compelling sentence; this is the search snippet. |
 | `summary`     | The `/guias` index cards, the homepage list, `llms.txt`        | One short sentence (~90–120 chars). Can differ from `description`.   |
 | `cta`         | The one-line CTA banner above the article (see §5)             | **≤54 chars** — one line beside the button. A hook, not a summary.   |
@@ -56,6 +56,52 @@ export const meta = {
 | `categories`  | Grouping on `/guias`, the breadcrumb, related-guide picks      | 1–3 ids from the list below. **The first one is the primary.**       |
 | `published`   | Article dateline, JSON-LD `datePublished`, sitemap             | Full ISO 8601 **with offset**. Set once, don't change.               |
 | `updated`     | Dateline (shown only if ≠ published), JSON-LD, sitemap lastmod | Full ISO 8601 **with offset**. Bump when you meaningfully edit.      |
+
+### The title and the 60-character line
+
+Guides render their `title` in `<title>` **verbatim** — no `— Factura` suffix
+(the rest of the site has one). The brand costs ten characters of a result
+that's cut off around 60, and Google prints the site name next to the result
+anyway. So the whole 60 belongs to the guide.
+
+If a headline needs to be longer to read well as an `<h1>`, keep it and add
+`titleTag` — that's the only thing the `<title>` uses, while the `<h1>`, the
+JSON-LD headline and the social card stay on `title`:
+
+```mdx
+title: "Cómo se calculan las expensas de un edificio: guía completa",
+titleTag: "Cómo se calculan las expensas de un edificio",
+```
+
+### Optional SEO fields
+
+All optional; none of them are needed for a normal guide. Reach for them when
+the situation below is actually the one you're in.
+
+| Field           | When to set it                                                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `titleTag`      | The headline is over 60 chars and worth keeping as an `<h1>`. ≤60, keyword first.                                                     |
+| `ogTitle`       | The social card wants a hook the search result shouldn't have. Defaults to `title`. ≤70.                                              |
+| `ogDescription` | Same, for the card's body copy. Defaults to `description`.                                                                            |
+| `canonical`     | **Another guide's slug.** This guide competes with that one for the same query and that one should win. See below.                    |
+| `noindex`       | `true` while the guide is a draft: it renders at its URL, and appears in no listing, no sitemap, no `llms.txt`. Remove it to publish. |
+
+**`canonical`** is the cannibalization lever. Two guides written for the same
+query split the ranking between them; pointing one at the other consolidates the
+signals without deleting a page people may have linked to:
+
+```mdx
+canonical: "como-leer-la-factura-de-edesur",
+```
+
+The guide keeps rendering at its own URL and stays listed for readers, but its
+`<link rel="canonical">` and its Article JSON-LD both name the other guide, and
+it drops out of `sitemap.xml`. The validator checks the slug exists.
+
+**`noindex`** is for a guide that isn't ready. It's removed from the index, the
+category hubs, related-guide blocks, `llms.txt` and the sitemap — the article
+itself still renders, so you can read and share it before it's announced. The
+validator warns if a published guide links to one.
 
 ### Timestamps
 
@@ -318,6 +364,9 @@ copy.
 ## 6. SEO checklist (apply before finishing)
 
 - [ ] Primary keyword is in `title`, in the first paragraph, and in at least one `##`.
+- [ ] The rendered `<title>` (`titleTag` if set, else `title`) is ≤60 chars.
+- [ ] `title` and `description` don't repeat another guide's — if the overlap is
+      real, `canonical` one of them at the other instead.
 - [ ] `description` reads like a search result and is ~150–160 chars.
 - [ ] 3–6 realistic `keywords`.
 - [ ] 1–3 `categories`, most important first (the first is the primary).
@@ -335,6 +384,8 @@ copy.
 - Listed on `/guias` (the index) and in the homepage "Guías" block.
 - Added to `sitemap.xml` (with `lastModified` from `meta.updated`).
 - Added to `/llms.txt` (title + summary).
+- All three are skipped for a `noindex` guide, and the sitemap also skips a
+  guide with a `canonical` (a sitemap lists canonical URLs only).
 - `<h1>`, the "Guía" eyebrow, the dateline, breadcrumbs, Article JSON-LD, and all
   canonical/OG metadata are generated from `meta`.
 - The **"N min de lectura"** estimate is counted from your prose at build time

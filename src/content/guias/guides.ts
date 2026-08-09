@@ -12,10 +12,21 @@ import { extractHeadings, FAQ_SECTION, type GuideHeading } from "./headings";
 // single source the index page, the article route, and the sitemap read from.
 
 export type GuideMeta = {
-  /** Page <title> and article headline. */
+  /** Page <title> and article headline. Rendered verbatim in <title> — the
+   * section drops the "— Factura" suffix the rest of the site uses, because ten
+   * characters of brand pushed most of these past the ~60 a search result
+   * shows, and Google labels the result with the site name anyway. */
   title: string;
+  /** Overrides `title` in <title> only — the <h1> and the JSON-LD headline stay
+   * `title`. For the guide whose headline reads well on the page but doesn't
+   * survive the search snippet. ≤60 chars; see AUTHORING.md §2. */
+  titleTag?: string;
   /** <meta name="description"> + OG/Twitter description. */
   description: string;
+  /** Social-card copy, when the click-hook wants to differ from the search
+   * copy. Both default to the headline/description above. */
+  ogTitle?: string;
+  ogDescription?: string;
   /** Short blurb shown on the /guias index cards. */
   summary: string;
   /** One line of copy for the `<TopCta />` banner the article route renders
@@ -35,6 +46,16 @@ export type GuideMeta = {
   published: string;
   /** Full ISO 8601 timestamp with offset, when the guide was last updated. */
   updated: string;
+  /** Slug of the guide that should rank for this topic. Set it when two guides
+   * compete for the same query and one of them is the answer: this one keeps
+   * rendering at its own URL, but its canonical (and its JSON-LD) point at the
+   * other, and it drops out of the sitemap. The lever for cannibalization —
+   * cheaper and less link-breaking than deleting a guide. */
+  canonical?: string;
+  /** Keep this guide out of the index AND out of every listing — the index, the
+   * category hubs, related guides, llms.txt, the sitemap. It still renders at
+   * its URL, so a draft can be read and reviewed before it's announced. */
+  noindex?: true;
   /** Optional Q&A block, rendered where the body places `<Faq />` and emitted
    * as FAQPage JSON-LD. One list feeds both, so the markup can never claim a
    * question the page doesn't visibly answer — which is the condition Google
@@ -179,10 +200,21 @@ async function readAllGuides(): Promise<Guide[]> {
 // module-level memo is both safe and simpler than request-scoped caching.
 let guidesPromise: Promise<Guide[]> | undefined;
 
-/** All guides with metadata, newest first. The single read every consumer goes
- * through — the index, the category pages, the sitemap and llms.txt. */
-export function allGuides(): Promise<Guide[]> {
+/** Every guide on disk, newest first — drafts included. Deliberately NOT
+ * exported: the only things that may reach a `noindex` guide are the article
+ * route (by slug) and `generateStaticParams`, both of which go through
+ * `loadGuide`/`guideSlugs`. Everything that *lists* guides goes through
+ * `listedGuides` below, which is what makes "a draft can't leak into a listing"
+ * a property of the module rather than a rule each consumer has to remember. */
+function allGuides(): Promise<Guide[]> {
   return (guidesPromise ??= readAllGuides());
+}
+
+/** The publicly listed guides, newest first. The single read every consumer
+ * goes through — the index, the category pages, related guides, the sitemap and
+ * llms.txt. */
+export async function listedGuides(): Promise<Guide[]> {
+  return (await allGuides()).filter((g) => !g.meta.noindex);
 }
 
 /** A guide's primary category: the first id in `meta.categories`. It decides
@@ -193,7 +225,7 @@ export const primaryCategoryOf = (guide: Guide): CategoryId =>
 /** Every guide *tagged* with `id` — primary or not — newest first. This is the
  * category page's list, and it's a superset of that category's index section. */
 export async function guidesInCategory(id: CategoryId): Promise<Guide[]> {
-  return (await allGuides()).filter((g) => g.meta.categories.includes(id));
+  return (await listedGuides()).filter((g) => g.meta.categories.includes(id));
 }
 
 /** The /guias index, grouped by *primary* category so no guide is listed twice.
@@ -203,7 +235,7 @@ export async function guidesInCategory(id: CategoryId): Promise<Guide[]> {
 export async function guidesByPrimaryCategory(): Promise<
   { category: Category; guides: Guide[]; total: number }[]
 > {
-  const guides = await allGuides();
+  const guides = await listedGuides();
   return CATEGORIES.map((category) => ({
     category,
     guides: guides.filter((g) => primaryCategoryOf(g) === category.id),
@@ -216,9 +248,13 @@ export async function guidesByPrimaryCategory(): Promise<
  * Ranked by how many categories they share with the current guide, with a
  * tiebreak bonus for sharing its primary one, then newest first. If that turns
  * up too few — a guide alone in its category — the list is topped up with the
- * newest other guides, so the block is never awkwardly short or empty. */
+ * newest other guides, so the block is never awkwardly short or empty.
+ *
+ * A draft isn't in the listed set, so it finds no `current` and suggests
+ * nothing; `<RelatedGuides>` renders null for an empty list. Fine for a page
+ * only its author is reading, and it keeps drafts from cross-linking. */
 export async function relatedGuides(slug: string, limit = 3): Promise<Guide[]> {
-  const guides = await allGuides();
+  const guides = await listedGuides();
   const current = guides.find((g) => g.slug === slug);
   if (!current) return [];
 
@@ -252,7 +288,7 @@ export async function relatedGuides(slug: string, limit = 3): Promise<Guide[]> {
  * Wider than the index sections: a category can have tagged guides but none
  * that lead with it. */
 export async function nonEmptyCategories(): Promise<Category[]> {
-  const guides = await allGuides();
+  const guides = await listedGuides();
   return CATEGORIES.filter((c) =>
     guides.some((g) => g.meta.categories.includes(c.id)),
   );

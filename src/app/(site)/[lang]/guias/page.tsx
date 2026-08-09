@@ -6,7 +6,7 @@ import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Button } from "@/components/ui";
 import {
-  allGuides,
+  listedGuides,
   guidesByPrimaryCategory,
   nonEmptyCategories,
 } from "@/content/guias/guides";
@@ -37,7 +37,7 @@ export function generateMetadata(): Metadata {
 
 export default async function GuiasIndexPage() {
   const [guides, sections, categories] = await Promise.all([
-    allGuides(),
+    listedGuides(),
     guidesByPrimaryCategory(),
     nonEmptyCategories(),
   ]);

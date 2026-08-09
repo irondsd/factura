@@ -6,7 +6,7 @@ import { Eyebrow, Perforation, Wordmark } from "@/components/landing/parts";
 import { SiteNav } from "@/components/landing/SiteNav";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Button } from "@/components/ui";
-import { allGuides } from "@/content/guias/guides";
+import { listedGuides } from "@/content/guias/guides";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
 import { getI18n } from "@/i18n/server";
@@ -42,7 +42,7 @@ export default async function LandingPage({ params }: Props) {
 
   // Guides are Spanish-only — surface them on the es homepage (a high-authority
   // internal link). The footer's own Guías link follows the same rule.
-  const guides = locale === "es" ? await allGuides() : [];
+  const guides = locale === "es" ? await listedGuides() : [];
 
   return (
     <>

@@ -28,7 +28,8 @@ function one(value: string | string[] | undefined): string | null {
  * marketing page — gets the small login card and none of the app's bundle.
  *
  * The cost is that /login is rendered per request instead of prerendered, which
- * buys nothing to lose: it's `disallow`ed in robots.txt and has no SEO value.
+ * buys nothing to lose: it's `noindex` (see the (app) root layout) and has no
+ * SEO value.
  */
 export default async function LoginPage({
   searchParams,

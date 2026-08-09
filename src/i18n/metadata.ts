@@ -90,29 +90,52 @@ export function guideCategoryMetadata({
   return guideListingMetadata(guideCategoryUrl(id), title, description);
 }
 
+/** A guide article. Takes the guide's `meta` verbatim (`{ slug, ...meta }`), so
+ * the optional SEO fields an author sets are wired up by being declared. */
 export function guideMetadata({
   slug,
   title,
+  titleTag,
   description,
+  ogTitle,
+  ogDescription,
   keywords,
   published,
   updated,
+  canonical,
+  noindex,
 }: {
   slug: string;
   title: string;
+  titleTag?: string;
   description: string;
+  ogTitle?: string;
+  ogDescription?: string;
   keywords: string[];
   published: string;
   updated: string;
+  canonical?: string;
+  noindex?: boolean;
 }): Metadata {
   return buildMetadata({
-    url: guideUrl(slug),
+    // The guide that should rank, which is this one unless it says otherwise.
+    url: guideUrl(canonical ?? slug),
     locale: "es",
-    title,
+    // Verbatim, with no "— Factura" suffix: the brand cost ten characters of a
+    // ~60-character search result on all 43 guides, and Google prints the site
+    // name beside the result anyway. `titleTag` is the escape hatch for a
+    // headline that reads well as an <h1> but not as a snippet.
+    title: titleTag ?? title,
+    titleAbsolute: true,
     description,
+    // The headline, not the snippet-sized `titleTag` — a social card has room
+    // for the real thing.
+    ogTitle: ogTitle ?? title,
+    ogDescription,
     keywords,
     type: "article",
     publishedTime: published,
     modifiedTime: updated,
+    noindex,
   });
 }

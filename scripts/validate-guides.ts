@@ -51,7 +51,46 @@ const dim = (s: string) => c(2, s);
 const bold = (s: string) => c(1, s);
 
 type Meta = Record<string, unknown>;
-type Report = { file: string; errors: string[]; warnings: string[] };
+type Report = {
+  file: string;
+  errors: string[];
+  warnings: string[];
+  /** What the cross-file pass in `main` needs: uniqueness is not a property any
+   * single file can check about itself. */
+  slug: string;
+  title?: string;
+  description?: string;
+  noindex: boolean;
+  /** Slugs of the other guides this one links to in its prose. */
+  links: string[];
+};
+
+// Spanish function words, dropped before matching a keyword against the copy:
+// they're the words a search phrase omits and a written sentence keeps. Words of
+// three characters or fewer are dropped too, which covers de/la/el/en/y/al.
+const KEYWORD_STOPWORDS = new Set([
+  "como",
+  "con",
+  "cual",
+  "del",
+  "las",
+  "los",
+  "mas",
+  "para",
+  "por",
+  "que",
+  "sus",
+  "una",
+  "uno",
+]);
+
+/** Lowercase, strip accents — so "cómo leer la factura" matches a keyword
+ * written "como leer la factura". */
+const fold = (s: string): string =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
 
 /** Pull the `export const meta = { … }` object out by brace-matching, then eval
  * it as real JS (trusted local files, any quote/comma style). */
@@ -122,6 +161,10 @@ function isValidDateTime(s: string): boolean {
 function validateFile(file: string, knownSlugs: Set<string>): Report {
   const errors: string[] = [];
   const warnings: string[] = [];
+  // Declared out here because `main` compares them across files.
+  let title: string | undefined;
+  let description: string | undefined;
+  let noindex = false;
   const slug = file.replace(/\.mdx$/, "");
   const src = readFileSync(path.join(GUIDES_DIR, file), "utf8");
 
@@ -156,10 +199,68 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
       }
       return v;
     };
-    const title = str("title");
-    const description = str("description");
+    title = str("title");
+    description = str("description");
     str("summary");
     const cta = str("cta");
+
+    // ── optional SEO overrides ──────────────────────────────────────────────
+    // Each is optional, but a present-and-malformed one is an error: a typo'd
+    // `titleTag` would silently keep shipping the title it was meant to fix.
+    const optStr = (k: string): string | undefined => {
+      const v = meta[k];
+      if (v === undefined) return undefined;
+      if (typeof v !== "string" || v.trim() === "") {
+        errors.push(`meta.${k}, if set, must be a non-empty string`);
+        return undefined;
+      }
+      return v;
+    };
+    const titleTag = optStr("titleTag");
+    const ogTitle = optStr("ogTitle");
+    const ogDescription = optStr("ogDescription");
+    const canonical = optStr("canonical");
+
+    if (meta.noindex !== undefined && meta.noindex !== true) {
+      errors.push("meta.noindex, if set, must be exactly `true` (or omitted)");
+    }
+    noindex = meta.noindex === true;
+
+    // The rendered <title>. Guides don't get the site's "— Factura" suffix
+    // (see `guideMetadata`), so this is the whole thing, and past ~60 chars
+    // Google truncates it mid-phrase in the result.
+    const rendered = titleTag ?? title;
+    if (rendered && rendered.length > 60) {
+      errors.push(
+        titleTag
+          ? `meta.titleTag is ${rendered.length} chars — must be ≤60`
+          : `meta.title is ${rendered.length} chars and would be cut off in search results — shorten it, or add a meta.titleTag ≤60 and keep this as the headline`,
+      );
+    }
+    if (titleTag && title && titleTag.length >= title.length) {
+      warnings.push(
+        "meta.titleTag isn't shorter than meta.title — drop it and let the title stand",
+      );
+    }
+    if (ogTitle && ogTitle.length > 70) {
+      warnings.push(`meta.ogTitle is ${ogTitle.length} chars (aim ≤70)`);
+    }
+    if (ogDescription && ogDescription.length > 200) {
+      warnings.push(
+        `meta.ogDescription is ${ogDescription.length} chars (aim ≤200)`,
+      );
+    }
+    if (canonical !== undefined) {
+      if (canonical === slug) {
+        errors.push(
+          "meta.canonical points at this guide — omit it (a guide is its own canonical by default)",
+        );
+      } else if (!knownSlugs.has(canonical)) {
+        errors.push(
+          `meta.canonical is "${canonical}", which is not a guide slug`,
+        );
+      }
+    }
 
     const kw = meta.keywords;
     if (
@@ -170,6 +271,29 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
       errors.push("meta.keywords must be a non-empty array of strings");
     } else if (kw.length < 3 || kw.length > 6) {
       warnings.push(`meta.keywords has ${kw.length} (aim for 3–6)`);
+    }
+
+    // The first keyword is the query this guide is written to win, and the
+    // title + description are the two things a search result shows. Matched
+    // word by word rather than as a phrase: "deuda de patentes caba" is the
+    // same target as "Deuda de patentes en CABA", and a phrase match would
+    // flag every one of those and teach everyone to ignore the warning.
+    if (
+      Array.isArray(kw) &&
+      typeof kw[0] === "string" &&
+      title &&
+      description
+    ) {
+      const shown = fold(`${title} ${description}`);
+      const missing = fold(kw[0])
+        .split(/\s+/)
+        .filter((w) => w.length > 2 && !KEYWORD_STOPWORDS.has(w))
+        .filter((w) => !shown.includes(w));
+      if (missing.length > 0) {
+        warnings.push(
+          `primary keyword "${kw[0]}" — ${missing.map((w) => `"${w}"`).join(", ")} appears in neither the title nor the description`,
+        );
+      }
     }
 
     // ── categories (the first one is the guide's primary category) ──────────
@@ -270,9 +394,7 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
       );
     }
 
-    // length advisories
-    if (title && title.length > 60)
-      warnings.push(`meta.title is ${title.length} chars (aim ≤60)`);
+    // length advisories (the <title> is checked as an error further up)
     if (description && (description.length < 120 || description.length > 170)) {
       warnings.push(
         `meta.description is ${description.length} chars (aim ~150–160)`,
@@ -291,13 +413,18 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
     // unexpected meta keys (typos)
     const allowedKeys = new Set([
       "title",
+      "titleTag",
       "description",
+      "ogTitle",
+      "ogDescription",
       "summary",
       "cta",
       "keywords",
       "categories",
       "published",
       "updated",
+      "canonical",
+      "noindex",
       "faq",
     ]);
     for (const k of Object.keys(meta)) {
@@ -386,7 +513,58 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
     warnings.push("no links to other guides (interlink for SEO)");
   }
 
-  return { file, errors, warnings };
+  return {
+    file,
+    errors,
+    warnings,
+    slug,
+    title,
+    description,
+    noindex,
+    links: [...interlinks],
+  };
+}
+
+/** The checks that only exist between files. Two guides sharing a <title> or a
+ * description are two guides competing for the same result with the same words
+ * — the classic way a growing section starts cannibalizing itself — and no
+ * per-file pass can see it. Appends to the reports in place. */
+function crossCheck(reports: Report[]): void {
+  const collide = (field: "title" | "description") => {
+    const seen = new Map<string, Report[]>();
+    for (const r of reports) {
+      const value = r[field];
+      if (!value) continue;
+      const key = fold(value).replace(/\s+/g, " ").trim();
+      seen.set(key, [...(seen.get(key) ?? []), r]);
+    }
+    for (const group of seen.values()) {
+      if (group.length < 2) continue;
+      for (const r of group) {
+        const others = group.filter((o) => o !== r).map((o) => o.slug);
+        r.errors.push(
+          `meta.${field} is identical to ${others.join(", ")} — make each one distinct, or canonicalize one guide to the other`,
+        );
+      }
+    }
+  };
+  collide("title");
+  collide("description");
+
+  // A link into a `noindex` guide is a link to a page nothing else lists and
+  // search engines are told to skip. Usually it means the draft shipped
+  // half-announced, or the flag outlived the draft.
+  const drafts = new Set(reports.filter((r) => r.noindex).map((r) => r.slug));
+  if (drafts.size > 0) {
+    for (const r of reports) {
+      if (r.noindex) continue;
+      for (const target of r.links) {
+        if (drafts.has(target)) {
+          r.warnings.push(`links to /guias/${target}, which is noindex`);
+        }
+      }
+    }
+  }
 }
 
 function main() {
@@ -407,6 +585,7 @@ function main() {
 
   const knownSlugs = new Set(files.map((f) => f.replace(/\.mdx$/, "")));
   const reports = files.map((f) => validateFile(f, knownSlugs));
+  crossCheck(reports);
 
   let totalErrors = 0;
   let totalWarnings = 0;

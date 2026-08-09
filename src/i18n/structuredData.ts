@@ -101,21 +101,28 @@ export function breadcrumbLd(items: { name: string; url: string }[]) {
 }
 
 /** BlogPosting for a single guide. Always Spanish (`inLanguage: "es"`), authored
- * and published by the existing Organization node. */
+ * and published by the existing Organization node.
+ *
+ * `canonical` (a slug) follows the meta tag: a guide that canonicalizes to
+ * another one describes *that* URL here too, right down to sharing its `@id`.
+ * Two URLs claiming one article is exactly what a canonical means, and markup
+ * that kept pointing at the non-canonical copy would contradict it. */
 export function guideLd({
   slug,
   title,
   description,
   published,
   updated,
+  canonical,
 }: {
   slug: string;
   title: string;
   description: string;
   published: string;
   updated: string;
+  canonical?: string;
 }) {
-  const url = guideUrl(slug);
+  const url = guideUrl(canonical ?? slug);
   return {
     "@context": "https://schema.org",
     "@type": "BlogPosting",

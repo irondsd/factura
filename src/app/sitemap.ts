@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { allGuides, nonEmptyCategories } from "@/content/guias/guides";
+import { listedGuides, nonEmptyCategories } from "@/content/guias/guides";
 import {
   guideCategoryUrl,
   guidesIndexUrl,
@@ -8,7 +8,7 @@ import {
 } from "@/i18n/metadata";
 
 // Only genuinely public, logged-out-visible pages belong here. The
-// authenticated app (everything under /app) is disallowed in robots.ts. Each
+// authenticated app (everything under /app) is `noindex`. Each
 // landing page exists in both languages: the Spanish (canonical) URL is listed
 // with `hreflang` alternates so Google indexes the English (/en) version too.
 const LANDING: {
@@ -48,7 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Guides are Spanish-only: no hreflang alternates (no /en counterpart exists).
   const [guides, categories] = await Promise.all([
-    allGuides(),
+    listedGuides(),
     nonEmptyCategories(),
   ]);
   const guidesEntries: MetadataRoute.Sitemap = [
@@ -74,12 +74,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.65,
       };
     }),
-    ...guides.map((g) => ({
-      url: guideUrl(g.slug),
-      lastModified: new Date(g.meta.updated),
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    })),
+    // A sitemap should list canonical URLs and nothing else. `listedGuides` has
+    // already dropped the drafts; what's left to exclude is a guide that points
+    // its canonical at another one — submitting it here would ask Google to
+    // index the very copy the tag says isn't the one.
+    ...guides
+      .filter((g) => !g.meta.canonical)
+      .map((g) => ({
+        url: guideUrl(g.slug),
+        lastModified: new Date(g.meta.updated),
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+      })),
   ];
 
   return [...landing, ...guidesEntries];
