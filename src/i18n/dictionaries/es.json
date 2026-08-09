@@ -1001,6 +1001,13 @@
         "body": "<p>La vista de análisis convierte el registro en una imagen de a dónde va el dinero. Elige una propiedad, escoge una ventana de 12 o 24 meses y lee el gasto como totales o por proveedor.</p><h2>Qué hay</h2><ul><li><b>Gasto apilado</b>: cada mes desglosado por proveedor, para que la composición se vea de un vistazo.</li><li><b>Participación por proveedor</b>: qué proveedores se llevan la porción más grande en la ventana.</li><li><b>Tendencia por proveedor</b>: filtra a un proveedor y míralo mes a mes, con el cambio marcado.</li><li><b>Mirada a la inflación</b>: el mismo gasto en pesos y en dólares, lado a lado, para que el movimiento real se separe de la inflación.</li></ul><div class=\"callout\"><span class=\"callout-label\">△ Pendiente</span><p>Cuando un proveedor que suele facturar se demora en el mes, los análisis lo marcan como <span class=\"accent\">△ pendiente</span> en lugar de leerlo como una caída a cero.</p></div>"
       },
       {
+        "id": "mcp",
+        "group": "Referencia",
+        "title": "Conecta un asistente",
+        "lede": "Un servidor MCP de solo lectura deja que un asistente de IA responda con tus facturas y tus gastos. Tú autorizas la conexión y la cortas cuando quieras.",
+        "body": "<p>MCP es el protocolo con el que un asistente de IA se conecta a una aplicación externa. Factura publica el suyo en <code>https://factura.uno/api/mcp</code>: pega esa dirección en la configuración de conectores de tu cliente y él se encarga del resto.</p><h2>Qué puede leer</h2><ul><li>Tus propiedades y las cuentas de servicios de cada una.</li><li>Los proveedores conocidos para esas propiedades.</li><li>Las facturas del registro, y una factura en detalle con su comparación interanual.</li><li>El gasto: el resumen del mes, los totales mes a mes en pesos y en dólares, y el historial de un proveedor con su consumo.</li></ul><p>No devuelve el PDF ni el texto extraído, y no hay ninguna herramienta que escriba: cargar, editar o eliminar una factura sigue siendo cosa de la app.</p><h2>Cómo autorizarlo</h2><ul><li>El camino normal es OAuth. El cliente se registra solo y te manda a una pantalla de permiso donde ves qué app pide acceso; recién cuando aceptas obtiene un token.</li><li>Si tu cliente solo sabe enviar un token fijo, crea uno en <a href=\"/app/sessions\">Sesiones</a>. Funciona igual, pero sin pantalla de permiso: quien tenga el token entra.</li></ul><div class=\"callout\"><span class=\"callout-label\">△ Bueno saberlo</span><p>Cada conexión aparece en <a href=\"/app/sessions\">Sesiones</a>, junto a tus navegadores. Desconéctala desde ahí y pierde el acceso de inmediato.</p></div><p class=\"muted\">El permiso que se pide es uno solo, <code>mcp:read</code>, y los documentos de descubrimiento están en <code>/.well-known/oauth-protected-resource</code>.</p>"
+      },
+      {
         "id": "privacy",
         "group": "Referencia",
         "title": "Privacidad y almacenamiento",
@@ -1087,6 +1094,23 @@
           {
             "q": "¿Qué pasa si falta una factura?",
             "a": "Factura sabe lo que suele llegar. Cuando un proveedor se demora en el mes, vas a ver <span class=\"accent\">△ pendiente</span> en el resumen, no un vacío silencioso."
+          }
+        ]
+      },
+      {
+        "label": "Asistentes de IA",
+        "items": [
+          {
+            "q": "¿Puedo conectar un asistente de IA a Factura?",
+            "a": "Sí. Factura publica un servidor MCP de solo lectura en <code>https://factura.uno/api/mcp</code>. Pega esa dirección en la configuración de conectores de cualquier cliente compatible con MCP y podrás preguntarle por tus facturas y tus gastos en lenguaje natural. Los detalles están en <a href=\"/docs#mcp\">la documentación</a>."
+          },
+          {
+            "q": "¿Qué puede ver el asistente, y puede modificar algo?",
+            "a": "Puede leer tus propiedades, tus proveedores, las facturas del registro y tus totales de gasto. No puede modificar nada: no hay ninguna herramienta que cree, edite o elimine, y tampoco recibe los PDF ni el texto extraído. Cargar y corregir facturas sigue siendo cosa de la app."
+          },
+          {
+            "q": "¿Cómo autorizo la conexión y cómo la corto?",
+            "a": "El cliente te manda a una pantalla de permiso donde ves qué app pide acceso; hasta que aceptas, no obtiene nada. Después, cada conexión aparece en <a href=\"/app/sessions\">Sesiones</a> junto a tus navegadores, y la desconectas desde ahí: pierde el acceso de inmediato."
           }
         ]
       },
@@ -1237,7 +1261,7 @@
       "eyebrow": "Tokens de acceso",
       "help": "Para clientes que solo saben enviar un token fijo en la configuración. Funcionan igual que una app conectada, pero sin pantalla de permiso: quien tenga el token entra.",
       "nameLabel": "Nombre",
-      "namePlaceholder": "Claude en la laptop",
+      "namePlaceholder": "Asistente en la laptop",
       "expiryLabel": "Vence",
       "expiryDays": "{days} días",
       "expiryNever": "Nunca",

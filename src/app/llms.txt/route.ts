@@ -48,6 +48,14 @@ A live, interactive walkthrough of the app on sample data — no sign-in require
 - [Demo insights](https://factura.uno/demo/insights): Spend over time, vendor share, the inflation lens (pesos vs the dollar cost), and per-vendor consumption trends.
 - [Demo bills](https://factura.uno/demo/bills): The bill ledger — every parsed bill per vendor and month, with peso and USD amounts and the extracted fields and text.
 
+## MCP server
+
+Factura exposes a read-only MCP server, so an AI assistant can answer questions from a user's own bills. The endpoint is https://factura.uno/api/mcp. It requires authorization — but a client can bootstrap that itself: an unauthenticated call returns 401 with a \`WWW-Authenticate\` header pointing at https://factura.uno/.well-known/oauth-protected-resource, and the server supports OAuth 2.1 with dynamic client registration. The user approves the connection on a consent screen in the app, and can revoke it there at any time. Clients that cannot do OAuth can send a personal access token the user creates in the app instead.
+
+There is one scope, \`mcp:read\`. The tools cover properties, vendors, bills (list and detail, with year-over-year), and spending (monthly snapshot, series in pesos and USD, per-vendor history and consumption). Nothing writes: creating, editing, and deleting bills happen in the app only. The server does not expose bill PDFs or their extracted text.
+
+- [Connect an assistant](https://factura.uno/docs#mcp): What the MCP server exposes, how to authorize it, and how to disconnect it.
+
 ## Trust
 
 - [Privacy](https://factura.uno/privacy): What Factura collects (bills, account email, properties), why, where it's stored, the third parties involved, and how to delete your data.

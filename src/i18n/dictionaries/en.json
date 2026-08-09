@@ -1001,6 +1001,13 @@
         "body": "<p>The insights view turns the ledger into a picture of where the money goes. Pick a property, choose a 12- or 24-month window, and read spend as totals or per vendor.</p><h2>What's there</h2><ul><li><b>Stacked spend</b> — each month broken down by vendor, so the mix is visible at a glance.</li><li><b>Vendor share</b> — which billers take the biggest slice over the window.</li><li><b>Per-vendor trend</b> — filter to one vendor and watch it month over month, with the change marked.</li><li><b>Inflation lens</b> — the same spend in pesos and in dollars, side by side, so real movement separates from inflation.</li></ul><div class=\"callout\"><span class=\"callout-label\">△ Awaiting</span><p>When a vendor that usually bills is late for the month, insights mark it <span class=\"accent\">△ awaiting</span> rather than reading it as a drop to zero.</p></div>"
       },
       {
+        "id": "mcp",
+        "group": "Reference",
+        "title": "Connect an assistant",
+        "lede": "A read-only MCP server lets an AI assistant answer from your bills and your spending. You authorize the connection, and you can cut it whenever you want.",
+        "body": "<p>MCP is the protocol an AI assistant uses to connect to an outside application. Factura publishes its own at <code>https://factura.uno/api/mcp</code> — paste that address into your client's connector settings and it handles the rest.</p><h2>What it can read</h2><ul><li>Your properties and the utility accounts attached to each.</li><li>The vendors known for those properties.</li><li>The bills on the ledger, and one bill in full with its year-over-year comparison.</li><li>Spending: the month's snapshot, month-by-month totals in pesos and dollars, and one vendor's history with its consumption.</li></ul><p>It does not return the PDF or the extracted text, and there is no tool that writes: uploading, editing, and deleting a bill stay in the app.</p><h2>How to authorize it</h2><ul><li>The normal path is OAuth. The client registers itself and sends you to a consent screen naming the app asking for access; only once you accept does it get a token.</li><li>If your client only knows how to send a fixed token, create one under <a href=\"/app/sessions\">Sessions</a>. It works the same, minus the consent screen: whoever holds the token is in.</li></ul><div class=\"callout\"><span class=\"callout-label\">△ Good to know</span><p>Every connection shows up under <a href=\"/app/sessions\">Sessions</a>, alongside your browsers. Disconnect it there and it loses access immediately.</p></div><p class=\"muted\">There is a single scope, <code>mcp:read</code>, and the discovery documents live at <code>/.well-known/oauth-protected-resource</code>.</p>"
+      },
+      {
         "id": "privacy",
         "group": "Reference",
         "title": "Privacy & storage",
@@ -1087,6 +1094,23 @@
           {
             "q": "What happens if a bill is missing?",
             "a": "Factura knows what usually arrives. When a vendor is late for the month, you'll see <span class=\"accent\">△ awaiting</span> in the summary — not a silent gap."
+          }
+        ]
+      },
+      {
+        "label": "AI assistants",
+        "items": [
+          {
+            "q": "Can I connect an AI assistant to Factura?",
+            "a": "Yes. Factura publishes a read-only MCP server at <code>https://factura.uno/api/mcp</code>. Paste that address into the connector settings of any MCP-capable client and you can ask about your bills and your spending in plain language. The details are in <a href=\"/en/docs#mcp\">the docs</a>."
+          },
+          {
+            "q": "What can the assistant see, and can it change anything?",
+            "a": "It can read your properties, your vendors, the bills on the ledger, and your spending totals. It cannot change anything: there is no tool that creates, edits, or deletes, and it never receives the PDFs or the extracted text. Uploading and correcting bills stays in the app."
+          },
+          {
+            "q": "How do I authorize the connection, and how do I cut it?",
+            "a": "The client sends you to a consent screen naming the app asking for access; until you accept, it gets nothing. After that, every connection shows up under <a href=\"/app/sessions\">Sessions</a> alongside your browsers, and you disconnect it there — access ends immediately."
           }
         ]
       },
@@ -1237,7 +1261,7 @@
       "eyebrow": "Access tokens",
       "help": "For clients that can only send a fixed token in their config. They work like a connected app, but with no consent screen: whoever holds the token is in.",
       "nameLabel": "Name",
-      "namePlaceholder": "Claude on the laptop",
+      "namePlaceholder": "Assistant on the laptop",
       "expiryLabel": "Expires",
       "expiryDays": "{days} days",
       "expiryNever": "Never",

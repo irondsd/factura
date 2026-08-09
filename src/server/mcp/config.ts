@@ -71,7 +71,10 @@ export function protectedResourceMetadata() {
     scopes_supported: [MCP_SCOPE],
     bearer_methods_supported: ["header"],
     resource_name: "Factura MCP",
-    resource_documentation: `${baseUrl()}/docs`,
+    // The docs page that describes this server specifically, not the docs
+    // index — /docs is hash-routed, and #mcp is the article about connecting an
+    // assistant. Also what /llms.txt points at.
+    resource_documentation: `${baseUrl()}/docs#mcp`,
   };
 }
 
