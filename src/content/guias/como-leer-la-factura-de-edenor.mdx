@@ -14,7 +14,7 @@ export const meta = {
   ],
   categories: ["servicios", "leer-facturas"],
   published: "2026-07-12T09:00:00-03:00",
-  updated: "2026-08-07T10:00:00-03:00",
+  updated: "2026-08-09T11:30:00-03:00",
   faq: [
     {
       q: "¿Por qué la factura de Edenor me vino el doble que el mes pasado?",
@@ -88,13 +88,38 @@ Si sumas el precio de los kWh que consumiste, el número te va a dar bastante me
 
 Como los impuestos se calculan sobre la base, un aumento en el precio de la energía se amplifica en el total final. Y como el cargo fijo no depende del uso, una propiedad desocupada sigue generando factura con importe todos los períodos.
 
+## El rango de consumo: qué significan R1, R2 y R6
+
+Ni el cargo fijo ni el cargo variable son iguales para todos los hogares. Los dos dependen del **rango de consumo** —también llamado categoría— en el que te ubica el ENRE, el ente regulador nacional de la electricidad, hoy integrado al ENRGE que unificó la regulación de luz y gas.
+
+Para los usuarios residenciales hay **seis categorías**, definidas por los kWh que consumes en el mes:
+
+| Categoría | Consumo mensual        |
+| --------- | ---------------------- |
+| **R1**    | Hasta 150 kWh          |
+| **R2**    | De 151 a 400 kWh       |
+| **R3**    | De 401 a 500 kWh       |
+| **R4**    | De 501 a 600 kWh       |
+| **R5**    | De 601 a 700 kWh       |
+| **R6**    | Más de 700 kWh         |
+
+La categoría aparece en la factura junto a la tarifa, con la forma **T1-R2** o similar: el `T1` es la Tarifa 1, la de pequeñas demandas donde entran todos los hogares, y el `R2` es tu rango.
+
+Tres cosas que conviene entender del esquema:
+
+- **No es una etiqueta fija.** El rango se determina según tu consumo, así que un hogar puede pasar de R2 a R3 en verano y volver después. No hay trámite: lo asigna la facturación.
+- **Sube el cargo fijo, no solo el precio del kWh.** Cada categoría tiene su propio cargo fijo mensual, y la diferencia entre un rango y el siguiente es grande. Por eso pasar de 395 a 405 kWh puede encarecer la boleta bastante más de lo que sugieren esos 10 kWh: cambió la escala completa, no solo el consumo.
+- **R5 y R6 son relativamente nuevas.** El esquema original llegaba hasta R4; se abrieron dos rangos más para que el salto entre categorías altas fuera más gradual.
+
+Si tu factura viene cara y los kWh no se movieron mucho, mira la categoría antes que nada: cruzar un umbral por poco es una de las explicaciones más frecuentes y menos evidentes. El detalle de rangos y los valores vigentes están en la página de [Edenor sobre cómo entender tu factura](https://www.edenor.com/hogares-y-comercios/facturas-pagos/entende-tu-factura).
+
 ## Lectura estimada: la causa más frecuente de una boleta desproporcionada
 
 Cada factura aclara si el consumo del período surge de una **lectura real** del medidor o de una **estimación** basada en tu historial. Cuando no se puede acceder al medidor, se estima.
 
 El problema no es la estimación en sí, sino el ajuste que viene después. Al tomarse la lectura real, la diferencia acumulada se liquida entera en una sola boleta. Esa es la factura que llega "sin explicación" al triple de lo habitual, y casi nunca corresponde a un consumo real de ese período.
 
-Si ves dos o más períodos estimados consecutivos, anota vos mismo el número del medidor. Te da una estimación propia del ajuste que se viene y, si el que llega no coincide, tienes con qué reclamar.
+Si ves dos o más períodos estimados consecutivos, anota tú mismo el número del medidor. Te da una estimación propia del ajuste que se viene y, si el que llega no coincide, tienes con qué reclamar.
 
 ## Cómo comparar dos facturas de Edenor sin equivocarte
 
