@@ -163,23 +163,48 @@ Notes:
 **CTA components** — these are available directly in the body, no import needed:
 
 ```mdx
-<CtaRow>
-  <DemoCta />
-  <SignupCta />
-</CtaRow>
+<ClosingCta title="¿Fue la tarifa o el termostato?">
+  Responder eso exige tener la boleta del invierno pasado con sus m³. Factura la
+  guarda por ti y arma la serie de precio por m³, así la comparación de julio
+  contra julio sale en un vistazo.
+</ClosingCta>
 ```
 
+- `<ClosingCta title="…">copy…</ClosingCta>` → **the block every guide ends
+  with**: an eyebrow, your headline, two sentences of copy, and the demo +
+  signup buttons. Both `title` and the copy are optional and both should be
+  written: the fallbacks are generic.
 - `<DemoCta />` → outline button to `/demo`. Default label "Ver la demo".
   Override: `<DemoCta>Probar la demo</DemoCta>`
 - `<SignupCta />` → solid button to `/login`. Default "Crear una cuenta gratis".
+  Both are already inside `<ClosingCta />`; place them by hand only in the rare
+  guide that needs a second CTA mid-article.
 - `<CtaButton href="/docs" variant="outline">Leer los docs</CtaButton>` →
   generic button. `variant` is `"solid"` (default) or `"outline"`.
-- `<CtaRow>…</CtaRow>` → wraps buttons so they sit in a row.
+- `<CtaRow>…</CtaRow>` → wraps loose buttons so they sit in a row.
 - `<ProbarCta vendor="Edesur" noun="boleta">copy…</ProbarCta>` → a full-width
   card pointing at `/probar`. All three optional: `vendor` names the issuer in
   the headline, `noun` is what the document is called (defaults to `"factura"` —
   use `"boleta"` for AGIP, `"liquidación"` for expensas), and the children
   replace the default body copy.
+
+**`<ClosingCta />` — write the copy, don't take the default.** A reader who
+finished the article has one question left, and "Crear una cuenta gratis" doesn't
+answer it: _an account for what?_ Two naked buttons are why a guide gets read and
+then abandoned. The headline and the two sentences are the answer, and they have
+to be about **the thing this guide was about**.
+
+- **Be concrete about the topic.** "Factura guarda los m³ y el importe de cada
+  boleta de MetroGAS" is an argument. "Organiza todos tus servicios" is filler
+  that could sit under any of the 40 guides.
+- **Name the tedious part the reader now knows is real** — the twelve PDFs, the
+  vencimiento that got away, the invoice from last winter nobody kept — and then
+  what Factura does with it. That's the whole structure.
+- **Two sentences.** The article already made the long case; this is the ask.
+- Don't restate the closing "Léelo automáticamente" section — it sits a screen
+  above. Compress, change the angle, don't paraphrase.
+- Keep it honest, same rule as `<ProbarCta />`: what we store and show, never a
+  promised outcome ("dejá de pagar de más").
 
 **`<ProbarCta />` — where and how.** Put it **mid-article, right before the
 closing "automáticamente" section**, not in the footer CTA row. The whole point
@@ -258,13 +283,14 @@ it in.
 <RelatedGuides />
 ```
 
-Put it **just above the closing `<CtaRow>`**, after your final paragraph. It's
+Put it **just above the closing `<ClosingCta />`**, after your final paragraph. It's
 the one component whose position you control and whose content you don't, so a
 missing tag silently means no block — the validator warns if you forget it.
 
 **Every guide should end** with the same closing shape: a short "Léelo
-automáticamente" section tying the topic back to the product, then
-`<RelatedGuides />`, then a `<CtaRow>` with `<DemoCta />` and `<SignupCta />`.
+automáticamente" section tying the topic back to the product, then `<Faq />`,
+then `<RelatedGuides />`, then a `<ClosingCta />` carrying its own headline and
+copy.
 
 ---
 
@@ -275,7 +301,8 @@ automáticamente" section tying the topic back to the product, then
 - [ ] 3–6 realistic `keywords`.
 - [ ] 1–3 `categories`, most important first (the first is the primary).
 - [ ] At least one internal link to another guide or to `/docs` / `/demo`.
-- [ ] Closing CTA section present, with `<RelatedGuides />` just above it.
+- [ ] `<ClosingCta />` present with its own `title` and copy, `<RelatedGuides />`
+      just above it.
 - [ ] Slug is keyword-rich, hyphenated, accent-free.
 - [ ] `npm run validate:guides` passes with no errors.
 
@@ -337,10 +364,10 @@ Cierre que conecta el tema con Factura.
 
 <RelatedGuides />
 
-<CtaRow>
-  <DemoCta />
-  <SignupCta />
-</CtaRow>
+<ClosingCta title="Titular corto, sobre el tema de esta guía">
+  Dos oraciones: la parte tediosa que el lector acaba de conocer, y qué hace
+  Factura con ella.
+</ClosingCta>
 ```
 
 ---

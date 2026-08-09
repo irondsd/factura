@@ -1,6 +1,7 @@
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
 import {
+  ClosingCta,
   CtaButton,
   CtaRow,
   DemoCta,
@@ -130,6 +131,7 @@ const components: MDXComponents = {
     />
   ),
   // Custom components available unqualified inside guide MDX:
+  ClosingCta,
   CtaButton,
   CtaRow,
   DemoCta,

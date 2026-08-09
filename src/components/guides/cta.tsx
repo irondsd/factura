@@ -1,3 +1,4 @@
+import { Eyebrow } from "@/components/landing/parts";
 import { Button } from "@/components/ui";
 
 // CTA pieces used inside guide MDX (Spanish-only section, so labels are inline
@@ -28,6 +29,57 @@ export function CtaButton({
 /** Row wrapper so a guide can place a couple of CTAs side by side. */
 export function CtaRow({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-wrap gap-3 my-8">{children}</div>;
+}
+
+/** The block every guide ends with, below <RelatedGuides />.
+ *
+ * It used to be a bare <CtaRow/> holding the two buttons, which asked a reader
+ * who had just finished the article to "crear una cuenta gratis" without ever
+ * saying an account *for what*. The guide is the whole relationship we have with
+ * that visitor: they came for one answer, got it, and left.
+ *
+ * So this borrows the shape of <ProbarCta/> — a line of offer, then the button —
+ * and applies it to the closing ask. `title` and the body copy are written per
+ * guide and stay concrete about the topic the reader just spent five minutes on:
+ * "guarda los kWh de cada boleta" is an argument, "organiza tus servicios" is
+ * not. Two sentences is the budget; the article already made the long case.
+ *
+ * The defaults are the generic version, so a guide that omits them still says
+ * something — but a guide-specific pair is the point of the component. */
+export function ClosingCta({
+  title,
+  children,
+}: {
+  title?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <section className="my-10 border border-line bg-card px-5 py-7 sm:px-7">
+      {/* Paired with the "Sin cuenta" eyebrow on <ProbarCta/>: the two blocks
+          are the same offer at the two prices a reader can pay. */}
+      <Eyebrow tone="accent">Con una cuenta</Eyebrow>
+      <h2 className="font-display font-semibold text-[24px] sm:text-[27px] tracking-[-0.02em] leading-[1.15] mt-3 mb-0">
+        {title ?? "Tus facturas, ordenadas solas"}
+      </h2>
+      {/* A div, not a <p> — same reason as <ProbarCta/>: MDX gives block
+          children their own paragraph, and a <p> in a <p> is invalid HTML that
+          React re-nests at hydration. The reset keeps both shapes identical. */}
+      <div className="font-mono text-[15px] leading-[1.75] text-ink/90 mt-3 [&_p]:my-0">
+        {children ??
+          "Sube el PDF de cualquier factura y Factura extrae el importe, el período y el vencimiento, y arma el histórico de cada servicio mes a mes — en pesos y en dólares."}
+      </div>
+      <div className="flex flex-wrap gap-3 mt-6">
+        <DemoCta />
+        <SignupCta />
+      </div>
+      {/* The demo button is the low-commitment half of the offer and nothing
+          else on the page says so. */}
+      <p className="font-mono text-micro leading-[1.6] text-muted mt-4 mb-0">
+        La demo se abre con datos de muestra; no hace falta registrarse para
+        mirarla.
+      </p>
+    </section>
+  );
 }
 
 export function DemoCta({ children }: { children?: React.ReactNode }) {

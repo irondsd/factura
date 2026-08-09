@@ -23,6 +23,7 @@ const RESERVED_SLUGS = new Set(["categoria"]);
 // Components registered in `src/mdx-components.tsx` — the only custom (capitalized)
 // JSX a guide may use. Anything else would crash the build.
 const ALLOWED_COMPONENTS = new Set([
+  "ClosingCta",
   "CtaButton",
   "CtaRow",
   "DemoCta",
@@ -344,8 +345,26 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
 
   // ── advisories ────────────────────────────────────────────────────────────
   if (!/^##[ \t]/m.test(body)) warnings.push("no `##` section headings found");
-  if (!/<(CtaRow|DemoCta|SignupCta|CtaButton)\b/.test(body)) {
-    warnings.push("no CTA component — guides should end with a call to action");
+  // The closing block is checked for its *copy*, not just its presence: falling
+  // back to the component's generic sentences wastes the one moment the reader
+  // is still on the page, and either half alone is half a pitch.
+  const closing = /<ClosingCta\b([^>]*)>([\s\S]*?)<\/ClosingCta>/.exec(body);
+  if (!closing) {
+    if (!/<(CtaRow|DemoCta|SignupCta|CtaButton)\b/.test(body)) {
+      warnings.push("no CTA component — guides should end with a <ClosingCta>");
+    } else {
+      warnings.push(
+        'closing CTA is a bare button row — use <ClosingCta title="…"> so the buttons come with a reason',
+      );
+    }
+  } else if (!/\btitle\s*=/.test(closing[1])) {
+    warnings.push(
+      '<ClosingCta> without a title="…" — it falls back to generic copy',
+    );
+  } else if (closing[2].trim() === "") {
+    warnings.push(
+      "<ClosingCta> has no body copy — write the two guide-specific sentences",
+    );
   }
   // Placement is the author's job, so a missing tag just silently drops the
   // block — worth flagging.
