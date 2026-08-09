@@ -4,7 +4,16 @@ import { cn } from "@/lib/cn";
 
 // Page shell: the centered max-width column the marketing sub-pages (FAQ, Docs,
 // Guías, legal) and the SiteHeader/SiteFooter share.
-export const SHELL = "max-w-[1040px] mx-auto px-5 sm:px-8";
+//
+// `w-full` is load-bearing, not decoration. The layout's <body> is a column
+// flex container, so a <main className={SHELL}> is a flex item whose auto width
+// resolves against its *content's* intrinsic size rather than the viewport: one
+// `white-space: nowrap` run anywhere below (a truncating breadcrumb, a wide
+// table cell) makes the column — and with it the whole document — wider than
+// the screen, which is a horizontal scrollbar on a phone. Pinning the width to
+// 100% makes it definite, so overflow is contained where it happens and the
+// usual `truncate` / `overflow-x-auto` escape hatches inside actually work.
+export const SHELL = "w-full max-w-[1040px] mx-auto px-5 sm:px-8";
 
 // Nav-link styling shared by the header and footer.
 export const NAV_LINK =

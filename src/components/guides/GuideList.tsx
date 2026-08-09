@@ -36,8 +36,15 @@ export function GuideList({
             href={`/guias/${g.slug}`}
             className="group block no-underline py-6"
           >
-            <div className="flex items-baseline justify-between gap-4">
-              <Title className="font-display font-semibold text-[20px] sm:text-[23px] tracking-tight text-ink m-0 transition-colors group-hover:text-accent">
+            {/* Wraps rather than overflowing: the date is `flex-none` and a
+                title only shrinks down to its longest word, so on a narrow
+                phone the pair can't fit one line and used to push the row —
+                and the page with it — past the viewport. Wrapping drops the
+                date onto its own line only when it genuinely doesn't fit; the
+                title keeps `min-w-0` so it wraps as text instead of forcing
+                the row wide. */}
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <Title className="min-w-0 font-display font-semibold text-[20px] sm:text-[23px] tracking-tight text-ink m-0 transition-colors group-hover:text-accent">
                 {g.meta.title}
               </Title>
               <span className="flex-none font-mono text-micro uppercase tracking-label-wide text-muted">
