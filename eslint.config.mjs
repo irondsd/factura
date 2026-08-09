@@ -14,6 +14,13 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Generated, self-contained parser-suggestion worker bundle.
     "worker-dist/**",
+    // Agent scratch space: `.claude/worktrees/*` holds whole checkouts of this
+    // repo, so anything that walks the tree finds a second copy of every source
+    // file — and lints another session's work-in-progress as if it were ours.
+    // Git already ignores this directory; ESLint's flat config doesn't read
+    // .gitignore, so it has to be said again here. Same reason it's excluded in
+    // tsconfig.json and vitest.config.ts.
+    ".claude/**",
   ]),
 ]);
 

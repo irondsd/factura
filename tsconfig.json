@@ -30,5 +30,8 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  // `.claude` holds agent worktrees — full checkouts of this repo — and the
+  // includes above are `**/*.ts`, so without this every source file is compiled
+  // twice and another session's work-in-progress can fail `typecheck` here.
+  "exclude": ["node_modules", ".claude"]
 }
