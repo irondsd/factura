@@ -221,6 +221,48 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
     const ogDescription = optStr("ogDescription");
     const canonical = optStr("canonical");
 
+    optStr("vendor");
+
+    // ── ogImage: the two text slots on the generated social card ────────────
+    // Length limits are the card's, not SEO's: the eyebrow is one line of
+    // letter-spaced mono and the stat one line of 46px display type, and
+    // neither can wrap in a 1200×630 image.
+    const ogImage = meta.ogImage;
+    if (ogImage !== undefined) {
+      if (
+        ogImage === null ||
+        typeof ogImage !== "object" ||
+        Array.isArray(ogImage)
+      ) {
+        errors.push(
+          "meta.ogImage, if set, must be an object like { eyebrow: '…', stat: '…' }",
+        );
+      } else {
+        const slots = ogImage as Record<string, unknown>;
+        for (const key of Object.keys(slots)) {
+          if (key !== "eyebrow" && key !== "stat") {
+            errors.push(
+              `meta.ogImage has unknown key "${key}" — only eyebrow and stat`,
+            );
+          }
+        }
+        for (const [key, max] of [
+          ["eyebrow", 42],
+          ["stat", 28],
+        ] as const) {
+          const value = slots[key];
+          if (value === undefined) continue;
+          if (typeof value !== "string" || value.trim() === "") {
+            errors.push(`meta.ogImage.${key} must be a non-empty string`);
+          } else if (value.length > max) {
+            warnings.push(
+              `meta.ogImage.${key} is ${value.length} chars — over ~${max} it runs off the card`,
+            );
+          }
+        }
+      }
+    }
+
     if (meta.noindex !== undefined && meta.noindex !== true) {
       errors.push("meta.noindex, if set, must be exactly `true` (or omitted)");
     }
@@ -417,6 +459,8 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
       "description",
       "ogTitle",
       "ogDescription",
+      "ogImage",
+      "vendor",
       "summary",
       "cta",
       "keywords",

@@ -12,8 +12,8 @@ import { getCategory } from "@/content/guias/categories";
 import {
   guideHeadings,
   guideSlugs,
+  guideStats,
   loadGuide,
-  readingMinutes,
   relatedGuides,
 } from "@/content/guias/guides";
 import { guideMetadata } from "@/i18n/metadata";
@@ -54,7 +54,7 @@ export default async function GuidePage({ params }: Props) {
   const { slug } = await params;
   const { Content, meta } = await loadGuide(slug);
   const related = await relatedGuides(slug);
-  const minutes = readingMinutes(slug, meta.faq);
+  const { words, minutes } = guideStats(slug, meta.faq);
   const headings = guideHeadings(slug, meta.faq);
 
   // Categories in the order the guide declares them: primary first, which is
@@ -66,7 +66,15 @@ export default async function GuidePage({ params }: Props) {
 
   return (
     <>
-      <JsonLd data={guideLd({ slug, ...meta })} />
+      <JsonLd
+        data={guideLd({
+          slug,
+          ...meta,
+          section: primary?.label,
+          words,
+          minutes,
+        })}
+      />
       {/* Only when the guide actually renders the questions below — FAQPage
           markup for Q&A a visitor can't see on the page is a spam signal, and
           binding both to `meta.faq` is what makes that impossible here. */}

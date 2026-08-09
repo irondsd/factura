@@ -58,6 +58,16 @@ export const guideUrl = (slug: string): string => `${siteUrl}/guias/${slug}`;
 export const guideCategoryUrl = (id: string): string =>
   `${siteUrl}/guias/categoria/${id}`;
 
+/** The guide's generated social card (see the route for why it isn't the
+ * `opengraph-image` file convention).
+ *
+ * `updated` becomes a `?v=` stamp. Facebook, X and WhatsApp cache a scraped
+ * image against its URL for a long time, so without this a card would keep
+ * showing the old headline after a guide was retitled — the stamp changes only
+ * when the guide does, which is exactly when the picture is stale. */
+export const guideCardUrl = (slug: string, updated: string): string =>
+  `${siteUrl}/og/guias/${slug}/card.png?v=${updated.slice(0, 10).replace(/-/g, "")}`;
+
 /** Shared metadata for the guide listing pages (the index and the category
  * hubs) — same treatment, only the canonical URL differs. */
 function guideListingMetadata(
@@ -132,6 +142,17 @@ export function guideMetadata({
     // for the real thing.
     ogTitle: ogTitle ?? title,
     ogDescription,
+    // This guide's own card rather than the site's wordmark. Note it stays the
+    // guide's own even when `canonical` points elsewhere: the picture describes
+    // the page being shared, and only the ranking signals are consolidated.
+    images: [
+      {
+        url: guideCardUrl(slug, updated),
+        width: 1200,
+        height: 630,
+        alt: ogTitle ?? title,
+      },
+    ],
     keywords,
     type: "article",
     publishedTime: published,

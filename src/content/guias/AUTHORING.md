@@ -83,6 +83,8 @@ the situation below is actually the one you're in.
 | `titleTag`      | The headline is over 60 chars and worth keeping as an `<h1>`. ≤60, keyword first.                                                     |
 | `ogTitle`       | The social card wants a hook the search result shouldn't have. Defaults to `title`. ≤70.                                              |
 | `ogDescription` | Same, for the card's body copy. Defaults to `description`.                                                                            |
+| `vendor`        | The guide is about one company's bill — `"Edesur"`, `"MetroGAS"`, `"AySA"`. Names the card's eyebrow and the JSON-LD `about`.         |
+| `ogImage`       | Steers the generated card: `{ eyebrow, stat }`. See below.                                                                            |
 | `canonical`     | **Another guide's slug.** This guide competes with that one for the same query and that one should win. See below.                    |
 | `noindex`       | `true` while the guide is a draft: it renders at its URL, and appears in no listing, no sitemap, no `llms.txt`. Remove it to publish. |
 
@@ -102,6 +104,37 @@ it drops out of `sitemap.xml`. The validator checks the slug exists.
 category hubs, related-guide blocks, `llms.txt` and the sitemap — the article
 itself still renders, so you can read and share it before it's announced. The
 validator warns if a published guide links to one.
+
+### The social card
+
+Every guide gets its own generated card — the image WhatsApp, X and Slack show
+when the link is shared. It's built at
+`/og/guias/<slug>/card.png` from your `meta`, with no work on your part:
+
+```
+GUÍA · EDESUR                      ← vendor, or the primary category
+
+Cómo leer la factura de            ← title, sized to fit
+Edesur: guía completa
+
+───────────────────────────────
+Factura●              factura.uno/guias
+```
+
+Two slots can be steered when the defaults don't fit:
+
+```mdx
+ogImage: { eyebrow: "Inflación · Luz", stat: "+318% en dos años" },
+```
+
+- **`eyebrow`** replaces the whole top line. ≤42 chars — it's one line of
+  letter-spaced mono and it can't wrap.
+- **`stat`** puts one figure under the headline, in accent mono. For guides
+  whose answer _is_ a number. ≤28 chars. Use a figure the article actually
+  states.
+
+The card URL carries a `?v=` stamp from `meta.updated`, so bumping that date is
+what makes the social networks re-scrape a retitled guide.
 
 ### Timestamps
 

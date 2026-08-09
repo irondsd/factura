@@ -53,7 +53,8 @@ export type SeoOptions = {
   languages?: Record<string, string>;
   /** The other locale this page exists in, for `og:locale:alternate`. */
   alternateLocale?: Locale;
-  /** Social card override. Defaults to the shared site card. */
+  /** Social card override, used for both OG and Twitter. Defaults to the shared
+   * site card. */
   images?: OgImage[];
   publishedTime?: string;
   modifiedTime?: string;
@@ -114,7 +115,10 @@ export function buildMetadata({
       card: "summary_large_image",
       title: social,
       description: socialDescription,
-      images: [twitterImage],
+      // A page that brought its own card shows that card on X too. Only the
+      // pages falling back to the site default get the Twitter-specific asset,
+      // which exists because that one is cropped for it.
+      images: images ? images.map((image) => image.url) : [twitterImage],
     },
   };
 }

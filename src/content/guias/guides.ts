@@ -27,6 +27,17 @@ export type GuideMeta = {
    * copy. Both default to the headline/description above. */
   ogTitle?: string;
   ogDescription?: string;
+  /** Steers the generated social card at `/og/guias/<slug>/card.png`.
+   * `eyebrow` replaces the default "GUÍA · <vendor or category>" line; `stat`
+   * puts one figure under the headline, for the guides whose answer *is* a
+   * number ("+318% en dos años"). Both are text slots — the card's layout and
+   * palette aren't per-guide. */
+  ogImage?: { eyebrow?: string; stat?: string };
+  /** The company this guide is about — "Edesur", "Metrogas", "AySA". Names the
+   * card's eyebrow and becomes the JSON-LD `about`, which is how a search
+   * engine reading the markup learns the article is about that utility rather
+   * than merely mentioning it. Leave unset for a guide about a topic. */
+  vendor?: string;
   /** Short blurb shown on the /guias index cards. */
   summary: string;
   /** One line of copy for the `<TopCta />` banner the article route renders
@@ -118,23 +129,32 @@ function countWords(body: string): number {
   return prose.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
 }
 
-/** Estimated reading time for a guide, in whole minutes (never below 1).
+/** How long a guide is: words of real prose, and the reading time in whole
+ * minutes (never below 1). Both come off one read of the file, because the
+ * article route needs both — the minutes for its dateline, the words for the
+ * Article JSON-LD.
  *
  * `faq` is passed in because the Q&A lives in the `meta` block, which
  * `guideBody` strips — but it renders on the page like any other prose, and a
  * six-question FAQ is a couple of minutes of reading. Callers already hold the
  * meta, so threading it through beats re-parsing the block here. */
-export function readingMinutes(slug: string, faq?: GuideMeta["faq"]): number {
+export function guideStats(
+  slug: string,
+  faq?: GuideMeta["faq"],
+): { words: number; minutes: number } {
   const source = fs.readFileSync(path.join(DIR, `${slug}.mdx`), "utf8");
   const faqWords = (faq ?? []).reduce(
     (n, { q, a }) => n + countWords(`${q} ${a}`),
     0,
   );
-  return Math.max(
-    1,
-    Math.round((countWords(guideBody(source)) + faqWords) / WORDS_PER_MINUTE),
-  );
+  const words = countWords(guideBody(source)) + faqWords;
+  return { words, minutes: Math.max(1, Math.round(words / WORDS_PER_MINUTE)) };
 }
+
+/** Reading time alone, for the listings — they show the minutes and never the
+ * word count. */
+export const readingMinutes = (slug: string, faq?: GuideMeta["faq"]): number =>
+  guideStats(slug, faq).minutes;
 
 /** The sections of a guide, for its table of contents: every `##` in the body,
  * in order, with the id `rehype-slug` gave the rendered heading.

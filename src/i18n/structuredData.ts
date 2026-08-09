@@ -2,6 +2,7 @@ import "server-only";
 import { githubUrl, siteUrl } from "@/config/urls";
 import type { Locale } from "./config";
 import {
+  guideCardUrl,
   guideCategoryUrl,
   guidesIndexUrl,
   guideUrl,
@@ -111,16 +112,28 @@ export function guideLd({
   slug,
   title,
   description,
+  keywords,
   published,
   updated,
   canonical,
+  vendor,
+  section,
+  words,
+  minutes,
 }: {
   slug: string;
   title: string;
   description: string;
+  keywords: string[];
   published: string;
   updated: string;
   canonical?: string;
+  vendor?: string;
+  /** Label of the guide's primary category, for `articleSection`. */
+  section?: string;
+  /** Prose length and reading time, from `guideStats`. */
+  words: number;
+  minutes: number;
 }) {
   const url = guideUrl(canonical ?? slug);
   return {
@@ -133,7 +146,19 @@ export function guideLd({
     datePublished: published,
     dateModified: updated,
     mainEntityOfPage: url,
-    image: `${siteUrl}/opengraph-image.png`,
+    // The guide's own card, the same one `og:image` names.
+    image: guideCardUrl(slug, updated),
+    keywords: keywords.join(", "),
+    ...(section ? { articleSection: section } : {}),
+    // What the article is *about*, as opposed to what it mentions. Only set
+    // when the guide is about one company's bill, which is the case the
+    // distinction is worth drawing for.
+    ...(vendor ? { about: { "@type": "Organization", name: vendor } } : {}),
+    wordCount: words,
+    // ISO 8601 duration. Same number the page prints in its dateline, which is
+    // the point: the markup shouldn't claim a different article than the one on
+    // screen.
+    timeRequired: `PT${minutes}M`,
     author: { "@id": ORG_ID },
     publisher: { "@id": ORG_ID },
   };
