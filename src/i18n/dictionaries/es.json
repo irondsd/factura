@@ -53,6 +53,14 @@
       "authorize": "Autorizar acceso"
     }
   },
+  "notFound": {
+    "eyebrow": "Error 404",
+    "title": "Esta página no existe",
+    "body": "Puede que el enlace esté roto o que la dirección haya cambiado. Desde aquí vuelves a lo que sí existe.",
+    "home": "Ir al inicio",
+    "guides": "Ver las guías",
+    "app": "Ir a tu registro"
+  },
   "nav": {
     "docs": "Docs",
     "faq": "FAQ",

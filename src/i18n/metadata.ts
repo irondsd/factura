@@ -69,13 +69,24 @@ export const guideCardUrl = (slug: string, updated: string): string =>
   `${siteUrl}/og/guias/${slug}/card.png?v=${updated.slice(0, 10).replace(/-/g, "")}`;
 
 /** Shared metadata for the guide listing pages (the index and the category
- * hubs) — same treatment, only the canonical URL differs. */
+ * hubs) — same treatment, only the canonical URL differs.
+ *
+ * Titles are absolute here for the same reason the articles' are: these are
+ * guides pages, five of the eight category titles are over 50 characters, and
+ * appending "— Factura" is what would push them past what a search result
+ * shows. */
 function guideListingMetadata(
   url: string,
   title: string,
   description: string,
 ): Metadata {
-  return buildMetadata({ url, locale: "es", title, description });
+  return buildMetadata({
+    url,
+    locale: "es",
+    title,
+    titleAbsolute: true,
+    description,
+  });
 }
 
 export function guidesIndexMetadata({

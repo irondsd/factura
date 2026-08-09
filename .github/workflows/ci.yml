@@ -58,6 +58,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: bun run validate:guides
 
+      - name: Audit SEO
+        if: ${{ !cancelled() }}
+        run: bun run audit:seo
+
       - name: Test
         if: ${{ !cancelled() }}
         run: bun run test
@@ -79,3 +83,13 @@ jobs:
       - name: Build
         if: ${{ !cancelled() }}
         run: bun run build
+
+      # Audits the built output over the real serving path: starts `next start`
+      # against the build above and walks every URL in sitemap.xml, checking the
+      # things only the rendered page can answer — one self-referential
+      # canonical, a complete Open Graph block, no noindex or redirect on a URL
+      # we submit to Google, no two pages sharing a title or description, and
+      # every social card reachable. Needs the build, so it runs after it.
+      - name: Audit SEO
+        if: ${{ !cancelled() }}
+        run: bun run audit:seo

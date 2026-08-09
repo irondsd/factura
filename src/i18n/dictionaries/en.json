@@ -53,6 +53,14 @@
       "authorize": "Authorize access"
     }
   },
+  "notFound": {
+    "eyebrow": "Error 404",
+    "title": "This page doesn't exist",
+    "body": "The link may be broken, or the address may have changed. From here you can get back to something that does.",
+    "home": "Go to the homepage",
+    "guides": "Browse the guides",
+    "app": "Go to your ledger"
+  },
   "nav": {
     "docs": "Docs",
     "faq": "FAQ",

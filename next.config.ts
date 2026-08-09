@@ -2,6 +2,13 @@ import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Turns on `src/app/global-not-found.tsx` — the only way to give an
+    // unmatched URL a branded 404 here. See the comment in that file: with two
+    // root layouts and a top-level `[lang]` segment there is no root layout for
+    // a plain root `not-found.tsx` to render inside.
+    globalNotFound: true,
+  },
   // Let `.md`/`.mdx` be treated as source the loader compiles. Guides live in
   // `src/content/guias` and are pulled in via dynamic import (not file routing),
   // but `pageExtensions` is still required for `@next/mdx` to wire the loader.
