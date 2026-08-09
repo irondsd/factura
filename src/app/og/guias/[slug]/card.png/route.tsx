@@ -77,111 +77,107 @@ export async function GET(
     .toUpperCase();
 
   return new ImageResponse(
-    (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        backgroundColor: PAPER,
+        color: INK,
+        padding: "68px 76px",
+        fontFamily: "Fraunces",
+      }}
+    >
       <div
         style={{
-          width: "100%",
-          height: "100%",
+          fontFamily: "IBM Plex Mono",
+          fontSize: 25,
+          letterSpacing: "0.16em",
+          color: ACCENT,
+        }}
+      >
+        {eyebrow}
+      </div>
+
+      {/* Grows to fill whatever the headline doesn't, and hangs its contents
+            from the bottom — so a one-line title and a three-line one both sit
+            on the rule instead of floating at different heights. */}
+      <div
+        style={{
+          flex: 1,
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
-          backgroundColor: PAPER,
-          color: INK,
-          padding: "68px 76px",
-          fontFamily: "Fraunces",
+          justifyContent: "flex-end",
+          paddingBottom: 44,
         }}
       >
         <div
           style={{
-            fontFamily: "IBM Plex Mono",
-            fontSize: 25,
-            letterSpacing: "0.16em",
-            color: ACCENT,
-          }}
-        >
-          {eyebrow}
-        </div>
-
-        {/* Grows to fill whatever the headline doesn't, and hangs its contents
-            from the bottom — so a one-line title and a three-line one both sit
-            on the rule instead of floating at different heights. */}
-        <div
-          style={{
-            flex: 1,
+            fontSize: headlineSize(meta.title),
+            lineHeight: 1.12,
+            letterSpacing: "-0.025em",
+            // Satori has no line clamp; the size steps above are what keep a
+            // 60-character title inside the card.
             display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-end",
-            paddingBottom: 44,
           }}
         >
+          {meta.title}
+        </div>
+        {/* The stat is mono, like every other figure on the site — and not
+              optional here: satori draws Fraunces' "+" with a broken advance,
+              so "+318%" collides with its own digits in the display face. */}
+        {meta.ogImage?.stat !== undefined && (
           <div
             style={{
-              fontSize: headlineSize(meta.title),
-              lineHeight: 1.12,
-              letterSpacing: "-0.025em",
-              // Satori has no line clamp; the size steps above are what keep a
-              // 60-character title inside the card.
+              marginTop: 32,
+              fontFamily: "IBM Plex Mono",
+              fontSize: 40,
+              color: ACCENT,
               display: "flex",
             }}
           >
-            {meta.title}
+            {meta.ogImage.stat}
           </div>
-          {/* The stat is mono, like every other figure on the site — and not
-              optional here: satori draws Fraunces' "+" with a broken advance,
-              so "+318%" collides with its own digits in the display face. */}
-          {meta.ogImage?.stat !== undefined && (
-            <div
-              style={{
-                marginTop: 32,
-                fontFamily: "IBM Plex Mono",
-                fontSize: 40,
-                color: ACCENT,
-                display: "flex",
-              }}
-            >
-              {meta.ogImage.stat}
-            </div>
-          )}
-        </div>
+        )}
+      </div>
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "space-between",
-            borderTop: `2px solid ${LINE}`,
-            paddingTop: 28,
-          }}
-        >
-          {/* The wordmark, built the way the site builds it: the dot is a
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          borderTop: `2px solid ${LINE}`,
+          paddingTop: 28,
+        }}
+      >
+        {/* The wordmark, built the way the site builds it: the dot is a
               separate mark in the accent, not a period in the text. */}
-          <div style={{ display: "flex", alignItems: "flex-end" }}>
-            <div style={{ fontSize: 40, letterSpacing: "-0.02em" }}>
-              Factura
-            </div>
-            <div
-              style={{
-                width: 11,
-                height: 11,
-                marginLeft: 5,
-                marginBottom: 9,
-                borderRadius: 999,
-                backgroundColor: ACCENT,
-              }}
-            />
-          </div>
+        <div style={{ display: "flex", alignItems: "flex-end" }}>
+          <div style={{ fontSize: 40, letterSpacing: "-0.02em" }}>Factura</div>
           <div
             style={{
-              fontFamily: "IBM Plex Mono",
-              fontSize: 23,
-              color: MUTED,
+              width: 11,
+              height: 11,
+              marginLeft: 5,
+              marginBottom: 9,
+              borderRadius: 999,
+              backgroundColor: ACCENT,
             }}
-          >
-            factura.uno/guias
-          </div>
+          />
+        </div>
+        <div
+          style={{
+            fontFamily: "IBM Plex Mono",
+            fontSize: 23,
+            color: MUTED,
+          }}
+        >
+          factura.uno/guias
         </div>
       </div>
-    ),
+    </div>,
     {
       ...SIZE,
       fonts: [

@@ -16,12 +16,21 @@ function fakeDoc(pages: Item[][]) {
     getPage: async (i: number) => ({
       getTextContent: async () => ({ items: pages[i - 1] }),
     }),
+  };
+}
+
+/** A fake loading task, the shape `getDocument` returns. `destroy` lives here
+ * and not on the document: current PDF.js hangs teardown off the task, and the
+ * document proxy has no `destroy()` at all. */
+function fakeTask(doc: ReturnType<typeof fakeDoc>) {
+  return {
+    promise: Promise.resolve(doc),
     destroy: vi.fn().mockResolvedValue(undefined),
   };
 }
 
 function resolveWith(pages: Item[][]) {
-  getDocument.mockReturnValue({ promise: Promise.resolve(fakeDoc(pages)) });
+  getDocument.mockReturnValue(fakeTask(fakeDoc(pages)));
 }
 
 describe("extractPdfText", () => {
@@ -64,7 +73,7 @@ describe("extractPdfText", () => {
     // caller's original must survive.
     getDocument.mockImplementation(({ data }: { data: Uint8Array }) => {
       structuredClone(data.buffer, { transfer: [data.buffer] });
-      return { promise: Promise.resolve(fakeDoc([[{ str: "x" }]])) };
+      return fakeTask(fakeDoc([[{ str: "x" }]]));
     });
 
     const bytes = new Uint8Array([1, 2, 3, 4]);
@@ -75,10 +84,27 @@ describe("extractPdfText", () => {
   });
 
   it("releases the document when done", async () => {
-    const doc = fakeDoc([[{ str: "x" }]]);
-    getDocument.mockReturnValue({ promise: Promise.resolve(doc) });
+    const task = fakeTask(fakeDoc([[{ str: "x" }]]));
+    getDocument.mockReturnValue(task);
     await extractPdfText(new Uint8Array([1]));
-    expect(doc.destroy).toHaveBeenCalledOnce();
+    expect(task.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("releases the document even when a page throws", async () => {
+    // The read happens in a serverless invocation: a malformed page that escapes
+    // mid-loop must not leave the worker running behind it.
+    const task = fakeTask({
+      numPages: 1,
+      getPage: async () => {
+        throw new Error("broken page");
+      },
+    } as unknown as ReturnType<typeof fakeDoc>);
+    getDocument.mockReturnValue(task);
+
+    await expect(extractPdfText(new Uint8Array([1]))).rejects.toThrow(
+      "broken page",
+    );
+    expect(task.destroy).toHaveBeenCalledOnce();
   });
 });
 
@@ -116,7 +142,7 @@ describe("extractPdfDocument", () => {
     // to not do the work.
     const doc = fakeDoc([[{ str: "a" }], [{ str: "b" }], [{ str: "c" }]]);
     const getPage = vi.spyOn(doc, "getPage");
-    getDocument.mockReturnValue({ promise: Promise.resolve(doc) });
+    getDocument.mockReturnValue(fakeTask(doc));
     await extractPdfDocument(new Uint8Array([1]), { maxPages: 1 });
     expect(getPage).toHaveBeenCalledTimes(1);
   });

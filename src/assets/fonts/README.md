@@ -11,10 +11,10 @@ the only format `next/font` downloads. There is no supported way to get a font
 buffer out of `next/font`, so the card needs its own copy. Fetching them at
 build time instead would make every build depend on the network.
 
-| File                      | Family        | Source                                                           |
-| ------------------------- | ------------- | ---------------------------------------------------------------- |
-| `Fraunces-SemiBold.ttf`   | Fraunces 600  | Google Fonts (`fonts.gstatic.com`), v38, latin subset            |
-| `IBMPlexMono-Medium.ttf`  | IBM Plex Mono 500 | Google Fonts (`fonts.gstatic.com`), v20, latin subset        |
+| File                     | Family            | Source                                                |
+| ------------------------ | ----------------- | ----------------------------------------------------- |
+| `Fraunces-SemiBold.ttf`  | Fraunces 600      | Google Fonts (`fonts.gstatic.com`), v38, latin subset |
+| `IBMPlexMono-Medium.ttf` | IBM Plex Mono 500 | Google Fonts (`fonts.gstatic.com`), v20, latin subset |
 
 Both are licensed under the [SIL Open Font License 1.1](https://openfontlicense.org),
 which permits redistribution as part of this repository.

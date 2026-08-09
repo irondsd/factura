@@ -23,7 +23,11 @@ export async function extractPdfDocument(
   bytes: Uint8Array,
   opts: { maxPages?: number } = {},
 ): Promise<PdfExtract> {
-  const doc = await getDocument({
+  // The loading task is kept, not just its promise: teardown hangs off the task
+  // in current PDF.js. `PDFDocumentProxy.destroy()` was removed (the document
+  // only has `cleanup()` now), so destroying the task is what releases the
+  // worker.
+  const loadingTask = getDocument({
     // pdf.js takes ownership of this buffer and detaches it, so hand it a copy —
     // otherwise the caller's `bytes` become unusable (e.g. a later upload of the
     // same file would hit a detached ArrayBuffer).
@@ -31,30 +35,37 @@ export async function extractPdfDocument(
     // Fall back to the runtime's fonts instead of fetching PDF.js's standard-font
     // data files, which don't exist in a serverless bundle.
     useSystemFonts: true,
-  }).promise;
+  });
+  const doc = await loadingTask.promise;
 
-  const pageCount = doc.numPages;
-  const readable = Math.min(pageCount, opts.maxPages ?? pageCount);
+  try {
+    const pageCount = doc.numPages;
+    const readable = Math.min(pageCount, opts.maxPages ?? pageCount);
 
-  const pages: string[] = [];
-  for (let i = 1; i <= readable; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    // Drop marked-content markers (no `str`) — only real text items carry glyphs.
-    const text = content.items
-      .filter((item): item is TextItem => "str" in item)
-      .map((item) => item.str)
-      .join(" ");
-    pages.push(text);
+    const pages: string[] = [];
+    for (let i = 1; i <= readable; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      // Drop marked-content markers (no `str`) — only real text items carry
+      // glyphs.
+      const text = content.items
+        .filter((item): item is TextItem => "str" in item)
+        .map((item) => item.str)
+        .join(" ");
+      pages.push(text);
+    }
+
+    return {
+      text: pages.join("\n"),
+      pageCount,
+      truncated: readable < pageCount,
+    };
+  } finally {
+    // In a `finally` so a malformed page throwing half-way through still
+    // releases the worker: this runs inside a serverless invocation, where a
+    // leaked worker is a leaked instance.
+    await loadingTask.destroy();
   }
-  // Release the worker/document resources before returning.
-  await doc.destroy();
-
-  return {
-    text: pages.join("\n"),
-    pageCount,
-    truncated: readable < pageCount,
-  };
 }
 
 /** Text only, every page. The shape the authenticated ingest/extract routes have

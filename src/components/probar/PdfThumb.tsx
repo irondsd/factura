@@ -53,10 +53,13 @@ export function PdfThumb({
       try {
         const { getDocument } = await import("pdfjs-serverless");
         const bytes = new Uint8Array(await file.arrayBuffer());
-        const doc = await getDocument({
+        // Teardown lives on the loading task, not the document — current PDF.js
+        // has no `PDFDocumentProxy.destroy()`.
+        const loadingTask = getDocument({
           data: bytes,
           useSystemFonts: true,
-        }).promise;
+        });
+        const doc = await loadingTask.promise;
         const page = await doc.getPage(1);
 
         const canvas = canvasRef.current;
@@ -81,7 +84,7 @@ export function PdfThumb({
         });
         task = render;
         await render.promise;
-        await doc.destroy();
+        await loadingTask.destroy();
         if (!cancelled) setRendered(true);
       } catch {
         // A cancelled render rejects too; that isn't a failure worth falling
