@@ -38,6 +38,19 @@
     "probar": {
       "title": "Try your bill",
       "description": "Drop a bill PDF and see what Factura reads from it: vendor, amount, period and due date. No account, nothing to install."
+    },
+    "app": {
+      "overview": "Overview",
+      "insights": "Insights",
+      "bills": "Bills",
+      "properties": "Properties",
+      "profile": "Profile",
+      "sessions": "Sessions",
+      "parsers": "Parsers",
+      "builder": "Parser builder",
+      "login": "Sign in",
+      "deleteAccount": "Delete your account",
+      "authorize": "Authorize access"
     }
   },
   "nav": {

@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { loginTarget } from "@/lib/nextPath";
+import { appPageMetadata } from "@/lib/seo";
 import { SHARE_DENIED, SHARE_PARAM } from "@/lib/shareTarget";
 import { auth } from "@/server/auth";
 import { LoginForm } from "./LoginForm";
+
+export function generateMetadata(): Promise<Metadata> {
+  return appPageMetadata("login");
+}
 
 /** A repeated query parameter is a malformed request, not a list — take the
  * first so every check below sees a single unambiguous value. */

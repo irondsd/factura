@@ -1,9 +1,11 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Button } from "@/components/ui";
 import { getI18n } from "@/i18n/server";
 import { interpolate } from "@/i18n/config";
 import { db } from "@/db";
+import { appPageMetadata } from "@/lib/seo";
 import { auth } from "@/server/auth";
 import { checkAuthorizeRequest, redirectBack } from "@/server/mcp/authorize";
 import { mcpResourceUrl } from "@/server/mcp/config";
@@ -11,6 +13,10 @@ import { findClient } from "@/server/mcp/oauth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+export function generateMetadata(): Promise<Metadata> {
+  return appPageMetadata("authorize");
+}
 
 /** The OAuth authorization endpoint, and the only screen in this whole feature
  * a person ever reads.

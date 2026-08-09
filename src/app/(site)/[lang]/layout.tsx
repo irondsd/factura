@@ -1,18 +1,35 @@
 import "../../globals.css";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LangSuggestBanner } from "@/components/landing/LangSuggestBanner";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { fraunces, plexMono } from "@/config/fonts";
-import { metadata, viewport } from "@/config/meta";
-import { isLocale, locales } from "@/i18n/config";
+import { baseMetadata, viewport } from "@/config/meta";
+import { isLocale, locales, toLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { siteLd } from "@/i18n/structuredData";
 import { ToastProvider } from "@/providers/ToastProvider";
 
-// Base metadata (metadataBase, title template, OG defaults, robots, icons). Each
-// landing page refines title/description/canonical/hreflang via generateMetadata.
-export { metadata, viewport };
+export { viewport };
+
+// Base metadata (metadataBase, title template, OG defaults, robots, icons) in
+// the language of the route, so a page that sets no metadata of its own — a 404
+// under /en, say — doesn't answer in the wrong one. Every real landing page
+// refines title/description/canonical/hreflang via its own generateMetadata.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = toLocale((await params).lang);
+  const t = await getDictionary(locale);
+  return baseMetadata({
+    locale,
+    title: t.meta.home.title,
+    description: t.meta.home.description,
+  });
+}
 
 // Pre-render both locales: /es/* and /en/* are static. The proxy serves the
 // Spanish pages at the bare paths (/, /faq, …) and redirects /es/* away.

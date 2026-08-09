@@ -38,6 +38,19 @@
     "probar": {
       "title": "Probá tu factura",
       "description": "Soltá el PDF de tu factura y mirá qué datos extrae Factura: proveedor, importe, período y vencimiento. Sin cuenta, sin instalar nada."
+    },
+    "app": {
+      "overview": "Resumen",
+      "insights": "Análisis",
+      "bills": "Facturas",
+      "properties": "Propiedades",
+      "profile": "Perfil",
+      "sessions": "Sesiones",
+      "parsers": "Analizadores",
+      "builder": "Constructor de analizadores",
+      "login": "Ingresar",
+      "deleteAccount": "Eliminar tu cuenta",
+      "authorize": "Autorizar acceso"
     }
   },
   "nav": {

@@ -1,14 +1,12 @@
 import "server-only";
 import type { Metadata } from "next";
 import { siteUrl } from "@/config/urls";
+import { buildMetadata } from "@/lib/seo";
 import type { Locale } from "./config";
 
-// Per-page SEO metadata for the localized landing. Spanish (default) lives at
-// the bare path and is the canonical/x-default; English lives under `/en`.
-// Emits `canonical`, `hreflang` alternates, and `og:locale` so Google can
-// index both languages as distinct URLs.
-
-const OG_LOCALE: Record<Locale, string> = { es: "es_AR", en: "en_US" };
+// Per-page SEO metadata: the URL layer. These are thin wrappers that work out
+// which absolute URLs a page has, then hand off to `buildMetadata`
+// (src/lib/seo.ts), which owns the actual OG/Twitter/canonical composition.
 
 /** Absolute URL for a landing path in a locale. `path` is the canonical (es)
  * path, e.g. "/" or "/faq". */
@@ -17,6 +15,10 @@ export function localeUrl(path: string, locale: Locale): string {
   return locale === "en" ? `${siteUrl}/en${path}` : `${siteUrl}${path}`;
 }
 
+/** A bilingual landing page. Spanish (default) lives at the bare path and is the
+ * canonical/x-default; English lives under `/en`. Emits `canonical`, `hreflang`
+ * alternates, and `og:locale` so Google can index both languages as distinct
+ * URLs. */
 export function pageMetadata({
   path,
   locale,
@@ -30,35 +32,14 @@ export function pageMetadata({
 }): Metadata {
   const esUrl = localeUrl(path, "es");
   const enUrl = localeUrl(path, "en");
-  const current = locale === "en" ? enUrl : esUrl;
-  return {
+  return buildMetadata({
+    url: locale === "en" ? enUrl : esUrl,
+    locale,
     title,
     description,
-    alternates: {
-      canonical: current,
-      languages: {
-        "es-AR": esUrl,
-        en: enUrl,
-        "x-default": esUrl,
-      },
-    },
-    openGraph: {
-      url: current,
-      title,
-      description,
-      locale: OG_LOCALE[locale],
-      alternateLocale: OG_LOCALE[locale === "en" ? "es" : "en"],
-      images: [
-        { url: "/opengraph-image.png", width: 2400, height: 1260, alt: title },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: ["/twitter-image.png"],
-    },
-  };
+    languages: { "es-AR": esUrl, en: enUrl, "x-default": esUrl },
+    alternateLocale: locale === "en" ? "es" : "en",
+  });
 }
 
 // ── Guides (Spanish-only) ─────────────────────────────────────────────────
@@ -77,34 +58,14 @@ export const guideUrl = (slug: string): string => `${siteUrl}/guias/${slug}`;
 export const guideCategoryUrl = (id: string): string =>
   `${siteUrl}/guias/categoria/${id}`;
 
-/** Shared metadata shape for the guide listing pages (the index and the category
- * hubs) — same OG/Twitter treatment, only the canonical URL differs. */
+/** Shared metadata for the guide listing pages (the index and the category
+ * hubs) — same treatment, only the canonical URL differs. */
 function guideListingMetadata(
   url: string,
   title: string,
   description: string,
 ): Metadata {
-  return {
-    title,
-    description,
-    alternates: { canonical: url },
-    openGraph: {
-      type: "website",
-      url,
-      title,
-      description,
-      locale: OG_LOCALE.es,
-      images: [
-        { url: "/opengraph-image.png", width: 2400, height: 1260, alt: title },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: ["/twitter-image.png"],
-    },
-  };
+  return buildMetadata({ url, locale: "es", title, description });
 }
 
 export function guidesIndexMetadata({
@@ -144,29 +105,14 @@ export function guideMetadata({
   published: string;
   updated: string;
 }): Metadata {
-  const url = guideUrl(slug);
-  return {
+  return buildMetadata({
+    url: guideUrl(slug),
+    locale: "es",
     title,
     description,
     keywords,
-    alternates: { canonical: url },
-    openGraph: {
-      type: "article",
-      url,
-      title,
-      description,
-      locale: OG_LOCALE.es,
-      publishedTime: published,
-      modifiedTime: updated,
-      images: [
-        { url: "/opengraph-image.png", width: 2400, height: 1260, alt: title },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: ["/twitter-image.png"],
-    },
-  };
+    type: "article",
+    publishedTime: published,
+    modifiedTime: updated,
+  });
 }
