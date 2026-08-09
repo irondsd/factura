@@ -4,6 +4,7 @@ import path from "node:path";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentType } from "react";
 import { CATEGORIES, type Category, type CategoryId } from "./categories";
+import { extractHeadings, FAQ_SECTION, type GuideHeading } from "./headings";
 
 // Build-time access to the guide MDX files. Guides are Spanish-only evergreen
 // SEO articles authored as `.mdx` in this directory; each file exports a `meta`
@@ -112,6 +113,29 @@ export function readingMinutes(slug: string, faq?: GuideMeta["faq"]): number {
     1,
     Math.round((countWords(guideBody(source)) + faqWords) / WORDS_PER_MINUTE),
   );
+}
+
+/** The sections of a guide, for its table of contents: every `##` in the body,
+ * in order, with the id `rehype-slug` gave the rendered heading.
+ *
+ * The FAQ is appended when the guide has one *and* places it, because it reads
+ * as a section like any other even though its heading isn't in the body. It's
+ * dropped if a real heading already took that id, which would otherwise mean a
+ * contents entry pointing at the wrong section. */
+export function guideHeadings(
+  slug: string,
+  faq?: GuideMeta["faq"],
+): GuideHeading[] {
+  const body = guideBody(
+    fs.readFileSync(path.join(DIR, `${slug}.mdx`), "utf8"),
+  );
+  const headings = extractHeadings(body);
+
+  const hasFaq = (faq?.length ?? 0) > 0 && /<Faq[\s/>]/.test(body);
+  if (hasFaq && !headings.some((h) => h.id === FAQ_SECTION.id)) {
+    headings.push({ ...FAQ_SECTION });
+  }
+  return headings;
 }
 
 /** Slugs of every guide (filenames without the `.mdx` extension). */

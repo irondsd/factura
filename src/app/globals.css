@@ -238,6 +238,16 @@
     border-color var(--dur) var(--ease-standard);
 }
 
+/* Opted into per layout via the attribute (see `(site)/[lang]/layout.tsx`), not
+   applied to every `html` — the app shell wants instant jumps. Left alone under
+   reduced motion, which is also what keeps `BackToTop`'s explicit
+   `behavior: "auto"` honest: `auto` resolves to this computed value. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-scroll-behavior="smooth"] {
+    scroll-behavior: smooth;
+  }
+}
+
 body {
   background-color: var(--paper);
   background-image: radial-gradient(var(--line) 0.75px, transparent 0.75px);

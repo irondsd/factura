@@ -1,5 +1,6 @@
 import { Eyebrow } from "@/components/landing/parts";
 import type { GuideMeta } from "@/content/guias/guides";
+import { FAQ_SECTION } from "@/content/guias/headings";
 
 // The "Preguntas frecuentes" block a guide drops in with a bare <Faq />. Same
 // contract as RelatedGuides (see AUTHORING.md §5): the tag takes no props, the
@@ -15,8 +16,14 @@ export function Faq({ items }: { items: NonNullable<GuideMeta["faq"]> }) {
   if (items.length === 0) return null;
 
   return (
-    <section className="my-12 border-t border-line pt-6">
-      <Eyebrow>Preguntas frecuentes</Eyebrow>
+    // The id is the anchor the table of contents links to — the block is a
+    // section of the article like any other, but its heading isn't in the MDX
+    // for rehype-slug to have given one. `scroll-mt` matches the body headings.
+    <section
+      id={FAQ_SECTION.id}
+      className="my-12 scroll-mt-24 border-t border-line pt-6"
+    >
+      <Eyebrow>{FAQ_SECTION.text}</Eyebrow>
 
       <dl className="mt-5 m-0 flex flex-col gap-6">
         {items.map(({ q, a }) => (

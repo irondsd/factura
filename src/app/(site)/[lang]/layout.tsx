@@ -38,6 +38,14 @@ export default async function LandingRootLayout({
   return (
     <html
       lang={lang}
+      // Hash links glide to their section instead of teleporting — the guide
+      // table of contents, mostly. The attribute does double duty: it's the
+      // hook the CSS in globals.css matches on (so the `(app)` layout keeps the
+      // instant default), and it's what tells Next 16 to suspend smooth
+      // scrolling for the duration of a route change. Without it, every
+      // navigation would animate its jump to the top. See the "Scroll Behavior
+      // Override" note in next/dist/docs/…/upgrading/version-16.md.
+      data-scroll-behavior="smooth"
       className={`${fraunces.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
