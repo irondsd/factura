@@ -147,19 +147,39 @@ module, next to the code that reads it — not here.
 
 ## 7. Charts
 
-Figures are server-rendered SVG, not recharts: these pages are static and
-crawled, and a charting library is a large download for a picture that can't
-change between builds. See `components/estadisticas/IpcViviendaChart.tsx`, and
-`lib/svg-chart.ts` for the shared geometry.
+Figures use **recharts**, the same library as the signed-in app's charts, so a
+hovered point gives its exact value instead of a pixel to eyeball against an
+axis. A figure is split in two, and the seam matters:
 
-Two rules that matter more than they look:
+- `IpcViviendaChart.tsx` — a **server** component. Owns the `<figure>` shell,
+  the caption and the source note, and shapes the dataset into plain rows.
+- `IpcChartBody.tsx` — `"use client"`. Owns the heading, the stat line, any
+  control (the year picker), and the plot.
 
-- **Lay out every figure twice**, wide and narrow, with CSS picking one. An SVG
-  scales its text along with everything else, so one wide viewBox squeezed onto
-  a phone renders 12px labels at 6px.
+Anything that changes when the reader clicks something belongs on the client
+side of that line, *including the text that describes it*: a stat line that
+still quotes 2026 under a chart showing 2020 is worse than no stat line. Nothing
+is lost to search by putting text there — a client component is server-rendered
+too, so the initial HTML carries the heading, the figures and the control. Only
+the plot waits for the browser, because recharts has to measure a box first.
+
+Three rules worth stating:
+
+- **Put the numbers in the HTML as text.** The plot isn't in the markup, so
+  without a stat line the page would carry no figures at all for a crawler.
+- **Give the chart wrapper a fixed height.** `ResponsiveContainer` renders
+  nothing until it has measured, so an auto-height wrapper collapses and then
+  jumps.
 - **Share one scale across every cut of the same measure.** A per-chart
   auto-scale makes the calmest region look exactly as convulsed as the wildest,
-  which defeats the reason for showing them side by side.
+  which defeats the reason for showing them side by side. Where a shared scale
+  can't work — the monthly charts, where 2020 moved by tenths of a point and
+  2024 by forty — share it across the *regions* and say in the note what the
+  axis is doing.
+
+Compute axis ticks with `niceTicks` (`lib/svg-chart.ts`) and pass them to the
+`YAxis` rather than letting recharts pick, so gridlines land on round numbers
+and zero is always one of them.
 
 Register a new chart component in `src/mdx-components.tsx` so `.mdx` can use it
 without an import.

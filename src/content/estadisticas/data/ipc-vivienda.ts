@@ -176,6 +176,47 @@ export function monthly(region: RegionId): number[] {
   return POINTS.map((p) => p[region]);
 }
 
+/** Every calendar year with at least one published month, oldest first — the
+ * options in a monthly chart's year picker. */
+export const YEARS: readonly number[] = [
+  ...new Set(PERIODS.map((p) => Number(p.slice(0, 4)))),
+];
+
+/** The most recent year with data. Where a monthly chart opens: the reader who
+ * arrives from a search for "cuánto aumentó el gas" wants this year, not 2020. */
+export const LAST_YEAR = YEARS[YEARS.length - 1];
+
+/** Short month names, for chart axes and tooltips. */
+const MONTH_SHORT = MONTH_NAMES.map((m) => m.slice(0, 3));
+
+/** One region's monthly variation across a single calendar year. The current
+ * year comes back short — a chart with three published months should draw three
+ * bars, not nine empty slots pretending the data exists. */
+export function monthlyYear(
+  region: RegionId,
+  year: number,
+): { period: string; label: string; value: number }[] {
+  return POINTS.filter((p) => p.period.startsWith(String(year))).map((p) => ({
+    period: p.period,
+    label: MONTH_SHORT[Number(p.period.slice(4, 6)) - 1],
+    value: p[region],
+  }));
+}
+
+/** The range every region's monthly variation spans in `year`.
+ *
+ * Per year, but across all seven regions — which is the axis the monthly charts
+ * share. The reasoning is in the chart component: within a year the useful
+ * comparison is region against region, and that only works if they're all drawn
+ * on one scale. Zero is always inside the range, since it's the line the columns
+ * hang from. */
+export function monthlyRange(year: number): { min: number; max: number } {
+  const values = REGION_IDS.flatMap((r) =>
+    monthlyYear(r, year).map((p) => p.value),
+  );
+  return { min: Math.min(0, ...values), max: Math.max(0, ...values) };
+}
+
 /** The price level implied by the monthly variations, with the first month of
  * the series = 100. Not published as such — it's the running product of the
  * variations, and it exists so the interannual rate below can be a division

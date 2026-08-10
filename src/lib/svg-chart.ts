@@ -1,10 +1,13 @@
-// Geometry shared by the site's *static* SVG figures — the ones the guides and
-// the statistics pages render on the server, without recharts. See the note at
-// the top of `components/guides/InflacionChart.tsx` for why those pages draw
-// their own charts instead of shipping a charting library to a reader.
+// Chart geometry with no chart library attached.
 //
-// Pure arithmetic, no React and no styling: everything here takes numbers in
-// viewBox units and gives back numbers or a path string.
+// `smoothPath` serves the guides' *static* SVG figures, which are drawn on the
+// server without recharts — see the note at the top of
+// `components/guides/InflacionChart.tsx` for why those pages draw their own.
+// `niceTicks` serves both those and the recharts axes on /estadisticas, which
+// pass it explicit ticks rather than letting the library pick.
+//
+// Pure arithmetic, no React and no styling: everything here takes numbers and
+// gives back numbers or a path string.
 
 export type Point = { x: number; y: number };
 
