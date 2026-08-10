@@ -1,8 +1,9 @@
 import GithubSlugger from "github-slugger";
 
-// The guide table of contents, derived from the article itself. Nothing is
-// declared in an `.mdx` file: the `##` headings an author already writes *are*
-// the contents, so a guide can't drift out of sync with its own outline.
+// The table of contents of an `.mdx` article — guides and statistics pages
+// alike — derived from the article itself. Nothing is declared in the file: the
+// `##` headings an author already writes *are* the contents, so a page can't
+// drift out of sync with its own outline.
 //
 // The ids have to match the ones in the rendered HTML exactly or every link
 // points at nothing, and those come from `rehype-slug` (see next.config.ts),
@@ -12,7 +13,7 @@ import GithubSlugger from "github-slugger";
 // sharing an h2's text shifts the suffix on a later duplicate. Filtering to h2
 // before slugging would silently drift.
 
-export type GuideHeading = {
+export type Heading = {
   /** The `id` rehype-slug puts on the rendered heading. */
   id: string;
   /** Heading text, inline markdown removed. */
@@ -22,11 +23,20 @@ export type GuideHeading = {
 /** The FAQ block, which is a section of the article like any other but isn't in
  * the MDX body — the author drops in a bare `<Faq />` and the route feeds it
  * `meta.faq`. Its id is fixed rather than slugged because `Faq` has to render
- * the same one; `guideHeadings` skips the entry outright in the (unlikely) case
- * that a real heading already claimed it. */
+ * the same one; the content modules skip the entry outright in the (unlikely)
+ * case that a real heading already claimed it. */
 export const FAQ_SECTION = {
   id: "preguntas-frecuentes",
   text: "Preguntas frecuentes",
+} as const;
+
+/** The sources block on a statistics page — same arrangement as the FAQ above:
+ * a bare `<Fuentes />` in the body, the content fed from `meta.sources` by the
+ * route. Lives here rather than beside the component so the content modules can
+ * name it without importing React. */
+export const SOURCES_SECTION = {
+  id: "fuentes",
+  text: "Fuentes",
 } as const;
 
 /** ATX heading: `## Text`, with markdown's optional closing run of `#`. */
@@ -48,14 +58,14 @@ function headingText(raw: string): string {
     .trim();
 }
 
-/** The h2 headings of a guide body, in document order, with the ids they carry
- * in the rendered page.
+/** The h2 headings of an article body, in document order, with the ids they
+ * carry in the rendered page.
  *
  * Expects the body with its `export const meta` block already stripped; see
- * `guideBody` in ./guides.ts. */
-export function extractHeadings(body: string): GuideHeading[] {
+ * `mdxBody` in ./mdx.ts. */
+export function extractHeadings(body: string): Heading[] {
   const slugger = new GithubSlugger();
-  const headings: GuideHeading[] = [];
+  const headings: Heading[] = [];
   let fenced = false;
 
   for (const line of body.split("\n")) {

@@ -1,0 +1,195 @@
+import { TEMPORAL_COVERAGE } from "./data/ipc-vivienda";
+
+export const meta = {
+  title: "Inflación de vivienda, luz, gas y agua en Argentina",
+  description:
+    "Cuánto aumentaron la vivienda, el agua, la electricidad y el gas en Argentina, mes a mes y año a año, con el IPC del INDEC para el país y las seis regiones.",
+  summary:
+    "La división del IPC que reúne alquiler, expensas, luz, gas y agua: la serie mensual completa desde 2020, para Argentina y para cada región del INDEC.",
+  ogStat: "IPC división 04, por región",
+  cta: "Mira cuánto subieron tus propias boletas, no el promedio.",
+  keywords: [
+    "aumento de vivienda agua electricidad y gas",
+    "inflación vivienda argentina",
+    "ipc vivienda agua electricidad gas",
+    "cuánto aumentó el gas",
+    "cuánto aumentó la luz",
+    "aumento de gas por región",
+    "indec ipc por región",
+  ],
+  published: "2026-08-10T10:00:00-03:00",
+  updated: "2026-08-10T10:00:00-03:00",
+  faq: [
+    {
+      q: "¿Qué mide el IPC de vivienda, agua, electricidad, gas y otros combustibles?",
+      a: "Mide cuánto cambian los precios de todo lo que cuesta habitar una vivienda: el alquiler y las expensas, el mantenimiento, el agua, la electricidad, el gas de red y el envasado. Es una de las doce divisiones en las que el INDEC parte la canasta del índice de precios al consumidor, y se publica todos los meses junto con el nivel general.",
+    },
+    {
+      q: "¿Cada cuánto se actualizan estos datos?",
+      a: "Una vez por mes. El INDEC publica el índice de precios al consumidor alrededor de la mitad del mes siguiente al que mide, y esta página se actualiza con el dato nuevo cuando sale. La fecha del último dato disponible está indicada al pie de cada gráfico.",
+    },
+    {
+      q: "¿Cuál es la diferencia entre la variación mensual y la interanual?",
+      a: "La variación mensual compara un mes contra el anterior y sirve para ver saltos puntuales, como un aumento de tarifas. La interanual compara un mes contra el mismo mes del año anterior y sirve para ver cuánto más caro es hoy mantener una casa que hace doce meses, sin que la estacionalidad distorsione la comparación.",
+    },
+    {
+      q: "¿Por qué el aumento del gas y de la luz es distinto en cada región?",
+      a: "Porque las tarifas de electricidad y gas dependen de la distribuidora, de la jurisdicción que aprueba el cuadro tarifario y de los regímenes especiales que apliquen, como la zona fría en el sur. A eso se suma el clima: en la Patagonia la calefacción se usa muchos más meses al año que en el Noreste, así que el mismo aumento porcentual pesa distinto en el presupuesto.",
+    },
+    {
+      q: "¿Por qué mi factura subió más que el índice?",
+      a: "Porque un índice es un promedio y tu boleta no lo es. Sobre el mismo aumento de tarifa influyen tu categoría tarifaria, si tienes o no subsidio, y sobre todo cuánto consumiste en el período. Para saber cuánto subió lo tuyo hay que comparar tus propias facturas contra el mismo período del año anterior.",
+    },
+    {
+      q: "¿De dónde salen estos datos?",
+      a: "Del INDEC, el organismo oficial de estadística de Argentina, que releva el índice junto con las direcciones provinciales de estadística. Los enlaces a la fuente original están al final de la página.",
+    },
+  ],
+  sources: [
+    {
+      label: "INDEC — Instituto Nacional de Estadística y Censos",
+      href: "https://www.indec.gob.ar/",
+      note: "Organismo que releva, calcula y publica el índice de precios al consumidor.",
+    },
+    {
+      label: "INDEC — Serie del IPC por aperturas (CSV)",
+      href: "https://www.indec.gob.ar/ftp/cuadros/economia/serie_ipc_aperturas.csv",
+      note: "Serie completa por división, región y mes, en el formato que publica el organismo.",
+    },
+  ],
+  dataset: {
+    name: "IPC — Vivienda, agua, electricidad, gas y otros combustibles, por región (Argentina)",
+    description:
+      "Variación porcentual mensual del índice de precios al consumidor para la división 04 (vivienda, agua, electricidad, gas y otros combustibles), para el total nacional y las seis regiones estadísticas del INDEC.",
+    temporalCoverage: TEMPORAL_COVERAGE,
+    spatialCoverage: "Argentina",
+    variableMeasured: [
+      "Variación mensual del IPC, división vivienda, agua, electricidad, gas y otros combustibles",
+      "Variación interanual del IPC, división vivienda, agua, electricidad, gas y otros combustibles",
+    ],
+  },
+};
+
+Cuando se habla de inflación casi siempre se habla de un solo número: el que el INDEC publica a mitad de mes y los diarios titulan al día siguiente. Ese número es un promedio de toda la canasta de consumo de los hogares, y adentro conviven cosas que se mueven de maneras muy distintas.
+
+Esta página mira una sola porción de esa canasta, la que se llama **vivienda, agua, electricidad, gas y otros combustibles**. Es la división del índice donde entran el alquiler, las expensas, la boleta de luz, la de gas y la de agua: casi todo lo que se paga por el solo hecho de habitar una casa. Desde fines de 2023 es también una de las divisiones que más subió, y por un margen amplio.
+
+En Factura ordenamos facturas de servicios del hogar, así que estos datos son el contexto de lo que hacemos todos los días. Los publicamos aquí porque el dato oficial existe, es gratuito y es bueno, pero vive en planillas que hay que descargar, filtrar y graficar antes de poder leer. La idea es que puedas ver la serie completa, por región, sin descargar nada.
+
+## Qué vas a encontrar en esta página
+
+- **La foto del último mes publicado**, región por región, en la tabla de aquí abajo.
+- **Cómo se mide** el índice, quién lo publica, cada cuánto y qué incluye cada región.
+- **Catorce gráficos**: para Argentina y para cada una de las seis regiones del INDEC, la variación interanual y la variación mensual de la división.
+- **Las fuentes**, al final, para que puedas ir al dato original.
+
+<ResumenIpc />
+
+Las dos columnas responden preguntas distintas. La **mensual** dice cuánto se movieron los precios respecto del mes anterior: es el número corto, el que sirve para saber si el mes fue tranquilo o si hubo un salto de tarifas. La **interanual** compara contra el mismo mes del año pasado y es la que conviene mirar para saber cuánto más caro es hoy mantener una casa que hace doce meses.
+
+## Cómo se mide este índice
+
+El **índice de precios al consumidor (IPC)** mide cuánto cambia, mes a mes, el precio de un conjunto representativo de bienes y servicios que consumen los hogares. No es el precio de una cosa: es un promedio ponderado, donde cada rubro pesa según cuánto del gasto de un hogar se le va en él. Ese peso sale de la Encuesta Nacional de Gastos de los Hogares.
+
+El índice se expresa como un número sin unidad, tomando un mes como base. La serie nacional vigente tiene base **diciembre de 2016 = 100**, así que un valor de 500 significa que los precios de ese rubro son cinco veces los de diciembre de 2016. Como ese número en bruto dice poco, lo que se publica y lo que se lee es su **variación**: mensual, interanual o acumulada en el año.
+
+El organismo responsable es el **INDEC** (Instituto Nacional de Estadística y Censos), que releva el índice junto con las direcciones provinciales de estadística. El relevamiento combina precios tomados en comercios de todo el país con las tarifas de los servicios regulados, que se leen de los cuadros tarifarios vigentes. El dato de cada mes se publica alrededor de la mitad del mes siguiente.
+
+### Qué entra en esta división
+
+La división que sigue esta página es la **04** de la clasificación del consumo, y agrupa cuatro cosas que llegan por separado pero se pagan por lo mismo:
+
+- **Alquiler de la vivienda y gastos conexos**, donde el INDEC releva también las expensas.
+- **Mantenimiento y reparación de la vivienda**.
+- **Suministro de agua y otros servicios relacionados con la vivienda**.
+- **Electricidad, gas y otros combustibles**, que incluye la garrafa y el gas envasado.
+
+Por eso conviene leerla como el costo total de tener la casa funcionando, y no como "la boleta de luz": una suba fuerte de la energía puede quedar amortiguada por el resto de la división, y al revés.
+
+### Las regiones
+
+El INDEC no publica un solo número para todo el país. Publica el total nacional y seis regiones, y las diferencias entre ellas suelen ser grandes, sobre todo en energía: las tarifas de luz y gas dependen de la distribuidora, del clima y de los cuadros tarifarios de cada jurisdicción.
+
+<RegionesIpc />
+
+### Cómo leer los gráficos
+
+Cada región tiene dos gráficos. El de **variación interanual** compara cada mes contra el mismo mes del año anterior: es la línea que muestra el ciclo largo, con el pico de 2024 y el descenso posterior. El de **variación mensual** muestra el dato tal como lo publica el INDEC, mes a mes, donde se ven los saltos puntuales de tarifas.
+
+Dos aclaraciones sobre cómo están construidos:
+
+- **Todas las regiones comparten la misma escala.** Un gráfico auto-ajustado a su propio máximo haría que la región más tranquila se viera igual de convulsionada que la más volátil. Aquí no: si una línea es más baja, es porque el dato es más bajo.
+- **La variación interanual está calculada a partir de las variaciones mensuales publicadas**, que vienen redondeadas a un decimal. Eso puede dejar el resultado unas décimas por debajo o por encima del interanual que publica el INDEC para el mismo mes. La forma de la curva no cambia; el número exacto, cuando lo necesites, está en la fuente.
+
+## Argentina
+
+El total nacional es el promedio ponderado de las seis regiones. Es el número que se cita como "la inflación de vivienda y servicios" del país, y el que conviene usar para comparar esta división contra el nivel general de precios.
+
+<IpcViviendaChart region="nacional" variacion="interanual" />
+
+<IpcViviendaChart region="nacional" variacion="mensual" />
+
+## Gran Buenos Aires
+
+Es la región de mayor peso en el índice nacional, y la que concentra la mayor parte de los usuarios de Edesur, Edenor, Metrogas, Naturgy y AySA. Si vives en la Ciudad de Buenos Aires o en el conurbano, esta es tu serie.
+
+<IpcViviendaChart region="gba" variacion="interanual" />
+
+<IpcViviendaChart region="gba" variacion="mensual" />
+
+## Región Pampeana
+
+Cubre el interior de la provincia de Buenos Aires más Córdoba, Santa Fe, Entre Ríos y La Pampa: es la región más extensa del índice y, por lejos, la más heterogénea en distribuidoras eléctricas y de gas.
+
+<IpcViviendaChart region="pampeana" variacion="interanual" />
+
+<IpcViviendaChart region="pampeana" variacion="mensual" />
+
+## Noreste argentino
+
+Corrientes, Chaco, Formosa y Misiones. Es la región con menor penetración de gas de red del país, así que buena parte del gasto en energía del hogar pasa por la garrafa y por la electricidad, que en verano carga además con la refrigeración.
+
+<IpcViviendaChart region="noreste" variacion="interanual" />
+
+<IpcViviendaChart region="noreste" variacion="mensual" />
+
+## Noroeste argentino
+
+Catamarca, Jujuy, La Rioja, Salta, Santiago del Estero y Tucumán.
+
+<IpcViviendaChart region="noroeste" variacion="interanual" />
+
+<IpcViviendaChart region="noroeste" variacion="mensual" />
+
+## Cuyo
+
+Mendoza, San Juan y San Luis.
+
+<IpcViviendaChart region="cuyo" variacion="interanual" />
+
+<IpcViviendaChart region="cuyo" variacion="mensual" />
+
+## Patagonia
+
+Chubut, Neuquén, Río Negro, Santa Cruz y Tierra del Fuego. Es la región donde el gas pesa más en el presupuesto del hogar, por el simple hecho de que la calefacción se usa muchos más meses al año; también es la que tiene el régimen tarifario más particular, con la zona fría.
+
+<IpcViviendaChart region="patagonia" variacion="interanual" />
+
+<IpcViviendaChart region="patagonia" variacion="mensual" />
+
+## De la estadística a tu factura
+
+Un índice describe el promedio de un país o de una región. Tu boleta no es un promedio: depende de tu distribuidora, de tu categoría tarifaria, de si tienes subsidio y de cuánto consumiste ese mes. Puede subir mucho más que el índice, o mucho menos, y la única manera de saberlo es medir tus propias facturas.
+
+Eso es exactamente lo que hace Factura: cargas los PDF que ya recibes y ves tu propia serie, boleta por boleta, con la comparación contra el mismo mes del año anterior. Si quieres el método a mano, está en la guía sobre [cómo medir tu inflación personal](/guias/como-medir-tu-inflacion-personal); y el detalle de por qué la energía se despegó del resto de los precios, en [cuánto aumentó la luz en Argentina](/guias/cuanto-aumento-la-luz-en-argentina) y [cuánto aumentó el gas](/guias/cuanto-aumento-el-gas-en-argentina).
+
+<ClosingCta title="Tu propia serie, no el promedio">
+  Sube el PDF de cualquier boleta de luz, gas o agua y Factura extrae el
+  importe, el período y el consumo, y arma tu histórico mes a mes. Ese es el
+  número que te toca a ti, y es el único que se puede comparar de verdad contra
+  el índice de esta página.
+</ClosingCta>
+
+<Faq />
+
+<Fuentes />

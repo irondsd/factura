@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { GuideHeading } from "@/content/guias/headings";
+import type { Heading } from "@/content/headings";
 import { cn } from "@/lib/cn";
 
-// A guide's table of contents, built from its own `##` headings — see
-// `guideHeadings` in content/guias/guides.ts. Two placements of the same list:
-// a sticky column beside the article on a wide screen, and a collapsed block at
-// the top of the page on a phone. Both are server-rendered into the HTML, so
-// the anchors are there for a crawler (and for anyone with JS off) either way.
+// An article's table of contents, built from its own `##` headings — see
+// `guideHeadings` / `statsHeadings` in the content modules. Two placements of
+// the same list: a sticky column beside the article on a wide screen, and a
+// collapsed block at the top of the page on a phone. Both are server-rendered
+// into the HTML, so the anchors are there for a crawler (and for anyone with JS
+// off) either way.
+//
+// `label` is the heading over the list — "En esta guía" on a guide, "En esta
+// página" on a statistics page. The two placements of one page must be given
+// the same one; the route passes it once to each.
 
 // Below this the contents is noise: two or three lines that say little more
 // than the title already did, in exchange for pushing the article down.
@@ -27,7 +32,7 @@ function TocList({
   headings,
   active,
 }: {
-  headings: GuideHeading[];
+  headings: Heading[];
   active?: string;
 }) {
   return (
@@ -63,7 +68,7 @@ function TocList({
  * because the question — "which heading is the last one above this line" — has
  * an answer at every scroll position, including the ones where no heading is on
  * screen at all. Coalesced to one read per frame, as in `BackToTop`. */
-function useActiveHeading(headings: GuideHeading[]): string | undefined {
+function useActiveHeading(headings: Heading[]): string | undefined {
   const [active, setActive] = useState<string>();
 
   useEffect(() => {
@@ -110,21 +115,27 @@ function useActiveHeading(headings: GuideHeading[]): string | undefined {
 
 /** The desktop contents: a sticky column in the gutter to the right of the
  * article, which is empty space at these widths anyway. Renders the `<aside>`
- * itself so that a guide with too few sections leaves no column behind. */
-export function GuideTocSidebar({ headings }: { headings: GuideHeading[] }) {
-  // Split so the scroll tracking is never mounted for a guide that shows no
+ * itself so that an article with too few sections leaves no column behind. */
+export function TocSidebar({
+  headings,
+  label,
+}: {
+  headings: Heading[];
+  label: string;
+}) {
+  // Split so the scroll tracking is never mounted for an article that shows no
   // contents at all — a hook can't sit behind the early return.
   if (headings.length < MIN_SECTIONS) return null;
-  return <StickyToc headings={headings} />;
+  return <StickyToc headings={headings} label={label} />;
 }
 
-function StickyToc({ headings }: { headings: GuideHeading[] }) {
+function StickyToc({ headings, label }: { headings: Heading[]; label: string }) {
   const active = useActiveHeading(headings);
 
   return (
     <aside className="hidden w-[220px] shrink-0 pt-10 lg:block">
       {/* Clears the 60px sticky header. Capped and scrollable: the longest
-          guides run to ten sections, which is taller than a laptop viewport
+          articles run to ten sections, which is taller than a laptop viewport
           once the header is out of the way. */}
       <nav
         aria-labelledby="toc-title"
@@ -134,7 +145,7 @@ function StickyToc({ headings }: { headings: GuideHeading[] }) {
           id="toc-title"
           className="m-0 mb-3 pl-3 font-mono text-micro uppercase tracking-label-wide text-muted"
         >
-          En esta guía
+          {label}
         </p>
         <TocList headings={headings} active={active} />
       </nav>
@@ -146,13 +157,19 @@ function StickyToc({ headings }: { headings: GuideHeading[] }) {
  * — a ten-item list expanded on a phone is most of a screen between the reader
  * and the first paragraph — but the links are in the markup regardless, since
  * `<details>` hides its content rather than dropping it. */
-export function GuideTocInline({ headings }: { headings: GuideHeading[] }) {
+export function TocInline({
+  headings,
+  label,
+}: {
+  headings: Heading[];
+  label: string;
+}) {
   if (headings.length < MIN_SECTIONS) return null;
 
   return (
     <details className="mt-8 border border-line bg-card lg:hidden [&[open]_.toc-caret]:rotate-180">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-mono text-micro uppercase tracking-label-wide text-muted [&::-webkit-details-marker]:hidden">
-        En esta guía
+        {label}
         <svg
           className="toc-caret transition-transform duration-200"
           width="14"

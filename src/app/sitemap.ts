@@ -1,10 +1,13 @@
 import type { MetadataRoute } from "next";
+import { listedStatsPages } from "@/content/estadisticas/pages";
 import { listedGuides, nonEmptyCategories } from "@/content/guias/guides";
 import {
   guideCategoryUrl,
   guidesIndexUrl,
   guideUrl,
   localeUrl,
+  statsIndexUrl,
+  statsUrl,
 } from "@/i18n/metadata";
 
 // Only genuinely public, logged-out-visible pages belong here. The
@@ -88,5 +91,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })),
   ];
 
-  return [...landing, ...guidesEntries];
+  // Statistics pages, Spanish-only like the guides. `lastModified` is
+  // `meta.updated` and that's load-bearing here: these pages gain a data point
+  // every month, and the date is how a crawler learns to come back.
+  const stats = await listedStatsPages();
+  const statsEntries: MetadataRoute.Sitemap = [
+    {
+      url: statsIndexUrl,
+      lastModified: stats.length
+        ? new Date(Math.max(...stats.map((p) => Date.parse(p.meta.updated))))
+        : now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    ...stats.map((p) => ({
+      url: statsUrl(p.slug),
+      lastModified: new Date(p.meta.updated),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+  ];
+
+  return [...landing, ...guidesEntries, ...statsEntries];
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Breadcrumbs } from "@/components/guides/Breadcrumbs";
+import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { CategoryChips } from "@/components/guides/CategoryChips";
 import { GuideList } from "@/components/guides/GuideList";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
