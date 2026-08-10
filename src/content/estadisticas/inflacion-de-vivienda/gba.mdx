@@ -1,0 +1,105 @@
+import { TEMPORAL_COVERAGE } from "../data/ipc-vivienda";
+
+export const meta = {
+  title: "Inflación de vivienda, luz y gas en el Gran Buenos Aires",
+  titleTag: "Inflación de vivienda, luz y gas en el GBA",
+  description:
+    "Cuánto aumentaron la vivienda, el agua, la electricidad y el gas en el Gran Buenos Aires, mes a mes y año a año, con el IPC del INDEC para la región GBA.",
+  summary:
+    "CABA y los 24 partidos: la región de mayor peso en el índice nacional, y la de Edesur, Edenor, Metrogas, Naturgy y AySA.",
+  ogStat: "IPC división 04 · GBA",
+  cta: "¿Tu boleta de Edesur o Metrogas subió más que esto? Compruébalo.",
+  keywords: [
+    "aumento de gas en buenos aires",
+    "aumento de luz en caba",
+    "inflación vivienda gba",
+    "ipc gran buenos aires vivienda",
+    "cuánto aumentó la luz en buenos aires",
+    "aumento de expensas y alquiler gba",
+  ],
+  published: "2026-08-10T10:00:00-03:00",
+  updated: "2026-08-10T10:00:00-03:00",
+  faq: [
+    {
+      q: "¿Qué incluye la región GBA del INDEC?",
+      a: "La Ciudad Autónoma de Buenos Aires y los 24 partidos del Gran Buenos Aires. No incluye el resto de la provincia de Buenos Aires, que el INDEC releva dentro de la región Pampeana.",
+    },
+    {
+      q: "¿Sirve este índice para mi factura de Edesur o de Edenor?",
+      a: "Sirve como referencia de cuánto se movió el precio promedio de la energía y de la vivienda en tu región, no como el aumento exacto de tu boleta. El índice mezcla electricidad, gas, agua, alquiler y expensas, y tu factura depende además de tu categoría tarifaria, de si tienes subsidio y de cuánto consumiste.",
+    },
+    {
+      q: "¿Las expensas están dentro de este índice?",
+      a: "Sí. El INDEC las releva dentro de la apertura de alquiler de la vivienda y gastos conexos, que forma parte de esta división. Por eso el índice del GBA no se mueve solo con las tarifas de luz y gas.",
+    },
+    {
+      q: "¿Por qué el GBA no siempre coincide con el promedio nacional?",
+      a: "Porque el nacional es el promedio ponderado de las seis regiones. El GBA es la de mayor peso, así que suele quedar cerca, pero sus tarifas de electricidad y gas dependen de cuadros tarifarios y distribuidoras propias, que no se actualizan en el mismo momento que en el resto del país.",
+    },
+  ],
+  sources: [
+    {
+      label: "INDEC — Instituto Nacional de Estadística y Censos",
+      href: "https://www.indec.gob.ar/",
+      note: "Organismo que releva, calcula y publica el índice de precios al consumidor.",
+    },
+    {
+      label: "INDEC — Serie del IPC por aperturas (CSV)",
+      href: "https://www.indec.gob.ar/ftp/cuadros/economia/serie_ipc_aperturas.csv",
+      note: "Serie completa por división, región y mes, en el formato que publica el organismo.",
+    },
+  ],
+  dataset: {
+    name: "IPC — Vivienda, agua, electricidad, gas y otros combustibles, región GBA",
+    description:
+      "Variación porcentual mensual del índice de precios al consumidor para la división 04 (vivienda, agua, electricidad, gas y otros combustibles) en la región Gran Buenos Aires, que comprende la Ciudad Autónoma de Buenos Aires y los 24 partidos del conurbano.",
+    temporalCoverage: TEMPORAL_COVERAGE,
+    spatialCoverage:
+      "Gran Buenos Aires, Argentina (Ciudad Autónoma de Buenos Aires y 24 partidos)",
+    variableMeasured: [
+      "Variación mensual del IPC, división vivienda, agua, electricidad, gas y otros combustibles",
+      "Variación interanual del IPC, división vivienda, agua, electricidad, gas y otros combustibles",
+    ],
+  },
+};
+
+El **Gran Buenos Aires** es, para el INDEC, la Ciudad Autónoma de Buenos Aires más los 24 partidos del conurbano. Es la región de mayor peso en el índice nacional, y por lejos la que más gente busca cuando quiere saber cuánto subió la luz o el gas: es donde facturan Edesur y Edenor, Metrogas y Naturgy BAN, y AySA.
+
+También es la región donde más hogares viven en departamento, así que dentro de esta división pesan de manera muy visible dos cosas que en el resto del país aparecen menos: el alquiler y las **expensas**. Es la razón por la que el índice del GBA puede moverse en un mes sin que haya habido ningún aumento de tarifas.
+
+<ResumenRegion region="gba" />
+
+## Cuánto subió año contra año
+
+La variación interanual compara cada mes contra el mismo mes del año anterior. Es la lectura que sirve para ver el ciclo completo: el salto de 2024, cuando la recomposición de tarifas se trasladó a las boletas, y el descenso posterior hacia valores más parecidos al resto de los precios.
+
+<IpcViviendaChart region="gba" variacion="interanual" />
+
+## Cuánto subió mes a mes
+
+La variación mensual es el número que el INDEC publica cada mes. Aquí se lee de a un año por vez: en el gráfico se ven los saltos puntuales, que casi siempre coinciden con la entrada en vigencia de un cuadro tarifario nuevo, y los meses tranquilos entre uno y otro.
+
+<IpcViviendaChart region="gba" variacion="mensual" />
+
+## Qué mide exactamente este índice
+
+Es la división **04** del índice de precios al consumidor: vivienda, agua, electricidad, gas y otros combustibles. Junta el alquiler y las expensas, el mantenimiento de la vivienda, el agua, la electricidad y el gas —de red y envasado—. Conviene leerla como el costo total de tener la casa funcionando, y no como "la boleta de luz".
+
+La metodología completa —quién releva el índice, cada cuánto se publica, qué entra en cada apertura y cómo están construidos estos gráficos— está en la [página principal de inflación de vivienda](/estadisticas/inflacion-de-vivienda).
+
+## Cómo se compara con el resto del país
+
+El GBA es una de seis regiones, y las diferencias entre ellas son grandes: dependen de la distribuidora, del clima y de la jurisdicción que aprueba cada cuadro tarifario. La comparación de las seis en un mismo gráfico, y el acumulado de cada una desde el inicio de la serie, están en la [comparación entre regiones](/estadisticas/inflacion-de-vivienda#las-seis-regiones-comparadas).
+
+Si quieres el detalle de por qué la energía se despegó del resto de los precios, está en las guías sobre [cuánto aumentó la luz](/guias/cuanto-aumento-la-luz-en-argentina) y [cuánto aumentó el gas](/guias/cuanto-aumento-el-gas-en-argentina).
+
+<ClosingCta title="Tu boleta contra el índice de tu región">
+  Sube el PDF de tu factura de Edesur, Edenor, Metrogas, Naturgy o AySA y
+  Factura extrae el importe, el período y el consumo, y arma tu histórico mes a
+  mes. Recién ahí se puede saber si lo tuyo subió más o menos que el promedio
+  del GBA.
+</ClosingCta>
+
+<Faq />
+
+<Fuentes />

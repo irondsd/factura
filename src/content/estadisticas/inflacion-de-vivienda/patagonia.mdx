@@ -1,0 +1,104 @@
+import { TEMPORAL_COVERAGE } from "../data/ipc-vivienda";
+
+export const meta = {
+  title: "Inflación de vivienda, luz y gas en la Patagonia",
+  description:
+    "Cuánto aumentaron la vivienda, el agua, la electricidad y el gas en la Patagonia —Río Negro, Neuquén, Chubut, Santa Cruz y Tierra del Fuego—, según el INDEC.",
+  summary:
+    "Río Negro, Neuquén, Chubut, Santa Cruz y Tierra del Fuego: la región donde el gas pesa más en el presupuesto del hogar, y la única con régimen de zona fría.",
+  ogStat: "IPC división 04 · Patagonia",
+  cta: "¿Tu boleta de gas subió más que esto? Compruébalo.",
+  keywords: [
+    "aumento de gas en patagonia",
+    "aumento de gas en neuquén",
+    "inflación vivienda patagonia",
+    "ipc patagonia vivienda",
+    "zona fría gas",
+    "aumento de luz en río negro",
+  ],
+  published: "2026-08-10T10:00:00-03:00",
+  updated: "2026-08-10T10:00:00-03:00",
+  faq: [
+    {
+      q: "¿Qué provincias incluye la Patagonia del INDEC?",
+      a: "Río Negro, Neuquén, Chubut, Santa Cruz y Tierra del Fuego. Adentro quedan localidades como Bariloche, Esquel, Trelew, Comodoro Rivadavia, Río Gallegos y Ushuaia.",
+    },
+    {
+      q: "¿Qué es la zona fría y cómo afecta a la factura de gas?",
+      a: "Es un régimen que otorga una bonificación sobre el consumo de gas en las zonas más frías del país, pensado justamente porque allí la calefacción se usa muchos más meses al año. Reduce lo que paga el hogar, pero no cambia la tarifa que el índice mide: por eso el índice puede subir aunque la boleta con bonificación suba menos.",
+    },
+    {
+      q: "¿Por qué el gas pesa tanto en la Patagonia?",
+      a: "Porque la temporada de calefacción es mucho más larga que en el resto del país. Sobre la misma tarifa, un hogar patagónico consume varias veces lo que consume uno del norte, así que cualquier movimiento del precio del gas se siente más en el presupuesto.",
+    },
+    {
+      q: "¿Que la región produzca gas hace que sea más barato?",
+      a: "No directamente. La producción se concentra allí, pero el precio que paga un hogar sale de un cuadro tarifario regulado, no de la cercanía al yacimiento. Lo que sí existe es el régimen de zona fría, que es un descuento explícito sobre el consumo.",
+    },
+  ],
+  sources: [
+    {
+      label: "INDEC — Instituto Nacional de Estadística y Censos",
+      href: "https://www.indec.gob.ar/",
+      note: "Organismo que releva, calcula y publica el índice de precios al consumidor.",
+    },
+    {
+      label: "INDEC — Serie del IPC por aperturas (CSV)",
+      href: "https://www.indec.gob.ar/ftp/cuadros/economia/serie_ipc_aperturas.csv",
+      note: "Serie completa por división, región y mes, en el formato que publica el organismo.",
+    },
+  ],
+  dataset: {
+    name: "IPC — Vivienda, agua, electricidad, gas y otros combustibles, región Patagonia",
+    description:
+      "Variación porcentual mensual del índice de precios al consumidor para la división 04 (vivienda, agua, electricidad, gas y otros combustibles) en la región Patagonia, que comprende Río Negro, Neuquén, Chubut, Santa Cruz y Tierra del Fuego.",
+    temporalCoverage: TEMPORAL_COVERAGE,
+    spatialCoverage:
+      "Patagonia, Argentina (Río Negro, Neuquén, Chubut, Santa Cruz y Tierra del Fuego)",
+    variableMeasured: [
+      "Variación mensual del IPC, división vivienda, agua, electricidad, gas y otros combustibles",
+      "Variación interanual del IPC, división vivienda, agua, electricidad, gas y otros combustibles",
+    ],
+  },
+};
+
+La **Patagonia** —Río Negro, Neuquén, Chubut, Santa Cruz y Tierra del Fuego— es la región donde el gas pesa más en el presupuesto del hogar, y por una razón que no tiene nada que ver con la tarifa: la temporada de calefacción dura muchos más meses que en el resto del país. Sobre el mismo precio por metro cúbico, un hogar de Ushuaia o de Esquel consume varias veces lo que consume uno del norte.
+
+Es también la única región con un **régimen de zona fría**: una bonificación sobre el consumo de gas pensada justamente para eso. Conviene tenerlo presente al leer estos gráficos, porque el índice mide el precio y no el descuento: la boleta de un hogar alcanzado por el régimen puede subir menos de lo que sube la serie.
+
+<ResumenRegion region="patagonia" />
+
+## Cuánto subió año contra año
+
+La variación interanual compara cada mes contra el mismo mes del año anterior. En una región con una estacionalidad de consumo tan marcada, es la única lectura que compara peras con peras: julio contra julio, no julio contra junio.
+
+<IpcViviendaChart region="patagonia" variacion="interanual" />
+
+## Cuánto subió mes a mes
+
+La variación mensual es el dato que el INDEC publica cada mes, leído de a un año por vez. Ojo con una confusión frecuente: esto mide **precios**, no lo que llega en la boleta. Una factura de invierno puede multiplicarse sin que la tarifa se haya movido un punto, simplemente porque se consumió más.
+
+<IpcViviendaChart region="patagonia" variacion="mensual" />
+
+## Qué mide exactamente este índice
+
+Es la división **04** del índice de precios al consumidor: vivienda, agua, electricidad, gas y otros combustibles. Junta el alquiler y las expensas, el mantenimiento de la vivienda, el agua, la electricidad y el gas —de red y envasado—.
+
+La metodología completa está en la [página principal de inflación de vivienda](/estadisticas/inflacion-de-vivienda).
+
+## Cómo se compara con el resto del país
+
+Las seis regiones en un mismo gráfico, y el acumulado de cada una desde el inicio de la serie, están en la [comparación entre regiones](/estadisticas/inflacion-de-vivienda#las-seis-regiones-comparadas).
+
+Para separar cuánto de tu factura de invierno fue aumento y cuánto fue consumo, el método está en la guía sobre [cuánto aumentó el gas](/guias/cuanto-aumento-el-gas-en-argentina); y las condiciones del descuento, en [cómo funciona el subsidio de gas](/guias/subsidio-de-gas-como-funciona).
+
+<ClosingCta title="Tu boleta contra el índice de tu región">
+  Sube el PDF de tu factura de gas o de luz y Factura extrae el importe, el
+  período y el consumo. Con los metros cúbicos a la vista se puede separar lo
+  que subió de tarifa de lo que subió de consumo — que en la Patagonia es la
+  mitad de la respuesta.
+</ClosingCta>
+
+<Faq />
+
+<Fuentes />

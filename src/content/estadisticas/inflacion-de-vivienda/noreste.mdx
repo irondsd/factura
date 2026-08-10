@@ -1,0 +1,103 @@
+import { TEMPORAL_COVERAGE } from "../data/ipc-vivienda";
+
+export const meta = {
+  title: "Inflación de vivienda, luz y gas en el Noreste argentino",
+  description:
+    "Cuánto aumentaron la vivienda, el agua, la electricidad y el gas en el Noreste argentino —Corrientes, Chaco, Formosa y Misiones—, mes a mes y año a año, según el INDEC.",
+  summary:
+    "Corrientes, Chaco, Formosa y Misiones: la región con menos gas de red del país, donde la garrafa y la electricidad cargan con casi toda la energía del hogar.",
+  ogStat: "IPC división 04 · Noreste",
+  cta: "¿Tu boleta de luz o tu garrafa subieron más que esto? Compruébalo.",
+  keywords: [
+    "aumento de luz en corrientes",
+    "aumento de luz en chaco",
+    "inflación vivienda noreste argentino",
+    "ipc nea vivienda",
+    "aumento de la garrafa",
+    "aumento de luz en misiones",
+  ],
+  published: "2026-08-10T10:00:00-03:00",
+  updated: "2026-08-10T10:00:00-03:00",
+  faq: [
+    {
+      q: "¿Qué provincias incluye el Noreste argentino del INDEC?",
+      a: "Corrientes, Chaco, Formosa y Misiones. Es la región que el INDEC identifica como Noreste, también conocida por la sigla NEA.",
+    },
+    {
+      q: "¿Por qué la garrafa importa tanto en esta región?",
+      a: "Porque es la región con menor cobertura de gas natural por red del país. Donde no llega la red, el hogar cocina y calienta agua con gas envasado, cuyo precio se mueve de manera distinta a la tarifa de gas de red — y esta división del índice incluye a los dos.",
+    },
+    {
+      q: "¿Cuándo sube más la factura de luz en el Noreste?",
+      a: "En verano. En una región con calor intenso y poca penetración de gas de red, el pico de consumo eléctrico es la refrigeración, no la calefacción. Es lo contrario de lo que ocurre en la Patagonia, donde el consumo se dispara en invierno y sobre todo con el gas.",
+    },
+    {
+      q: "¿Este índice incluye el alquiler y el agua?",
+      a: "Sí. La división junta el alquiler y las expensas, el mantenimiento de la vivienda, el suministro de agua, la electricidad y el gas de red y envasado. Es el costo total de tener la casa funcionando.",
+    },
+  ],
+  sources: [
+    {
+      label: "INDEC — Instituto Nacional de Estadística y Censos",
+      href: "https://www.indec.gob.ar/",
+      note: "Organismo que releva, calcula y publica el índice de precios al consumidor.",
+    },
+    {
+      label: "INDEC — Serie del IPC por aperturas (CSV)",
+      href: "https://www.indec.gob.ar/ftp/cuadros/economia/serie_ipc_aperturas.csv",
+      note: "Serie completa por división, región y mes, en el formato que publica el organismo.",
+    },
+  ],
+  dataset: {
+    name: "IPC — Vivienda, agua, electricidad, gas y otros combustibles, región Noreste",
+    description:
+      "Variación porcentual mensual del índice de precios al consumidor para la división 04 (vivienda, agua, electricidad, gas y otros combustibles) en la región Noreste argentino, que comprende Corrientes, Chaco, Formosa y Misiones.",
+    temporalCoverage: TEMPORAL_COVERAGE,
+    spatialCoverage:
+      "Noreste argentino (Corrientes, Chaco, Formosa y Misiones)",
+    variableMeasured: [
+      "Variación mensual del IPC, división vivienda, agua, electricidad, gas y otros combustibles",
+      "Variación interanual del IPC, división vivienda, agua, electricidad, gas y otros combustibles",
+    ],
+  },
+};
+
+El **Noreste argentino** —Corrientes, Chaco, Formosa y Misiones, el NEA— tiene una particularidad que cambia por completo cómo se lee su índice: es la región con menor cobertura de gas natural por red del país. En buena parte de sus hogares no hay boleta de gas, hay **garrafa**.
+
+Eso reordena el peso de las cosas. La energía del hogar pasa sobre todo por la electricidad y por el gas envasado, dos precios que se mueven con lógicas distintas: uno con cuadros tarifarios y el otro con el precio del producto y sus programas de subsidio. Y el pico de consumo cae en **verano**, con la refrigeración, no en invierno — al revés que en el sur del país.
+
+<ResumenRegion region="noreste" />
+
+## Cuánto subió año contra año
+
+La variación interanual compara cada mes contra el mismo mes del año anterior. Es la lectura que mejor muestra el ciclo largo, sin que la estacionalidad —muy marcada en esta región— confunda la comparación.
+
+<IpcViviendaChart region="noreste" variacion="interanual" />
+
+## Cuánto subió mes a mes
+
+La variación mensual es el dato tal como lo publica el INDEC, leído de a un año por vez.
+
+<IpcViviendaChart region="noreste" variacion="mensual" />
+
+## Qué mide exactamente este índice
+
+Es la división **04** del índice de precios al consumidor: vivienda, agua, electricidad, gas y otros combustibles. Incluye el gas envasado y la garrafa, además del gas de red, que es la razón por la que sigue siendo la división correcta para esta región aunque la red llegue a pocos hogares.
+
+La metodología completa está en la [página principal de inflación de vivienda](/estadisticas/inflacion-de-vivienda).
+
+## Cómo se compara con el resto del país
+
+Las seis regiones en un mismo gráfico, y el acumulado de cada una desde el inicio de la serie, están en la [comparación entre regiones](/estadisticas/inflacion-de-vivienda#las-seis-regiones-comparadas).
+
+Si en tu casa se usa garrafa, conviene revisar además el [subsidio de garrafa y cómo cobrarlo](/guias/subsidio-de-garrafa-como-cobrarlo): es una de las pocas palancas que cambia de verdad lo que se paga.
+
+<ClosingCta title="Tu boleta contra el índice de tu región">
+  Sube el PDF de tu factura de luz o de agua y Factura extrae el importe, el
+  período y el consumo, y arma tu histórico mes a mes. Recién ahí se puede saber
+  si lo tuyo subió más o menos que el promedio del Noreste.
+</ClosingCta>
+
+<Faq />
+
+<Fuentes />

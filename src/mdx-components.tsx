@@ -7,6 +7,7 @@ import {
 import { IpcViviendaChart } from "@/components/estadisticas/IpcViviendaChart";
 import { RegionesIpc } from "@/components/estadisticas/RegionesIpc";
 import { ResumenIpc } from "@/components/estadisticas/ResumenIpc";
+import { ResumenRegion } from "@/components/estadisticas/ResumenRegion";
 import {
   ClosingCta,
   CtaButton,
@@ -152,16 +153,18 @@ const components: MDXComponents = {
   MultiploRegiones,
   RegionesIpc,
   ResumenIpc,
+  ResumenRegion,
   ProbarCta,
   SignupCta,
-  // <RelatedGuides />, <Faq /> and <Fuentes /> need to know which article
-  // they're in, and `useMDXComponents` takes no arguments — so the article
-  // routes override these entries with bound ones via the `components` prop.
-  // These no-ops are the fallback for any other renderer: no article context, so
-  // nothing to show.
+  // <RelatedGuides />, <Faq />, <Fuentes /> and <Subpaginas /> need to know
+  // which article they're in, and `useMDXComponents` takes no arguments — so the
+  // article routes override these entries with bound ones via the `components`
+  // prop. These no-ops are the fallback for any other renderer: no article
+  // context, so nothing to show.
   RelatedGuides: () => null,
   Faq: () => null,
   Fuentes: () => null,
+  Subpaginas: () => null,
 };
 
 export function useMDXComponents(): MDXComponents {

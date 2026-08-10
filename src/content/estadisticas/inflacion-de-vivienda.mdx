@@ -80,8 +80,9 @@ En Factura ordenamos facturas de servicios del hogar, así que estos datos son e
 
 - **La foto del último mes publicado**, región por región, en la tabla de aquí abajo.
 - **Cómo se mide** el índice, quién lo publica, cada cuánto y qué incluye cada región.
-- **Catorce gráficos**: para Argentina y para cada una de las seis regiones del INDEC, la variación interanual y la variación mensual de la división.
+- **El dato nacional**, en su variación interanual y su variación mensual.
 - **La comparación entre regiones**, con las seis en un mismo gráfico y el acumulado de cada una desde que empieza la serie.
+- **Una página por región**, con sus gráficos y sus números propios.
 - **Las fuentes**, al final, para que puedas ir al dato original.
 
 <ResumenIpc />
@@ -115,11 +116,11 @@ El INDEC no publica un solo número para todo el país. Publica el total naciona
 
 ### Cómo leer los gráficos
 
-Cada región tiene dos gráficos. El de **variación interanual** compara cada mes contra el mismo mes del año anterior: es la línea que muestra el ciclo largo, con el pico de 2024 y el descenso posterior. El de **variación mensual** muestra el dato tal como lo publica el INDEC, mes a mes, donde se ven los saltos puntuales de tarifas.
+El de **variación interanual** compara cada mes contra el mismo mes del año anterior: es la línea que muestra el ciclo largo, con el pico de 2024 y el descenso posterior. El de **variación mensual** muestra el dato tal como lo publica el INDEC, mes a mes, y se lee de a un año por vez.
 
 Dos aclaraciones sobre cómo están construidos:
 
-- **Todas las regiones comparten la misma escala.** Un gráfico auto-ajustado a su propio máximo haría que la región más tranquila se viera igual de convulsionada que la más volátil. Aquí no: si una línea es más baja, es porque el dato es más bajo.
+- **Los gráficos de una misma medida comparten la escala.** Uno auto-ajustado a su propio máximo haría que la región más tranquila se viera igual de convulsionada que la más volátil. Aquí no: si una línea es más baja, es porque el dato es más bajo.
 - **La variación interanual está calculada a partir de las variaciones mensuales publicadas**, que vienen redondeadas a un decimal. Eso puede dejar el resultado unas décimas por debajo o por encima del interanual que publica el INDEC para el mismo mes. La forma de la curva no cambia; el número exacto, cuando lo necesites, está en la fuente.
 
 ## Argentina
@@ -130,57 +131,9 @@ El total nacional es el promedio ponderado de las seis regiones. Es el número q
 
 <IpcViviendaChart region="nacional" variacion="mensual" />
 
-## Gran Buenos Aires
+## Las seis regiones, comparadas
 
-Es la región de mayor peso en el índice nacional, y la que concentra la mayor parte de los usuarios de Edesur, Edenor, Metrogas, Naturgy y AySA. Si vives en la Ciudad de Buenos Aires o en el conurbano, esta es tu serie.
-
-<IpcViviendaChart region="gba" variacion="interanual" />
-
-<IpcViviendaChart region="gba" variacion="mensual" />
-
-## Región Pampeana
-
-Cubre el interior de la provincia de Buenos Aires más Córdoba, Santa Fe, Entre Ríos y La Pampa: es la región más extensa del índice y, por lejos, la más heterogénea en distribuidoras eléctricas y de gas.
-
-<IpcViviendaChart region="pampeana" variacion="interanual" />
-
-<IpcViviendaChart region="pampeana" variacion="mensual" />
-
-## Noreste argentino
-
-Corrientes, Chaco, Formosa y Misiones. Es la región con menor penetración de gas de red del país, así que buena parte del gasto en energía del hogar pasa por la garrafa y por la electricidad, que en verano carga además con la refrigeración.
-
-<IpcViviendaChart region="noreste" variacion="interanual" />
-
-<IpcViviendaChart region="noreste" variacion="mensual" />
-
-## Noroeste argentino
-
-Catamarca, Jujuy, La Rioja, Salta, Santiago del Estero y Tucumán.
-
-<IpcViviendaChart region="noroeste" variacion="interanual" />
-
-<IpcViviendaChart region="noroeste" variacion="mensual" />
-
-## Cuyo
-
-Mendoza, San Juan y San Luis.
-
-<IpcViviendaChart region="cuyo" variacion="interanual" />
-
-<IpcViviendaChart region="cuyo" variacion="mensual" />
-
-## Patagonia
-
-Chubut, Neuquén, Río Negro, Santa Cruz y Tierra del Fuego. Es la región donde el gas pesa más en el presupuesto del hogar, por el simple hecho de que la calefacción se usa muchos más meses al año; también es la que tiene el régimen tarifario más particular, con la zona fría.
-
-<IpcViviendaChart region="patagonia" variacion="interanual" />
-
-<IpcViviendaChart region="patagonia" variacion="mensual" />
-
-## Comparación entre regiones
-
-Hasta aquí cada región se leyó por separado. Puestas juntas se ve lo que ninguna de ellas muestra sola: que la corrección de tarifas llegó a todo el país, pero no al mismo tiempo ni con la misma fuerza.
+El promedio nacional esconde lo que pasa debajo. Puestas juntas, las seis regiones muestran lo que ninguna de ellas muestra sola: que la corrección de tarifas llegó a todo el país, pero no al mismo tiempo ni con la misma fuerza.
 
 <ComparacionRegiones />
 
@@ -189,6 +142,12 @@ Las seis líneas comparten la forma —el pico de 2024 y el descenso posterior�
 <MultiploRegiones />
 
 La diferencia entre la región que más subió y la que menos no es menor: sobre una factura de servicios, cada punto de esa brecha es plata que un hogar paga y otro no, por el mismo servicio y en el mismo país. Las causas son las de siempre en energía: qué distribuidora te toca, qué jurisdicción aprueba el cuadro tarifario, cuánto se calefacciona y qué regímenes especiales aplican, como la zona fría en el sur.
+
+## Cada región, en detalle
+
+Cada una de las seis regiones tiene su propia página, con sus dos gráficos, sus números y lo que explica su caso particular.
+
+<Subpaginas />
 
 ## De la estadística a tu factura
 

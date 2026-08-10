@@ -31,6 +31,26 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // /estadisticas/inflacion was the statistics section's first page, shipped
+      // as one long document covering the country and all six regions. It was
+      // split into a hub plus a page per region, and renamed to something that
+      // says which inflation it is — so the old URL has to keep working for
+      // anything already linking to or ranking for it.
+      //
+      // Here rather than in `proxy.ts` because config redirects are checked
+      // *before* the proxy runs (see the routing order in the `rewrites` doc),
+      // so this fires on the bare path before the proxy rewrites it into the
+      // /es tree. Permanent (308): the move is not coming back, and a temporary
+      // redirect would leave the ranking on a URL that no longer exists.
+      {
+        source: "/estadisticas/inflacion",
+        destination: "/estadisticas/inflacion-de-vivienda",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       // OAuth discovery. The specs put these at /.well-known/*, but a source

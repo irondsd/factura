@@ -1,0 +1,101 @@
+import { TEMPORAL_COVERAGE } from "../data/ipc-vivienda";
+
+export const meta = {
+  title: "Inflación de vivienda, luz y gas en la región Pampeana",
+  description:
+    "Cuánto aumentaron la vivienda, el agua, la electricidad y el gas en la región Pampeana —Córdoba, Santa Fe, Entre Ríos, La Pampa y el interior bonaerense—, según el INDEC.",
+  summary:
+    "Córdoba, Santa Fe, Entre Ríos, La Pampa y el interior de Buenos Aires: la región más extensa del índice y la más repartida entre distribuidoras.",
+  ogStat: "IPC división 04 · Pampeana",
+  cta: "¿Tu boleta subió más que el promedio de tu región? Compruébalo.",
+  keywords: [
+    "aumento de gas en córdoba",
+    "aumento de luz en santa fe",
+    "inflación vivienda región pampeana",
+    "ipc pampeana vivienda",
+    "aumento de gas en la pampa",
+    "aumento de luz en rosario",
+  ],
+  published: "2026-08-10T10:00:00-03:00",
+  updated: "2026-08-10T10:00:00-03:00",
+  faq: [
+    {
+      q: "¿Qué provincias incluye la región Pampeana del INDEC?",
+      a: "Córdoba, Santa Fe, Entre Ríos, La Pampa y el resto de la provincia de Buenos Aires, es decir todo lo que queda fuera de la Ciudad de Buenos Aires y de los 24 partidos del conurbano, que forman la región GBA.",
+    },
+    {
+      q: "¿Sirve este índice para Rosario, Córdoba o Mar del Plata?",
+      a: "Sirve como referencia regional: las tres están dentro de la región Pampeana. El INDEC no publica un índice separado por ciudad para esta división, así que el dato regional es el nivel de detalle disponible.",
+    },
+    {
+      q: "¿Por qué la Pampeana puede moverse distinto que el Gran Buenos Aires?",
+      a: "Porque las tarifas de electricidad y gas de las provincias las aprueban los entes reguladores provinciales, en fechas propias. Un aumento que en el conurbano entra en vigencia en un mes puede aparecer en Córdoba o Santa Fe en otro, y el índice mensual lo refleja en momentos distintos.",
+    },
+    {
+      q: "¿Este índice incluye el alquiler?",
+      a: "Sí. El alquiler y las expensas forman parte de esta división, junto con el agua, la electricidad, el gas y el mantenimiento de la vivienda. Es el costo total de tener la casa funcionando, no solo la energía.",
+    },
+  ],
+  sources: [
+    {
+      label: "INDEC — Instituto Nacional de Estadística y Censos",
+      href: "https://www.indec.gob.ar/",
+      note: "Organismo que releva, calcula y publica el índice de precios al consumidor.",
+    },
+    {
+      label: "INDEC — Serie del IPC por aperturas (CSV)",
+      href: "https://www.indec.gob.ar/ftp/cuadros/economia/serie_ipc_aperturas.csv",
+      note: "Serie completa por división, región y mes, en el formato que publica el organismo.",
+    },
+  ],
+  dataset: {
+    name: "IPC — Vivienda, agua, electricidad, gas y otros combustibles, región Pampeana",
+    description:
+      "Variación porcentual mensual del índice de precios al consumidor para la división 04 (vivienda, agua, electricidad, gas y otros combustibles) en la región Pampeana, que comprende Córdoba, Santa Fe, Entre Ríos, La Pampa y el resto de la provincia de Buenos Aires.",
+    temporalCoverage: TEMPORAL_COVERAGE,
+    spatialCoverage:
+      "Región Pampeana, Argentina (Córdoba, Santa Fe, Entre Ríos, La Pampa y resto de Buenos Aires)",
+    variableMeasured: [
+      "Variación mensual del IPC, división vivienda, agua, electricidad, gas y otros combustibles",
+      "Variación interanual del IPC, división vivienda, agua, electricidad, gas y otros combustibles",
+    ],
+  },
+};
+
+La **región Pampeana** es la más extensa de las seis: Córdoba, Santa Fe, Entre Ríos, La Pampa y todo el interior de la provincia de Buenos Aires. Adentro entran Rosario, Córdoba capital, Mar del Plata, Bahía Blanca, Santa Fe, Paraná, Tandil, Necochea y Olavarría, entre muchas otras.
+
+Es también la más repartida en materia de servicios. Donde el Gran Buenos Aires tiene un puñado de distribuidoras, aquí conviven las empresas provinciales de energía de Córdoba y Santa Fe, las concesionarias del interior bonaerense y decenas de cooperativas eléctricas locales, cada una con su cuadro tarifario y su ente regulador provincial. Por eso el índice regional es un promedio de realidades bastante distintas, y por eso los saltos mensuales no siempre caen en el mismo mes que en el conurbano.
+
+<ResumenRegion region="pampeana" />
+
+## Cuánto subió año contra año
+
+La variación interanual compara cada mes contra el mismo mes del año anterior, y muestra el ciclo completo: la aceleración de 2024, cuando la recomposición tarifaria llegó a las boletas, y el descenso posterior.
+
+<IpcViviendaChart region="pampeana" variacion="interanual" />
+
+## Cuánto subió mes a mes
+
+La variación mensual es el dato que el INDEC publica cada mes, leído de a un año por vez. En una región con tantos cuadros tarifarios distintos, los saltos suelen ser menos abruptos que en una región de pocas distribuidoras: los aumentos entran escalonados y el promedio los reparte.
+
+<IpcViviendaChart region="pampeana" variacion="mensual" />
+
+## Qué mide exactamente este índice
+
+Es la división **04** del índice de precios al consumidor: vivienda, agua, electricidad, gas y otros combustibles. Junta el alquiler y las expensas, el mantenimiento de la vivienda, el agua, la electricidad y el gas —de red y envasado—.
+
+La metodología completa —quién releva el índice, cada cuánto se publica y cómo están construidos estos gráficos— está en la [página principal de inflación de vivienda](/estadisticas/inflacion-de-vivienda).
+
+## Cómo se compara con el resto del país
+
+Las seis regiones en un mismo gráfico, y el acumulado de cada una desde el inicio de la serie, están en la [comparación entre regiones](/estadisticas/inflacion-de-vivienda#las-seis-regiones-comparadas). Si quieres el detalle de por qué la energía se despegó del resto de los precios, está en las guías sobre [cuánto aumentó la luz](/guias/cuanto-aumento-la-luz-en-argentina) y [cuánto aumentó el gas](/guias/cuanto-aumento-el-gas-en-argentina).
+
+<ClosingCta title="Tu boleta contra el índice de tu región">
+  Sube el PDF de tu factura de luz, gas o agua y Factura extrae el importe, el
+  período y el consumo, y arma tu histórico mes a mes. Recién ahí se puede saber
+  si lo tuyo subió más o menos que el promedio de la región.
+</ClosingCta>
+
+<Faq />
+
+<Fuentes />

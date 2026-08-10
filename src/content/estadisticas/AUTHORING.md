@@ -25,10 +25,18 @@ national page into a page per province:
 Rules:
 
 - Segments are lowercase, hyphenated, **no accents or ñ**.
+- Keep them short and descriptive — three or four words. There is no length
+  limit that hurts you directly, but the slug is joined by every child page
+  below it, so a long one is paid for on seven URLs rather than one.
 - **Every intermediate segment must be a page of its own.** You cannot ship
   `/estadisticas/alquiler/caba` without `/estadisticas/alquiler` — the
   breadcrumb would link to a 404, so `pages.ts` fails the build instead.
-- A page with children lists them at its foot automatically. Nothing to wire.
+- A hub lists its children wherever it places `<Subpaginas />`. See §4.
+
+**Renaming a live page** means adding a redirect from the old path in
+`redirects()` in `next.config.ts`, `permanent: true`. Config redirects run
+*before* the proxy (see the routing order in Next's `rewrites` doc), so a bare
+source path is matched before the proxy rewrites it into the `/es` tree.
 
 ---
 
@@ -101,9 +109,36 @@ Three sections before the charts, in this order:
 Then one `##` per region or cut, each followed by its figures. Then `<Faq />`
 and `<Fuentes />` at the very end.
 
+On a **hub** — a page with child pages — add a section for them and place
+`<Subpaginas />` under it. The tag renders the list of children and nothing else,
+so the heading and the sentence introducing it are the page's own. On a leaf it
+renders nothing.
+
 `##` headings become the table of contents automatically. `<Faq />` and
 `<Fuentes />` are appended to it as sections even though they have no heading in
 the body.
+
+**A heading you intend to link to from another page should slug to plain
+ASCII.** `## Comparación entre regiones` becomes `#comparación-entre-regiones`,
+which every link to it then carries percent-encoded. Rephrasing to
+`## Las seis regiones, comparadas` gets the same meaning and a clean anchor.
+Same-page links from the table of contents are fine either way.
+
+### A page per region, without six copies of one page
+
+A set of sibling pages that all cut the same series is the one shape in this
+section that can go wrong: six documents differing only in a proper noun is a
+doorway, and reads like one. Each region page must carry, beyond its charts:
+
+- an intro about **that region** — what it covers, and the thing that makes its
+  bills different (which distributors, which climate, which special regime);
+- its own numbers, from a component that reads the data (`<ResumenRegion />`),
+  including at least one fact that only exists on a region page — where it ranks
+  against the others;
+- its own `faq`, answering what someone in *that* region would ask;
+- its own `title`, `description`, `keywords` and `dataset.spatialCoverage`.
+
+Shared methodology belongs on the hub, linked, not repeated six times.
 
 ---
 

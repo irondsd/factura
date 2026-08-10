@@ -115,10 +115,49 @@ type Entry = {
  * adding its `.mdx` and one entry here. */
 const ENTRIES: Entry[] = [
   {
-    slug: ["inflacion"],
-    crumb: "Inflación",
-    file: "inflacion.mdx",
-    load: () => import("./inflacion.mdx"),
+    slug: ["inflacion-de-vivienda"],
+    crumb: "Inflación de vivienda",
+    file: "inflacion-de-vivienda.mdx",
+    load: () => import("./inflacion-de-vivienda.mdx"),
+  },
+  // The six regions, in the order INDEC lists them — which is also the order the
+  // hub's own charts and tables use, so a reader moving between the two never
+  // has to re-learn where a region sits.
+  {
+    slug: ["inflacion-de-vivienda", "gba"],
+    crumb: "GBA",
+    file: "inflacion-de-vivienda/gba.mdx",
+    load: () => import("./inflacion-de-vivienda/gba.mdx"),
+  },
+  {
+    slug: ["inflacion-de-vivienda", "pampeana"],
+    crumb: "Pampeana",
+    file: "inflacion-de-vivienda/pampeana.mdx",
+    load: () => import("./inflacion-de-vivienda/pampeana.mdx"),
+  },
+  {
+    slug: ["inflacion-de-vivienda", "noreste"],
+    crumb: "Noreste",
+    file: "inflacion-de-vivienda/noreste.mdx",
+    load: () => import("./inflacion-de-vivienda/noreste.mdx"),
+  },
+  {
+    slug: ["inflacion-de-vivienda", "noroeste"],
+    crumb: "Noroeste",
+    file: "inflacion-de-vivienda/noroeste.mdx",
+    load: () => import("./inflacion-de-vivienda/noroeste.mdx"),
+  },
+  {
+    slug: ["inflacion-de-vivienda", "cuyo"],
+    crumb: "Cuyo",
+    file: "inflacion-de-vivienda/cuyo.mdx",
+    load: () => import("./inflacion-de-vivienda/cuyo.mdx"),
+  },
+  {
+    slug: ["inflacion-de-vivienda", "patagonia"],
+    crumb: "Patagonia",
+    file: "inflacion-de-vivienda/patagonia.mdx",
+    load: () => import("./inflacion-de-vivienda/patagonia.mdx"),
   },
 ];
 

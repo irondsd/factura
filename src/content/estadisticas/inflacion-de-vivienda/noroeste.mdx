@@ -1,0 +1,101 @@
+import { TEMPORAL_COVERAGE } from "../data/ipc-vivienda";
+
+export const meta = {
+  title: "Inflación de vivienda, luz y gas en el Noroeste argentino",
+  description:
+    "Cuánto aumentaron la vivienda, el agua, la electricidad y el gas en el Noroeste argentino —Salta, Jujuy, Tucumán, Catamarca, La Rioja y Santiago del Estero—, según el INDEC.",
+  summary:
+    "Seis provincias, seis cuadros tarifarios y climas que van de la puna al llano: la región más fragmentada del índice.",
+  ogStat: "IPC división 04 · Noroeste",
+  cta: "¿Tu boleta subió más que el promedio de tu región? Compruébalo.",
+  keywords: [
+    "aumento de gas en salta",
+    "aumento de luz en tucumán",
+    "inflación vivienda noroeste argentino",
+    "ipc noa vivienda",
+    "aumento de luz en jujuy",
+    "aumento de luz en santiago del estero",
+  ],
+  published: "2026-08-10T10:00:00-03:00",
+  updated: "2026-08-10T10:00:00-03:00",
+  faq: [
+    {
+      q: "¿Qué provincias incluye el Noroeste argentino del INDEC?",
+      a: "Catamarca, Jujuy, La Rioja, Salta, Santiago del Estero y Tucumán. Es la región que el INDEC identifica como Noroeste, también conocida por la sigla NOA.",
+    },
+    {
+      q: "¿Por qué es la región con más cuadros tarifarios distintos?",
+      a: "Porque son seis provincias, y las tarifas de electricidad y gas de cada una las aprueba su propio ente regulador, en fechas propias. El índice regional promedia seis calendarios de aumentos, así que un salto grande en una provincia puede aparecer suavizado en el número regional.",
+    },
+    {
+      q: "¿El clima cambia mucho el consumo dentro de la región?",
+      a: "Sí, y bastante. La región va de la puna, donde se calefacciona buena parte del año, al llano de Santiago del Estero, con veranos muy calurosos donde el gasto fuerte es la refrigeración. El índice regional resume las dos realidades en un solo número.",
+    },
+    {
+      q: "¿Este índice incluye el alquiler y las expensas?",
+      a: "Sí. La división junta el alquiler y las expensas, el mantenimiento de la vivienda, el agua, la electricidad y el gas de red y envasado. No es solo la boleta de luz.",
+    },
+  ],
+  sources: [
+    {
+      label: "INDEC — Instituto Nacional de Estadística y Censos",
+      href: "https://www.indec.gob.ar/",
+      note: "Organismo que releva, calcula y publica el índice de precios al consumidor.",
+    },
+    {
+      label: "INDEC — Serie del IPC por aperturas (CSV)",
+      href: "https://www.indec.gob.ar/ftp/cuadros/economia/serie_ipc_aperturas.csv",
+      note: "Serie completa por división, región y mes, en el formato que publica el organismo.",
+    },
+  ],
+  dataset: {
+    name: "IPC — Vivienda, agua, electricidad, gas y otros combustibles, región Noroeste",
+    description:
+      "Variación porcentual mensual del índice de precios al consumidor para la división 04 (vivienda, agua, electricidad, gas y otros combustibles) en la región Noroeste argentino, que comprende Catamarca, Jujuy, La Rioja, Salta, Santiago del Estero y Tucumán.",
+    temporalCoverage: TEMPORAL_COVERAGE,
+    spatialCoverage:
+      "Noroeste argentino (Catamarca, Jujuy, La Rioja, Salta, Santiago del Estero y Tucumán)",
+    variableMeasured: [
+      "Variación mensual del IPC, división vivienda, agua, electricidad, gas y otros combustibles",
+      "Variación interanual del IPC, división vivienda, agua, electricidad, gas y otros combustibles",
+    ],
+  },
+};
+
+El **Noroeste argentino** —el NOA— es la región con más provincias adentro: Catamarca, Jujuy, La Rioja, Salta, Santiago del Estero y Tucumán. Seis jurisdicciones significa seis entes reguladores y seis calendarios de aumentos, así que el índice regional es un promedio de realidades tarifarias que no se mueven al mismo tiempo.
+
+Es también la región de mayor amplitud climática del país. De la puna jujeña, donde se calefacciona buena parte del año, al llano santiagueño, con veranos de los más calurosos de Argentina y un gasto eléctrico dominado por la refrigeración. Las dos cosas conviven en el mismo número.
+
+<ResumenRegion region="noroeste" />
+
+## Cuánto subió año contra año
+
+La variación interanual compara cada mes contra el mismo mes del año anterior. En una región donde la estacionalidad del consumo tira para los dos lados según la provincia, es la lectura que menos se deja confundir por el calendario.
+
+<IpcViviendaChart region="noroeste" variacion="interanual" />
+
+## Cuánto subió mes a mes
+
+La variación mensual es el dato que el INDEC publica cada mes, leído de a un año por vez.
+
+<IpcViviendaChart region="noroeste" variacion="mensual" />
+
+## Qué mide exactamente este índice
+
+Es la división **04** del índice de precios al consumidor: vivienda, agua, electricidad, gas y otros combustibles. Junta el alquiler y las expensas, el mantenimiento de la vivienda, el agua, la electricidad y el gas —de red y envasado—.
+
+La metodología completa está en la [página principal de inflación de vivienda](/estadisticas/inflacion-de-vivienda).
+
+## Cómo se compara con el resto del país
+
+Las seis regiones en un mismo gráfico, y el acumulado de cada una desde el inicio de la serie, están en la [comparación entre regiones](/estadisticas/inflacion-de-vivienda#las-seis-regiones-comparadas). El detalle de por qué la energía se despegó del resto de los precios está en las guías sobre [cuánto aumentó la luz](/guias/cuanto-aumento-la-luz-en-argentina) y [cuánto aumentó el gas](/guias/cuanto-aumento-el-gas-en-argentina).
+
+<ClosingCta title="Tu boleta contra el índice de tu región">
+  Sube el PDF de tu factura de luz, gas o agua y Factura extrae el importe, el
+  período y el consumo, y arma tu histórico mes a mes. Recién ahí se puede saber
+  si lo tuyo subió más o menos que el promedio del Noroeste.
+</ClosingCta>
+
+<Faq />
+
+<Fuentes />

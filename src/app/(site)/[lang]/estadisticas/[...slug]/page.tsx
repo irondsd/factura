@@ -28,8 +28,8 @@ import { faqPageLd, statsPageLd } from "@/i18n/structuredData";
 // Structurally this is the guide article route with three differences, each of
 // which is the section rather than a variation on it: the slug is a path (so the
 // breadcrumb trail is walked, not composed by hand), the dateline leads with
-// *updated* (a series is only as good as its last point), and a page that has
-// child pages lists them at the foot.
+// *updated* (a series is only as good as its last point), and a page with child
+// pages can list them, wherever its prose puts `<Subpaginas />`.
 export const dynamicParams = false;
 
 export function generateStaticParams() {
@@ -142,18 +142,18 @@ export default async function EstadisticaPage({ params }: Props) {
                 components={{
                   Faq: () => <Faq items={meta.faq ?? []} />,
                   Fuentes: () => <Fuentes items={meta.sources} />,
+                  // A hub page places its own children where its prose wants
+                  // them, under its own heading — see AUTHORING.md §4. Renders
+                  // nothing on a page that has none, so a leaf can carry the tag
+                  // harmlessly and a hub that forgets it is the author's call
+                  // rather than a layout accident.
+                  Subpaginas: () =>
+                    children.length > 0 ? (
+                      <StatsList pages={children} titleAs="h3" />
+                    ) : null,
                 }}
               />
             </div>
-
-            {children.length > 0 && (
-              <section className="mt-14 border-t border-line pt-6">
-                <Eyebrow>En detalle</Eyebrow>
-                <div className="mt-4 border-t border-line">
-                  <StatsList pages={children} titleAs="h3" />
-                </div>
-              </section>
-            )}
 
             <nav className="mt-14 border-t border-line pt-6">
               <Link
