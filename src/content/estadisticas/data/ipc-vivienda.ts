@@ -252,6 +252,26 @@ export function interanual(region: RegionId): {
   return { periods, values };
 }
 
+/** Both published measures for one region, keyed by period: the monthly
+ * variation INDEC prints, and the interannual rate derived from it.
+ *
+ * Keyed rather than positional because the two series don't line up — the
+ * interannual one starts a year into the dataset — and the charts need to put
+ * them side by side for whichever month the reader is pointing at. A period
+ * missing from `interanual` is one with no year-earlier month to compare
+ * against, not a gap in the data. */
+export function byPeriod(region: RegionId): {
+  mensual: Map<string, number>;
+  interanual: Map<string, number>;
+} {
+  const values = monthly(region);
+  const ia = interanual(region);
+  return {
+    mensual: new Map(PERIODS.map((p, i) => [p, values[i]])),
+    interanual: new Map(ia.periods.map((p, i) => [p, ia.values[i]])),
+  };
+}
+
 /** Interannual rate for the most recent month — the figure the prose quotes. */
 export function lastInteranual(region: RegionId): number {
   const { values } = interanual(region);
