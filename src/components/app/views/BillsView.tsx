@@ -101,7 +101,7 @@ export function BillsView({
         {t.nav.bills} ·{" "}
         {propertyId ? propName(propertyId) : t.common.allProperties}
       </Eyebrow>
-      <Display size={34} className="block mt-1.5">
+      <Display as="h1" size={34} className="block mt-1.5">
         {tb.title}
       </Display>
 

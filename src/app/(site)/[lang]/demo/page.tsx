@@ -24,7 +24,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function DemoOverviewPage({ params }: Props) {
   const locale = toLocale((await params).lang);
+  const { t } = await getI18n(locale);
   return (
-    <DemoOverview insightsHref={localizedHref("/demo/insights", locale)} />
+    <>
+      {/* The other two demo screens title themselves — their `Display` is the
+          page heading and carries the `h1`. Overview leads with a money figure
+          instead, which is no one's idea of a page title, so the heading is
+          here and `sr-only`: the outline exists for the crawler and for
+          heading navigation without putting a label on a screen designed
+          without one. */}
+      <h1 className="sr-only">{t.demo.overviewHeading}</h1>
+      <DemoOverview insightsHref={localizedHref("/demo/insights", locale)} />
+    </>
   );
 }

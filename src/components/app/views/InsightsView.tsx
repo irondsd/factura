@@ -43,7 +43,7 @@ export function InsightsView({
       <div className="flex flex-wrap items-end justify-between gap-[14px]">
         <div>
           <Eyebrow>{t.nav.insights}</Eyebrow>
-          <Display size={34} className="block mt-1.5">
+          <Display as="h1" size={34} className="block mt-1.5">
             {t.insights.title}
           </Display>
         </div>

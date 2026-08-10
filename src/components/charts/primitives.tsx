@@ -88,13 +88,20 @@ export function Display({
   children,
   size = 30,
   className,
+  as: Tag = "span",
 }: {
   children: ReactNode;
   size?: number;
   className?: string;
+  /** `h1` where the display text is the screen's title rather than one figure
+   * among several — a view that renders it that way is the page's heading, and
+   * a page with no heading at all leaves screen-reader outline navigation with
+   * nothing to jump to. Preflight strips a heading's own size, weight and
+   * margin, so the tag swap is invisible. */
+  as?: "span" | "h1";
 }) {
   return (
-    <span
+    <Tag
       className={cn(
         "font-display font-semibold tracking-tight text-ink",
         className,
@@ -102,7 +109,7 @@ export function Display({
       style={{ fontSize: size }}
     >
       {children}
-    </span>
+    </Tag>
   );
 }
 

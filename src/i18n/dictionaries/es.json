@@ -228,7 +228,8 @@
   "demo": {
     "liveDemo": "Demo en vivo",
     "bannerText": "· datos de muestra de un departamento ficticio. Nada aquí es editable.",
-    "trackOwn": "Registra tus propias facturas ›"
+    "trackOwn": "Registra tus propias facturas ›",
+    "overviewHeading": "Demo: resumen del registro de facturas"
   },
   "common": {
     "allProperties": "Todas las propiedades",

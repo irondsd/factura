@@ -228,7 +228,8 @@
   "demo": {
     "liveDemo": "Live demo",
     "bannerText": "· sample data for a fictional apartment. Nothing here is editable.",
-    "trackOwn": "Track your own bills ›"
+    "trackOwn": "Track your own bills ›",
+    "overviewHeading": "Demo: bill ledger overview"
   },
   "common": {
     "allProperties": "All properties",
