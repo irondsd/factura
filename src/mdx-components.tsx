@@ -1,5 +1,9 @@
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
+import {
+  ComparacionRegiones,
+  MultiploRegiones,
+} from "@/components/estadisticas/ComparacionRegiones";
 import { IpcViviendaChart } from "@/components/estadisticas/IpcViviendaChart";
 import { RegionesIpc } from "@/components/estadisticas/RegionesIpc";
 import { ResumenIpc } from "@/components/estadisticas/ResumenIpc";
@@ -144,6 +148,8 @@ const components: MDXComponents = {
   // Same contract for the statistics section: the figures and the geography
   // table read `content/estadisticas/data/*`, and the page passes an id.
   IpcViviendaChart,
+  ComparacionRegiones,
+  MultiploRegiones,
   RegionesIpc,
   ResumenIpc,
   ProbarCta,

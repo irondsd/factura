@@ -1,3 +1,4 @@
+import type { VendorColorName } from "@/lib/vendorColors";
 import raw from "./ipc-vivienda.json";
 
 // INDEC's IPC for division 04 — "Vivienda, agua, electricidad, gas y otros
@@ -40,6 +41,13 @@ type Region = {
   inTitle: string;
   /** Which districts INDEC puts in the region — the methodology table. */
   covers: string;
+  /** Line colour in the cross-region chart, as a name from the site's vendor
+   * palette (`lib/vendorColors.ts`). Six lines is more than that warm palette
+   * separates comfortably, so these are picked for maximum distance from each
+   * other — and the chart backs them with a legend you can click to isolate a
+   * region, which is what makes the figure readable without relying on colour
+   * alone. */
+  color: VendorColorName;
 };
 
 /** The seven series in the dataset: the national total first, then INDEC's six
@@ -51,6 +59,7 @@ export const REGIONS = [
     inTitle: "Argentina",
     covers:
       "Todo el país. Es el promedio ponderado de las seis regiones, con la ponderación de cada una en el gasto de los hogares.",
+    color: "rust",
   },
   {
     id: "gba",
@@ -58,6 +67,7 @@ export const REGIONS = [
     inTitle: "GBA",
     covers:
       "Ciudad Autónoma de Buenos Aires y los 24 partidos del Gran Buenos Aires.",
+    color: "burnt-orange",
   },
   {
     id: "pampeana",
@@ -65,12 +75,14 @@ export const REGIONS = [
     inTitle: "la región Pampeana",
     covers:
       "Resto de la provincia de Buenos Aires, Córdoba, Entre Ríos, La Pampa y Santa Fe.",
+    color: "slate-teal",
   },
   {
     id: "noreste",
     label: "Noreste",
     inTitle: "el Noreste argentino",
     covers: "Corrientes, Chaco, Formosa y Misiones.",
+    color: "amber",
   },
   {
     id: "noroeste",
@@ -78,18 +90,21 @@ export const REGIONS = [
     inTitle: "el Noroeste argentino",
     covers:
       "Catamarca, Jujuy, La Rioja, Salta, Santiago del Estero y Tucumán.",
+    color: "olive",
   },
   {
     id: "cuyo",
     label: "Cuyo",
     inTitle: "Cuyo",
     covers: "Mendoza, San Juan y San Luis.",
+    color: "clay",
   },
   {
     id: "patagonia",
     label: "Patagonia",
     inTitle: "la Patagonia",
     covers: "Chubut, Neuquén, Río Negro, Santa Cruz y Tierra del Fuego.",
+    color: "dark-earth",
   },
 ] as const satisfies readonly Region[];
 
@@ -251,6 +266,34 @@ export function interanual(region: RegionId): {
   }
   return { periods, values };
 }
+
+/** INDEC's six statistical regions, without the national total.
+ *
+ * The comparison chart draws these and not `nacional`, on purpose: the national
+ * figure is the weighted average *of* these six, so plotting it alongside them
+ * adds a seventh line that is by construction somewhere in the middle of the
+ * other six. It says nothing a reader can act on and costs the one thing a
+ * six-line chart cannot spare, which is room to tell the lines apart. */
+export const COMPARABLE_REGIONS = REGIONS.filter((r) => r.id !== "nacional");
+
+/** How many times the price level multiplied across the whole dataset — the
+ * "×40,6" a reader can hold in their head, and the only cross-region comparison
+ * that covers the full span from the first month.
+ *
+ * It exists because the accumulated index can't be *drawn* over this span: six
+ * years of Argentine inflation take the level from 100 to about 5.000, so on a
+ * linear axis the first four years lie flat along the bottom and the regions are
+ * indistinguishable exactly where a reader would look to tell them apart. One
+ * number per region, ranked, answers the same question and can be read at a
+ * glance. */
+export function multiple(region: RegionId): number {
+  const idx = level(region);
+  return idx[idx.length - 1] / idx[0];
+}
+
+/** The first month of the dataset, spelled out — what `multiple` is measured
+ * from, and so what the ranking has to say it is measured from. */
+export const FIRST_UPDATED = periodLabel(PERIODS[0]);
 
 /** Both published measures for one region, keyed by period: the monthly
  * variation INDEC prints, and the interannual rate derived from it.

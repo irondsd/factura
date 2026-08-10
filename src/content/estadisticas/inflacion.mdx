@@ -81,6 +81,7 @@ En Factura ordenamos facturas de servicios del hogar, así que estos datos son e
 - **La foto del último mes publicado**, región por región, en la tabla de aquí abajo.
 - **Cómo se mide** el índice, quién lo publica, cada cuánto y qué incluye cada región.
 - **Catorce gráficos**: para Argentina y para cada una de las seis regiones del INDEC, la variación interanual y la variación mensual de la división.
+- **La comparación entre regiones**, con las seis en un mismo gráfico y el acumulado de cada una desde que empieza la serie.
 - **Las fuentes**, al final, para que puedas ir al dato original.
 
 <ResumenIpc />
@@ -176,6 +177,18 @@ Chubut, Neuquén, Río Negro, Santa Cruz y Tierra del Fuego. Es la región donde
 <IpcViviendaChart region="patagonia" variacion="interanual" />
 
 <IpcViviendaChart region="patagonia" variacion="mensual" />
+
+## Comparación entre regiones
+
+Hasta aquí cada región se leyó por separado. Puestas juntas se ve lo que ninguna de ellas muestra sola: que la corrección de tarifas llegó a todo el país, pero no al mismo tiempo ni con la misma fuerza.
+
+<ComparacionRegiones />
+
+Las seis líneas comparten la forma —el pico de 2024 y el descenso posterior— y se separan en dos momentos: en la velocidad con la que subieron durante ese pico, y en dónde quedaron después. Esa distancia final es la que se acumula, y es más fácil de leer como un solo número por región.
+
+<MultiploRegiones />
+
+La diferencia entre la región que más subió y la que menos no es menor: sobre una factura de servicios, cada punto de esa brecha es plata que un hogar paga y otro no, por el mismo servicio y en el mismo país. Las causas son las de siempre en energía: qué distribuidora te toca, qué jurisdicción aprueba el cuadro tarifario, cuánto se calefacciona y qué regímenes especiales aplican, como la zona fría en el sur.
 
 ## De la estadística a tu factura
 

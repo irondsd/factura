@@ -13,6 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Legend } from "@/components/charts/primitives";
 import { Select } from "@/components/ui";
 import { niceTicks } from "@/lib/svg-chart";
 
@@ -274,6 +275,158 @@ export function InteranualChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
+    </>
+  );
+}
+
+/** One region's line in the comparison chart. */
+export type RegionSeries = { id: string; label: string; color: string };
+
+/** A row of the comparison chart: one month, every region's value on it. */
+export type MultiRow = { key: string; label: string; title: string } & Record<
+  string,
+  string | number
+>;
+
+/** Tooltip for the comparison chart: every visible region for the hovered
+ * month, ranked. Ranked rather than kept in a fixed order because the reason to
+ * hover a six-line chart is to find out who is on top *at that moment*, and
+ * making the reader do that by matching colours to a legend is making them do
+ * the chart's job. */
+function MultiTooltip({
+  active,
+  payload,
+  regions,
+  hidden,
+}: {
+  active?: boolean;
+  payload?: readonly { payload?: MultiRow }[];
+  regions: RegionSeries[];
+  hidden: Set<string>;
+}) {
+  const row = active ? payload?.[0]?.payload : undefined;
+  if (!row) return null;
+  const rows = regions
+    .filter((r) => !hidden.has(r.id) && typeof row[r.id] === "number")
+    .map((r) => ({ ...r, value: row[r.id] as number }))
+    .sort((a, b) => b.value - a.value);
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="bg-card border border-line py-2 px-2.5 font-mono text-micro text-ink shadow-[0_2px_8px_rgba(0,0,0,0.08)] min-w-[220px]">
+      <div className="uppercase tracking-[0.14em] text-muted mb-1.5">
+        {row.title} · variación interanual
+      </div>
+      {rows.map((r) => (
+        <div key={r.id} className="flex items-center gap-2.5 mt-[3px]">
+          <span
+            className="w-2 h-2 inline-block shrink-0"
+            style={{ background: r.color }}
+          />
+          <span className="flex-1 text-muted">{r.label}</span>
+          <span className="font-medium">{percent(r.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** The six regions on one pair of axes, as interannual rates.
+ *
+ * Interannual and not the accumulated index, which is what "since 2020" would
+ * literally want: see `multiple` in the data module for why that series can't be
+ * drawn over this span. Interannual is also the measure the rest of the page is
+ * in, so the lines here can be read against the per-region charts above.
+ *
+ * The legend toggles. Six lines that share an arc — they all spike in 2024 —
+ * are genuinely hard to follow at the crossings, and being able to drop four of
+ * them is worth more than any amount of colour tuning. It doubles as the
+ * accommodation for a reader who can't separate the colours at all. */
+export function ComparacionChart({
+  rows,
+  regions,
+  range,
+}: {
+  rows: MultiRow[];
+  regions: RegionSeries[];
+  range: Range;
+}) {
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const toggle = (id: string) =>
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const { ticks, domain } = yAxis(range);
+
+  return (
+    <>
+      <div className="h-[300px] sm:h-[360px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={rows}
+            margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+            accessibilityLayer
+          >
+            <CartesianGrid
+              stroke={AXIS}
+              strokeDasharray="2 3"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="label"
+              tick={tickStyle}
+              axisLine={{ stroke: AXIS }}
+              tickLine={false}
+              interval="preserveStartEnd"
+              minTickGap={52}
+            />
+            <YAxis
+              width={58}
+              domain={domain}
+              ticks={ticks}
+              tick={tickStyle}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={decimal}
+            />
+            <Tooltip
+              cursor={{ stroke: AXIS, strokeDasharray: "3 3" }}
+              isAnimationActive={false}
+              content={(props) => (
+                <MultiTooltip {...props} regions={regions} hidden={hidden} />
+              )}
+            />
+            {regions.map((r) => (
+              <Line
+                key={r.id}
+                type="monotone"
+                dataKey={r.id}
+                name={r.label}
+                stroke={r.color}
+                strokeWidth={1.75}
+                dot={false}
+                activeDot={{ r: 3, fill: r.color, stroke: "var(--card)" }}
+                hide={hidden.has(r.id)}
+                isAnimationActive={false}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <Legend
+        className="mt-3"
+        items={regions.map((r) => ({ id: r.id, label: r.label, color: r.color }))}
+        hidden={hidden}
+        onToggle={toggle}
+      />
+      <p className="font-mono text-micro text-muted mt-2 opacity-80">
+        Toca una región de la lista para ocultarla o volver a mostrarla.
+      </p>
     </>
   );
 }
