@@ -4,7 +4,8 @@ import path from "node:path";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentType } from "react";
 import { CATEGORIES, type Category, type CategoryId } from "./categories";
-import { extractHeadings, FAQ_SECTION, type GuideHeading } from "./headings";
+import { extractHeadings, FAQ_SECTION, type Heading } from "../headings";
+import { mdxBody, readingStats } from "../mdx";
 
 // Build-time access to the guide MDX files. Guides are Spanish-only evergreen
 // SEO articles authored as `.mdx` in this directory; each file exports a `meta`
@@ -89,66 +90,19 @@ export type Guide = {
 
 const DIR = path.join(process.cwd(), "src/content/guias");
 
-// Spanish informational prose, read a bit more carefully than a novel because of
-// the tables and step lists. Silent-reading research puts general Spanish text
-// near 260 wpm; 200 is the deliberate discount for this material. One constant —
-// change it here if the estimates feel off.
-const WORDS_PER_MINUTE = 200;
-
-/** Strip the `meta` export off the front of a guide's source, leaving the prose.
- * Brace-matched rather than regexed so an object literal in the body can't cut
- * the article short. */
-function guideBody(source: string): string {
-  const marker = source.match(/export\s+const\s+meta\s*=\s*/);
-  if (!marker || marker.index === undefined) return source;
-  const open = source.indexOf("{", marker.index);
-  if (open === -1) return source;
-
-  let depth = 0;
-  for (let i = open; i < source.length; i++) {
-    if (source[i] === "{") depth++;
-    else if (source[i] === "}" && --depth === 0) return source.slice(i + 1);
-  }
-  return source;
-}
-
-/** Words a reader actually reads: prose only, with code, image URLs, JSX tags
- * and markdown scaffolding removed. Link *text* counts, link targets don't. */
-function countWords(body: string): number {
-  const prose = body
-    .replace(/```[\s\S]*?```/g, " ") // fenced code
-    .replace(/`[^`]*`/g, " ") // inline code
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ") // images
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1") // links → their text
-    .replace(/<[^>]+>/g, " ") // JSX / HTML tags
-    .replace(/^#{1,6}[ \t]+/gm, " ") // heading markers
-    .replace(/^[ \t]*[-*>][ \t]+/gm, " ") // list bullets, quotes
-    .replace(/^[ \t]*\|.*\|[ \t]*$/gm, (row) => row.replace(/[|-]/g, " ")) // table pipes
-    .replace(/[*_~]/g, " "); // emphasis
-
-  return prose.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
-}
-
 /** How long a guide is: words of real prose, and the reading time in whole
- * minutes (never below 1). Both come off one read of the file, because the
- * article route needs both — the minutes for its dateline, the words for the
- * Article JSON-LD.
- *
- * `faq` is passed in because the Q&A lives in the `meta` block, which
- * `guideBody` strips — but it renders on the page like any other prose, and a
- * six-question FAQ is a couple of minutes of reading. Callers already hold the
- * meta, so threading it through beats re-parsing the block here. */
+ * minutes. The FAQ is counted too — it lives in the `meta` block, which
+ * `mdxBody` strips, but it renders on the page like any other prose and a
+ * six-question FAQ is a couple of minutes of reading. */
 export function guideStats(
   slug: string,
   faq?: GuideMeta["faq"],
 ): { words: number; minutes: number } {
   const source = fs.readFileSync(path.join(DIR, `${slug}.mdx`), "utf8");
-  const faqWords = (faq ?? []).reduce(
-    (n, { q, a }) => n + countWords(`${q} ${a}`),
-    0,
+  return readingStats(
+    source,
+    (faq ?? []).map(({ q, a }) => `${q} ${a}`),
   );
-  const words = countWords(guideBody(source)) + faqWords;
-  return { words, minutes: Math.max(1, Math.round(words / WORDS_PER_MINUTE)) };
 }
 
 /** Reading time alone, for the listings — they show the minutes and never the
@@ -166,10 +120,8 @@ export const readingMinutes = (slug: string, faq?: GuideMeta["faq"]): number =>
 export function guideHeadings(
   slug: string,
   faq?: GuideMeta["faq"],
-): GuideHeading[] {
-  const body = guideBody(
-    fs.readFileSync(path.join(DIR, `${slug}.mdx`), "utf8"),
-  );
+): Heading[] {
+  const body = mdxBody(fs.readFileSync(path.join(DIR, `${slug}.mdx`), "utf8"));
   const headings = extractHeadings(body);
 
   const hasFaq = (faq?.length ?? 0) > 0 && /<Faq[\s/>]/.test(body);
@@ -196,7 +148,10 @@ export async function loadGuide(slug: string): Promise<{
   meta: GuideMeta;
 }> {
   const mod = await import(`@/content/guias/${slug}.mdx`);
-  return { Content: mod.default, meta: mod.meta };
+  // `.mdx` isn't type-checked, so this cast is the one place the guide format is
+  // asserted rather than proven — `scripts/validate-guides.ts` is what actually
+  // checks a guide's meta block against `GuideMeta`.
+  return { Content: mod.default, meta: mod.meta as GuideMeta };
 }
 
 async function readAllGuides(): Promise<Guide[]> {

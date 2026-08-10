@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Breadcrumbs } from "@/components/guides/Breadcrumbs";
+import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { CategoryChips } from "@/components/guides/CategoryChips";
 import { TopCta } from "@/components/guides/cta";
-import { Faq } from "@/components/guides/Faq";
-import { GuideTocInline, GuideTocSidebar } from "@/components/guides/GuideToc";
+import { Faq } from "@/components/article/Faq";
+import { TocInline, TocSidebar } from "@/components/article/Toc";
 import { RelatedGuides } from "@/components/guides/RelatedGuides";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -150,7 +150,7 @@ export default async function GuidePage({ params }: Props) {
             {/* The phone's copy of the contents. Above the prose, where a reader
               deciding whether this guide answers their question can see the
               sections without scrolling the whole article first. */}
-            <GuideTocInline headings={headings} />
+            <TocInline headings={headings} label="En esta guía" />
 
             <div className="mt-8 border-t border-line pt-2">
               {/* `RelatedGuides` is overridden here rather than in
@@ -175,7 +175,7 @@ export default async function GuidePage({ params }: Props) {
             </nav>
           </article>
 
-          <GuideTocSidebar headings={headings} />
+          <TocSidebar headings={headings} label="En esta guía" />
         </div>
       </main>
     </>

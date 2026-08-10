@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Breadcrumbs } from "@/components/guides/Breadcrumbs";
+import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { GuideList } from "@/components/guides/GuideList";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";

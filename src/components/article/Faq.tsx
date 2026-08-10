@@ -1,18 +1,18 @@
 import { Eyebrow } from "@/components/landing/parts";
-import type { GuideMeta } from "@/content/guias/guides";
-import { FAQ_SECTION } from "@/content/guias/headings";
+import { FAQ_SECTION } from "@/content/headings";
 
-// The "Preguntas frecuentes" block a guide drops in with a bare <Faq />. Same
-// contract as RelatedGuides (see AUTHORING.md §5): the tag takes no props, the
-// article route injects `meta.faq` through the MDX `components` prop, so the
-// author picks the *placement* and the meta block owns the *content*.
+// The "Preguntas frecuentes" block an article drops in with a bare <Faq />.
+// Shared by /guias and /estadisticas. Same contract as RelatedGuides (see
+// AUTHORING.md §5): the tag takes no props, the route injects `meta.faq` through
+// the MDX `components` prop, so the author picks the *placement* and the meta
+// block owns the *content*.
 //
 // Rendered as a plain <dl> rather than <details> accordions. The questions are
 // the reason the block exists — each one targets a search a visitor actually
 // typed — and collapsing them hides that text behind a click for no gain, since
 // there is no rich result to win by being tidy about it.
 
-export function Faq({ items }: { items: NonNullable<GuideMeta["faq"]> }) {
+export function Faq({ items }: { items: { q: string; a: string }[] }) {
   if (items.length === 0) return null;
 
   return (

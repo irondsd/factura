@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { BackToTop } from "@/components/guides/BackToTop";
+import { BackToTop } from "@/components/article/BackToTop";
 import { SiteFooter } from "@/components/landing/Footer";
 import { SiteHeader } from "@/components/landing/Header";
 

@@ -68,14 +68,15 @@ export const guideCategoryUrl = (id: string): string =>
 export const guideCardUrl = (slug: string, updated: string): string =>
   `${siteUrl}/og/guias/${slug}/card.png?v=${updated.slice(0, 10).replace(/-/g, "")}`;
 
-/** Shared metadata for the guide listing pages (the index and the category
- * hubs) — same treatment, only the canonical URL differs.
+/** Shared metadata for a Spanish-only listing page — the guides index, a
+ * category hub, the statistics index. Same treatment throughout; only the
+ * canonical URL differs.
  *
  * Titles are absolute here for the same reason the articles' are: these are
  * guides pages, five of the eight category titles are over 50 characters, and
  * appending "— Factura" is what would push them past what a search result
  * shows. */
-function guideListingMetadata(
+function listingMetadata(
   url: string,
   title: string,
   description: string,
@@ -96,7 +97,7 @@ export function guidesIndexMetadata({
   title: string;
   description: string;
 }): Metadata {
-  return guideListingMetadata(guidesIndexUrl, title, description);
+  return listingMetadata(guidesIndexUrl, title, description);
 }
 
 export function guideCategoryMetadata({
@@ -108,7 +109,83 @@ export function guideCategoryMetadata({
   title: string;
   description: string;
 }): Metadata {
-  return guideListingMetadata(guideCategoryUrl(id), title, description);
+  return listingMetadata(guideCategoryUrl(id), title, description);
+}
+
+// ── Statistics (Spanish-only) ─────────────────────────────────────────────
+// Same treatment as the guides: one language, no hreflang alternates, canonical
+// is the bare (es) URL. The only structural difference is that a page's slug is
+// a path rather than a single segment — see `content/estadisticas/pages.ts`.
+
+/** Absolute canonical URL for the statistics index. */
+export const statsIndexUrl = `${siteUrl}/estadisticas`;
+
+/** Absolute canonical URL for one statistics page. */
+export const statsUrl = (slug: string[]): string =>
+  `${statsIndexUrl}/${slug.join("/")}`;
+
+/** The page's generated social card. `updated` becomes a `?v=` stamp so a
+ * re-scraped card follows the page — see `guideCardUrl` for the full reasoning. */
+export const statsCardUrl = (slug: string[], updated: string): string =>
+  `${siteUrl}/og/estadisticas/${slug.join("/")}/card.png?v=${updated.slice(0, 10).replace(/-/g, "")}`;
+
+export function statsIndexMetadata({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}): Metadata {
+  return listingMetadata(statsIndexUrl, title, description);
+}
+
+/** One statistics page. Takes its `meta` verbatim (`{ slug, ...meta }`), like
+ * `guideMetadata`, so an optional SEO field is wired up by being declared. */
+export function statsMetadata({
+  slug,
+  title,
+  titleTag,
+  description,
+  ogTitle,
+  ogDescription,
+  keywords,
+  published,
+  updated,
+  noindex,
+}: {
+  slug: string[];
+  title: string;
+  titleTag?: string;
+  description: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  keywords: string[];
+  published: string;
+  updated: string;
+  noindex?: boolean;
+}): Metadata {
+  return buildMetadata({
+    url: statsUrl(slug),
+    locale: "es",
+    title: titleTag ?? title,
+    titleAbsolute: true,
+    description,
+    ogTitle: ogTitle ?? title,
+    ogDescription,
+    images: [
+      {
+        url: statsCardUrl(slug, updated),
+        width: 1200,
+        height: 630,
+        alt: ogTitle ?? title,
+      },
+    ],
+    keywords,
+    type: "article",
+    publishedTime: published,
+    modifiedTime: updated,
+    noindex,
+  });
 }
 
 /** A guide article. Takes the guide's `meta` verbatim (`{ slug, ...meta }`), so

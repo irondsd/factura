@@ -7,6 +7,9 @@ import {
   guidesIndexUrl,
   guideUrl,
   localeUrl,
+  statsCardUrl,
+  statsIndexUrl,
+  statsUrl,
 } from "./metadata";
 
 // schema.org structured data (JSON-LD) for the public landing. Builders return
@@ -181,6 +184,130 @@ export function guideListLd(
       description: g.description,
       url: guideUrl(g.slug),
     })),
+  };
+}
+
+// ── Statistics (Spanish-only) ─────────────────────────────────────────────
+
+/** An `Article` describing the page plus the `Dataset` it publishes.
+ *
+ * Two nodes, deliberately. The prose (the introduction, the methodology, the
+ * reading of each chart) is an article and is what a normal search result shows.
+ * The numbers underneath are a dataset, and `Dataset` is the markup Google
+ * Dataset Search and the LLM crawlers look for — a statistics page that only
+ * claimed to be an article would be invisible to exactly the surfaces it's
+ * written for. The article `about`s the dataset so the two are linked rather
+ * than competing. */
+export function statsPageLd({
+  slug,
+  title,
+  description,
+  keywords,
+  published,
+  updated,
+  sources,
+  dataset,
+  words,
+  minutes,
+}: {
+  slug: string[];
+  title: string;
+  description: string;
+  keywords: string[];
+  published: string;
+  updated: string;
+  sources: { label: string; href: string }[];
+  dataset: {
+    name: string;
+    description: string;
+    temporalCoverage: string;
+    spatialCoverage: string;
+    variableMeasured: string[];
+  };
+  words: number;
+  minutes: number;
+}) {
+  const url = statsUrl(slug);
+  const datasetId = `${url}#dataset`;
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Article",
+        "@id": `${url}#article`,
+        headline: title,
+        description,
+        inLanguage: "es",
+        datePublished: published,
+        dateModified: updated,
+        mainEntityOfPage: url,
+        image: statsCardUrl(slug, updated),
+        keywords: keywords.join(", "),
+        wordCount: words,
+        timeRequired: `PT${minutes}M`,
+        about: { "@id": datasetId },
+        author: { "@id": ORG_ID },
+        publisher: { "@id": ORG_ID },
+      },
+      {
+        "@type": "Dataset",
+        "@id": datasetId,
+        name: dataset.name,
+        description: dataset.description,
+        url,
+        inLanguage: "es",
+        // No `license`: the source's terms are the source's to state, and
+        // asserting a specific licence on someone else's official statistics
+        // would be making one up. `isAccessibleForFree` is about this page.
+        isAccessibleForFree: true,
+        temporalCoverage: dataset.temporalCoverage,
+        spatialCoverage: dataset.spatialCoverage,
+        variableMeasured: dataset.variableMeasured,
+        dateModified: updated,
+        // Factura republishes these numbers; it doesn't produce them. `creator`
+        // is the statistical office, `publisher` is this site — conflating the
+        // two would claim authorship of official statistics.
+        creator: sources.map((s) => ({
+          "@type": "Organization",
+          name: s.label,
+          url: s.href,
+        })),
+        publisher: { "@id": ORG_ID },
+      },
+    ],
+  };
+}
+
+/** CollectionPage for the statistics index, listing each page as a member. */
+export function statsIndexLd({
+  title,
+  description,
+  pages,
+}: {
+  title: string;
+  description: string;
+  pages: { slug: string[]; title: string }[];
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": `${statsIndexUrl}#collection`,
+    url: statsIndexUrl,
+    name: title,
+    description,
+    inLanguage: "es",
+    publisher: { "@id": ORG_ID },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: pages.length,
+      itemListElement: pages.map((p, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: p.title,
+        url: statsUrl(p.slug),
+      })),
+    },
   };
 }
 

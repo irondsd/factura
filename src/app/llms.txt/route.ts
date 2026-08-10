@@ -1,8 +1,15 @@
+import { listedStatsPages } from "@/content/estadisticas/pages";
 import {
   guidesByPrimaryCategory,
   nonEmptyCategories,
 } from "@/content/guias/guides";
-import { guideCategoryUrl, guidesIndexUrl, guideUrl } from "@/i18n/metadata";
+import {
+  guideCategoryUrl,
+  guidesIndexUrl,
+  guideUrl,
+  statsIndexUrl,
+  statsUrl,
+} from "@/i18n/metadata";
 
 // Build-time generated /llms.txt. The curated product/demo/trust prose is
 // editorial and lives here as a template; the Guías list is generated from the
@@ -66,9 +73,10 @@ There is one scope, \`mcp:read\`. The tools cover properties, vendors, bills (li
 - The signed-in application lives under https://factura.uno/app and requires authentication; it is not publicly indexable. The /demo pages above show the same screens on sample data.`;
 
 export async function GET() {
-  const [sections, categories] = await Promise.all([
+  const [sections, categories, stats] = await Promise.all([
     guidesByPrimaryCategory(),
     nonEmptyCategories(),
+    listedStatsPages(),
   ]);
 
   const guidesSection = [
@@ -93,7 +101,18 @@ export async function GET() {
     ]),
   ].join("\n");
 
-  const body = `${PREAMBLE}\n\n${guidesSection}\n\n${AFTER}\n`;
+  const statsSection = [
+    "## Estadísticas",
+    "",
+    "Spanish-only statistics pages: official Argentine price data about the cost of running a home, republished as charts with the methodology and the sources spelled out. Each page states the series it publishes, the region breakdown, and the month of the last data point, and is refreshed when the statistical office publishes.",
+    "",
+    `- [Estadísticas index](${statsIndexUrl}): Every dataset Factura publishes.`,
+    ...stats.map(
+      (p) => `- [${p.meta.title}](${statsUrl(p.slug)}): ${p.meta.summary}`,
+    ),
+  ].join("\n");
+
+  const body = `${PREAMBLE}\n\n${guidesSection}\n\n${statsSection}\n\n${AFTER}\n`;
 
   return new Response(body, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },

@@ -9,8 +9,8 @@ import { cn } from "@/lib/cn";
 export type NavLink = { label: string; href: string };
 
 // Single source of truth for the marketing nav: which links exist, in what
-// order, and the one piece of locale logic — Guías is Spanish-only, because the
-// guides section itself only exists in Spanish.
+// order, and the one piece of locale logic — Guías and Estadísticas are
+// Spanish-only, because those two sections themselves only exist in Spanish.
 //
 // `signIn` is returned separately because it is treated differently everywhere:
 // it stays visible on mobile in the header bar, and it sits last (after the
@@ -28,7 +28,12 @@ export function siteNavLinks(
       { label: t.nav.docs, href: "/docs" },
       { label: t.nav.faq, href: "/faq" },
       { label: t.nav.demo, href: "/demo" },
-      ...(locale === "es" ? [{ label: t.nav.guides, href: "/guias" }] : []),
+      ...(locale === "es"
+        ? [
+            { label: t.nav.guides, href: "/guias" },
+            { label: t.nav.stats, href: "/estadisticas" },
+          ]
+        : []),
     ],
     signIn: { label: t.nav.signIn, href: "/login" },
   };

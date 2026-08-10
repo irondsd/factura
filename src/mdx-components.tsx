@@ -1,5 +1,8 @@
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
+import { IpcViviendaChart } from "@/components/estadisticas/IpcViviendaChart";
+import { RegionesIpc } from "@/components/estadisticas/RegionesIpc";
+import { ResumenIpc } from "@/components/estadisticas/ResumenIpc";
 import {
   ClosingCta,
   CtaButton,
@@ -138,14 +141,21 @@ const components: MDXComponents = {
   // Reads its data from `content/guias/data/inflacion`; a guide passes only the
   // `chart` id, so no chart data ever lives in an .mdx file.
   InflacionChart,
+  // Same contract for the statistics section: the figures and the geography
+  // table read `content/estadisticas/data/*`, and the page passes an id.
+  IpcViviendaChart,
+  RegionesIpc,
+  ResumenIpc,
   ProbarCta,
   SignupCta,
-  // <RelatedGuides /> and <Faq /> need to know which guide they're in, and
-  // `useMDXComponents` takes no arguments — so the article route overrides these
-  // entries with bound ones via the `components` prop. These no-ops are the
-  // fallback for any other renderer: no guide context, so nothing to show.
+  // <RelatedGuides />, <Faq /> and <Fuentes /> need to know which article
+  // they're in, and `useMDXComponents` takes no arguments — so the article
+  // routes override these entries with bound ones via the `components` prop.
+  // These no-ops are the fallback for any other renderer: no article context, so
+  // nothing to show.
   RelatedGuides: () => null,
   Faq: () => null,
+  Fuentes: () => null,
 };
 
 export function useMDXComponents(): MDXComponents {
