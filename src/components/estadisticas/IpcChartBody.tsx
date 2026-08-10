@@ -45,20 +45,30 @@ const tickStyle = {
   fontFamily: "var(--font-mono)",
 } as const;
 
-/** Argentine decimal comma, one place. The axis drops the unit — it's in the
- * note under every figure, and five ticks all saying "%" is noise. */
+/** Axis tick: Argentine decimal comma, and the unit kept. Four or five ticks is
+ * few enough that repeating "%" costs nothing, and a bare "300" beside a series
+ * that could plausibly be an index level is one more thing to have to work out. */
 const decimal = (v: number) =>
-  (Math.round(v * 10) / 10).toString().replace(".", ",");
+  `${(Math.round(v * 10) / 10).toString().replace(".", ",")} %`;
 
 const percent = (v: number) => `${v.toFixed(1).replace(".", ",")} %`;
 
 /** One plotted point. `label` goes on the axis, `title` in the tooltip — see the
- * note where these are built, in ./IpcViviendaChart.tsx. */
+ * note where these are built, in ./IpcViviendaChart.tsx.
+ *
+ * Every row carries *both* measures for its month, not just the one its chart
+ * draws: the tooltip shows the pair, so a reader pointing at July 2024 sees the
+ * 6,0 % the month moved and the 306,6 % the year did, together, and cannot take
+ * one for the other. `value` is whichever of the two this chart plots.
+ * `interanual` is absent for the first twelve months of the dataset, which have
+ * no year-earlier month to compare against. */
 export type Row = {
   key: string;
   label: string;
   title: string;
   value: number;
+  mensual: number;
+  interanual?: number;
 };
 
 export type Range = { min: number; max: number };
@@ -71,27 +81,82 @@ function yAxis({ min, max }: Range) {
   return { ticks, domain: [lo, hi] as [number, number] };
 }
 
+/** The name of what is being plotted, printed in the tooltip and at the head of
+ * the stat line.
+ *
+ * Not decoration. An interannual reading of "306,6 %" against "julio de 2024",
+ * with nothing saying which measure it is, reads as a monthly figure — and a
+ * monthly figure of 306 % is absurd enough that a reader will conclude the chart
+ * is broken rather than that they misread it. The measure travels with every
+ * number this component prints. */
+const MEASURE = {
+  interanual: "Variación interanual",
+  mensual: "Variación mensual",
+} as const;
+
+export type Measure = keyof typeof MEASURE;
+
+/** One line of the tooltip. The measure the chart is drawing gets the filled
+ * swatch and the heavier type; the other is there for context and is dressed to
+ * say so. */
+function TipRow({
+  name,
+  value,
+  plotted,
+}: {
+  name: string;
+  value: number;
+  plotted: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 mt-[3px]">
+      <span
+        className="w-2 h-2 inline-block shrink-0"
+        style={
+          plotted
+            ? { background: ACCENT }
+            : { boxShadow: `inset 0 0 0 1px ${ACCENT}` }
+        }
+      />
+      <span className="flex-1 text-muted">{name}</span>
+      <span className={plotted ? "font-semibold" : "text-muted"}>
+        {percent(value)}
+      </span>
+    </div>
+  );
+}
+
 function ChartTooltip({
   active,
   payload,
+  measure,
 }: {
   active?: boolean;
   payload?: readonly { payload?: Row }[];
+  measure: Measure;
 }) {
   const row = active ? payload?.[0]?.payload : undefined;
   if (!row) return null;
   return (
-    <div className="bg-card border border-line py-2 px-2.5 font-mono text-micro text-ink shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+    <div className="bg-card border border-line py-2 px-2.5 font-mono text-micro text-ink shadow-[0_2px_8px_rgba(0,0,0,0.08)] min-w-[210px]">
       <div className="uppercase tracking-[0.14em] text-muted mb-1.5">
         {row.title}
       </div>
-      <div className="flex items-center gap-2.5">
-        <span
-          className="w-2 h-2 inline-block shrink-0"
-          style={{ background: ACCENT }}
+      <TipRow
+        name={MEASURE.mensual}
+        value={row.mensual}
+        plotted={measure === "mensual"}
+      />
+      {/* Dropped rather than shown as a blank for the dataset's first year:
+          there is no 2019 here to compare 2020 against, and an em dash beside a
+          measure invites the reader to wonder which months are missing. */}
+      {row.interanual !== undefined && (
+        <TipRow
+          name={MEASURE.interanual}
+          value={row.interanual}
+          plotted={measure === "interanual"}
         />
-        <span className="font-medium">{percent(row.value)}</span>
-      </div>
+      )}
     </div>
   );
 }
@@ -110,10 +175,12 @@ const shortTitle = (title: string) => title.replace(" de ", " ");
 function Header({
   title,
   rows,
+  measure,
   action,
 }: {
   title: string;
   rows: Row[];
+  measure: Measure;
   action?: React.ReactNode;
 }) {
   const max = rows.reduce((a, b) => (b.value > a.value ? b : a));
@@ -130,7 +197,8 @@ function Header({
           {title}
         </h3>
         <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Máximo {percent(max.value)} ({shortTitle(max.title)}) · Mínimo{" "}
+          <span className="text-ink">{MEASURE[measure]}</span> · Máximo{" "}
+          {percent(max.value)} ({shortTitle(max.title)}) · Mínimo{" "}
           {percent(min.value)} ({shortTitle(min.title)}) · Último dato{" "}
           {percent(last.value)} ({shortTitle(last.title)})
         </p>
@@ -153,7 +221,7 @@ export function InteranualChart({
   const { ticks, domain } = yAxis(range);
   return (
     <>
-      <Header title={title} rows={rows} />
+      <Header title={title} rows={rows} measure="interanual" />
       <div className="h-[260px] sm:h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
@@ -179,7 +247,7 @@ export function InteranualChart({
               minTickGap={52}
             />
             <YAxis
-              width={44}
+              width={58}
               domain={domain}
               ticks={ticks}
               tick={tickStyle}
@@ -190,7 +258,9 @@ export function InteranualChart({
             <Tooltip
               cursor={{ stroke: AXIS, strokeDasharray: "3 3" }}
               isAnimationActive={false}
-              content={(props) => <ChartTooltip {...props} />}
+              content={(props) => (
+                <ChartTooltip {...props} measure="interanual" />
+              )}
             />
             <Line
               type="monotone"
@@ -249,6 +319,7 @@ export function MensualChart({
       <Header
         title={title}
         rows={rows}
+        measure="mensual"
         action={
           <Select
             value={year}
@@ -284,7 +355,7 @@ export function MensualChart({
               tickLine={false}
             />
             <YAxis
-              width={44}
+              width={58}
               domain={domain}
               ticks={ticks}
               tick={tickStyle}
@@ -299,7 +370,9 @@ export function MensualChart({
             <Tooltip
               cursor={{ fill: "var(--line)", fillOpacity: 0.3 }}
               isAnimationActive={false}
-              content={(props) => <ChartTooltip {...props} />}
+              content={(props) => (
+                <ChartTooltip {...props} measure="mensual" />
+              )}
             />
             <Bar
               dataKey="value"

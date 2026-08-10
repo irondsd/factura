@@ -1,4 +1,5 @@
 import {
+  byPeriod,
   getRegion,
   interanual,
   LAST_UPDATED,
@@ -127,18 +128,25 @@ export function IpcViviendaChart({
 // knowledge of the dataset. `label` is what the axis prints and `title` what a
 // tooltip does — abbreviated on the axis, where there is room for six
 // characters, spelled out in the tooltip, where there is room for the month.
+//
+// Both builders attach both measures to every row, whichever one their chart
+// plots, because the tooltip shows the pair — see `Row` in ./IpcChartBody.tsx.
 
 function interanualRows(region: RegionId): Row[] {
+  const { mensual } = byPeriod(region);
   const { periods, values } = interanual(region);
   return periods.map((period, i) => ({
     key: period,
     label: periodTick(period),
     title: periodLabel(period),
     value: values[i],
+    mensual: mensual.get(period) as number,
+    interanual: values[i],
   }));
 }
 
 function monthlyRows(region: RegionId): Record<number, Row[]> {
+  const { interanual: ia } = byPeriod(region);
   return Object.fromEntries(
     YEARS.map((year) => [
       year,
@@ -147,6 +155,8 @@ function monthlyRows(region: RegionId): Record<number, Row[]> {
         label: p.label,
         title: periodLabel(p.period),
         value: p.value,
+        mensual: p.value,
+        interanual: ia.get(p.period),
       })),
     ]),
   );
