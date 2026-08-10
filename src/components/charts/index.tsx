@@ -212,7 +212,7 @@ export function LineChartFx({
         {series.map((s) => (
           <Line
             key={s.label}
-            type="linear"
+            type="monotone"
             dataKey={s.label}
             stroke={s.color}
             strokeWidth={2}
@@ -568,7 +568,7 @@ export function SparklineFx({
       margin={{ top: 3, right: 3, bottom: 3, left: 3 }}
     >
       <Line
-        type="linear"
+        type="monotone"
         dataKey="v"
         stroke={color}
         strokeWidth={1.5}

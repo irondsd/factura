@@ -230,6 +230,68 @@ function axisTop(max: number): number {
   return Math.ceil(max / step) * step;
 }
 
+/**
+ * A smooth path through the points, using Fritsch–Carlson monotone cubic
+ * interpolation — the same curve recharts draws for `type="monotone"`, so the
+ * guide figures and the in-app charts bend alike.
+ *
+ * Monotone, specifically: a plain cubic spline overshoots after a flat stretch
+ * and invents a dip the series never had, which on a price index reads as
+ * "prices fell". This one passes through every point and stays within them.
+ */
+function smoothPath(points: { x: number; y: number }[]): string {
+  const n = points.length;
+  if (n === 0) return "";
+  const r = (v: number) => Math.round(v * 100) / 100;
+  const start = `M${r(points[0].x)} ${r(points[0].y)}`;
+  if (n === 1) return start;
+
+  // Secant slope of each segment, then a tangent per point: the average of the
+  // two neighbouring secants, flattened to 0 wherever the series turns.
+  const secant = points
+    .slice(1)
+    .map((p, i) => (p.y - points[i].y) / (p.x - points[i].x));
+  const tangent = points.map((_, i) =>
+    i === 0
+      ? secant[0]
+      : i === n - 1
+        ? secant[n - 2]
+        : secant[i - 1] * secant[i] <= 0
+          ? 0
+          : (secant[i - 1] + secant[i]) / 2,
+  );
+
+  // Fritsch–Carlson: clamp each tangent pair into the circle of radius 3 around
+  // its secant. That bound is what keeps the segment monotone.
+  for (let i = 0; i < n - 1; i++) {
+    if (secant[i] === 0) {
+      tangent[i] = 0;
+      tangent[i + 1] = 0;
+      continue;
+    }
+    const a = tangent[i] / secant[i];
+    const b = tangent[i + 1] / secant[i];
+    const s = a * a + b * b;
+    if (s > 9) {
+      const scale = 3 / Math.sqrt(s);
+      tangent[i] = scale * a * secant[i];
+      tangent[i + 1] = scale * b * secant[i];
+    }
+  }
+
+  let d = start;
+  for (let i = 0; i < n - 1; i++) {
+    const p = points[i];
+    const q = points[i + 1];
+    const h = (q.x - p.x) / 3;
+    d +=
+      ` C${r(p.x + h)} ${r(p.y + tangent[i] * h)}` +
+      ` ${r(q.x - h)} ${r(q.y - tangent[i + 1] * h)}` +
+      ` ${r(q.x)} ${r(q.y)}`;
+  }
+  return d;
+}
+
 function LineFigure({ chart, g }: { chart: LineChart; g: Geometry }) {
   const plotW = g.w - g.pad.left - g.pad.right;
   const plotH = g.h - g.pad.top - g.pad.bottom;
@@ -241,7 +303,7 @@ function LineFigure({ chart, g }: { chart: LineChart; g: Geometry }) {
   const x = (i: number) => g.pad.left + (i / last) * plotW;
   const y = (v: number) => g.pad.top + plotH - (v / top) * plotH;
   const path = (values: number[]) =>
-    values.map((v, i) => `${i === 0 ? "M" : "L"}${x(i)} ${y(v)}`).join(" ");
+    smoothPath(values.map((v, i) => ({ x: x(i), y: y(v) })));
 
   // A label every `xEvery` months, plus the base month and the last point.
   // Labelling Januaries instead would read better but leaves whichever year the
