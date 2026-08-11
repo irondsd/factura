@@ -1,6 +1,13 @@
 "use client";
 
-import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { SegmentedControl } from "@/components/ui";
 import geo from "@/content/estadisticas/data/caba-geo.json";
 import { cn } from "@/lib/cn";
@@ -133,6 +140,29 @@ export function MapaCaba({
     y: number;
     boxWidth: number;
   } | null>(null);
+  /** Set while a *touch* is what put the tooltip on screen.
+   *
+   * A touch pointer is destroyed the moment the finger lifts, and the browser
+   * fires pointerleave as it goes — the same event a mouse sends when it leaves
+   * the map. Handled alike, a tap showed the tooltip and took it away again
+   * inside the same gesture. So the leave is only obeyed for a mouse, and a
+   * touch-opened tooltip is dismissed by the two things that actually mean the
+   * reader is done with it: a tap somewhere else, or the gesture turning into a
+   * scroll. Nothing here runs for a mouse. */
+  const [touched, setTouched] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!touched) return;
+    const onDown = (e: PointerEvent) => {
+      if (boxRef.current?.contains(e.target as Node)) return;
+      setTouched(false);
+      setPointer(null);
+      setHovered(null);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [touched]);
 
   // The tooltip is centred on the cursor, so keeping it inside the figure needs
   // its width — and that can't be assumed. A barrio's is "Palermo · Comuna 14",
@@ -164,6 +194,15 @@ export function MapaCaba({
   }, [view]);
 
   const active = hovered ? view.regions.find((r) => r.id === hovered) : null;
+
+  const track = (e: React.PointerEvent<HTMLDivElement>) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    setPointer({
+      x: e.clientX - box.left,
+      y: e.clientY - box.top,
+      boxWidth: box.width,
+    });
+  };
 
   return (
     <div>
@@ -223,16 +262,24 @@ export function MapaCaba({
       </ul>
 
       <div
+        ref={boxRef}
         className="relative"
-        onPointerMove={(e) => {
-          const box = e.currentTarget.getBoundingClientRect();
-          setPointer({
-            x: e.clientX - box.left,
-            y: e.clientY - box.top,
-            boxWidth: box.width,
-          });
+        onPointerMove={track}
+        // A tap need not produce a pointermove at all, so the position the
+        // tooltip is placed at has to be taken on the way down as well.
+        onPointerDown={(e) => {
+          if (e.pointerType !== "mouse") setTouched(true);
+          track(e);
         }}
-        onPointerLeave={() => {
+        onPointerLeave={(e) => {
+          if (e.pointerType !== "mouse") return;
+          setPointer(null);
+          setHovered(null);
+        }}
+        // The finger started scrolling the page: the touch is no longer about
+        // the map, and the tooltip would otherwise ride along with it.
+        onPointerCancel={() => {
+          setTouched(false);
           setPointer(null);
           setHovered(null);
         }}
@@ -284,6 +331,20 @@ export function MapaCaba({
                 strokeWidth={0.8}
                 vectorEffect="non-scaling-stroke"
                 onPointerEnter={() => setHovered(r.id)}
+                // A touch is implicitly captured by whichever path it went down
+                // on, which stops pointerenter firing for any other — the
+                // highlight would stay stuck on the first barrio touched while
+                // the tooltip followed the finger across the city. Released,
+                // hit-testing carries on and dragging explores the map.
+                onPointerDown={(e) => {
+                  if (
+                    e.pointerType !== "mouse" &&
+                    e.currentTarget.hasPointerCapture(e.pointerId)
+                  ) {
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                  }
+                  setHovered(r.id);
+                }}
                 className="cursor-default"
               />
             );
