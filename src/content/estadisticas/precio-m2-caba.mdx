@@ -1,0 +1,123 @@
+import { TEMPORAL_COVERAGE } from "./data/venta-caba";
+
+export const meta = {
+  title: "Precio del metro cuadrado en CABA, barrio por barrio",
+  titleTag: "Precio del m² en CABA por barrio y comuna",
+  description:
+    "Cuánto cuesta el metro cuadrado de un departamento en venta en cada barrio de la Ciudad de Buenos Aires, en dólares, con el mapa y la tabla completa de los datos oficiales de IDECBA.",
+  summary:
+    "El precio de publicación del metro cuadrado en dólares, para departamentos usados de 1, 2 y 3 ambientes, en los 48 barrios y las 15 comunas de CABA.",
+  ogStat: "US$ por m², por barrio",
+  cta: "Ya sabes cuánto vale el metro cuadrado. Mira cuánto te cuesta habitarlo.",
+  keywords: [
+    "precio del metro cuadrado en caba",
+    "mapa precio m2 caba",
+    "precio del metro cuadrado caba",
+    "precio m2 buenos aires por barrio",
+    "cuánto cuesta el metro cuadrado en caba",
+    "precio departamentos caba por barrio",
+    "valor del m2 en palermo",
+    "mapa precios inmuebles caba",
+    "precio m2 por comuna",
+  ],
+  published: "2026-08-10T12:00:00-03:00",
+  updated: "2026-08-10T12:00:00-03:00",
+  faq: [
+    {
+      q: "¿Cuánto cuesta el metro cuadrado en la Ciudad de Buenos Aires?",
+      a: "Depende del barrio y del tamaño del departamento, y la diferencia entre puntas es de más de cuatro veces. El promedio de la Ciudad y el valor de cada barrio están en el mapa y en la tabla de esta página, que se actualizan cada trimestre con el dato nuevo de IDECBA.",
+    },
+    {
+      q: "¿Estos precios son lo que se paga o lo que se pide?",
+      a: "Lo que se pide. IDECBA calcula el promedio sobre los avisos publicados en un portal inmobiliario, así que es el precio de publicación, no el de escrituración. El valor final de una operación suele cerrarse por debajo del publicado, y la diferencia depende de cada negociación.",
+    },
+    {
+      q: "¿Por qué algunos barrios aparecen rayados en el mapa?",
+      a: "Porque IDECBA no publica un promedio cuando hubo muy pocos avisos en el trimestre: con dos o tres unidades, un promedio diría más sobre esas unidades que sobre el barrio. El rayado significa que no hay dato publicado, no que el barrio sea barato. Los barrios afectados están nombrados debajo del mapa y aparecen en la tabla como «Sin dato».",
+    },
+    {
+      q: "¿Por qué el precio del metro cuadrado está en dólares?",
+      a: "Porque así se publica y así se opera: el mercado de compraventa de inmuebles en Argentina cotiza en dólares. Tiene además una ventaja para una serie larga, y es que se puede comparar un trimestre con otro sin corregir por inflación, cosa que con precios en pesos no se puede hacer.",
+    },
+    {
+      q: "¿Cada cuánto se actualiza esta página?",
+      a: "Cada trimestre. IDECBA publica el dato alrededor de dos meses después de que cierra el trimestre, y esta página se actualiza cuando sale. Los últimos trimestres pueden estar marcados como provisorios: el organismo los revisa cuando publica el siguiente.",
+    },
+    {
+      q: "¿Conviene mirar el mapa por barrio o por comuna?",
+      a: "Por barrio, si tu barrio tiene dato: es la unidad en la que la gente piensa. Por comuna, si no lo tiene o si quieres una lectura más estable, porque al agrupar varios barrios la comuna reúne más avisos y casi nunca queda sin publicar.",
+    },
+  ],
+  sources: [
+    {
+      label: "IDECBA — Instituto de Estadística y Censos de la Ciudad de Buenos Aires",
+      href: "https://www.estadisticaciudad.gob.ar/eyc/categoria-banco-datos/mercado-inmobiliario/",
+      note: "Organismo que releva y publica los precios de publicación del mercado inmobiliario porteño, sobre la base de datos de Argenprop.",
+    },
+    {
+      label:
+        "IDECBA — Precio del m² de departamentos de 2 ambientes usados, por barrio",
+      href: "https://www.estadisticaciudad.gob.ar/eyc/banco-datos/precio-promedio-de-publicacion-del-metro-cuadrado-dolares-de-departamentos-en-venta-de-2-ambientes-usados-por-barrio-ciudad-de-buenos-aires-4to-trimestre-de-2006-2do-trimestre-de-2024/",
+      note: "La serie completa por trimestre en planilla, tal como la publica el organismo. Los cuadros por tamaño y por comuna están enlazados desde la misma sección.",
+    },
+    {
+      label: "Buenos Aires Data — Barrios y comunas",
+      href: "https://data.buenosaires.gob.ar/dataset/barrios",
+      note: "Límites oficiales de los 48 barrios y las 15 comunas, con los que está dibujado el mapa. Licencia CC-BY-2.5-AR.",
+    },
+  ],
+  dataset: {
+    name: "Precio de publicación del metro cuadrado de departamentos usados en venta, por barrio y comuna (CABA)",
+    description:
+      "Precio promedio de publicación del metro cuadrado, en dólares estadounidenses, de departamentos usados en venta de 1, 2 y 3 ambientes, por trimestre, para los 48 barrios y las 15 comunas de la Ciudad Autónoma de Buenos Aires.",
+    temporalCoverage: TEMPORAL_COVERAGE,
+    spatialCoverage: "Ciudad Autónoma de Buenos Aires, Argentina",
+    variableMeasured: [
+      "Precio promedio de publicación del metro cuadrado en dólares, departamentos usados de 1 ambiente",
+      "Precio promedio de publicación del metro cuadrado en dólares, departamentos usados de 2 ambientes",
+      "Precio promedio de publicación del metro cuadrado en dólares, departamentos usados de 3 ambientes",
+    ],
+  },
+};
+
+En Buenos Aires el precio de una propiedad se piensa por metro cuadrado y se cuenta en dólares. Es la unidad en la que se comparan dos departamentos de tamaños distintos, la que aparece en cualquier tasación, y la que permite preguntar algo que el precio total no responde: si este barrio es caro o barato para lo que ofrece.
+
+Esta página publica el precio del metro cuadrado en CABA para los 48 barrios y las 15 comunas, trimestre a trimestre, tal como lo publica el organismo de estadística porteño. No es una estimación nuestra ni un promedio de portales: es el dato oficial, con el mapa para leerlo de un vistazo y la tabla completa debajo.
+
+Conviene decir desde el principio qué es este número y qué no es. Es un **precio de publicación**: lo que los avisos piden, no lo que las escrituras registran. Sirve para comparar barrios entre sí y para seguir la evolución en el tiempo, que es para lo que está construido. No sirve como tasación de una propiedad concreta, porque dentro de un mismo barrio el estado, la antigüedad, el piso, la orientación y la cuadra mueven el valor mucho más de lo que lo mueve el promedio.
+
+## Qué vas a encontrar en esta página
+
+Un mapa del precio del m² en CABA, sombreado barrio por barrio, con un interruptor para cambiar entre departamentos de 1, 2 y 3 ambientes y otro para verlo por barrio o por comuna. Debajo del mapa, el trimestre al que corresponden los datos y la tabla con el valor exacto de cada barrio, ordenada del más caro al más barato.
+
+Los seis mapas comparten la misma escala de colores, así que el cambio de tono al pasar de un ambiente a tres es real: el metro cuadrado de los departamentos más grandes es más barato, y se ve.
+
+## Cómo se mide el precio del metro cuadrado
+
+El dato lo produce el **Instituto de Estadística y Censos de la Ciudad de Buenos Aires (IDECBA)**, que depende de la Jefatura de Gabinete del Gobierno porteño, a partir de los avisos publicados en el portal inmobiliario Argenprop. Cada trimestre toma las unidades en venta, las agrupa por barrio y por cantidad de ambientes, y calcula el precio promedio por metro cuadrado en dólares.
+
+Tres consecuencias de esa metodología, que conviene tener presentes al leer el mapa:
+
+- **Es oferta, no operaciones.** El universo son avisos vigentes. Un barrio con mucha oferta y pocas ventas y otro con poca oferta y mucha rotación aparecen con el mismo tipo de número.
+- **Hay un mínimo de avisos.** Donde no se alcanza, IDECBA no publica el promedio. Por eso algunos barrios aparecen rayados: no hay dato, que es distinto de que sea barato. Cuáles son cambia de un trimestre a otro y está indicado debajo del mapa.
+- **Los últimos trimestres son provisorios.** El organismo los revisa al publicar el siguiente, así que el valor más reciente puede moverse un poco.
+
+La serie de esta página arranca en 2017. Los cuadros de IDECBA para 2 y 3 ambientes llegan más atrás, hasta 2006, pero sus propias notas advierten que hasta 2014 el dato corresponde al primer mes del trimestre y no al trimestre, que la fuente cambia a mediados de 2015, y que lo anterior a 2010 está en revisión. 2017 es el primer trimestre limpio de todo eso y el primero presente en los seis cuadros, que es lo que permite que los seis mapas compartan un mismo eje de tiempo.
+
+## El mapa del precio del metro cuadrado en CABA
+
+<VentaCabaMapa />
+
+## Cómo leer las diferencias entre barrios
+
+El patrón que dibuja el mapa es el mismo que cualquier porteño reconocería: el corredor norte, sobre la costa del río, concentra los valores más altos, y el precio baja hacia el sur y el oeste. Puerto Madero está aparte de todo lo demás, y por un margen que deforma cualquier escala: es un barrio de construcción reciente, sin stock antiguo, y compite con otro mercado.
+
+Lo que el mapa no explica es *por qué*. Un metro cuadrado caro suele estar comprando varias cosas a la vez —cercanía a subte, arbolado, comercios, seguridad percibida, prestigio del barrio, calidad del stock edilicio— y ninguna de ellas aparece en el número. Vale la pena mirar el mapa como un punto de partida para preguntas, no como una respuesta.
+
+Una lectura que sí es directa: **el metro cuadrado de los departamentos grandes es más barato que el de los chicos**, en casi todos los barrios. Un monoambiente tiene cocina y baño igual que un tres ambientes, y esos metros caros se reparten entre menos metros totales. Por eso, para comparar el costo de vivir en dos barrios, conviene comparar dentro del mismo tamaño de unidad.
+
+## Preguntas frecuentes
+
+<Faq />
+
+<Fuentes />

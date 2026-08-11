@@ -159,6 +159,16 @@ const ENTRIES: Entry[] = [
     file: "inflacion-de-vivienda/patagonia.mdx",
     load: () => import("./inflacion-de-vivienda/patagonia.mdx"),
   },
+  // Flat rather than ["venta", "caba"]: the series is CABA-only, and a national
+  // `/estadisticas/venta` hub with one child and nothing of its own to say is a
+  // doorway. If a province ever publishes a comparable series, this becomes
+  // `venta/caba` plus a permanent redirect from here.
+  {
+    slug: ["precio-m2-caba"],
+    crumb: "Precio del m² en CABA",
+    file: "precio-m2-caba.mdx",
+    load: () => import("./precio-m2-caba.mdx"),
+  },
 ];
 
 const DIR = path.join(process.cwd(), "src/content/estadisticas");

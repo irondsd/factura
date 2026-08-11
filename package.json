@@ -16,6 +16,8 @@
     "build:worker": "node scripts/build-suggest-worker.mjs",
     "validate:guides": "bun scripts/validate-guides.ts",
     "audit:seo": "bun scripts/audit-seo.ts",
+    "data:caba": "bun scripts/fetch-caba-inmobiliario.ts",
+    "data:caba-geo": "bun scripts/build-caba-geo.ts",
     "db:push": "dotenv -e .env.local drizzle-kit push",
     "db:push:prod": "dotenv -e .env.prod drizzle-kit push",
     "db:seed": "dotenv -e .env.local tsx src/db/seed.ts",

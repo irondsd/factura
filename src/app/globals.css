@@ -33,6 +33,27 @@
   --vendor-khaki: #807356;
   --vendor-clay: #b08968;
   --vendor-moss: #5c6b5d;
+
+  /* Choropleth ramp — the shading on the /estadisticas maps. Separate from the
+     vendor palette on purpose: that one is *categorical* (fourteen hues chosen
+     to be told apart), and a map needs a *sequential* one (a single hue getting
+     darker, so "more" is readable without consulting a key). Six steps, warm,
+     with lightness falling monotonically so the order survives greyscale and
+     the common forms of colour blindness.
+
+     --choro-none is deliberately off-ramp: on these maps a blank region means
+     the source withheld the value for too few listings, and those regions are
+     systematically the poorest ones. Rendering them as the palest step would
+     read as "cheapest", which is the one thing the data does not say. It is
+     paired with a hatch (see .choro-hatch) so it also differs in texture. */
+  --choro-1: #f6e7c8;
+  --choro-2: #eecf9b;
+  --choro-3: #e2ae6d;
+  --choro-4: #cf8746;
+  --choro-5: #b25f26;
+  --choro-6: #8a3d10;
+  --choro-none: #e2ddd0;
+  --choro-none-line: #c6bda7;
 }
 
 /* Background utilities for vendor swatches/dots — apply by name, no inline

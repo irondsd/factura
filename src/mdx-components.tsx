@@ -8,6 +8,7 @@ import { IpcViviendaChart } from "@/components/estadisticas/IpcViviendaChart";
 import { RegionesIpc } from "@/components/estadisticas/RegionesIpc";
 import { ResumenIpc } from "@/components/estadisticas/ResumenIpc";
 import { ResumenRegion } from "@/components/estadisticas/ResumenRegion";
+import { VentaCabaMapa } from "@/components/estadisticas/VentaCabaMapa";
 import {
   ClosingCta,
   CtaButton,
@@ -154,6 +155,9 @@ const components: MDXComponents = {
   RegionesIpc,
   ResumenIpc,
   ResumenRegion,
+  // Takes no props at all: which sizes and geographies it offers, and the six
+  // views behind the switches, come from the dataset it reads.
+  VentaCabaMapa,
   ProbarCta,
   SignupCta,
   // <RelatedGuides />, <Faq />, <Fuentes /> and <Subpaginas /> need to know
