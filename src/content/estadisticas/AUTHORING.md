@@ -96,15 +96,28 @@ sort by, and what the sitemap reports.
 
 ## 4. The body
 
-Three sections before the charts, in this order:
+Two sections before the first figure, in this order:
 
 1. **Introduction** (no heading, above the first `##`) — what the statistic is,
-   why it matters, and why Factura publishes it.
-2. **`## Qué vas a encontrar en esta página`** — the page's own contents, plus
-   the at-a-glance figure for the latest period.
-3. **`## Cómo se mide …`** — what the index measures, in what unit, how it's
-   collected, which agency publishes it and how often, and what each geography
-   covers.
+   why it matters, and why Factura publishes it. Anything a reader must know
+   *before* seeing the number — that these are asking prices, say — goes here
+   and nowhere else.
+2. **`## Qué vas a encontrar en esta página`** — the page's own contents, **as a
+   bullet list, one line per section**. Prose here is the mistake to avoid: it
+   duplicates the table of contents directly above it and it is what pushes the
+   figure below the fold.
+
+**Then the page's main figure, as early as the third `##`.** On a phone that is
+the whole design constraint: the reader came for the number, and every screen of
+prose before it is a screen they scroll past or bounce on. Measure it — the map
+on the two CABA pages sat 3.8 screens down on a 390×844 viewport before this
+rule existed, and half of that was the two sections that now follow the figure.
+
+**`## Cómo se mide …`** — what the index measures, in what unit, how it's
+collected, which agency publishes it and how often, and what each geography
+covers — belongs **after** the figure. It is the reader's second question, not
+their first, and the one caveat that cannot wait (what a striped region means,
+how many are missing) is already in the figure's own note.
 
 Then one `##` per region or cut, each followed by its figures. Then `<Faq />`
 and `<Fuentes />` at the very end.

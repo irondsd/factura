@@ -33,7 +33,7 @@ export const meta = {
     "precio m2 por comuna",
   ],
   published: "2026-08-10T12:00:00-03:00",
-  updated: "2026-08-11T12:00:00-03:00",
+  updated: "2026-08-11T20:00:00-03:00",
   faq: [
     {
       q: "¿Cuánto cuesta el metro cuadrado en la Ciudad de Buenos Aires?",
@@ -110,15 +110,24 @@ export const meta = {
 
 En Buenos Aires el valor de una propiedad se piensa por metro cuadrado y se cuenta en dólares. Es la unidad en la que se comparan dos departamentos de tamaños distintos, la que aparece en cualquier tasación, y la que permite preguntar algo que el precio total no responde: si este barrio es caro o barato para lo que ofrece.
 
-Esta página publica el precio del metro cuadrado en CABA para los 48 barrios y las 15 comunas, trimestre a trimestre, tal como lo publica el organismo de estadística porteño. No es una estimación nuestra ni un promedio de portales: es el dato oficial, con el mapa comparativo para leerlo de un vistazo y la tabla completa debajo. Y como nadie compra un metro cuadrado suelto, está también el paso siguiente: cuánto cuesta, con esos valores, un departamento de uno, dos o tres ambientes.
+Esta página publica el precio del metro cuadrado en CABA para los 48 barrios y las 15 comunas, trimestre a trimestre, tal como lo publica el organismo de estadística porteño. No es una estimación nuestra ni un promedio de portales: es el dato oficial, con el mapa comparativo para leerlo de un vistazo y la tabla completa debajo.
 
 Conviene decir desde el principio qué es este número y qué no es. Es un **precio de publicación**: lo que los avisos piden, no lo que las escrituras registran. Sirve para comparar barrios entre sí y para seguir la evolución en el tiempo, que es para lo que está construido. No sirve como tasación de una propiedad concreta, porque dentro de un mismo barrio el estado, la antigüedad, el piso, la orientación y la cuadra mueven el valor mucho más de lo que lo mueve el promedio.
 
 ## Qué vas a encontrar en esta página
 
-Un mapa del precio del m² en CABA, sombreado barrio por barrio, con un interruptor para cambiar entre departamentos de 1, 2 y 3 ambientes y otro para verlo por barrio o por comuna. Debajo del mapa, el trimestre al que corresponden los datos y la tabla con el valor exacto de cada barrio, ordenada del más caro al más barato.
+- **El mapa del precio del m²**, aquí abajo, con la tabla de cada barrio debajo.
+- **Cuánto cuesta un departamento** de 1, 2 y 3 ambientes con esos valores.
+- **Palermo, Belgrano, Recoleta, Villa Urquiza, Caballito y Flores**, con el puesto de cada uno.
+- **El precio por zona**: norte, centro, oeste y sur.
+- **Cómo se mide** el precio, quién lo publica y cada cuánto.
+- **Las fuentes**, al final, para ir al dato original.
 
-Después del mapa, tres lecturas que el mapa por sí solo no da: cuánto cuesta un departamento entero con esos valores, cuánto vale el metro cuadrado en los barrios que más se consultan —Palermo, Belgrano, Recoleta, Villa Urquiza, Caballito y Flores—, y cómo queda el precio por zona, agrupando la Ciudad en norte, centro, oeste y sur.
+## El mapa comparativo del precio del m² en CABA
+
+Para saber cuánto vale el metro cuadrado en una zona, búscala en el mapa: cada barrio está sombreado según su precio, y al pasar el cursor por encima aparece el valor exacto. Si tu barrio quedó sin dato este trimestre, o si te interesa un área más amplia que un barrio, el interruptor de la derecha pasa el mapa a comunas.
+
+<VentaCabaMapa />
 
 Los seis mapas comparten la misma escala de colores, así que el cambio de tono al pasar de un ambiente a tres es real: el metro cuadrado de los departamentos más grandes es más barato, y se ve.
 
@@ -133,12 +142,6 @@ Tres consecuencias de esa metodología, que conviene tener presentes al leer el 
 - **Los últimos trimestres son provisorios.** El organismo los revisa al publicar el siguiente, así que el valor más reciente puede moverse un poco.
 
 La serie de esta página arranca en 2017. Los cuadros de IDECBA para 2 y 3 ambientes llegan más atrás, hasta 2006, pero sus propias notas advierten que hasta 2014 el dato corresponde al primer mes del trimestre y no al trimestre, que la fuente cambia a mediados de 2015, y que lo anterior a 2010 está en revisión. 2017 es el primer trimestre limpio de todo eso y el primero presente en los seis cuadros, que es lo que permite que los seis mapas compartan un mismo eje de tiempo.
-
-## El mapa comparativo del precio del m² en CABA
-
-Para saber cuánto vale el metro cuadrado en una zona, búscala en el mapa: cada barrio está sombreado según su precio, y al pasar el cursor por encima aparece el valor exacto. Si tu barrio quedó sin dato este trimestre, o si te interesa un área más amplia que un barrio, el interruptor de la derecha pasa el mapa a comunas.
-
-<VentaCabaMapa />
 
 ## Cuánto cuesta un departamento en CABA
 

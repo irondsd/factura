@@ -19,7 +19,7 @@ export const meta = {
     "cuanto cuesta alquilar un monoambiente en caba",
   ],
   published: "2026-08-11T12:00:00-03:00",
-  updated: "2026-08-11T12:00:00-03:00",
+  updated: "2026-08-11T20:00:00-03:00",
   faq: [
     {
       q: "¿Cuánto cuesta alquilar un departamento en CABA?",
@@ -87,9 +87,19 @@ Conviene decir desde el principio qué es este número. Es un **precio de public
 
 ## Qué vas a encontrar en esta página
 
-Un mapa de alquileres de CABA con el precio de cada zona, con un interruptor para cambiar entre departamentos de 1, 2 y 3 ambientes y otro para verlo por barrio o por comuna. Debajo del mapa, el trimestre al que corresponden los datos y la tabla con el valor exacto de cada barrio, ordenada del más caro al más barato.
+- **El mapa de alquileres**, aquí abajo, con la tabla de cada zona debajo.
+- **Palermo, Belgrano, Recoleta, Villa Urquiza, Caballito y Flores**, con el puesto de cada uno.
+- **Cómo se mide** el precio, quién lo publica y cada cuánto.
+- **Por qué estos precios no se comparan entre trimestres.**
+- **Las fuentes**, al final, para ir al dato original.
 
-Después del mapa, el alquiler en los barrios que más se consultan —Palermo, Belgrano, Recoleta, Villa Urquiza, Caballito y Flores—, con el puesto que ocupa cada uno entre los barrios que tienen dato publicado.
+## El mapa de alquileres en CABA
+
+Para saber cuánto sale alquilar en una zona, buscala en el mapa: cada comuna está sombreada según su precio, y al pasar el cursor por encima aparece el valor exacto. El interruptor de la derecha lo pasa a barrios, con el detalle de que ahí van a faltar unos cuantos.
+
+<AlquilerCabaMapa />
+
+El color va por metro cuadrado y la tabla por mes, y no es un capricho: son tres tamaños de departamento distintos, y en una misma escala de pesos por mes el mapa de tres ambientes saldría oscuro entero y el de monoambientes claro entero, diciendo solamente que un departamento más grande cuesta más. Por metro cuadrado los tres entran en la misma escala y se ve lo que interesa, que es la diferencia entre barrios.
 
 ## Cómo se mide el precio de los alquileres
 
@@ -103,14 +113,6 @@ Cuatro consecuencias de esa metodología, que conviene tener presentes al leer e
 - **Los últimos trimestres son provisorios.** El organismo los revisa al publicar el siguiente.
 
 La serie arranca en el primer trimestre de 2018, que es donde empiezan los seis cuadros de IDECBA por barrio y por comuna.
-
-## El mapa de alquileres en CABA
-
-Para saber cuánto sale alquilar en una zona, buscala en el mapa: cada comuna está sombreada según su precio, y al pasar el cursor por encima aparece el valor exacto. El interruptor de la derecha lo pasa a barrios, con el detalle de que ahí van a faltar unos cuantos.
-
-<AlquilerCabaMapa />
-
-El color va por metro cuadrado y la tabla por mes, y no es un capricho: son tres tamaños de departamento distintos, y en una misma escala de pesos por mes el mapa de tres ambientes saldría oscuro entero y el de monoambientes claro entero, diciendo solamente que un departamento más grande cuesta más. Por metro cuadrado los tres entran en la misma escala y se ve lo que interesa, que es la diferencia entre barrios.
 
 ## El alquiler en los barrios más consultados
 
