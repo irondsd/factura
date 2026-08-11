@@ -1,11 +1,15 @@
 #!/usr/bin/env bun
 /**
- * Rebuilds `src/content/estadisticas/data/venta-caba.json` from IDECBA's
- * published spreadsheets — the sale price of a square metre in CABA, in
- * dollars, by barrio and by comuna, for 1/2/3-ambiente used apartments.
+ * Rebuilds the two IDECBA datasets behind the CABA property pages:
+ *
+ *   src/content/estadisticas/data/venta-caba.json     USD per m², for sale
+ *   src/content/estadisticas/data/alquiler-caba.json  ARS per month, to rent
+ *
+ * both by barrio and by comuna, for 1/2/3-ambiente used apartments.
  *
  * Run: `bun scripts/fetch-caba-inmobiliario.ts`   (or `npm run data:caba`)
- *      `--dry-run` parses and reports without writing.
+ *      `--dry-run`          parse and report without writing
+ *      `--only=alquiler`    just one of them
  *
  * IDECBA publishes quarterly, roughly two months after the quarter closes, so
  * this runs about four times a year. Run it, read the summary it prints, and
@@ -14,9 +18,9 @@
  * ── Why a script and not a hand-append ────────────────────────────────────
  * The house rule for this directory (see `AUTHORING.md` §6) is that a data
  * file is "the thing a human appends to each month", and for INDEC's seven
- * regions that is the right call. This series is 189 numbers a quarter spread
- * over six spreadsheets whose barrio labels disagree with the city's own
- * boundary file in three places — typed by hand it would be wrong within a
+ * regions that is the right call. These two are 378 numbers a quarter spread
+ * over twelve spreadsheets whose barrio labels disagree with the city's own
+ * boundary file in three places — typed by hand they would be wrong within a
  * year, and wrong in a way that looks like data.
  *
  * ── Why the URLs are discovered rather than hardcoded ─────────────────────
@@ -26,15 +30,6 @@
  * re-uploaded and silently moves to a new folder. So the codes are written
  * down below and the current URL for each is looked up from the section index
  * on every run.
- *
- * ── Why the series starts at 2017 ─────────────────────────────────────────
- * The 2- and 3-ambiente barrio tables reach back to 2006, but their own
- * footnotes disclaim the early years: readings before 2015 are the first month
- * of the quarter rather than the quarter, the source changes from Adinco to
- * Argenprop in mid-2015, and "la información anterior a 2010 se encuentra en
- * revisión". 2017Q1 is both the first quarter clear of all that and the first
- * quarter present in every one of the six files, which is what lets all six
- * share one period axis with no padding.
  */
 import { writeFileSync } from "node:fs";
 import path from "node:path";
@@ -48,10 +43,7 @@ import { quarters, titleRange } from "./lib/quarters";
 import { type Cell, readSheet } from "./lib/xlsx";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const OUT = path.join(
-  here,
-  "../src/content/estadisticas/data/venta-caba.json",
-);
+const DATA_DIR = path.join(here, "../src/content/estadisticas/data");
 
 /** Where the section indexes its tables. Two pages cover every price series. */
 const INDEX_PAGES = [
@@ -59,29 +51,95 @@ const INDEX_PAGES = [
   "https://www.estadisticaciudad.gob.ar/eyc/categoria-banco-datos/mercado-inmobiliario/page/2/",
 ];
 
-/** First quarter we keep. See the header. */
-const FROM = "2017Q1";
-
-/** USD/m² to one decimal: the source carries fifteen, which is fourteen more
- * than an average asking price supports and half the file size. */
-const round = (n: number): number => Math.round(n * 10) / 10;
-
 type Size = "amb1" | "amb2" | "amb3";
 type Geo = "barrio" | "comuna";
 
-/** The six tables this file is built from. `estado: usados` throughout — the
- * "a estrenar" tables (AX09/AX01/AX02 by barrio, AX11/AX05/AX06 by comuna)
- * cover far fewer barrios and would grey out half the map. */
-const SERIES: { size: Size; geo: Geo; code: string }[] = [
-  { size: "amb1", geo: "barrio", code: "MI_DVP_AX10" },
-  { size: "amb2", geo: "barrio", code: "MI_DVP_AX03" },
-  { size: "amb3", geo: "barrio", code: "MI_DVP_AX04" },
-  { size: "amb1", geo: "comuna", code: "MI_DVP_AX12" },
-  { size: "amb2", geo: "comuna", code: "MI_DVP_AX07" },
-  { size: "amb3", geo: "comuna", code: "MI_DVP_AX08" },
-];
-
 const SIZES: Size[] = ["amb1", "amb2", "amb3"];
+
+type Dataset = {
+  id: string;
+  file: string;
+  title: string;
+  unit: string;
+  /** Printed after each figure in the console summary. */
+  unitShort: string;
+  sourceNote: string;
+  /** First quarter kept, and why. */
+  from: string;
+  /** Decimal places to keep. */
+  decimals: number;
+  series: { size: Size; geo: Geo; code: string }[];
+  /**
+   * Whether the sheets state the surface their unit price assumes.
+   *
+   * The rent tables publish a price for a *flat*, derived from a price per
+   * square metre times a fixed reference surface, and say so in a footnote
+   * ("se considera una superficie de 43 m2"). Reading that number out means the
+   * page can show rent per m² as the source's own arithmetic rather than as our
+   * guess — and it is the bridge to comparing rent against the sale series,
+   * which is per m² already. The sale tables have no such note.
+   */
+  readsReferenceArea: boolean;
+};
+
+const DATASETS: Dataset[] = [
+  {
+    id: "venta-caba",
+    file: "venta-caba.json",
+    title:
+      "Precio promedio de publicación del metro cuadrado de departamentos usados en venta",
+    unit: "USD/m2",
+    unitShort: "USD/m2",
+    sourceNote:
+      "IDECBA (Jefatura de Gabinete de Ministros - GCBA) sobre la base de datos de Argenprop. Precios de publicación, no de escrituración.",
+    // The 2- and 3-ambiente barrio tables reach back to 2006, but their own
+    // footnotes disclaim the early years: readings before 2015 are the first
+    // month of the quarter rather than the quarter, the source changes from
+    // Adinco to Argenprop in mid-2015, and "la información anterior a 2010 se
+    // encuentra en revisión". 2017Q1 is both the first quarter clear of all
+    // that and the first present in every one of the six files.
+    from: "2017Q1",
+    // The source carries fifteen decimals, which is fourteen more than an
+    // average asking price supports and half the file size.
+    decimals: 1,
+    // `usados` throughout — the "a estrenar" tables cover far fewer barrios and
+    // would grey out half the map.
+    series: [
+      { size: "amb1", geo: "barrio", code: "MI_DVP_AX10" },
+      { size: "amb2", geo: "barrio", code: "MI_DVP_AX03" },
+      { size: "amb3", geo: "barrio", code: "MI_DVP_AX04" },
+      { size: "amb1", geo: "comuna", code: "MI_DVP_AX12" },
+      { size: "amb2", geo: "comuna", code: "MI_DVP_AX07" },
+      { size: "amb3", geo: "comuna", code: "MI_DVP_AX08" },
+    ],
+    readsReferenceArea: false,
+  },
+  {
+    id: "alquiler-caba",
+    file: "alquiler-caba.json",
+    title:
+      "Precio promedio de publicación de departamentos usados en alquiler, por mes",
+    unit: "ARS/mes",
+    unitShort: "ARS/mes",
+    sourceNote:
+      "IDECBA (Jefatura de Gabinete de Ministros - GCBA) sobre la base de datos de Argenprop. Precios de publicación en pesos, no de contratos firmados.",
+    // All six rent tables start here, so no padding is needed. There is no
+    // earlier data to discard: unlike the sale series, IDECBA's barrio-level
+    // rent tables begin at 2018Q1.
+    from: "2018Q1",
+    // Pesos a month, in the hundreds of thousands. A decimal would be noise.
+    decimals: 0,
+    series: [
+      { size: "amb1", geo: "barrio", code: "MI_DAP_AX09" },
+      { size: "amb2", geo: "barrio", code: "MI_DAP_AX10" },
+      { size: "amb3", geo: "barrio", code: "MI_DAP_AX11" },
+      { size: "amb1", geo: "comuna", code: "MI_DAP_AX12" },
+      { size: "amb2", geo: "comuna", code: "MI_DAP_AX13" },
+      { size: "amb3", geo: "comuna", code: "MI_DAP_AX14" },
+    ],
+    readsReferenceArea: true,
+  },
+];
 
 // ── Reading one table ──────────────────────────────────────────────────────
 // The period axis comes from `lib/quarters`, which derives it from the sheet
@@ -97,20 +155,25 @@ type Table = {
   /** Row label as published → one value per period. */
   rows: Map<string, (number | null)[]>;
   ciudad: (number | null)[];
+  /** m² the unit price assumes, from the sheet's own footnote. */
+  referenceArea?: number;
 };
 
 /** A published cell. `///` is IDECBA's "withheld: too few listings to publish",
  * which is data — the barrio exists, the number doesn't — and becomes `null`.
  * Anything else is a format change we should hear about. */
-function value(cell: Cell, where: string): number | null {
-  if (typeof cell === "number") return round(cell);
+function value(cell: Cell, where: string, decimals: number): number | null {
+  if (typeof cell === "number") {
+    const f = 10 ** decimals;
+    return Math.round(cell * f) / f;
+  }
   if (cell === null) return null;
   if (typeof cell === "string" && (cell.trim() === "///" || cell.trim() === ""))
     return null;
   throw new Error(`unexpected cell ${JSON.stringify(cell)} at ${where}`);
 }
 
-function readTable(code: string, file: Buffer): Table {
+function readTable(code: string, file: Buffer, ds: Dataset): Table {
   const grid = readSheet(file, 0);
   const title = String(grid[0][0] ?? "");
   const { start, end } = titleRange(title);
@@ -133,17 +196,31 @@ function readTable(code: string, file: Buffer): Table {
 
   const rows = new Map<string, (number | null)[]>();
   let ciudad: (number | null)[] | undefined;
+  let referenceArea: number | undefined;
 
   for (let r = 3; r < grid.length; r++) {
     const label = grid[r][0];
     if (label === null) continue;
-    const series = periods.map((p, i) => value(grid[r][i + 1], `${code} ${p}`));
-    if (typeof label === "string" && label.trim() === "Total") ciudad = series;
-    else rows.set(String(label).trim(), series);
+    const text = String(label).trim();
+
+    // Footnote rows are the only place the reference surface is stated.
+    const area = /superficie de\s+(\d+(?:[.,]\d+)?)\s*m/i.exec(text);
+    if (area) referenceArea = Number(area[1].replace(",", "."));
+
+    const series = periods.map((p, i) =>
+      value(grid[r][i + 1], `${code} ${p}`, ds.decimals),
+    );
+    if (text === "Total") ciudad = series;
+    else rows.set(text, series);
   }
   if (!ciudad) throw new Error(`${code}: no "Total" row`);
+  if (ds.readsReferenceArea && !referenceArea) {
+    throw new Error(
+      `${code}: expected a footnote stating the reference surface ("se considera una superficie de N m2") and found none. If IDECBA has stopped publishing it, the rent page can no longer show a price per m².`,
+    );
+  }
 
-  return { code, title, periods, provisional, rows, ciudad };
+  return { code, title, periods, provisional, rows, ciudad, referenceArea };
 }
 
 // ── Discovery ──────────────────────────────────────────────────────────────
@@ -183,14 +260,15 @@ function format(data: unknown): string {
   )}\n`;
 }
 
-async function main(): Promise<void> {
-  const dryRun = process.argv.includes("--dry-run");
-
-  console.log("discovering current file URLs…");
-  const index = await discover();
+async function build(
+  ds: Dataset,
+  index: Map<string, string>,
+  dryRun: boolean,
+): Promise<void> {
+  console.log(`\n── ${ds.id} ${"─".repeat(Math.max(0, 60 - ds.id.length))}`);
 
   const tables = new Map<string, Table>();
-  for (const { code } of SERIES) {
+  for (const { code } of ds.series) {
     const url = index.get(code);
     if (!url) {
       throw new Error(
@@ -198,7 +276,7 @@ async function main(): Promise<void> {
       );
     }
     const buf = Buffer.from(await (await fetch(url)).arrayBuffer());
-    tables.set(code, readTable(code, buf));
+    tables.set(code, readTable(code, buf, ds));
     console.log(`  ${code}  ${url.split("/").slice(-3).join("/")}`);
   }
 
@@ -206,10 +284,10 @@ async function main(): Promise<void> {
   const ends = new Set([...tables.values()].map((t) => t.periods.at(-1)!));
   if (ends.size !== 1) {
     throw new Error(
-      `the six tables end in different quarters (${[...ends].join(", ")}). IDECBA has published a partial update; re-run once the rest lands.`,
+      `${ds.id}: the six tables end in different quarters (${[...ends].join(", ")}). IDECBA has published a partial update; re-run once the rest lands.`,
     );
   }
-  const periods = quarters(FROM, [...ends][0]);
+  const periods = quarters(ds.from, [...ends][0]);
   const provisional = [
     ...new Set([...tables.values()].flatMap((t) => t.provisional)),
   ]
@@ -218,16 +296,17 @@ async function main(): Promise<void> {
 
   /** One table's row, cut to the shared axis. */
   const slice = (t: Table, series: (number | null)[]): (number | null)[] => {
-    const at = t.periods.indexOf(FROM);
-    if (at < 0) throw new Error(`${t.code} starts after ${FROM}`);
+    const at = t.periods.indexOf(ds.from);
+    if (at < 0) throw new Error(`${t.code} starts after ${ds.from}`);
     return series.slice(at);
   };
 
   const ciudad: Record<string, (number | null)[]> = {};
   const barrios: Record<string, Record<string, (number | null)[]>> = {};
   const comunas: Record<string, Record<string, (number | null)[]>> = {};
+  const referenceArea: Record<string, number> = {};
 
-  for (const { size, geo, code } of SERIES) {
+  for (const { size, geo, code } of ds.series) {
     const table = tables.get(code)!;
 
     // The city total appears in all six; take it from the barrio tables and
@@ -239,6 +318,19 @@ async function main(): Promise<void> {
       throw new Error(
         `${code}: its city total disagrees with the barrio table for ${size}`,
       );
+    }
+
+    // Same check for the surface: both files for a size must assume the same
+    // one, or a price per m² derived from it would depend on which table it
+    // came from.
+    if (table.referenceArea) {
+      const seen = referenceArea[size];
+      if (seen && seen !== table.referenceArea) {
+        throw new Error(
+          `${code}: assumes ${table.referenceArea} m² for ${size} but another table assumes ${seen} m²`,
+        );
+      }
+      referenceArea[size] = table.referenceArea;
     }
 
     if (geo === "barrio") {
@@ -271,19 +363,16 @@ async function main(): Promise<void> {
   }
 
   const out = {
-    id: "venta-caba",
-    title:
-      "Precio promedio de publicación del metro cuadrado de departamentos usados en venta",
+    id: ds.id,
+    title: ds.title,
     source: "Instituto de Estadística y Censos de la Ciudad de Buenos Aires",
     sourceUrl:
       "https://www.estadisticaciudad.gob.ar/eyc/categoria-banco-datos/mercado-inmobiliario/",
-    sourceNote:
-      "IDECBA (Jefatura de Gabinete de Ministros - GCBA) sobre la base de datos de Argenprop. Precios de publicación, no de escrituración.",
-    unit: "USD/m2",
+    sourceNote: ds.sourceNote,
+    unit: ds.unit,
     condition: "usados",
-    files: Object.fromEntries(
-      SERIES.map((s) => [`${s.geo}-${s.size}`, s.code]),
-    ),
+    ...(ds.readsReferenceArea ? { referenceArea } : {}),
+    files: Object.fromEntries(ds.series.map((s) => [`${s.geo}-${s.size}`, s.code])),
     generatedBy: "scripts/fetch-caba-inmobiliario.ts",
     periods,
     provisional,
@@ -308,30 +397,50 @@ async function main(): Promise<void> {
   // size can actually colour in the newest quarter.
   const last = periods.length - 1;
   console.log(
-    `\n${periods[0]} → ${periods.at(-1)}  (${periods.length} quarters, ${provisional.length} provisional)`,
+    `\n  ${periods[0]} → ${periods.at(-1)}  (${periods.length} quarters, ${provisional.length} provisional)`,
   );
   for (const size of SIZES) {
-    const withData = BARRIOS.filter(
-      (b) => out.barrios[b.id][size][last] !== null,
-    );
+    const withData = BARRIOS.filter((b) => out.barrios[b.id][size][last] !== null);
     const comunasWith = COMUNA_IDS.filter(
       (c) => out.comunas[String(c)][size][last] !== null,
     );
-    const grey = BARRIOS.filter(
-      (b) => out.barrios[b.id][size][last] === null,
-    ).map((b) => b.label);
+    const grey = BARRIOS.filter((b) => out.barrios[b.id][size][last] === null).map(
+      (b) => b.label,
+    );
+    const area = referenceArea[size] ? ` (${referenceArea[size]} m²)` : "";
     console.log(
-      `  ${size}: ciudad ${out.ciudad[size][last]} USD/m2 · barrios ${withData.length}/48 · comunas ${comunasWith.length}/15`,
+      `  ${size}: ciudad ${out.ciudad[size][last]} ${ds.unitShort}${area} · barrios ${withData.length}/48 · comunas ${comunasWith.length}/15`,
     );
     if (grey.length) console.log(`         sin dato: ${grey.join(", ")}`);
   }
 
+  const target = path.join(DATA_DIR, ds.file);
   if (dryRun) {
-    console.log(`\n--dry-run: not writing (${text.length} bytes)`);
+    console.log(`\n  --dry-run: not writing (${text.length} bytes)`);
     return;
   }
-  writeFileSync(OUT, text);
-  console.log(`\nwrote ${path.relative(process.cwd(), OUT)} (${text.length} bytes)`);
+  writeFileSync(target, text);
+  console.log(
+    `\n  wrote ${path.relative(process.cwd(), target)} (${(text.length / 1024).toFixed(0)} KB)`,
+  );
+}
+
+async function main(): Promise<void> {
+  const dryRun = process.argv.includes("--dry-run");
+  const only = /--only=(\S+)/.exec(process.argv.join(" "))?.[1];
+  const wanted = only
+    ? DATASETS.filter((d) => d.id.includes(only))
+    : DATASETS;
+  if (!wanted.length) {
+    throw new Error(
+      `--only=${only} matches nothing. Known: ${DATASETS.map((d) => d.id).join(", ")}`,
+    );
+  }
+
+  console.log("discovering current file URLs…");
+  const index = await discover();
+
+  for (const ds of wanted) await build(ds, index, dryRun);
 }
 
 await main();

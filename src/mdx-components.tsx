@@ -11,6 +11,9 @@ import { PrecioPorZona } from "@/components/estadisticas/PrecioPorZona";
 import { RegionesIpc } from "@/components/estadisticas/RegionesIpc";
 import { ResumenIpc } from "@/components/estadisticas/ResumenIpc";
 import { ResumenRegion } from "@/components/estadisticas/ResumenRegion";
+import { AlquilerCabaMapa } from "@/components/estadisticas/AlquilerCabaMapa";
+import { AlquileresBuscados } from "@/components/estadisticas/AlquileresBuscados";
+import { PaginaRelacionada } from "@/components/estadisticas/PaginaRelacionada";
 import { VentaCabaMapa } from "@/components/estadisticas/VentaCabaMapa";
 import {
   ClosingCta,
@@ -162,9 +165,14 @@ const components: MDXComponents = {
   // views behind the switches, come from the dataset it reads. Same for the
   // three tables beside it on the CABA price page.
   VentaCabaMapa,
+  AlquilerCabaMapa,
+  AlquileresBuscados,
   PrecioDepartamento,
   BarriosBuscados,
   PrecioPorZona,
+  // The one component in this map that takes a prop: which page to point at.
+  // See the note in the component for why it's a slug and not the copy.
+  PaginaRelacionada,
   ProbarCta,
   SignupCta,
   // <RelatedGuides />, <Faq />, <Fuentes /> and <Subpaginas /> need to know

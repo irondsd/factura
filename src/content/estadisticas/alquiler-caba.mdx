@@ -1,0 +1,143 @@
+import { TEMPORAL_COVERAGE } from "./data/alquiler-caba";
+
+export const meta = {
+  title: "Cuánto sale alquilar en CABA, barrio por barrio",
+  titleTag: "Precio de alquileres en CABA por barrio y comuna",
+  description:
+    "Cuánto cuesta alquilar un departamento en cada barrio de la Ciudad de Buenos Aires, en pesos por mes, con el mapa y la tabla completa de los datos oficiales de IDECBA.",
+  summary:
+    "El precio de publicación de los alquileres, en pesos por mes, para departamentos usados de 1, 2 y 3 ambientes, en los barrios y las 15 comunas de CABA.",
+  ogStat: "Alquileres por barrio",
+  cta: "Ya sabés cuánto sale el alquiler. Mirá cuánto suman los servicios.",
+  keywords: [
+    "precio de alquileres en caba",
+    "cuanto sale alquilar en caba",
+    "mapa alquileres caba",
+    "alquiler 2 ambientes caba precio",
+    "precio alquiler por barrio buenos aires",
+    "alquileres caba por comuna",
+    "cuanto cuesta alquilar un monoambiente en caba",
+  ],
+  published: "2026-08-11T12:00:00-03:00",
+  updated: "2026-08-11T12:00:00-03:00",
+  faq: [
+    {
+      q: "¿Cuánto cuesta alquilar un departamento en CABA?",
+      a: "Depende del barrio y de la cantidad de ambientes, y entre el barrio más caro y el más barato hay una diferencia de alrededor del 40 % para el mismo tipo de unidad. El promedio de la Ciudad y el valor de cada barrio están en el mapa y en la tabla de esta página, que se actualizan cada trimestre con el dato nuevo de IDECBA.",
+    },
+    {
+      q: "¿Estos precios son lo que se paga o lo que se pide?",
+      a: "Lo que se pide. IDECBA calcula el promedio sobre los avisos publicados en un portal inmobiliario, así que es el precio de publicación y no el del contrato firmado. En una operación real hay una negociación en el medio, y el alquiler que se termina pagando suele quedar por debajo del publicado.",
+    },
+    {
+      q: "¿Por qué no se pueden comparar dos trimestres de esta serie?",
+      a: "Porque los valores están en pesos corrientes de cada trimestre y la inflación argentina los mueve por sí sola. Un alquiler que sube 30 % en un año donde los precios suben 30 % no subió en términos reales. Para comparar en el tiempo hay que descontar la inflación; esta página compara barrios entre sí dentro de un mismo trimestre, que es la comparación que los pesos corrientes sí permiten.",
+    },
+    {
+      q: "¿Por qué faltan más barrios que en el mapa de venta?",
+      a: "Porque hay muchos menos avisos de alquiler que de venta, y IDECBA no publica un promedio cuando el trimestre no llegó a un mínimo de unidades. En venta el mapa llega a más de cuarenta de los cuarenta y ocho barrios; en alquiler, según el tamaño, puede quedar en unos treinta. Por eso el mapa de esta página abre por comuna, donde casi no falta ninguna, y el interruptor lo pasa a barrios.",
+    },
+    {
+      q: "¿Qué superficie tiene el departamento al que corresponde cada precio?",
+      a: "IDECBA calcula el precio mensual a partir de un precio por metro cuadrado y una superficie de referencia fija: 30 m² para un ambiente, 43 m² para dos y 70 m² para tres. Es la propia metodología del organismo, y es lo que permite mostrar el alquiler por metro cuadrado, que es la única forma de comparar tamaños distintos entre sí.",
+    },
+    {
+      q: "¿Cada cuánto se actualiza esta página?",
+      a: "Cada trimestre. IDECBA publica el dato alrededor de dos meses después de que cierra el trimestre, y esta página se actualiza cuando sale. Los últimos trimestres pueden estar marcados como provisorios: el organismo los revisa cuando publica el siguiente.",
+    },
+  ],
+  sources: [
+    {
+      label:
+        "IDECBA — Instituto de Estadística y Censos de la Ciudad de Buenos Aires",
+      href: "https://www.estadisticaciudad.gob.ar/eyc/categoria-banco-datos/alquileres/",
+      note: "Organismo que releva y publica los precios de publicación de los alquileres porteños, sobre la base de datos de Argenprop.",
+    },
+    {
+      label:
+        "IDECBA — Precio de publicación de departamentos en alquiler de 2 ambientes usados, por barrio",
+      href: "https://www.estadisticaciudad.gob.ar/eyc/banco-datos/precio-promedio-de-publicacion-pesos-de-departamentos-en-alquiler-de-2-ambientes-usados-por-barrio-ciudad-de-buenos-aires-1er-trimestre-de-2018-2do-trimestre-de-2024/",
+      note: "La serie completa por trimestre en planilla, tal como la publica el organismo. Los cuadros por tamaño y por comuna están enlazados desde la misma sección.",
+    },
+    {
+      label: "Buenos Aires Data — Barrios y comunas",
+      href: "https://data.buenosaires.gob.ar/dataset/barrios",
+      note: "Límites oficiales de los 48 barrios y las 15 comunas, con los que está dibujado el mapa. Licencia CC-BY-2.5-AR.",
+    },
+  ],
+  dataset: {
+    name: "Precio de publicación de departamentos usados en alquiler, por barrio y comuna (CABA)",
+    description:
+      "Precio promedio de publicación, en pesos argentinos por mes, de departamentos usados en alquiler de 1, 2 y 3 ambientes, por trimestre, para los 48 barrios y las 15 comunas de la Ciudad Autónoma de Buenos Aires.",
+    temporalCoverage: TEMPORAL_COVERAGE,
+    spatialCoverage: "Ciudad Autónoma de Buenos Aires, Argentina",
+    variableMeasured: [
+      "Precio promedio de publicación mensual en pesos, departamentos usados de 1 ambiente",
+      "Precio promedio de publicación mensual en pesos, departamentos usados de 2 ambientes",
+      "Precio promedio de publicación mensual en pesos, departamentos usados de 3 ambientes",
+    ],
+  },
+};
+
+El alquiler es el precio que más gente de la Ciudad consulta y el que menos se puede mirar de memoria: cambia cada trimestre, cambia mucho entre un barrio y el de al lado, y está en pesos, que es la moneda que peor conserva el significado de un número de un año para otro.
+
+Esta página publica el precio de los alquileres en CABA barrio por barrio y comuna por comuna, trimestre a trimestre, tal como lo releva el organismo de estadística porteño. Es el dato oficial, con el mapa para ver de un vistazo dónde se alquila caro y dónde barato, y la tabla completa debajo.
+
+Conviene decir desde el principio qué es este número. Es un **precio de publicación**: lo que los avisos piden, no lo que dice el contrato que se termina firmando. Sirve para comparar barrios entre sí dentro de un mismo trimestre, que es exactamente para lo que está construido. No sirve para saber cuánto va a pedirte un propietario concreto, ni —y esto importa más de lo que parece— para comparar un trimestre con otro sin antes descontar la inflación.
+
+## Qué vas a encontrar en esta página
+
+Un mapa de alquileres de CABA con el precio de cada zona, con un interruptor para cambiar entre departamentos de 1, 2 y 3 ambientes y otro para verlo por barrio o por comuna. Debajo del mapa, el trimestre al que corresponden los datos y la tabla con el valor exacto de cada barrio, ordenada del más caro al más barato.
+
+Después del mapa, el alquiler en los barrios que más se consultan —Palermo, Belgrano, Recoleta, Villa Urquiza, Caballito y Flores—, con el puesto que ocupa cada uno entre los barrios que tienen dato publicado.
+
+## Cómo se mide el precio de los alquileres
+
+El dato lo produce el **Instituto de Estadística y Censos de la Ciudad de Buenos Aires (IDECBA)**, que depende de la Jefatura de Gabinete del Gobierno porteño, a partir de los avisos publicados en el portal inmobiliario Argenprop. Cada trimestre toma las unidades ofrecidas en alquiler en pesos, las agrupa por barrio y por cantidad de ambientes, y calcula el precio promedio del mes.
+
+Cuatro consecuencias de esa metodología, que conviene tener presentes al leer el mapa:
+
+- **Es oferta, no contratos.** El universo son avisos vigentes. Lo que se firma queda fuera del relevamiento, y suele estar por debajo.
+- **Hay un mínimo de avisos, y en alquiler pesa mucho.** Donde no se alcanza, IDECBA no publica el promedio. Se ofrecen bastantes menos departamentos en alquiler que en venta, así que el mapa por barrio queda con más huecos que el de venta: por eso esta página abre por comuna, donde casi no falta ninguna.
+- **El precio del mes supone una superficie fija.** El organismo calcula el valor mensual a partir de un precio por metro cuadrado y una superficie de referencia: 30 m² para un ambiente, 43 m² para dos y 70 m² para tres. Dividir uno por la otra devuelve el precio por metro cuadrado, que es lo que usa el color del mapa.
+- **Los últimos trimestres son provisorios.** El organismo los revisa al publicar el siguiente.
+
+La serie arranca en el primer trimestre de 2018, que es donde empiezan los seis cuadros de IDECBA por barrio y por comuna.
+
+## El mapa de alquileres en CABA
+
+Para saber cuánto sale alquilar en una zona, buscala en el mapa: cada comuna está sombreada según su precio, y al pasar el cursor por encima aparece el valor exacto. El interruptor de la derecha lo pasa a barrios, con el detalle de que ahí van a faltar unos cuantos.
+
+<AlquilerCabaMapa />
+
+El color va por metro cuadrado y la tabla por mes, y no es un capricho: son tres tamaños de departamento distintos, y en una misma escala de pesos por mes el mapa de tres ambientes saldría oscuro entero y el de monoambientes claro entero, diciendo solamente que un departamento más grande cuesta más. Por metro cuadrado los tres entran en la misma escala y se ve lo que interesa, que es la diferencia entre barrios.
+
+## El alquiler en los barrios más consultados
+
+<AlquileresBuscados />
+
+El puesto es la parte que conviene mirar dos veces. Un precio en pesos envejece rápido —dentro de un año este número va a estar viejo aunque el mercado no se haya movido—, y en cambio la posición relativa de un barrio se mueve poco y dice algo más estable sobre él.
+
+## Por qué estos precios no se comparan entre trimestres
+
+Es la advertencia más importante de la página. Los valores están en pesos corrientes: los del trimestre en que se publicaron. Con una inflación anual que se sigue midiendo en decenas de puntos, un alquiler que sube 30 % en un año en el que todo sube 30 % no subió nada en términos reales, y sin embargo en esta serie aparece un 30 % más alto.
+
+De eso se sigue una regla simple para usar bien esta página: **compará barrios entre sí dentro de un mismo trimestre**, que es una comparación que los pesos corrientes sostienen perfectamente, porque la inflación afecta a todos los barrios a la vez. Para la otra pregunta —si los alquileres suben más o menos que el resto de las cosas— hace falta un índice de precios, y eso está en [la inflación de vivienda por región](/estadisticas/inflacion-de-vivienda), que mide alquiler, expensas, luz, gas y agua.
+
+## Alquilar o comprar
+
+El alquiler y el precio de venta son las dos mitades de la misma pregunta, y la Ciudad no las ordena igual: hay barrios donde el metro cuadrado se vende caro y se alquila relativamente barato, y al revés.
+
+<PaginaRelacionada slug="precio-m2-caba">
+  El precio del metro cuadrado en venta, en dólares, para los mismos barrios y
+  comunas y del mismo trimestre. Las dos series están en la misma unidad —por
+  metro cuadrado— así que se pueden poner una al lado de la otra.
+</PaginaRelacionada>
+
+Sobre el costo de habitar la vivienda, más allá del alquiler, están [las expensas promedio en CABA](/guias/expensas-promedio-caba-2026) y [el ABL](/guias/que-es-el-abl-y-el-impuesto-inmobiliario), que en un alquiler suelen ir por cuenta del inquilino y del propietario respectivamente.
+
+## Preguntas frecuentes
+
+<Faq />
+
+<Fuentes />

@@ -1,0 +1,349 @@
+{
+  "id": "alquiler-caba",
+  "title": "Precio promedio de publicación de departamentos usados en alquiler, por mes",
+  "source": "Instituto de Estadística y Censos de la Ciudad de Buenos Aires",
+  "sourceUrl": "https://www.estadisticaciudad.gob.ar/eyc/categoria-banco-datos/mercado-inmobiliario/",
+  "sourceNote": "IDECBA (Jefatura de Gabinete de Ministros - GCBA) sobre la base de datos de Argenprop. Precios de publicación en pesos, no de contratos firmados.",
+  "unit": "ARS/mes",
+  "condition": "usados",
+  "referenceArea": {
+    "amb1": 30,
+    "amb2": 43,
+    "amb3": 70
+  },
+  "files": {
+    "barrio-amb1": "MI_DAP_AX09",
+    "barrio-amb2": "MI_DAP_AX10",
+    "barrio-amb3": "MI_DAP_AX11",
+    "comuna-amb1": "MI_DAP_AX12",
+    "comuna-amb2": "MI_DAP_AX13",
+    "comuna-amb3": "MI_DAP_AX14"
+  },
+  "generatedBy": "scripts/fetch-caba-inmobiliario.ts",
+  "periods": ["2018Q1", "2018Q2", "2018Q3", "2018Q4", "2019Q1", "2019Q2", "2019Q3", "2019Q4", "2020Q1", "2020Q2", "2020Q3", "2020Q4", "2021Q1", "2021Q2", "2021Q3", "2021Q4", "2022Q1", "2022Q2", "2022Q3", "2022Q4", "2023Q1", "2023Q2", "2023Q3", "2023Q4", "2024Q1", "2024Q2", "2024Q3", "2024Q4", "2025Q1", "2025Q2", "2025Q3", "2025Q4", "2026Q1", "2026Q2"],
+  "provisional": ["2025Q3", "2025Q4", "2026Q1", "2026Q2"],
+  "ciudad": {
+    "amb1": [7607, 8341, 8812, 9549, 10213, 11159, 11969, 12737, 13865, 15418, 17697, 19595, 21671, 24445, 27124, 29538, 33858, 40946, 49873, 60222, 74809, 101114, 151992, 228139, 273918, 295607, 330806, 361749, 399760, 428536, 454388, 484985, 538595, 565658],
+    "amb2": [10279, 11220, 11826, 12615, 13767, 14701, 15970, 16880, 18066, 19994, 23605, 25957, 28806, 32835, 36541, 39879, 45783, 55770, 67015, 77829, 96104, 138295, 209449, 312673, 372541, 398094, 447091, 492805, 539706, 583793, 618452, 658196, 721267, 764485],
+    "amb3": [16418, 17143, 17822, 19120, 20616, 21787, 23479, 24744, 27089, 29932, 35649, 40499, 44827, 49956, 55980, 62431, 71538, 83753, 99629, 116074, 148034, 199492, 291950, 464604, 566749, 604439, 685539, 761773, 824990, 870943, 939565, 1008258, 1091451, 1174304]
+  },
+  "barrios": {
+    "agronomia": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "almagro": {
+      "amb1": [7780, 7761, 9110, 9893, 10442, 11146, 12065, 12740, 13217, 14803, 18021, 20035, 22618, 25054, 26591, 30143, 35779, 39318, 48198, null, 77542, 107811, null, 210263, 268265, 293105, 320702, 356485, 401997, 419303, 451433, 489155, 554250, 564183],
+      "amb2": [9598, 10416, 11200, 12241, 13190, 13898, 15232, 16101, 17126, 19330, 22976, 24849, 27125, 31888, 35620, 38677, 46499, 51989, 66310, 75547, 95854, 129584, 210135, 303004, 345722, 378087, 432291, 472349, 531137, 573372, 597298, 635467, 698244, 733792],
+      "amb3": [15506, 16580, 16849, 18687, 19668, 20653, 23297, 23714, 25366, 24871, 35057, 40500, 44429, 46932, 57702, 61155, 69082, 83633, 98856, 114709, 150549, 208953, 302719, 490514, 562204, 613527, 675882, 740071, 824460, 885442, 918841, 985632, 1054771, 1128685]
+    },
+    "balvanera": {
+      "amb1": [6788, 7222, null, 8820, 9679, 10242, 11032, 12074, 13003, 14685, 16680, 18022, 19418, 20650, 24410, 26176, 30888, 37027, null, null, null, null, null, 216854, 256537, 271715, 306853, 333382, 380969, 388163, 405134, 450816, 492492, 541436],
+      "amb2": [8958, 9307, 10511, 11887, 12856, 12789, 14344, 15481, 15990, 17830, 21398, 22966, 25216, 27593, 32449, 34886, 40494, 50768, 61351, 69299, 84218, 119431, 199738, 265780, 324648, 355479, 411774, 436517, 456727, 503044, 554379, 593482, 649101, 672158],
+      "amb3": [13741, 14919, 15758, 16005, 16964, 19742, 19236, 20517, 23586, 26277, 30039, 35224, 38782, 42257, 47752, 54938, 65594, 74113, 90213, 105630, 140980, null, 273094, 400863, 486021, 498285, 593088, 660663, 752596, 793731, 803412, 866182, 929615, 956852]
+    },
+    "barracas": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 446553, 505725, 512297],
+      "amb2": [null, 8854, null, null, 11644, 12162, null, 15263, 15521, null, null, null, null, 29003, null, null, null, null, null, null, null, null, null, null, 313682, 349562, 405013, 504469, 502293, 536392, 551894, 592852, 606953, 682869],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 445360, 531751, 643053, 706070, null, 730013, 858465, 925892, 969448, 1027458]
+    },
+    "belgrano": {
+      "amb1": [8089, 8843, 9167, 10625, 11596, 12396, 13288, 14568, 16452, 17237, 19451, 21085, 22529, 25752, 29378, 32224, 39417, 49421, null, 66390, null, 114087, null, 265234, 301984, 318617, 360504, 390026, 410945, 464819, 508881, 526349, 582160, 608654],
+      "amb2": [11121, 11883, 13043, 13802, 14774, 15982, 16964, 17939, 19385, 20824, 25072, 28136, 31731, 37451, 39184, 42611, 50883, 61676, 75570, 87846, 108849, 144789, 265537, 421343, 405199, 439935, 469943, 514992, 575209, 617539, 663206, 712495, 808484, 814247],
+      "amb3": [17567, 18217, 19677, 20281, 22945, 23120, 26051, 27328, 30055, 32726, 35323, 47489, 52163, 60401, 62351, 68751, 77683, 95898, 104241, 136907, 164644, 267151, null, 650866, 624886, 652549, 738343, 844293, 864496, 934842, 1014037, 1116953, 1254310, 1318512]
+    },
+    "la-boca": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 31004, null, null, null, null, null, null, null, null, null, 330421, null, null, null, null, null, 539469, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "boedo": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 254319, 270597, 303383, 334507, null, 394113, 414016, 492336, 497151, 546672],
+      "amb2": [null, 10164, null, 11630, 12369, 13055, 13738, 14854, 16484, null, null, 25523, 26945, 29622, 33721, null, null, null, null, null, null, null, null, 271212, 335691, 355997, 412290, 451939, 501868, 541550, 589925, 619194, 627580, 706381],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 514706, 524832, null, 716901, null, null, null, null, null, null]
+    },
+    "caballito": {
+      "amb1": [7680, 7930, 8365, 9007, 9454, 10620, 12054, 12710, 14197, 14656, 17551, 20400, 22649, 25281, 27249, 30188, 34283, 41984, 48760, 59865, 73005, 105082, 166871, 232224, 277842, 298493, 323326, 360092, 398580, 421671, 453035, 491280, 531531, 576105],
+      "amb2": [9356, 10382, 11246, 12156, 13022, 13611, 14932, 16330, 17220, 18475, 23156, 25324, 27951, 33815, 36323, 40525, 44960, 54484, 65660, 76392, 97800, 130639, 209775, 300972, 348259, 382021, 428113, 481751, 551677, 577533, 612463, 642821, 721382, 767392],
+      "amb3": [15993, 16198, 17010, 18202, 19339, 20635, 22073, 23413, 25833, 29232, 34617, 42413, 45340, 51005, 56511, 63331, 73609, 83533, 95999, 110610, 145406, 199141, 325393, 470587, 562679, 584785, 656552, 785547, 831062, 882188, 979764, 1023037, 1085437, 1176184]
+    },
+    "chacarita": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 309233, 308385, 348170, 363836, 405536, 445471, 467999, 478553, 564766, 599616],
+      "amb2": [10065, 11383, null, null, null, 14793, null, 17155, 17344, null, 25830, 27175, null, null, null, null, null, null, null, null, null, null, null, 322650, 391592, 428396, 488897, 497706, 510072, 597685, 642299, 627691, 803958, 815640],
+      "amb3": [16383, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "coghlan": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 303044, 348852, 388925, null, null, null, 513531, null, 560135],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 379864, 421923, 491429, null, null, 652095, 685829, 711654, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "colegiales": {
+      "amb1": [null, null, null, 9884, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 309078, 312551, 345186, 400302, 426406, 455960, 482564, 520704, 531731, 598979],
+      "amb2": [10643, 12577, 12641, 13267, 14642, 16153, 16740, 17851, 18855, 21775, 25070, 27991, 30066, 34913, 38350, 43044, 47483, null, null, 84180, 111999, 151485, null, 374037, 402998, 430898, 479507, 530782, 553063, 618748, 617654, 677451, 778504, 846923],
+      "amb3": [16795, 17444, 18578, 20249, 22466, 24155, 24947, 27528, null, null, 42886, null, null, null, null, null, 87187, null, null, null, null, null, null, null, 626567, 649268, 753077, 837847, 897302, 947789, 978999, 1069270, 1255315, 1316604]
+    },
+    "constitucion": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 25539, null, null, null, null, 68914, null, null, null, 251849, 257896, 288470, 323749, 336179, 402575, 411607, 403590, 442610, 484900],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 256112, 315809, 317712, 376250, 433451, 431253, 510683, 549377, 547572, 628051, 635720],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 487338, null, null, null, 687223, null, 797147, null, 961531]
+    },
+    "flores": {
+      "amb1": [6719, 7213, 7457, 8421, 9162, 9656, 10618, 11268, 11499, null, 15805, null, 20623, 22673, 25900, 29208, 31208, null, null, null, null, null, null, 203596, 238559, 262184, 285666, 310471, 369885, 405780, 418243, 430566, 497491, 508762],
+      "amb2": [8940, 9501, 10049, 11136, 11644, 12597, 13300, 14370, 16224, 16892, 20959, 23933, 26763, 29269, 32097, 37066, 41843, 48748, 59155, 72341, 78798, 120333, 201212, 261702, 329494, 351885, 393923, 437146, 488852, 532816, 545310, 584417, 658757, 680323],
+      "amb3": [12526, 14048, 16032, 16332, 17153, 18325, 19575, 20941, 22978, 24452, 31136, 33366, null, 45186, 51479, 59150, 62550, 78413, 92620, 104291, 138572, 179211, 276917, 414688, 489980, 531584, 637140, 712916, 764293, 834262, 879817, 890815, 974434, 1025264]
+    },
+    "floresta": {
+      "amb1": [6137, null, 7032, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 401053, null, null, null],
+      "amb2": [8663, 9062, 9885, 11045, 11318, 12073, 13313, 14412, null, null, null, null, null, null, 33329, null, null, null, null, null, null, null, null, null, 312141, 340224, 380417, 435298, null, null, 526546, 605355, 641077, 649581],
+      "amb3": [null, 14093, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 500047, null, null, null, null, null, null, null, null]
+    },
+    "la-paternal": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "liniers": {
+      "amb1": [null, null, 7029, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 255521, null, null, null, null, null, 461569, 466404, 483648],
+      "amb2": [7558, 8069, 10188, 10239, null, null, 13431, null, null, null, null, null, null, null, null, 37060, null, null, null, null, null, null, null, null, 293986, null, null, 431093, null, null, 584392, 582165, 618347, 698643],
+      "amb3": [null, null, 14929, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 473261, null, null, null, null, null, null, null, null]
+    },
+    "mataderos": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "monte-castro": {
+      "amb1": [6466, 6673, 7353, null, null, null, 9297, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 187409, null, 238538, null, 335583, null, 373896, 415388, 434306, 485514, 519655],
+      "amb2": [8943, 9899, 10134, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 337255, 339375, 388373, 446402, null, null, 597825, 639035, null, 715435],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "monserrat": {
+      "amb1": [null, null, null, null, 8991, 9728, null, null, 12099, null, 17842, 17983, 19858, 21724, 25832, 26762, null, null, null, null, 77170, 103436, null, null, 256856, 288175, 302204, 351192, 399092, 407656, 420193, 461740, 541561, 548247],
+      "amb2": [9154, 9726, 9908, 11761, null, 13396, 13854, null, 16592, 17343, 22027, 22410, 24146, 27947, 30832, 36412, null, null, null, null, null, null, null, null, 331108, 330275, 380690, 426702, 467900, 514510, 551064, 582035, 649907, 678836],
+      "amb3": [null, null, null, null, null, 19192, 20996, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 461838, 495257, 661884, 621424, 681545, 669885, 757963, 815129, 870926, 913360]
+    },
+    "nueva-pompeya": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "nunez": {
+      "amb1": [null, 9740, null, null, 11026, 11851, 13479, 14525, null, null, 19494, 20661, 23581, 26590, 31243, 34009, null, null, null, null, null, null, null, 270110, 294696, 324263, 353460, 391995, 414632, 457290, 495716, 542348, 606000, 612301],
+      "amb2": [11421, 12905, 13344, 13614, 15265, 16559, 17628, 18122, 19522, 21607, 26069, 29576, 33999, 39756, 42835, 44184, 48419, 59365, null, 89032, 116032, 164327, null, 402941, 391291, 448799, 501373, 541726, 575412, 667646, 710560, 757091, 834798, 870185],
+      "amb3": [17061, 18421, 20050, 20402, 20656, 23744, 26534, 27797, 31654, 32349, 38583, null, null, null, 66533, 76990, null, null, null, 147029, null, null, null, 628835, 624766, 666313, 801258, 839063, 908297, 951268, 1127912, 1140496, 1235526, 1406326]
+    },
+    "palermo": {
+      "amb1": [8643, 9861, 10120, 10961, 11717, 12995, 13303, 14134, 15764, 17699, 19313, 21275, 23127, 26518, 29495, 31549, 36314, 46466, 54408, 66914, 86281, 118873, 194066, 289591, 322705, 327685, 363800, 387866, 436751, 463474, 491732, 521898, 588760, 613037],
+      "amb2": [12152, 13049, 13876, 14205, 16199, 17009, 18429, 19365, 20944, 23648, 25901, 28656, 31839, 36090, 40853, 44380, 56336, 68830, 82528, 91677, 121402, 175218, 254205, 387606, 430333, 452620, 488830, 541875, 592685, 635842, 678281, 721773, 804543, 839053],
+      "amb3": [18092, 18611, 19749, 20883, 23463, 25281, 26636, 28130, 30356, 34831, 40617, 45504, 49483, 57449, 66246, 73446, 84831, 93666, 114384, 132786, 184755, 248744, 384026, 660095, 649992, 682630, 756775, 830172, 888751, 943181, 1046856, 1131060, 1275561, 1307505]
+    },
+    "parque-avellaneda": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [8465, 9138, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "parque-chacabuco": {
+      "amb1": [6921, 7157, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 234802, 271848, 343548, 354624, 391546, 419178, 440265, 468548, 524545, 534233],
+      "amb2": [9803, 9837, null, 11719, 12721, 13768, 14860, 15408, 16839, null, null, null, null, 31827, 37755, 38969, 46534, null, null, null, null, null, null, null, 372418, 373727, 429673, 461492, 515082, 561396, 608826, 629583, 654724, 700178],
+      "amb3": [null, 16126, null, null, 19264, 19440, 22560, 22973, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 529947, null, 580824, 715746, 792891, null, 793042, 900616, null, 1002787, 1247639]
+    },
+    "parque-chas": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 218296, null, 287875, 321372, 373176, null, 426522, 429509, 463315, 540272, 534576],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "parque-patricios": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 453148, null, null, null, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "puerto-madero": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [null, 17467, 21653, null, null, null, 27017, 29304, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb3": [23667, 24394, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "recoleta": {
+      "amb1": [8555, 8895, 9599, 10287, 11276, 12187, 12838, 13607, 15401, 17516, 18059, 19614, 22200, 24949, 27080, 29664, 35151, 42147, 52420, 65725, 82500, 97330, 166866, 248483, 289721, 317042, 341100, 366027, 407982, 441313, 466873, 501500, 570977, 595906],
+      "amb2": [11211, 12057, 12703, 13404, 14683, 15908, 16799, 18465, 19826, 21481, 23869, 25933, 29455, 31989, 37239, 40479, 46869, 64213, 76319, 87682, 124724, 171375, 242708, 382896, 411907, 417649, 461101, 498186, 550686, 585681, 633739, 662735, 739911, 800626],
+      "amb3": [17051, 17665, 18370, 20024, 22270, 23005, 24985, 25754, 30074, 32507, 35156, 41433, 46494, 50865, 59601, 66503, 81105, 95512, 113245, 133089, 186459, 240129, 357033, 569635, 604833, 643136, 714518, 745974, 833384, 874809, 931854, 1046579, 1158511, 1207040]
+    },
+    "retiro": {
+      "amb1": [null, null, null, null, null, null, 13322, 13475, null, null, null, 18488, 20034, 23359, null, 27942, null, null, null, null, null, null, null, null, 304441, null, 342254, 348497, 396472, 416387, 442051, 476590, 534617, 546651],
+      "amb2": [10871, null, null, null, 14455, 16102, 15944, 17034, 17788, 19573, 22873, 24235, 27146, 29921, 32795, 37960, null, 60649, null, null, 91030, 138815, null, null, 367122, 374929, 440049, 477719, 520262, 530850, 574407, 618120, 676231, 720728],
+      "amb3": [15940, 17602, null, 20285, 20986, 23130, 23601, 24948, null, 31879, 35737, 41137, 41189, 53977, 60342, 57260, null, null, null, null, null, null, null, null, 577887, 584779, 655428, 716561, 779963, 792945, 854611, 956235, 1026314, 1077978]
+    },
+    "saavedra": {
+      "amb1": [null, null, null, 9560, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 288981, 291446, 328837, 362186, 423198, 460502, 494163, 503421, 556593, 624268],
+      "amb2": [10170, 12506, 12807, 13470, 14854, 16153, 15259, null, 19387, null, null, null, 32898, null, null, null, null, null, null, null, null, null, null, null, 400436, 444271, 457260, 530536, 580209, 653427, 673741, 706877, 791276, 880824],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 736488, null, null, null, null, 1105715, null, null, null]
+    },
+    "san-cristobal": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, 17096, 20033, null, null, null, null, null, null, null, null, null, null, null, 242679, 266608, 308422, 332022, 369172, 392297, 401909, 472151, 492462, 506215],
+      "amb2": [8822, 9572, 10331, 11086, 11966, 13900, null, 15140, 15908, null, 22190, 24442, 26173, 31383, 32012, 35968, null, null, null, null, null, null, null, 260498, 323579, 354625, 398790, 442865, 448358, 526801, 542045, 572582, 617667, 715527],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 120950, null, null, null, null, 504837, 607584, 689063, null, 781705, 858543, 956539, 1053865, 1003365]
+    },
+    "san-nicolas": {
+      "amb1": [7200, 7922, null, 9110, 9754, 9876, 10686, 11882, 11823, 12994, 15214, 17555, 19421, 20843, 22827, 24595, 30490, null, null, 53349, 69676, null, null, null, 252340, 264581, 306840, 317364, 374836, 393521, 431199, 429953, 488096, 497024],
+      "amb2": [8487, 9799, 10833, 11605, 11682, 12259, 13810, 15014, 15896, null, 19770, 22794, 25843, 28317, 30923, 35815, 38167, null, 57008, 69475, null, null, null, 245341, 321647, 351626, 392757, 423841, 478004, 491468, 539809, 583277, 627789, 691409],
+      "amb3": [null, null, null, null, 17684, 17788, null, 22080, 23867, 29340, 32842, 34340, null, 39603, 46142, 50556, null, null, null, null, 132799, null, null, null, 497368, 520912, 592633, 652988, 692503, 670691, 713713, 842850, 895018, 960421]
+    },
+    "san-telmo": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 319539, 336115, null, 405167, 409988, 437346, 450272, 534960, 536602],
+      "amb2": [null, null, null, 10600, null, null, null, 15913, null, 21196, 22645, null, 26622, null, 32775, null, null, null, null, null, null, null, null, 362456, 334214, 350499, 426817, 425859, 504802, 529069, 543586, 625051, 664248, 706699],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 591258, 581164, 714748, null, null, null, null, null, 988800]
+    },
+    "velez-sarsfield": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 533423],
+      "amb2": [8644, null, 9542, null, null, 11393, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 330796, 340699, 381788, null, null, 505209, 517808, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "versalles": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "villa-crespo": {
+      "amb1": [8066, 8416, 8954, 9920, 10476, 10982, 12434, 13556, 15071, 16129, 18470, 19598, 22020, 26002, 27391, 30365, null, null, 52805, null, null, null, 179140, 249070, 280439, 289403, 332969, 379901, 398235, 425368, 461684, 525789, 573617, 579160],
+      "amb2": [10018, 10904, 12268, 12510, 14003, 14846, 15954, 16441, 19630, 21245, 22310, 25386, 29192, 33448, 36947, 38346, 46088, 53719, 67351, 85927, 94732, 135173, null, 362789, 384225, 402217, 450262, 502643, 524315, 604601, 633670, 697657, 750500, 795357],
+      "amb3": [16175, 16380, 17407, 18641, 19098, 20084, 22470, 23993, 25439, 28069, null, 39115, 43519, null, 53200, null, 69838, null, 97077, null, 156375, 201687, null, 478140, 567091, 621359, 686045, 784142, 859314, 849757, 887599, 1049819, 1139633, 1222822]
+    },
+    "villa-del-parque": {
+      "amb1": [6544, 6909, 8085, null, null, null, null, 11016, null, null, null, null, null, null, null, null, null, null, null, null, 71087, null, null, null, 256023, 260746, 308785, 320455, 368311, 400053, 455711, 470898, 518438, 526614],
+      "amb2": [8725, 9726, 10049, 10938, 11971, 13281, 14241, 14866, 16017, 18883, 22257, 24064, 27884, 31559, 36220, 39444, 45612, 54580, 64838, 74146, 105572, 129718, 200000, 313802, 345028, 374331, 403169, 453312, 493068, 526202, 569005, 622635, 668295, 708077],
+      "amb3": [null, 15759, 16477, 18085, 18097, 19107, 21024, 23065, null, null, null, null, null, null, null, null, 62637, null, null, null, 150480, 218352, null, null, 512263, 557420, 581226, 753703, 808524, 955075, 986813, 944495, 1122163, 1168608]
+    },
+    "villa-devoto": {
+      "amb1": [7163, 7291, 7413, null, null, 10151, null, null, 12489, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 233130, 255333, 324496, 337220, null, 423140, 428281, 493890, 511594, 550478],
+      "amb2": [9291, 9615, 11557, 12556, 13057, 13988, 15073, 15858, 17601, 20221, 24016, 24005, null, null, 35987, null, 45898, 57890, null, 72373, 108063, null, null, 286871, 335837, 390214, 437400, 475206, 564169, 605357, 613864, 638189, 711300, 749524],
+      "amb3": [14965, 15228, 17396, 19058, 19108, 21398, null, 23620, 26566, null, null, null, null, null, null, null, null, null, null, null, 156193, null, null, null, 547458, 607524, 689698, 773615, 884701, 954161, 1035668, 1105021, 1117444, 1345803]
+    },
+    "villa-gral-mitre": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 389626, null, null, 467016, null, null],
+      "amb2": [null, 8938, 9817, 10606, 11890, 12983, 13777, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 329598, null, 389474, 451732, null, 533321, 550609, 604448, null, 667155],
+      "amb3": [null, null, 14631, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "villa-lugano": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 883831, null]
+    },
+    "villa-luro": {
+      "amb1": [5858, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [7428, 9068, 9461, null, 11868, 12904, 12902, null, 16365, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 345447, 375737, 414334, 441865, 502977, 524373, 611671, 664866, 674163, 750606],
+      "amb3": [null, 14590, 15151, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 884137, null, null, null]
+    },
+    "villa-ortuzar": {
+      "amb1": [null, null, 8536, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 278508, 336935, 346831, null, null, 437282, 468894, 498655, 553000],
+      "amb2": [9608, 10568, 11395, null, null, null, null, 17464, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 401795, 397218, 427809, 524390, 546826, 627618, 697495, 644551, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "villa-pueyrredon": {
+      "amb1": [6872, 7436, 8086, 8428, null, null, null, null, null, null, null, null, null, 26543, null, null, null, null, null, null, 73858, null, null, null, 241205, 286927, 288778, 338075, 372110, 399481, 426423, 462991, 507762, 549918],
+      "amb2": [9943, 9853, 10961, null, null, 13173, 14247, 15789, 16947, 18017, null, null, null, null, null, 41400, null, null, null, null, null, null, null, 290100, 372608, 386106, 452451, 502406, 512631, 581202, 607411, 645466, 750246, 741140],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 662784, null, null, null, null, null, 990178, 1058272, null]
+    },
+    "villa-real": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "villa-riachuelo": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "villa-santa-rita": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 239856, 300733, 329661, null, null, null, 455887, null, null],
+      "amb2": [8838, 9682, 10402, null, null, null, null, null, null, null, null, null, null, null, null, null, 41598, null, null, null, null, null, null, 276275, 307532, 337747, 395866, null, null, null, 560907, null, 677887, 712622],
+      "amb3": [null, null, 15914, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "villa-soldati": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+    },
+    "villa-urquiza": {
+      "amb1": [7264, 8157, 8674, 9645, 10188, 10701, 11507, 12361, 13832, 15229, 17706, 20338, 21800, 26669, 27437, 30492, 34954, 41145, 48408, 59612, 83549, 110677, 164364, 246538, 275455, 290084, 324908, 362392, 389415, 413526, 445771, 488408, 537304, 568497],
+      "amb2": [10665, 11642, 12348, 13079, 14315, 14710, 16401, 17231, 18274, 20385, 25802, 27788, 31630, 38749, 40435, 45338, 47522, 61613, 72302, 84626, 104854, 160799, 240741, 361387, 391604, 415802, 497152, 534312, 573802, 617071, 662274, 700245, 767175, 817316],
+      "amb3": [16754, 17974, 18438, null, 21968, 22880, 24830, 27002, 30919, 30140, 39857, 45746, 50279, 61482, 63606, 72174, 78993, 88174, 110290, 146347, 184798, 254545, 316947, 538172, 638026, 636770, 786716, 854955, 890851, 1035510, 1016528, 1165389, 1262960, 1353564]
+    }
+  },
+  "comunas": {
+    "1": {
+      "amb1": [7516, 8619, 9132, 9364, 9831, 11276, 12056, 12373, 12943, 14313, 16300, 18165, 19956, 22145, 25167, 26327, 31722, 36473, 47394, 55614, 72814, 102997, 150255, 234970, 268994, 283558, 311957, 337770, 385571, 403801, 430421, 442773, 505426, 525063],
+      "amb2": [10689, 12080, 12961, 12870, 14115, 15688, 17133, 17297, 17594, 19261, 22086, 23800, 25532, 31566, 31830, 36862, 41663, 51697, 58726, 70464, 86432, 126250, 207346, 304986, 335623, 355582, 410724, 449942, 497417, 521529, 560368, 595330, 665427, 702922],
+      "amb3": [17342, 18385, 18587, 19913, 21161, 21294, 22550, 24188, 26148, 30477, 34620, 37369, 37080, 45424, 51119, 52229, 66289, 74469, 91160, 95653, 137943, 180282, 270440, 519728, 499231, 557331, 619695, 681610, 766137, 731190, 796537, 873533, 952889, 994320]
+    },
+    "2": {
+      "amb1": [8555, 8895, 9599, 10287, 11276, 12187, 12838, 13607, 15401, 17516, 18059, 19614, 22200, 24949, 27080, 29664, 35151, 42147, 52420, 65725, 82500, 97330, 166866, 248483, 289721, 317042, 341100, 366027, 407982, 441313, 466873, 501500, 570977, 595906],
+      "amb2": [11211, 12057, 12703, 13404, 14683, 15908, 16799, 18465, 19826, 21481, 23869, 25933, 29455, 31989, 37239, 40479, 46869, 64213, 76319, 87682, 124724, 171375, 242708, 382896, 411907, 417649, 461101, 498186, 550686, 585681, 633739, 662735, 739911, 800626],
+      "amb3": [17051, 17665, 18370, 20024, 22270, 23005, 24985, 25754, 30074, 32507, 35156, 41433, 46494, 50865, 59601, 66503, 81105, 95512, 113245, 133089, 186459, 240129, 357033, 569635, 604833, 643136, 714518, 745974, 833384, 874809, 931854, 1046579, 1158511, 1207040]
+    },
+    "3": {
+      "amb1": [6796, 7263, 8441, 8591, 9688, 10127, 11188, 11842, 12905, 14586, 16722, 17791, 19580, 20367, 24944, 26127, 31105, 36546, 50209, 58990, null, 104239, 158865, 214316, 252763, 270472, 307365, 333100, 378213, 389035, 404440, 456072, 492483, 532618],
+      "amb2": [8927, 9387, 10456, 11639, 12588, 13042, 14455, 15395, 15964, 17751, 21613, 23367, 25473, 28468, 32377, 35184, 42010, 50066, 60294, 69504, 84842, 121132, 186811, 264331, 324440, 355297, 408856, 437805, 454542, 507644, 551143, 588101, 641349, 681859],
+      "amb3": [13571, 14923, 15702, 15949, 17085, 19770, 19351, 21188, 23524, 26223, 30427, 36206, 39585, 43510, 48085, 55329, 64852, 73084, 88628, 106960, 133929, 170279, 275378, 395523, 480330, 499327, 595751, 666383, 750725, 791189, 814965, 884499, 955199, 967253]
+    },
+    "4": {
+      "amb1": [null, null, null, null, 8448, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 252141, 253604, 278715, 326087, 348329, 400454, 422664, 433598, 486546, 507735],
+      "amb2": [8699, 9018, 9739, 10368, 11583, 12166, 13296, 14418, 15966, 16921, 20170, 23501, 24808, 28255, 32059, 34841, 39278, 47014, 53432, 65248, 82902, 103408, 167660, 225308, 310387, 335419, 396682, 470954, 474507, 522464, 539097, 579827, 601605, 649494],
+      "amb3": [12799, 13868, 14908, 16040, 16317, 18146, 19258, 19920, 21037, null, null, null, null, null, 45951, 49300, null, null, null, null, 131328, null, null, 382974, 464934, 521508, 632391, 655595, 675209, 760312, 836631, 887050, 961195, 995304]
+    },
+    "5": {
+      "amb1": [7661, 7766, 8907, 9891, 10165, 11076, 11849, 12516, 13051, 14826, 17578, 19724, 22373, 24891, 26385, 29748, 35829, 37887, 48694, 60253, 72303, 107350, 182857, 210798, 266204, 288956, 317298, 352384, 397515, 414927, 444870, 489561, 542326, 560765],
+      "amb2": [9784, 10383, 11288, 12115, 13014, 13740, 14842, 15894, 17001, 19758, 23165, 24986, 27088, 31409, 35302, 38462, 46634, 51495, 66396, 75544, 92363, 127839, 213040, 293915, 344176, 374405, 428928, 469004, 527007, 567515, 595667, 632541, 685245, 728541],
+      "amb3": [15179, 16412, 16764, 18688, 19681, 20581, 23289, 23117, 25229, 25655, 34764, 40050, 44424, 47271, 56726, 60876, 68753, 83586, 97212, 115137, 146364, 208119, 303079, 492088, 554060, 599377, 669609, 736498, 825358, 892745, 904662, 988666, 1055771, 1133663]
+    },
+    "6": {
+      "amb1": [7680, 7930, 8365, 9007, 9454, 10620, 12054, 12710, 14197, 14656, 17551, 20400, 22649, 25281, 27249, 30188, 34283, 41984, 48760, 59865, 73005, 105082, 166871, 232224, 277842, 298493, 323326, 360092, 398580, 421671, 453035, 491280, 531531, 576105],
+      "amb2": [9356, 10382, 11246, 12156, 13022, 13611, 14932, 16330, 17220, 18475, 23156, 25324, 27951, 33815, 36323, 40525, 44960, 54484, 65660, 76392, 97800, 130639, 209775, 300972, 348259, 382021, 428113, 481751, 551677, 577533, 612463, 642821, 721382, 767392],
+      "amb3": [15993, 16198, 17010, 18202, 19339, 20635, 22073, 23413, 25833, 29232, 34617, 42413, 45340, 51005, 56511, 63331, 73609, 83533, 95999, 110610, 145406, 199141, 325393, 470587, 562679, 584785, 656552, 785547, 831062, 882188, 979764, 1023037, 1085437, 1176184]
+    },
+    "7": {
+      "amb1": [6791, 7192, 7491, 8557, 9262, 10000, 10696, 11465, 12306, 13751, 15973, 18947, 20625, 22837, 26414, 29712, 32471, 43969, 46092, 58071, 66757, null, 139655, 203381, 237135, 265344, 299231, 323528, 377181, 409375, 427411, 445784, 506815, 515774],
+      "amb2": [9145, 9593, 10441, 11310, 11947, 12898, 13608, 14597, 16396, 16917, 21084, 24730, 27202, 29912, 33721, 37748, 43287, 49350, 59855, 74929, 81603, 125399, 199210, 262028, 341591, 359154, 404393, 441802, 494699, 540027, 562577, 597412, 657761, 684567],
+      "amb3": [12698, 14518, 16388, 16865, 17887, 18661, 20654, 21425, 23256, 25143, 31696, 34753, 41054, 45745, 52150, 59609, 63125, 80328, 94580, 105854, 148002, 183095, 294097, 461858, 499418, 541468, 658744, 729287, 769771, 822814, 886766, 901796, 980285, 1084996]
+    },
+    "8": {
+      "amb1": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb2": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+      "amb3": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 365162, null, null, null, null, null, null, null, 895456, 887518]
+    },
+    "9": {
+      "amb1": [null, null, null, null, 7840, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 181638, 223658, 240987, 249629, 324736, null, 413841, 421054, 444021, 464836, 478861],
+      "amb2": [7938, 8337, 9708, 10064, 10624, 12135, 12970, 13927, 15454, 16024, null, null, null, null, 31440, 36579, 39191, null, 55426, 68775, 75948, null, 173983, 269139, 296597, 315581, 377743, 416717, 461792, 521965, 586536, 586085, 635178, 694176],
+      "amb3": [null, null, null, null, 17689, 18419, 17561, null, 21458, null, null, null, null, null, null, null, null, null, null, null, 110266, 153566, null, null, 446294, 483150, 572917, null, null, null, 870051, 993088, 1022073, 1006191]
+    },
+    "10": {
+      "amb1": [6044, 7150, 7340, 7734, 8388, 9242, 8980, null, 12766, null, 16069, 17452, 20801, 24063, 25958, 29728, 31197, 34376, null, null, 67947, null, 136506, 192955, 212218, 246511, 288325, 323218, 351978, 375304, 400244, 420236, 475893, 514060],
+      "amb2": [8502, 9268, 9592, 10876, 11743, 12396, 13463, 14299, 15831, 17762, 21348, 25574, 28201, 31160, 34825, 37798, 41900, 50533, 59676, 72767, 88543, 114745, 203284, 291860, 332937, 344578, 389167, 439528, 481218, 518604, 565346, 633133, 651599, 704743],
+      "amb3": [13037, 14781, 14689, 16672, 17829, 18515, 19205, 21080, 21467, 22174, null, null, null, null, 53329, 58435, 67267, null, 90919, 106230, 134182, 210000, null, 373482, 477061, 514920, 606015, 658058, 763574, 808440, 874299, 901530, 938466, 1051399]
+    },
+    "11": {
+      "amb1": [7037, 7253, 7850, 8762, 8975, 9795, 10605, 11000, 12172, 13572, 17096, 20070, 21242, 23510, 26890, 29350, 32864, 37906, 50048, 58987, 72474, 89824, 138333, 213221, 239030, 255872, 311123, 329631, 373784, 410488, 440138, 474182, 509305, 540771],
+      "amb2": [8998, 9530, 10541, 11374, 12456, 13417, 14451, 15086, 16581, 18984, 22699, 24230, 28627, 32313, 34846, 39439, 44643, 54808, 65962, 74852, 100609, 130068, 199470, 293977, 333537, 369072, 410870, 460927, 525195, 555499, 582717, 623856, 688038, 717302],
+      "amb3": [14668, 15425, 16415, 18551, 18471, 20079, 21745, 23251, 25648, 26282, 32183, 39809, 44480, 47979, 56305, 64914, 69097, 81217, 97004, 105088, 151006, 210976, null, null, 526388, 567551, 629295, 743831, 836643, 921065, 991354, 1016624, 1095199, 1233898]
+    },
+    "12": {
+      "amb1": [7218, 8069, 8531, 9397, 9845, 10550, 11653, 12451, 13310, 14712, 17537, 19873, 22424, 26834, 27798, 30185, 34992, 41016, 49796, 60444, 80449, 106595, 166949, 238995, 271064, 290943, 322708, 362168, 394380, 421856, 450279, 489538, 536941, 571780],
+      "amb2": [10440, 11503, 12247, 12993, 14322, 14716, 15938, 17134, 18229, 19866, 25037, 27586, 31674, 38304, 40532, 44039, 48056, 61530, 71393, 84861, 104505, 158087, 240284, 352342, 390368, 415397, 486482, 530343, 568264, 621242, 658904, 696756, 765097, 810740],
+      "amb3": [17227, 18021, 18557, 20693, 20842, 22746, 24536, 25732, 29628, 30999, 40933, 46343, 50273, 61561, 62718, 72440, 78931, 88873, 111205, 142794, 180089, 228144, 323001, 534356, 626214, 666237, 778145, 842578, 883421, 992097, 1041313, 1128559, 1234300, 1373145]
+    },
+    "13": {
+      "amb1": [7943, 8980, 9109, 10462, 11258, 11980, 13445, 14262, 15485, 16529, 19110, 21170, 23184, 26252, 29558, 32536, 37992, 48203, 54485, 66892, 83029, 117598, 157605, 263742, 301564, 319118, 355295, 392739, 414956, 461235, 499922, 529884, 580786, 607706],
+      "amb2": [11104, 12288, 13029, 13658, 14905, 16178, 17106, 17964, 19319, 21182, 25279, 28424, 31828, 37683, 39868, 43004, 49549, 61016, 77633, 87423, 111679, 151445, 252596, 407264, 401766, 440374, 479818, 525718, 570920, 629618, 665960, 719379, 811757, 833491],
+      "amb3": [17288, 18114, 19514, 20306, 22458, 23464, 25935, 27475, 30428, 32642, 38180, 45245, 52058, 59364, 64160, 71002, 80621, 99214, 112900, 140016, 158034, 251899, null, 626282, 625170, 655311, 753664, 842069, 879546, 941628, 1030471, 1113561, 1249345, 1337423]
+    },
+    "14": {
+      "amb1": [8643, 9861, 10120, 10961, 11717, 12995, 13303, 14134, 15764, 17699, 19313, 21275, 23127, 26518, 29495, 31549, 36314, 46466, 54408, 66914, 86281, 118873, 194066, 289591, 322705, 327685, 363800, 387866, 436751, 463474, 491732, 521898, 588760, 613037],
+      "amb2": [12152, 13049, 13876, 14205, 16199, 17009, 18429, 19365, 20944, 23648, 25901, 28656, 31839, 36090, 40853, 44380, 56336, 68830, 82528, 91677, 121402, 175218, 254205, 387606, 430333, 452620, 488830, 541875, 592685, 635842, 678281, 721773, 804543, 839053],
+      "amb3": [18092, 18611, 19749, 20883, 23463, 25281, 26636, 28130, 30356, 34831, 40617, 45504, 49483, 57449, 66246, 73446, 84831, 93666, 114384, 132786, 184755, 248744, 384026, 660095, 649992, 682630, 756775, 830172, 888751, 943181, 1046856, 1131060, 1275561, 1307505]
+    },
+    "15": {
+      "amb1": [8072, 8339, 8821, 9377, 10150, 11055, 12104, 13026, 14535, 15431, 18020, 19957, 21761, 25935, 28056, 30546, 35670, 43015, 54070, 62139, 78423, 105592, 169313, 237602, 281552, 290989, 336376, 368588, 399678, 424828, 455262, 497157, 552997, 571811],
+      "amb2": [9962, 10928, 11964, 12405, 13949, 14737, 15806, 16795, 18650, 20135, 23510, 26021, 29535, 33805, 36634, 38986, 45110, 57332, 69433, 82428, 98410, 129828, 232623, 339450, 387198, 401621, 454349, 503801, 526015, 602772, 646149, 671574, 747067, 791520],
+      "amb3": [15743, 16434, 17841, 18801, 19742, 20779, 23314, 23805, 25598, 28101, 34555, 39299, 43927, 54188, 55085, 62607, 74340, 93248, 101114, 135412, 163142, 200897, 327425, 502861, 571938, 622685, 651932, 773702, 865600, 876491, 933089, 1067008, 1141262, 1220478]
+    }
+  }
+}

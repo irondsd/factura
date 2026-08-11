@@ -39,10 +39,18 @@ export type MapRegion = {
   label: string;
   /** Secondary line: the comuna a barrio is in, the barrios a comuna groups. */
   meta: string;
-  /** `null` where the source withheld the figure. Not zero. */
+  /** What the shading and the sort order are based on. `null` where the source
+   * withheld the figure — not zero. */
   value: number | null;
-  /** Pre-formatted `value`, or `null`. */
+  /** The headline figure, pre-formatted. Not necessarily a rendering of
+   * `value`: the rent map shades by price per m² so that one scale can serve
+   * all three unit sizes, while printing the monthly rent, which is the number
+   * a reader came for. Within any one view the two rank identically, so the
+   * colour never contradicts the figure beside it. */
   display: string | null;
+  /** An optional second figure, shown under `display` in the tooltip and in its
+   * own table column. `null` where there is none to show. */
+  sub?: string | null;
 };
 
 export type MapView = {
@@ -108,7 +116,9 @@ export function MapaCaba({
    * in the small print, because "how old is this?" is the first question a
    * price map has to answer and the reader shouldn't have to hunt for it. */
   dataDate: string;
-  columns: { region: string; value: string };
+  /** `sub` opts the table into a second value column, and the tooltip into a
+   * second figure. Omit it and neither appears. */
+  columns: { region: string; value: string; sub?: string };
   ariaLabel: string;
 }) {
   const uid = useId();
@@ -327,7 +337,12 @@ export function MapaCaba({
               <span className="text-ink">{active.label}</span>
               <span className="text-muted"> · {active.meta}</span>
             </div>
-            <div className="text-ink">{active.display ?? noDataLabel}</div>
+            <div className="text-ink">
+              {active.display ?? noDataLabel}
+              {active.sub && (
+                <span className="text-muted"> · {active.sub}</span>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -345,6 +360,9 @@ export function MapaCaba({
           <tr>
             <th className="fd-th">{columns.region}</th>
             <th className="fd-th text-right">{columns.value}</th>
+            {columns.sub && (
+              <th className="fd-th text-right">{columns.sub}</th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -367,6 +385,11 @@ export function MapaCaba({
               >
                 {r.display ?? noDataLabel}
               </td>
+              {columns.sub && (
+                <td className="fd-td text-right tabular-nums whitespace-nowrap text-muted">
+                  {r.sub ?? "—"}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

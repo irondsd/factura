@@ -169,6 +169,14 @@ const ENTRIES: Entry[] = [
     file: "precio-m2-caba.mdx",
     load: () => import("./precio-m2-caba.mdx"),
   },
+  // The other half of the same question, and flat for the same reason: the
+  // series is CABA-only. The two link to each other with <PaginaRelacionada />.
+  {
+    slug: ["alquiler-caba"],
+    crumb: "Alquileres en CABA",
+    file: "alquiler-caba.mdx",
+    load: () => import("./alquiler-caba.mdx"),
+  },
 ];
 
 const DIR = path.join(process.cwd(), "src/content/estadisticas");
