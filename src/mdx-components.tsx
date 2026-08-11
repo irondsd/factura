@@ -4,7 +4,10 @@ import {
   ComparacionRegiones,
   MultiploRegiones,
 } from "@/components/estadisticas/ComparacionRegiones";
+import { BarriosBuscados } from "@/components/estadisticas/BarriosBuscados";
 import { IpcViviendaChart } from "@/components/estadisticas/IpcViviendaChart";
+import { PrecioDepartamento } from "@/components/estadisticas/PrecioDepartamento";
+import { PrecioPorZona } from "@/components/estadisticas/PrecioPorZona";
 import { RegionesIpc } from "@/components/estadisticas/RegionesIpc";
 import { ResumenIpc } from "@/components/estadisticas/ResumenIpc";
 import { ResumenRegion } from "@/components/estadisticas/ResumenRegion";
@@ -156,8 +159,12 @@ const components: MDXComponents = {
   ResumenIpc,
   ResumenRegion,
   // Takes no props at all: which sizes and geographies it offers, and the six
-  // views behind the switches, come from the dataset it reads.
+  // views behind the switches, come from the dataset it reads. Same for the
+  // three tables beside it on the CABA price page.
   VentaCabaMapa,
+  PrecioDepartamento,
+  BarriosBuscados,
+  PrecioPorZona,
   ProbarCta,
   SignupCta,
   // <RelatedGuides />, <Faq />, <Fuentes /> and <Subpaginas /> need to know

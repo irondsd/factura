@@ -114,7 +114,9 @@ export function VentaCabaMapa() {
   return (
     <figure className="fd-card my-8 px-5 pt-5 pb-4">
       <MapaCaba
-        title="Precio del metro cuadrado en venta, por barrio"
+        // Not "…, por barrio": the map switches to comunas and the heading
+        // can't follow it without contradicting itself half the time.
+        title="Mapa comparativo del precio del m² en CABA"
         dimensions={[
           {
             name: "size",
@@ -141,8 +143,8 @@ export function VentaCabaMapa() {
         Precio de publicación del metro cuadrado de departamentos usados en
         venta en la Ciudad de Buenos Aires, en dólares, por barrio y por comuna.
         Permite comparar cuánto cuesta el metro cuadrado en Palermo, Belgrano,
-        Caballito, Flores o Mataderos, y ver dónde se concentran los valores más
-        altos y más bajos de la Ciudad.
+        Recoleta, Villa Urquiza, Caballito, Flores o Mataderos, y ver en qué
+        zona de la Ciudad se concentran los valores más altos y más bajos.
       </figcaption>
 
       <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">

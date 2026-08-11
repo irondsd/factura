@@ -1,8 +1,12 @@
 import {
   BARRIOS,
+  barriosOfZona,
   COMUNA_IDS,
   comunaCovers,
   comunaLabel,
+  ZONAS,
+  type ZonaId,
+  zonaCovers,
 } from "./caba";
 import raw from "./venta-caba.json";
 
@@ -214,6 +218,111 @@ export const ranked = (
   rows(geo, size, period)
     .filter((r): r is Row & { value: number } => r.value !== null)
     .sort((a, b) => b.value - a.value);
+
+/** One barrio, with where it sits in the city — the extra fact a page about
+ * that barrio can give that the full table can't: not just what the metre
+ * costs there, but how that compares with the other 47.
+ *
+ * `rank` counts only the barrios with a published figure in this quarter, and
+ * `of` says how many those are, because a rank out of 48 would be a lie in a
+ * quarter where IDECBA withheld five of them. `null` when this barrio is one of
+ * the withheld. */
+export function barrio(
+  id: string,
+  size: SizeId,
+  period = LAST_PERIOD,
+): { label: string; meta: string; value: number; rank: number; of: number } | null {
+  const order = ranked("barrios", size, period);
+  const at = order.findIndex((r) => r.id === id);
+  if (at < 0) {
+    // Either a withheld figure or a typo'd id. The second is a bug, and a page
+    // silently dropping a barrio it asked for is how it would go unnoticed.
+    if (!BARRIOS.some((b) => b.id === id)) {
+      throw new Error(`venta-caba: no barrio "${id}"`);
+    }
+    return null;
+  }
+  const row = order[at];
+  return {
+    label: row.label,
+    meta: row.meta,
+    value: row.value,
+    rank: at + 1,
+    of: order.length,
+  };
+}
+
+// ── Asking price of a whole apartment ──────────────────────────────────────
+
+/** Round reference surfaces, in m², for turning a price per metre into the
+ * price of a flat.
+ *
+ * These are **ours, not IDECBA's**: the source publishes a price per square
+ * metre and nothing about how big the advertised units are, so there is no
+ * average surface to quote. They are round numbers in the usual range for each
+ * layout in CABA, chosen so a reader can see the arithmetic and redo it with
+ * the real surface of whatever they are looking at. Every place they are shown
+ * has to name them as reference sizes — a total presented as if the source had
+ * published it would be the one number on this page that nobody could check. */
+export const REFERENCE_AREA: Record<SizeId, number> = {
+  amb1: 35,
+  amb2: 50,
+  amb3: 70,
+};
+
+/** Asking price of a whole unit: the metre, times a surface. */
+export const totalPrice = (perMetre: number, area: number): number =>
+  perMetre * area;
+
+// ── Zones ──────────────────────────────────────────────────────────────────
+
+/** A zone's published barrio prices, summarised.
+ *
+ * The median rather than an average, and of *barrios* rather than of listings:
+ * IDECBA weights its city total by how many units were advertised, which we
+ * can't reproduce, and an unweighted mean of barrios would be dragged around by
+ * Puerto Madero on its own. The middle barrio of the zone is a statistic we can
+ * compute honestly and describe in one line. */
+export type ZonaRow = {
+  id: ZonaId;
+  label: string;
+  /** The comunas the zone groups — the reader's way to check the grouping. */
+  comunas: string;
+  withData: number;
+  total: number;
+  /** `null` in the impossible-but-typeable case of a zone with no figures. */
+  median: number | null;
+  cheapest: (Row & { value: number }) | null;
+  dearest: (Row & { value: number }) | null;
+};
+
+const median = (values: number[]): number | null => {
+  if (!values.length) return null;
+  const s = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+};
+
+export function zonas(size: SizeId, period = LAST_PERIOD): ZonaRow[] {
+  const all = rows("barrios", size, period);
+  return ZONAS.map((z) => {
+    const ids = new Set(barriosOfZona(z.id).map((b) => b.id));
+    const mine = all.filter((r) => ids.has(r.id));
+    const withValue = mine
+      .filter((r): r is Row & { value: number } => r.value !== null)
+      .sort((a, b) => b.value - a.value);
+    return {
+      id: z.id,
+      label: z.label,
+      comunas: zonaCovers(z.id),
+      withData: withValue.length,
+      total: mine.length,
+      median: median(withValue.map((r) => r.value)),
+      dearest: withValue[0] ?? null,
+      cheapest: withValue[withValue.length - 1] ?? null,
+    };
+  }).sort((a, b) => (b.median ?? 0) - (a.median ?? 0));
+}
 
 // ── The colour scale ───────────────────────────────────────────────────────
 

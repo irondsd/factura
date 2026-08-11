@@ -127,6 +127,63 @@ export const comunaCovers = (comuna: number): string =>
     .map((b) => b.label)
     .join(", ");
 
+/** The four zones a porteño names in conversation — "zona norte", "zona sur" —
+ * as groups of whole comunas.
+ *
+ * Unlike everything else in this module, this is **not** official geography.
+ * The city publishes barrios and comunas; nobody publishes a boundary for
+ * "zona oeste", and any two people would draw it slightly differently. It is
+ * here because it is the unit a lot of readers actually think in, and defining
+ * it as whole comunas is what keeps it checkable: the reader can see which
+ * comunas each zone groups and disagree with the grouping rather than with the
+ * numbers.
+ *
+ * Anything derived from these groupings has to be presented as our arithmetic
+ * over published barrio figures, never as a figure the source published. */
+export const ZONAS = [
+  { id: "norte", label: "Zona norte", comunas: [2, 12, 13, 14] },
+  { id: "centro", label: "Zona centro", comunas: [1, 3, 5, 6, 15] },
+  { id: "oeste", label: "Zona oeste", comunas: [7, 9, 10, 11] },
+  { id: "sur", label: "Zona sur", comunas: [4, 8] },
+] as const satisfies readonly { id: string; label: string; comunas: number[] }[];
+
+export type ZonaId = (typeof ZONAS)[number]["id"];
+
+/** Fails the build if the zones stop being a partition of the 15 comunas — a
+ * comuna in two zones would be counted twice, and one in none would vanish from
+ * a page that claims to cover the city. */
+function assertZonas(): void {
+  const seen = new Set<number>();
+  for (const z of ZONAS) {
+    for (const c of z.comunas) {
+      if (!COMUNA_IDS.includes(c)) {
+        throw new Error(`caba: ${z.label} lists a comuna ${c} that doesn't exist`);
+      }
+      if (seen.has(c)) {
+        throw new Error(`caba: comuna ${c} is in more than one zona`);
+      }
+      seen.add(c);
+    }
+  }
+  const missing = COMUNA_IDS.filter((c) => !seen.has(c));
+  if (missing.length) {
+    throw new Error(`caba: comunas in no zona: ${missing.join(", ")}`);
+  }
+}
+assertZonas();
+
+/** The comunas a zone groups, as one sentence — "Comunas 2, 12, 13 y 14". */
+export const zonaCovers = (zona: ZonaId): string => {
+  const ids = ZONAS.find((z) => z.id === zona)!.comunas;
+  return `Comunas ${ids.slice(0, -1).join(", ")} y ${ids[ids.length - 1]}`;
+};
+
+/** The barrios of a zone, in registry order. */
+export const barriosOfZona = (zona: ZonaId): readonly Barrio[] => {
+  const ids = ZONAS.find((z) => z.id === zona)!.comunas as readonly number[];
+  return BARRIOS.filter((b) => ids.includes(b.comuna));
+};
+
 /** Accent-, case- and punctuation-insensitive key, so "Vélez Sársfield",
  * "Velez Sarsfield" and "VELEZ SARSFIELD" all collapse to one string. The one
  * function that decides whether two spellings are the same place. */
