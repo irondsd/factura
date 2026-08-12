@@ -145,7 +145,11 @@ export const ZONAS = [
   { id: "centro", label: "Zona centro", comunas: [1, 3, 5, 6, 15] },
   { id: "oeste", label: "Zona oeste", comunas: [7, 9, 10, 11] },
   { id: "sur", label: "Zona sur", comunas: [4, 8] },
-] as const satisfies readonly { id: string; label: string; comunas: number[] }[];
+] as const satisfies readonly {
+  id: string;
+  label: string;
+  comunas: number[];
+}[];
 
 export type ZonaId = (typeof ZONAS)[number]["id"];
 
@@ -157,7 +161,9 @@ function assertZonas(): void {
   for (const z of ZONAS) {
     for (const c of z.comunas) {
       if (!COMUNA_IDS.includes(c)) {
-        throw new Error(`caba: ${z.label} lists a comuna ${c} that doesn't exist`);
+        throw new Error(
+          `caba: ${z.label} lists a comuna ${c} that doesn't exist`,
+        );
       }
       if (seen.has(c)) {
         throw new Error(`caba: comuna ${c} is in more than one zona`);

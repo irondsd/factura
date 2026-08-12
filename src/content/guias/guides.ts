@@ -117,10 +117,7 @@ export const readingMinutes = (slug: string, faq?: GuideMeta["faq"]): number =>
  * as a section like any other even though its heading isn't in the body. It's
  * dropped if a real heading already took that id, which would otherwise mean a
  * contents entry pointing at the wrong section. */
-export function guideHeadings(
-  slug: string,
-  faq?: GuideMeta["faq"],
-): Heading[] {
+export function guideHeadings(slug: string, faq?: GuideMeta["faq"]): Heading[] {
   const body = mdxBody(fs.readFileSync(path.join(DIR, `${slug}.mdx`), "utf8"));
   const headings = extractHeadings(body);
 

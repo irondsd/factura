@@ -267,8 +267,9 @@ export const ranked = (
   period = LAST_PERIOD,
 ): (Row & { monthly: number; perMetre: number })[] =>
   rows(geo, size, period)
-    .filter((r): r is Row & { monthly: number; perMetre: number } =>
-      r.monthly !== null,
+    .filter(
+      (r): r is Row & { monthly: number; perMetre: number } =>
+        r.monthly !== null,
     )
     .sort((a, b) => b.monthly - a.monthly);
 

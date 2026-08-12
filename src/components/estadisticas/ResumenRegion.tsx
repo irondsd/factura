@@ -62,10 +62,7 @@ export function ResumenRegion({ region }: { region: RegionId }) {
           label="Variación interanual"
           value={formatPercent(lastInteranual(region))}
         />
-        <Row
-          label={`Acumulado desde ${FIRST_UPDATED}`}
-          value={times}
-        />
+        <Row label={`Acumulado desde ${FIRST_UPDATED}`} value={times} />
         <Row
           label="Puesto entre las seis regiones"
           value={`${ORDINAL[rank]} de 6`}

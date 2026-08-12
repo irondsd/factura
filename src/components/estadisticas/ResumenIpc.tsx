@@ -20,8 +20,8 @@ export function ResumenIpc() {
     <div className="my-6 overflow-x-auto">
       <table className="w-full border-collapse font-mono text-[14px]">
         <caption className="caption-bottom pt-3 text-left font-mono text-xs leading-[1.6] text-muted">
-          IPC de vivienda, agua, electricidad, gas y otros combustibles.
-          Último dato disponible: {LAST_UPDATED}. Fuente: INDEC.
+          IPC de vivienda, agua, electricidad, gas y otros combustibles. Último
+          dato disponible: {LAST_UPDATED}. Fuente: INDEC.
         </caption>
         <thead>
           <tr>

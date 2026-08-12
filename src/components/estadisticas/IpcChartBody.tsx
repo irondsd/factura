@@ -420,7 +420,11 @@ export function ComparacionChart({
 
       <Legend
         className="mt-3"
-        items={regions.map((r) => ({ id: r.id, label: r.label, color: r.color }))}
+        items={regions.map((r) => ({
+          id: r.id,
+          label: r.label,
+          color: r.color,
+        }))}
         hidden={hidden}
         onToggle={toggle}
       />
@@ -523,9 +527,7 @@ export function MensualChart({
             <Tooltip
               cursor={{ fill: "var(--line)", fillOpacity: 0.3 }}
               isAnimationActive={false}
-              content={(props) => (
-                <ChartTooltip {...props} measure="mensual" />
-              )}
+              content={(props) => <ChartTooltip {...props} measure="mensual" />}
             />
             <Bar
               dataKey="value"

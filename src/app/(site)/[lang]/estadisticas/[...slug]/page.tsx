@@ -113,7 +113,9 @@ export default async function EstadisticaPage({ params }: Props) {
               <p className="flex flex-wrap gap-x-2 gap-y-1 font-mono text-micro uppercase tracking-label-wide text-muted mt-5">
                 <span>
                   Actualizado el{" "}
-                  <time dateTime={meta.updated}>{fmtDateTime(meta.updated)}</time>
+                  <time dateTime={meta.updated}>
+                    {fmtDateTime(meta.updated)}
+                  </time>
                   <span aria-hidden="true"> ·</span>
                 </span>
                 {meta.updated !== meta.published && (

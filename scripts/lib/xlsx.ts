@@ -177,7 +177,9 @@ export function readSheet(file: Buffer, sheetIndex = 0): Cell[][] {
         value = strings[i] ?? null;
       } else if (type === "inlineStr") {
         const parts = [...body.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)];
-        value = parts.length ? parts.map((t) => decodeXml(t[1])).join("") : null;
+        value = parts.length
+          ? parts.map((t) => decodeXml(t[1])).join("")
+          : null;
       } else {
         const raw = /<v>([\s\S]*?)<\/v>/.exec(body)?.[1];
         if (raw === undefined) value = null;

@@ -231,7 +231,13 @@ export function barrio(
   id: string,
   size: SizeId,
   period = LAST_PERIOD,
-): { label: string; meta: string; value: number; rank: number; of: number } | null {
+): {
+  label: string;
+  meta: string;
+  value: number;
+  rank: number;
+  of: number;
+} | null {
   const order = ranked("barrios", size, period);
   const at = order.findIndex((r) => r.id === id);
   if (at < 0) {

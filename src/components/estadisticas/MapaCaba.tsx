@@ -175,7 +175,8 @@ export function MapaCaba({
   }, [hovered]);
 
   const key = dimensions.map((d) => picked[d.name]).join("-");
-  const view = views[key] ?? views[dimensions.map((d) => initial[d.name]).join("-")];
+  const view =
+    views[key] ?? views[dimensions.map((d) => initial[d.name]).join("-")];
 
   const paths = geo[view.geo] as Record<string, string>;
 
@@ -390,7 +391,11 @@ export function MapaCaba({
             // capped, and only then positioned.
             className="pointer-events-none absolute z-10 w-max max-w-[15rem] -translate-x-1/2 -translate-y-full border border-line bg-card px-2 py-1 font-mono text-[11px] leading-snug shadow-pop"
             style={{
-              left: clamp(pointer.x, tipWidth / 2, pointer.boxWidth - tipWidth / 2),
+              left: clamp(
+                pointer.x,
+                tipWidth / 2,
+                pointer.boxWidth - tipWidth / 2,
+              ),
               top: pointer.y - 10,
             }}
           >
@@ -421,9 +426,7 @@ export function MapaCaba({
           <tr>
             <th className="fd-th">{columns.region}</th>
             <th className="fd-th text-right">{columns.value}</th>
-            {columns.sub && (
-              <th className="fd-th text-right">{columns.sub}</th>
-            )}
+            {columns.sub && <th className="fd-th text-right">{columns.sub}</th>}
           </tr>
         </thead>
         <tbody>

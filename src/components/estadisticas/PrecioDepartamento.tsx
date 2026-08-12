@@ -92,7 +92,8 @@ export function PrecioDepartamento() {
         del metro cuadrado, no el tamaño de los departamentos en venta. Si
         cambian los metros cambia el total, que es exactamente lo que pasa en el
         mercado. Son precios de publicación en dólares, no de escrituración.
-        Fuente: IDECBA sobre la base de Argenprop, datos hasta el {LAST_UPDATED}.
+        Fuente: IDECBA sobre la base de Argenprop, datos hasta el {LAST_UPDATED}
+        .
       </p>
     </figure>
   );

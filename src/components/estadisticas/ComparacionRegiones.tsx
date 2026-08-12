@@ -82,7 +82,11 @@ export function ComparacionRegiones() {
         </p>
       </figcaption>
 
-      <ComparacionChart rows={rows} regions={chartRegions} range={{ min, max }} />
+      <ComparacionChart
+        rows={rows}
+        regions={chartRegions}
+        range={{ min, max }}
+      />
 
       <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
         Evolución anual del IPC de vivienda, agua, electricidad, gas y otros
@@ -96,7 +100,8 @@ export function ComparacionRegiones() {
         La serie interanual empieza un año después que los datos, porque cada
         punto compara contra el mismo mes del año anterior. No incluye el total
         nacional: es el promedio de estas seis regiones, así que su línea caería
-        siempre en el medio del grupo. Fuente: INDEC, datos hasta {LAST_UPDATED}.
+        siempre en el medio del grupo. Fuente: INDEC, datos hasta {LAST_UPDATED}
+        .
       </p>
     </figure>
   );

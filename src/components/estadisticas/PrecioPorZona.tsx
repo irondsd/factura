@@ -45,7 +45,9 @@ export function PrecioPorZona() {
             <tr>
               <th className="fd-th">Zona</th>
               <th className="fd-th text-right pl-3">Barrio del medio</th>
-              <th className="fd-th text-right pl-3">Del más barato al más caro</th>
+              <th className="fd-th text-right pl-3">
+                Del más barato al más caro
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -100,8 +102,8 @@ export function PrecioPorZona() {
         columna del medio es la mediana de los barrios de la zona —el valor que
         deja la mitad de los barrios por encima y la mitad por debajo—, no un
         promedio ponderado como el de la Ciudad. Calculado sobre los precios de
-        publicación que IDECBA releva de Argenprop, datos hasta el {LAST_UPDATED}
-        .
+        publicación que IDECBA releva de Argenprop, datos hasta el{" "}
+        {LAST_UPDATED}.
       </p>
     </figure>
   );

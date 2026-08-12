@@ -52,16 +52,16 @@ describe("titleRange", () => {
   });
 
   it("throws rather than guess when the title changes shape", () => {
-    expect(() => titleRange("Precio promedio. Marzo de 2010/junio de 2026")).toThrow(
-      /could not read a quarter range/,
-    );
+    expect(() =>
+      titleRange("Precio promedio. Marzo de 2010/junio de 2026"),
+    ).toThrow(/could not read a quarter range/);
     expect(() => titleRange("1er. trimestre de 2018")).toThrow();
   });
 
   it("throws when the range runs backwards", () => {
-    expect(() => titleRange("2do. trimestre de 2026/1er. trimestre de 2017")).toThrow(
-      /backwards/,
-    );
+    expect(() =>
+      titleRange("2do. trimestre de 2026/1er. trimestre de 2017"),
+    ).toThrow(/backwards/);
   });
 });
 

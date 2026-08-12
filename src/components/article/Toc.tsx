@@ -129,7 +129,13 @@ export function TocSidebar({
   return <StickyToc headings={headings} label={label} />;
 }
 
-function StickyToc({ headings, label }: { headings: Heading[]; label: string }) {
+function StickyToc({
+  headings,
+  label,
+}: {
+  headings: Heading[];
+  label: string;
+}) {
   const active = useActiveHeading(headings);
 
   return (

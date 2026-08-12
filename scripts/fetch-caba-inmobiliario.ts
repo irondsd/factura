@@ -240,7 +240,13 @@ async function discover(): Promise<Map<string, string>> {
         page,
       )?.[1];
       if (file) {
-        index.set(file.split("/").pop()!.replace(/\.xlsx?$/i, ""), file);
+        index.set(
+          file
+            .split("/")
+            .pop()!
+            .replace(/\.xlsx?$/i, ""),
+          file,
+        );
       }
     }
   }
@@ -255,8 +261,9 @@ async function discover(): Promise<Map<string, string>> {
  * shows which barrios moved. */
 function format(data: unknown): string {
   const json = JSON.stringify(data, null, 2);
-  return `${json.replace(/\[\n\s+((?:[^[\]{}]|\n)*?)\n\s+\]/g, (_, body: string) =>
-    `[${body.trim().replace(/\s*\n\s*/g, " ")}]`,
+  return `${json.replace(
+    /\[\n\s+((?:[^[\]{}]|\n)*?)\n\s+\]/g,
+    (_, body: string) => `[${body.trim().replace(/\s*\n\s*/g, " ")}]`,
   )}\n`;
 }
 
@@ -341,7 +348,9 @@ async function build(
         seen.add(barrio.id);
         (barrios[barrio.id] ??= {})[size] = slice(table, series);
       }
-      const missing = BARRIOS.filter((b) => !seen.has(b.id)).map((b) => b.label);
+      const missing = BARRIOS.filter((b) => !seen.has(b.id)).map(
+        (b) => b.label,
+      );
       if (missing.length) {
         throw new Error(
           `${code}: no row for ${missing.join(", ")}. IDECBA may have renamed a barrio — add the new spelling to that barrio's \`aka\` in data/caba.ts.`,
@@ -372,7 +381,9 @@ async function build(
     unit: ds.unit,
     condition: "usados",
     ...(ds.readsReferenceArea ? { referenceArea } : {}),
-    files: Object.fromEntries(ds.series.map((s) => [`${s.geo}-${s.size}`, s.code])),
+    files: Object.fromEntries(
+      ds.series.map((s) => [`${s.geo}-${s.size}`, s.code]),
+    ),
     generatedBy: "scripts/fetch-caba-inmobiliario.ts",
     periods,
     provisional,
@@ -400,13 +411,15 @@ async function build(
     `\n  ${periods[0]} → ${periods.at(-1)}  (${periods.length} quarters, ${provisional.length} provisional)`,
   );
   for (const size of SIZES) {
-    const withData = BARRIOS.filter((b) => out.barrios[b.id][size][last] !== null);
+    const withData = BARRIOS.filter(
+      (b) => out.barrios[b.id][size][last] !== null,
+    );
     const comunasWith = COMUNA_IDS.filter(
       (c) => out.comunas[String(c)][size][last] !== null,
     );
-    const grey = BARRIOS.filter((b) => out.barrios[b.id][size][last] === null).map(
-      (b) => b.label,
-    );
+    const grey = BARRIOS.filter(
+      (b) => out.barrios[b.id][size][last] === null,
+    ).map((b) => b.label);
     const area = referenceArea[size] ? ` (${referenceArea[size]} m²)` : "";
     console.log(
       `  ${size}: ciudad ${out.ciudad[size][last]} ${ds.unitShort}${area} · barrios ${withData.length}/48 · comunas ${comunasWith.length}/15`,
@@ -428,9 +441,7 @@ async function build(
 async function main(): Promise<void> {
   const dryRun = process.argv.includes("--dry-run");
   const only = /--only=(\S+)/.exec(process.argv.join(" "))?.[1];
-  const wanted = only
-    ? DATASETS.filter((d) => d.id.includes(only))
-    : DATASETS;
+  const wanted = only ? DATASETS.filter((d) => d.id.includes(only)) : DATASETS;
   if (!wanted.length) {
     throw new Error(
       `--only=${only} matches nothing. Known: ${DATASETS.map((d) => d.id).join(", ")}`,

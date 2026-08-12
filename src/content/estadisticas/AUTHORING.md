@@ -35,7 +35,7 @@ Rules:
 
 **Renaming a live page** means adding a redirect from the old path in
 `redirects()` in `next.config.ts`, `permanent: true`. Config redirects run
-*before* the proxy (see the routing order in Next's `rewrites` doc), so a bare
+_before_ the proxy (see the routing order in Next's `rewrites` doc), so a bare
 source path is matched before the proxy rewrites it into the `/es` tree.
 
 ---
@@ -74,7 +74,7 @@ one is for, is the `StatsMeta` type in `pages.ts` — read it rather than copyin
 blindly. The fields the guides don't have:
 
 - **`sources`** — where the numbers come from. Rendered as the page's sources
-  block *and* read by the `Dataset` JSON-LD as the dataset's creator. One list,
+  block _and_ read by the `Dataset` JSON-LD as the dataset's creator. One list,
   both consumers: a page can't cite a source it doesn't show.
 - **`dataset`** — what the series is, for the `Dataset` structured data. This is
   the markup that puts the page in dataset search rather than only in web
@@ -100,7 +100,7 @@ Two sections before the first figure, in this order:
 
 1. **Introduction** (no heading, above the first `##`) — what the statistic is,
    why it matters, and why Factura publishes it. Anything a reader must know
-   *before* seeing the number — that these are asking prices, say — goes here
+   _before_ seeing the number — that these are asking prices, say — goes here
    and nowhere else.
 2. **`## Qué vas a encontrar en esta página`** — the page's own contents, **as a
    bullet list, one line per section**. Prose here is the mistake to avoid: it
@@ -148,7 +148,7 @@ doorway, and reads like one. Each region page must carry, beyond its charts:
 - its own numbers, from a component that reads the data (`<ResumenRegion />`),
   including at least one fact that only exists on a region page — where it ranks
   against the others;
-- its own `faq`, answering what someone in *that* region would ask;
+- its own `faq`, answering what someone in _that_ region would ask;
 - its own `title`, `description`, `keywords` and `dataset.spatialCoverage`.
 
 Shared methodology belongs on the hub, linked, not repeated six times.
@@ -205,7 +205,7 @@ axis. A figure is split in two, and the seam matters:
   control (the year picker), and the plot.
 
 Anything that changes when the reader clicks something belongs on the client
-side of that line, *including the text that describes it*: a stat line that
+side of that line, _including the text that describes it_: a stat line that
 still quotes 2026 under a chart showing 2020 is worse than no stat line. Nothing
 is lost to search by putting text there — a client component is server-rendered
 too, so the initial HTML carries the heading, the figures and the control. Only
@@ -222,7 +222,7 @@ Three rules worth stating:
   auto-scale makes the calmest region look exactly as convulsed as the wildest,
   which defeats the reason for showing them side by side. Where a shared scale
   can't work — the monthly charts, where 2020 moved by tenths of a point and
-  2024 by forty — share it across the *regions* and say in the note what the
+  2024 by forty — share it across the _regions_ and say in the note what the
   axis is doing.
 
 Compute axis ticks with `niceTicks` (`lib/svg-chart.ts`) and pass them to the

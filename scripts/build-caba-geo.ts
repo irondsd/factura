@@ -34,10 +34,7 @@ import { fileURLToPath } from "node:url";
 import { COMUNA_IDS, findBarrio } from "../src/content/estadisticas/data/caba";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const OUT = path.join(
-  here,
-  "../src/content/estadisticas/data/caba-geo.json",
-);
+const OUT = path.join(here, "../src/content/estadisticas/data/caba-geo.json");
 
 const CDN = "https://cdn.buenosaires.gob.ar/datosabiertos/datasets";
 const SOURCES = {
@@ -172,7 +169,8 @@ async function main(): Promise<void> {
         `boundary file has a barrio we don't know: ${JSON.stringify(name)}. Add it to data/caba.ts.`,
       );
     }
-    if (barrioPaths[barrio.id]) throw new Error(`two features for ${barrio.id}`);
+    if (barrioPaths[barrio.id])
+      throw new Error(`two features for ${barrio.id}`);
     barrioPaths[barrio.id] = pathOf(f);
   }
 

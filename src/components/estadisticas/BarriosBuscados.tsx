@@ -49,9 +49,10 @@ export function BarriosBuscados() {
   // editorial order above would print the "puesto" column out of order, which
   // reads as a bug in the ranking rather than as a choice about the list.
   // Withheld barrios have no rank, so they go last.
-  const rows = FEATURED.map((id) => ({ id, data: barrio(id, DEFAULT_SIZE) })).sort(
-    (a, b) => (b.data?.value ?? -1) - (a.data?.value ?? -1),
-  );
+  const rows = FEATURED.map((id) => ({
+    id,
+    data: barrio(id, DEFAULT_SIZE),
+  })).sort((a, b) => (b.data?.value ?? -1) - (a.data?.value ?? -1));
 
   return (
     <figure className="fd-card my-8 px-5 pt-5 pb-4">
@@ -74,7 +75,9 @@ export function BarriosBuscados() {
             <tr>
               <th className="fd-th">Barrio</th>
               <th className="fd-th text-right pl-3">US$ por m²</th>
-              <th className="fd-th text-right pl-3">Un {SIZE.short} de {AREA} m²</th>
+              <th className="fd-th text-right pl-3">
+                Un {SIZE.short} de {AREA} m²
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -83,7 +86,9 @@ export function BarriosBuscados() {
                 <td className="fd-td align-top">
                   <span className="text-ink">{data?.label ?? id}</span>
                   <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5">
-                    {data ? `${data.meta} · ${data.rank}.º de ${data.of}` : NO_DATA}
+                    {data
+                      ? `${data.meta} · ${data.rank}.º de ${data.of}`
+                      : NO_DATA}
                   </span>
                 </td>
                 <td className="fd-td text-right pl-3 align-top tabular-nums whitespace-nowrap text-ink">
@@ -101,10 +106,10 @@ export function BarriosBuscados() {
       <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
         {/* The list is built from the rows so it can't fall out of step with
             them, and joined with a final "y" so it reads as a sentence. */}
-        El valor del metro cuadrado en {list(rows.map((r) => r.data?.label ?? r.id))}
-        , con el precio de un departamento de {SIZE.inTitle} de {AREA} m² en cada
-        uno. El resto de los barrios de la Ciudad están en la tabla completa,
-        debajo del mapa.
+        El valor del metro cuadrado en{" "}
+        {list(rows.map((r) => r.data?.label ?? r.id))}, con el precio de un
+        departamento de {SIZE.inTitle} de {AREA} m² en cada uno. El resto de los
+        barrios de la Ciudad están en la tabla completa, debajo del mapa.
       </p>
 
       <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">

@@ -88,8 +88,7 @@ export const REGIONS = [
     id: "noroeste",
     label: "Noroeste",
     inTitle: "el Noroeste argentino",
-    covers:
-      "Catamarca, Jujuy, La Rioja, Salta, Santiago del Estero y Tucumán.",
+    covers: "Catamarca, Jujuy, La Rioja, Salta, Santiago del Estero y Tucumán.",
     color: "olive",
   },
   {

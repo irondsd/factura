@@ -95,15 +95,14 @@ export function AlquileresBuscados() {
       </div>
 
       <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Cuánto sale alquilar en{" "}
-        {list(rows.map((r) => r.data?.label ?? r.id))}, con el precio del mes y
-        el equivalente por metro cuadrado. El resto de los barrios de la Ciudad
-        están en la tabla completa, debajo del mapa.
+        Cuánto sale alquilar en {list(rows.map((r) => r.data?.label ?? r.id))},
+        con el precio del mes y el equivalente por metro cuadrado. El resto de
+        los barrios de la Ciudad están en la tabla completa, debajo del mapa.
       </p>
 
       <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        El puesto es entre los barrios con alquiler publicado este trimestre, del
-        más caro al más barato; cuántos son cambia según cuántos avisos haya
+        El puesto es entre los barrios con alquiler publicado este trimestre,
+        del más caro al más barato; cuántos son cambia según cuántos avisos haya
         habido, y en alquiler son bastantes menos que en venta. El valor por m²
         es el precio del mes dividido por los {AREA} m² que IDECBA toma como
         superficie de referencia para un {SIZE.label}. Fuente: IDECBA sobre la

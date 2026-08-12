@@ -151,8 +151,7 @@ export function VentaCabaMapa() {
         Son precios de <strong className="font-medium">publicación</strong>, no
         de escrituración: lo que se pide, no lo que se paga. La misma escala de
         colores se usa en los seis mapas, para que se puedan comparar entre sí.
-        Fuente: IDECBA sobre la base de Argenprop, datos hasta el{" "}
-        {LAST_UPDATED}
+        Fuente: IDECBA sobre la base de Argenprop, datos hasta el {LAST_UPDATED}
         {provisional ? " (provisorio)" : ""}.
       </p>
     </figure>
