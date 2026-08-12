@@ -112,6 +112,23 @@ export function guideCategoryMetadata({
   return listingMetadata(guideCategoryUrl(id), title, description);
 }
 
+// ── Normativa (Spanish-only) ──────────────────────────────────────────────
+// Argentine norms, written about in Spanish. Same treatment as the guides: one
+// language, no hreflang alternates, canonical is the bare (es) URL.
+
+/** Absolute canonical URL for the normativa page. */
+export const normativaUrl = `${siteUrl}/normativa`;
+
+export function normativaMetadata({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}): Metadata {
+  return listingMetadata(normativaUrl, title, description);
+}
+
 // ── Statistics (Spanish-only) ─────────────────────────────────────────────
 // Same treatment as the guides: one language, no hreflang alternates, canonical
 // is the bare (es) URL. The only structural difference is that a page's slug is

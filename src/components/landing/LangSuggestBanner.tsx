@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui";
 import { LOCALE_COOKIE, type Locale } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
-import { oppositePath } from "@/i18n/routing";
+import { isSpanishOnlyPath, oppositePath } from "@/i18n/routing";
 
 const DISMISS_KEY = "factura-lang-suggest-dismissed";
 const ONE_YEAR = 60 * 60 * 24 * 365;
@@ -40,12 +40,12 @@ export function LangSuggestBanner() {
     if (pref && pref !== locale) setShow(true);
   }, [locale]);
 
-  // The guides section is Spanish-only: never nudge toward a /en page that
-  // doesn't exist. A render guard (not just an effect guard) is required because
-  // this banner lives in the persistent [lang] layout — on a client-side nav
-  // onto /guias the banner would otherwise linger from the previous page.
-  const onGuides = pathname.startsWith("/guias");
-  if (!show || onGuides) return null;
+  // Guías, Estadísticas and Normativa are Spanish-only: never nudge toward a
+  // /en page that doesn't exist. A render guard (not just an effect guard) is
+  // required because this banner lives in the persistent [lang] layout — on a
+  // client-side nav into one of those sections the banner would otherwise
+  // linger from the previous page.
+  if (!show || isSpanishOnlyPath(pathname)) return null;
 
   const dismiss = () => {
     localStorage.setItem(DISMISS_KEY, "1");

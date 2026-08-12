@@ -6,6 +6,7 @@ import {
   guidesIndexUrl,
   guideUrl,
   localeUrl,
+  normativaUrl,
   statsIndexUrl,
   statsUrl,
 } from "@/i18n/metadata";
@@ -114,5 +115,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
-  return [...landing, ...guidesEntries, ...statsEntries];
+  // Spanish-only like the guides, so no hreflang alternates. `now` rather than
+  // a content date: the registry has no per-norm timestamp, and what changes on
+  // this page is a status flipping, which is a redeploy either way.
+  const normativa: MetadataRoute.Sitemap = [
+    {
+      url: normativaUrl,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+  ];
+
+  return [...landing, ...guidesEntries, ...statsEntries, ...normativa];
 }

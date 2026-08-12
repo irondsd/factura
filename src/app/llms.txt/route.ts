@@ -3,13 +3,23 @@ import {
   guidesByPrimaryCategory,
   nonEmptyCategories,
 } from "@/content/guias/guides";
+import { NORMAS } from "@/content/normativa/normas";
 import {
   guideCategoryUrl,
   guidesIndexUrl,
   guideUrl,
+  normativaUrl,
   statsIndexUrl,
   statsUrl,
 } from "@/i18n/metadata";
+
+// The file is English prose, so the Spanish `estado` values are spelled out for
+// the reader of /llms.txt rather than passed through.
+const ESTADO_EN = {
+  vigente: "In force",
+  modificada: "In force, amended",
+  derogada: "Repealed",
+} as const;
 
 // Build-time generated /llms.txt. The curated product/demo/trust prose is
 // editorial and lives here as a template; the Guías list is generated from the
@@ -46,6 +56,7 @@ Key concepts:
 - [Homepage](https://factura.uno/): Overview of Factura, how it works (drop a PDF, it parses, you get a ledger), and its core value proposition.
 - [Docs](https://factura.uno/docs): Getting started, core concepts, and reference for uploading bills, parsers, properties, and vendors.
 - [FAQ](https://factura.uno/faq): Common questions about supported bills, parsing, storage, privacy, and sharing.
+- [Normativa](https://factura.uno/normativa): The Argentine laws and decrees behind household bills and contracts — rent, expensas, electricity, gas, water, internet, ABL, consumer rights, energy subsidies — each with its status (in force, amended, repealed) and a link to the official text.
 - [Glossary](https://factura.uno/glosario): What each term on an Argentine electricity, gas or water bill means — cargo fijo, VAD, percepciones, estimated readings, subsidy levels (N1/N2/N3), regulators — plus the app's own vocabulary. Every term has its own anchor.`;
 
 const AFTER = `## Demo
@@ -114,7 +125,23 @@ export async function GET() {
     ),
   ].join("\n");
 
-  const body = `${PREAMBLE}\n\n${guidesSection}\n\n${statsSection}\n\n${AFTER}\n`;
+  // One page, so it's a single section rather than an index plus children. The
+  // per-norm lines carry the status because that is the fact an assistant most
+  // often gets wrong about Argentine law — half of these changed since 2023.
+  const normativaSection = [
+    "## Normativa",
+    "",
+    "Spanish-only reference page: the Argentine national and CABA norms behind household bills and contracts — rent, building expenses, electricity, gas, water, internet, property tax, consumer rights and energy subsidies. Each entry states whether it is in force, what replaced it if not, and links the official text.",
+    "",
+    `- [Normativa](${normativaUrl}): Every norm below, one anchored card each.`,
+    "",
+    ...NORMAS.map(
+      (n) =>
+        `- [${n.numero} — ${n.titulo}](${normativaUrl}#${n.id}): ${ESTADO_EN[n.estado]}. ${n.resumen}`,
+    ),
+  ].join("\n");
+
+  const body = `${PREAMBLE}\n\n${guidesSection}\n\n${statsSection}\n\n${normativaSection}\n\n${AFTER}\n`;
 
   return new Response(body, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },

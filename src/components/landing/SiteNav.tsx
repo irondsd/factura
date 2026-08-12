@@ -71,6 +71,11 @@ export function siteFooterColumns(
           ? [
               { label: t.nav.guides, href: "/guias" },
               { label: t.nav.stats, href: "/estadisticas" },
+              // Spanish-only for the same reason as the two above — the page is
+              // Argentine law and exists only in Spanish. It lives here and not
+              // in the top bar: that row already carries six links plus Ingresar,
+              // and a seventh uppercase tracked label pushes it into the wordmark.
+              { label: t.nav.regulations, href: "/normativa" },
             ]
           : []),
         { label: t.nav.faq, href: "/faq" },

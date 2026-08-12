@@ -25,6 +25,21 @@ export function localizedHref(path: string, locale: Locale): string {
   return path === "/" ? `/${locale}` : `/${locale}${path}`;
 }
 
+// Sections that exist only in Spanish: their `[lang]` layouts 404 for any other
+// locale, so nothing may offer a visitor an English counterpart that isn't
+// there. One list rather than a check per section — the previous single
+// hardcoded `/guias` test is exactly what goes stale when a section is added.
+const SPANISH_ONLY_PREFIXES = ["/guias", "/estadisticas", "/normativa"];
+
+/** Whether a landing pathname belongs to a Spanish-only section. Takes a
+ * browser pathname, so it tolerates (and ignores) an `/en` prefix. */
+export function isSpanishOnlyPath(pathname: string): boolean {
+  const path = stripEnPrefix(pathname);
+  return SPANISH_ONLY_PREFIXES.some(
+    (p) => path === p || path.startsWith(`${p}/`),
+  );
+}
+
 /** Drop a leading `/en` from a browser pathname (Spanish is unprefixed). */
 export function stripEnPrefix(pathname: string): string {
   if (pathname === "/en") return "/";

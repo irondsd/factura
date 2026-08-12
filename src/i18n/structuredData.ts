@@ -7,6 +7,7 @@ import {
   guidesIndexUrl,
   guideUrl,
   localeUrl,
+  normativaUrl,
   statsCardUrl,
   statsIndexUrl,
   statsUrl,
@@ -383,6 +384,67 @@ export function statsIndexLd({
         position: i + 1,
         name: p.title,
         url: statsUrl(p.slug),
+      })),
+    },
+  };
+}
+
+/** CollectionPage for /normativa, carrying one `Legislation` node per norm.
+ *
+ * `Legislation` is the schema.org type built for exactly this (it came from the
+ * EU's ELI vocabulary), and it's the only one that can say the two things this
+ * page is actually about: `legislationIdentifier` — the number a reader
+ * searches for — and `legislationJurisdiction`. `sameAs` points at the official
+ * text rather than `url`, because the norm's own page is the government's, not
+ * ours; `url` stays on our anchor, which is what a search result should open.
+ *
+ * Every `@id` is the on-page anchor, so a citation of `#ley-24240` resolves to
+ * the same card a reader lands on — the same contract `glossaryLd` keeps. */
+export function normativaLd({
+  title,
+  description,
+  normas,
+}: {
+  title: string;
+  description: string;
+  normas: {
+    id: string;
+    numero: string;
+    titulo: string;
+    resumen: string;
+    jurisdiccion: "nacional" | "caba";
+    fuente: { href: string };
+  }[];
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": `${normativaUrl}#collection`,
+    url: normativaUrl,
+    name: title,
+    description,
+    inLanguage: "es",
+    publisher: { "@id": ORG_ID },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: normas.length,
+      itemListElement: normas.map((n, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        item: {
+          "@type": "Legislation",
+          "@id": `${normativaUrl}#${n.id}`,
+          url: `${normativaUrl}#${n.id}`,
+          name: `${n.numero} — ${n.titulo}`,
+          legislationIdentifier: n.numero,
+          description: n.resumen,
+          inLanguage: "es",
+          legislationJurisdiction:
+            n.jurisdiccion === "caba"
+              ? "Ciudad Autónoma de Buenos Aires, Argentina"
+              : "Argentina",
+          sameAs: n.fuente.href,
+        },
       })),
     },
   };
