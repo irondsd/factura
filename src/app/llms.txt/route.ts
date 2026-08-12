@@ -45,7 +45,8 @@ Key concepts:
 
 - [Homepage](https://factura.uno/): Overview of Factura, how it works (drop a PDF, it parses, you get a ledger), and its core value proposition.
 - [Docs](https://factura.uno/docs): Getting started, core concepts, and reference for uploading bills, parsers, properties, and vendors.
-- [FAQ](https://factura.uno/faq): Common questions about supported bills, parsing, storage, privacy, and sharing.`;
+- [FAQ](https://factura.uno/faq): Common questions about supported bills, parsing, storage, privacy, and sharing.
+- [Glossary](https://factura.uno/glosario): What each term on an Argentine electricity, gas or water bill means — cargo fijo, VAD, percepciones, estimated readings, subsidy levels (N1/N2/N3), regulators — plus the app's own vocabulary. Every term has its own anchor.`;
 
 const AFTER = `## Demo
 
@@ -67,6 +68,7 @@ There is one scope, \`mcp:read\`. The tools cover properties, vendors, bills (li
 
 - [Privacy](https://factura.uno/privacy): What Factura collects (bills, account email, properties), why, where it's stored, the third parties involved, and how to delete your data.
 - [Security](https://factura.uno/security): Passwordless authentication, per-account data isolation, encrypted storage with signed access, TLS in transit, and how to report a vulnerability.
+- [Contact](https://factura.uno/contacto): How to reach Factura — support@factura.uno for the product, privacy@factura.uno for data, security@factura.uno for vulnerabilities, GitHub issues for bugs, plus a contact form.
 
 ## Optional
 

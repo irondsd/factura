@@ -88,6 +88,83 @@ export function faqPageLd(items: { q: string; a: string }[], locale: Locale) {
   };
 }
 
+/** DefinedTermSet for the glossary: the one page whose content maps exactly onto
+ * a schema.org type. Each entry keeps the anchor it has on the page as its `@id`,
+ * so a term cited from elsewhere resolves to the paragraph that defines it.
+ *
+ * Descriptions arrive as the same small HTML strings the page renders, so the
+ * tags come out here — structured data is for the text, not for the markup. */
+export function glossaryLd({
+  locale,
+  name,
+  description,
+  terms,
+}: {
+  locale: Locale;
+  name: string;
+  description: string;
+  terms: { id: string; term: string; def: string }[];
+}) {
+  const url = localeUrl("/glosario", locale);
+  const setId = `${url}#glossary`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "DefinedTermSet",
+    "@id": setId,
+    name,
+    description,
+    url,
+    inLanguage: locale,
+    publisher: { "@id": ORG_ID },
+    hasDefinedTerm: terms.map((t) => ({
+      "@type": "DefinedTerm",
+      "@id": `${url}#${t.id}`,
+      name: t.term,
+      description: t.def
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim(),
+      inDefinedTermSet: { "@id": setId },
+    })),
+  };
+}
+
+/** ContactPage: marks the contact page as the one that says how to reach the
+ * organization, and hangs the published addresses off the shared Organization
+ * node rather than inventing a second identity for it. */
+export function contactPageLd({
+  locale,
+  name,
+  description,
+  emails,
+}: {
+  locale: Locale;
+  name: string;
+  description: string;
+  emails: { email: string; label: string }[];
+}) {
+  const url = localeUrl("/contacto", locale);
+  return {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "@id": `${url}#contact`,
+    url,
+    name,
+    description,
+    inLanguage: locale,
+    mainEntity: {
+      "@id": ORG_ID,
+      "@type": "Organization",
+      contactPoint: emails.map((e) => ({
+        "@type": "ContactPoint",
+        email: e.email,
+        contactType: e.label,
+        availableLanguage: ["es", "en"],
+      })),
+    },
+  };
+}
+
 // ── Guides (Spanish-only) ─────────────────────────────────────────────────
 
 /** BreadcrumbList from an ordered list of {name, url} crumbs (Home → … → page). */

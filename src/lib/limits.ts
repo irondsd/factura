@@ -6,6 +6,25 @@
  * someone else don't count against this. */
 export const OWNED_PROPERTY_LIMIT = 1;
 
+// ── Contact form (/contacto) ─────────────────────────────────────────────────
+// The other surface open to the internet. Bounds are shared so the browser
+// stops a message the server would only reject, and both agree on the number
+// the help text prints.
+
+/** Longest message the contact form accepts. Generous enough for a detailed
+ * bug report, short enough that the body stays a body. */
+export const CONTACT_MESSAGE_MAX = 4000;
+
+/** Shortest message worth sending. Filters the empty "hi" that is really a
+ * mis-click, without making someone pad a one-line question. */
+export const CONTACT_MESSAGE_MIN = 10;
+
+/** Ceiling on the optional name field. */
+export const CONTACT_NAME_MAX = 120;
+
+/** Ceiling on the reply address, matching the rest of the app's email fields. */
+export const CONTACT_EMAIL_MAX = 255;
+
 // ── Public bill drop (/probar) ───────────────────────────────────────────────
 // Everything below bounds the one surface anyone on the internet can hand bytes
 // to. The authenticated ingest route is deliberately more generous: there, an

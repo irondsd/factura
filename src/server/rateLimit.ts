@@ -137,6 +137,13 @@ export const PROBAR_CLAIM: LimitSpec = { capacity: 10, refillPerSec: 1 / 60 };
 // it silently loses the answer someone actually typed.
 export const PROBAR_HINT: LimitSpec = { capacity: 40, refillPerSec: 1 / 5 };
 
+// The contact form. There is no legitimate burst here — a person writes once,
+// maybe twice — so this is tighter than the /probar buckets. Not tighter than
+// that, though: the check runs before validation (as everywhere else in this
+// app), so a rejected body costs a token too, and someone who mistypes an
+// address shouldn't be locked out of the message they came to send.
+export const CONTACT_SEND: LimitSpec = { capacity: 5, refillPerSec: 1 / 300 };
+
 // Dynamic client registration is open to the internet — that is the point, and
 // also the exposure: every call writes a row nobody asked for. Tight, because a
 // legitimate client registers ONCE and then reuses its client_id forever, so

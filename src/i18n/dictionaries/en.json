@@ -39,6 +39,14 @@
       "title": "Try your bill",
       "description": "Drop a bill PDF and see what Factura reads from it: vendor, amount, period and due date. No account, nothing to install."
     },
+    "glossary": {
+      "title": "Bill glossary",
+      "description": "What every line of an Argentine electricity, gas or water bill means: fixed charge, VAD, tax withholdings, estimated readings, subsidies and the rest of the fine print, one line each."
+    },
+    "contact": {
+      "title": "Contact",
+      "description": "How to reach Factura: support, privacy, security and bug reports. Write to support@factura.uno or use the form."
+    },
     "app": {
       "overview": "Overview",
       "insights": "Insights",
@@ -69,6 +77,8 @@
     "stats": "Estadísticas",
     "privacy": "Privacy",
     "security": "Security",
+    "glossary": "Glossary",
+    "contact": "Contact",
     "signIn": "Sign in",
     "github": "GitHub",
     "overview": "Overview",
@@ -148,7 +158,10 @@
   },
   "siteChrome": {
     "footerLeft": "Stored securely · yours alone",
-    "footerRight": "Argentina · ARS ≈ USD"
+    "footerRight": "Argentina · ARS ≈ USD",
+    "footerProduct": "Product",
+    "footerLearn": "Learn",
+    "footerCompany": "Factura"
   },
   "peek": {
     "period": "Palermo · June 2026 so far",
@@ -968,6 +981,358 @@
         }
       ]
     }
+  },
+  "glossary": {
+    "eyebrow": "Glossary",
+    "title": "Your bill, term by term",
+    "intro": "Cargo fijo, VAD, percepciones, lectura estimada, N2. An Argentine electricity, gas or water bill is full of terms nobody explains. Here is each of them, in one line.",
+    "note": "Every distributor names things its own way, and tariffs change by province and by resolution. These definitions describe the usual case, not the exact wording on your bill.",
+    "tocLabel": "Sections",
+    "alsoLabel": "Also",
+    "groups": [
+      {
+        "id": "factura",
+        "label": "The bill, line by line",
+        "blurb": "The fields on almost any utility bill, whoever issued it.",
+        "terms": [
+          {
+            "id": "factura-boleta",
+            "term": "Factura",
+            "aka": "boleta, comprobante — the bill",
+            "def": "<p>The document a provider issues for a period of service. It gathers the metered consumption, the charges, the taxes and the amount due. In Argentina it is usually a type B or C tax receipt authorized by ARCA (formerly AFIP).</p>"
+          },
+          {
+            "id": "periodo",
+            "term": "Período facturado",
+            "aka": "billing period",
+            "def": "<p>The stretch of time the bill covers, normally a month or two. It does not line up with the calendar month: a bill issued in July may cover 12 May to 11 July. This is the date Factura uses to place the spend in your history.</p>"
+          },
+          {
+            "id": "vencimiento",
+            "term": "Vencimiento",
+            "aka": "due date, first and second due date",
+            "def": "<p>The deadline to pay without a surcharge. Many bills carry a <strong>segundo vencimiento</strong> with a higher figure: it is the same debt plus interest for the days late, not a separate instalment.</p>"
+          },
+          {
+            "id": "total-a-pagar",
+            "term": "Total a pagar",
+            "aka": "amount due",
+            "def": "<p>The sum of everything on the bill: consumption, fixed charges, taxes, carried balances and surcharges. It is the figure Factura records as the period's spend.</p>"
+          },
+          {
+            "id": "saldo-anterior",
+            "term": "Saldo anterior",
+            "aka": "previous balance",
+            "def": "<p>What was left owing — or in credit — from earlier bills and carried into this one. A positive previous balance means the amount due includes something you did not consume in this period.</p>"
+          },
+          {
+            "id": "numero-cliente",
+            "term": "Número de cliente",
+            "aka": "NIS, account or supply number",
+            "def": "<p>The identifier of the supply with the provider. It identifies the <em>meter and the address</em>, not the person: it changes when you move, even though you are the same account holder.</p>"
+          },
+          {
+            "id": "titular",
+            "term": "Titular del servicio",
+            "aka": "account holder",
+            "def": "<p>The person the supply is registered to. They are the one who can file paperwork, request a tariff category change or make a claim. In a rental it is usually still the owner, even when the tenant pays.</p>"
+          },
+          {
+            "id": "codigo-pago",
+            "term": "Código de pago electrónico",
+            "aka": "barcode, payment code",
+            "def": "<p>The string of digits that identifies the bill to the payment networks (Pago Fácil, Rapipago, home banking). It encodes the amount and the due date, which is why it stops working once the bill expires.</p>"
+          },
+          {
+            "id": "debito-automatico",
+            "term": "Débito automático",
+            "aka": "direct debit",
+            "def": "<p>Automatic collection of the total from a card or account on the due date. The bill still arrives: with direct debit it is there to check the amount before it is taken, not to pay it.</p>"
+          },
+          {
+            "id": "cae",
+            "term": "CAE",
+            "aka": "electronic authorization code",
+            "def": "<p>The code with which ARCA (formerly AFIP) authorizes an electronic receipt, along with its expiry date. Its presence means the document is a valid tax receipt rather than an informal payment notice.</p>"
+          }
+        ]
+      },
+      {
+        "id": "cargos",
+        "label": "Charges, taxes and subsidies",
+        "blurb": "Why the total is a good deal higher than what you actually used.",
+        "terms": [
+          {
+            "id": "cargo-fijo",
+            "term": "Cargo fijo",
+            "aka": "fixed charge",
+            "def": "<p>What you pay for having the service connected, whether or not you use it. It covers network availability, metering and billing. It is why an empty home still gets bills with a figure on them.</p>"
+          },
+          {
+            "id": "cargo-variable",
+            "term": "Cargo variable",
+            "aka": "consumption charge",
+            "def": "<p>The part that does depend on how much you used: kWh for electricity, m³ for gas and water, times the price in the tariff schedule. It is the only line your behaviour affects directly.</p>"
+          },
+          {
+            "id": "cuadro-tarifario",
+            "term": "Cuadro tarifario",
+            "aka": "tariff schedule, category, T1R1",
+            "def": "<p>The price table approved by the regulator for each class of user. Codes like <code>T1R1</code> or <code>R2</code> mark your category: residential or commercial, and the consumption band you fall into. Changing category changes the price of every unit you consume.</p>"
+          },
+          {
+            "id": "vad",
+            "term": "VAD",
+            "aka": "distribution added value",
+            "def": "<p>The share of an electricity tariff the distributor keeps for carrying the energy to your home and maintaining the network. The rest is the wholesale price of energy plus taxes. It is the component argued over at every tariff review.</p>"
+          },
+          {
+            "id": "subsidio",
+            "term": "Subsidio y segmentación",
+            "aka": "subsidy, N1, N2, N3",
+            "def": "<p>The state covers part of the cost of energy according to the household's declared income level: <strong>N1</strong> high income (no subsidy), <strong>N2</strong> low income and <strong>N3</strong> middle income (partial subsidy, capped at a consumption allowance). The bill shows the state's contribution as a discount line.</p>"
+          },
+          {
+            "id": "iva",
+            "term": "IVA",
+            "aka": "value added tax",
+            "def": "<p>21% on consumption at a residential address; 27% where the account holder is VAT-registered and the property is not a home. It is calculated on the charges, not on the taxed total.</p>"
+          },
+          {
+            "id": "percepciones",
+            "term": "Percepciones",
+            "aka": "tax withholdings",
+            "def": "<p>Advance tax the provider collects on the tax authority's behalf: additional VAT and provincial turnover tax. For an end consumer they are pure cost; for a registered taxpayer they are a creditable payment on account.</p>"
+          },
+          {
+            "id": "tasa-municipal",
+            "term": "Contribución municipal",
+            "aka": "municipal levy, street lighting",
+            "def": "<p>A percentage the municipality charges on the electricity or gas bill and the distributor collects for it. It funds street lighting and local services, and varies from one municipality to the next.</p>"
+          },
+          {
+            "id": "ley-23681",
+            "term": "Ley 23.681",
+            "aka": "Santa Cruz surcharge",
+            "def": "<p>A 0.6% surcharge on electricity bills nationwide, earmarked for electrical works in the province of Santa Cruz. It appears as its own line on most electricity bills.</p>"
+          },
+          {
+            "id": "fondos-fiduciarios",
+            "term": "Fondos y cargos específicos",
+            "aka": "trust funds, national charges",
+            "def": "<p>Statutory surcharges that fund sector-wide schemes — rural electrification, infrastructure works, regional compensation. They do not depend on household consumption and are usually listed together at the foot of the bill.</p>"
+          },
+          {
+            "id": "bonificacion",
+            "term": "Bonificación",
+            "aka": "discount, credit",
+            "def": "<p>A discount applied to the bill: for paying on time, for going paperless, for an upheld complaint, or through an official programme. It comes off the total and, unlike a subsidy, does not necessarily repeat next month.</p>"
+          },
+          {
+            "id": "interes-mora",
+            "term": "Intereses por mora",
+            "aka": "late interest, surcharge",
+            "def": "<p>What is added for paying after the due date, charged per day late at a regulated rate. It is the difference between the first and second due-date amounts.</p>"
+          }
+        ]
+      },
+      {
+        "id": "consumo",
+        "label": "Consumption and metering",
+        "blurb": "How what you used turns into what you pay.",
+        "terms": [
+          {
+            "id": "medidor",
+            "term": "Medidor",
+            "aka": "meter",
+            "def": "<p>The device that records the supply's cumulative consumption. The bill does not report what it reads today, but the difference between two readings: the previous one and the current one.</p>"
+          },
+          {
+            "id": "lectura",
+            "term": "Lectura real y estimada",
+            "aka": "actual and estimated reading",
+            "def": "<p>An <strong>actual</strong> reading was taken at the address — by a person, or transmitted by the meter. An <strong>estimated</strong> one is the provider's calculation from your history, made when it could not reach the meter. Estimates are corrected on the next actual bill, which is why an unexpectedly high or low amount sometimes arrives.</p>"
+          },
+          {
+            "id": "kwh",
+            "term": "kWh",
+            "aka": "kilowatt-hour",
+            "def": "<p>The unit of electrical energy: a 1,000 W appliance running for an hour uses 1 kWh. It is what an electricity bill counts; an average Buenos Aires household runs around 200–300 kWh a month.</p>"
+          },
+          {
+            "id": "m3",
+            "term": "m³",
+            "aka": "cubic metre",
+            "def": "<p>The unit of volume gas and water are measured in. For gas, the measured volume is adjusted before it is billed — see <a href=\"#pcs\">calorific value</a> — so the meter's m³ and the billed m³ do not always match.</p>"
+          },
+          {
+            "id": "pcs",
+            "term": "Poder calorífico",
+            "aka": "calorific value, correction factor, 9,300 kcal/m³",
+            "def": "<p>Gas is billed by energy, not by volume. The measured volume is corrected for pressure, temperature and the calorific value of the local gas, and expressed in m³ of 9,300 kcal. It explains why billed consumption differs from what the meter shows.</p>"
+          },
+          {
+            "id": "consumo-promedio",
+            "term": "Consumo promedio diario",
+            "aka": "average daily consumption",
+            "def": "<p>The period's consumption divided by its days. It is the right way to compare two bills of different length — a winter two-month period against a summer month — and what Factura's consumption charts use.</p>"
+          },
+          {
+            "id": "servicio-medido",
+            "term": "Servicio medido y no medido",
+            "aka": "metered and unmetered service",
+            "def": "<p>For water, a good share of users have no meter: billing follows a formula that estimates consumption from the property's floor area, age and zone. That is why a water bill can stay flat no matter how your habits change.</p>"
+          }
+        ]
+      },
+      {
+        "id": "actores",
+        "label": "Who's who",
+        "blurb": "Who issues the bill, who approves the tariff, and who to complain to.",
+        "terms": [
+          {
+            "id": "distribuidora",
+            "term": "Distribuidora",
+            "aka": "distributor, utility",
+            "def": "<p>The company that brings the service to your address, meters it and bills you: Edesur and Edenor for electricity in Greater Buenos Aires, Metrogas and Naturgy for gas, AySA for water. It is your counterpart for billing and supply complaints.</p>"
+          },
+          {
+            "id": "enre",
+            "term": "ENRE",
+            "aka": "national electricity regulator",
+            "def": "<p>The body that regulates electricity distribution in Greater Buenos Aires: it approves tariff schedules, monitors service quality and takes complaints the distributor has not resolved. Outside that area, the provincial regulator plays the role.</p>"
+          },
+          {
+            "id": "enargas",
+            "term": "ENARGAS",
+            "aka": "national gas regulator",
+            "def": "<p>The gas equivalent of ENRE, nationwide: it approves distributors' tariffs, sets the billing rules and handles unresolved complaints.</p>"
+          },
+          {
+            "id": "entes-provinciales",
+            "term": "Entes provinciales",
+            "aka": "provincial regulators — EPRE, ERSeP, OCEBA",
+            "def": "<p>Each province regulates its own distributors: EPRE in Mendoza, ERSeP in Córdoba, OCEBA in Buenos Aires province, among others. They are where a complaint goes when the service is not under a national regulator.</p>"
+          },
+          {
+            "id": "expensas",
+            "term": "Expensas",
+            "aka": "building charges, ordinary and extraordinary",
+            "def": "<p>A building's shared costs, split between the units and billed by the consortium's administration. <strong>Ordinarias</strong> are routine upkeep; <strong>extraordinarias</strong> are one-off works. Not a utility, but the largest bill many households get.</p>"
+          },
+          {
+            "id": "defensa-consumidor",
+            "term": "Defensa del Consumidor",
+            "aka": "consumer protection, Ley 24.240",
+            "def": "<p>The framework protecting service users: the right to clear information, to dispute incorrect billing, and to a timely answer from the provider. A complaint starts with the company, moves to the regulator, and can reach the local consumer authority.</p>"
+          }
+        ]
+      },
+      {
+        "id": "app",
+        "label": "In Factura",
+        "blurb": "The application's own terms. There is more detail in the <a href=\"/en/docs\">documentation</a>.",
+        "terms": [
+          {
+            "id": "registro",
+            "term": "Ledger",
+            "aka": "registro",
+            "def": "<p>The ordered history of all your bills: who issued them, what they cost, and which period they belong to. It is what Factura builds from the PDFs you upload.</p>"
+          },
+          {
+            "id": "analizador",
+            "term": "Parser",
+            "aka": "analizador",
+            "def": "<p>The configuration that knows how to read one provider's bills: where the amount sits, how the date is written, what text identifies the issuer. Official parsers are maintained by the project, and you can build your own for a provider that isn't covered yet.</p>"
+          },
+          {
+            "id": "proveedor",
+            "term": "Vendor",
+            "aka": "proveedor",
+            "def": "<p>Whoever issues the bill, as far as your ledger is concerned: Edesur, Metrogas, your building's administration. Each vendor has its own colour and groups its own spending and consumption history.</p>"
+          },
+          {
+            "id": "propiedad",
+            "term": "Property",
+            "aka": "propiedad",
+            "def": "<p>The address the bills belong to. You can have several — your home, the office, your parents' place — and share each with the right people: members of a property see its whole ledger.</p>"
+          },
+          {
+            "id": "requiere-revision",
+            "term": "Needs review",
+            "aka": "requiere revisión",
+            "def": "<p>The state of a bill the parser could not fully read: the amount or the period is missing. It stays visible and hand-editable rather than being taken as correct, so a doubtful figure doesn't contaminate the totals.</p>"
+          },
+          {
+            "id": "extraccion",
+            "term": "Extraction",
+            "aka": "ingest",
+            "def": "<p>The step from PDF to data: the document's text is read, the vendor identified, and the amount, period, due date and consumption pulled out. You can see the original text of any bill from its detail view.</p>"
+          }
+        ]
+      }
+    ],
+    "ctaTitle": "Now try it on your own bills.",
+    "ctaBody": "Drop a PDF and watch every one of these terms turn into a number you can follow month by month.",
+    "ctaButton": "Try it with a bill"
+  },
+  "contact": {
+    "eyebrow": "Contact",
+    "title": "Get in touch",
+    "intro": "One address for each kind of thing, and a form for when you're not sure which. We're a small team: expect an answer within a few business days.",
+    "channelsLabel": "Where to write",
+    "channels": [
+      {
+        "id": "support",
+        "label": "Support",
+        "email": "support@factura.uno",
+        "body": "Questions about the app, trouble with your account, a bill that didn't come in the way you expected."
+      },
+      {
+        "id": "privacy",
+        "label": "Privacy and data",
+        "email": "privacy@factura.uno",
+        "body": "Access, correction or deletion of your personal data, and anything about the <a href=\"/en/privacy\">privacy policy</a>."
+      },
+      {
+        "id": "security",
+        "label": "Security",
+        "email": "security@factura.uno",
+        "body": "Vulnerability reports. You can also open a private advisory on GitHub; the procedure is on <a href=\"/en/security\">Security</a>."
+      },
+      {
+        "id": "code",
+        "label": "Bugs and code",
+        "email": "",
+        "body": "Reproducible bugs and feature requests work better as a <a href=\"https://github.com/irondsd/factura/issues\" target=\"_blank\" rel=\"noreferrer\">GitHub issue</a>, where everyone can see them."
+      }
+    ],
+    "formEyebrow": "Form",
+    "formTitle": "Write to us",
+    "formIntro": "Tell us what you need. Leave your email and we'll reply there.",
+    "topicLabel": "Topic",
+    "topics": [
+      { "id": "support", "label": "Support" },
+      { "id": "bill", "label": "A bill that was read wrong" },
+      { "id": "privacy", "label": "Privacy and data" },
+      { "id": "idea", "label": "Idea or suggestion" },
+      { "id": "other", "label": "Something else" }
+    ],
+    "nameLabel": "Name (optional)",
+    "namePlaceholder": "What to call you",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Tell us what happened, in as much detail as you can.",
+    "messageHint": "Up to {max} characters. Don't put sensitive data — card numbers, passwords — in the message.",
+    "billNote": "A bill that was read wrong? Run it through <a href=\"/en/probar\">Try your bill</a> and report it from the result: that way it reaches us together with the document and the text we extracted.",
+    "submit": "Send message",
+    "sending": "Sending…",
+    "successTitle": "Received.",
+    "successBody": "Thank you. If you left your email, we'll reply there within a few business days.",
+    "errorGeneric": "We couldn't send the message. Try again, or write to us directly at support@factura.uno.",
+    "errorRate": "Too many attempts in a row. Wait a moment and try again.",
+    "privacyNote": "What you write here is used to answer you and nothing else. See <a href=\"/en/privacy\">Privacy</a>."
   },
   "docs": {
     "tocEyebrow": "Documentation",

@@ -15,8 +15,12 @@ export const githubUrl = "https://github.com/irondsd/factura";
 /** Where to file a private security advisory. */
 export const githubSecurityAdvisoryUrl = `${githubUrl}/security/advisories/new`;
 
+/** Where a reproducible bug or a feature request belongs. */
+export const githubIssuesUrl = `${githubUrl}/issues`;
+
 /** Contact addresses on the site's domain. */
 export const contactEmail = {
+  support: "support@factura.uno",
   privacy: "privacy@factura.uno",
   security: "security@factura.uno",
 } as const;

@@ -39,6 +39,14 @@
       "title": "Probá tu factura",
       "description": "Soltá el PDF de tu factura y mirá qué datos extrae Factura: proveedor, importe, período y vencimiento. Sin cuenta, sin instalar nada."
     },
+    "glossary": {
+      "title": "Glosario de la factura",
+      "description": "Qué significa cada línea de una factura argentina de luz, gas o agua: cargo fijo, VAD, percepciones, lectura estimada, subsidios y el resto de la letra chica, explicado en una línea."
+    },
+    "contact": {
+      "title": "Contacto",
+      "description": "Cómo comunicarte con Factura: soporte, privacidad, seguridad y reportes de errores. Escríbenos a support@factura.uno o usa el formulario."
+    },
     "app": {
       "overview": "Resumen",
       "insights": "Análisis",
@@ -69,6 +77,8 @@
     "stats": "Estadísticas",
     "privacy": "Privacidad",
     "security": "Seguridad",
+    "glossary": "Glosario",
+    "contact": "Contacto",
     "signIn": "Ingresar",
     "github": "GitHub",
     "overview": "Resumen",
@@ -148,7 +158,10 @@
   },
   "siteChrome": {
     "footerLeft": "Guardado de forma segura · solo tuyo",
-    "footerRight": "Argentina · ARS ≈ USD"
+    "footerRight": "Argentina · ARS ≈ USD",
+    "footerProduct": "Producto",
+    "footerLearn": "Aprender",
+    "footerCompany": "Factura"
   },
   "peek": {
     "period": "Palermo · junio de 2026 hasta ahora",
@@ -968,6 +981,358 @@
         }
       ]
     }
+  },
+  "glossary": {
+    "eyebrow": "Glosario",
+    "title": "El diccionario de tu factura",
+    "intro": "Cargo fijo, VAD, percepciones, lectura estimada, N2. Las facturas argentinas de luz, gas y agua están llenas de términos que nadie explica. Aquí está cada uno, en una línea.",
+    "note": "Cada distribuidora nombra las cosas a su manera y las tarifas cambian por provincia y por resolución. Estas definiciones describen el caso habitual, no el texto exacto de tu factura.",
+    "tocLabel": "Secciones",
+    "alsoLabel": "También",
+    "groups": [
+      {
+        "id": "factura",
+        "label": "La factura, línea por línea",
+        "blurb": "Los datos que aparecen en casi cualquier factura de servicios, sin importar quién la emita.",
+        "terms": [
+          {
+            "id": "factura-boleta",
+            "term": "Factura",
+            "aka": "boleta, comprobante",
+            "def": "<p>El comprobante que emite el proveedor por un período de servicio. Reúne el consumo medido, los cargos, los impuestos y el total a pagar. En Argentina suele ser un comprobante fiscal tipo B o C autorizado por ARCA (ex AFIP).</p>"
+          },
+          {
+            "id": "periodo",
+            "term": "Período facturado",
+            "aka": "período de consumo",
+            "def": "<p>El tramo de tiempo que cubre la factura, normalmente un mes o un bimestre. No coincide con el mes calendario: una factura emitida en julio puede cubrir del 12 de mayo al 11 de julio. Es la fecha que Factura usa para ubicar el gasto en tu historial.</p>"
+          },
+          {
+            "id": "vencimiento",
+            "term": "Vencimiento",
+            "aka": "primer y segundo vencimiento",
+            "def": "<p>La fecha límite para pagar sin recargo. Muchas facturas traen un <strong>segundo vencimiento</strong> con un importe mayor: es la misma deuda más intereses por los días de atraso, no una cuota distinta.</p>"
+          },
+          {
+            "id": "total-a-pagar",
+            "term": "Total a pagar",
+            "aka": "importe total",
+            "def": "<p>La suma de todo lo que aparece en la factura: consumo, cargos fijos, impuestos, saldos anteriores y recargos. Es el número que Factura registra como gasto del período.</p>"
+          },
+          {
+            "id": "saldo-anterior",
+            "term": "Saldo anterior",
+            "aka": "deuda anterior, pago a cuenta",
+            "def": "<p>Lo que quedó pendiente —o a favor— de facturas previas y se arrastra a esta. Un saldo anterior positivo significa que el total a pagar incluye algo que no consumiste en este período.</p>"
+          },
+          {
+            "id": "numero-cliente",
+            "term": "Número de cliente",
+            "aka": "NIS, número de suministro, número de cuenta",
+            "def": "<p>El identificador del suministro ante el proveedor. Identifica el <em>medidor y el domicilio</em>, no a la persona: al mudarte cambia, aunque sigas siendo el mismo titular.</p>"
+          },
+          {
+            "id": "titular",
+            "term": "Titular del servicio",
+            "aka": "",
+            "def": "<p>La persona a cuyo nombre está el suministro. Es quien puede hacer trámites, pedir el cambio de categoría tarifaria o reclamar. En un alquiler suele seguir siendo el propietario aunque pague el inquilino.</p>"
+          },
+          {
+            "id": "codigo-pago",
+            "term": "Código de pago electrónico",
+            "aka": "código de barras",
+            "def": "<p>La cadena numérica que identifica a esa factura en las redes de cobranza (Pago Fácil, Rapipago, home banking). Codifica el importe y el vencimiento, por eso deja de servir cuando la factura vence.</p>"
+          },
+          {
+            "id": "debito-automatico",
+            "term": "Débito automático",
+            "aka": "adhesión, CBU adherido",
+            "def": "<p>El cobro directo del total en una tarjeta o cuenta al vencimiento. Con débito automático la factura llega igual: sirve para verificar el importe antes de que se descuente, no para pagarlo.</p>"
+          },
+          {
+            "id": "cae",
+            "term": "CAE",
+            "aka": "Código de Autorización Electrónica",
+            "def": "<p>El código con el que ARCA (ex AFIP) autoriza un comprobante electrónico, junto a su fecha de vencimiento. Su presencia indica que la factura es un comprobante fiscal válido y no un aviso de pago informal.</p>"
+          }
+        ]
+      },
+      {
+        "id": "cargos",
+        "label": "Cargos, impuestos y subsidios",
+        "blurb": "Por qué el total es bastante más alto que lo que consumiste.",
+        "terms": [
+          {
+            "id": "cargo-fijo",
+            "term": "Cargo fijo",
+            "aka": "cargo por servicio",
+            "def": "<p>El importe que se paga por tener el servicio conectado, consumas o no. Cubre la disponibilidad de la red, la medición y la facturación. Es la razón por la que una casa vacía sigue recibiendo facturas con importe.</p>"
+          },
+          {
+            "id": "cargo-variable",
+            "term": "Cargo variable",
+            "aka": "cargo por consumo, energía consumida",
+            "def": "<p>La parte que sí depende de cuánto usaste: kWh en luz, m³ en gas y agua, multiplicados por el precio del cuadro tarifario. Es la única línea sobre la que tu comportamiento tiene efecto directo.</p>"
+          },
+          {
+            "id": "cuadro-tarifario",
+            "term": "Cuadro tarifario",
+            "aka": "tarifa, categoría, T1R1",
+            "def": "<p>La tabla de precios aprobada por el ente regulador para cada categoría de usuario. Códigos como <code>T1R1</code> o <code>R2</code> indican tu categoría: residencial o comercial, y el escalón de consumo en el que caés. Un cambio de categoría cambia el precio de cada unidad consumida.</p>"
+          },
+          {
+            "id": "vad",
+            "term": "VAD",
+            "aka": "Valor Agregado de Distribución",
+            "def": "<p>La porción de la tarifa eléctrica que se queda la distribuidora por transportar la energía hasta tu casa y mantener la red. El resto es el precio mayorista de la energía y los impuestos. Es el componente que se discute en cada revisión tarifaria.</p>"
+          },
+          {
+            "id": "subsidio",
+            "term": "Subsidio y segmentación",
+            "aka": "N1, N2, N3",
+            "def": "<p>El Estado cubre parte del costo de la energía según el nivel de ingresos declarado del hogar: <strong>N1</strong> ingresos altos (sin subsidio), <strong>N2</strong> ingresos bajos y <strong>N3</strong> ingresos medios (subsidio parcial, con un tope de consumo bonificado). La factura muestra el aporte estatal como una línea de descuento.</p>"
+          },
+          {
+            "id": "iva",
+            "term": "IVA",
+            "aka": "Impuesto al Valor Agregado",
+            "def": "<p>21 % sobre el consumo en un domicilio residencial; 27 % cuando el titular es responsable inscripto y el inmueble no es vivienda. Se calcula sobre los cargos, no sobre el total con impuestos.</p>"
+          },
+          {
+            "id": "percepciones",
+            "term": "Percepciones",
+            "aka": "percepción de IVA, Ingresos Brutos",
+            "def": "<p>Adelantos de impuestos que el proveedor cobra por cuenta del fisco: IVA adicional e Ingresos Brutos provinciales. Para un consumidor final son costo puro; para un responsable inscripto son un pago a cuenta computable.</p>"
+          },
+          {
+            "id": "tasa-municipal",
+            "term": "Contribución municipal",
+            "aka": "tasa municipal, alumbrado público",
+            "def": "<p>Un porcentaje que el municipio cobra sobre la factura de luz o gas y que la distribuidora recauda por él. Financia el alumbrado público y servicios locales; varía de un municipio a otro.</p>"
+          },
+          {
+            "id": "ley-23681",
+            "term": "Ley 23.681",
+            "aka": "recargo Santa Cruz",
+            "def": "<p>Un recargo del 0,6 % sobre las facturas de electricidad de todo el país, destinado a financiar obras eléctricas en la provincia de Santa Cruz. Aparece como una línea propia en la mayoría de las facturas de luz.</p>"
+          },
+          {
+            "id": "fondos-fiduciarios",
+            "term": "Fondos y cargos específicos",
+            "aka": "FNEE, cargos nacionales",
+            "def": "<p>Recargos creados por ley que financian fondos sectoriales —electrificación rural, obras de infraestructura, compensaciones regionales—. No dependen del consumo del hogar y suelen listarse agrupados al pie de la factura.</p>"
+          },
+          {
+            "id": "bonificacion",
+            "term": "Bonificación",
+            "aka": "descuento, crédito",
+            "def": "<p>Un descuento aplicado a la factura: por buen pago, por adhesión a factura digital, por un reclamo reconocido o por un programa oficial. Resta del total y, a diferencia del subsidio, no siempre se repite el mes siguiente.</p>"
+          },
+          {
+            "id": "interes-mora",
+            "term": "Intereses por mora",
+            "aka": "recargo, punitorios",
+            "def": "<p>Lo que se agrega por pagar después del vencimiento, calculado por día de atraso según una tasa regulada. Es la diferencia entre el importe del primer y del segundo vencimiento.</p>"
+          }
+        ]
+      },
+      {
+        "id": "consumo",
+        "label": "Consumo y medición",
+        "blurb": "Cómo se convierte lo que usaste en el número que pagás.",
+        "terms": [
+          {
+            "id": "medidor",
+            "term": "Medidor",
+            "aka": "contador",
+            "def": "<p>El aparato que registra el consumo acumulado del suministro. La factura no informa lo que marca hoy, sino la diferencia entre dos lecturas: la anterior y la actual.</p>"
+          },
+          {
+            "id": "lectura",
+            "term": "Lectura real y estimada",
+            "aka": "consumo estimado",
+            "def": "<p>Una lectura <strong>real</strong> la tomó alguien —o el medidor la transmitió— en el domicilio. Una <strong>estimada</strong> es un cálculo del proveedor a partir de tu historial, cuando no pudo acceder al medidor. Las estimadas se corrigen en la siguiente factura real, y por eso a veces llega un importe inesperadamente alto o bajo.</p>"
+          },
+          {
+            "id": "kwh",
+            "term": "kWh",
+            "aka": "kilovatio hora",
+            "def": "<p>La unidad de energía eléctrica: un artefacto de 1.000 W encendido una hora consume 1 kWh. Es lo que se cuenta en la factura de luz; un hogar promedio en la Ciudad de Buenos Aires ronda los 200–300 kWh por mes.</p>"
+          },
+          {
+            "id": "m3",
+            "term": "m³",
+            "aka": "metro cúbico",
+            "def": "<p>La unidad de volumen con la que se mide el gas y el agua. En gas, el volumen medido se ajusta antes de facturarse —ver <a href=\"#pcs\">poder calorífico</a>—, así que los m³ del medidor y los m³ facturados no siempre coinciden.</p>"
+          },
+          {
+            "id": "pcs",
+            "term": "Poder calorífico",
+            "aka": "PCS, factor de corrección, 9.300 kcal/m³",
+            "def": "<p>El gas se factura por energía, no por volumen. El volumen medido se corrige por presión, temperatura y poder calorífico del gas de la zona, y se expresa en m³ de 9.300 kcal. Explica por qué el consumo facturado difiere del que marca el medidor.</p>"
+          },
+          {
+            "id": "consumo-promedio",
+            "term": "Consumo promedio diario",
+            "aka": "",
+            "def": "<p>El consumo del período dividido por sus días. Es la forma correcta de comparar dos facturas de distinta duración —un bimestre de invierno contra un mes de verano— y lo que usan los gráficos de consumo de Factura.</p>"
+          },
+          {
+            "id": "servicio-medido",
+            "term": "Servicio medido y no medido",
+            "aka": "canilla libre",
+            "def": "<p>En agua, buena parte de los usuarios no tiene medidor: se factura por una fórmula que estima el consumo a partir de los metros cuadrados, la antigüedad y la zona del inmueble. Es por eso que una factura de agua puede no cambiar aunque cambies de hábitos.</p>"
+          }
+        ]
+      },
+      {
+        "id": "actores",
+        "label": "Quién es quién",
+        "blurb": "Quién emite la factura, quién aprueba la tarifa y a quién se reclama.",
+        "terms": [
+          {
+            "id": "distribuidora",
+            "term": "Distribuidora",
+            "aka": "prestadora, proveedor",
+            "def": "<p>La empresa que lleva el servicio hasta tu domicilio, te mide y te factura: Edesur y Edenor en el AMBA, Metrogas y Naturgy en gas, AySA en agua. Es tu contraparte para reclamos de facturación y de suministro.</p>"
+          },
+          {
+            "id": "enre",
+            "term": "ENRE",
+            "aka": "Ente Nacional Regulador de la Electricidad",
+            "def": "<p>El organismo que regula la distribución eléctrica del AMBA: aprueba cuadros tarifarios, controla la calidad del servicio y recibe reclamos cuando la distribuidora no resuelve. Fuera de esa área el rol lo cumple el ente provincial.</p>"
+          },
+          {
+            "id": "enargas",
+            "term": "ENARGAS",
+            "aka": "Ente Nacional Regulador del Gas",
+            "def": "<p>El equivalente del ENRE para el gas natural en todo el país: aprueba las tarifas de las distribuidoras, fija las reglas de facturación y atiende reclamos no resueltos.</p>"
+          },
+          {
+            "id": "entes-provinciales",
+            "term": "Entes provinciales",
+            "aka": "EPRE, ERSeP, OCEBA",
+            "def": "<p>Cada provincia regula a sus propias distribuidoras: EPRE en Mendoza, ERSeP en Córdoba, OCEBA en la provincia de Buenos Aires, entre otros. Son la instancia de reclamo cuando el servicio no depende de un ente nacional.</p>"
+          },
+          {
+            "id": "expensas",
+            "term": "Expensas",
+            "aka": "ordinarias y extraordinarias",
+            "def": "<p>El gasto común de un edificio, prorrateado entre las unidades y liquidado por la administración del consorcio. Las <strong>ordinarias</strong> son el mantenimiento habitual; las <strong>extraordinarias</strong>, obras puntuales. No son un servicio público, pero son la factura más grande de muchos hogares.</p>"
+          },
+          {
+            "id": "defensa-consumidor",
+            "term": "Defensa del Consumidor",
+            "aka": "Ley 24.240",
+            "def": "<p>El marco que ampara al usuario de servicios: derecho a información clara, a reclamar por facturación errónea y a que el proveedor responda en plazo. El reclamo empieza en la empresa, sigue en el ente regulador y puede llegar a la autoridad de consumo local.</p>"
+          }
+        ]
+      },
+      {
+        "id": "app",
+        "label": "En Factura",
+        "blurb": "Los términos propios de la aplicación. Hay más detalle en la <a href=\"/docs\">documentación</a>.",
+        "terms": [
+          {
+            "id": "registro",
+            "term": "Registro",
+            "aka": "ledger",
+            "def": "<p>El historial ordenado de todas tus facturas: quién las emitió, cuánto costaron y a qué período corresponden. Es lo que Factura construye a partir de los PDF que subís.</p>"
+          },
+          {
+            "id": "analizador",
+            "term": "Analizador",
+            "aka": "parser",
+            "def": "<p>La configuración que sabe leer las facturas de un proveedor: dónde está el importe, cómo viene la fecha, qué texto identifica al emisor. Hay analizadores oficiales mantenidos por el proyecto, y podés construir el tuyo para un proveedor que todavía no esté cubierto.</p>"
+          },
+          {
+            "id": "proveedor",
+            "term": "Proveedor",
+            "aka": "vendor",
+            "def": "<p>Quien emite la factura, dentro de tu registro: Edesur, Metrogas, la administración de tu edificio. Cada proveedor tiene su color y agrupa su propio historial de gasto y consumo.</p>"
+          },
+          {
+            "id": "propiedad",
+            "term": "Propiedad",
+            "aka": "",
+            "def": "<p>El domicilio al que pertenecen las facturas. Podés tener varias —tu casa, la oficina, la casa de tus padres— y compartir cada una con quien corresponda: los miembros de una propiedad ven su registro completo.</p>"
+          },
+          {
+            "id": "requiere-revision",
+            "term": "Requiere revisión",
+            "aka": "needs review",
+            "def": "<p>El estado de una factura que el analizador no pudo leer del todo: falta el importe o el período. Queda visible y editable a mano en lugar de darse por buena, para que un dato dudoso no contamine los totales.</p>"
+          },
+          {
+            "id": "extraccion",
+            "term": "Extracción",
+            "aka": "ingesta",
+            "def": "<p>El paso que va del PDF a los datos: se lee el texto del documento, se identifica el proveedor y se extraen importe, período, vencimiento y consumo. Podés ver el texto original de cualquier factura desde su ficha.</p>"
+          }
+        ]
+      }
+    ],
+    "ctaTitle": "Aplicá esto a tus propias facturas.",
+    "ctaBody": "Soltá un PDF y mirá cada uno de estos términos convertido en un número que podés seguir mes a mes.",
+    "ctaButton": "Probar con una factura"
+  },
+  "contact": {
+    "eyebrow": "Contacto",
+    "title": "Hablemos",
+    "intro": "Una dirección para cada cosa, y un formulario si no sabés cuál te toca. Somos un equipo chico: contestamos en unos días hábiles.",
+    "channelsLabel": "A dónde escribir",
+    "channels": [
+      {
+        "id": "support",
+        "label": "Soporte",
+        "email": "support@factura.uno",
+        "body": "Dudas sobre la aplicación, problemas con tu cuenta, una factura que no se cargó como esperabas."
+      },
+      {
+        "id": "privacy",
+        "label": "Privacidad y datos",
+        "email": "privacy@factura.uno",
+        "body": "Acceso, corrección o eliminación de tus datos personales, y cualquier consulta sobre la <a href=\"/privacy\">política de privacidad</a>."
+      },
+      {
+        "id": "security",
+        "label": "Seguridad",
+        "email": "security@factura.uno",
+        "body": "Reportes de vulnerabilidades. También podés abrir un aviso privado en GitHub; el procedimiento está en <a href=\"/security\">Seguridad</a>."
+      },
+      {
+        "id": "code",
+        "label": "Errores y código",
+        "email": "",
+        "body": "Los errores reproducibles y los pedidos de funcionalidad van mejor como <a href=\"https://github.com/irondsd/factura/issues\" target=\"_blank\" rel=\"noreferrer\">issue en GitHub</a>, donde quedan a la vista de todos."
+      }
+    ],
+    "formEyebrow": "Formulario",
+    "formTitle": "Escribinos",
+    "formIntro": "Contanos qué necesitás. Si dejás tu correo, te respondemos ahí.",
+    "topicLabel": "Tema",
+    "topics": [
+      { "id": "support", "label": "Soporte" },
+      { "id": "bill", "label": "Una factura que se leyó mal" },
+      { "id": "privacy", "label": "Privacidad y datos" },
+      { "id": "idea", "label": "Idea o sugerencia" },
+      { "id": "other", "label": "Otro" }
+    ],
+    "nameLabel": "Nombre (opcional)",
+    "namePlaceholder": "Cómo te llamamos",
+    "emailLabel": "Correo",
+    "emailPlaceholder": "vos@ejemplo.com",
+    "messageLabel": "Mensaje",
+    "messagePlaceholder": "Contanos qué pasó, con el detalle que puedas.",
+    "messageHint": "Hasta {max} caracteres. No incluyas datos sensibles —números de tarjeta, contraseñas— en el mensaje.",
+    "billNote": "¿Una factura que se leyó mal? Pasala por <a href=\"/probar\">Probar tu factura</a> y reportala desde el resultado: así nos llega junto con el documento y el texto que extrajimos.",
+    "submit": "Enviar mensaje",
+    "sending": "Enviando…",
+    "successTitle": "Recibido.",
+    "successBody": "Gracias. Si dejaste tu correo, te respondemos ahí en unos días hábiles.",
+    "errorGeneric": "No pudimos enviar el mensaje. Probá de nuevo, o escribinos directamente a support@factura.uno.",
+    "errorRate": "Demasiados intentos seguidos. Esperá un momento y volvé a probar.",
+    "privacyNote": "Lo que escribas acá se usa para responderte y nada más. Ver <a href=\"/privacy\">Privacidad</a>."
   },
   "docs": {
     "tocEyebrow": "Documentación",
