@@ -30,6 +30,14 @@ const legacy = (raw: string) => ({
   value: raw,
 });
 
+/**
+ * The same secret with its last character changed. Substituting a fixed
+ * character would be a no-op on the ~1 in 64 minted secrets that already end
+ * in it, leaving the assertion comparing a secret against itself.
+ */
+const flipLastChar = (secret: string) =>
+  `${secret.slice(0, -1)}${secret.endsWith("Z") ? "A" : "Z"}`;
+
 // The regression this whole layout exists for: /submit used to rebuild one
 // shared cookie from the value it was sent, so two concurrent uploads each
 // wrote `<their own ticket>` over the other's and one file lost its ticket
@@ -278,9 +286,7 @@ describe("secretMatches", () => {
   it("rejects a secret that only shares a prefix", () => {
     // Guards against a comparison that stops early.
     const { ticket, secretHash } = mintTicket(ID_A);
-    expect(secretMatches(secretHash, `${ticket.secret.slice(0, -1)}Z`)).toBe(
-      false,
-    );
+    expect(secretMatches(secretHash, flipLastChar(ticket.secret))).toBe(false);
     expect(secretMatches(secretHash, ticket.secret.slice(0, -1))).toBe(false);
   });
 
