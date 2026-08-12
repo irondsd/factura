@@ -6,15 +6,29 @@
  *
  * Run: `bun scripts/validate-guides.ts`  (or `npm run validate:guides`)
  * Exit code is 1 if any ERROR is found (warnings don't fail the run).
+ *
+ * `npm run validate:content` runs this and the statistics validator together,
+ * which is the form CI uses — the cross-file title/description check only sees
+ * a guide cannibalizing a statistics page when both sections are in the room.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { CATEGORY_IDS, isCategoryId } from "../src/content/guias/categories";
 import { CHART_IDS, isChartId } from "../src/content/guias/data/inflacion";
+import {
+  CONTENT_DIR,
+  DATETIME_FORMAT,
+  extractMeta,
+  finish,
+  isEntrypoint,
+  isValidDateTime,
+  missingKeywordWords,
+  newReport,
+  type Report,
+  SLUG_RE,
+} from "./lib/content";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const GUIDES_DIR = path.join(here, "../src/content/guias");
+const GUIDES_DIR = path.join(CONTENT_DIR, "guias");
 
 // Path segments under /guias that are real routes, not guides. A guide with one
 // of these slugs would be shadowed by the route and never render.
@@ -34,138 +48,24 @@ const ALLOWED_COMPONENTS = new Set([
   "RelatedGuides",
 ]);
 
-const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-// Full ISO 8601 with an explicit offset (or Z). Google only requires the date,
-// but recommends time + timezone in markup, and the site renders the timestamp
-// visibly — so requiring it here keeps the two consistent by construction.
-const DATETIME_RE =
-  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(Z|[+-]\d{2}:\d{2})$/;
-
-// ── tiny ANSI helpers (no deps) ─────────────────────────────────────────────
-const color = process.stdout.isTTY && !process.env.NO_COLOR;
-const c = (n: number, s: string) => (color ? `\x1b[${n}m${s}\x1b[0m` : s);
-const red = (s: string) => c(31, s);
-const yellow = (s: string) => c(33, s);
-const green = (s: string) => c(32, s);
-const dim = (s: string) => c(2, s);
-const bold = (s: string) => c(1, s);
-
-type Meta = Record<string, unknown>;
-type Report = {
-  file: string;
-  errors: string[];
-  warnings: string[];
-  /** What the cross-file pass in `main` needs: uniqueness is not a property any
-   * single file can check about itself. */
+/** A guide's report, plus what the cross-file pass in `collect` needs:
+ * uniqueness is not a property any single file can check about itself. */
+type GuideReport = Report & {
   slug: string;
-  title?: string;
-  description?: string;
   noindex: boolean;
   /** Slugs of the other guides this one links to in its prose. */
   links: string[];
 };
 
-// Spanish function words, dropped before matching a keyword against the copy:
-// they're the words a search phrase omits and a written sentence keeps. Words of
-// three characters or fewer are dropped too, which covers de/la/el/en/y/al.
-const KEYWORD_STOPWORDS = new Set([
-  "como",
-  "con",
-  "cual",
-  "del",
-  "las",
-  "los",
-  "mas",
-  "para",
-  "por",
-  "que",
-  "sus",
-  "una",
-  "uno",
-]);
-
-/** Lowercase, strip accents — so "cómo leer la factura" matches a keyword
- * written "como leer la factura". */
-const fold = (s: string): string =>
-  s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "");
-
-/** Pull the `export const meta = { … }` object out by brace-matching, then eval
- * it as real JS (trusted local files, any quote/comma style). */
-function extractMeta(src: string): {
-  meta?: Meta;
-  bodyStart: number;
-  error?: string;
-} {
-  const marker = src.match(/export\s+const\s+meta\s*=\s*/);
-  if (!marker || marker.index === undefined) {
-    return { bodyStart: 0, error: "missing `export const meta = { … }` block" };
-  }
-  const open = src.indexOf("{", marker.index);
-  if (open === -1) return { bodyStart: 0, error: "meta block has no `{`" };
-
-  let depth = 0;
-  let inStr: string | null = null;
-  let end = -1;
-  for (let i = open; i < src.length; i++) {
-    const ch = src[i];
-    const prev = src[i - 1];
-    if (inStr) {
-      if (ch === inStr && prev !== "\\") inStr = null;
-    } else if (ch === '"' || ch === "'" || ch === "`") {
-      inStr = ch;
-    } else if (ch === "{") {
-      depth++;
-    } else if (ch === "}") {
-      depth--;
-      if (depth === 0) {
-        end = i;
-        break;
-      }
-    }
-  }
-  if (end === -1)
-    return { bodyStart: 0, error: "meta block `{` is never closed" };
-
-  const objText = src.slice(open, end + 1);
-  try {
-    const meta = new Function(`return (${objText})`)() as Meta;
-    return { meta, bodyStart: end + 1 };
-  } catch (e) {
-    return {
-      bodyStart: end + 1,
-      error: `meta is not valid JS: ${(e as Error).message}`,
-    };
-  }
-}
-
-function isValidDateTime(s: string): boolean {
-  const m = DATETIME_RE.exec(s);
-  if (!m) return false;
-  const [, y, mo, d, h, mi, sec] = m.map(Number);
-  // Reject the calendar-impossible (Feb 30) and out-of-range clock values that
-  // the regex alone would wave through.
-  const dt = new Date(Date.UTC(y, mo - 1, d));
-  return (
-    dt.getUTCFullYear() === y &&
-    dt.getUTCMonth() === mo - 1 &&
-    dt.getUTCDate() === d &&
-    h < 24 &&
-    mi < 60 &&
-    sec < 60
-  );
-}
-
-function validateFile(file: string, knownSlugs: Set<string>): Report {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  // Declared out here because `main` compares them across files.
-  let title: string | undefined;
-  let description: string | undefined;
-  let noindex = false;
+function validateFile(file: string, knownSlugs: Set<string>): GuideReport {
   const slug = file.replace(/\.mdx$/, "");
+  const r: GuideReport = {
+    ...newReport(`guias/${file}`),
+    slug,
+    noindex: false,
+    links: [],
+  };
+  const { errors, warnings } = r;
   const src = readFileSync(path.join(GUIDES_DIR, file), "utf8");
 
   // ── slug ────────────────────────────────────────────────────────────────
@@ -199,10 +99,11 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
       }
       return v;
     };
-    title = str("title");
-    description = str("description");
+    r.title = str("title");
+    r.description = str("description");
     str("summary");
     const cta = str("cta");
+    const { title, description } = r;
 
     // ── optional SEO overrides ──────────────────────────────────────────────
     // Each is optional, but a present-and-malformed one is an error: a typo'd
@@ -266,7 +167,7 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
     if (meta.noindex !== undefined && meta.noindex !== true) {
       errors.push("meta.noindex, if set, must be exactly `true` (or omitted)");
     }
-    noindex = meta.noindex === true;
+    r.noindex = meta.noindex === true;
 
     // The rendered <title>. Guides don't get the site's "— Factura" suffix
     // (see `guideMetadata`), so this is the whole thing, and past ~60 chars
@@ -316,21 +217,14 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
     }
 
     // The first keyword is the query this guide is written to win, and the
-    // title + description are the two things a search result shows. Matched
-    // word by word rather than as a phrase: "deuda de patentes caba" is the
-    // same target as "Deuda de patentes en CABA", and a phrase match would
-    // flag every one of those and teach everyone to ignore the warning.
+    // title + description are the two things a search result shows.
     if (
       Array.isArray(kw) &&
       typeof kw[0] === "string" &&
       title &&
       description
     ) {
-      const shown = fold(`${title} ${description}`);
-      const missing = fold(kw[0])
-        .split(/\s+/)
-        .filter((w) => w.length > 2 && !KEYWORD_STOPWORDS.has(w))
-        .filter((w) => !shown.includes(w));
+      const missing = missingKeywordWords(kw[0], title, description);
       if (missing.length > 0) {
         warnings.push(
           `primary keyword "${kw[0]}" — ${missing.map((w) => `"${w}"`).join(", ")} appears in neither the title nor the description`,
@@ -418,19 +312,13 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
 
     const published = meta.published;
     const updated = meta.updated;
-    const pubOk = typeof published === "string" && isValidDateTime(published);
-    const updOk = typeof updated === "string" && isValidDateTime(updated);
-    const format =
-      'full ISO 8601 with offset, e.g. "2026-06-29T09:00:00-03:00"';
-    if (!pubOk) errors.push(`meta.published must be a ${format}`);
-    if (!updOk) errors.push(`meta.updated must be a ${format}`);
+    const pubOk = isValidDateTime(published);
+    const updOk = isValidDateTime(updated);
+    if (!pubOk) errors.push(`meta.published must be a ${DATETIME_FORMAT}`);
+    if (!updOk) errors.push(`meta.updated must be a ${DATETIME_FORMAT}`);
     // Compare instants, not strings — two timestamps with different offsets
     // don't order correctly as text.
-    if (
-      pubOk &&
-      updOk &&
-      Date.parse(updated as string) < Date.parse(published as string)
-    ) {
+    if (pubOk && updOk && Date.parse(updated) < Date.parse(published)) {
       errors.push(
         `meta.updated (${updated}) is before meta.published (${published})`,
       );
@@ -498,6 +386,7 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
       warnings.push("links to itself");
     }
   }
+  r.links = [...interlinks];
 
   // ── custom components must be registered ──────────────────────────────────
   for (const m of body.matchAll(/<([A-Z][A-Za-z0-9]*)/g)) {
@@ -557,103 +446,47 @@ function validateFile(file: string, knownSlugs: Set<string>): Report {
     warnings.push("no links to other guides (interlink for SEO)");
   }
 
-  return {
-    file,
-    errors,
-    warnings,
-    slug,
-    title,
-    description,
-    noindex,
-    links: [...interlinks],
-  };
+  return r;
 }
 
-/** The checks that only exist between files. Two guides sharing a <title> or a
- * description are two guides competing for the same result with the same words
- * — the classic way a growing section starts cannibalizing itself — and no
- * per-file pass can see it. Appends to the reports in place. */
-function crossCheck(reports: Report[]): void {
-  const collide = (field: "title" | "description") => {
-    const seen = new Map<string, Report[]>();
-    for (const r of reports) {
-      const value = r[field];
-      if (!value) continue;
-      const key = fold(value).replace(/\s+/g, " ").trim();
-      seen.set(key, [...(seen.get(key) ?? []), r]);
-    }
-    for (const group of seen.values()) {
-      if (group.length < 2) continue;
-      for (const r of group) {
-        const others = group.filter((o) => o !== r).map((o) => o.slug);
-        r.errors.push(
-          `meta.${field} is identical to ${others.join(", ")} — make each one distinct, or canonicalize one guide to the other`,
-        );
-      }
-    }
-  };
-  collide("title");
-  collide("description");
-
-  // A link into a `noindex` guide is a link to a page nothing else lists and
-  // search engines are told to skip. Usually it means the draft shipped
-  // half-announced, or the flag outlived the draft.
+/** A link into a `noindex` guide is a link to a page nothing else lists and
+ * search engines are told to skip. Usually it means the draft shipped
+ * half-announced, or the flag outlived the draft. */
+function crossCheck(reports: GuideReport[]): void {
   const drafts = new Set(reports.filter((r) => r.noindex).map((r) => r.slug));
-  if (drafts.size > 0) {
-    for (const r of reports) {
-      if (r.noindex) continue;
-      for (const target of r.links) {
-        if (drafts.has(target)) {
-          r.warnings.push(`links to /guias/${target}, which is noindex`);
-        }
+  if (drafts.size === 0) return;
+  for (const r of reports) {
+    if (r.noindex) continue;
+    for (const target of r.links) {
+      if (drafts.has(target)) {
+        r.warnings.push(`links to /guias/${target}, which is noindex`);
       }
     }
   }
 }
 
-function main() {
+/** Every guide's report, cross-checked within the section. The shared
+ * title/description collision pass runs later, over every section at once. */
+export function collectGuides(): Report[] {
   let files: string[];
   try {
     files = readdirSync(GUIDES_DIR)
       .filter((f) => f.endsWith(".mdx"))
       .sort();
   } catch {
-    console.error(red(`Cannot read ${GUIDES_DIR}`));
-    process.exit(1);
+    return [{ ...newReport("guias/"), errors: [`cannot read ${GUIDES_DIR}`] }];
   }
 
   if (files.length === 0) {
-    console.error(red("No .mdx guides found."));
-    process.exit(1);
+    return [{ ...newReport("guias/"), errors: ["no .mdx guides found"] }];
   }
 
   const knownSlugs = new Set(files.map((f) => f.replace(/\.mdx$/, "")));
   const reports = files.map((f) => validateFile(f, knownSlugs));
   crossCheck(reports);
-
-  let totalErrors = 0;
-  let totalWarnings = 0;
-  for (const r of reports) {
-    totalErrors += r.errors.length;
-    totalWarnings += r.warnings.length;
-    if (r.errors.length === 0 && r.warnings.length === 0) {
-      console.log(`${green("✓")} ${r.file}`);
-      continue;
-    }
-    const tag = r.errors.length ? red("✗") : yellow("⚠");
-    console.log(`${tag} ${bold(r.file)}`);
-    for (const e of r.errors) console.log(`    ${red("error")}  ${e}`);
-    for (const w of r.warnings) console.log(`    ${yellow("warn")}   ${w}`);
-  }
-
-  console.log(
-    dim("─".repeat(40)) +
-      `\n${files.length} files · ` +
-      `${totalErrors ? red(`${totalErrors} errors`) : green("0 errors")} · ` +
-      `${totalWarnings ? yellow(`${totalWarnings} warnings`) : "0 warnings"}`,
-  );
-
-  process.exit(totalErrors > 0 ? 1 : 0);
+  return reports;
 }
 
-main();
+if (isEntrypoint(import.meta.url)) {
+  finish([{ name: "Guías", reports: collectGuides() }]);
+}

@@ -120,7 +120,10 @@ their first, and the one caveat that cannot wait (what a striped region means,
 how many are missing) is already in the figure's own note.
 
 Then one `##` per region or cut, each followed by its figures. Then `<Faq />`
-and `<Fuentes />` at the very end.
+and `<Fuentes />` at the very end — **bare, with no `##` above them.** Each
+renders its own heading, with the id the table of contents links to, so a
+`## Preguntas frecuentes` written above the tag prints the heading twice and
+puts the same id on two elements.
 
 On a **hub** — a page with child pages — add a section for them and place
 `<Subpaginas />` under it. The tag renders the list of children and nothing else,
@@ -237,8 +240,17 @@ without an import.
 ## 8. Before you ship
 
 ```bash
-bun run typecheck && bun run lint && bun run test && bun run build
+bun run validate:content && bun run typecheck && bun run lint && bun run test && bun run build
 ```
+
+`validate:content` checks both content sections against their specs — this one
+included — and is what CI runs. `bun run validate:stats` is the same pass over
+`/estadisticas` alone, minus the cross-section check for two pages sharing a
+title or a description. Between them they cover most of this document: the
+registry agreeing with the files on disk, the `meta` shape, the sources and the
+`Dataset` fields, links and heading anchors that resolve, the figure being near
+the top, and current values typed into the prose. Errors fail the run; warnings
+are advisory.
 
 Then open the page and read it. Check the table of contents matches the
 headings, the last-updated date matches the last data point, and every source

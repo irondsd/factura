@@ -408,7 +408,9 @@ copy.
 - [ ] `<ClosingCta />` present with its own `title` and copy, `<RelatedGuides />`
       just above it.
 - [ ] Slug is keyword-rich, hyphenated, accent-free.
-- [ ] `npm run validate:guides` passes with no errors.
+- [ ] `npm run validate:content` passes with no errors. (`validate:guides` runs
+      this section alone; the full run is what also catches a title or
+      description colliding with a page under `/estadisticas`.)
 
 ---
 

@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Bun is the package manager (bun.lock) and `validate:guides` shebangs bun.
+      # Bun is the package manager (bun.lock) and `validate:content` shebangs bun.
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
@@ -54,9 +54,12 @@ jobs:
         if: ${{ !cancelled() }}
         run: bun run typecheck
 
-      - name: Validate guides
+      # Both content sections — /guias and /estadisticas. Run together rather
+      # than as two steps: the title/description collision check is the one
+      # thing neither section can check alone.
+      - name: Validate content
         if: ${{ !cancelled() }}
-        run: bun run validate:guides
+        run: bun run validate:content
 
       - name: Test
         if: ${{ !cancelled() }}
