@@ -177,6 +177,15 @@ const ENTRIES: Entry[] = [
     file: "alquiler-caba.mdx",
     load: () => import("./alquiler-caba.mdx"),
   },
+  // The two above, divided. Last because it depends on both: it publishes no
+  // series of its own, and its page is largely about the arithmetic joining
+  // them. Flat for the same reason as its two inputs.
+  {
+    slug: ["rentabilidad-alquiler-caba"],
+    crumb: "Rentabilidad del alquiler",
+    file: "rentabilidad-alquiler-caba.mdx",
+    load: () => import("./rentabilidad-alquiler-caba.mdx"),
+  },
 ];
 
 const DIR = path.join(process.cwd(), "src/content/estadisticas");

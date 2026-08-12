@@ -14,6 +14,12 @@ import { ResumenRegion } from "@/components/estadisticas/ResumenRegion";
 import { AlquilerCabaMapa } from "@/components/estadisticas/AlquilerCabaMapa";
 import { AlquileresBuscados } from "@/components/estadisticas/AlquileresBuscados";
 import { PaginaRelacionada } from "@/components/estadisticas/PaginaRelacionada";
+import { RentabilidadBuscados } from "@/components/estadisticas/RentabilidadBuscados";
+import { RentabilidadCabaMapa } from "@/components/estadisticas/RentabilidadCabaMapa";
+import { RentabilidadContraste } from "@/components/estadisticas/RentabilidadContraste";
+import { RentabilidadDispersion } from "@/components/estadisticas/RentabilidadDispersion";
+import { RentabilidadHistoria } from "@/components/estadisticas/RentabilidadHistoria";
+import { RentabilidadTipoCambio } from "@/components/estadisticas/RentabilidadTipoCambio";
 import { VentaCabaMapa } from "@/components/estadisticas/VentaCabaMapa";
 import {
   ClosingCta,
@@ -170,6 +176,17 @@ const components: MDXComponents = {
   PrecioDepartamento,
   BarriosBuscados,
   PrecioPorZona,
+  // The rentability page. Same deal — every one of these reads the joined
+  // dataset and takes nothing. <RentabilidadDispersion /> and
+  // <RentabilidadContraste /> can each render nothing at all if IDECBA's
+  // coverage ever collapses, which is a state the page has to tolerate rather
+  // than a case to guard for in the .mdx.
+  RentabilidadCabaMapa,
+  RentabilidadHistoria,
+  RentabilidadDispersion,
+  RentabilidadBuscados,
+  RentabilidadTipoCambio,
+  RentabilidadContraste,
   // The one component in this map that takes a prop: which page to point at.
   // See the note in the component for why it's a slug and not the copy.
   PaginaRelacionada,

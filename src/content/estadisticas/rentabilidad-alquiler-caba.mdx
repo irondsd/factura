@@ -1,0 +1,184 @@
+import { TEMPORAL_COVERAGE } from "./data/rentabilidad-caba";
+
+export const meta = {
+  title: "Cuánto rinde comprar para alquilar en CABA",
+  titleTag: "Rentabilidad del alquiler en CABA por barrio",
+  description:
+    "Cuánto rinde por año un departamento comprado para alquilar en cada barrio de la Ciudad de Buenos Aires, y en cuántos años de alquiler se recupera la inversión, con el mapa y la tabla completa.",
+  summary:
+    "La rentabilidad bruta anual del alquiler en CABA, barrio por barrio y comuna por comuna: el alquiler de un año como porcentaje del precio de compra, y los años de repago.",
+  ogStat: "Rentabilidad por barrio",
+  cta: "Ya sabes lo que rinde. Mira lo que se lleva la boleta de servicios.",
+  keywords: [
+    "rentabilidad alquiler caba",
+    "conviene comprar para alquilar en buenos aires",
+    "barrios mas rentables para invertir caba",
+    "años de repago departamento caba",
+    "rentabilidad bruta alquiler argentina",
+    "relacion precio alquiler caba",
+    "invertir en departamentos en buenos aires",
+  ],
+  published: "2026-08-12T12:00:00-03:00",
+  updated: "2026-08-12T12:00:00-03:00",
+  faq: [
+    {
+      q: "¿Qué es la rentabilidad bruta de un alquiler?",
+      a: "Es el alquiler de un año dividido por lo que cuesta comprar el departamento, expresado como porcentaje. Si un departamento cuesta 100.000 dólares y se alquila por 500 dólares al mes, en un año deja 6.000 dólares: una rentabilidad bruta del 6 %. Es la medida estándar para comparar barrios entre sí, y se llama bruta porque no descuenta ninguno de los gastos que tiene ser propietario.",
+    },
+    {
+      q: "¿Qué son los años de repago?",
+      a: "Es la misma cuenta dada vuelta: cuántos años de alquiler hacen falta para recuperar lo que costó comprar. Una rentabilidad del 5 % son 20 años de repago, una del 8 % son 12 años y medio. Es el número que suele aparecer en las notas del sector, y dice exactamente lo mismo que el porcentaje.",
+    },
+    {
+      q: "¿En qué barrios de CABA conviene comprar para alquilar?",
+      a: "En términos de retorno puro, en los más baratos: los barrios del centro y del sur de la Ciudad rinden bastante más que los del corredor norte. El mapa y la tabla de esta página tienen el número de cada barrio y comuna del trimestre más reciente. Conviene tener presente que la rentabilidad no es lo único que define una inversión: la revalorización del inmueble, la facilidad para conseguir inquilino y el riesgo de vacancia no están en este número.",
+    },
+    {
+      q: "¿Por qué los barrios caros rinden menos?",
+      a: "Porque los precios de venta varían mucho más entre barrios que los alquileres. En el trimestre más reciente, entre el barrio más caro y el más barato hay más del doble de diferencia en el precio del metro cuadrado, pero mucho menos en el alquiler. Como la rentabilidad es el alquiler dividido por el precio, un precio que sube más rápido que el alquiler da un retorno más bajo. La sección sobre la dispersión de esta página lo muestra barrio por barrio.",
+    },
+    {
+      q: "¿Esta rentabilidad es la que termina en el bolsillo?",
+      a: "No. Es bruta: no descuenta expensas, ABL, impuesto a las ganancias, impuesto a los ingresos brutos donde corresponda, seguro, comisión inmobiliaria, arreglos ni los meses en que el departamento está vacío. La rentabilidad neta es bastante más baja, y cuánto más baja depende del edificio y de la situación fiscal de cada propietario, que son datos que ninguna estadística pública tiene.",
+    },
+    {
+      q: "¿A qué tipo de cambio se convierte el alquiler?",
+      a: "Al promedio trimestral del dólar blue, porque los departamentos en CABA se compran y se venden en billetes y esa es la referencia de ese mercado. La página muestra también el mismo cálculo con el dólar oficial y con el MEP: el blue y el MEP dan prácticamente lo mismo en toda la serie, y el oficial se separa solo durante los años del cepo cambiario. La elección del tipo de cambio no cambia el orden entre barrios, porque dentro de un mismo trimestre todos se dividen por el mismo número.",
+    },
+    {
+      q: "¿Cada cuánto se actualiza esta página?",
+      a: "Cada trimestre, cuando IDECBA publica los precios de venta y de alquiler, alrededor de dos meses después de que cierra el trimestre. Los últimos trimestres pueden estar marcados como provisorios: el organismo los revisa cuando publica el siguiente.",
+    },
+  ],
+  sources: [
+    {
+      label:
+        "IDECBA — Instituto de Estadística y Censos de la Ciudad de Buenos Aires",
+      href: "https://www.estadisticaciudad.gob.ar/eyc/categoria-banco-datos/mercado-inmobiliario/",
+      note: "Publica los dos precios que entran en esta cuenta: el del metro cuadrado en venta, en dólares, y el del alquiler, en pesos por mes, ambos sobre la base de avisos de Argenprop.",
+    },
+    {
+      label: "ArgentinaDatos — Cotizaciones del dólar",
+      href: "https://argentinadatos.com/",
+      note: "Serie diaria del dólar blue, oficial y MEP, de la que se toma el promedio de cada trimestre para pasar el alquiler de pesos a dólares.",
+    },
+    {
+      label: "Buenos Aires Data — Barrios y comunas",
+      href: "https://data.buenosaires.gob.ar/dataset/barrios",
+      note: "Límites oficiales de los 48 barrios y las 15 comunas, con los que está dibujado el mapa. Licencia CC-BY-2.5-AR.",
+    },
+    {
+      label: "Zonaprop — Índice de rentabilidad, vía La Nación",
+      href: "https://www.lanacion.com.ar/propiedades/casas-y-departamentos/cuales-son-los-barrios-con-mayor-rentabilidad-bruta-para-invertir-en-alquiler-nid23072026/",
+      note: "Relevamiento independiente sobre los avisos de otro portal, usado en esta página únicamente para contrastar los resultados y para mostrar los barrios que IDECBA no cubre.",
+    },
+  ],
+  dataset: {
+    name: "Rentabilidad bruta del alquiler de departamentos usados, por barrio y comuna (CABA)",
+    description:
+      "Rentabilidad bruta anual del alquiler de departamentos usados de 1, 2 y 3 ambientes, por trimestre, para los 48 barrios y las 15 comunas de la Ciudad Autónoma de Buenos Aires. Se calcula como el alquiler anual publicado, convertido a dólares al promedio trimestral del dólar blue, dividido por el precio de publicación de un departamento de la superficie de referencia de IDECBA.",
+    temporalCoverage: TEMPORAL_COVERAGE,
+    spatialCoverage: "Ciudad Autónoma de Buenos Aires, Argentina",
+    variableMeasured: [
+      "Rentabilidad bruta anual del alquiler, departamentos usados de 1 ambiente",
+      "Rentabilidad bruta anual del alquiler, departamentos usados de 2 ambientes",
+      "Rentabilidad bruta anual del alquiler, departamentos usados de 3 ambientes",
+      "Años de alquiler necesarios para recuperar el precio de compra",
+    ],
+  },
+};
+
+Esta página tiene dos mitades que ya estaban publicadas por separado: lo que cuesta comprar un metro cuadrado en cada barrio de la Ciudad y lo que cuesta alquilarlo. Dividir una por la otra responde la pregunta que ninguna de las dos responde sola: **cuánto rinde por año un departamento comprado para alquilar**, y en cuántos años de alquiler se recupera lo que se pagó por él.
+
+Es la medida que en el sector se llama _rentabilidad bruta_ y, dada vuelta, _años de repago_. Sirve para comparar barrios entre sí, que es para lo que está construida, y no para decidir una compra por sí sola.
+
+Conviene decir tres cosas antes del primer número. La primera: es una rentabilidad **bruta**. No descuenta expensas, ABL, impuestos, seguro, comisiones, arreglos ni los meses sin inquilino, y todo eso sale del mismo alquiler. La segunda: los dos precios son de **publicación** —lo que se pide en los avisos, no lo que se firma—, y como en venta se negocia más que en alquiler, el retorno real tiende a ser algo más alto que el que aparece aquí. La tercera: el alquiler está en pesos y el departamento en dólares, así que en el medio hay un tipo de cambio, y esa elección tiene su propia sección más abajo.
+
+## Qué vas a encontrar en esta página
+
+- **El mapa de rentabilidad**, aquí abajo, con la tabla completa de cada barrio y comuna.
+- **Cómo se calcula** el número y qué gastos deja afuera.
+- **Por qué los barrios más baratos rinden más**, con todos los barrios en un gráfico.
+- **Palermo, Belgrano, Recoleta, Villa Urquiza, Caballito y Flores**, con el puesto de cada uno.
+- **La serie completa desde 2018**, del piso histórico a los valores de hoy.
+- **Cuánto depende del tipo de cambio** que se use para la conversión.
+- **El contraste con otra fuente**, para ver si la cuenta se sostiene.
+
+## El mapa de rentabilidad del alquiler en CABA
+
+Para saber qué rinde una zona, búscala en el mapa: cada comuna está sombreada según su rentabilidad anual, y al pasar el cursor por encima aparecen el porcentaje y los años de repago. El interruptor de la derecha lo pasa a barrios.
+
+<RentabilidadCabaMapa />
+
+Este mapa se lee al revés que los otros dos de la Ciudad. En los de precio, oscuro es caro; aquí, oscuro es un retorno más alto, que es justamente el barrio barato. Puestos uno al lado del otro, el mapa de precios de venta y este son casi el negativo el uno del otro, y esa es la observación de la que sale el resto de la página.
+
+## Cómo se calcula esta rentabilidad
+
+La cuenta es una división, y las dos partes salen de la misma fuente. **IDECBA** publica cada trimestre el precio de publicación del metro cuadrado en venta, en dólares, y el precio de publicación del alquiler, en pesos por mes, para departamentos usados de 1, 2 y 3 ambientes, por barrio y por comuna.
+
+Para que las dos cifras describan el mismo objeto hace falta una superficie. Se usa la del propio organismo: IDECBA calcula el alquiler mensual a partir de un precio por metro cuadrado y una superficie de referencia fija, que declara en cada planilla —30 m² para un ambiente, 43 para dos y 70 para tres—. Esa misma superficie se aplica al precio de venta, así que numerador y denominador son el mismo departamento. El alquiler anual, pasado a dólares, se divide por el precio de ese departamento:
+
+- **Rentabilidad bruta anual** = alquiler de doce meses en dólares ÷ precio de compra × 100.
+- **Años de repago** = 100 ÷ rentabilidad. Es el mismo dato en la unidad en la que suele contarse.
+
+Lo que la cuenta **no incluye** es tan importante como lo que incluye. No están las expensas ni el ABL, que en un alquiler pesan sobre inquilino y propietario respectivamente pero salen del mismo inmueble; no está el impuesto a las ganancias sobre la renta, ni ingresos brutos donde corresponda; no está el seguro, ni la comisión de la inmobiliaria, ni los arreglos, ni los meses de vacancia entre un contrato y el siguiente. Tampoco está la revalorización del departamento, que para muchos compradores es la mitad de la razón para comprar y que esta cuenta ignora por completo. La rentabilidad neta es sensiblemente más baja que la bruta, y cuánto más baja depende de cada edificio y de cada situación fiscal.
+
+Una última advertencia sobre la cobertura. Una zona necesita que IDECBA haya publicado **los dos** precios, y el alquiler se publica en bastantes menos barrios que la venta, porque hay menos avisos. Por eso el mapa abre por comuna. Y los barrios que faltan no son un recorte al azar: son los que tienen pocos avisos, que son los más baratos, que —como se ve en la sección siguiente— son los que más rinden.
+
+## Por qué los barrios más baratos rinden más
+
+<RentabilidadDispersion />
+
+El resultado es bastante más nítido de lo que uno esperaría. La rentabilidad de un barrio se predice casi enteramente por lo que cuesta comprar ahí, y la razón es que los dos precios no se mueven juntos: el de venta se abre en abanico entre el sur y el norte de la Ciudad, y el del alquiler se mantiene mucho más plano. Un barrio el doble de caro para comprar no se alquila al doble; se alquila apenas un tercio más caro.
+
+Vale la pena decir qué **no** demuestra esto. No dice que convenga comprar en el barrio más barato: un retorno alto suele venir con más vacancia, más rotación de inquilinos, más morosidad y menos revalorización, y ninguna de esas cuatro cosas está en estos datos. Lo que sí dice es que el mercado porteño le pone al metro cuadrado del corredor norte un precio que el alquiler de ese metro cuadrado no justifica por sí solo — y que quien compra ahí está pagando, en parte, por una expectativa de valorización más que por una renta.
+
+## Qué rinde en los barrios más consultados
+
+<RentabilidadBuscados />
+
+Es la misma lista de barrios que aparece en las páginas de venta y de alquiler, y ordenada por rentabilidad sale casi al revés. Los que encabezan la tabla de precios cierran esta.
+
+## La rentabilidad a lo largo del tiempo
+
+<RentabilidadHistoria />
+
+La serie tiene una forma difícil de pasar por alto: se hunde entre 2019 y 2021 hasta un piso del que hay pocos antecedentes, se mantiene abajo un par de años y después se recupera hasta valores que son los más altos de toda la serie. En el peor momento, un departamento comprado para alquilar tardaba más de medio siglo de alquileres en pagarse solo.
+
+La tentación es atribuirlo todo a la Ley de Alquileres, que estuvo vigente entre julio de 2020 y diciembre de 2023 y que fijaba contratos de tres años con un solo aumento anual por índice. La ley está marcada en el gráfico, y el momento coincide. Pero los datos de esta página no alcanzan para probar la causa, y hay al menos otras tres cosas pasando al mismo tiempo: la pandemia, que vació la demanda de alquiler urbano durante meses; una oferta de alquiler que se retiró del mercado formal; y un precio de venta que siguió expresado en dólares mientras los ingresos en pesos se atrasaban. La recuperación posterior también es varias cosas a la vez, entre ellas una caída sostenida del precio en dólares del metro cuadrado, que mejora el retorno sin que el alquiler haga nada.
+
+Lo que sí se puede afirmar sin discusión es lo que muestra la serie: hoy comprar para alquilar en la Ciudad rinde varias veces lo que rendía en 2020, y la mayor parte de esa mejora ocurrió a partir de 2023.
+
+## Cuánto depende del tipo de cambio
+
+<RentabilidadTipoCambio />
+
+Esta es la parte de la metodología que más puede mover el resultado, así que está mostrada en vez de explicada. La conclusión, en una línea: cambia la altura de la serie histórica, sobre todo entre 2020 y 2024, y no cambia absolutamente nada del mapa ni de ninguna comparación entre barrios.
+
+## Los mismos barrios, medidos por otra fuente
+
+Toda esta página sale de dos tablas y una división, así que un error en la cadena produciría números perfectamente verosímiles. La única forma seria de controlarlo es compararlos con una medición independiente.
+
+<RentabilidadContraste />
+
+## Las dos mitades de esta cuenta
+
+Cada uno de los dos precios que entran en la división tiene su propia página, con el mapa, la tabla completa y la metodología del organismo.
+
+<PaginaRelacionada slug="precio-m2-caba">
+  El precio del metro cuadrado en venta, en dólares, barrio por barrio: el
+  denominador de esta cuenta.
+</PaginaRelacionada>
+
+<PaginaRelacionada slug="alquiler-caba">
+  El precio de los alquileres, en pesos por mes, para los mismos barrios y el
+  mismo trimestre: el numerador.
+</PaginaRelacionada>
+
+Del lado de los gastos que esta rentabilidad no descuenta, están [las expensas promedio en CABA](/guias/expensas-promedio-caba-2026) y [el ABL](/guias/que-es-el-abl-y-el-impuesto-inmobiliario), que son los dos más grandes y los más fáciles de estimar antes de comprar.
+
+## Preguntas frecuentes
+
+<Faq />
+
+<Fuentes />
