@@ -398,13 +398,16 @@ function validatePage(file: string, at: string, section: Section): PageReport {
         `meta.keywords has ${kw.length} — past a couple of dozen it reads as stuffing`,
       );
     }
+    // Against `rendered`, not `title`: this section puts the search phrase in
+    // the titleTag on purpose (see above), so the words a result shows are the
+    // titleTag's when there is one.
     if (
       Array.isArray(kw) &&
       typeof kw[0] === "string" &&
-      title &&
+      rendered &&
       description
     ) {
-      const missing = missingKeywordWords(kw[0], title, description);
+      const missing = missingKeywordWords(kw[0], rendered, description);
       if (missing.length > 0) {
         warnings.push(
           `primary keyword "${kw[0]}" — ${missing.map((w) => `"${w}"`).join(", ")} appears in neither the title nor the description`,
