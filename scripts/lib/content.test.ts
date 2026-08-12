@@ -38,8 +38,8 @@ describe("missingKeywordWords", () => {
   });
 
   it("does not stem a short word into a prefix of something else", () => {
-    expect(missingKeywordWords("agua caliente", "Agua y gas", "Boletas")).toEqual(
-      ["caliente"],
-    );
+    expect(
+      missingKeywordWords("agua caliente", "Agua y gas", "Boletas"),
+    ).toEqual(["caliente"]);
   });
 });
