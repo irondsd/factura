@@ -177,7 +177,18 @@ const ENTRIES: Entry[] = [
     file: "alquiler-caba.mdx",
     load: () => import("./alquiler-caba.mdx"),
   },
-  // The two above, divided. Last because it depends on both: it publishes no
+  // The other question about the same market: not what a flat costs but
+  // whether there is one. Flat for the same reason as its neighbours, and next
+  // to the rent page because the two are read together — that one can only
+  // colour the barrios with enough listings to price, and this one covers all
+  // 48 because a total is never suppressed.
+  {
+    slug: ["oferta-alquiler-caba"],
+    crumb: "Oferta de alquiler",
+    file: "oferta-alquiler-caba.mdx",
+    load: () => import("./oferta-alquiler-caba.mdx"),
+  },
+  // The two price pages above, divided. Last because it depends on both: it publishes no
   // series of its own, and its page is largely about the arithmetic joining
   // them. Flat for the same reason as its two inputs.
   {

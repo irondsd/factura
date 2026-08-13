@@ -13,6 +13,8 @@ import { ResumenIpc } from "@/components/estadisticas/ResumenIpc";
 import { ResumenRegion } from "@/components/estadisticas/ResumenRegion";
 import { AlquilerCabaMapa } from "@/components/estadisticas/AlquilerCabaMapa";
 import { AlquileresBuscados } from "@/components/estadisticas/AlquileresBuscados";
+import { OfertaAlquilerCabaMapa } from "@/components/estadisticas/OfertaAlquilerCabaMapa";
+import { OfertaPorZona } from "@/components/estadisticas/OfertaPorZona";
 import { PaginaRelacionada } from "@/components/estadisticas/PaginaRelacionada";
 import { RentabilidadBuscados } from "@/components/estadisticas/RentabilidadBuscados";
 import { RentabilidadCabaMapa } from "@/components/estadisticas/RentabilidadCabaMapa";
@@ -173,6 +175,11 @@ const components: MDXComponents = {
   VentaCabaMapa,
   AlquilerCabaMapa,
   AlquileresBuscados,
+  // The supply page. Same contract again — both read the m² dataset and take
+  // nothing. Neither has an empty state to guard: this series has a figure for
+  // every barrio in every month, which is the whole reason the page exists.
+  OfertaAlquilerCabaMapa,
+  OfertaPorZona,
   PrecioDepartamento,
   BarriosBuscados,
   PrecioPorZona,
