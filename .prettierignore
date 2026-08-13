@@ -1,0 +1,17 @@
+# Generated statistics data. These files are written by the scripts below in a
+# deliberately compact shape — one line per series array, via the shared
+# `format()` helper — so that a data refresh reviews as one changed line per
+# barrio instead of one per number. Prettier expands those arrays to a value per
+# line (oferta-alquiler-caba.json: ~200 lines to ~2900), which has to be reverted
+# by hand and is undone again the next time the script runs.
+#
+#   venta-caba.json           \
+#   alquiler-caba.json         >  bun run data:caba      scripts/fetch-caba-inmobiliario.ts
+#   oferta-alquiler-caba.json /
+#   dolar.json                    bun run data:dolar     scripts/fetch-dolar.ts
+#   caba-geo.json                 bun run data:caba-geo  scripts/build-caba-geo.ts
+#
+# ipc-vivienda.json is hand-maintained rather than generated, but is covered by
+# the same glob so that a new generated dataset dropped in this directory is
+# ignored by default instead of silently reintroducing the problem.
+src/content/estadisticas/data/*.json
