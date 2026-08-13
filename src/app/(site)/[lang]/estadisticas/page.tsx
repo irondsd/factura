@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { StatsList } from "@/components/estadisticas/StatsList";
+import { ClosingCta } from "@/components/guides/cta";
 import { SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { statsChildren } from "@/content/estadisticas/pages";
@@ -56,8 +57,22 @@ export default async function EstadisticasIndexPage() {
           </p>
         </header>
 
-        <div className="mt-12 mb-16 border-t border-line">
+        <div className="mt-12 border-t border-line">
           <StatsList pages={pages} />
+        </div>
+
+        {/* The index had no offer of any kind: a visitor who arrived here from
+            search read five titles and left. The pitch it can make is the one
+            the section itself earns — every page above is somebody else's
+            series, and the account turns your own bills into one. Held to the
+            article column so it doesn't stretch across the full shell. */}
+        <div className="max-w-[760px] pb-16">
+          <ClosingCta title="La misma cuenta, con tus números">
+            Cada página de aquí arriba mide un promedio: de un país, de una
+            región, de un barrio. Factura hace lo mismo con lo que pagas tú —
+            subes el PDF de tus boletas de luz, gas y agua y se arma tu serie
+            mes a mes, en pesos y en dólares, para poner al lado de estas.
+          </ClosingCta>
         </div>
       </main>
     </>

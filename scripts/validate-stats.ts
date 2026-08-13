@@ -732,14 +732,19 @@ function validatePage(file: string, at: string, section: Section): PageReport {
     );
   }
 
-  // A <ClosingCta> is optional here (the CABA pages end on <PaginaRelacionada />
-  // instead), but a bare one wastes the last moment the reader is on the page.
+  // The last moment the reader is on the page, and the only one where they've
+  // already been given what they came for. A page that ends on its sources has
+  // spent a visitor from search and asked them for nothing.
   const closing = /<ClosingCta\b([^>]*)>([\s\S]*?)<\/ClosingCta>/.exec(body);
-  if (closing && !/\btitle\s*=/.test(closing[1])) {
+  if (!closing) {
+    warnings.push(
+      "no <ClosingCta> — a statistics page should end its prose with one (AUTHORING §4)",
+    );
+  } else if (!/\btitle\s*=/.test(closing[1])) {
     warnings.push(
       '<ClosingCta> without a title="…" — it falls back to generic copy',
     );
-  } else if (closing && closing[2].trim() === "") {
+  } else if (closing[2].trim() === "") {
     warnings.push(
       "<ClosingCta> has no body copy — write the two page-specific sentences",
     );

@@ -119,11 +119,30 @@ covers — belongs **after** the figure. It is the reader's second question, not
 their first, and the one caveat that cannot wait (what a striped region means,
 how many are missing) is already in the figure's own note.
 
-Then one `##` per region or cut, each followed by its figures. Then `<Faq />`
-and `<Fuentes />` at the very end — **bare, with no `##` above them.** Each
-renders its own heading, with the id the table of contents links to, so a
-`## Preguntas frecuentes` written above the tag prints the heading twice and
-puts the same id on two elements.
+Then one `##` per region or cut, each followed by its figures. Then the closing
+`<ClosingCta title="…">`, and `<Faq />` and `<Fuentes />` at the very end —
+**bare, with no `##` above them.** Each renders its own heading, with the id the
+table of contents links to, so a `## Preguntas frecuentes` written above the tag
+prints the heading twice and puts the same id on two elements.
+
+### The three calls to action
+
+A page carries three, and only one of them is written in the body:
+
+- **`<TopCta />`**, above the prose, is placed by the route and says
+  `meta.cta`. Nothing to do but write that line.
+- **`<AsideCta />`**, in the table-of-contents gutter from `lg` up, is also the
+  route's and is the same on every page. It exists because these pages are long:
+  a reader who stops at the map is several screens below the top CTA and several
+  above the closing one.
+- **`<ClosingCta title="…">`**, the last thing in the body before `<Faq />`, is
+  yours. Two sentences, specific to what the reader has just spent five minutes
+  on — and on the property pages that means **bridging**, because the visitor
+  came for a price and Factura tracks bills. "Este mapa mide lo que cuesta
+  comprar; lo que se paga después llega en PDF todos los meses" is an argument;
+  "organiza tus servicios" is not. The paragraph above it should set the bridge
+  up, so the block lands on a reader who has already been told the page doesn't
+  answer their next question.
 
 On a **hub** — a page with child pages — add a section for them and place
 `<Subpaginas />` under it. The tag renders the list of children and nothing else,

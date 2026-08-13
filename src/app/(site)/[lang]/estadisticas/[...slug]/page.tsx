@@ -6,7 +6,7 @@ import { Faq } from "@/components/article/Faq";
 import { TocInline, TocSidebar } from "@/components/article/Toc";
 import { Fuentes } from "@/components/estadisticas/Fuentes";
 import { StatsList } from "@/components/estadisticas/StatsList";
-import { TopCta } from "@/components/guides/cta";
+import { AsideCta, TopCta } from "@/components/guides/cta";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import {
@@ -167,7 +167,14 @@ export default async function EstadisticaPage({ params }: Props) {
             </nav>
           </article>
 
-          <TocSidebar headings={headings} label="En esta página" />
+          {/* The gutter carries the contents *and* the standing offer: these
+              pages are long enough that a reader who stops at the map is five
+              screens from the closing CTA and has left the top one behind. */}
+          <TocSidebar
+            headings={headings}
+            label="En esta página"
+            below={<AsideCta />}
+          />
         </div>
       </main>
     </>

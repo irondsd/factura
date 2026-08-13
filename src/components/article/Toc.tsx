@@ -113,48 +113,72 @@ function useActiveHeading(headings: Heading[]): string | undefined {
   return active;
 }
 
+/** Stable identity for the no-contents case, so the tracking effect below isn't
+ * re-run on every render by a fresh `[]`. */
+const NO_HEADINGS: Heading[] = [];
+
 /** The desktop contents: a sticky column in the gutter to the right of the
  * article, which is empty space at these widths anyway. Renders the `<aside>`
- * itself so that an article with too few sections leaves no column behind. */
+ * itself so that an article with too few sections leaves no column behind.
+ *
+ * `below` is anything that should ride the same scroll under the list — the
+ * statistics pages put their <AsideCta /> there. It keeps the column alive on
+ * an article with too few sections to list, since a short article has the same
+ * empty gutter and the same reason to use it. */
 export function TocSidebar({
   headings,
   label,
+  below,
 }: {
   headings: Heading[];
   label: string;
+  below?: React.ReactNode;
 }) {
   // Split so the scroll tracking is never mounted for an article that shows no
   // contents at all — a hook can't sit behind the early return.
-  if (headings.length < MIN_SECTIONS) return null;
-  return <StickyToc headings={headings} label={label} />;
+  const listed = headings.length >= MIN_SECTIONS;
+  if (!listed && !below) return null;
+  return (
+    <StickyToc
+      headings={listed ? headings : NO_HEADINGS}
+      label={label}
+      below={below}
+    />
+  );
 }
 
 function StickyToc({
   headings,
   label,
+  below,
 }: {
   headings: Heading[];
   label: string;
+  below?: React.ReactNode;
 }) {
   const active = useActiveHeading(headings);
 
   return (
     <aside className="hidden w-[220px] shrink-0 pt-10 lg:block">
-      {/* Clears the 60px sticky header. Capped and scrollable: the longest
-          articles run to ten sections, which is taller than a laptop viewport
-          once the header is out of the way. */}
-      <nav
-        aria-labelledby="toc-title"
-        className="sticky top-[76px] max-h-[calc(100vh-100px)] overflow-y-auto"
-      >
-        <p
-          id="toc-title"
-          className="m-0 mb-3 pl-3 font-mono text-micro uppercase tracking-label-wide text-muted"
-        >
-          {label}
-        </p>
-        <TocList headings={headings} active={active} />
-      </nav>
+      {/* Clears the 60px sticky header. A column rather than one scrolling box:
+          the list is capped and scrolls on its own (the longest articles run to
+          ten sections, taller than a laptop viewport once the header is out of
+          the way) while `below` stays pinned under it, which is the whole point
+          of putting it here. */}
+      <div className="sticky top-[76px] flex max-h-[calc(100vh-100px)] flex-col">
+        {headings.length > 0 && (
+          <nav aria-labelledby="toc-title" className="min-h-0 overflow-y-auto">
+            <p
+              id="toc-title"
+              className="m-0 mb-3 pl-3 font-mono text-micro uppercase tracking-label-wide text-muted"
+            >
+              {label}
+            </p>
+            <TocList headings={headings} active={active} />
+          </nav>
+        )}
+        {below && <div className="flex-none pt-7">{below}</div>}
+      </div>
     </aside>
   );
 }

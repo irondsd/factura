@@ -122,6 +122,49 @@ export function ClosingCta({
   );
 }
 
+/** The CTA that rides the scroll, in the table-of-contents gutter.
+ *
+ * A statistics page is long — ten sections, a full-width map, several tables —
+ * and between the <TopCta /> above the first figure and the <ClosingCta /> at
+ * the bottom there are five or six screens on which nothing is on offer. This
+ * fills them without spending a line of the article: from `lg` up the contents
+ * column is 220px of otherwise-empty gutter, and a card pinned under the list
+ * stays on screen for the whole read.
+ *
+ * Deliberately quieter than the two block CTAs. It sits *beside* the article
+ * rather than in it, permanently, and a loud card in the gutter would compete
+ * with the figure the reader came for. One line of offer, one button, and the
+ * demo as a text link under it.
+ *
+ * The copy is fixed rather than per-page: `meta.cta` is already on screen in
+ * the <TopCta />, and repeating one sentence twice in the same viewport reads
+ * as a template rather than as an argument. What it says instead is the thing
+ * this whole section makes credible — these are series, and you can have one of
+ * your own.
+ *
+ * Kept under ~180px on purpose. It shares a capped sticky column with the
+ * contents, so every line here is a line of the list that scrolls out of sight
+ * on a laptop; two sentences and a button is what the space can afford. */
+export function AsideCta() {
+  return (
+    <aside className="border border-line bg-card px-3.5 py-3.5">
+      <Eyebrow tone="accent">Con una cuenta</Eyebrow>
+      <p className="font-display font-semibold text-[17px] leading-[1.2] tracking-tight text-ink mt-1.5 mb-0">
+        Tu propia serie
+      </p>
+      <p className="font-mono text-[12.5px] leading-[1.5] text-muted mt-1.5 mb-0">
+        Sube tus boletas y se arma sola, mes a mes.
+      </p>
+      <Button href="/login" variant="solid" size="sm" className="mt-3 w-full">
+        Crear una cuenta
+      </Button>
+      <Button href="/demo" variant="link" className="mt-2.5">
+        Ver la demo
+      </Button>
+    </aside>
+  );
+}
+
 export function DemoCta({ children }: { children?: React.ReactNode }) {
   return (
     <CtaButton href="/demo" variant="invert">
