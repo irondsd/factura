@@ -46,6 +46,7 @@ const ALLOWED_COMPONENTS = new Set([
   "ProbarCta",
   "SignupCta",
   "RelatedGuides",
+  "TrustBlock",
 ]);
 
 /** A guide's report, plus what the cross-file pass in `collect` needs:

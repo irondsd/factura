@@ -32,6 +32,7 @@ import {
   SignupCta,
 } from "@/components/guides/cta";
 import { InflacionChart } from "@/components/guides/InflacionChart";
+import { TrustBlock } from "@/components/landing/TrustBlock";
 import { cn } from "@/lib/cn";
 
 // Global MDX component map — REQUIRED by `@next/mdx` in the App Router. Maps the
@@ -199,6 +200,12 @@ const components: MDXComponents = {
   PaginaRelacionada,
   ProbarCta,
   SignupCta,
+  // The landing page's trust block, unchanged — it sizes itself off its own box,
+  // so an article column gets the ledger-row form and the landing band gets the
+  // five-column strip from the same component. Bound here only to carry the
+  // article's vertical rhythm, the way `my-*` is baked into the other MDX
+  // blocks; the .mdx writes a bare <TrustBlock />.
+  TrustBlock: () => <TrustBlock className="my-10" />,
   // <RelatedGuides />, <Faq />, <Fuentes /> and <Subpaginas /> need to know
   // which article they're in, and `useMDXComponents` takes no arguments — so the
   // article routes override these entries with bound ones via the `components`
