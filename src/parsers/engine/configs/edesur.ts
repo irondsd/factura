@@ -10,25 +10,47 @@ import type { ParserConfig } from "../types";
 export const edesurConfig: ParserConfig = {
   slug: "edesur",
   vendor: { slug: "edesur", displayName: "Edesur" },
-  version: 2,
+  version: 3,
   // Detection can't lean on the brand name. Edesur's 2026 redesign moved the
   // masthead and the whole legal back-page into vector art, so "Edesur" — which
   // used to appear a dozen times in the extracted text — now appears zero times;
-  // the bill drops from ~12k extractable characters to ~3k. Every such bill was
+  // the bill drops from ~15k extractable characters to ~3k. Every such bill was
   // landing in review as "unrecognized" even though the captures below still
   // read it perfectly.
   //
-  // So: anchor on the regulated document name, then require at least one of the
-  // fields Edesur prints around its grid. Losing any single signal (including
-  // the brand, which is why it's weighted but not required) leaves the rest
-  // carrying detection.
+  // What survives the redesign is the AFIP footer. `30-65511651-2` is Edesur
+  // S.A.'s CUIT, printed as live text on every bill in the new layout; the old
+  // layout spells the brand instead. One of the two is always there, and neither
+  // can turn up on another distributor's bill — so that pair is the identity
+  // anchor, and detection fails closed without it.
+  //
+  // Everything else on this bill is *regulated*, not Edesur's. Every ENRE
+  // distributor issues a "Liquidación de Servicios Públicos", prints a "Código
+  // CESP" and bills a "Tarifa T1 R" — Edenor's bills carry all three. They stay
+  // on as corroboration (they lift the score, so Edesur beats a vaguer config on
+  // a bill they both accept) but none of them may identify the vendor alone.
+  //
+  // Every accented character below is written `x\s*[áa]\s*y`, because one of the
+  // PDF generators Edesur has used emits each non-ASCII glyph as its own text
+  // run: the extractor reads "Liquidaci ó n", "Energ í a", "1 ° Vencimiento".
+  // Roughly nine in ten bills in the corpus extract that way, so patterns that
+  // assume the accent sits flush against its neighbours match almost nothing.
   detect: {
-    allOf: [{ pattern: "Liquidaci[óo]n de Servicios P[úu]blicos", flags: "i" }],
+    allOf: [{ pattern: "edesur|CUIT:?\\s*30-65511651-2", flags: "i" }],
     anyOf: [
-      { pattern: "edesur", flags: "i", weight: 2 },
-      { pattern: "C[óo]digo CESP", flags: "i" },
-      { pattern: "SE:\\s*\\w+\\s+Alimentador:", flags: "i" },
-      { pattern: "Tarifa T1\\s*R", flags: "i" },
+      {
+        pattern: "Liquidaci\\s*[óo]\\s*n de Servicios P\\s*[úu]\\s*blicos",
+        flags: "i",
+      },
+      { pattern: "C\\s*[óo]\\s*digo CESP", flags: "i" },
+      // Was "SE:\s*\w+\s+Alimentador:", which never fired: substation names run
+      // to several words ("SE: CARLOS PELLEGRINI"). Match the feeder code that
+      // follows instead — no bridging quantifier, so the ReDoS gate is happy.
+      { pattern: "Alimentador:\\s*\\d+-\\d+-\\d+", flags: "i" },
+      { pattern: "Tarifa T1\\s*[RG]", flags: "i" },
+      // The payment barcode below, as a bare signature: 009 (the biller code
+      // Edesur's codeline carries) plus its 55 payload digits.
+      { pattern: "\\b009\\d{55}\\b", weight: 2 },
     ],
   },
 
@@ -39,7 +61,7 @@ export const edesurConfig: ParserConfig = {
     },
     {
       pattern:
-        "1° ?\\s*Vencimiento:\\s*(\\d{2}\\/\\d{2}\\/\\d{4})\\s*TOTAL:\\s*\\$\\s*([\\d,.]+)",
+        "\\b1\\s*°\\s*Vencimiento:\\s*(\\d{2}\\/\\d{2}\\/\\d{4})\\s*TOTAL:\\s*\\$\\s*([\\d,.]+)",
       flags: "i",
       outputs: {
         labelDue: { group: 1, transform: [{ parseDate: "DMY" }] },
@@ -63,7 +85,7 @@ export const edesurConfig: ParserConfig = {
     {
       // Bimonthly dialect: "1er/2do tramo del bim. 03/2025"
       pattern:
-        "Periodo liquidado (?<half>1er|2do) tramo del bim\\.?\\s*(?<bim>\\d{1,2})\\/(?<year>\\d{4})",
+        "Per\\s*[ií]\\s*odo liquidado (?<half>1er|2do) tramo del bim\\.?\\s*(?<bim>\\d{1,2})\\/(?<year>\\d{4})",
       flags: "i",
       outputs: {
         tramoHalf: {
@@ -76,12 +98,12 @@ export const edesurConfig: ParserConfig = {
     },
     {
       // Monthly dialect: "Periodo liquidado 5"
-      pattern: "Periodo liquidado (\\d{1,2})\\b",
+      pattern: "Per\\s*[ií]\\s*odo liquidado (\\d{1,2})\\b",
       flags: "i",
       outputs: { simpleMonth: { group: 1, transform: ["toInt"] } },
     },
     {
-      pattern: "Energ[ií]a Consumida\\s+([\\d,.]+)\\s*kWh",
+      pattern: "Energ\\s*[ií]\\s*a Consumida\\s+([\\d,.]+)\\s*kWh",
       flags: "i",
       outputs: { kwh: { group: 1, transform: ["numberUS"] } },
     },

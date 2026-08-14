@@ -33,17 +33,26 @@ export function hasSlugCollision(
   return existing.some((c) => c.slug === slug);
 }
 
+/** A CUIT whose prefix marks a *juridical* person — 30, 33 and 34 are companies,
+ * so this is the bill issuer's tax ID, a public identifier of the vendor the
+ * parser is for. Anchoring detection on it is the point: Edesur's 2026 bills
+ * stopped printing the brand name anywhere in the extractable text and the AFIP
+ * footer is the only vendor-specific literal left. Personal CUILs (20, 23, 24,
+ * 27) are deliberately not exempt — those identify a human. */
+const COMPANY_CUIT = /\b3[034]-\d{8}-\d\b/g;
+
 /** String literals in a parser body that look like personal data — a run of 7+
  * digits, e.g. a hardcoded account number. Published bodies are world-readable,
  * so publish is blocked when this is non-empty. Heuristic: regex parsers
  * legitimately contain short digit groups (`\d{4}`, years), but a 7+ digit
  * literal is almost always a real account number that belongs in a `\d{7,}`
- * pattern instead. Pure (unit-tested). */
+ * pattern instead. Company CUITs are exempt (see above). Pure (unit-tested). */
 export function findLikelyPii(body: unknown): string[] {
   const hits: string[] = [];
   const walk = (v: unknown): void => {
     if (typeof v === "string") {
-      for (const m of v.matchAll(/\d{7,}/g)) hits.push(m[0]);
+      for (const m of v.replace(COMPANY_CUIT, " ").matchAll(/\d{7,}/g))
+        hits.push(m[0]);
     } else if (Array.isArray(v)) {
       for (const item of v) walk(item);
     } else if (v && typeof v === "object") {

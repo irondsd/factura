@@ -305,6 +305,22 @@ describe("edesur (barcode + dual period dialect)", () => {
     expect(z.custom.lateSurcharge).toBeUndefined();
   });
 
+  // Detection must key on something only Edesur has. "Liquidación de Servicios
+  // Públicos" is the ENRE-mandated document name, and the CESP code and "Tarifa
+  // T1 R" beside it are regulated too — Edenor's bills print all three. Swap the
+  // issuer CUIT for another distributor's and this bill stops being ours, even
+  // though every regulated signal on it still matches.
+  it("declines an LSP bill carrying another distributor's CUIT", () => {
+    const foreign = fixture("edesur-2026").replace(
+      "30-65511651-2",
+      "30-99999999-9",
+    );
+    expect(/edesur/i.test(foreign)).toBe(false);
+    expect(/Liquidaci[óo]n de Servicios P[úu]blicos/i.test(foreign)).toBe(true);
+    expect(/C[óo]digo CESP/i.test(foreign)).toBe(true);
+    expect(selectConfig(ENGINE_CONFIGS, foreign)).toBeUndefined();
+  });
+
   it("maps old bimonthly tramo labels to the right month", () => {
     const base = fixture("edesur");
     const t1 = runConfig(

@@ -88,6 +88,17 @@ describe("findLikelyPii", () => {
     expect(findLikelyPii(body)).toEqual([]);
   });
 
+  it("allows a company CUIT but still flags a personal CUIL", () => {
+    const body = {
+      detect: { allOf: [{ pattern: "CUIT:?\\s*30-65511651-2", flags: "i" }] },
+      captures: [],
+    };
+    expect(findLikelyPii(body)).toEqual([]);
+    expect(
+      findLikelyPii({ detect: { allOf: [{ pattern: "20-63131584-5" }] } }),
+    ).toEqual(["63131584"]);
+  });
+
   it("dedupes repeated literals and walks arrays + nested objects", () => {
     const body = {
       a: ["8881111222", "8881111222"],
