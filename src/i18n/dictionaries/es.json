@@ -157,6 +157,31 @@
     ],
     "closingTitle": "Empieza tu registro."
   },
+  "trustBlock": {
+    "title": "Lo que hacemos con cada factura",
+    "items": [
+      {
+        "title": "Analizamos tus facturas al instante",
+        "body": "Importes, consumo y períodos y más."
+      },
+      {
+        "title": "Proyectamos tus próximos gastos",
+        "body": "Proyectamos tus gastos futuros con tus datos históricos."
+      },
+      {
+        "title": "Analizamos el mercado",
+        "body": "Precios, gastos y liquidez por barrio."
+      },
+      {
+        "title": "Detectamos tendencias",
+        "body": "Evolución de tus gastos en luz, gas, internet, expensas y más."
+      },
+      {
+        "title": "Medimos el costo real",
+        "body": "En pesos y dólares, para entender el efecto de la inflación."
+      }
+    ]
+  },
   "siteChrome": {
     "footerLeft": "Guardado de forma segura · solo tuyo",
     "footerRight": "Argentina · ARS ≈ USD",

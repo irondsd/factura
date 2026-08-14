@@ -4,6 +4,7 @@ import { SiteFooter } from "@/components/landing/Footer";
 import { LedgerPeek } from "@/components/landing/LedgerPeek";
 import { Eyebrow, Perforation, Wordmark } from "@/components/landing/parts";
 import { SiteNav } from "@/components/landing/SiteNav";
+import { TrustBlock } from "@/components/landing/TrustBlock";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Button } from "@/components/ui";
 import { listedGuides } from "@/content/guias/guides";
@@ -80,7 +81,18 @@ export default async function LandingPage({ params }: Props) {
             <Eyebrow>{l.hero.trust}</Eyebrow>
           </div>
         </section>
+      </div>
 
+      {/* ── Trust block ──────────────────────────────────────── */}
+      {/* Outside the 560px receipt column on purpose — the same escape the
+          footer takes. Five ruled columns need the shell's width; pinched to
+          the column they'd be five 90px slivers. The band keeps the column's
+          own px-6 gutter on a phone so the edges still line up. */}
+      <div className="mx-auto w-full max-w-[1040px] px-6 pb-16 sm:px-8">
+        <TrustBlock locale={locale} />
+      </div>
+
+      <div className="mx-auto max-w-[560px] px-6">
         <Perforation className="mb-16" />
 
         {/* ── How it works ─────────────────────────────────────── */}

@@ -3,6 +3,7 @@ import { ContactForm } from "@/components/landing/ContactForm";
 import { SiteFooter } from "@/components/landing/Footer";
 import { SiteHeader } from "@/components/landing/Header";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
+import { TrustBlock } from "@/components/landing/TrustBlock";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
@@ -112,6 +113,8 @@ export default async function ContactPage({ params }: Props) {
             <ContactForm />
           </section>
         </div>
+
+        <TrustBlock locale={locale} className="mb-16" />
       </main>
 
       <SiteFooter locale={locale} />

@@ -157,6 +157,31 @@
     ],
     "closingTitle": "Start your ledger."
   },
+  "trustBlock": {
+    "title": "What we do with every bill",
+    "items": [
+      {
+        "title": "We read your bills instantly",
+        "body": "Amounts, consumption, billing periods and more."
+      },
+      {
+        "title": "We project your next expenses",
+        "body": "We forecast what's coming from your own billing history."
+      },
+      {
+        "title": "We track the market",
+        "body": "Prices, running costs and liquidity by neighbourhood."
+      },
+      {
+        "title": "We spot the trends",
+        "body": "How your electricity, gas, internet and expensas move over time."
+      },
+      {
+        "title": "We measure the real cost",
+        "body": "In pesos and dollars, so you can see what inflation is doing."
+      }
+    ]
+  },
   "siteChrome": {
     "footerLeft": "Stored securely · yours alone",
     "footerRight": "Argentina · ARS ≈ USD",
