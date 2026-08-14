@@ -423,7 +423,8 @@
     "newPropertyPlaceholder": "…o apodo de propiedad nueva",
     "skipReview": "Omitir — mantener en la bandeja de revisión",
     "uploadBill": "Subir factura",
-    "shareFailed": "△ No se pudo leer la factura compartida — intenta compartirla de nuevo"
+    "shareFailed": "△ No se pudo leer la factura compartida — intenta compartirla de nuevo",
+    "viewReview": "Ver la bandeja de revisión →"
   },
   "overview": {
     "soFar": "hasta ahora",
@@ -870,7 +871,9 @@
     "propertyLabel": "Propiedad",
     "menuOpen": "Abrir menú",
     "menuClose": "Cerrar menú",
-    "loading": "Leyendo la letra chica…"
+    "loading": "Leyendo la letra chica…",
+    "reviewBadgeOne": "1 factura necesita revisión",
+    "reviewBadgeOther": "{n} facturas necesitan revisión"
   },
   "login": {
     "tagline": "Suelta una factura y obtén tu registro. Tus servicios, contabilizados en silencio y solo para ti.",

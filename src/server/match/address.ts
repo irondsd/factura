@@ -30,10 +30,10 @@ export const LEAD_MARGIN = 0.3;
 /**
  * Multiplier applied per *character* of address text we couldn't find near the
  * rest. Charging by character rather than by token is what keeps addresses of
- * different shapes comparable: "Larrea 110, 4A" is four tokens and
+ * different shapes comparable: "Cordoba 221, 4A" is four tokens and
  * "Bartolome Mitre 2583" is three, so counting whole tokens would make a bill
  * that omits a two-character apartment look worse than one that omits a
- * four-digit street number — and rank a real Larrea bill below a passing
+ * four-digit street number — and rank a real Cordoba bill below a passing
  * mention of Mitre.
  *
  * Longer tokens are rarer and less likely to coincide, so length stands in for
@@ -76,8 +76,8 @@ export function normalizeForMatch(s: string): string {
  * too — which is what collapses every apartment spelling onto one token stream
  * without the code knowing what an apartment is:
  *
- *   "Larrea 110, 4A"   "LARREA 110 4° A"   "Larrea 110 04-A"
- *      all tokenize to:  larrea 110 4 a
+ *   "Cordoba 221, 4A"   "CORDOBA 221 4° A"   "Cordoba 221 04-A"
+ *      all tokenize to:  cordoba 221 4 a
  *
  * Leading zeros are stripped so "04" and "4" are the same token.
  */
@@ -112,10 +112,10 @@ function scoreWindow(
  * Within a window, coverage is the heaviest run of address tokens appearing in
  * *address order* — a weighted longest-increasing-subsequence over the window's
  * occurrences. Order matters because addresses read left to right, and without
- * it short tokens match ambient prose: "Larrea 110 total a pagar 4.310,55"
- * contains larrea, 110, "a" and "4" within a few words and would otherwise
+ * it short tokens match ambient prose: "Cordoba 221 total a pagar 4.310,55"
+ * contains cordoba, 221, "a" and "4" within a few words and would otherwise
  * score a fully confident 100%. Reading in order, that text offers
- * larrea→110→a→4 where the address wants larrea→110→4→a, so the run breaks and
+ * cordoba→221→a→4 where the address wants cordoba→221→4→a, so the run breaks and
  * only three of the four tokens count.
  */
 function scoreAddress(

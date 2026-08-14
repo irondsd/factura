@@ -160,6 +160,8 @@ describe("transforms", () => {
 describe("detection (step 1)", () => {
   const cases = [
     ["edesur", "edesur"],
+    ["edesur-2026", "edesur"],
+    ["edesur-2026-no-barcode", "edesur"],
     ["metrogas", "metrogas"],
     ["telecom", "telecom"],
     ["mda-expensas", "mda-expensas"],
@@ -274,6 +276,32 @@ describe("edesur (barcode + dual period dialect)", () => {
     expect(z.dueDate).toBe("2026-01-28");
     expect(z.period).toBe("2026-01-01");
     expect(z.custom.consumption).toEqual({ value: 136, unit: "kWh" });
+    expect(z.custom.lateSurcharge).toBeUndefined();
+  });
+
+  // The 2026 redesign: masthead and legal back-page became vector art, so the
+  // extracted text lost every occurrence of "Edesur" (and two-thirds of its
+  // bulk). The captures were never the problem — detection was.
+  it("reads the 2026 layout, which no longer spells its own name", () => {
+    const text = fixture("edesur-2026");
+    expect(/edesur/i.test(text)).toBe(false);
+
+    const n = runConfig(edesurConfig, text);
+    expect(n.identity).toBe("1234567");
+    expect(n.amount).toBe(8286.05);
+    expect(n.dueDate).toBe("2026-08-28");
+    expect(n.period).toBe("2026-08-01");
+    expect(n.custom.consumption).toEqual({ value: 95, unit: "kWh" });
+    expect(n.custom.lateSurcharge).toBe(42.16);
+  });
+
+  it("reads a $0 bill in the 2026 layout, which prints no barcode", () => {
+    const z = runConfig(edesurConfig, fixture("edesur-2026-no-barcode"));
+    expect(z.identity).toBe("1234567");
+    expect(z.amount).toBe(0);
+    expect(z.dueDate).toBe("2026-08-21");
+    expect(z.period).toBe("2026-08-01");
+    expect(z.custom.consumption).toEqual({ value: 0, unit: "kWh" });
     expect(z.custom.lateSurcharge).toBeUndefined();
   });
 

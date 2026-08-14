@@ -423,7 +423,8 @@
     "newPropertyPlaceholder": "…or new property nickname",
     "skipReview": "Skip — keep in review inbox",
     "uploadBill": "Upload bill",
-    "shareFailed": "△ Couldn't read the shared bill — try sharing it again"
+    "shareFailed": "△ Couldn't read the shared bill — try sharing it again",
+    "viewReview": "Open the review queue →"
   },
   "overview": {
     "soFar": "so far",
@@ -870,7 +871,9 @@
     "propertyLabel": "Property",
     "menuOpen": "Open menu",
     "menuClose": "Close menu",
-    "loading": "Reading the fine print…"
+    "loading": "Reading the fine print…",
+    "reviewBadgeOne": "1 bill needs review",
+    "reviewBadgeOther": "{n} bills need review"
   },
   "login": {
     "tagline": "Drop a bill, get a ledger. Your utilities — quietly accounted for, and yours alone.",

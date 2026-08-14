@@ -10,8 +10,27 @@ import type { ParserConfig } from "../types";
 export const edesurConfig: ParserConfig = {
   slug: "edesur",
   vendor: { slug: "edesur", displayName: "Edesur" },
-  version: 1,
-  detect: { allOf: [{ pattern: "edesur", flags: "i" }] },
+  version: 2,
+  // Detection can't lean on the brand name. Edesur's 2026 redesign moved the
+  // masthead and the whole legal back-page into vector art, so "Edesur" — which
+  // used to appear a dozen times in the extracted text — now appears zero times;
+  // the bill drops from ~12k extractable characters to ~3k. Every such bill was
+  // landing in review as "unrecognized" even though the captures below still
+  // read it perfectly.
+  //
+  // So: anchor on the regulated document name, then require at least one of the
+  // fields Edesur prints around its grid. Losing any single signal (including
+  // the brand, which is why it's weighted but not required) leaves the rest
+  // carrying detection.
+  detect: {
+    allOf: [{ pattern: "Liquidaci[óo]n de Servicios P[úu]blicos", flags: "i" }],
+    anyOf: [
+      { pattern: "edesur", flags: "i", weight: 2 },
+      { pattern: "C[óo]digo CESP", flags: "i" },
+      { pattern: "SE:\\s*\\w+\\s+Alimentador:", flags: "i" },
+      { pattern: "Tarifa T1\\s*R", flags: "i" },
+    ],
+  },
 
   captures: [
     {

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { db as Db } from "@/db";
 import { bills } from "@/db/schema";
@@ -67,6 +67,26 @@ export const billsRouter = router({
         columns: { rawText: false },
       });
     }),
+
+  /** How many bills are waiting on the user, across everything they can see.
+   *
+   * Deliberately NOT property-scoped. A bill the parser couldn't file has no
+   * property, so it only ever appears under "Todas" — which made it invisible
+   * to anyone who works inside a single property and never thinks to switch.
+   * This is what the nav badge counts, so the review queue announces itself
+   * instead of waiting to be stumbled upon. */
+  reviewCount: scopedProcedure.query(async ({ ctx }) => {
+    const [row] = await ctx.db
+      .select({ n: count() })
+      .from(bills)
+      .where(
+        and(
+          billsScope(ctx.accessiblePropertyIds, ctx.userId),
+          eq(bills.status, "needs_review"),
+        ),
+      );
+    return row?.n ?? 0;
+  }),
 
   /** Distinct vendors that actually have bills (optionally for one property) —
    * drives the ledger's vendor filter tabs, independent of account rows. */

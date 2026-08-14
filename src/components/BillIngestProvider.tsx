@@ -114,12 +114,20 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
             case "duplicate":
               showToast(interpolate(td.duplicate, { file: file.name }));
               break;
+            // Both review outcomes park the bill with no property, which means
+            // it only ever shows under "Todas" — so the toast has to carry the
+            // way there. Bare /app/bills, deliberately without ?property=:
+            // that IS the "Todas" scope.
             case "unrecognized":
-              showToast(interpolate(td.unrecognized, { file: file.name }));
+              showToast(interpolate(td.unrecognized, { file: file.name }), {
+                href: "/app/bills",
+                label: td.viewReview,
+              });
               break;
             case "parse_failed":
               showToast(
                 interpolate(td.parseFailed, { vendor: result.vendorName }),
+                { href: "/app/bills", label: td.viewReview },
               );
               break;
             case "unknown_account":

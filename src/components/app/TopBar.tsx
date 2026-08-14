@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Session } from "next-auth";
 import { useEffect, useRef, useState } from "react";
-import { Avatar } from "@/components/ui";
+import { Avatar, Badge } from "@/components/ui";
+import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
@@ -20,10 +21,15 @@ export function TopBar({ user }: { user: Session["user"] }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
 
+  // Bills waiting on the user. An unfiled one is invisible from any single
+  // property (it belongs to none), so without this the only way to find it is
+  // to already suspect it exists and switch to "Todas".
+  const reviewCount = trpc.bills.reviewCount.useQuery().data ?? 0;
+
   const NAV = [
     { href: "/app", label: t.nav.overview },
     { href: "/app/insights", label: t.nav.insights },
-    { href: "/app/bills", label: t.nav.bills },
+    { href: "/app/bills", label: t.nav.bills, badge: reviewCount },
   ];
 
   // Close the mobile menu on navigation (render-time sync, keyed by pathname —
@@ -73,7 +79,21 @@ export function TopBar({ user }: { user: Session["user"] }) {
 
   const name = user?.name ?? user?.email ?? t.profile.you;
 
-  const navLink = (l: { href: string; label: string }) => {
+  /** The review count, as a badge — and as the label a screen reader gets,
+   * since a bare number next to "Facturas" says nothing on its own. */
+  const reviewBadge = (n: number) => (
+    <Badge
+      className="ml-1.5 align-middle"
+      aria-label={interpolate(
+        n === 1 ? t.app.reviewBadgeOne : t.app.reviewBadgeOther,
+        { n },
+      )}
+    >
+      {n}
+    </Badge>
+  );
+
+  const navLink = (l: { href: string; label: string; badge?: number }) => {
     const active = pathname === l.href;
     return (
       <Link
@@ -85,6 +105,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
         )}
       >
         {l.label}
+        {l.badge ? reviewBadge(l.badge) : null}
       </Link>
     );
   };
@@ -158,6 +179,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
                   )}
                 >
                   {l.label}
+                  {l.badge ? reviewBadge(l.badge) : null}
                 </Link>
               );
             })}
