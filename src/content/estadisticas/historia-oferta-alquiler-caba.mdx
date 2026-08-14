@@ -1,0 +1,201 @@
+import { TEMPORAL_COVERAGE } from "./data/oferta-alquiler-caba";
+
+export const meta = {
+  title: "Cómo se derrumbó y volvió la oferta de alquiler en CABA",
+  titleTag: "Oferta de alquiler en CABA: la serie desde 2013",
+  description:
+    "Cuántos departamentos se publicaron en alquiler en CABA cada mes desde 2013: la caída hasta el piso de 2023, la recuperación posterior y qué barrios volvieron.",
+  summary:
+    "La serie mensual de la oferta de alquiler porteña, de 2013 a hoy: cuánto se publicaba, cuánto se dejó de publicar, cuándo tocó fondo y cuánto volvió, barrio por barrio.",
+  ogStat: "La serie completa, mes a mes",
+  cta: "El alquiler es la mitad de lo que pagas cada mes.",
+  keywords: [
+    "oferta de alquiler en caba",
+    "no hay departamentos en alquiler buenos aires",
+    "cuantos departamentos se publican en alquiler caba",
+    "ley de alquileres oferta de departamentos",
+    "mercado de alquiler caba historico",
+    "escasez de alquileres buenos aires",
+    "departamentos publicados en alquiler serie historica",
+  ],
+  published: "2026-08-14T12:00:00-03:00",
+  updated: "2026-08-14T12:00:00-03:00",
+  faq: [
+    {
+      q: "¿Es cierto que se retiraron departamentos del alquiler en Argentina?",
+      a: "En la Ciudad de Buenos Aires, la cantidad de departamentos publicados en alquiler cayó durante años y tocó su punto más bajo en 2023, cuando lo que se avisaba por mes era una fracción de lo que se avisaba entre 2016 y 2019. Después subió con fuerza y hoy la oferta publicada es la más alta de toda la serie. Eso es lo que muestran los datos del organismo de estadística porteño; qué hizo cada propietario con su departamento en el medio no lo mide ninguna estadística pública.",
+    },
+    {
+      q: "¿La Ley de Alquileres hizo caer la oferta?",
+      a: "Los datos de esta página muestran cuándo se movió la oferta, no por qué. El momento coincide: la caída se acelera durante los años en que la ley estuvo vigente y el rebote empieza en los meses siguientes a su derogación. Pero la oferta ya venía bajando desde antes de que la ley existiera, la pandemia cae justo en el medio del descenso, y en la recuperación también pesan un precio del metro cuadrado en dólares que venía bajando y un contexto macroeconómico distinto. La coincidencia de fechas es un dato fuerte; no es una demostración.",
+    },
+    {
+      q: "¿Qué mide exactamente esta serie?",
+      a: "Los metros cuadrados de departamentos avisados en alquiler cada mes, que es lo que publica IDECBA, convertidos aquí a una cantidad aproximada de departamentos. Son avisos publicados, no contratos firmados ni viviendas existentes. Un departamento que se alquila en una semana pasa por la serie una vez, igual que uno que queda publicado medio año.",
+    },
+    {
+      q: "¿Por qué la página compara contra 2016-2019 y no contra el principio de la serie?",
+      a: "Porque en julio de 2015 el organismo cambió el portal inmobiliario del que releva los avisos, y las cifras anteriores a esa fecha no son estrictamente comparables con las posteriores. El período 2016-2019 son cuatro años enteros medidos con el mismo instrumento, anteriores a la pandemia y a la Ley de Alquileres, y por eso es la base de todos los índices de esta página. Los meses del proveedor anterior están igual en el gráfico, sombreados.",
+    },
+    {
+      q: "¿Volvió la oferta a todos los barrios?",
+      a: "A casi todos. La tabla de esta página tiene los 48 barrios comparados contra su propio promedio de 2016-2019, y todos salvo uno lo superan hoy. La excepción es Puerto Madero, cuya oferta publicada viene cayendo desde bastante antes del resto y no acompañó la recuperación. Cuánto volvió cada barrio varía mucho: los del centro y el sur de la Ciudad multiplicaron su oferta bastante más que los del corredor norte.",
+    },
+    {
+      q: "¿Más oferta quiere decir alquileres más baratos?",
+      a: "No directamente. Esta serie mide cuánto se publica, no a qué precio ni cuánta gente está buscando al mismo tiempo, y esas dos cosas también se movieron en el mismo período. Lo que sí cambia con más oferta es la posición del inquilino: más para elegir y más margen para negociar. El precio publicado, trimestre a trimestre, está en la página de alquileres de CABA.",
+    },
+    {
+      q: "¿Cada cuánto se actualiza esta página?",
+      a: "Todos los meses, con cada dato nuevo de la serie de superficie publicada. Los últimos meses pueden aparecer marcados como provisorios, porque el organismo los revisa al publicar el siguiente.",
+    },
+  ],
+  sources: [
+    {
+      label:
+        "IDECBA — Instituto de Estadística y Censos de la Ciudad de Buenos Aires",
+      href: "https://www.estadisticaciudad.gob.ar/eyc/categoria-banco-datos/alquileres/",
+      note: "Organismo que releva y publica la superficie ofertada en alquiler en la Ciudad, sobre la base de datos de Adinco hasta junio de 2015 y de Argenprop desde julio de 2015.",
+    },
+    {
+      label:
+        "IDECBA — Superficie total de departamentos publicados en alquiler de 1 a 5 ambientes, por barrio",
+      href: "https://www.estadisticaciudad.gob.ar/eyc/banco-datos/superficie-total-m2-de-departamentos-en-alquiler-de-1-a-5-ambientes-usados-y-a-estrenar-por-barrio-ciudad-de-buenos-aires-julio-2013-diciembre-2021/",
+      note: "La serie mensual completa en planilla, desde julio de 2013. Es la fuente del gráfico principal y de la tabla por barrio.",
+    },
+    {
+      label:
+        "IDECBA — Superficie promedio de departamentos publicados en alquiler por cantidad de ambientes",
+      href: "https://www.estadisticaciudad.gob.ar/eyc/banco-datos/superficie-promedio-metros-cuadrados-de-departamentos-publicados-en-alquiler-usados-y-a-estrenar-por-cantidad-de-ambientes-ciudad-de-buenos-aires-marzo-de-2010-julio-de-2025/",
+      note: "El divisor con el que esta página pasa de metros cuadrados a cantidad aproximada de departamentos, mes a mes.",
+    },
+    {
+      label:
+        "IDECBA — Precio promedio de publicación de departamentos en alquiler, por barrio",
+      href: "https://www.estadisticaciudad.gob.ar/eyc/banco-datos/precio-promedio-de-publicacion-pesos-de-departamentos-en-alquiler-de-2-ambientes-usados-por-barrio-ciudad-de-buenos-aires-1er-trimestre-de-2018-2do-trimestre-de-2024/",
+      note: "Los cuadros trimestrales de precios. De ellos sale el segundo gráfico: no de los precios, sino de en cuántos barrios el organismo tuvo avisos suficientes para publicar uno.",
+    },
+    {
+      label:
+        "Boletín Oficial — Ley 27.551 (Código Civil y Comercial, locaciones)",
+      href: "https://www.boletinoficial.gob.ar/detalleAviso/primera/231429/20200630",
+      note: "La Ley de Alquileres, publicada el 30 de junio de 2020 y vigente desde el día siguiente. Es la primera de las dos fechas marcadas en los gráficos.",
+    },
+    {
+      label: "Boletín Oficial — Decreto 70/2023",
+      href: "https://www.boletinoficial.gob.ar/detalleAviso/primera/301122/20231221",
+      note: "El decreto que derogó la Ley 27.551, publicado el 21 de diciembre de 2023 y aplicable desde el 29. Es la segunda fecha marcada en los gráficos.",
+    },
+  ],
+  dataset: {
+    name: "Superficie total de departamentos publicados en alquiler, serie mensual (CABA)",
+    description:
+      "Superficie total, en metros cuadrados, de los departamentos usados y a estrenar publicados en alquiler en cada mes desde julio de 2013, para la Ciudad Autónoma de Buenos Aires y para cada uno de sus 48 barrios, por cantidad de ambientes.",
+    temporalCoverage: TEMPORAL_COVERAGE,
+    spatialCoverage: "Ciudad Autónoma de Buenos Aires, Argentina",
+    variableMeasured: [
+      "Superficie total publicada en alquiler por mes, departamentos de 1 a 5 ambientes",
+      "Superficie total publicada en alquiler por mes, por cantidad de ambientes",
+      "Superficie total publicada en alquiler por mes y por barrio",
+      "Cantidad de barrios con precio promedio de alquiler publicable, por trimestre",
+    ],
+  },
+};
+
+Entre 2020 y 2023 se volvió difícil encontrar departamento en alquiler en Buenos Aires, y después dejó de serlo. Eso lo sabe cualquiera que haya buscado en esos años. Lo que casi no se publica es cuánto: cuántos departamentos se avisaban por mes antes, cuántos en el peor momento y cuántos ahora.
+
+El organismo de estadística porteño mide esa cantidad todos los meses desde julio de 2013 y la deja en planillas que nadie lee. Esta página las lee. La serie tiene una forma que no admite mucha discusión: la oferta publicada bajó durante casi una década, se desplomó entre 2022 y 2023 hasta un piso sin precedentes en el período medido, y desde 2024 volvió con fuerza hasta superar todo lo anterior.
+
+Lo que sí admite discusión es por qué, y conviene decirlo antes que nada: **esta serie muestra cuándo se movió la oferta, no qué la movió**. Las dos fechas de la Ley de Alquileres están marcadas en los gráficos porque el lector merece poder alinear la serie con el calendario, no porque los datos alcancen para atribuirles la caída.
+
+## Qué vas a encontrar en esta página
+
+- **La serie completa**, mes a mes desde 2013, con el piso y la recuperación.
+- **Cómo se mide** la oferta publicada y qué cambió en 2015 en la forma de medirla.
+- **El mismo derrumbe visto con otro instrumento**, desde los cuadros de precios.
+- **De qué está hecha** la oferta que volvió, por tamaño de departamento.
+- **Los 48 barrios**, comparados cada uno contra su propio pasado.
+- **Las fuentes**, al final, para ir al dato original.
+
+## La oferta de alquiler en CABA, mes a mes
+
+<OfertaHistoria />
+
+La caída no empieza en 2020. Ya en los años previos a la pandemia se publicaba bastante menos que al principio de la serie, con una meseta relativamente estable entre 2016 y 2019. Lo que pasó después es de otra escala: la oferta se desmorona a lo largo de 2022, sigue cayendo durante 2023 y toca un piso que deja el mercado publicado en una fracción de aquella meseta. El rebote llega en 2024, es rápido —cuestión de meses, no de años— y no se detiene en el nivel previo: lo pasa largo.
+
+Sobre las causas, lo honesto es enumerar lo que estaba pasando al mismo tiempo y no elegir por el lector. La Ley de Alquileres, vigente entre mediados de 2020 y fines de 2023, fijaba contratos de tres años con un solo ajuste anual por índice, y su derogación devolvió los contratos a la negociación libre; el rebote arranca en los meses siguientes a esa derogación. Pero la pandemia cae justo en el medio del descenso, la caída venía de antes de que la ley existiera, y en la recuperación también pesan un precio del metro cuadrado en dólares que llevaba años bajando y un régimen de precios y de crédito distinto. La coincidencia de fechas es fuerte y vale mostrarla; convertirla en una explicación única sería pedirle a esta serie algo que no puede dar.
+
+Hay algo que sí se puede afirmar sin ninguna reserva, y es lo que le importa a quien está buscando: **hoy se publica varias veces más de lo que se publicaba en el peor momento**, y más que en cualquier otro momento de la serie.
+
+## Cómo se mide esta serie
+
+El dato lo produce el **Instituto de Estadística y Censos de la Ciudad de Buenos Aires (IDECBA)**, que releva los avisos de un portal inmobiliario y suma, mes a mes, la superficie de las unidades cuya fecha de publicación cae en ese mes. Es la serie inmobiliaria más frecuente que publica el organismo: mensual, mientras que las de precios son trimestrales.
+
+Cuatro cosas que conviene tener presentes:
+
+- **Son avisos, no contratos ni viviendas.** Mide lo que se publica, que es la oferta visible del mercado formal. No están los alquileres informales ni los que se resuelven sin aviso, y un departamento que tarda meses en alquilarse no aparece más veces que uno que se alquila enseguida.
+- **La unidad original son metros cuadrados.** El organismo publica superficie, no unidades. La cantidad de departamentos que muestra esta página es esa superficie dividida por la superficie promedio de un aviso del mes, que el propio organismo calcula. Sirve para dimensionar y para comparar; no para contar avisos de a uno.
+- **En julio de 2015 cambió el proveedor de avisos.** Hasta junio de ese año el relevamiento se hacía sobre un portal y desde julio sobre otro. Los meses anteriores están en el gráfico, sombreados, porque son parte de lo que publica el organismo, pero no son estrictamente comparables con el resto, y por eso todas las comparaciones de esta página toman como base el período 2016-2019.
+- **La estacionalidad es fuerte.** La oferta publicada tiene meses altos y meses bajos todos los años. Por eso la línea que conviene leer es la del promedio de doce meses: sostiene el mismo peso para cada mes del año y deja ver la tendencia en lugar del calendario.
+
+El universo es un poco más amplio que el de las páginas de precios: aquí entran departamentos usados y a estrenar, y allá solamente usados.
+
+## El mismo derrumbe, medido de otra manera
+
+Una serie sola, por más clara que sea su forma, es una sola medición. Vale la pena preguntarse si algo completamente distinto muestra lo mismo — y en este caso hay algo, escondido en los cuadros de precios del mismo organismo.
+
+<OfertaCobertura />
+
+El organismo no publica un precio promedio para un barrio que tuvo pocos avisos en el trimestre. Esa regla, pensada para no informar promedios frágiles, deja sin querer un termómetro: contar cuántos barrios quedan sin dato es contar en cuántos barrios de la Ciudad prácticamente no hubo mercado. Es otra tabla, otra frecuencia, otra unidad y un umbral que no elegimos nosotros, y sin embargo dibuja la misma curva, con el mismo piso y el mismo rebote en el mismo trimestre.
+
+Que dos mediciones independientes coincidan no prueba ninguna causa. Lo que sí hace es descartar que el derrumbe sea un artefacto de cómo está armada una de las dos.
+
+## De qué está hecha la oferta que volvió
+
+El mercado que volvió después de 2023 no es el mismo que se había ido.
+
+<OfertaComposicion />
+
+El cambio más nítido está en los extremos: los monoambientes ganaron una parte importante de la oferta y los departamentos grandes la perdieron. Es un mercado publicado de grano más fino, con más unidades chicas y más rotación probable, que además explica por qué la cantidad de departamentos crece todavía más que los metros cuadrados: la misma superficie repartida en unidades más chicas son más departamentos.
+
+## Barrio por barrio, quién se vació y quién volvió
+
+<OfertaCambio />
+
+Conviene leer esta tabla con la primera columna a la vista. Arriba de todo hay barrios donde se publican unos pocos departamentos por mes, y multiplicar por cuatro un número de un dígito es más fácil que hacerlo con uno de tres: parte de los primeros puestos es aritmética de bases chicas, no un vuelco del mercado.
+
+Con eso descontado, queda una diferencia real y bastante nítida. Los barrios del centro y del sur —los más baratos, los que en el mapa de precios quedan en el extremo claro— multiplicaron su oferta publicada bastante más que los del corredor norte, que siguen siendo los que más se publican en términos absolutos pero crecieron mucho menos contra su propio pasado. La recuperación no repartió parejo, y repartió más donde menos había.
+
+La fila del final es la que más dice. Es el único barrio de la Ciudad que no volvió, y su caída empieza años antes que la del resto, lo cual lo deja fuera de cualquier explicación que dependa de las fechas marcadas en los gráficos de arriba. Por qué, esta serie no lo dice.
+
+## Cuánto se publica y a qué precio
+
+Esta página mide cantidad. La otra mitad de la pregunta —a cuánto se publica, y qué relación tiene ese alquiler con lo que cuesta comprar— está medida en las páginas vecinas, sobre los mismos barrios y el mismo organismo.
+
+<PaginaRelacionada slug="oferta-alquiler-caba">
+  La misma serie, pero en el mapa del mes más reciente: en qué barrios hay
+  departamentos publicados hoy y cuántos, con los 48 barrios y las 15 comunas.
+</PaginaRelacionada>
+
+<PaginaRelacionada slug="alquiler-caba">
+  El precio de publicación de los alquileres, en pesos por mes, trimestre a
+  trimestre. Es el cuadro del que sale el segundo gráfico de esta página.
+</PaginaRelacionada>
+
+<PaginaRelacionada slug="rentabilidad-alquiler-caba">
+  El mismo período visto desde el lado del propietario: cuánto rendía comprar
+  para alquilar en cada momento, con las mismas dos fechas marcadas.
+</PaginaRelacionada>
+
+Del lado de lo que se paga todos los meses además del alquiler están [las expensas promedio en CABA](/guias/expensas-promedio-caba-2026) y [la inflación de vivienda por región](/estadisticas/inflacion-de-vivienda), que mide alquiler, expensas, luz, gas y agua juntos.
+
+<ClosingCta title="El alquiler es el número que se negocia una vez">
+  Esta serie explica por qué encontrar departamento fue difícil y por qué dejó
+  de serlo. Lo que sigue después de firmar no se negocia: llega en PDF todos los
+  meses. Sube las boletas de luz, gas, agua e internet y Factura extrae el
+  importe, el vencimiento y el consumo, y arma tu histórico sin que anotes nada.
+</ClosingCta>
+
+<Faq />
+
+<Fuentes />

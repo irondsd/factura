@@ -188,6 +188,16 @@ const ENTRIES: Entry[] = [
     file: "oferta-alquiler-caba.mdx",
     load: () => import("./oferta-alquiler-caba.mdx"),
   },
+  // The same series as the page above, read down its time axis instead of
+  // across its map — and the one page in the section that is a history rather
+  // than a lookup. Directly after the map it shares a dataset with, so a reader
+  // who has just found their barrio can carry on into what happened to it.
+  {
+    slug: ["historia-oferta-alquiler-caba"],
+    crumb: "Historia de la oferta",
+    file: "historia-oferta-alquiler-caba.mdx",
+    load: () => import("./historia-oferta-alquiler-caba.mdx"),
+  },
   // The two price pages above, divided. Last because it depends on both: it publishes no
   // series of its own, and its page is largely about the arithmetic joining
   // them. Flat for the same reason as its two inputs.

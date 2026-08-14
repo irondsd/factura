@@ -476,6 +476,17 @@ export const display = (value: number): string => {
   return `~${NUMBER.format(n)} ${n === 1 ? "depto." : "deptos."}`;
 };
 
+/** The same figure without its noun: "~200", "0".
+ *
+ * For a table that repeats the count down a column and can say "deptos." once,
+ * in the header. Worth its own export rather than left to callers because the
+ * tilde has to survive the shortening — it is what marks the number as derived
+ * — and because a zero must not print as "~0". */
+export const displayShort = (value: number): string => {
+  const n = roundUnits(value);
+  return n === 0 ? "0" : `~${NUMBER.format(n)}`;
+};
+
 export const displayM2 = (value: number): string => formatM2(value);
 
 const SHARE = new Intl.NumberFormat("es-AR", {
@@ -518,3 +529,275 @@ export const LEGEND: { label: string }[] = [
  * — but the legend swatch and the table's fallback are rendered
  * unconditionally, so they get a label that is true of this dataset. */
 export const NO_DATA = "Sin oferta";
+
+// ── The history ────────────────────────────────────────────────────────────
+//
+// Everything above reads one month. Everything below reads all 157 of them,
+// and it exists for /estadisticas/historia-oferta-alquiler-caba, which is a
+// different kind of page: the map answers "where is there something to rent",
+// this answers "how much has there been, and since when".
+//
+// Three decisions are shared by every export down here.
+//
+// 1. **The moving average is the series that gets read.** The monthly figure
+//    swings by a third between January and a winter month in the same year, so
+//    on a thirteen-year axis the raw line is a hairball and every comparison
+//    between two months is partly a comparison between two seasons. A trailing
+//    twelve-month mean holds every month once, which removes the season
+//    entirely rather than modelling it. The raw series is still drawn, behind,
+//    because a smoother should never be the only thing a reader is shown.
+//
+// 2. **Windows, not points.** "The trough" is not the worst month — that is one
+//    reading with one month's noise in it. The page compares three twelve-month
+//    windows, so each figure it quotes is an average of twelve numbers.
+//
+// 3. **The baseline is 2016–2019, not 2013.** The series opens in July 2013
+//    near its own maximum and falls for two years, but `PROVIDER_CHANGE` sits
+//    in the middle of that fall — so how much of it is the market and how much
+//    is the change of listings provider cannot be separated from these tables.
+//    2016–2019 is four whole years on one provider, before the pandemic and
+//    before the rent law, which makes it the only stretch that can carry an
+//    index without an asterisk.
+
+/** The month IDECBA's source of listings changed, from Adinco to Argenprop
+ * (see `sourceNote` in the JSON).
+ *
+ * A break in the instrument, not in the market, and the page draws it: figures
+ * either side are not strictly comparable, and the two years before it are the
+ * only ones on the old provider. It also explains the gap the series opens
+ * with — IDECBA discontinued the tables between September 2011 and June 2013
+ * for the same reason. */
+export const PROVIDER_CHANGE = "2015-07";
+
+/** Width of the moving average, in months. Twelve, so the smoothed series is
+ * season-free by construction rather than by adjustment. */
+export const ROLLING = 12;
+
+/** One month of the city series, raw and smoothed.
+ *
+ * `m2Avg`/`unitsAvg` are `null` for the first eleven months, where a trailing
+ * window would be incomplete — drawn as a gap rather than as a short average,
+ * which would start the series with an artificial dip. */
+export type HistoryPoint = {
+  period: string;
+  m2: number;
+  units: number;
+  m2Avg: number | null;
+  unitsAvg: number | null;
+  provisional: boolean;
+  /** True for the months IDECBA collected from the previous provider. */
+  legacyProvider: boolean;
+};
+
+/** A point the moving average has reached — what `historyExtremes` returns, so
+ * a caller never has to null-check the figure it just asked for. */
+export type SmoothedPoint = HistoryPoint & { m2Avg: number; unitsAvg: number };
+
+/** The whole city series for one size, oldest first. */
+export function history(size: SizeId = DEFAULT_SIZE): HistoryPoint[] {
+  return PERIODS.map((period, i) => {
+    const complete = i >= ROLLING - 1;
+    const window = complete ? PERIODS.slice(i - ROLLING + 1, i + 1) : [];
+    const mean = (of: (p: string) => number): number =>
+      window.reduce((total, p) => total + of(p), 0) / ROLLING;
+    return {
+      period,
+      m2: ciudad(size, period),
+      units: ciudadUnits(size, period),
+      m2Avg: complete ? mean((p) => ciudad(size, p)) : null,
+      unitsAvg: complete ? mean((p) => ciudadUnits(size, p)) : null,
+      provisional: PROVISIONAL.has(period),
+      legacyProvider: period < PROVIDER_CHANGE,
+    };
+  });
+}
+
+/** The three points the page quotes as text, all taken off the **smoothed**
+ * series: its lowest twelve months, its highest, and where it ends.
+ *
+ * Off the smoothed series on purpose. The lowest single month is a fact about
+ * one August; the lowest twelve are a fact about the market. */
+export function historyExtremes(size: SizeId = DEFAULT_SIZE): {
+  trough: SmoothedPoint;
+  peak: SmoothedPoint;
+  last: SmoothedPoint;
+} {
+  const smoothed = history(size).filter(
+    (p): p is SmoothedPoint => p.m2Avg !== null && p.unitsAvg !== null,
+  );
+  return {
+    trough: smoothed.reduce((a, b) => (b.m2Avg < a.m2Avg ? b : a)),
+    peak: smoothed.reduce((a, b) => (b.m2Avg > a.m2Avg ? b : a)),
+    last: smoothed[smoothed.length - 1],
+  };
+}
+
+/** The three twelve-month windows every comparison on the page is made
+ * between. See the header for why the baseline is 2016–2019.
+ *
+ * `now` is defined by its length rather than by a date, so it follows the
+ * series forward on every refresh. */
+export const WINDOWS = [
+  {
+    id: "base",
+    label: "2016–2019",
+    note: "cuatro años sobre un mismo proveedor, antes de la pandemia y de la ley",
+    from: "2016-01",
+    to: "2019-12",
+  },
+  {
+    id: "trough",
+    label: "2023",
+    note: "el año más bajo de toda la serie",
+    from: "2023-01",
+    to: "2023-12",
+  },
+  {
+    id: "now",
+    label: "Últimos 12 meses",
+    note: `hasta ${periodLabel(LAST_PERIOD)}`,
+    from: PERIODS[Math.max(0, PERIODS.length - 12)],
+    to: LAST_PERIOD,
+  },
+] as const;
+
+export type WindowId = (typeof WINDOWS)[number]["id"];
+
+/** The baseline every index on the page is 100 at. */
+export const BASE_WINDOW: WindowId = "base";
+
+const monthsOf = (id: WindowId): string[] => {
+  const w = WINDOWS.find((x) => x.id === id)!;
+  return PERIODS.filter((p) => p >= w.from && p <= w.to);
+};
+
+// A window that has fallen off the front or the back of the series would make
+// every index on the page a division by a number of months nobody chose. The
+// `now` window can be short only if the whole series is, which `assertShape`
+// would already have caught.
+for (const w of WINDOWS) {
+  if (monthsOf(w.id).length < 12) {
+    throw new Error(
+      `oferta-alquiler-caba: the "${w.id}" window (${w.from}→${w.to}) covers ${monthsOf(w.id).length} months of the series, not the 12 or more it needs. Check that the dataset still reaches back that far.`,
+    );
+  }
+}
+
+/** The city's average month inside a window — the mean of its monthly figures,
+ * which for a total is the same thing as its total divided by its months. */
+export function cityWindow(
+  size: SizeId,
+  id: WindowId,
+): { m2: number; units: number } {
+  const months = monthsOf(id);
+  const mean = (of: (p: string) => number): number =>
+    months.reduce((total, p) => total + of(p), 0) / months.length;
+  return {
+    m2: mean((p) => ciudad(size, p)),
+    units: mean((p) => ciudadUnits(size, p)),
+  };
+}
+
+/** The city's offer indexed to the baseline window: 100 is an average month of
+ * 2016–2019. The one number on the page that can be compared between a barrio
+ * and the city, and between two barrios of very different sizes. */
+export const cityIndex = (size: SizeId, id: WindowId): number =>
+  (cityWindow(size, id).m2 / cityWindow(size, BASE_WINDOW).m2) * 100;
+
+/** What the offer is *made of*, window by window: each size band's share of the
+ * advertised square metres.
+ *
+ * A share of m², not of units, and the last row is why. IDECBA publishes an
+ * average surface for one, two and three ambientes and none for the "4 y 5"
+ * band, so that band has square metres and no count at all — and a table whose
+ * rows added to 88 % would be describing a market with a hole in it. In square
+ * metres the four rows are the whole market by construction. */
+export type MixRow = {
+  id: SizeId | "resto";
+  label: string;
+  /** Share of the city's advertised m², per window, in `WINDOWS` order. */
+  shares: number[];
+};
+
+export function sizeMix(): MixRow[] {
+  const totals = WINDOWS.map((w) => cityWindow("total", w.id).m2);
+  const named = SIZE_IDS.filter((s) => s !== "total").map((size) => ({
+    id: size,
+    label: SIZES.find((s) => s.id === size)!.label,
+    shares: WINDOWS.map(
+      (w, i) => (cityWindow(size, w.id).m2 / totals[i]) * 100,
+    ),
+  }));
+  return [
+    ...named,
+    {
+      id: "resto" as const,
+      label: "4 y 5 ambientes",
+      // The residual, and it has to be: the source publishes no table for this
+      // band. It is never small — around a tenth of the market at its lowest —
+      // so leaving it out would misstate every other row's importance.
+      shares: WINDOWS.map(
+        (_, i) => 100 - named.reduce((total, r) => total + r.shares[i], 0),
+      ),
+    },
+  ];
+}
+
+/** One barrio's history, as the three windows and the index each of the last
+ * two makes against the first. */
+export type ChangeRow = {
+  id: string;
+  label: string;
+  meta: string;
+  /** Average month of each window, m², in `WINDOWS` order. */
+  m2: number[];
+  units: number[];
+  /** Each window against the baseline, which is 100 by definition. `null` for a
+   * barrio that advertised nothing at all across the whole baseline — no such
+   * barrio exists in the current data, but an index on a zero denominator is
+   * not a number this page should invent if one ever does. */
+  index: (number | null)[];
+};
+
+/** Every barrio, most recovered first. Nothing is dropped: the interesting row
+ * is the one at the bottom. */
+export function barrioChange(size: SizeId = DEFAULT_SIZE): ChangeRow[] {
+  const byWindow = WINDOWS.map((w) => {
+    const months = monthsOf(w.id);
+    const totals = new Map<string, { m2: number; units: number }>();
+    for (const b of BARRIOS) {
+      let m2 = 0;
+      let units = 0;
+      for (const p of months) {
+        const area = averageArea(size, p);
+        const value = DATA.barrios[b.id][size][PERIODS.indexOf(p)];
+        m2 += value;
+        units += value / area;
+      }
+      totals.set(b.id, {
+        m2: m2 / months.length,
+        units: units / months.length,
+      });
+    }
+    return totals;
+  });
+
+  return BARRIOS.map((b) => {
+    const cells = byWindow.map((w) => w.get(b.id)!);
+    const base = cells[0].m2;
+    return {
+      id: b.id,
+      label: b.label,
+      meta: comunaLabel(b.comuna),
+      m2: cells.map((c) => c.m2),
+      units: cells.map((c) => c.units),
+      index: cells.map((c) => (base === 0 ? null : (c.m2 / base) * 100)),
+    };
+  }).sort((a, b) => (b.index.at(-1) ?? -1) - (a.index.at(-1) ?? -1));
+}
+
+/** An index against the baseline. Whole numbers: the input is a ratio of two
+ * four-year and one-year averages, and a decimal on it would be precision the
+ * arithmetic doesn't have. */
+export const formatIndex = (value: number | null): string =>
+  value === null ? "—" : NUMBER.format(Math.round(value));

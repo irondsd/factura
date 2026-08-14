@@ -14,6 +14,10 @@ import { ResumenRegion } from "@/components/estadisticas/ResumenRegion";
 import { AlquilerCabaMapa } from "@/components/estadisticas/AlquilerCabaMapa";
 import { AlquileresBuscados } from "@/components/estadisticas/AlquileresBuscados";
 import { OfertaAlquilerCabaMapa } from "@/components/estadisticas/OfertaAlquilerCabaMapa";
+import { OfertaCambio } from "@/components/estadisticas/OfertaCambio";
+import { OfertaCobertura } from "@/components/estadisticas/OfertaCobertura";
+import { OfertaComposicion } from "@/components/estadisticas/OfertaComposicion";
+import { OfertaHistoria } from "@/components/estadisticas/OfertaHistoria";
 import { OfertaPorZona } from "@/components/estadisticas/OfertaPorZona";
 import { PaginaRelacionada } from "@/components/estadisticas/PaginaRelacionada";
 import { RentabilidadBuscados } from "@/components/estadisticas/RentabilidadBuscados";
@@ -181,6 +185,13 @@ const components: MDXComponents = {
   // every barrio in every month, which is the whole reason the page exists.
   OfertaAlquilerCabaMapa,
   OfertaPorZona,
+  // The history page, which reads the same m² dataset across all of its months
+  // rather than one of them, plus the rent tables' own coverage as a second
+  // instrument. Same contract: none of the four takes a prop.
+  OfertaHistoria,
+  OfertaCobertura,
+  OfertaComposicion,
+  OfertaCambio,
   PrecioDepartamento,
   BarriosBuscados,
   PrecioPorZona,
