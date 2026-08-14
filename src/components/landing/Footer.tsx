@@ -1,7 +1,6 @@
 import {
   Eyebrow,
   NAV_LINK,
-  NEW_TAB,
   SHELL,
   Wordmark,
 } from "@/components/landing/parts";
@@ -58,7 +57,6 @@ export async function SiteFooter({
                       <a
                         href={localizedHref(link.href, locale)}
                         className={NAV_LINK}
-                        {...(link.newTab ? NEW_TAB : {})}
                       >
                         {link.label}
                       </a>
