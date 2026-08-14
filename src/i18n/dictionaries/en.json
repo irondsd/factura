@@ -70,6 +70,7 @@
     "app": "Go to your ledger"
   },
   "nav": {
+    "home": "Home",
     "docs": "Docs",
     "faq": "FAQ",
     "demo": "Demo",
@@ -263,7 +264,8 @@
   },
   "charts": {
     "total": "Total",
-    "noCompleteMonths": "No complete months yet."
+    "noCompleteMonths": "No complete months yet.",
+    "vsPrevMonth": "vs. previous month"
   },
   "demo": {
     "liveDemo": "Live demo",

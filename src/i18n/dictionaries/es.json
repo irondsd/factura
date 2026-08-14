@@ -70,6 +70,7 @@
     "app": "Ir a tu registro"
   },
   "nav": {
+    "home": "Inicio",
     "docs": "Docs",
     "faq": "FAQ",
     "demo": "Demo",
@@ -263,7 +264,8 @@
   },
   "charts": {
     "total": "Total",
-    "noCompleteMonths": "Aún no hay meses completos."
+    "noCompleteMonths": "Aún no hay meses completos.",
+    "vsPrevMonth": "vs. el mes anterior"
   },
   "demo": {
     "liveDemo": "Demo en vivo",

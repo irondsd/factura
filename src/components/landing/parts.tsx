@@ -15,6 +15,15 @@ import { cn } from "@/lib/cn";
 // usual `truncate` / `overflow-x-auto` escape hatches inside actually work.
 export const SHELL = "w-full max-w-[1040px] mx-auto px-5 sm:px-8";
 
+// Anchor props for every link that leaves the public site for the signed-in
+// app — sign-in, above all. A visitor reading the FAQ, halfway through a /probar
+// drop, or mid-guide loses their place if /login takes over the tab, and the
+// two contexts are separate things to have open: the marketing page stays where
+// it was and the app arrives beside it. `noopener` because the new tab is the
+// same origin as far as the browser cares, but a tab that can reach back
+// through `window.opener` is never what we want.
+export const NEW_TAB = { target: "_blank", rel: "noopener" } as const;
+
 // Nav-link styling shared by the header and footer.
 export const NAV_LINK =
   "font-mono text-micro uppercase tracking-[0.16em] text-muted no-underline whitespace-nowrap transition-colors hover:text-accent";

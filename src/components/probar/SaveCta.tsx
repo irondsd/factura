@@ -1,5 +1,6 @@
 "use client";
 
+import { NEW_TAB } from "@/components/landing/parts";
 import { Button, hint } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -35,6 +36,7 @@ export function SaveCta({
         variant="solid"
         size="lg"
         className="flex-none"
+        {...NEW_TAB}
       >
         {p.saveButton}
       </Button>

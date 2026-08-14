@@ -1,4 +1,10 @@
-import { Eyebrow, NAV_LINK, SHELL, Wordmark } from "@/components/landing/parts";
+import {
+  Eyebrow,
+  NAV_LINK,
+  NEW_TAB,
+  SHELL,
+  Wordmark,
+} from "@/components/landing/parts";
 import { siteFooterColumns } from "@/components/landing/SiteNav";
 import type { Locale } from "@/i18n/config";
 import { LandingLanguageSwitch } from "@/i18n/LandingLanguageSwitch";
@@ -52,6 +58,7 @@ export async function SiteFooter({
                       <a
                         href={localizedHref(link.href, locale)}
                         className={NAV_LINK}
+                        {...(link.newTab ? NEW_TAB : {})}
                       >
                         {link.label}
                       </a>

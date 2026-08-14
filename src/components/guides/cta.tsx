@@ -1,4 +1,4 @@
-import { Eyebrow } from "@/components/landing/parts";
+import { Eyebrow, NEW_TAB } from "@/components/landing/parts";
 import { Button } from "@/components/ui";
 
 // CTA pieces used inside guide MDX (Spanish-only section, so labels are inline
@@ -13,14 +13,23 @@ export function CtaButton({
   children,
   variant = "solid",
   className,
+  newTab,
 }: {
   href: string;
   children: React.ReactNode;
   variant?: "solid" | "invert";
   className?: string;
+  /** For the CTAs that leave the guide for the app — see NEW_TAB. */
+  newTab?: boolean;
 }) {
   return (
-    <Button href={href} variant={variant} size="xl" className={className}>
+    <Button
+      href={href}
+      variant={variant}
+      size="xl"
+      className={className}
+      {...(newTab ? NEW_TAB : {})}
+    >
       {children}
     </Button>
   );
@@ -64,6 +73,7 @@ export function TopCta({ children }: { children: React.ReactNode }) {
         variant="accent"
         size="lg"
         className="self-start sm:flex-none sm:self-auto"
+        {...NEW_TAB}
       >
         Crear una cuenta
       </Button>
@@ -155,7 +165,13 @@ export function AsideCta() {
       <p className="font-mono text-[12.5px] leading-[1.5] text-muted mt-1.5 mb-0">
         Sube tus boletas y se arma sola, mes a mes.
       </p>
-      <Button href="/login" variant="solid" size="sm" className="mt-3 w-full">
+      <Button
+        href="/login"
+        variant="solid"
+        size="sm"
+        className="mt-3 w-full"
+        {...NEW_TAB}
+      >
         Crear una cuenta
       </Button>
       <Button href="/demo" variant="link" className="mt-2.5">
@@ -175,7 +191,7 @@ export function DemoCta({ children }: { children?: React.ReactNode }) {
 
 export function SignupCta({ children }: { children?: React.ReactNode }) {
   return (
-    <CtaButton href="/login" variant="solid">
+    <CtaButton href="/login" variant="solid" newTab>
       {children ?? "Crear una cuenta gratis"}
     </CtaButton>
   );

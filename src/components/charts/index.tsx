@@ -20,7 +20,7 @@ import { cn } from "@/lib/cn";
 import { useI18n } from "@/i18n/I18nProvider";
 import { formatMonth, formatMonthShort, formatMoney } from "@/lib/format";
 import type { Slice } from "@/lib/insights";
-import { Legend } from "./primitives";
+import { Delta, Legend } from "./primitives";
 
 export * from "./primitives";
 export * from "./RangeControl";
@@ -71,7 +71,23 @@ type TipPayload = {
   value?: number | string | readonly (string | number)[];
   color?: string;
   dataKey?: string | number | ((obj: unknown) => unknown);
+  /** The whole row the hovered point came from — recharts hands every payload
+   * entry the same object. See `prevKey` for what the line charts stash there. */
+  payload?: Record<string, unknown>;
 };
+
+/** Where <LineChartFx> parks a series' previous-month value on each row, so the
+ * tooltip can show the change without knowing the index it's hovering. Prefixed
+ * with a character no series label starts with, and never given to a <Line>. */
+const prevKey = (label: string) => `__prev:${label}`;
+
+/** Month-over-month change, in percent. Null whenever there's nothing honest to
+ * divide by: no previous month in range, a gap in the series, or a previous
+ * month of exactly zero (which makes any rise an infinite one). */
+function momPct(current: number, prev: unknown): number | null {
+  if (typeof prev !== "number" || !isFinite(prev) || prev === 0) return null;
+  return ((current - prev) / prev) * 100;
+}
 
 type Segment = { id: string; name: string; value: number; color: string };
 
@@ -119,7 +135,12 @@ function StackTooltip({
   );
 }
 
-/** Single/multi-series line tooltip: exact value per series for the hovered month. */
+/** Single/multi-series line tooltip: exact value per series for the hovered
+ * month, plus its change from the month before where there is one. The delta is
+ * the thing a reader is actually after — "is this up or down?" — and reading it
+ * off the slope of a line is guesswork. Series with no previous reading simply
+ * don't get a chip, and the "vs. last month" caption only appears when at least
+ * one of them did, so a first month says nothing rather than saying "—". */
 function LineTooltip({
   active,
   payload,
@@ -131,28 +152,41 @@ function LineTooltip({
   label?: string | number;
   currency: string;
 }) {
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   if (!active || !payload || payload.length === 0) return null;
-  const rows = payload.filter((p) => p.value != null);
+  const rows = payload
+    .filter((p) => p.value != null)
+    .map((p) => ({
+      ...p,
+      pct: momPct(Number(p.value), p.payload?.[prevKey(String(p.dataKey))]),
+    }));
   if (rows.length === 0) return null;
+  const anyDelta = rows.some((r) => r.pct != null);
   return (
     <div className={tooltipBox}>
       <div className={tooltipHeader}>
         {typeof label === "string" ? formatMonth(label, locale) : ""}
       </div>
       {rows.map((p) => (
-        <div
-          key={String(p.dataKey)}
-          className="flex items-center gap-2.5 mt-[3px]"
-        >
-          <span
-            className="w-2 h-2 inline-block shrink-0"
-            style={{ background: p.color }}
-          />
-          <span className="flex-1 text-muted">{String(p.name)}</span>
-          <span className="font-medium">
-            {formatExact(Number(p.value), currency)}
-          </span>
+        <div key={String(p.dataKey)} className="flex flex-col">
+          <div className="flex items-center gap-2.5 mt-3">
+            <span
+              className="w-2 h-2 inline-block shrink-0"
+              style={{ background: p.color }}
+            />
+            <span className="flex-1 text-muted">{String(p.name)}</span>
+            <span className="font-medium">
+              {formatExact(Number(p.value), currency)}
+            </span>
+          </div>
+          {anyDelta && (
+            <div className="pt-2 text-muted">
+              <span className="w-13 shrink-0 text-right">
+                <Delta pct={p.pct} />
+              </span>{" "}
+              {t.charts.vsPrevMonth}
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -181,7 +215,12 @@ export function LineChartFx({
   const { locale } = useI18n();
   const data = months.map((m, i) => {
     const row: Record<string, number | string | null> = { month: m };
-    for (const s of series) row[s.label] = s.values[i] ?? null;
+    for (const s of series) {
+      row[s.label] = s.values[i] ?? null;
+      // Carried for the tooltip's month-over-month chip only — no <Line> reads
+      // it, so it never reaches the axes or the drawn geometry.
+      row[prevKey(s.label)] = i > 0 ? (s.values[i - 1] ?? null) : null;
+    }
     return row;
   });
   return (
