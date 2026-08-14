@@ -7,14 +7,15 @@ export const meta = {
   cta: "¿Tu factura de luz subió? Mira cuánto y por qué.",
   keywords: [
     "cuánto aumentó la luz",
-    "aumento tarifa luz 2026",
-    "inflación tarifa eléctrica",
-    "factura de luz cara edenor edesur",
-    "quita de subsidios luz",
+    "aumento de luz",
+    "suba de luz",
+    "aumento en las tarifas de electricidad",
+    "aumento del precio de la electricidad",
+    "cómo calcular el aumento de electricidad",
   ],
   categories: ["inflacion", "servicios"],
   published: "2026-08-08T13:00:00-03:00",
-  updated: "2026-08-08T13:00:00-03:00",
+  updated: "2026-08-14T12:15:00-03:00",
   faq: [
     {
       q: "¿Cuánto aumentó la luz desde 2023?",
@@ -22,15 +23,19 @@ export const meta = {
     },
     {
       q: "¿Por qué la luz subió tanto más que todo lo demás?",
-      a: "Porque partía de un precio artificialmente bajo. Durante años el Estado cubrió con subsidios buena parte del costo de generar y distribuir la energía, y desde diciembre de 2023 esa diferencia se fue trasladando a la factura. No fue un aumento sobre un precio normal: fue la recomposición de un precio que estaba muy por debajo de su costo.",
+      a: "Porque partía de un precio artificialmente bajo. Durante años el Estado cubrió con subsidios buena parte del costo de generar y distribuir la energía, y desde diciembre de 2023 esa diferencia se fue trasladando a la factura. La suba de luz de estos años no fue un aumento sobre un precio normal: fue la recomposición de un precio que estaba muy por debajo de su costo.",
     },
     {
       q: "¿Cuánto aumenta la luz cada mes en 2026?",
       a: "Los cuadros tarifarios de Edenor y Edesur se actualizan mensualmente y en 2026 los ajustes vienen siendo de entre 1,7% y 3% por mes, según el componente. Sobre esa base, cada hogar paga distinto según su segmento de subsidio y su consumo.",
     },
     {
-      q: "¿Mi factura subió por la tarifa o porque consumí más?",
-      a: "Se sabe mirando los kWh, no los pesos. Si el consumo del período es parecido al del año anterior y el importe se duplicó, la suba es tarifaria. Si los kWh también crecieron, parte del aumento salió de tu casa y se puede corregir.",
+      q: "¿Cómo calcular el aumento de electricidad de mi factura?",
+      a: "Divide el importe del período por los kWh consumidos para obtener tu precio por kilovatio hora, y repite la cuenta con la factura del mismo mes del año anterior. El aumento de tarifa es (precio nuevo ÷ precio viejo − 1) × 100; lo que reste hasta la diferencia del total es consumo. Si los kWh son parecidos y el importe se duplicó, la suba es tarifaria; si los kWh también crecieron, parte del aumento salió de tu casa y se puede corregir.",
+    },
+    {
+      q: "¿A quién afecta más el aumento de la electricidad?",
+      a: "Sobre todo a los hogares sin subsidio, que pagan tarifa plena, y a los que sí lo tienen pero consumen bastante por encima del bloque bonificado, porque cada kWh excedente se factura sin descuento. También pesa más en las viviendas sin gas de red, que calientan agua y ambientes con electricidad, y en los hogares de ingresos bajos, donde la energía ocupa una porción mucho mayor del presupuesto. Los usuarios electrodependientes registrados quedan fuera: tienen un descuento del 100% por ley.",
     },
     {
       q: "¿Puedo pagar menos si tengo subsidio?",
@@ -40,6 +45,8 @@ export const meta = {
 };
 
 De todas las facturas del hogar, la de luz es la que más cambió de escala en los últimos años. Preguntarse **cuánto aumentó la luz** tiene una respuesta incómoda pero clara, y entenderla ayuda a saber qué parte se puede reclamar, qué parte se puede gestionar y qué parte simplemente hay que presupuestar.
+
+Aquí está en tres planos: cuánto fue el **aumento en las tarifas de electricidad** desde 2023 según el INDEC, cómo calcular el que aparece en tu propia boleta —que casi nunca es el mismo número— y a quién golpea más, porque la misma suba de luz no cae igual sobre todos los hogares.
 
 ## La magnitud del cambio
 
@@ -60,6 +67,28 @@ Eso explica dos cosas que a primera vista no cierran:
 - **Por qué el salto fue tan grande y tan concentrado.** Los mayores saltos ocurrieron en 2024, cuando se recompuso el nivel. Después, los ajustes mensuales volvieron a ser incrementos normales: en 2026, entre 1,7% y 3% por mes según el componente y la distribuidora.
 - **Por qué dos vecinos pagan distinto.** El monto final depende del segmento de subsidio en el que quedó registrado cada hogar. Es la variable que más mueve la factura y la única sobre la que se puede actuar por trámite.
 
+## Cómo calcular el aumento de electricidad de tu factura
+
+El porcentaje que publican los medios es el del cuadro tarifario. El que pagas tú sale de una división que se hace con dos números impresos en la misma boleta:
+
+1. Toma el importe del período y los **kWh** consumidos.
+2. Divide importe por kWh. Eso es tu **precio por kilovatio hora**.
+3. Repite la cuenta con la factura del **mismo mes del año anterior**, no con la del mes pasado: el consumo eléctrico tiene estacionalidad fuerte por el aire acondicionado.
+4. El aumento de tarifa es `(precio nuevo ÷ precio viejo − 1) × 100`.
+
+Un ejemplo con números redondos:
+
+| Período    | Importe | kWh | Precio por kWh |
+| ---------- | ------- | --- | -------------- |
+| Julio 2025 | $52.000 | 260 | $200           |
+| Julio 2026 | $87.000 | 290 | $300           |
+
+El total subió 67%, pero el **aumento del precio de la electricidad** fue del 50% ($300 contra $200) y el resto —casi un 12% más de consumo— salió de la casa. Son dos problemas distintos: el primero se gestiona con el subsidio, el segundo con el equipamiento.
+
+Una advertencia propia de 2026: si tu hogar tiene subsidio, esta cuenta va a mostrar una suba de tarifa que el cuadro tarifario no tuvo. Es la **bonificación extraordinaria del 25%** que rige este año y se apaga mes a mes hasta diciembre — al reducirse el descuento, el precio efectivo que pagas por kWh sube aunque la tarifa esté quieta. Cómo funciona ese refuerzo está en [subsidio de luz: cómo funciona](/guias/subsidio-de-luz-como-funciona).
+
+La misma división, aplicada al gas y con la vuelta de tuerca de la estacionalidad invernal, está en [cuánto aumentó el gas](/guias/cuanto-aumento-el-gas-en-argentina).
+
 ## Qué mirar en tu boleta
 
 Antes de concluir que "aumentó todo", hay tres números en tu factura que separan las causas:
@@ -69,6 +98,17 @@ Antes de concluir que "aumentó todo", hay tres números en tu factura que separ
 3. **Los cargos fijos e impuestos.** Una parte del total no depende de cuánto consumas, y es la que hace que una factura de bajo consumo no baje tanto como se espera.
 
 El recorrido campo por campo está en [cómo leer la factura de Edesur](/guias/como-leer-la-factura-de-edesur) y en [cómo leer la factura de Edenor](/guias/como-leer-la-factura-de-edenor).
+
+## A quién afecta el aumento de la electricidad
+
+El **aumento de luz** no cae parejo sobre todos los hogares. Cuatro cosas deciden cuánto te toca a ti, y ninguna tiene que ver con el porcentaje del titular:
+
+- **Tener subsidio o no tenerlo.** Es la variable más grande, y la diferencia entre dos hogares idénticos de la misma cuadra. Sin registro en el SEF se paga tarifa plena todo el año.
+- **Cuánto consumes por encima del bloque bonificado.** El subsidio no descuenta sobre el total: cubre un bloque de kWh —del orden de los 300 mensuales en los meses de pico y aproximadamente la mitad en los templados— y **cada kilovatio excedente se factura sin descuento**. Un hogar subsidiado con consumo alto siente el aumento casi como uno sin subsidio.
+- **Tener gas de red o no tenerlo.** Una vivienda que calienta agua y ambientes con electricidad concentra en una sola boleta lo que otras reparten entre dos servicios, así que cualquier suba de luz le pega al doble.
+- **Cuánto pesa la energía en tu presupuesto.** Es lo que vuelve regresivo al aumento: el mismo porcentaje se lleva una porción mucho mayor del ingreso de un hogar de ingresos bajos que del de uno acomodado.
+
+Hay además un grupo al que, por ley, **no debería afectarle**: los usuarios electrodependientes por razones de salud. Quien está inscripto en el registro nacional tiene derecho a un descuento del 100% sobre los cargos fijos y variables por la [Ley 27.351](/normativa#ley-27351). Si el descuento no aparece discriminado en la boleta, eso es un reclamo, no un aumento.
 
 ## Lo que sí se puede gestionar
 
