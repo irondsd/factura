@@ -5,6 +5,11 @@ import {
   MultiploRegiones,
 } from "@/components/estadisticas/ComparacionRegiones";
 import { BarriosBuscados } from "@/components/estadisticas/BarriosBuscados";
+import { CostoCapitulos } from "@/components/estadisticas/CostoCapitulos";
+import { CostoConstruccionHistoria } from "@/components/estadisticas/CostoConstruccionHistoria";
+import { CostoConstruccionMapa } from "@/components/estadisticas/CostoConstruccionMapa";
+import { CostoConstruccionResumen } from "@/components/estadisticas/CostoConstruccionResumen";
+import { CostoPorZona } from "@/components/estadisticas/CostoPorZona";
 import { IpcViviendaChart } from "@/components/estadisticas/IpcViviendaChart";
 import { PrecioDepartamento } from "@/components/estadisticas/PrecioDepartamento";
 import { PrecioPorZona } from "@/components/estadisticas/PrecioPorZona";
@@ -195,6 +200,16 @@ const components: MDXComponents = {
   PrecioDepartamento,
   BarriosBuscados,
   PrecioPorZona,
+  // The construction-cost page. The first three read the IDECBA cost and index
+  // series and take nothing; <CostoConstruccionMapa /> and <CostoPorZona />
+  // additionally join the sale-price and FX series, and each renders nothing at
+  // all if those three ever stop sharing a quarter — a state the page has to
+  // tolerate rather than a case to guard for in the .mdx.
+  CostoConstruccionResumen,
+  CostoConstruccionHistoria,
+  CostoCapitulos,
+  CostoConstruccionMapa,
+  CostoPorZona,
   // The rentability page. Same deal — every one of these reads the joined
   // dataset and takes nothing. <RentabilidadDispersion /> and
   // <RentabilidadContraste /> can each render nothing at all if IDECBA's

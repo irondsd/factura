@@ -19,6 +19,7 @@
     "validate:stats": "bun scripts/validate-stats.ts",
     "audit:seo": "bun scripts/audit-seo.ts",
     "data:caba": "bun scripts/fetch-caba-inmobiliario.ts",
+    "data:construccion": "bun scripts/fetch-caba-construccion.ts",
     "data:dolar": "bun scripts/fetch-dolar.ts",
     "data:caba-geo": "bun scripts/build-caba-geo.ts",
     "db:push": "dotenv -e .env.local drizzle-kit push",
@@ -31,8 +32,8 @@
     "parser:update": "dotenv -e .env.local -- tsx scripts/updateOfficialParser.ts",
     "parser:update:prod": "dotenv -e .env.prod -- tsx scripts/updateOfficialParser.ts",
     "sample:pdf": "tsx scripts/makeSamplePdf.ts",
-    "submissions:cleanup": "dotenv -e .env.local -- tsx scripts/cleanupSubmissionFiles.ts",
     "submissions:cleanup:prod": "dotenv -e .env.prod -- tsx scripts/cleanupSubmissionFiles.ts",
+    "submissions:pull:prod": "dotenv -e .env.prod -- tsx scripts/pullUnrecognizedSubmissions.ts",
     "forecast:backtest": "dotenv -e .env.local -- tsx scripts/backtestForecast.ts",
     "forecast:backtest:prod": "dotenv -e .env.prod -- tsx scripts/backtestForecast.ts"
   },

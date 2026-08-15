@@ -169,6 +169,17 @@ const ENTRIES: Entry[] = [
     file: "precio-m2-caba.mdx",
     load: () => import("./precio-m2-caba.mdx"),
   },
+  // The cost side of the same market, and flat for the same reason as its
+  // neighbours: the series is CABA-only. Straight after the sale-price page
+  // because it is the other half of "what does a square metre cost" — that one
+  // is what a finished metre sells for, this one what it costs to build, and the
+  // two are joined on a map that only exists because both are on disk.
+  {
+    slug: ["precio-m2-construccion-caba"],
+    crumb: "Costo de construcción",
+    file: "precio-m2-construccion-caba.mdx",
+    load: () => import("./precio-m2-construccion-caba.mdx"),
+  },
   // The other half of the same question, and flat for the same reason: the
   // series is CABA-only. The two link to each other with <PaginaRelacionada />.
   {
