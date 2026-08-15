@@ -7,6 +7,7 @@ import {
   siteName,
   twitterImage,
 } from "@/config/meta";
+import { siteUrl } from "@/config/urls";
 import type { Dictionary, Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -97,6 +98,17 @@ export function buildMetadata({
     alternates: {
       canonical: url,
       ...(languages ? { languages } : {}),
+      // Feed autodiscovery, on the Spanish pages only — /feed.xml carries the
+      // guides and the statistics, and both sections exist only in Spanish.
+      //
+      // It's declared here rather than in a layout for the same reason this
+      // module exists at all: Next replaces `alternates` wholesale with the
+      // last segment that defines one, so a layout-level feed link would be
+      // dropped by every page that sets its own canonical — which is all of
+      // them.
+      ...(locale === "es"
+        ? { types: { "application/rss+xml": `${siteUrl}/feed.xml` } }
+        : {}),
     },
     openGraph: {
       type,

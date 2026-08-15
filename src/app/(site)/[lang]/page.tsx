@@ -7,6 +7,7 @@ import { SiteNav } from "@/components/landing/SiteNav";
 import { TrustBlock } from "@/components/landing/TrustBlock";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Button } from "@/components/ui";
+import { statsChildren, statsHref } from "@/content/estadisticas/pages";
 import { listedGuides } from "@/content/guias/guides";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
@@ -41,9 +42,19 @@ export default async function LandingPage({ params }: Props) {
   const { t } = await getI18n(locale);
   const l = t.landing;
 
-  // Guides are Spanish-only — surface them on the es homepage (a high-authority
-  // internal link). The footer's own Guías link follows the same rule.
-  const guides = locale === "es" ? await listedGuides() : [];
+  // Guides and statistics are both Spanish-only — surface them on the es
+  // homepage (a high-authority internal link). The footer's own links follow the
+  // same rule.
+  //
+  // `statsChildren([])` rather than `listedStatsPages()`: the latter includes
+  // the six regional pages nested under Inflación de vivienda, and a homepage
+  // teaser listing "GBA", "Cuyo", "Patagonia" as peers of the sections they
+  // belong to reads as a sitemap. This is the top level only — one row per
+  // subject.
+  const [guides, stats] =
+    locale === "es"
+      ? await Promise.all([listedGuides(), statsChildren([])])
+      : [[], []];
 
   return (
     <>
@@ -157,6 +168,58 @@ export default async function LandingPage({ params }: Props) {
             ))}
           </div>
         </section>
+
+        {/* ── Statistics (Spanish-only) ────────────────────────── */}
+        {/* Above the guides, and given two lines per row where a guide gets one.
+            These pages are the section nobody else on the Argentine web
+            publishes, so they're what the homepage should be spending its
+            attention — and its internal links — on. */}
+        {stats.length > 0 && (
+          <>
+            <Perforation className="mb-16" />
+            <section className="pb-16">
+              <SectionLabel>Estadísticas</SectionLabel>
+              <p className="text-center font-mono text-[13.5px] leading-[1.65] text-muted m-0 mb-7 mx-auto max-w-[460px]">
+                Precios, alquileres y servicios en Argentina, con datos
+                oficiales y actualizados cada mes.
+              </p>
+              <div className="flex flex-col gap-1">
+                {stats.slice(0, 4).map((p, i) => (
+                  <Link
+                    key={p.slug.join("/")}
+                    href={statsHref(p.slug)}
+                    className={cn(
+                      "group flex items-baseline justify-between gap-4 py-[14px] no-underline",
+                      i !== 0 && HAIRLINE,
+                    )}
+                  >
+                    <span className="min-w-0">
+                      <span className="block font-mono text-[13.5px] text-ink transition-colors group-hover:text-accent">
+                        {p.meta.title}
+                      </span>
+                      {p.meta.ogStat && (
+                        <span className="block font-mono text-micro uppercase tracking-label text-muted mt-[5px]">
+                          {p.meta.ogStat}
+                        </span>
+                      )}
+                    </span>
+                    <span className="flex-none font-mono text-micro text-accent">
+                      →
+                    </span>
+                  </Link>
+                ))}
+              </div>
+              <div className="text-center mt-7">
+                <Link
+                  href="/estadisticas"
+                  className="font-mono text-micro uppercase tracking-label text-muted no-underline transition-colors hover:text-accent"
+                >
+                  Ver todas las estadísticas →
+                </Link>
+              </div>
+            </section>
+          </>
+        )}
 
         {/* ── Guides (Spanish-only) ────────────────────────────── */}
         {guides.length > 0 && (

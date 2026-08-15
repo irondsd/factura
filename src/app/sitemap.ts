@@ -97,6 +97,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Statistics pages, Spanish-only like the guides. `lastModified` is
   // `meta.updated` and that's load-bearing here: these pages gain a data point
   // every month, and the date is how a crawler learns to come back.
+  //
+  // Ranked a notch above the guides at every level — index 0.8 against 0.7, leaf
+  // 0.7 against 0.6. Priority is only ever a hint about *relative* importance
+  // within this file, and the honest ordering is that these pages are the ones
+  // worth crawling first: they carry data published nowhere else in this form,
+  // they change monthly, and they're what another site would cite. A guide
+  // explaining what expensas are is worth having and is not that.
   const stats = await listedStatsPages();
   const statsEntries: MetadataRoute.Sitemap = [
     {
@@ -105,13 +112,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ? new Date(Math.max(...stats.map((p) => Date.parse(p.meta.updated))))
         : now,
       changeFrequency: "monthly",
-      priority: 0.7,
+      priority: 0.8,
     },
     ...stats.map((p) => ({
       url: statsUrl(p.slug),
       lastModified: new Date(p.meta.updated),
       changeFrequency: "monthly" as const,
-      priority: 0.6,
+      priority: 0.7,
     })),
   ];
 
@@ -127,5 +134,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  return [...landing, ...guidesEntries, ...statsEntries, ...normativa];
+  // Statistics ahead of the guides, matching both the priorities above and the
+  // nav order. Order carries no formal weight in the protocol, but it's the
+  // reading order of anyone — or anything — walking the file top to bottom.
+  return [...landing, ...statsEntries, ...guidesEntries, ...normativa];
 }

@@ -1,9 +1,4 @@
-import {
-  Eyebrow,
-  NAV_LINK,
-  SHELL,
-  Wordmark,
-} from "@/components/landing/parts";
+import { Eyebrow, NAV_LINK, SHELL, Wordmark } from "@/components/landing/parts";
 import { siteFooterColumns } from "@/components/landing/SiteNav";
 import type { Locale } from "@/i18n/config";
 import { LandingLanguageSwitch } from "@/i18n/LandingLanguageSwitch";

@@ -83,6 +83,7 @@ There is one scope, \`mcp:read\`. The tools cover properties, vendors, bills (li
 
 ## Optional
 
+- [Feed](https://factura.uno/feed.xml): RSS 2.0 over the Guías and Estadísticas above, newest change first. Items carry both \`pubDate\` (first published) and \`atom:updated\` (last revised) — the statistics pages are republished monthly as new official data lands, so the second is the one that moves.
 - The signed-in application lives under https://factura.uno/app and requires authentication; it is not publicly indexable. The /demo pages above show the same screens on sample data.`;
 
 export async function GET() {

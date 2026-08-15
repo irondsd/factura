@@ -4,8 +4,8 @@
     "suggestText": "¿Buscas la versión en español?",
     "suggestDismiss": "Dismiss",
     "home": {
-      "title": "Factura — your bill ledger",
-      "description": "Upload PDF bills, parse charges and meter data, and track household spending, utilities, and consumption over time. Factura is your bill ledger for electricity, gas, water, and home expenses."
+      "title": "Track your electricity, gas and water bills — Factura",
+      "description": "Upload your bills as PDFs and Factura extracts amounts, periods and consumption. Track what you spend on electricity, gas, water and building fees."
     },
     "faq": {
       "title": "FAQ",
@@ -29,11 +29,11 @@
     },
     "demoInsights": {
       "title": "Demo · Insights",
-      "description": "A live demo of Factura's insights: stacked spend over time, vendor share, the inflation lens (pesos vs the dollar cost), and per-vendor consumption trends — on sample data."
+      "description": "A live demo of Factura's insights: stacked spend over time, vendor share, pesos against the dollar and consumption trends — all on sample data."
     },
     "demoBills": {
       "title": "Demo · Bills",
-      "description": "A live demo of Factura's bill ledger: every parsed bill per vendor and month with peso and USD amounts. Open one to see the extracted fields and text — on sample data."
+      "description": "A live demo of Factura's bill ledger: every parsed bill by vendor and month, in pesos and USD. Open one to see the extracted fields and text."
     },
     "probar": {
       "title": "Try your bill",

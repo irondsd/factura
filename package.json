@@ -10,6 +10,7 @@
     "test": "vitest run",
     "predev": "npm run build:worker",
     "prebuild": "npm run build:worker",
+    "indexnow": "bun scripts/ping-indexnow.ts",
     "lint": "eslint",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",

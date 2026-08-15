@@ -10,8 +10,14 @@ import { cn } from "@/lib/cn";
 export type NavLink = { label: string; href: string };
 
 // Single source of truth for the marketing nav: which links exist, in what
-// order, and the one piece of locale logic — Guías and Estadísticas are
+// order, and the one piece of locale logic — Estadísticas and Guías are
 // Spanish-only, because those two sections themselves only exist in Spanish.
+//
+// Estadísticas leads Guías in both this row and the footer. The guides are
+// commodity explainers that forty better-linked sites have also written; the
+// statistics are the one thing here nobody else publishes — a monthly-updated
+// series nobody can copy without redoing the work. The section that earns the
+// links gets the higher slot.
 //
 // `signIn` is returned separately because the header treats it differently: it
 // stays visible on mobile in the bar while the rest collapse behind the burger.
@@ -31,8 +37,8 @@ export function siteNavLinks(
       { label: t.nav.demo, href: "/demo" },
       ...(locale === "es"
         ? [
-            { label: t.nav.guides, href: "/guias" },
             { label: t.nav.stats, href: "/estadisticas" },
+            { label: t.nav.guides, href: "/guias" },
           ]
         : []),
     ],
@@ -69,8 +75,8 @@ export function siteFooterColumns(
       links: [
         ...(locale === "es"
           ? [
-              { label: t.nav.guides, href: "/guias" },
               { label: t.nav.stats, href: "/estadisticas" },
+              { label: t.nav.guides, href: "/guias" },
               // Spanish-only for the same reason as the two above — the page is
               // Argentine law and exists only in Spanish. It lives here and not
               // in the top bar: that row already carries six links plus Ingresar,
