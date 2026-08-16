@@ -18,7 +18,6 @@ import {
 } from "@/content/guias/guides";
 import { guideMetadata } from "@/i18n/metadata";
 import { faqPageLd, guideLd } from "@/i18n/structuredData";
-import { cn } from "@/lib/cn";
 
 // One guide article. Static set only — `dynamicParams = false` 404s any slug
 // that isn't a real `.mdx` file. (The Spanish-only guard lives in the layout.)
@@ -107,77 +106,34 @@ export default async function GuidePage({ params }: Props) {
             />
 
             <header className="pb-2">
-              {/* Two columns only when the guide has a preview, and only from
-                  `md` up — below that the 680px article isn't wide enough to
-                  give the headline a usable column beside a 240px image, so it
-                  drops underneath. That's also the order it's written in, so
-                  the headline reaches a screen reader first either way. The
-                  chips stay outside the grid: they run the full width under
-                  both columns. */}
-              <div
-                className={cn(
-                  meta.preview &&
-                    "md:grid md:grid-cols-[1fr_240px] md:gap-7 md:items-start",
+              <Eyebrow tone="accent">Guía</Eyebrow>
+              <h1 className="font-display font-semibold text-[34px] sm:text-[44px] tracking-[-0.025em] leading-[1.06] mt-[18px] mb-0">
+                {meta.title}
+              </h1>
+              {/* Wraps onto separate lines on a phone rather than truncating —
+                three timestamped items don't fit one narrow line. Separators
+                trail their item so a wrapped line never *starts* with a "·".
+                There's always a following item (the reading time), so the
+                trailing dots are never left dangling. */}
+              <p className="flex flex-wrap gap-x-2 gap-y-1 font-mono text-micro uppercase tracking-label-wide text-muted mt-5">
+                <span>
+                  Publicado el{" "}
+                  <time dateTime={meta.published}>
+                    {fmtDateTime(meta.published)}
+                  </time>
+                  <span aria-hidden="true"> ·</span>
+                </span>
+                {meta.updated !== meta.published && (
+                  <span>
+                    Actualizado el{" "}
+                    <time dateTime={meta.updated}>
+                      {fmtDateTime(meta.updated)}
+                    </time>
+                    <span aria-hidden="true"> ·</span>
+                  </span>
                 )}
-              >
-                <div>
-                  <Eyebrow tone="accent">Guía</Eyebrow>
-                  <h1
-                    className={cn(
-                      "font-display font-semibold tracking-[-0.025em] leading-[1.06] mt-[18px] mb-0",
-                      // A headline set beside a 240px image has ~two thirds of
-                      // the column left, and 44px type wraps it to five or six
-                      // lines there. One step down keeps the pair balanced.
-                      meta.preview
-                        ? "text-[34px] md:text-[38px]"
-                        : "text-[34px] sm:text-[44px]",
-                    )}
-                  >
-                    {meta.title}
-                  </h1>
-                  {/* Wraps onto separate lines on a phone rather than truncating —
-                    three timestamped items don't fit one narrow line. Separators
-                    trail their item, after a non-breaking space, so a wrapped
-                    line never *starts* with a "·" and a "·" can't be left alone
-                    on a line of its own either. (The second is what the header
-                    column beside a preview image is narrow enough to cause.)
-                    There's always a following item (the reading time), so the
-                    trailing dots are never left dangling. */}
-                  <p className="flex flex-wrap gap-x-2 gap-y-1 font-mono text-micro uppercase tracking-label-wide text-muted mt-5">
-                    <span>
-                      Publicado el{" "}
-                      <time dateTime={meta.published}>
-                        {fmtDateTime(meta.published)}
-                      </time>
-                      <span aria-hidden="true">{"\u00a0·"}</span>
-                    </span>
-                    {meta.updated !== meta.published && (
-                      <span>
-                        Actualizado el{" "}
-                        <time dateTime={meta.updated}>
-                          {fmtDateTime(meta.updated)}
-                        </time>
-                        <span aria-hidden="true">{"\u00a0·"}</span>
-                      </span>
-                    )}
-                    <span>{minutes} min de lectura</span>
-                  </p>
-                </div>
-                {meta.preview && (
-                  // Real content here, unlike the listing thumbnail — nothing
-                  // else on the page describes it, so it carries the author's
-                  // alt text. Eager, not lazy: it's above the fold.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={meta.preview.src}
-                    alt={meta.preview.alt}
-                    width={960}
-                    height={540}
-                    decoding="async"
-                    className="w-full aspect-video object-cover border border-line bg-card mt-6 md:mt-[26px]"
-                  />
-                )}
-              </div>
+                <span>{minutes} min de lectura</span>
+              </p>
               <CategoryChips
                 categories={categories}
                 label="Temas de esta guía"

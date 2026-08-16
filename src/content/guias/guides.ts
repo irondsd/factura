@@ -41,14 +41,20 @@ export type GuideMeta = {
   vendor?: string;
   /** Short blurb shown on the /guias index cards. */
   summary: string;
-  /** Optional 16:9 illustration for the listings and the article header. Every
-   * guide is expected to read fine without one — a guide with no `preview` gets
-   * the text-only row it has always had, and the ones that do have an image sit
-   * in the same list beside it. `src` is a path under `/img/guias/previews/`;
-   * `alt` describes the picture for the article header, where it's content. The
-   * listings render it decorative (`alt=""`) because the link text beside the
-   * thumbnail already names the guide. See AUTHORING.md §2. */
-  preview?: { src: string; alt: string };
+  /** Optional 16:9 illustration: a path under `/img/guias/previews/`, shown as
+   * a thumbnail on the guide's row in the listings — the /guias index and the
+   * category hubs. Deliberately *not* on the article itself: a cover image
+   * there pushed the headline into a narrow column and earned nothing the prose
+   * didn't already say.
+   *
+   * Every guide is expected to read fine without one — a guide with no
+   * `preview` gets the text-only row it has always had, and the ones that do
+   * have an image sit in the same list beside it.
+   *
+   * A path and not a `{ src, alt }` pair because the thumbnail is decorative:
+   * it renders `alt=""`, since the link text beside it already names the guide
+   * and a description there would be read out twice. See AUTHORING.md §2. */
+  preview?: string;
   /** One line of copy for the `<TopCta />` banner the article route renders
    * between the header and the first paragraph — the hook for the reader who
    * skims the intro and leaves. Written per guide; see AUTHORING.md §5. */

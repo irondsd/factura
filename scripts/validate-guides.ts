@@ -171,47 +171,18 @@ function validateFile(file: string, knownSlugs: Set<string>): GuideReport {
       }
     }
 
-    // ── preview: the optional 16:9 image the listings and header show ───────
+    // ── preview: the optional 16:9 thumbnail the listings show ──────────────
     // Optional, but a present-and-broken one is an error rather than a warning:
     // a typo'd path renders a broken image on the index, which is worse than
     // the text-only row the guide would otherwise have had.
     const preview = meta.preview;
     if (preview !== undefined) {
-      if (
-        preview === null ||
-        typeof preview !== "object" ||
-        Array.isArray(preview)
-      ) {
+      if (typeof preview !== "string" || !PREVIEW_RE.test(preview)) {
         errors.push(
-          "meta.preview, if set, must be an object like { src: '/img/guias/previews/….jpg', alt: '…' }",
+          `meta.preview, if set, must be a path like "/img/guias/previews/${slug}.jpg"`,
         );
-      } else {
-        const slots = preview as Record<string, unknown>;
-        for (const key of Object.keys(slots)) {
-          if (key !== "src" && key !== "alt") {
-            errors.push(
-              `meta.preview has unknown key "${key}" — only src and alt`,
-            );
-          }
-        }
-        const src = slots.src;
-        if (typeof src !== "string" || !PREVIEW_RE.test(src)) {
-          errors.push(
-            `meta.preview.src must be a path like "/img/guias/previews/${slug}.jpg"`,
-          );
-        } else if (!existsSync(path.join(PUBLIC_DIR, src))) {
-          errors.push(`meta.preview.src "${src}" is not a file under public/`);
-        }
-        // Required, and separately from `src`: the article header renders this
-        // image as content, where an empty alt would leave a screen reader
-        // nothing at all. (The listing thumbnail is decorative and overrides
-        // it — see the note in `GuideList`.)
-        const alt = slots.alt;
-        if (typeof alt !== "string" || alt.trim() === "") {
-          errors.push(
-            "meta.preview.alt must be a non-empty string describing the image",
-          );
-        }
+      } else if (!existsSync(path.join(PUBLIC_DIR, preview))) {
+        errors.push(`meta.preview "${preview}" is not a file under public/`);
       }
     }
 
