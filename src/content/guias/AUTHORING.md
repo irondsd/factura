@@ -85,7 +85,7 @@ the situation below is actually the one you're in.
 | `ogDescription` | Same, for the card's body copy. Defaults to `description`.                                                                            |
 | `vendor`        | The guide is about one company's bill — `"Edesur"`, `"MetroGAS"`, `"AySA"`. Names the card's eyebrow and the JSON-LD `about`.         |
 | `ogImage`       | Steers the generated card: `{ eyebrow, stat }`. See below.                                                                            |
-| `preview`       | The guide has an illustration. A path; shown as a thumbnail in the listings only. See below.                                          |
+| `preview`       | The guide has an illustration. A path; shown in the listings and beside the article. See below.                                       |
 | `canonical`     | **Another guide's slug.** This guide competes with that one for the same query and that one should win. See below.                    |
 | `noindex`       | `true` while the guide is a draft: it renders at its URL, and appears in no listing, no sitemap, no `llms.txt`. Remove it to publish. |
 
@@ -109,9 +109,9 @@ validator warns if a published guide links to one.
 ### The preview image
 
 Optional, and genuinely optional — most guides don't have one, and a guide
-without a `preview` renders exactly the row it always has. Guides with and
-without an image are meant to sit in the same list together, so don't add a
-filler image just to make a section look uniform.
+without a `preview` renders exactly the row and the header it always has. Guides
+with and without an image are meant to sit in the same list together, so don't
+add a filler image just to make a section look uniform.
 
 ```mdx
 preview: "/img/guias/previews/como-pagar-la-factura-de-telecom-personal.jpg",
@@ -122,18 +122,22 @@ preview: "/img/guias/previews/como-pagar-la-factura-de-telecom-personal.jpg",
   160px thumbnail at well over 2× in ~70 KB. The validator errors if the path
   doesn't match that shape or the file isn't there.
 - **Where it shows up:** a 16:9 thumbnail on the left of the guide's row on
-  `/guias` and on its category hub. **That's the only place.** It is not on the
-  article, and it does not change the social card — that's still the generated
-  one from `ogImage`.
-- **It's a path, not a `{ src, alt }` pair.** The thumbnail renders `alt=""`
-  because the guide's title sits right beside it in the same link, and a
-  description there would be read out twice.
+  `/guias` and on its category hub, and on the article itself — at the top of
+  the contents column in the gutter, or, on a phone, full width above the
+  headline. It does not change the social card; that's still the generated one
+  from `ogImage`.
+- **It never sits over the headline.** On the article it's beside the prose, not
+  in front of it: the 680px column keeps its full width and the `<h1>` keeps its
+  size at every breakpoint.
+- **It's a path, not a `{ src, alt }` pair.** It renders `alt=""` at both
+  placements, because the guide's title sits right beside it and a description
+  would be read out twice.
 
 This is not the same thing as an image _in_ the body. An illustration the prose
 refers to ("así se ve la factura…") belongs in the body as normal markdown,
-under `/img/guias/`. A `preview` is a listing thumbnail and nothing else — if
-the image is worth showing to someone already reading the guide, put it in the
-body, where it can sit next to the paragraph it illustrates.
+under `/img/guias/`. A `preview` is the guide's one decorative illustration — if
+the image is something the reader needs to _look at_ to follow a step, put it in
+the body, where it can sit next to the paragraph it illustrates.
 
 ### The social card
 

@@ -41,19 +41,21 @@ export type GuideMeta = {
   vendor?: string;
   /** Short blurb shown on the /guias index cards. */
   summary: string;
-  /** Optional 16:9 illustration: a path under `/img/guias/previews/`, shown as
+  /** Optional 16:9 illustration: a path under `/img/guias/previews/`. Shown as
    * a thumbnail on the guide's row in the listings — the /guias index and the
-   * category hubs. Deliberately *not* on the article itself: a cover image
-   * there pushed the headline into a narrow column and earned nothing the prose
-   * didn't already say.
+   * category hubs — and on the article, at the head of the contents column
+   * beside the prose (above the headline on a phone, which has no column).
+   * Never a cover image *over* the headline: that pushed the <h1> into a narrow
+   * column and earned nothing the prose didn't already say.
    *
    * Every guide is expected to read fine without one — a guide with no
-   * `preview` gets the text-only row it has always had, and the ones that do
-   * have an image sit in the same list beside it.
+   * `preview` gets the text-only row and the plain header it has always had,
+   * and the ones that do have an image sit in the same list beside it.
    *
-   * A path and not a `{ src, alt }` pair because the thumbnail is decorative:
-   * it renders `alt=""`, since the link text beside it already names the guide
-   * and a description there would be read out twice. See AUTHORING.md §2. */
+   * A path and not a `{ src, alt }` pair because the image is decorative at
+   * both placements: it renders `alt=""`, since the title beside it already
+   * names the guide and a description would be read out twice. See
+   * AUTHORING.md §2. */
   preview?: string;
   /** One line of copy for the `<TopCta />` banner the article route renders
    * between the header and the first paragraph — the hook for the reader who

@@ -18,6 +18,7 @@ import {
 } from "@/content/guias/guides";
 import { guideMetadata } from "@/i18n/metadata";
 import { faqPageLd, guideLd } from "@/i18n/structuredData";
+import { cn } from "@/lib/cn";
 
 // One guide article. Static set only — `dynamicParams = false` 404s any slug
 // that isn't a real `.mdx` file. (The Spanish-only guard lives in the layout.)
@@ -49,6 +50,34 @@ const fmtDateTime = (iso: string) =>
     hour12: false,
     timeZone: "America/Argentina/Buenos_Aires",
   }).format(new Date(iso));
+
+/** The guide's illustration, at whichever of its two placements is showing.
+ * Written once and rendered twice — at the top of the contents column from `lg`
+ * up, and above the headline below that, where there is no column — the same
+ * shape `TocSidebar` / `TocInline` already use for the contents itself. One
+ * `src`, so the second copy costs a cache hit rather than a download.
+ *
+ * `alt=""` for the reason the listing thumbnail uses it: the <h1> right beside
+ * it already names the guide, and the image adds nothing a screen reader would
+ * want read a second time. The intrinsic size is the file's, so the box is
+ * reserved before it loads and the headline under it doesn't jump. Not lazy:
+ * at both placements it is on the first screen. */
+function Preview({ src, className }: { src: string; className?: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      width={960}
+      height={540}
+      decoding="async"
+      className={cn(
+        "w-full aspect-video object-cover border border-line bg-card",
+        className,
+      )}
+    />
+  );
+}
 
 export default async function GuidePage({ params }: Props) {
   const { slug } = await params;
@@ -104,6 +133,14 @@ export default async function GuidePage({ params }: Props) {
                 { name: meta.title, href: `/guias/${slug}` },
               ]}
             />
+
+            {/* The phone's copy of the illustration: full width at the top of
+              the page, under the breadcrumbs and above the headline. From `lg`
+              up it's the sidebar's copy that shows instead, so this one is
+              hidden rather than duplicated on screen. */}
+            {meta.preview && (
+              <Preview src={meta.preview} className="mb-7 lg:hidden" />
+            )}
 
             <header className="pb-2">
               <Eyebrow tone="accent">Guía</Eyebrow>
@@ -175,7 +212,15 @@ export default async function GuidePage({ params }: Props) {
             </nav>
           </article>
 
-          <TocSidebar headings={headings} label="En esta guía" />
+          {/* The illustration heads the gutter, above the contents. It's the
+              one place on the article where it costs the prose nothing: beside
+              the 680px column rather than in front of it. A guide with an image
+              but too few sections to list keeps the column for it. */}
+          <TocSidebar
+            headings={headings}
+            label="En esta guía"
+            above={meta.preview && <Preview src={meta.preview} />}
+          />
         </div>
       </main>
     </>

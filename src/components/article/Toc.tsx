@@ -121,27 +121,33 @@ const NO_HEADINGS: Heading[] = [];
  * article, which is empty space at these widths anyway. Renders the `<aside>`
  * itself so that an article with too few sections leaves no column behind.
  *
- * `below` is anything that should ride the same scroll under the list — the
- * statistics pages put their <AsideCta /> there. It keeps the column alive on
- * an article with too few sections to list, since a short article has the same
- * empty gutter and the same reason to use it. */
+ * `above` heads the column and scrolls away with the page — it's where a
+ * guide's preview image goes, and a decorative image has no claim on the
+ * viewport for the whole article. `below` rides the sticky list instead and
+ * stays put, which is the point of the <AsideCta /> the statistics pages hang
+ * there. Either one keeps the column alive on an article with too few sections
+ * to list, since a short article has the same empty gutter and the same reason
+ * to use it. */
 export function TocSidebar({
   headings,
   label,
+  above,
   below,
 }: {
   headings: Heading[];
   label: string;
+  above?: React.ReactNode;
   below?: React.ReactNode;
 }) {
   // Split so the scroll tracking is never mounted for an article that shows no
   // contents at all — a hook can't sit behind the early return.
   const listed = headings.length >= MIN_SECTIONS;
-  if (!listed && !below) return null;
+  if (!listed && !above && !below) return null;
   return (
     <StickyToc
       headings={listed ? headings : NO_HEADINGS}
       label={label}
+      above={above}
       below={below}
     />
   );
@@ -150,16 +156,23 @@ export function TocSidebar({
 function StickyToc({
   headings,
   label,
+  above,
   below,
 }: {
   headings: Heading[];
   label: string;
+  above?: React.ReactNode;
   below?: React.ReactNode;
 }) {
   const active = useActiveHeading(headings);
 
   return (
     <aside className="hidden w-[220px] shrink-0 pt-10 lg:block">
+      {/* Outside the sticky box below, so it scrolls off the top like the rest
+          of the page instead of holding a seventh of the column for the length
+          of the article. It also means the list gets the full height back once
+          the reader is past it. */}
+      {above && <div className="pb-7">{above}</div>}
       {/* Clears the 60px sticky header. A column rather than one scrolling box:
           the list is capped and scrolls on its own (the longest articles run to
           ten sections, taller than a laptop viewport once the header is out of
