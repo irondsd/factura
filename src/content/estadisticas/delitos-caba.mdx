@@ -1,0 +1,225 @@
+import { TEMPORAL_COVERAGE } from "./data/delitos-caba";
+
+export const meta = {
+  title: "Delitos en CABA, barrio por barrio",
+  titleTag: "Mapa del delito en CABA: estadísticas por barrio y comuna",
+  description:
+    "Delitos registrados en la Ciudad de Buenos Aires cada 1.000 habitantes, barrio por barrio y comuna por comuna, con el dato oficial del Mapa del Delito año por año.",
+  summary:
+    "Cuántos delitos se registran en cada barrio de la Ciudad de Buenos Aires cada 1.000 habitantes, con el mapa por barrio y comuna, la serie desde 2016 y la diferencia entre dónde ocurren los delitos y dónde vive la gente.",
+  ogStat: "Delitos cada 1.000 habitantes, por barrio",
+  cta: "Eliges un barrio por lo que cuesta y por cómo se vive.",
+  keywords: [
+    "delitos en caba",
+    "mapa del delito caba",
+    "barrios mas peligrosos de caba",
+    "barrios mas seguros de caba",
+    "estadisticas de delitos ciudad de buenos aires",
+    "inseguridad en caba por barrio",
+    "robos en caba estadisticas",
+    "tasa de delitos por barrio buenos aires",
+    "delitos por comuna caba",
+    "homicidios en caba",
+    "cuantos robos hay en caba",
+    "seguridad por barrio caba",
+    "hurtos en caba",
+    "donde hay mas robos en buenos aires",
+  ],
+  published: "2026-08-16T12:00:00-03:00",
+  updated: "2026-08-16T12:00:00-03:00",
+  faq: [
+    {
+      q: "¿Cuál es el barrio más peligroso de CABA?",
+      a: "La pregunta no tiene una respuesta limpia, y el mapa de esta página explica por qué. El barrio con más delitos registrados cada 1.000 habitantes es siempre alguno del microcentro, y no porque a sus vecinos les roben más: es que ahí viven pocas personas y circulan cientos de miles por día. La tabla que sigue al mapa muestra esa brecha barrio por barrio. Si lo que se busca es dónde es más probable que te roben viviendo ahí, la tasa por habitante sobreestima el centro y subestima los barrios residenciales grandes.",
+    },
+    {
+      q: "¿Cuáles son los barrios más seguros de CABA?",
+      a: "Los que aparecen más abajo en la tabla del mapa son barrios residenciales del oeste y del norte, con poca circulación de gente que no vive ahí. Conviene leerlo como «aquí se registran menos hechos por habitante» y no como una garantía: la diferencia entre el barrio más bajo y la mediana de la Ciudad es mucho menor que la que hay entre la mediana y el microcentro.",
+    },
+    {
+      q: "¿De dónde salen estos datos?",
+      a: "Del Mapa del Delito, que publica el Ministerio de Justicia y Seguridad de la Ciudad como dato abierto: un archivo por año con un registro por hecho, con el barrio, la comuna, la fecha, la hora y el tipo de delito. Esta página cuenta esos registros y los divide por la población del Censo 2022. Los archivos originales están enlazados al final.",
+    },
+    {
+      q: "¿Estos son todos los delitos que ocurren?",
+      a: "No, y es la limitación más importante de esta serie. Son hechos registrados: los que llegaron a una denuncia, a una actuación policial o al sistema judicial. Un delito que nadie denuncia no está aquí. Eso importa para comparar barrios, porque la propensión a denunciar no es igual en todos: un celular robado en Recoleta y uno robado en Villa Soldati no tienen la misma probabilidad de terminar en una denuncia.",
+    },
+    {
+      q: "¿Por qué 2020 tiene tan pocos delitos?",
+      a: "Por la cuarentena. En 2020 la Ciudad registró alrededor de la mitad de los delitos de un año normal, simplemente porque durante meses casi no hubo nadie en la calle. Es el motivo por el que el gráfico de esta página cubre toda la década y compara contra 2019: cualquier lectura que arranque en 2020 está midiendo el final de un confinamiento y no una tendencia de seguridad.",
+    },
+    {
+      q: "¿Cuántos homicidios hay por año en la Ciudad de Buenos Aires?",
+      a: "La cifra del último año está en la primera tabla de esta página, en homicidios cada 100.000 habitantes, que es la unidad en la que se compara internacionalmente. Es un número bajo y estable comparado con el resto de la región, y no se mueve como se mueven los robos: los homicidios de la Ciudad se cuentan por decenas al año, así que la variación de un año a otro dice poco.",
+    },
+    {
+      q: "¿Sirve esta página para decidir en qué barrio alquilar?",
+      a: "Sirve como una de las variables, y conviene mirarla junto con el precio. Un barrio con mucha circulación de gente concentra hurtos y a la vez tiene más transporte, más comercios y más vida en la calle, que es parte de lo que se paga en el alquiler. Lo que esta página aporta es el número, no la conclusión: el mapa del alquiler y el de los delitos están dibujados sobre la misma geografía y se pueden leer uno al lado del otro.",
+    },
+    {
+      q: "¿Cómo se calcula la población de cada barrio?",
+      a: "El Censo 2022 publica población por comuna, no por barrio, porque el barrio no es una unidad censal. Para el mapa por barrio se reparte la población de cada comuna entre sus barrios según las proporciones del censo de 2010, que es el último recuento oficial por barrio. Cada comuna suma exactamente la cifra del INDEC. La estimación es más floja donde un barrio creció muy distinto de sus vecinos, y el caso claro es Puerto Madero.",
+    },
+    {
+      q: "¿Cada cuánto se actualiza esta página?",
+      a: "Una vez por año. La Ciudad publica el archivo del año cerrado unos meses después de que termina, y esta página se actualiza cuando sale.",
+    },
+  ],
+  sources: [
+    {
+      label: "Buenos Aires Data — Delitos (Mapa del Delito)",
+      href: "https://data.buenosaires.gob.ar/dataset/delitos",
+      note: "Un archivo por año, con un registro por hecho: barrio, comuna, fecha, hora, tipo y subtipo. Ministerio de Justicia y Seguridad (GCBA). Licencia CC-BY.",
+    },
+    {
+      label: "INDEC — Censo 2022, resultados definitivos de CABA",
+      href: "https://censo.gob.ar/index.php/datos_definitivos_caba/",
+      note: "Población y superficie por comuna, el divisor con el que se calculan todas las tasas de esta página.",
+    },
+    {
+      label: "Buenos Aires Data — Barrios y comunas",
+      href: "https://data.buenosaires.gob.ar/dataset/barrios",
+      note: "Límites oficiales de los 48 barrios y las 15 comunas, con los que está dibujado el mapa, y la población por barrio del censo de 2010. Licencia CC-BY-2.5-AR.",
+    },
+    {
+      label: "GCBA — Informe complementario al Mapa del Delito",
+      href: "https://cdn.buenosaires.gob.ar/datosabiertos/datasets/ministerio-de-justicia-y-seguridad/delitos/2023_2024_informe_complementario.pdf",
+      note: "La metodología del organismo: qué se registra, de dónde salen los hechos y cómo se clasifican.",
+    },
+  ],
+  dataset: {
+    name: "Delitos registrados por barrio y comuna (Mapa del Delito, CABA)",
+    description:
+      "Cantidad anual de hechos delictivos registrados en la Ciudad Autónoma de Buenos Aires, por barrio y por comuna, abiertos en robos, hurtos, lesiones dolosas, amenazas y homicidios dolosos, con las tasas cada 1.000 habitantes calculadas sobre la población del Censo 2022.",
+    temporalCoverage: TEMPORAL_COVERAGE,
+    spatialCoverage: "Ciudad Autónoma de Buenos Aires, Argentina",
+    variableMeasured: [
+      "Delitos registrados por año, total de la Ciudad",
+      "Delitos registrados por año y por barrio",
+      "Delitos registrados por año y por comuna",
+      "Robos registrados, con y sin uso de arma y de moto",
+      "Hurtos registrados",
+      "Lesiones dolosas, amenazas y homicidios dolosos registrados",
+      "Lesiones y muertes por siniestros viales registradas",
+      "Delitos registrados cada 1.000 habitantes",
+      "Distribución horaria y semanal de los hechos registrados",
+    ],
+  },
+};
+
+Cuando alguien compara dos barrios de Buenos Aires para mudarse, mira el precio y pregunta por la seguridad. Lo primero tiene un dato oficial y lo segundo también, aunque casi nadie lo use: la Ciudad publica todos los años, como dato abierto, cada hecho delictivo que registró, con el barrio en el que ocurrió. Esta página cuenta esos registros y los pone sobre el mapa.
+
+Antes del primer número hacen falta dos advertencias, y son las mismas que hace la fuente. La primera: esto son **hechos registrados**, no delitos ocurridos. Todo lo que está aquí pasó por una denuncia, una actuación policial o un expediente judicial; lo que nadie denunció no existe en esta serie, y la disposición a denunciar no es igual en toda la Ciudad. La segunda: la tasa se calcula sobre los **residentes censados**, y hay barrios de Buenos Aires donde la mayoría de las personas que están de día no viven ahí. En el microcentro eso no es un detalle, es la diferencia entre un número y su interpretación.
+
+Con eso dicho, el dato es sólido, es oficial, cubre una década completa y llega hasta el barrio.
+
+## Qué vas a encontrar en esta página
+
+- **Cuántos delitos se registran en la Ciudad**, por tipo y contra el año anterior.
+- **El mapa por barrio y por comuna**, con robos, hurtos y delitos contra las personas por separado.
+- **Dónde se registran los delitos y dónde vive la gente**, que es la corrección que el mapa necesita.
+- **Cómo evolucionó** la serie desde 2016, con el hueco de la pandemia.
+- **A qué hora** pasa cada cosa.
+- **Con moto y con arma**: cómo se roba en la Ciudad.
+- **Las cuatro zonas** de la Ciudad, comparadas.
+- **Cómo se mide**, quién lo publica y qué queda afuera.
+- **Las fuentes**, al final, para ir al dato original.
+
+## Cuántos delitos se registran en la Ciudad
+
+<DelitosResumen />
+
+Dos cosas de esta tabla vale la pena mirar antes de bajar al mapa. Una es la proporción: la enorme mayoría de lo que se registra son delitos contra la propiedad, y dentro de ellos el reparto entre robo —con violencia— y hurto —sin violencia— está bastante equilibrado. La otra es la escala de los homicidios, que se cuentan por decenas al año en una ciudad de tres millones de personas y por eso se miden cada 100.000 habitantes y no cada 1.000, como todo lo demás.
+
+## El mapa del delito, barrio por barrio
+
+<DelitosCabaMapa />
+
+El color no es la cantidad de delitos: es la tasa del barrio dividida por la de la Ciudad. Un barrio en el tono más oscuro registra más del doble de hechos por habitante que el promedio porteño, y uno en el más claro, menos de dos tercios. Se hace así porque el mapa cambia de categoría: la Ciudad registra muchos más robos que delitos contra las personas, y una escala pensada para los primeros dejaría el mapa de los segundos de un solo color.
+
+El patrón que dibuja es nítido y conviene no leerlo mal. Los barrios más oscuros son casi todos del centro y del sur; los más claros, del oeste y del norte residencial. Pero esas dos concentraciones no significan lo mismo, y la tabla que sigue es la que las separa.
+
+## Dónde se registran los delitos y dónde vive la gente
+
+<DelitosResidentes />
+
+Esta es la lectura que le falta a cualquier mapa del delito hecho sobre población residente, y la razón por la que esta página la pone aquí arriba y no en una nota al pie. Los barrios que encabezan el mapa concentran oficinas, terminales, tribunales, teatros y estaciones. Su población de día se cuenta en cientos de miles y su población censada en decenas de miles, y el cociente entre esas dos cosas es lo que empuja su tasa.
+
+No hay dato público de población flotante por barrio en CABA, así que esta brecha se puede mostrar pero no corregir. Lo que sí se puede hacer es decir qué mide cada número: la tasa por habitante mide **cuánto delito se registra en ese territorio**, no cuánto riesgo corre quien vive ahí. Para el microcentro las dos cosas están muy lejos. Para un barrio residencial del oeste, bastante cerca.
+
+## Cómo evolucionó desde 2016
+
+<DelitosHistoria />
+
+El hueco del medio es la pandemia, y es tan grande que deforma cualquier comparación que lo cruce. Durante la cuarentena la Ciudad registró alrededor de la mitad de los delitos de un año normal, por el motivo más simple posible: no había nadie en la calle. Todo lo que vino después es, en buena medida, el regreso a la calle.
+
+Por eso la comparación que sirve no es contra el año anterior sino contra 2019, el último año completo previo, y está escrita arriba del gráfico. La otra lectura que da el gráfico es que las tres categorías no se mueven juntas: los delitos contra las personas —lesiones, amenazas— vienen bajando desde antes de la pandemia y no volvieron a los niveles de 2016, mientras que los delitos contra la propiedad sí rebotaron.
+
+## A qué hora
+
+<DelitosCuando />
+
+Robo y hurto son dos delitos contra la propiedad y, para la persona que los sufre, dos experiencias distintas: en uno hay alguien enfrente, en el otro se descubre después. Que sean cosas distintas se nota en el reloj. Los hurtos siguen la jornada laboral y se concentran en las horas de más movimiento; los robos trepan a la tarde y se sostienen en la noche, cuando hay menos gente en la calle y menos testigos.
+
+Es lo único de esta página que no depende de en qué barrio estés.
+
+## Con moto y con arma
+
+<DelitosRobos />
+
+De todo lo que registra esta fuente, estas dos columnas son las que no existen en ningún otro lado. El robo en moto es el delito del que más se habla en Buenos Aires y casi nunca se lo cuenta: aquí está, año por año, sobre el total de robos registrados.
+
+Conviene leer las dos columnas como un piso y no como un recuento: que un hecho quede registrado con arma o con moto depende de que eso conste en la denuncia, así que lo que se ve es la parte del fenómeno que quedó anotada. Y conviene leerlas contra la columna de robos, porque una proporción puede bajar por las dos razones opuestas: porque hay menos robos de ese tipo, o porque hay más robos de los otros.
+
+## Las cuatro zonas de la Ciudad
+
+<DelitosPorZona />
+
+Cuatro filas resumen lo que el mapa dice con 48 polígonos, con una advertencia que la propia tabla hace visible: dentro de una misma zona la distancia entre el barrio más alto y el más bajo suele ser mayor que la distancia entre zonas. La zona centro incluye a la vez el microcentro y barrios residenciales tranquilos; promediarlos da un número que no describe bien a ninguno de los dos.
+
+## Cómo se mide el Mapa del Delito
+
+El dato lo produce la **Dirección General de Estadística Criminal y Mapa del Delito**, del Ministerio de Justicia y Seguridad porteño, y se publica como dato abierto una vez por año. Cada registro es un hecho, con la fecha, la franja horaria, el tipo y subtipo de delito, el barrio y la comuna, y —cuando se pudo geolocalizar— las coordenadas.
+
+Cinco cosas que conviene tener presentes al leer estas cifras:
+
+- **Son hechos registrados, no delitos cometidos.** La fuente lo dice explícitamente. La cifra depende de cuánto se denuncia, y eso varía entre barrios y entre tipos de delito: un homicidio se registra siempre, un hurto de celular no.
+- **Un pequeño porcentaje no se puede ubicar.** Cada año quedan algunos miles de hechos sin barrio asignado. Están en el total de la Ciudad y no están en el mapa, y la nota debajo del mapa dice cuántos son.
+- **La población es del Censo 2022.** Por comuna es la cifra del INDEC. Por barrio es una estimación: el barrio no es unidad censal, así que la población de cada comuna se reparte entre sus barrios según las proporciones del censo de 2010. Cada comuna cierra exactamente con el dato oficial.
+- **Los siniestros viales están en la fuente y no en el total.** La Ciudad los publica en el mismo archivo porque los registra el mismo sistema. Un choque no es un delito, así que aquí van en su propia fila.
+- **Hasta 2022 la fuente separaba los femicidios** como subtipo de homicidio y desde 2023 dejó de hacerlo. En esta página los homicidios dolosos incluyen todos los años lo mismo, para que la serie se pueda leer completa.
+
+## Lo que este dato no contesta
+
+Vale decirlo claro, porque son las tres preguntas con las que la mayoría llega a una página como esta.
+
+La primera es **el riesgo personal**. Una tasa territorial no es una probabilidad individual: depende de la edad, de los horarios, de si se maneja o se viaja en subte, de si hay auto en la puerta. Nada de eso está en esta serie.
+
+La segunda es **la sensación de inseguridad**, que se mide con encuestas de victimización y no con registros, y que en general no se mueve al mismo ritmo que los hechos registrados.
+
+La tercera es **la comparación con el conurbano**, que es la que más se busca y la que no se puede hacer aquí. El Mapa del Delito cubre la Ciudad Autónoma y nada más. El SNIC, del Ministerio de Seguridad de la Nación, publica datos por provincia con otra metodología y otro nivel de detalle, y sus cifras no son directamente comparables con estas.
+
+<PaginaRelacionada slug="alquiler-caba">
+  Cuánto se pide por mes en cada barrio de la Ciudad, sobre la misma geografía
+  que este mapa. Las dos variables con las que se elige un barrio, una al lado
+  de la otra.
+</PaginaRelacionada>
+
+<PaginaRelacionada slug="precio-m2-caba">
+  Lo que se pide por el metro cuadrado en venta, barrio por barrio y en dólares.
+</PaginaRelacionada>
+
+## Elegir un barrio, y después vivir en él
+
+Un barrio se elige por lo que cuesta y por cómo se vive, y las dos cosas tienen dato público. Lo que no aparece en ninguna de las dos es lo que viene después de la mudanza: [las expensas](/guias/expensas-promedio-caba-2026), que en un edificio con seguridad privada y accesos controlados son sensiblemente más altas; [el ABL](/guias/que-es-el-abl-y-el-impuesto-inmobiliario), que se calcula sobre la valuación fiscal; y [la inflación de vivienda](/estadisticas/inflacion-de-vivienda), que mide cuánto sube el conjunto de alquiler, expensas, luz, gas y agua.
+
+<ClosingCta title="El barrio se elige una vez; las boletas llegan todos los meses">
+  Este mapa ayuda a decidir dónde vivir. Lo que cuesta vivir ahí llega después,
+  en PDF, mes a mes y de cinco empresas distintas. Sube esas facturas a Factura y
+  quedan convertidas en una serie como las de esta página, con el costo real de
+  tu vivienda mes a mes.
+</ClosingCta>
+
+<Faq />
+
+<Fuentes />

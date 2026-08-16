@@ -10,6 +10,13 @@ import { CostoConstruccionHistoria } from "@/components/estadisticas/CostoConstr
 import { CostoConstruccionMapa } from "@/components/estadisticas/CostoConstruccionMapa";
 import { CostoConstruccionResumen } from "@/components/estadisticas/CostoConstruccionResumen";
 import { CostoPorZona } from "@/components/estadisticas/CostoPorZona";
+import { DelitosCabaMapa } from "@/components/estadisticas/DelitosCabaMapa";
+import { DelitosCuando } from "@/components/estadisticas/DelitosCuando";
+import { DelitosHistoria } from "@/components/estadisticas/DelitosHistoria";
+import { DelitosPorZona } from "@/components/estadisticas/DelitosPorZona";
+import { DelitosResidentes } from "@/components/estadisticas/DelitosResidentes";
+import { DelitosResumen } from "@/components/estadisticas/DelitosResumen";
+import { DelitosRobos } from "@/components/estadisticas/DelitosRobos";
 import { IpcViviendaChart } from "@/components/estadisticas/IpcViviendaChart";
 import { PrecioDepartamento } from "@/components/estadisticas/PrecioDepartamento";
 import { PrecioPorZona } from "@/components/estadisticas/PrecioPorZona";
@@ -221,6 +228,18 @@ const components: MDXComponents = {
   RentabilidadBuscados,
   RentabilidadTipoCambio,
   RentabilidadContraste,
+  // The crime page. Same contract as the rest of the section — each reads the
+  // Mapa del Delito dataset and takes nothing. <DelitosResidentes /> is the odd
+  // one out in purpose rather than in shape: it exists to keep the map from
+  // being read as a risk map, so it belongs directly under it and not at the
+  // bottom with the other tables.
+  DelitosResumen,
+  DelitosCabaMapa,
+  DelitosResidentes,
+  DelitosHistoria,
+  DelitosCuando,
+  DelitosRobos,
+  DelitosPorZona,
   // The one component in this map that takes a prop: which page to point at.
   // See the note in the component for why it's a slug and not the copy.
   PaginaRelacionada,

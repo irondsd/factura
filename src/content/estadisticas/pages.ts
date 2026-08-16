@@ -212,6 +212,18 @@ const ENTRIES: Entry[] = [
   // The two price pages above, divided. Last because it depends on both: it publishes no
   // series of its own, and its page is largely about the arithmetic joining
   // them. Flat for the same reason as its two inputs.
+  // The other thing a reader compares barrios on, and the only page in the
+  // section whose series isn't a price. Flat for the same reason as its
+  // neighbours: the Mapa del Delito is a CABA dataset and no province publishes
+  // anything comparable. It sits after the property pages because it is read
+  // against them — the map is drawn on the same geography, so a reader can put
+  // "what does it cost here" and "what gets recorded here" side by side.
+  {
+    slug: ["delitos-caba"],
+    crumb: "Delitos en CABA",
+    file: "delitos-caba.mdx",
+    load: () => import("./delitos-caba.mdx"),
+  },
   {
     slug: ["rentabilidad-alquiler-caba"],
     crumb: "Rentabilidad del alquiler",

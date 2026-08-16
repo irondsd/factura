@@ -21,6 +21,7 @@
     "audit:seo": "bun scripts/audit-seo.ts",
     "data:caba": "bun scripts/fetch-caba-inmobiliario.ts",
     "data:construccion": "bun scripts/fetch-caba-construccion.ts",
+    "data:delitos": "bun scripts/fetch-caba-delitos.ts",
     "data:dolar": "bun scripts/fetch-dolar.ts",
     "data:caba-geo": "bun scripts/build-caba-geo.ts",
     "db:push": "dotenv -e .env.local drizzle-kit push",
