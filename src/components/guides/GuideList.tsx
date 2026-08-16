@@ -50,7 +50,7 @@ export function GuideList({
             {g.meta.preview && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={g.meta.preview.src}
+                src={g.meta.preview}
                 alt=""
                 width={960}
                 height={540}
