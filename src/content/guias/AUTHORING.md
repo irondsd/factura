@@ -85,6 +85,7 @@ the situation below is actually the one you're in.
 | `ogDescription` | Same, for the card's body copy. Defaults to `description`.                                                                            |
 | `vendor`        | The guide is about one company's bill — `"Edesur"`, `"MetroGAS"`, `"AySA"`. Names the card's eyebrow and the JSON-LD `about`.         |
 | `ogImage`       | Steers the generated card: `{ eyebrow, stat }`. See below.                                                                            |
+| `preview`       | The guide has an illustration: `{ src, alt }`. Shown in the listings and beside the `<h1>`. See below.                                |
 | `canonical`     | **Another guide's slug.** This guide competes with that one for the same query and that one should win. See below.                    |
 | `noindex`       | `true` while the guide is a draft: it renders at its URL, and appears in no listing, no sitemap, no `llms.txt`. Remove it to publish. |
 
@@ -104,6 +105,37 @@ it drops out of `sitemap.xml`. The validator checks the slug exists.
 category hubs, related-guide blocks, `llms.txt` and the sitemap — the article
 itself still renders, so you can read and share it before it's announced. The
 validator warns if a published guide links to one.
+
+### The preview image
+
+Optional, and genuinely optional — most guides don't have one, and a guide
+without a `preview` renders exactly the row and header it always has. Guides
+with and without an image are meant to sit in the same list together, so don't
+add a filler image just to make a section look uniform.
+
+```mdx
+preview: {
+  src: "/img/guias/previews/como-pagar-la-factura-de-telecom-personal.jpg",
+  alt: "Ilustración de un tubo de teléfono junto a una terminal de pago con una tarjeta y una factura de Telecom",
+},
+```
+
+- **The file** goes in `public/img/guias/previews/` and is named after the guide
+  slug. Export it **16:9** at **960×540**, JPEG quality ~80 — that covers the
+  240px article header and the 160px listing thumbnail at 2× with ~70 KB. The
+  validator errors if the path doesn't match that shape or the file isn't there.
+- **`alt`** is required and must describe the picture. The article header
+  renders the image as content, and it's the only description a screen reader
+  gets. The listing thumbnail overrides it with `alt=""` on purpose: the guide
+  title sits right beside it, and a description there would be read twice.
+- **Where it shows up:** a 16:9 thumbnail on the left of the guide's row on
+  `/guias` and on its category hub, and a 240px image beside the `<h1>` on the
+  article (it drops below the headline under `md`). It does **not** change the
+  social card — that's still the generated one from `ogImage`.
+
+This is not the same thing as an image *in* the body. An illustration the prose
+refers to ("así se ve la factura…") belongs in the body as normal markdown,
+under `/img/guias/`; `preview` is the guide's cover.
 
 ### The social card
 
