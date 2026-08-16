@@ -89,12 +89,19 @@ export async function getObjectBytes(key: string): Promise<Uint8Array> {
   return bytes;
 }
 
-/** Presigned GET so the user can view/re-download their stored PDF. */
-export async function presignDownload(key: string): Promise<string> {
+/** Presigned GET so the user can view/re-download their stored PDF.
+ *
+ * The default suits a browser that follows the link at once. `expiresIn` is for
+ * links that get read later — a channel post, an email — and SigV4 refuses
+ * anything past 7 days. */
+export async function presignDownload(
+  key: string,
+  expiresIn = 300,
+): Promise<string> {
   return getSignedUrl(
     client(),
     new GetObjectCommand({ Bucket: BUCKET, Key: key }),
-    { expiresIn: 300 },
+    { expiresIn },
   );
 }
 

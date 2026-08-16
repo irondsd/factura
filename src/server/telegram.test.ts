@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { buildContactMessage, escapeMarkdownV2 } from "./telegram";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  buildContactMessage,
+  buildUnrecognizedBillMessage,
+  escapeMarkdownV2,
+  sendTelegramDocument,
+} from "./telegram";
 
 // What can break a channel post is the formatting, not the fetch: MarkdownV2
 // fails the WHOLE request on one unescaped reserved character, and the text
@@ -82,5 +87,165 @@ describe("buildContactMessage", () => {
   it("escapes an address that would otherwise close its code span", () => {
     const text = buildContactMessage({ ...base, email: "we`ird@example.com" });
     expect(text).toContain("`we\\`ird@example.com`");
+  });
+});
+
+describe("buildUnrecognizedBillMessage", () => {
+  const bill = {
+    submissionId: "6f1c9c3e-0000-4000-8000-000000000001",
+    fileName: "factura-marzo.pdf",
+    fileBytes: 1_572_864,
+    pageCount: 3,
+    locale: "es" as const,
+    vendorGuess: null,
+    textPreview: "COOPERATIVA ELÉCTRICA DE ZÁRATE. Total a pagar $ 12.340,50",
+  };
+
+  it("lays out what the bill is", () => {
+    const text = buildUnrecognizedBillMessage(bill);
+    expect(text).toContain("🧾 *Unrecognized bill*");
+    expect(text).toContain("*File:* `factura-marzo.pdf` — 1\\.5 MB, 3 pages");
+    expect(text).toContain("*Language:* es");
+    expect(text).toContain(`*Submission:* \`${bill.submissionId}\``);
+    expect(text).toContain("COOPERATIVA ELÉCTRICA DE ZÁRATE\\.");
+  });
+
+  it("counts a single page in the singular and rounds small files to KB", () => {
+    const text = buildUnrecognizedBillMessage({
+      ...bill,
+      pageCount: 1,
+      fileBytes: 94_000,
+    });
+    expect(text).toContain("92 KB, 1 page");
+  });
+
+  it("omits the optional lines rather than printing empty ones", () => {
+    const text = buildUnrecognizedBillMessage({
+      ...bill,
+      pageCount: null,
+      locale: null,
+    });
+    expect(text).toContain("*File:* `factura-marzo.pdf` — 1\\.5 MB");
+    expect(text).not.toContain("pages");
+    expect(text).not.toContain("*Language:*");
+    expect(text).not.toContain("*Says it's from:*");
+  });
+
+  it("carries the visitor's vendor guess when there is one", () => {
+    const text = buildUnrecognizedBillMessage({
+      ...bill,
+      vendorGuess: "Aguas del Norte S.A.",
+    });
+    expect(text).toContain("*Says it's from:* Aguas del Norte S\\.A\\.");
+  });
+
+  it("links a presigned URL without escaping its signature", () => {
+    // The full escaper would put backslashes inside the query string and break
+    // the download; only `)` and `\` are reserved inside the link's parens.
+    const url =
+      "https://bucket.r2.example/submissions/x-y.pdf?X-Amz-Signature=ab-cd_ef&X-Amz-Expires=604800";
+    const text = buildUnrecognizedBillMessage({ ...bill, downloadUrl: url });
+    expect(text).toContain(`*Download:* [stored PDF](${url})`);
+  });
+
+  it("fits a caption even when the bill's text is enormous", () => {
+    // Every character escapes to two, and a caption's ceiling is a quarter of a
+    // message's — this is the case that would silently lose the whole post.
+    const text = buildUnrecognizedBillMessage({
+      ...bill,
+      textPreview: ".".repeat(4000),
+    });
+    expect(text.length).toBeLessThanOrEqual(1024);
+    expect(text).toContain("…");
+    expect(/\\$/.test(text.slice(0, -1))).toBe(false);
+  });
+
+  it("drops the preview rather than the header when there is no room", () => {
+    const text = buildUnrecognizedBillMessage({
+      ...bill,
+      fileName: "x".repeat(1000),
+    });
+    expect(text.length).toBeLessThanOrEqual(1024);
+    expect(text).toContain("🧾 *Unrecognized bill*");
+  });
+
+  it("does not let a file name close its code span", () => {
+    const text = buildUnrecognizedBillMessage({
+      ...bill,
+      fileName: "we`ird`.pdf",
+    });
+    expect(text).toContain("`we\\`ird\\`.pdf`");
+  });
+});
+
+describe("sendTelegramDocument", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  const file = { bytes: new Uint8Array([1, 2, 3, 4]), fileName: "bill.pdf" };
+
+  const configured = (...responses: Response[]) => {
+    vi.stubEnv("TELEGRAM_BOT_TOKEN", "test-token");
+    vi.stubEnv("TELEGRAM_CHANNEL_ID", "-1001234567890");
+    const calls = [...responses];
+    const mock = vi.fn(async () => calls.shift() ?? new Response("{}"));
+    vi.stubGlobal("fetch", mock);
+    return mock;
+  };
+
+  it("posts the bytes as a multipart document with the caption", async () => {
+    const fetchMock = configured(new Response("{}", { status: 200 }));
+
+    const res = await sendTelegramDocument(file, "🧾 *Unrecognized bill*");
+    expect(res).toEqual({ ok: true, skipped: false });
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [
+      string,
+      RequestInit,
+    ];
+    expect(url).toBe("https://api.telegram.org/bottest-token/sendDocument");
+    const body = init.body as FormData;
+    expect(body.get("chat_id")).toBe("-1001234567890");
+    expect(body.get("caption")).toBe("🧾 *Unrecognized bill*");
+    expect(body.get("parse_mode")).toBe("MarkdownV2");
+    // The part Telegram actually files as the document: right name, right bytes.
+    const doc = body.get("document") as File;
+    expect(doc.name).toBe("bill.pdf");
+    expect(doc.type).toBe("application/pdf");
+    expect(new Uint8Array(await doc.arrayBuffer())).toEqual(file.bytes);
+  });
+
+  it("re-sends the same bytes unformatted after a 400", async () => {
+    // A consumed multipart body can't be replayed, so the retry has to rebuild
+    // it — this is the case that would drop the bill rather than its formatting.
+    const fetchMock = configured(
+      new Response("can't parse entities", { status: 400 }),
+      new Response("{}", { status: 200 }),
+    );
+
+    const res = await sendTelegramDocument(file, "*caption*");
+    expect(res).toEqual({ ok: true, skipped: false });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    const retry = (
+      fetchMock.mock.calls[1] as unknown as [string, RequestInit]
+    )[1].body as FormData;
+    expect(retry.get("parse_mode")).toBeNull();
+    expect((retry.get("document") as File).size).toBe(4);
+  });
+
+  it("skips without a channel instead of failing the caller", async () => {
+    vi.stubEnv("TELEGRAM_BOT_TOKEN", "");
+    vi.stubEnv("TELEGRAM_CHANNEL_ID", "");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await sendTelegramDocument(file, "caption")).toEqual({
+      ok: true,
+      skipped: true,
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

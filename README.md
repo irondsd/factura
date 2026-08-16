@@ -123,7 +123,7 @@ local dev needs no edits.
 | `AUTH_SECRET`                                                                                                   | Session/JWT secret (`npx auth secret`).                                             |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`                                                                         | Google OAuth; optional in dev.                                                      |
 | `RESEND_API_KEY` / `EMAIL_FROM`                                                                                 | Transactional email; blank in dev logs sign-in codes to the console.                |
-| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHANNEL_ID`                                                                    | Where the /contacto form posts; blank in dev logs the message to the console.       |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHANNEL_ID`                                                                    | Where /contacto and unrecognized /probar bills post; blank in dev logs to console.  |
 | `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_FORCE_PATH_STYLE` | Storage for original PDFs. Leave blank to run text-only (no PDF upload / View PDF). |
 
 ## Scripts

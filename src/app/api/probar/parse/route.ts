@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -5,6 +6,7 @@ import { billSubmissions } from "@/db/schema";
 import { type ParseResponse, type Tier, TIERS } from "@/lib/probar";
 import { normalize } from "@/parsers/normalize";
 import { limitKey, PROBAR_PARSE, take } from "@/server/rateLimit";
+import { notifyUnrecognizedSubmission } from "@/server/submissions/alerts";
 import { runTier } from "@/server/submissions/cascade";
 import { findTicket, loadOwnedSubmission } from "@/server/submissions";
 
@@ -83,6 +85,20 @@ export async function POST(request: Request) {
       .update(billSubmissions)
       .set({ outcome: "unrecognized" })
       .where(eq(billSubmissions.id, row.id));
+
+    // …and telling us about it is what makes them arrive while the visitor is
+    // still on the page. Only on the transition — a re-parse of a submission
+    // already known to be unrecognized posts nothing — and after the response,
+    // because reading the PDF back off storage to attach it must never be
+    // something the visitor waits through.
+    if (row.outcome !== "unrecognized")
+      after(async () => {
+        try {
+          await notifyUnrecognizedSubmission(row);
+        } catch (err) {
+          console.error("[probar] unrecognized-bill notice failed:", err);
+        }
+      });
   }
 
   const response: ParseResponse = {
