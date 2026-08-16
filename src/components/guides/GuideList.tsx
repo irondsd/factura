@@ -8,10 +8,11 @@ import type { Guide } from "@/content/guias/guides";
 // Rows carry only a bottom border — whatever renders the list is responsible for
 // the top rule (on the index that's the section header's own border).
 //
-// A guide with a `meta.preview` gets a 16:9 thumbnail on the left of its row;
-// one without keeps the full-width text row. The two are meant to mix in the
-// same list, which is why the thumbnail is a leading flex item rather than a
-// fixed grid column reserved for every row.
+// A guide with a `meta.preview` gets a 16:9 image on its row — full width above
+// the text on a phone, a thumbnail to the left of it from `sm` up — and one
+// without keeps the text-only row. The two are meant to mix in the same list,
+// which is why the image is a leading flex item rather than a fixed grid column
+// reserved for every row.
 
 // Date only — listing rows don't need the time. Formatted in Buenos Aires time,
 // the offset the timestamps are authored in: under UTC a guide published in the
@@ -39,7 +40,12 @@ export function GuideList({
         <li key={g.slug} className="border-b border-line">
           <Link
             href={`/guias/${g.slug}`}
-            className="group flex items-start gap-4 sm:gap-[22px] no-underline py-6"
+            // Stacked on a phone — full-width image, then the text under it —
+            // and the thumbnail-beside-text row from `sm` up. A 104px
+            // thumbnail on a 375px screen was too small to read as a picture
+            // and too big to ignore, and it left the title a ~200px column to
+            // wrap in.
+            className="group flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-[22px] no-underline py-6"
           >
             {/* Optional — most guides have no preview, and the row they get is
                 the full-width one this list has always rendered. `alt=""`
@@ -56,18 +62,18 @@ export function GuideList({
                 height={540}
                 loading="lazy"
                 decoding="async"
-                className="flex-none w-[104px] sm:w-40 aspect-video object-cover border border-line bg-card"
+                className="flex-none w-full sm:w-40 aspect-video object-cover border border-line bg-card"
               />
             )}
-            <div className="min-w-0 flex-1">
-              {/* Wraps rather than overflowing: the date is `flex-none` and a
-                  title only shrinks down to its longest word, so on a narrow
-                  phone the pair can't fit one line and used to push the row —
-                  and the page with it — past the viewport. Wrapping drops the
-                  date onto its own line only when it genuinely doesn't fit; the
-                  title keeps `min-w-0` so it wraps as text instead of forcing
-                  the row wide. */}
-              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <div className="w-full min-w-0 sm:flex-1">
+              {/* On a phone the date always goes under the title: it's a
+                  stack, not a line that happens to break. From `sm` up the two
+                  share a line, and it still *wraps* rather than overflowing —
+                  the date is `flex-none` and a title only shrinks to its
+                  longest word, so a long pair used to push the row, and the
+                  page with it, past the viewport. The title keeps `min-w-0` so
+                  it wraps as text instead of forcing the row wide. */}
+              <div className="flex flex-col gap-y-1 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-x-4">
                 <Title className="min-w-0 font-display font-semibold text-[20px] sm:text-[23px] tracking-tight text-ink m-0 transition-colors group-hover:text-accent">
                   {g.meta.title}
                 </Title>
