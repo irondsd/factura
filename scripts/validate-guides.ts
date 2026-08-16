@@ -11,7 +11,7 @@
  * which is the form CI uses — the cross-file title/description check only sees
  * a guide cannibalizing a statistics page when both sections are in the room.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { CATEGORY_IDS, isCategoryId } from "../src/content/guias/categories";
 import { CHART_IDS, isChartId } from "../src/content/guias/data/inflacion";
@@ -29,6 +29,12 @@ import {
 } from "./lib/content";
 
 const GUIDES_DIR = path.join(CONTENT_DIR, "guias");
+/** Where `meta.preview.src` is resolved from — same rule as `CONTENT_DIR`. */
+const PUBLIC_DIR = path.join(CONTENT_DIR, "../../public");
+
+// Preview images live in one directory and are named after the guide they
+// illustrate, so a stale file is obvious from `ls` alone once its guide is gone.
+const PREVIEW_RE = /^\/img\/guias\/previews\/[a-z0-9-]+\.(?:jpg|png|webp)$/;
 
 // Path segments under /guias that are real routes, not guides. A guide with one
 // of these slugs would be shadowed by the route and never render.
@@ -161,6 +167,50 @@ function validateFile(file: string, knownSlugs: Set<string>): GuideReport {
               `meta.ogImage.${key} is ${value.length} chars — over ~${max} it runs off the card`,
             );
           }
+        }
+      }
+    }
+
+    // ── preview: the optional 16:9 image the listings and header show ───────
+    // Optional, but a present-and-broken one is an error rather than a warning:
+    // a typo'd path renders a broken image on the index, which is worse than
+    // the text-only row the guide would otherwise have had.
+    const preview = meta.preview;
+    if (preview !== undefined) {
+      if (
+        preview === null ||
+        typeof preview !== "object" ||
+        Array.isArray(preview)
+      ) {
+        errors.push(
+          "meta.preview, if set, must be an object like { src: '/img/guias/previews/….jpg', alt: '…' }",
+        );
+      } else {
+        const slots = preview as Record<string, unknown>;
+        for (const key of Object.keys(slots)) {
+          if (key !== "src" && key !== "alt") {
+            errors.push(
+              `meta.preview has unknown key "${key}" — only src and alt`,
+            );
+          }
+        }
+        const src = slots.src;
+        if (typeof src !== "string" || !PREVIEW_RE.test(src)) {
+          errors.push(
+            `meta.preview.src must be a path like "/img/guias/previews/${slug}.jpg"`,
+          );
+        } else if (!existsSync(path.join(PUBLIC_DIR, src))) {
+          errors.push(`meta.preview.src "${src}" is not a file under public/`);
+        }
+        // Required, and separately from `src`: the article header renders this
+        // image as content, where an empty alt would leave a screen reader
+        // nothing at all. (The listing thumbnail is decorative and overrides
+        // it — see the note in `GuideList`.)
+        const alt = slots.alt;
+        if (typeof alt !== "string" || alt.trim() === "") {
+          errors.push(
+            "meta.preview.alt must be a non-empty string describing the image",
+          );
         }
       }
     }
@@ -352,6 +402,7 @@ function validateFile(file: string, knownSlugs: Set<string>): GuideReport {
       "ogImage",
       "vendor",
       "summary",
+      "preview",
       "cta",
       "keywords",
       "categories",

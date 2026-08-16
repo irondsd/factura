@@ -41,6 +41,14 @@ export type GuideMeta = {
   vendor?: string;
   /** Short blurb shown on the /guias index cards. */
   summary: string;
+  /** Optional 16:9 illustration for the listings and the article header. Every
+   * guide is expected to read fine without one — a guide with no `preview` gets
+   * the text-only row it has always had, and the ones that do have an image sit
+   * in the same list beside it. `src` is a path under `/img/guias/previews/`;
+   * `alt` describes the picture for the article header, where it's content. The
+   * listings render it decorative (`alt=""`) because the link text beside the
+   * thumbnail already names the guide. See AUTHORING.md §2. */
+  preview?: { src: string; alt: string };
   /** One line of copy for the `<TopCta />` banner the article route renders
    * between the header and the first paragraph — the hook for the reader who
    * skims the intro and leaves. Written per guide; see AUTHORING.md §5. */
