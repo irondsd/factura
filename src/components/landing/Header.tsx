@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SHELL, Wordmark } from "@/components/landing/parts";
+import { Wordmark } from "@/components/landing/parts";
 import { SiteNav } from "@/components/landing/SiteNav";
 import type { Locale } from "@/i18n/config";
 import { localizedHref } from "@/i18n/routing";
@@ -23,8 +23,10 @@ export function SiteHeader({
     <header className="sticky top-0 z-40 border-b border-line bg-[color-mix(in_srgb,var(--card)_78%,transparent)] backdrop-blur-[8px]">
       <div
         className={cn(
-          SHELL,
-          "flex h-[60px] items-center justify-between gap-5",
+          // This bar is navigation, not editorial content. Give the complete
+          // row its own wider measure so it can stay relaxed on large screens;
+          // the page body below keeps the shared, readable content measure.
+          "mx-auto flex h-[60px] w-full max-w-[1200px] items-center justify-between gap-5 px-5 sm:px-8",
         )}
       >
         <Link href={localizedHref("/", locale)} className="no-underline">

@@ -55,7 +55,7 @@ export default async function LandingPage({ params }: Props) {
 
   return (
     <>
-      <div className="mx-auto max-w-[560px] px-6">
+      <div className="mx-auto w-full max-w-[1040px] px-5 sm:px-8">
         <JsonLd
           data={softwareApplicationLd({
             locale,
@@ -66,7 +66,9 @@ export default async function LandingPage({ params }: Props) {
         {/* No header bar here on purpose — just the links, quiet, at the top of
           the column so the page still reads as one printed slip. */}
         <SiteNav locale={locale} variant="inline" className="pt-[26px]" />
+      </div>
 
+      <div className="mx-auto max-w-[560px] px-6">
         {/* ── Hero ─────────────────────────────────────────────── */}
         <section className="text-center pt-[42px] pb-[60px]">
           <div className="mb-[22px]">

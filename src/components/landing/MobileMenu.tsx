@@ -6,8 +6,9 @@ import { cn } from "@/lib/cn";
 
 // Mobile-only nav: a burger button that drops down the sub-page links. "Sign in"
 // stays in the header bar (rendered by SiteHeader), so it is NOT passed here —
-// everything else lives behind the burger. Hidden from `sm:` up, where the full
-// nav row takes over. `href`s arrive already localized from the server.
+// everything else lives behind the burger. Hidden from 900px up, where the full
+// nav row has enough room to take over. `href`s arrive already localized from
+// the server.
 type NavItem = { label: string; href: string; active?: boolean };
 
 export function MobileMenu({ links }: { links: NavItem[] }) {
@@ -24,13 +25,13 @@ export function MobileMenu({ links }: { links: NavItem[] }) {
   }, [open]);
 
   return (
-    <div className="sm:hidden">
+    <div className="min-[900px]:hidden">
       <button
         type="button"
         aria-label={open ? "Cerrar menú" : "Abrir menú"}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex h-9 w-9 -mr-2 flex-col items-center justify-center gap-[5px] cursor-pointer border-none bg-transparent"
+        className="flex h-11 w-11 -mr-2 flex-col items-center justify-center gap-[5px] cursor-pointer border-none bg-transparent"
       >
         <span
           className={cn(

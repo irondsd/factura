@@ -23,8 +23,11 @@ export function AppFooter() {
     // `/en/guias` 404s. Same reason Estadísticas is Spanish-only below — but
     // that section is a wall of Argentine data rather than an article, so it
     // isn't worth offering to an English reader at all.
-    { label: t.nav.guides, href: "/guias" },
+    ...(locale === "es" ? [{ label: t.nav.guides, href: "/guias" }] : []),
     ...(locale === "es" ? [{ label: t.nav.stats, href: "/estadisticas" }] : []),
+    ...(locale === "es"
+      ? [{ label: t.nav.research, href: "/investigaciones" }]
+      : []),
     { label: t.nav.contact, href: localizedHref("/contacto", locale) },
     { label: t.nav.github, href: githubUrl },
   ];

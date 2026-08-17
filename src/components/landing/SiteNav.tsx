@@ -112,8 +112,9 @@ const ACTIVE_LINK =
 
 // The marketing nav links, in two dresses:
 //
-// - `bar` (inside <SiteHeader/> on sub-pages): a full nav row from `sm:` up; on
-//   mobile only Sign in stays, the rest collapse behind the burger.
+// - `bar` (inside <SiteHeader/> on sub-pages): a full nav row only once its
+//   labels and wordmark have breathing room. Below 900px Sign in stays visible
+//   while the rest collapse behind the burger.
 // - `inline` (the landing page, which has no header on purpose): one quiet
 //   centered row of micro links, every link visible at every width — no bar, no
 //   burger, nothing to compete with the hero.
@@ -136,7 +137,7 @@ export async function SiteNav({
     return (
       <nav
         className={cn(
-          "flex flex-wrap items-center justify-center gap-x-5 gap-y-2.5",
+          "flex flex-wrap items-center justify-center gap-x-3 gap-y-2.5 min-[720px]:gap-x-5",
           className,
         )}
       >
@@ -156,7 +157,12 @@ export async function SiteNav({
   return (
     <>
       {/* Desktop: full nav row. */}
-      <nav className={cn("hidden items-center gap-[26px] sm:flex", className)}>
+      <nav
+        className={cn(
+          "hidden items-center gap-[26px] min-[900px]:flex",
+          className,
+        )}
+      >
         {all.map((link) => (
           <Link
             key={link.href}
@@ -169,7 +175,7 @@ export async function SiteNav({
       </nav>
 
       {/* Mobile: Sign in stays, everything else behind the burger. */}
-      <div className="flex items-center gap-4 sm:hidden">
+      <div className="flex items-center gap-4 min-[900px]:hidden">
         <Link href={localizedHref(signIn.href, locale)} className={NAV_LINK}>
           {signIn.label}
         </Link>
