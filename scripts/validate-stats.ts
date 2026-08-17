@@ -19,7 +19,7 @@
  *    `Dataset` structured data as well as the visible sources block, so the
  *    checks around them are about the markup and the page agreeing.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
   extractHeadings,
@@ -45,6 +45,15 @@ import {
 
 const STATS_DIR = path.join(CONTENT_DIR, "estadisticas");
 const REGISTRY = path.join(STATS_DIR, "pages.ts");
+/** Where `meta.preview` is resolved from — same rule as `CONTENT_DIR`. */
+const PUBLIC_DIR = path.join(CONTENT_DIR, "../../public");
+
+// Preview images live in one flat directory and are named after the page they
+// illustrate, with the slug's segments joined by "-" (a nested page's file is
+// `inflacion-de-vivienda-gba.jpg`), so a stale file is obvious from `ls` alone
+// once its page is gone.
+const PREVIEW_RE =
+  /^\/img\/estadisticas\/previews\/[a-z0-9-]+\.(?:jpg|png|webp)$/;
 const MDX_COMPONENTS = path.join(CONTENT_DIR, "../mdx-components.tsx");
 
 /** Slugs of the guides, for checking cross-section links. Read as filenames
@@ -325,6 +334,21 @@ function validatePage(file: string, at: string, section: Section): PageReport {
     const ogDescription = optStr("ogDescription");
     const ogStat = optStr("ogStat");
 
+    // ── preview: the optional 16:9 thumbnail the listings show ──────────────
+    // Optional, but a present-and-broken one is an error rather than a warning:
+    // a typo'd path renders a broken image on the index, which is worse than
+    // the text-only row the page would otherwise have had.
+    const preview = meta.preview;
+    if (preview !== undefined) {
+      if (typeof preview !== "string" || !PREVIEW_RE.test(preview)) {
+        errors.push(
+          `meta.preview, if set, must be a path like "/img/estadisticas/previews/${at.replace(/\//g, "-")}.jpg"`,
+        );
+      } else if (!existsSync(path.join(PUBLIC_DIR, preview))) {
+        errors.push(`meta.preview "${preview}" is not a file under public/`);
+      }
+    }
+
     if (meta.noindex !== undefined && meta.noindex !== true) {
       errors.push("meta.noindex, if set, must be exactly `true` (or omitted)");
     }
@@ -595,6 +619,7 @@ function validatePage(file: string, at: string, section: Section): PageReport {
       "ogDescription",
       "ogStat",
       "summary",
+      "preview",
       "cta",
       "keywords",
       "published",

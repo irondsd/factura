@@ -19,6 +19,7 @@ import {
 } from "@/content/estadisticas/pages";
 import { statsMetadata } from "@/i18n/metadata";
 import { faqPageLd, statsPageLd } from "@/i18n/structuredData";
+import { cn } from "@/lib/cn";
 
 // One statistics page, at any depth: /estadisticas/inflacion today,
 // /estadisticas/alquiler/caba the day a statistic gets per-district pages. The
@@ -34,6 +35,30 @@ export const dynamicParams = false;
 
 export function generateStaticParams() {
   return statsSlugs().map((slug) => ({ slug }));
+}
+
+/** The page's optional illustration, rendered twice from one `src` — at the top
+ * of the contents column from `lg` up, and above the headline below that, where
+ * there is no column. The same shape (and the same `alt=""` reasoning) as the
+ * guides' article `Preview`; kept as its own copy for the reason `StatsList` is
+ * its own copy of `GuideList` — the two sections mirror each other on purpose
+ * and are free to diverge. Not lazy: at both placements it is on the first
+ * screen. */
+function Preview({ src, className }: { src: string; className?: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      width={960}
+      height={540}
+      decoding="async"
+      className={cn(
+        "w-full aspect-video object-cover border border-line bg-card",
+        className,
+      )}
+    />
+  );
 }
 
 type Props = { params: Promise<{ slug: string[] }> };
@@ -100,6 +125,13 @@ export default async function EstadisticaPage({ params }: Props) {
                 ...crumbs,
               ]}
             />
+
+            {/* The phone's copy of the illustration: full width above the
+                headline. From `lg` up the sidebar's copy shows instead, so this
+                one is hidden rather than duplicated on screen. */}
+            {meta.preview && (
+              <Preview src={meta.preview} className="mb-7 lg:hidden" />
+            )}
 
             <header className="pb-2">
               <Eyebrow tone="accent">Estadísticas</Eyebrow>
@@ -173,6 +205,7 @@ export default async function EstadisticaPage({ params }: Props) {
           <TocSidebar
             headings={headings}
             label="En esta página"
+            above={meta.preview && <Preview src={meta.preview} />}
             below={<AsideCta />}
           />
         </div>

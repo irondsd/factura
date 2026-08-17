@@ -55,6 +55,22 @@ export type StatsMeta = {
   ogStat?: string;
   /** Short blurb for the section index and for the parent page's child list. */
   summary: string;
+  /** Optional 16:9 illustration: a path under `/img/estadisticas/previews/`,
+   * shown as a thumbnail on the page's row in the section index and in a hub's
+   * list of its children. Same field, same rule and same reasoning as the
+   * guides' `preview` (see `content/guias/guides.ts`) — including that it is
+   * deliberately *not* rendered on the page itself, and that a page without one
+   * gets the text-only row it has always had.
+   *
+   * What it should show is this section's own difference: these pages are
+   * charts and maps, so the thumbnail is a small true rendering of the thing —
+   * the city shaded by that page's own latest figures, the region of the
+   * country the series covers — rather than a decorative object.
+   *
+   * A path and not a `{ src, alt }` pair because the thumbnail is decorative in
+   * the accessibility sense: it renders `alt=""`, since the title beside it
+   * already names the page. See AUTHORING.md §2. */
+  preview?: string;
   /** One line of copy for the `<TopCta />` banner above the prose. */
   cta: string;
   /** SEO keywords for <meta name="keywords">. */

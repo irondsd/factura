@@ -80,6 +80,20 @@ blindly. The fields the guides don't have:
   the markup that puts the page in dataset search rather than only in web
   search, so fill it in properly.
 - **`ogStat`** — one figure on the social card. These pages usually have one.
+- **`preview`** — the page's 16:9 illustration. Same field and same rules as a
+  guide's (see `guias/AUTHORING.md`), with its own directory: the file goes in
+  `public/img/estadisticas/previews/`, named after the **slug with its segments
+  joined by `-`** — `/estadisticas/inflacion-de-vivienda/gba` →
+  `inflacion-de-vivienda-gba.jpg`. Export 16:9 at 960×540, JPEG ~80. It shows on
+  the section index, in a hub's list of its children, and in the page's own
+  gutter above the contents. The validator errors on a path that doesn't match
+  that shape or a file that isn't there.
+
+  What earns its place here is a **small true rendering of the page's own
+  figure** — the city shaded by this page's latest numbers, the region of the
+  country the series covers — not a decorative object. The current set is
+  generated from `data/caba-geo.json` and the same data files the charts read,
+  so a thumbnail can't claim a shape the page doesn't draw.
 
 `temporalCoverage` should be **derived from the data**, not typed in — otherwise
 it goes stale the first time the series is refreshed. Import it:
