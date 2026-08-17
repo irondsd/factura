@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Rebuilds `src/content/estadisticas/data/caba-geo.json` — the SVG outlines of
+ * Rebuilds `src/content/shared/caba-geo.json` — the SVG outlines of
  * the 48 barrios and 15 comunas — from the city's own boundary files.
  *
  * Run: `bun scripts/build-caba-geo.ts`   (or `npm run data:caba-geo`)
@@ -31,10 +31,10 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { COMUNA_IDS, findBarrio } from "../src/content/estadisticas/data/caba";
+import { COMUNA_IDS, findBarrio } from "../src/content/shared/caba";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const OUT = path.join(here, "../src/content/estadisticas/data/caba-geo.json");
+const OUT = path.join(here, "../src/content/shared/caba-geo.json");
 
 const CDN = "https://cdn.buenosaires.gob.ar/datosabiertos/datasets";
 const SOURCES = {

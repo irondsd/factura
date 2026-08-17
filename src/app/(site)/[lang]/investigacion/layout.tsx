@@ -1,4 +1,4 @@
-import { SectionChrome } from "@/components/section/SectionChrome";
+import { ContentChrome } from "@/components/article/ContentChrome";
 import { investigacion } from "@/content/investigacion/pages";
 
 export default async function InvestigacionLayout({
@@ -10,8 +10,8 @@ export default async function InvestigacionLayout({
 }) {
   const { lang } = await params;
   return (
-    <SectionChrome section={investigacion} lang={lang}>
+    <ContentChrome active={investigacion.base} lang={lang}>
       {children}
-    </SectionChrome>
+    </ContentChrome>
   );
 }

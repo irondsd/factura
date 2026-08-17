@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { SegmentedControl } from "@/components/ui";
-import geo from "@/content/estadisticas/data/caba-geo.json";
+import geo from "@/content/shared/caba-geo.json";
 import { cn } from "@/lib/cn";
 
 // A shaded map of CABA, by barrio or by comuna, plus the table that carries the

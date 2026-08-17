@@ -1,4 +1,4 @@
-import { SectionChrome } from "@/components/section/SectionChrome";
+import { ContentChrome } from "@/components/article/ContentChrome";
 import { estadisticas } from "@/content/estadisticas/pages";
 
 export default async function EstadisticasLayout({
@@ -10,8 +10,8 @@ export default async function EstadisticasLayout({
 }) {
   const { lang } = await params;
   return (
-    <SectionChrome section={estadisticas} lang={lang}>
+    <ContentChrome active={estadisticas.base} lang={lang}>
       {children}
-    </SectionChrome>
+    </ContentChrome>
   );
 }

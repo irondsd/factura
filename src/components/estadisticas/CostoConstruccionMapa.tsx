@@ -15,7 +15,7 @@ import {
   type SizeId,
   SIZES,
 } from "@/content/estadisticas/data/costo-construccion-caba";
-import { MapaCaba, type MapView } from "./MapaCaba";
+import { MapaCaba, type MapView } from "@/components/maps/MapaCaba";
 
 // The one cut of this dataset that is per-barrio — and it is a derived one, for
 // a reason the figure's own note states rather than hides.

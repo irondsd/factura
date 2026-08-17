@@ -93,7 +93,7 @@ blindly. The fields the guides don't have:
   What earns its place here is a **small true rendering of the page's own
   figure** — the city shaded by this page's latest numbers, the region of the
   country the series covers — not a decorative object. The current set is
-  generated from `data/caba-geo.json` and the same data files the charts read,
+  generated from `@/content/shared/caba-geo.json` and the same data files the charts read,
   so a thumbnail can't claim a shape the page doesn't draw.
 
 `temporalCoverage` should be **derived from the data**, not typed in — otherwise
@@ -238,7 +238,9 @@ axis. A figure is split in two, and the seam matters:
 
 - `IpcViviendaChart.tsx` — a **server** component. Owns the `<figure>` shell,
   the caption and the source note, and shapes the dataset into plain rows.
-- `IpcChartBody.tsx` — `"use client"`. Owns the heading, the stat line, any
+- `IpcChartBody.tsx` — `"use client"`. The lazy boundary that keeps recharts
+  out of pages that do not render this figure.
+- `IpcChartImpl.tsx` — `"use client"`. Owns the heading, the stat line, any
   control (the year picker), and the plot.
 
 Anything that changes when the reader clicks something belongs on the client
@@ -266,8 +268,9 @@ Compute axis ticks with `niceTicks` (`lib/svg-chart.ts`) and pass them to the
 `YAxis` rather than letting recharts pick, so gridlines land on round numbers
 and zero is always one of them.
 
-Register a new chart component in `src/mdx-components.tsx` so `.mdx` can use it
-without an import.
+Import each chart component directly in the `.mdx` page that renders it. Keep
+`src/mdx-components.tsx` for shared article furniture only: registering a data
+figure globally ships its client code to unrelated content routes.
 
 ---
 

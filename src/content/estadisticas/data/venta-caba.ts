@@ -7,7 +7,7 @@ import {
   ZONAS,
   type ZonaId,
   zonaCovers,
-} from "./caba";
+} from "@/content/shared/caba";
 import raw from "./venta-caba.json";
 
 // IDECBA's asking price per square metre for used apartments in CABA, in US

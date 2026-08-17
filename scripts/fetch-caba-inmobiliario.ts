@@ -38,11 +38,7 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  BARRIOS,
-  COMUNA_IDS,
-  findBarrio,
-} from "../src/content/estadisticas/data/caba";
+import { BARRIOS, COMUNA_IDS, findBarrio } from "../src/content/shared/caba";
 import { months, titleMonths } from "./lib/months";
 import { quarters, titleRange } from "./lib/quarters";
 import { type Cell, readSheet } from "./lib/xlsx";

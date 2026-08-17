@@ -20,7 +20,7 @@ import {
   type SizeId,
   SIZES,
 } from "@/content/estadisticas/data/oferta-alquiler-caba";
-import { MapaCaba, type MapView } from "./MapaCaba";
+import { MapaCaba, type MapView } from "@/components/maps/MapaCaba";
 
 // The map on /estadisticas/oferta-alquiler-caba: how many flats are actually
 // advertised for rent in each barrio, by size.
