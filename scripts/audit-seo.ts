@@ -268,7 +268,14 @@ async function main() {
   let stopping = false;
 
   if (!external) {
-    if (!existsSync(path.join(ROOT, ".next/BUILD_ID"))) {
+    // Next 16's Turbopack production output no longer necessarily writes the
+    // legacy `.next/BUILD_ID`; the server and static output directories are the
+    // stable indicators that `next start` can serve a build.
+    const hasProductionBuild =
+      existsSync(path.join(ROOT, ".next/BUILD_ID")) ||
+      (existsSync(path.join(ROOT, ".next/server")) &&
+        existsSync(path.join(ROOT, ".next/static")));
+    if (!hasProductionBuild) {
       console.error(
         red("No production build found — run `bun run build` first."),
       );
