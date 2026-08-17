@@ -29,6 +29,14 @@ export const meta = {
     "relacion precio seguridad barrios caba",
     "comuna mas segura de caba",
     "cuanto sale alquilar en caba por barrio",
+    "barrios mas baratos de caba",
+    "zonas mas baratas para alquilar en caba",
+    "zonas mas economicas para alquilar en buenos aires",
+    "lugares mas baratos para alquilar en caba",
+    "alquiler barato en caba",
+    "barrios mas baratos para vivir en caba",
+    "mejor relacion precio seguridad caba",
+    "ranking de barrios de caba",
   ],
   published: "2026-08-17T10:00:00-03:00",
   updated: "2026-08-17T10:00:00-03:00",
@@ -36,6 +44,14 @@ export const meta = {
     {
       q: "¿Cuál es el barrio más seguro y barato para alquilar en CABA?",
       a: "La tabla del ranking de esta página lo contesta con el dato del último trimestre, y el resultado no depende de un solo cálculo: hay una tabla que lo recalcula con los tres tamaños de departamento y con dos recortes de delitos distintos, y los barrios que aparecen en todas las combinaciones son la respuesta más firme que este cruce puede dar. En general se concentran en el oeste residencial de la Ciudad y en el eje de Caballito a Flores, no en el norte caro ni en el sur más barato.",
+    },
+    {
+      q: "¿Cuál es la zona más económica para alquilar en CABA?",
+      a: "Las comunas más baratas por metro cuadrado son las del sur y las del centro, y ahí está la trampa que esta página existe para mostrar: son también las que registran más delitos por habitante, así que la zona más económica y la más tranquila casi nunca son la misma. Las comunas del oeste quedan un escalón más caras y bastante mejor en delitos, y son las que más aparecen arriba del puntaje combinado. La tabla del ranking trae las dos columnas al lado, así que se puede ver qué se gana y qué se resigna en cada una.",
+    },
+    {
+      q: "¿Cuáles son los barrios más baratos para alquilar en CABA?",
+      a: "Los alquileres pedidos más bajos por metro cuadrado se concentran en el centro y en el sur de la Ciudad, con el eje de Flores hacia el oeste como excepción. Si lo único que importa es el precio, el ranking completo por barrio, por trimestre y por cantidad de ambientes está en la página de alquileres de Factura, enlazada más arriba; esta usa el precio como una de dos variables y no como la respuesta. Lo que sí contesta esta página, y la otra no, es cuáles de esos barrios baratos están baratos porque se registra más delito y cuáles lo están por otras razones. Son un puñado los que quedan por debajo de las dos medianas a la vez, y están casi todos en el oeste residencial.",
     },
     {
       q: "¿Cómo se comparan delitos con pesos?",
@@ -118,7 +134,7 @@ Antes de bajar conviene tener presente qué son los dos insumos. El alquiler es 
 - **Las dos variables**, con la razón por la que no se pueden sumar directamente.
 - **El mapa combinado**, con el peso entre precio y seguridad a elección.
 - **Cuántos pesos vale un delito** según el propio mercado de alquileres.
-- **El ranking barrio por barrio**, con el cálculo a la vista.
+- **El ranking de barrios**, del más barato y tranquilo para abajo, con el cálculo a la vista.
 - **Si la respuesta aguanta** que se cambien los supuestos.
 - **Los barrios que este cruce no puede ver**, que son muchos y no son al azar.
 - **Cómo se construye el puntaje**, paso por paso.
@@ -152,7 +168,7 @@ Las dos lecturas de la figura son igual de importantes y apuntan en direcciones 
 
 Y esa flojedad es la buena noticia para quien busca. Si la relación fuera estrecha, el cuadrante barato y tranquilo estaría vacío y no habría nada que buscar: habría que resignar una cosa para conseguir la otra, sin excepciones. Como es floja, ese cuadrante tiene nombres adentro. Son minoría —la recta explica por qué— y por eso vale la pena tenerlos anotados en lugar de descubrirlos de casualidad.
 
-## El ranking, barrio por barrio
+## El ranking de barrios: barato y tranquilo a la vez
 
 <PrecioSeguridadRanking />
 
