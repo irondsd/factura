@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ArticlePreview } from "@/components/article/ArticlePreview";
 import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { Faq } from "@/components/article/Faq";
 import { TocInline, TocSidebar } from "@/components/article/Toc";
@@ -10,7 +11,7 @@ import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import type { ContentSection } from "@/content/section";
 import { faqPageLd, sectionPageLd } from "@/i18n/structuredData";
-import { cn } from "@/lib/cn";
+import { formatContentDateTime } from "@/lib/content-date";
 
 // One page of a registry section, at any depth: /estadisticas/delitos-caba,
 // /investigacion/barrios-seguros-baratos-caba, and
@@ -23,42 +24,6 @@ import { cn } from "@/lib/cn";
 // is walked, not composed by hand), the dateline leads with *updated* (a series
 // is only as good as its last point), and a page with child pages can list them,
 // wherever its prose puts `<Subpaginas />`.
-
-/** The page's optional illustration, rendered twice from one `src` — at the top
- * of the contents column from `lg` up, and above the headline below that, where
- * there is no column. The same shape (and the same `alt=""` reasoning) as the
- * guides' article `Preview`. Not lazy: at both placements it is on the first
- * screen. */
-function Preview({ src, className }: { src: string; className?: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt=""
-      width={960}
-      height={540}
-      decoding="async"
-      className={cn(
-        "w-full aspect-video object-cover border border-line bg-card",
-        className,
-      )}
-    />
-  );
-}
-
-// Buenos Aires time, which is the offset the timestamps are authored in —
-// Google requires the visible date to match the structured data, and the JSON-LD
-// emits `meta.updated` verbatim.
-const fmtDateTime = (iso: string) =>
-  new Intl.DateTimeFormat("es-AR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "America/Argentina/Buenos_Aires",
-  }).format(new Date(iso));
 
 export async function SectionArticle({
   section,
@@ -113,7 +78,7 @@ export async function SectionArticle({
                 headline. From `lg` up the sidebar's copy shows instead, so this
                 one is hidden rather than duplicated on screen. */}
             {meta.preview && (
-              <Preview src={meta.preview} className="mb-7 lg:hidden" />
+              <ArticlePreview src={meta.preview} className="mb-7 lg:hidden" />
             )}
 
             <header className="pb-2">
@@ -129,7 +94,7 @@ export async function SectionArticle({
                 <span>
                   Actualizado el{" "}
                   <time dateTime={meta.updated}>
-                    {fmtDateTime(meta.updated)}
+                    {formatContentDateTime(meta.updated)}
                   </time>
                   <span aria-hidden="true"> ·</span>
                 </span>
@@ -137,7 +102,7 @@ export async function SectionArticle({
                   <span>
                     Publicado el{" "}
                     <time dateTime={meta.published}>
-                      {fmtDateTime(meta.published)}
+                      {formatContentDateTime(meta.published)}
                     </time>
                     <span aria-hidden="true"> ·</span>
                   </span>
@@ -192,7 +157,7 @@ export async function SectionArticle({
           <TocSidebar
             headings={headings}
             label="En esta página"
-            above={meta.preview && <Preview src={meta.preview} />}
+            above={meta.preview && <ArticlePreview src={meta.preview} />}
             below={<AsideCta />}
           />
         </div>

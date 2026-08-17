@@ -9,7 +9,7 @@ import {
   ZONAS,
   barriosOfZona,
   zonaCovers,
-} from "./caba";
+} from "@/content/shared/caba";
 import ventaRaw from "./venta-caba.json";
 
 // IDECBA's cost of building one square metre in CABA, monthly since 2015, plus

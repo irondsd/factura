@@ -1,44 +1,6 @@
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
 import {
-  ComparacionRegiones,
-  MultiploRegiones,
-} from "@/components/estadisticas/ComparacionRegiones";
-import { BarriosBuscados } from "@/components/estadisticas/BarriosBuscados";
-import { CostoCapitulos } from "@/components/estadisticas/CostoCapitulos";
-import { CostoConstruccionHistoria } from "@/components/estadisticas/CostoConstruccionHistoria";
-import { CostoConstruccionMapa } from "@/components/estadisticas/CostoConstruccionMapa";
-import { CostoConstruccionResumen } from "@/components/estadisticas/CostoConstruccionResumen";
-import { CostoPorZona } from "@/components/estadisticas/CostoPorZona";
-import { DelitosCabaMapa } from "@/components/estadisticas/DelitosCabaMapa";
-import { DelitosCuando } from "@/components/estadisticas/DelitosCuando";
-import { DelitosHistoria } from "@/components/estadisticas/DelitosHistoria";
-import { DelitosPorZona } from "@/components/estadisticas/DelitosPorZona";
-import { DelitosResidentes } from "@/components/estadisticas/DelitosResidentes";
-import { DelitosResumen } from "@/components/estadisticas/DelitosResumen";
-import { DelitosRobos } from "@/components/estadisticas/DelitosRobos";
-import { IpcViviendaChart } from "@/components/estadisticas/IpcViviendaChart";
-import { PrecioDepartamento } from "@/components/estadisticas/PrecioDepartamento";
-import { PrecioPorZona } from "@/components/estadisticas/PrecioPorZona";
-import { RegionesIpc } from "@/components/estadisticas/RegionesIpc";
-import { ResumenIpc } from "@/components/estadisticas/ResumenIpc";
-import { ResumenRegion } from "@/components/estadisticas/ResumenRegion";
-import { AlquilerCabaMapa } from "@/components/estadisticas/AlquilerCabaMapa";
-import { AlquileresBuscados } from "@/components/estadisticas/AlquileresBuscados";
-import { OfertaAlquilerCabaMapa } from "@/components/estadisticas/OfertaAlquilerCabaMapa";
-import { OfertaCambio } from "@/components/estadisticas/OfertaCambio";
-import { OfertaCobertura } from "@/components/estadisticas/OfertaCobertura";
-import { OfertaComposicion } from "@/components/estadisticas/OfertaComposicion";
-import { OfertaHistoria } from "@/components/estadisticas/OfertaHistoria";
-import { OfertaPorZona } from "@/components/estadisticas/OfertaPorZona";
-import { RentabilidadBuscados } from "@/components/estadisticas/RentabilidadBuscados";
-import { RentabilidadCabaMapa } from "@/components/estadisticas/RentabilidadCabaMapa";
-import { RentabilidadContraste } from "@/components/estadisticas/RentabilidadContraste";
-import { RentabilidadDispersion } from "@/components/estadisticas/RentabilidadDispersion";
-import { RentabilidadHistoria } from "@/components/estadisticas/RentabilidadHistoria";
-import { RentabilidadTipoCambio } from "@/components/estadisticas/RentabilidadTipoCambio";
-import { VentaCabaMapa } from "@/components/estadisticas/VentaCabaMapa";
-import {
   ClosingCta,
   CtaButton,
   CtaRow,
@@ -46,17 +8,6 @@ import {
   ProbarCta,
   SignupCta,
 } from "@/components/guides/cta";
-import { InflacionChart } from "@/components/guides/InflacionChart";
-import { PrecioSeguridadCobertura } from "@/components/investigacion/PrecioSeguridadCobertura";
-import { PrecioSeguridadDispersion } from "@/components/investigacion/PrecioSeguridadDispersion";
-import { PrecioSeguridadMapa } from "@/components/investigacion/PrecioSeguridadMapa";
-import { PrecioSeguridadRanking } from "@/components/investigacion/PrecioSeguridadRanking";
-import { PrecioSeguridadResumen } from "@/components/investigacion/PrecioSeguridadResumen";
-import { PrecioSeguridadSensibilidad } from "@/components/investigacion/PrecioSeguridadSensibilidad";
-import { BarriosSubestimadosComparador } from "@/components/investigacion/BarriosSubestimadosComparador";
-import { BarriosSubestimadosContraste } from "@/components/investigacion/BarriosSubestimadosContraste";
-import { BarriosSubestimadosPerfiles } from "@/components/investigacion/BarriosSubestimadosPerfiles";
-import { BarriosSubestimadosResumen } from "@/components/investigacion/BarriosSubestimadosResumen";
 import { PaginaRelacionada } from "@/components/section/PaginaRelacionada";
 import { TrustBlock } from "@/components/landing/TrustBlock";
 import { cn } from "@/lib/cn";
@@ -64,8 +15,10 @@ import { cn } from "@/lib/cn";
 // Global MDX component map — REQUIRED by `@next/mdx` in the App Router. Maps the
 // HTML that markdown compiles to onto the site's paper aesthetic (font-display
 // headings, font-mono body, accent links/code) so guides need no `prose` plugin.
-// Custom components (CTAs) are exposed here too, letting guide `.mdx` use
-// <DemoCta/> / <SignupCta/> / <CtaButton/> without an import.
+// Shared article furniture (CTAs, related links, sources) is exposed here so
+// every MDX page can use it without an import. Data figures are deliberately
+// imported by the pages that render them: putting charts in this global map
+// makes unrelated content routes load their client-side chart code.
 
 // Internal links use next/link for client nav; external open in a new tab.
 function Anchor({ href = "", children }: React.ComponentProps<"a">) {
@@ -185,88 +138,6 @@ const components: MDXComponents = {
   CtaButton,
   CtaRow,
   DemoCta,
-  // Reads its data from `content/guias/data/inflacion`; a guide passes only the
-  // `chart` id, so no chart data ever lives in an .mdx file.
-  InflacionChart,
-  // Same contract for the statistics section: the figures and the geography
-  // table read `content/estadisticas/data/*`, and the page passes an id.
-  IpcViviendaChart,
-  ComparacionRegiones,
-  MultiploRegiones,
-  RegionesIpc,
-  ResumenIpc,
-  ResumenRegion,
-  // Takes no props at all: which sizes and geographies it offers, and the six
-  // views behind the switches, come from the dataset it reads. Same for the
-  // three tables beside it on the CABA price page.
-  VentaCabaMapa,
-  AlquilerCabaMapa,
-  AlquileresBuscados,
-  // The supply page. Same contract again — both read the m² dataset and take
-  // nothing. Neither has an empty state to guard: this series has a figure for
-  // every barrio in every month, which is the whole reason the page exists.
-  OfertaAlquilerCabaMapa,
-  OfertaPorZona,
-  // The history page, which reads the same m² dataset across all of its months
-  // rather than one of them, plus the rent tables' own coverage as a second
-  // instrument. Same contract: none of the four takes a prop.
-  OfertaHistoria,
-  OfertaCobertura,
-  OfertaComposicion,
-  OfertaCambio,
-  PrecioDepartamento,
-  BarriosBuscados,
-  PrecioPorZona,
-  // The construction-cost page. The first three read the IDECBA cost and index
-  // series and take nothing; <CostoConstruccionMapa /> and <CostoPorZona />
-  // additionally join the sale-price and FX series, and each renders nothing at
-  // all if those three ever stop sharing a quarter — a state the page has to
-  // tolerate rather than a case to guard for in the .mdx.
-  CostoConstruccionResumen,
-  CostoConstruccionHistoria,
-  CostoCapitulos,
-  CostoConstruccionMapa,
-  CostoPorZona,
-  // The rentability page. Same deal — every one of these reads the joined
-  // dataset and takes nothing. <RentabilidadDispersion /> and
-  // <RentabilidadContraste /> can each render nothing at all if IDECBA's
-  // coverage ever collapses, which is a state the page has to tolerate rather
-  // than a case to guard for in the .mdx.
-  RentabilidadCabaMapa,
-  RentabilidadHistoria,
-  RentabilidadDispersion,
-  RentabilidadBuscados,
-  RentabilidadTipoCambio,
-  RentabilidadContraste,
-  // The crime page. Same contract as the rest of the section — each reads the
-  // Mapa del Delito dataset and takes nothing. <DelitosResidentes /> is the odd
-  // one out in purpose rather than in shape: it exists to keep the map from
-  // being read as a risk map, so it belongs directly under it and not at the
-  // bottom with the other tables.
-  DelitosResumen,
-  DelitosCabaMapa,
-  DelitosResidentes,
-  DelitosHistoria,
-  DelitosCuando,
-  DelitosRobos,
-  DelitosPorZona,
-  // /investigacion. Same contract as the statistics figures — each reads the
-  // joined dataset in `content/investigacion/data` and takes nothing — with one
-  // difference worth naming: <PrecioSeguridadSensibilidad /> and
-  // <PrecioSeguridadCobertura /> exist to argue *against* the map above them,
-  // by recomputing it under other assumptions and by listing what it cannot
-  // see. On a page whose whole output is a derived index, those two are not
-  // appendices.
-  PrecioSeguridadResumen,
-  PrecioSeguridadMapa,
-  PrecioSeguridadDispersion,
-  PrecioSeguridadRanking,
-  PrecioSeguridadSensibilidad,
-  PrecioSeguridadCobertura,
-  BarriosSubestimadosResumen,
-  BarriosSubestimadosComparador,
-  BarriosSubestimadosPerfiles,
-  BarriosSubestimadosContraste,
   // The one component in this map that takes a prop: which page to point at.
   // See the note in the component for why it's an href and not the copy — and
   // why it is the one figure-adjacent component that is not per-section: the

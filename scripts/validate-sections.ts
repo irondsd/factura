@@ -84,14 +84,13 @@ const dirOf = (id: string) => path.join(CONTENT_DIR, id);
 const previewRe = (id: string) =>
   new RegExp(`^/img/${id}/previews/[a-z0-9-]+\\.(?:jpg|png|webp)$`);
 
-// ── what `src/mdx-components.tsx` registers ─────────────────────────────────
-// Read out of the file rather than listed here: this is the set of capitalized
-// JSX a page can use without crashing the build, and a hand-kept copy of it
-// would go stale the first time a chart is added.
+// ── globally available MDX components ───────────────────────────────────────
+// `mdx-components.tsx` contains only shared article furniture. Data figures are
+// imported by the one MDX page that uses them, which keeps unrelated chart
+// clients out of every content route's browser bundle.
 
-function registeredComponents(ids: readonly string[]): {
+function registeredComponents(): {
   all: Set<string>;
-  figures: Set<string>;
   error?: string;
 } {
   const src = readFileSync(MDX_COMPONENTS, "utf8");
@@ -104,33 +103,41 @@ function registeredComponents(ids: readonly string[]): {
     [...map.matchAll(/^\s{2}([A-Z][A-Za-z0-9]*)\s*[,:]/gm)].map((m) => m[1]),
   );
 
-  // A "figure" is anything imported from a section's own component directory —
-  // every one of them draws or tabulates a dataset. What is deliberately *not*
-  // a figure is anything from `@/components/section`, which is the shared
-  // furniture: <PaginaRelacionada /> is a link card, <Fuentes /> is a list.
-  // Used only for the advisory about how far down the page the first figure
-  // sits, so a miss costs a warning.
-  const figures = new Set<string>();
-  for (const id of ids) {
-    for (const m of src.matchAll(
-      new RegExp(
-        `import\\s*\\{([^}]*)\\}\\s*from\\s*"@/components/${id}/[^"]*"`,
-        "g",
-      ),
-    )) {
-      for (const name of m[1].split(",")) {
-        const n = name.trim().replace(/^type\s+/, "");
-        if (n) figures.add(n);
-      }
-    }
-  }
   // If the parse ever breaks, say so once instead of calling every component on
   // every page unregistered.
   const error =
     all.size < 10
       ? `only ${all.size} components parsed out of ${path.basename(MDX_COMPONENTS)} — the \`const components: MDXComponents = { … }\` map is what this validator reads`
       : undefined;
-  return { all, figures, error };
+  return { all, error };
+}
+
+/** Components imported by one MDX source. Imports from that section's own
+ * component directory are its data figures; imports from shared directories
+ * are available but do not count toward the "figure comes first" advisory. */
+function localComponents(
+  src: string,
+  sectionId: string,
+): { all: Set<string>; figures: Set<string> } {
+  const all = new Set<string>();
+  const figures = new Set<string>();
+  for (const match of src.matchAll(
+    /import\s*\{([^}]*)\}\s*from\s*"(@\/components\/[^\"]+)"/g,
+  )) {
+    for (const imported of match[1].split(",")) {
+      const name = imported
+        .trim()
+        .replace(/^type\s+/, "")
+        .split(/\s+as\s+/)
+        .at(-1);
+      if (!name) continue;
+      all.add(name);
+      if (match[2].startsWith(`@/components/${sectionId}/`)) {
+        figures.add(name);
+      }
+    }
+  }
+  return { all, figures };
 }
 
 // ── the registry in pages.ts ────────────────────────────────────────────────
@@ -335,6 +342,7 @@ function validatePage(
   const { errors, warnings } = r;
   const self = world.sections.get(cfg.id)!;
   const src = readFileSync(path.join(dirOf(cfg.id), file), "utf8");
+  const local = localComponents(src, cfg.id);
 
   if (src.trimStart().startsWith("---")) {
     errors.push(
@@ -756,9 +764,9 @@ function validatePage(
   for (const m of world.components.error
     ? []
     : body.matchAll(/<([A-Z][A-Za-z0-9]*)/g)) {
-    if (!world.components.all.has(m[1])) {
+    if (!world.components.all.has(m[1]) && !local.all.has(m[1])) {
       errors.push(
-        `unknown component <${m[1]}/> (not registered in mdx-components.tsx)`,
+        `unknown component <${m[1]}/> (not imported by this page or registered globally)`,
       );
     }
   }
@@ -784,7 +792,7 @@ function validatePage(
   // they scroll past. Measured in `##` sections rather than characters, which is
   // what the spec is written in.
   const figure = [...body.matchAll(/<([A-Z][A-Za-z0-9]*)/g)].find((m) =>
-    world.components.figures.has(m[1]),
+    local.figures.has(m[1]),
   );
   if (!figure) {
     warnings.push(
@@ -967,7 +975,7 @@ export function collectSections(
   only?: readonly string[],
 ): { name: string; reports: Report[] }[] {
   const surveyed = SECTION_CONFIGS.map(survey);
-  const components = registeredComponents(SECTION_CONFIGS.map((c) => c.id));
+  const components = registeredComponents();
   const world: World = {
     components,
     sections: new Map(surveyed.map((s) => [s.cfg.id, s.index])),

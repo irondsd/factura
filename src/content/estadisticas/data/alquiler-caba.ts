@@ -7,7 +7,7 @@ import {
   ZONAS,
   type ZonaId,
   zonaCovers,
-} from "./caba";
+} from "@/content/shared/caba";
 import raw from "./alquiler-caba.json";
 
 // IDECBA's asking rent for used apartments in CABA, in pesos a month,

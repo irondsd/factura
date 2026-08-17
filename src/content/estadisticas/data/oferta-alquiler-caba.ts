@@ -7,7 +7,7 @@ import {
   ZONAS,
   type ZonaId,
   zonaCovers,
-} from "./caba";
+} from "@/content/shared/caba";
 import raw from "./oferta-alquiler-caba.json";
 
 // IDECBA's advertised floor area for rental flats in CABA, in square metres,

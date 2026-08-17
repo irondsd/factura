@@ -40,15 +40,15 @@ const PREVIEW_RE = /^\/img\/guias\/previews\/[a-z0-9-]+\.(?:jpg|png|webp)$/;
 // of these slugs would be shadowed by the route and never render.
 const RESERVED_SLUGS = new Set(["categoria"]);
 
-// Components registered in `src/mdx-components.tsx` — the only custom (capitalized)
-// JSX a guide may use. Anything else would crash the build.
-const ALLOWED_COMPONENTS = new Set([
+// Lightweight components registered globally in `src/mdx-components.tsx`.
+// Data visualizations are local imports so guides that do not draw one do not
+// inherit its client bundle.
+const GLOBAL_COMPONENTS = new Set([
   "ClosingCta",
   "CtaButton",
   "CtaRow",
   "DemoCta",
   "Faq",
-  "InflacionChart",
   "ProbarCta",
   "SignupCta",
   "RelatedGuides",
@@ -412,11 +412,24 @@ function validateFile(file: string, knownSlugs: Set<string>): GuideReport {
   }
   r.links = [...interlinks];
 
-  // ── custom components must be registered ──────────────────────────────────
+  const localComponents = new Set(
+    [...src.matchAll(/import\s*\{([^}]*)\}\s*from\s*"@\/components\/[^"]+"/g)]
+      .flatMap((match) => match[1].split(","))
+      .map((name) =>
+        name
+          .trim()
+          .replace(/^type\s+/, "")
+          .split(/\s+as\s+/)
+          .at(-1),
+      )
+      .filter((name): name is string => Boolean(name)),
+  );
+
+  // ── custom components must be global or locally imported ──────────────────
   for (const m of body.matchAll(/<([A-Z][A-Za-z0-9]*)/g)) {
-    if (!ALLOWED_COMPONENTS.has(m[1])) {
+    if (!GLOBAL_COMPONENTS.has(m[1]) && !localComponents.has(m[1])) {
       errors.push(
-        `unknown component <${m[1]}/> (not registered in mdx-components.tsx)`,
+        `unknown component <${m[1]}/> (not imported by this guide or registered globally)`,
       );
     }
   }

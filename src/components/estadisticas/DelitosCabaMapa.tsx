@@ -20,8 +20,8 @@ import {
   SOURCE,
   unplaced,
 } from "@/content/estadisticas/data/delitos-caba";
-import { BARRIOS, COMUNA_IDS } from "@/content/estadisticas/data/caba";
-import { MapaCaba, type MapView } from "./MapaCaba";
+import { MapaCaba, type MapView } from "@/components/maps/MapaCaba";
+import { BARRIOS, COMUNA_IDS } from "@/content/shared/caba";
 
 // The map on /estadisticas/delitos-caba: recorded crimes per 1.000 residents,
 // by barrio or comuna, for four cuts of the offence taxonomy.
