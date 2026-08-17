@@ -140,6 +140,14 @@
   .fd-card {
     @apply bg-card border border-line;
   }
+  /* A panel of blank paper — the page's own dotted grid, on the page's own
+     ground. Stands in for a picture a page doesn't have, so a card without a
+     preview still reads as a slip with a blank top rather than as a hole. */
+  .paper-grid {
+    background-color: var(--paper);
+    background-image: radial-gradient(var(--line) 0.75px, transparent 0.75px);
+    background-size: 22px 22px;
+  }
   /* Ledger table header + cell. */
   .fd-th {
     @apply text-left font-mono text-micro font-medium uppercase text-muted pt-0 px-0 pb-[10px];

@@ -1,14 +1,20 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { SiteFooter } from "@/components/landing/Footer";
 import { LedgerPeek } from "@/components/landing/LedgerPeek";
 import { Eyebrow, Perforation, Wordmark } from "@/components/landing/parts";
+import {
+  SectionTeasers,
+  type TeaserBlock,
+  type TeaserCard,
+} from "@/components/landing/SectionTeasers";
 import { SiteNav } from "@/components/landing/SiteNav";
 import { TrustBlock } from "@/components/landing/TrustBlock";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Button } from "@/components/ui";
 import { estadisticas } from "@/content/estadisticas/pages";
 import { listedGuides } from "@/content/guias/guides";
+import { investigacion } from "@/content/investigacion/pages";
+import type { ContentSection, SectionPage } from "@/content/section";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
 import { getI18n } from "@/i18n/server";
@@ -42,19 +48,10 @@ export default async function LandingPage({ params }: Props) {
   const { t } = await getI18n(locale);
   const l = t.landing;
 
-  // Guides and statistics are both Spanish-only — surface them on the es
-  // homepage (a high-authority internal link). The footer's own links follow the
-  // same rule.
-  //
-  // `estadisticas.children([])` rather than `estadisticas.listed()`: the latter includes
-  // the six regional pages nested under Inflación de vivienda, and a homepage
-  // teaser listing "GBA", "Cuyo", "Patagonia" as peers of the sections they
-  // belong to reads as a sitemap. This is the top level only — one row per
-  // subject.
-  const [guides, stats] =
-    locale === "es"
-      ? await Promise.all([listedGuides(), estadisticas.children([])])
-      : [[], []];
+  // The editorial sections are Spanish-only — surface them on the es homepage
+  // (a high-authority internal link). The footer's own links follow the same
+  // rule.
+  const blocks = locale === "es" ? await teaserBlocks() : [];
 
   return (
     <>
@@ -169,98 +166,20 @@ export default async function LandingPage({ params }: Props) {
           </div>
         </section>
 
-        {/* ── Statistics (Spanish-only) ────────────────────────── */}
-        {/* Above the guides, and given two lines per row where a guide gets one.
-            These pages are the section nobody else on the Argentine web
-            publishes, so they're what the homepage should be spending its
-            attention — and its internal links — on. */}
-        {stats.length > 0 && (
-          <>
-            <Perforation className="mb-16" />
-            <section className="pb-16">
-              <SectionLabel>Estadísticas</SectionLabel>
-              <p className="text-center font-mono text-[13.5px] leading-[1.65] text-muted m-0 mb-7 mx-auto max-w-[460px]">
-                Precios, alquileres y servicios en Argentina, con datos
-                oficiales y actualizados cada mes.
-              </p>
-              <div className="flex flex-col gap-1">
-                {stats.slice(0, 4).map((p, i) => (
-                  <Link
-                    key={p.slug.join("/")}
-                    href={estadisticas.href(p.slug)}
-                    className={cn(
-                      "group flex items-baseline justify-between gap-4 py-[14px] no-underline",
-                      i !== 0 && HAIRLINE,
-                    )}
-                  >
-                    <span className="min-w-0">
-                      <span className="block font-mono text-[13.5px] text-ink transition-colors group-hover:text-accent">
-                        {p.meta.title}
-                      </span>
-                      {p.meta.ogStat && (
-                        <span className="block font-mono text-micro uppercase tracking-label text-muted mt-[5px]">
-                          {p.meta.ogStat}
-                        </span>
-                      )}
-                    </span>
-                    <span className="flex-none font-mono text-micro text-accent">
-                      →
-                    </span>
-                  </Link>
-                ))}
-              </div>
-              <div className="text-center mt-7">
-                <Link
-                  href="/estadisticas"
-                  className="font-mono text-micro uppercase tracking-label text-muted no-underline transition-colors hover:text-accent"
-                >
-                  Ver todas las estadísticas →
-                </Link>
-              </div>
-            </section>
-          </>
-        )}
+      </div>
 
-        {/* ── Guides (Spanish-only) ────────────────────────────── */}
-        {guides.length > 0 && (
-          <>
-            <Perforation className="mb-16" />
-            <section className="pb-16">
-              <SectionLabel>Guías</SectionLabel>
-              <p className="text-center font-mono text-[13.5px] leading-[1.65] text-muted m-0 mb-7 mx-auto max-w-[460px]">
-                Aprende a leer tus facturas y a entender qué pagas en cada
-                servicio.
-              </p>
-              <div className="flex flex-col gap-1">
-                {guides.slice(0, 3).map((g, i) => (
-                  <Link
-                    key={g.slug}
-                    href={`/guias/${g.slug}`}
-                    className={cn(
-                      "group flex items-baseline justify-between gap-4 py-[14px] no-underline",
-                      i !== 0 && HAIRLINE,
-                    )}
-                  >
-                    <span className="font-mono text-[13.5px] text-ink transition-colors group-hover:text-accent">
-                      {g.meta.title}
-                    </span>
-                    <span className="flex-none font-mono text-micro text-accent">
-                      →
-                    </span>
-                  </Link>
-                ))}
-              </div>
-              <div className="text-center mt-7">
-                <Link
-                  href="/guias"
-                  className="font-mono text-micro uppercase tracking-label text-muted no-underline transition-colors hover:text-accent"
-                >
-                  Ver todas las guías →
-                </Link>
-              </div>
-            </section>
-          </>
-        )}
+      {/* ── Editorial sections (Spanish-only) ────────────────── */}
+      {/* Outside the 560px receipt column, like the TrustBlock above: these are
+          three-up cards with previews, and pinched to the column they'd be
+          three 170px slivers. */}
+      {blocks.length > 0 && (
+        <div className="mx-auto w-full max-w-[1040px] px-6 pb-16 sm:px-8">
+          <SectionTeasers blocks={blocks} />
+        </div>
+      )}
+
+      <div className="mx-auto max-w-[560px] px-6">
+        <Perforation className="mb-16" />
 
         {/* ── Closing CTA ──────────────────────────────────────── */}
         <section className="text-center pb-16">
@@ -278,6 +197,85 @@ export default async function LandingPage({ params }: Props) {
       <SiteFooter locale={locale} />
     </>
   );
+}
+
+// ── The three editorial blocks ───────────────────────────────────────────────
+// Estadísticas first, then Investigaciones, then Guías. That is the order they
+// deserve the homepage's attention in, and it is the reverse of how much of the
+// Argentine web already covers them: the statistics are series nobody else
+// publishes, the research is arithmetic only this site does, and the guides are
+// the part anyone could write.
+
+/** How many cards a block shows. Three, so a block is one grid row. */
+const PER_BLOCK = 3;
+
+/** Newest first by publication. Registry order is editorial, not chronological,
+ * so every block sorts before it slices — and it sorts by `published` rather
+ * than `updated` because the badge and the dateline both say "new", and a
+ * statistics page refreshed with this month's INDEC release is not new. */
+const newest = (pages: SectionPage[]): SectionPage[] =>
+  [...pages]
+    .sort((a, b) => Date.parse(b.meta.published) - Date.parse(a.meta.published))
+    .slice(0, PER_BLOCK);
+
+const sectionCards = (
+  section: ContentSection,
+  pages: SectionPage[],
+): TeaserCard[] =>
+  pages.map((page) => ({
+    key: page.slug.join("/"),
+    href: section.href(page.slug),
+    title: page.meta.title,
+    summary: page.meta.summary,
+    preview: page.meta.preview,
+    published: page.meta.published,
+  }));
+
+async function teaserBlocks(): Promise<TeaserBlock[]> {
+  // `estadisticas.children([])` rather than `.listed()`: the latter includes the
+  // six regional pages nested under Inflación de vivienda, and a homepage teaser
+  // listing "GBA", "Cuyo", "Patagonia" as peers of the sections they belong to
+  // reads as a sitemap. This is the top level only — one card per subject.
+  // Research has no hierarchy yet, so its own `listed()` is already that.
+  const [stats, research, guides] = await Promise.all([
+    estadisticas.children([]),
+    investigacion.listed(),
+    listedGuides(),
+  ]);
+
+  return [
+    {
+      label: "Estadísticas",
+      blurb:
+        "Precios, alquileres y servicios en Argentina, con datos oficiales y actualizados cada mes.",
+      cards: sectionCards(estadisticas, newest(stats)),
+      allHref: "/estadisticas",
+      allLabel: "Ver todas las estadísticas",
+    },
+    {
+      label: "Investigaciones",
+      blurb: "Informes propios a partir de datos públicos y de facturas reales.",
+      cards: sectionCards(investigacion, newest(research)),
+      allHref: "/investigacion",
+      allLabel: "Ver todas las investigaciones",
+    },
+    {
+      // `listedGuides()` already comes back newest first by publication.
+      label: "Guías",
+      blurb:
+        "Aprende a leer tus facturas y a entender qué pagas en cada servicio.",
+      cards: guides.slice(0, PER_BLOCK).map((guide) => ({
+        key: guide.slug,
+        href: `/guias/${guide.slug}`,
+        title: guide.meta.title,
+        summary: guide.meta.summary,
+        preview: guide.meta.preview,
+        published: guide.meta.published,
+      })),
+      allHref: "/guias",
+      allLabel: "Ver todas las guías",
+    },
+  ].filter((block) => block.cards.length > 0);
 }
 
 // Solid "get started" call to action — the app's button, navigating. Wide
