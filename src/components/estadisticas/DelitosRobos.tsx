@@ -73,8 +73,8 @@ export function DelitosRobos() {
       </div>
 
       <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Qué proporción de los robos registrados en la Ciudad involucró una moto y
-        cuál un arma, año por año desde {FIRST_YEAR}. Las dos columnas se leen
+        Qué proporción de los robos registrados en la Ciudad involucró una moto
+        y cuál un arma, año por año desde {FIRST_YEAR}. Las dos columnas se leen
         contra la primera, que es cuántos robos hubo: una proporción puede caer
         porque el fenómeno se achicó o porque el denominador creció.
       </p>

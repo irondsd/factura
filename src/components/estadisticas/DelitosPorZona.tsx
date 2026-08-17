@@ -55,8 +55,8 @@ export function DelitosPorZona() {
                     {z.comunas}
                   </span>
                   <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5">
-                    {formatCount(z.count)} hechos ·{" "}
-                    {formatCount(z.population)} habitantes
+                    {formatCount(z.count)} hechos · {formatCount(z.population)}{" "}
+                    habitantes
                   </span>
                 </td>
                 <td className="fd-td text-right pl-3 align-top text-ink tabular-nums whitespace-nowrap">
@@ -87,12 +87,12 @@ export function DelitosPorZona() {
       </p>
 
       <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Cada fila es la suma de los hechos de la zona dividida por la suma de sus
-        habitantes, no un promedio de barrios: dentro de una misma zona conviven
-        San Nicolás y Agronomía, y un promedio simple daría un número que no
-        describe a ninguno de los dos. La agrupación en cuatro zonas es nuestra
-        —la Ciudad publica barrios y comunas—, y por eso cada fila dice qué
-        comunas incluye. Datos de {LAST_YEAR}.
+        Cada fila es la suma de los hechos de la zona dividida por la suma de
+        sus habitantes, no un promedio de barrios: dentro de una misma zona
+        conviven San Nicolás y Agronomía, y un promedio simple daría un número
+        que no describe a ninguno de los dos. La agrupación en cuatro zonas es
+        nuestra —la Ciudad publica barrios y comunas—, y por eso cada fila dice
+        qué comunas incluye. Datos de {LAST_YEAR}.
       </p>
     </figure>
   );

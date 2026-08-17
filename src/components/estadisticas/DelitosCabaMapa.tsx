@@ -186,10 +186,11 @@ export function DelitosCabaMapa() {
         Son <strong className="font-medium">hechos registrados</strong>: lo que
         llegó a una denuncia o a una actuación policial o judicial, no lo que
         ocurrió. La población es la del Censo 2022: exacta por comuna, y por
-        barrio estimada repartiendo cada comuna según el censo de 2010. Donde esa
-        estimación es más floja es en {WEAKEST}, que en 2010 casi no tenía
+        barrio estimada repartiendo cada comuna según el censo de 2010. Donde
+        esa estimación es más floja es en {WEAKEST}, que en 2010 casi no tenía
         habitantes y desde entonces creció mucho más que el resto de su comuna:
-        su tasa aquí queda sobreestimada. Fuente: {SOURCE}, datos de {LAST_YEAR}.
+        su tasa aquí queda sobreestimada. Fuente: {SOURCE}, datos de {LAST_YEAR}
+        .
       </p>
     </figure>
   );

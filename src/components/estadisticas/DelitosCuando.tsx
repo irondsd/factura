@@ -94,11 +94,11 @@ export function DelitosCuando() {
 
       <p className="font-mono text-xs text-muted mt-3 leading-[1.6]">
         Por día de la semana la diferencia es mucho menor que por hora: el día
-        más cargado es el {busiest.day} con el{" "}
-        {formatShare(busiest.share)} de la semana y el más tranquilo el{" "}
-        {quietest.day} con el {formatShare(quietest.share)}, contra
-        el {formatShare(1 / 7)} que le tocaría a cada día. El delito en la Ciudad
-        tiene horario, no tiene tanto calendario.
+        más cargado es el {busiest.day} con el {formatShare(busiest.share)} de
+        la semana y el más tranquilo el {quietest.day} con el{" "}
+        {formatShare(quietest.share)}, contra el {formatShare(1 / 7)} que le
+        tocaría a cada día. El delito en la Ciudad tiene horario, no tiene tanto
+        calendario.
       </p>
 
       <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">

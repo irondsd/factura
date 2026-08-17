@@ -92,20 +92,20 @@ export function DelitosResidentes() {
 
       <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
         Un barrio con el {formatShare(top[0].shareCrime)} de los delitos y el{" "}
-        {formatShare(top[0].sharePeople)} de los habitantes no es un barrio donde
-        a sus vecinos les roben {formatRatio(top[0].ratio)} más. Es un barrio al
-        que va mucha más gente de la que vive en él.
+        {formatShare(top[0].sharePeople)} de los habitantes no es un barrio
+        donde a sus vecinos les roben {formatRatio(top[0].ratio)} más. Es un
+        barrio al que va mucha más gente de la que vive en él.
       </p>
 
       <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
         Las dos columnas se calculan sobre los{" "}
         {formatCount(all.reduce((a, r) => a + r.count, 0))} hechos que la fuente
         pudo ubicar en un barrio, así que cada una suma 100 %. La tercera es su
-        cociente, y es exactamente lo que colorea el mapa de arriba. No existe un
-        dato público de población flotante por barrio en CABA, así que esta tabla
-        muestra la brecha sin poder corregirla: es el motivo por el que la tasa
-        por habitante conviene leerla como «cuánto delito se registra aquí» y no
-        como «cuánto riesgo corro si vivo aquí».
+        cociente, y es exactamente lo que colorea el mapa de arriba. No existe
+        un dato público de población flotante por barrio en CABA, así que esta
+        tabla muestra la brecha sin poder corregirla: es el motivo por el que la
+        tasa por habitante conviene leerla como «cuánto delito se registra aquí»
+        y no como «cuánto riesgo corro si vivo aquí».
       </p>
     </figure>
   );

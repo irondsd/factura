@@ -67,7 +67,10 @@ export function DelitosHistoria() {
             {ext.high.year}) · Mínimo {formatRateBare(ext.low.rate)} (
             {ext.low.year})
             {hasBaseline && vsBaseline !== null && (
-              <> · {formatPct(vsBaseline)} contra {BASELINE}</>
+              <>
+                {" "}
+                · {formatPct(vsBaseline)} contra {BASELINE}
+              </>
             )}
           </>
         }
@@ -77,8 +80,8 @@ export function DelitosHistoria() {
               {formatCount(ext.last.count)} hechos
             </span>{" "}
             en {ext.last.year} · el mínimo de la serie fue{" "}
-            {formatCount(ext.low.count)} en {ext.low.year} · población constante,
-            así que las dos vistas tienen la misma forma
+            {formatCount(ext.low.count)} en {ext.low.year} · población
+            constante, así que las dos vistas tienen la misma forma
           </>
         }
         rows={rows}
@@ -95,9 +98,9 @@ export function DelitosHistoria() {
         La tasa se calcula siempre con la misma población, la del Censo 2022: la
         serie de delitos se movió mucho más en diez años que la cantidad de
         habitantes de la Ciudad, así que interpolar un divisor año por año
-        agregaría una segunda estimación y ningún cambio visible. Por eso las dos
-        vistas tienen exactamente la misma forma y solo cambia la escala. Fuente:{" "}
-        {SOURCE}, datos hasta {LAST_YEAR}.
+        agregaría una segunda estimación y ningún cambio visible. Por eso las
+        dos vistas tienen exactamente la misma forma y solo cambia la escala.
+        Fuente: {SOURCE}, datos hasta {LAST_YEAR}.
       </p>
     </figure>
   );

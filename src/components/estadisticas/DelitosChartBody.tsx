@@ -276,9 +276,7 @@ function HoraTooltip({
             style={{ background: s.color }}
           />
           <span className="flex-1 text-muted">{s.label}</span>
-          <span className="font-semibold">
-            {ONE_DP.format(row[s.key])} %
-          </span>
+          <span className="font-semibold">{ONE_DP.format(row[s.key])} %</span>
         </div>
       ))}
     </div>

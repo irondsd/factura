@@ -41,7 +41,10 @@ export function DelitosResumen() {
           <span className="text-ink">{formatCount(total)} hechos</span> ·{" "}
           {formatRateBare(cityRate())} cada 1.000 habitantes
           {change !== null && (
-            <> · {formatPct(total / change - 1)} contra {previous}</>
+            <>
+              {" "}
+              · {formatPct(total / change - 1)} contra {previous}
+            </>
           )}
         </p>
       </figcaption>
@@ -127,17 +130,18 @@ export function DelitosResumen() {
       </div>
 
       <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Todo lo que el sistema de seguridad de la Ciudad registró en {LAST_YEAR},
-        con cuánto se movió cada tipo de hecho contra el año anterior.
+        Todo lo que el sistema de seguridad de la Ciudad registró en {LAST_YEAR}
+        , con cuánto se movió cada tipo de hecho contra el año anterior.
       </p>
 
       <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
         Las cinco primeras filas suman el total; las dos de abajo, no. El robo y
         el hurto de vehículos ya están contados dentro de robos y hurtos, y se
-        muestran aparte porque son la pregunta de quien tiene auto. Los siniestros
-        viales quedan fuera del total a propósito: la fuente los publica en el
-        mismo archivo porque los registra el mismo sistema, pero un choque no es
-        un delito y sumarlos movería el mapa por el motivo equivocado.
+        muestran aparte porque son la pregunta de quien tiene auto. Los
+        siniestros viales quedan fuera del total a propósito: la fuente los
+        publica en el mismo archivo porque los registra el mismo sistema, pero
+        un choque no es un delito y sumarlos movería el mapa por el motivo
+        equivocado.
       </p>
     </figure>
   );

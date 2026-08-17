@@ -371,7 +371,8 @@ function parseYear(year: number, text: string): Year {
     }
 
     const hour = Number(row[at.franja]);
-    if (row[at.franja] === "NULL" || !Number.isInteger(hour)) out.sinFranja += n;
+    if (row[at.franja] === "NULL" || !Number.isInteger(hour))
+      out.sinFranja += n;
     else if (hour < 0 || hour > 23) {
       throw new Error(`delitos_${year}.csv: franja horaria ${hour}`);
     } else out.franja[measure][hour] += n;
@@ -505,7 +506,13 @@ async function resources(dataset: string): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   for (const r of body.result.resources) {
     if (!/\.csv($|\?)/i.test(r.url)) continue;
-    out.set(r.url.split("/").pop()!.replace(/\.csv$/i, ""), r.url);
+    out.set(
+      r.url
+        .split("/")
+        .pop()!
+        .replace(/\.csv$/i, ""),
+      r.url,
+    );
   }
   return out;
 }
@@ -609,7 +616,8 @@ async function main(): Promise<void> {
       "Mapa del Delito: hechos registrados por el sistema de seguridad de la Ciudad —denuncias, actuaciones policiales y judiciales—, no delitos cometidos. Un delito que nadie denuncia no está en esta serie.",
     poblacionSource:
       "INDEC, Censo Nacional de Población, Hogares y Viviendas 2022. Resultados definitivos, cuadro 2.1 (población y superficie por comuna).",
-    poblacionSourceUrl: "https://censo.gob.ar/index.php/datos_definitivos_caba/",
+    poblacionSourceUrl:
+      "https://censo.gob.ar/index.php/datos_definitivos_caba/",
     generatedBy: "scripts/fetch-caba-delitos.ts",
     years: years.map((y) => y.year),
     measures: MEASURES,
@@ -653,7 +661,9 @@ async function main(): Promise<void> {
         COMUNA_IDS.map((c) => [String(c), comunas[c].poblacion]),
       ),
       /** Estimated — see `barrioPopulation` in the script. */
-      barrios: Object.fromEntries(BARRIOS.map((b) => [b.id, barrioPob.get(b.id)!])),
+      barrios: Object.fromEntries(
+        BARRIOS.map((b) => [b.id, barrioPob.get(b.id)!]),
+      ),
       /** The 2010 count the estimate is built from, so the split is checkable. */
       barrios2010: Object.fromEntries(
         BARRIOS.map((b) => [b.id, pob2010.get(b.id)!]),

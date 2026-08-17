@@ -271,9 +271,7 @@ export const CITY_POPULATION = COMUNA_IDS.reduce(
 );
 
 const population = (geo: Geo, id: string): number =>
-  geo === "barrios"
-    ? DATA.poblacion.barrios[id]
-    : DATA.poblacion.comunas[id];
+  geo === "barrios" ? DATA.poblacion.barrios[id] : DATA.poblacion.comunas[id];
 
 /**
  * Barrios whose estimated population is least trustworthy, named rather than
@@ -589,13 +587,18 @@ export const PERFIL_YEAR = DATA.perfil.year;
  * year only, city-wide. Shares rather than counts so two categories of very
  * different size can be drawn on one axis, which is the whole point of the
  * figure: robos and hurtos happen at different hours. */
-export function byHour(category: CategoryId): { hour: number; share: number }[] {
+export function byHour(
+  category: CategoryId,
+): { hour: number; share: number }[] {
   const ms = measuresOf(category);
   const counts = Array.from({ length: 24 }, (_, h) =>
     ms.reduce((a, m) => a + DATA.perfil.franja[m][h], 0),
   );
   const total = counts.reduce((a, b) => a + b, 0);
-  return counts.map((n, hour) => ({ hour, share: total === 0 ? 0 : n / total }));
+  return counts.map((n, hour) => ({
+    hour,
+    share: total === 0 ? 0 : n / total,
+  }));
 }
 
 /** Events by day of week, Monday first, as a share of the category's week. */
