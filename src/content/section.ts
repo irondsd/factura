@@ -138,11 +138,10 @@ export type SectionEntry = {
  * field here is either a location or a piece of Spanish the section says about
  * itself; nothing here is behaviour. */
 export type SectionConfig = {
-  /** Directory name under `src/content`, and the first URL segment. The two are
-   * deliberately the same string: it is also the `/og/<id>/…` prefix and the
-   * `public/img/<id>/previews/` prefix, and keeping them in step is what lets
-   * one convention describe all four. */
+  /** Directory name under `src/content`. */
   id: string;
+  /** Optional public URL segment when it differs from the source directory. */
+  base?: string;
   /** What a reader calls the section: the eyebrow above a headline, the root
    * breadcrumb, the social card's kicker, the feed category. */
   label: string;
@@ -193,7 +192,7 @@ export type ContentSection = SectionConfig & {
 
 export function createSection(config: SectionConfig): ContentSection {
   const { id, entries } = config;
-  const base = `/${id}`;
+  const base = `/${config.base ?? id}`;
   const dir = path.join(process.cwd(), "src/content", id);
 
   const slugPath = (slug: string[]): string => slug.join("/");

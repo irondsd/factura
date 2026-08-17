@@ -33,6 +33,19 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // The research section is plural for consistency with /guias and
+      // /estadisticas. Keep the former singular URLs working for readers and
+      // search engines that already know them.
+      {
+        source: "/investigacion",
+        destination: "/investigaciones",
+        permanent: true,
+      },
+      {
+        source: "/investigacion/:path*",
+        destination: "/investigaciones/:path*",
+        permanent: true,
+      },
       // /estadisticas/inflacion was the statistics section's first page, shipped
       // as one long document covering the country and all six regions. It was
       // split into a hub plus a page per region, and renamed to something that
