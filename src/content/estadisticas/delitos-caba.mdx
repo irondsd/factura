@@ -2,9 +2,9 @@ import { TEMPORAL_COVERAGE } from "./data/delitos-caba";
 
 export const meta = {
   title: "Delitos en CABA, barrio por barrio",
-  titleTag: "Mapa del delito en CABA: estadísticas por barrio y comuna",
+  titleTag: "Mapa del delito en CABA: barrios más seguros y peligrosos",
   description:
-    "Delitos registrados en la Ciudad de Buenos Aires cada 1.000 habitantes, barrio por barrio y comuna por comuna, con el dato oficial del Mapa del Delito año por año.",
+    "Qué barrios y comunas de la Ciudad de Buenos Aires registran más delitos y cuáles menos, cada 1.000 habitantes, con el dato oficial del Mapa del Delito año por año.",
   summary:
     "Cuántos delitos se registran en cada barrio de la Ciudad de Buenos Aires cada 1.000 habitantes, con el mapa por barrio y comuna, la serie desde 2016 y la diferencia entre dónde ocurren los delitos y dónde vive la gente.",
   ogStat: "Delitos cada 1.000 habitantes, por barrio",
@@ -25,9 +25,18 @@ export const meta = {
     "seguridad por barrio caba",
     "hurtos en caba",
     "donde hay mas robos en buenos aires",
+    "barrios mas seguros de buenos aires",
+    "barrios menos peligrosos de caba",
+    "barrio mas tranquilo de buenos aires",
+    "comuna mas segura de caba",
+    "zonas mas seguras de buenos aires",
+    "zonas mas inseguras de caba",
+    "barrios inseguros de caba",
+    "mapa zonas peligrosas caba",
+    "barrio mas peligroso de buenos aires",
   ],
   published: "2026-08-16T12:00:00-03:00",
-  updated: "2026-08-16T12:00:00-03:00",
+  updated: "2026-08-17T12:00:00-03:00",
   faq: [
     {
       q: "¿Cuál es el barrio más peligroso de CABA?",
@@ -35,7 +44,23 @@ export const meta = {
     },
     {
       q: "¿Cuáles son los barrios más seguros de CABA?",
-      a: "Los que aparecen más abajo en la tabla del mapa son barrios residenciales del oeste y del norte, con poca circulación de gente que no vive ahí. Conviene leerlo como «aquí se registran menos hechos por habitante» y no como una garantía: la diferencia entre el barrio más bajo y la mediana de la Ciudad es mucho menor que la que hay entre la mediana y el microcentro.",
+      a: "Los que aparecen más abajo en la tabla del mapa son barrios residenciales del oeste y del norte, con poca circulación de gente que no vive ahí. Es la misma respuesta para el barrio más tranquilo y para los barrios menos peligrosos: las tres preguntas se contestan con la misma columna. Para un barrio en particular —Villa Urquiza, Caballito, Núñez o cualquier otro— la tabla que sigue al mapa trae los 48 ordenados, así que se puede buscar directamente. Conviene leerlo como «aquí se registran menos hechos por habitante» y no como una garantía: la diferencia entre el barrio más bajo y la mediana de la Ciudad es mucho menor que la que hay entre la mediana y el microcentro.",
+    },
+    {
+      q: "¿Cuál es la comuna más segura de CABA?",
+      a: "El mapa de esta página se puede ver por comuna además de por barrio, y la tabla debajo del mapa ordena las 15. Las que quedan abajo son las comunas residenciales del norte y del oeste, y las de arriba las del centro y del sur. La vista por comuna tiene una ventaja que conviene aprovechar: la población de cada comuna es el dato exacto del Censo 2022, mientras que la de cada barrio es una estimación. Si el número tiene que ser lo más firme posible, la comuna es la unidad correcta; si lo que se busca es el barrio donde se va a vivir, el mapa por barrio es más útil aunque su divisor sea aproximado.",
+    },
+    {
+      q: "¿Cuáles son las zonas más seguras de Buenos Aires?",
+      a: "La tabla de zonas de esta página parte la Ciudad en cuatro y las ordena por hechos registrados cada 1.000 habitantes, así que da la respuesta en cuatro filas. Pero la propia tabla muestra por qué la pregunta se contesta mejor por barrio: dentro de una misma zona la distancia entre el barrio más alto y el más bajo suele ser mayor que la distancia entre zonas. La zona centro, por ejemplo, incluye a la vez el microcentro y barrios residenciales tranquilos, y el promedio no describe bien a ninguno de los dos.",
+    },
+    {
+      q: "¿Cómo saber si una zona es peligrosa?",
+      a: "Con esta serie se puede saber cuánto delito se registra en un territorio, que no es lo mismo que el riesgo de quien vive ahí. Tres cosas ayudan a leerla bien. Primero, mirar la tasa por habitante y no el total: un barrio grande registra más hechos que uno chico sin ser más peligroso. Segundo, mirar la brecha entre la parte del delito de la Ciudad que concentra ese barrio y la parte de la población que tiene, que es la tabla que sigue al mapa: cuando esa brecha es grande, el barrio recibe gente de afuera y su tasa está midiendo circulación más que riesgo residencial. Tercero, separar las categorías: un barrio puede estar arriba en hurtos —que siguen a las oficinas y a las estaciones— y abajo en delitos contra las personas. Lo que ningún dato abierto contesta es la sensación de inseguridad, que se mide con encuestas de victimización.",
+    },
+    {
+      q: "¿Estas cifras son de toda Buenos Aires o solo de la Ciudad?",
+      a: "Solo de la Ciudad Autónoma. El Mapa del Delito lo publica el gobierno porteño y cubre los 48 barrios y las 15 comunas de CABA, y nada más allá de la General Paz y el Riachuelo. La comparación con el conurbano es la que más se busca y la que no se puede hacer con esta fuente: para el Gran Buenos Aires y el resto del país hay que ir al SNIC, del Ministerio de Seguridad de la Nación, que publica por provincia y por departamento con otra metodología y otro nivel de detalle. Sus cifras no son directamente comparables con estas.",
     },
     {
       q: "¿De dónde salen estos datos?",
@@ -122,7 +147,7 @@ Con eso dicho, el dato es sólido, es oficial, cubre una década completa y lleg
 - **Cómo evolucionó** la serie desde 2016, con el hueco de la pandemia.
 - **A qué hora** pasa cada cosa.
 - **Con moto y con arma**: cómo se roba en la Ciudad.
-- **Las cuatro zonas** de la Ciudad, comparadas.
+- **Zonas seguras y zonas inseguras**: las cuatro partes de la Ciudad, comparadas.
 - **Cómo se mide**, quién lo publica y qué queda afuera.
 - **Las fuentes**, al final, para ir al dato original.
 
@@ -132,7 +157,7 @@ Con eso dicho, el dato es sólido, es oficial, cubre una década completa y lleg
 
 Dos cosas de esta tabla vale la pena mirar antes de bajar al mapa. Una es la proporción: la enorme mayoría de lo que se registra son delitos contra la propiedad, y dentro de ellos el reparto entre robo —con violencia— y hurto —sin violencia— está bastante equilibrado. La otra es la escala de los homicidios, que se cuentan por decenas al año en una ciudad de tres millones de personas y por eso se miden cada 100.000 habitantes y no cada 1.000, como todo lo demás.
 
-## El mapa del delito, barrio por barrio
+## El mapa del delito, barrio por barrio y comuna por comuna
 
 <DelitosCabaMapa />
 
@@ -172,7 +197,7 @@ De todo lo que registra esta fuente, estas dos columnas son las que no existen e
 
 Conviene leer las dos columnas como un piso y no como un recuento: que un hecho quede registrado con arma o con moto depende de que eso conste en la denuncia, así que lo que se ve es la parte del fenómeno que quedó anotada. Y conviene leerlas contra la columna de robos, porque una proporción puede bajar por las dos razones opuestas: porque hay menos robos de ese tipo, o porque hay más robos de los otros.
 
-## Las cuatro zonas de la Ciudad
+## Zonas seguras y zonas inseguras de la Ciudad
 
 <DelitosPorZona />
 
