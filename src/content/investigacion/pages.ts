@@ -25,6 +25,12 @@ import { createSection, type SectionEntry } from "../section";
 /** Every research page, in the order the index lists them. */
 const ENTRIES: SectionEntry[] = [
   {
+    slug: ["barrios-subestimados-caba-2026"],
+    crumb: "Barrios subestimados",
+    file: "barrios-subestimados-caba-2026.mdx",
+    load: () => import("./barrios-subestimados-caba-2026.mdx"),
+  },
+  {
     slug: ["barrios-seguros-baratos-caba"],
     crumb: "Barrios seguros y baratos",
     file: "barrios-seguros-baratos-caba.mdx",

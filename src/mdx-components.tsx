@@ -53,6 +53,10 @@ import { PrecioSeguridadMapa } from "@/components/investigacion/PrecioSeguridadM
 import { PrecioSeguridadRanking } from "@/components/investigacion/PrecioSeguridadRanking";
 import { PrecioSeguridadResumen } from "@/components/investigacion/PrecioSeguridadResumen";
 import { PrecioSeguridadSensibilidad } from "@/components/investigacion/PrecioSeguridadSensibilidad";
+import { BarriosSubestimadosComparador } from "@/components/investigacion/BarriosSubestimadosComparador";
+import { BarriosSubestimadosContraste } from "@/components/investigacion/BarriosSubestimadosContraste";
+import { BarriosSubestimadosPerfiles } from "@/components/investigacion/BarriosSubestimadosPerfiles";
+import { BarriosSubestimadosResumen } from "@/components/investigacion/BarriosSubestimadosResumen";
 import { PaginaRelacionada } from "@/components/section/PaginaRelacionada";
 import { TrustBlock } from "@/components/landing/TrustBlock";
 import { cn } from "@/lib/cn";
@@ -259,6 +263,10 @@ const components: MDXComponents = {
   PrecioSeguridadRanking,
   PrecioSeguridadSensibilidad,
   PrecioSeguridadCobertura,
+  BarriosSubestimadosResumen,
+  BarriosSubestimadosComparador,
+  BarriosSubestimadosPerfiles,
+  BarriosSubestimadosContraste,
   // The one component in this map that takes a prop: which page to point at.
   // See the note in the component for why it's an href and not the copy — and
   // why it is the one figure-adjacent component that is not per-section: the
