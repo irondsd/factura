@@ -6,15 +6,18 @@ import type { Adapter } from "next-auth/adapters";
 import Google from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
 import { cookies } from "next/headers";
+import { after } from "next/server";
 import { db } from "@/db";
 import { authAccounts, sessions, users, verificationTokens } from "@/db/schema";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
+import { notifySignIn } from "./authAlerts";
 import { claimSubmissions } from "./claim";
 import { createPropertyForUser } from "./defaults";
 import { sendOtpEmail, sendWelcomeEmail } from "./email";
 import { adoptOfficialDefaults } from "./registry";
 import { HEARTBEAT_MS, requestClientInfo } from "./sessions";
 import { readTickets } from "./submissions";
+import { shouldNotifySignIn } from "./telegram";
 
 /** How long a one-time code stays valid (matches the copy in emails/opt.tsx). */
 const OTP_TTL_SECONDS = 10 * 60;
@@ -167,6 +170,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   events: {
+    // Every completed sign-in, posted to the Telegram channel — see
+    // `notifySignIn`, and `TELEGRAM_NOTIFY_SIGNINS` for turning it down or off.
+    //
+    // Auth.js awaits this event before it hands back the redirect, so the post
+    // itself goes in `after()`: a third party's API must never be something a
+    // user waits through on the way into the app. The client reading is taken
+    // here, where the request still is, and handed across.
+    //
+    // The whole body is guarded because a throw from an event fails the sign-in
+    // — it surfaces as ?error=Callback on /login. A notice is never worth that.
+    async signIn({ user, account, isNewUser }) {
+      try {
+        if (!shouldNotifySignIn(isNewUser === true)) return;
+        const client = await requestClientInfo();
+        after(async () => {
+          try {
+            await notifySignIn({
+              user,
+              provider: account?.provider ?? null,
+              isNewUser: isNewUser === true,
+              client,
+            });
+          } catch (err) {
+            console.error("[auth] sign-in notice failed:", err);
+          }
+        });
+      } catch (err) {
+        console.error("[auth] could not schedule the sign-in notice:", err);
+      }
+    },
     async createUser({ user }) {
       if (user.id) {
         // Capture the language the user registered from — the landing version

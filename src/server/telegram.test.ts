@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildContactMessage,
+  buildSignInMessage,
   buildUnrecognizedBillMessage,
   escapeMarkdownV2,
   sendTelegramDocument,
+  shouldNotifySignIn,
+  signInNoticeMode,
 } from "./telegram";
 
 // What can break a channel post is the formatting, not the fetch: MarkdownV2
@@ -175,6 +178,115 @@ describe("buildUnrecognizedBillMessage", () => {
       fileName: "we`ird`.pdf",
     });
     expect(text).toContain("`we\\`ird\\`.pdf`");
+  });
+});
+
+describe("buildSignInMessage", () => {
+  const notice = {
+    email: "ana@example.com",
+    name: "Ana Pérez",
+    provider: "google",
+    isNewUser: false,
+    city: "Buenos Aires",
+    country: "AR",
+    userAgent:
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+  };
+
+  it("lays out a returning sign-in", () => {
+    const text = buildSignInMessage(notice);
+    expect(text).toContain("👋 *Signed in*");
+    expect(text).toContain("*Email:* `ana@example.com`");
+    expect(text).toContain("*Name:* Ana Pérez");
+    expect(text).toContain("*Via:* Google");
+    expect(text).toContain("*From:* Buenos Aires, AR");
+    expect(text).toContain("*Device:* Chrome on macOS");
+    expect(text).not.toContain("*Accounts:*");
+  });
+
+  it("marks a new account and carries the running total", () => {
+    const text = buildSignInMessage({
+      ...notice,
+      isNewUser: true,
+      userCount: 47,
+    });
+    expect(text).toContain("🎉 *New account*");
+    expect(text).toContain("*Accounts:* 47");
+  });
+
+  it("names the email-code provider in words rather than by its id", () => {
+    expect(buildSignInMessage({ ...notice, provider: "resend" })).toContain(
+      "*Via:* Email code",
+    );
+  });
+
+  it("omits the lines local dev has no reading for", () => {
+    // No edge in front means no city or country, and a sign-in from a script
+    // has no UA — none of that should print an empty label.
+    const text = buildSignInMessage({
+      ...notice,
+      name: null,
+      city: null,
+      country: null,
+      userAgent: null,
+    });
+    expect(text).not.toContain("*Name:*");
+    expect(text).not.toContain("*From:*");
+    expect(text).not.toContain("*Device:*");
+    expect(text).toContain("*Email:*");
+  });
+
+  it("prints just the country when that is all the edge resolved", () => {
+    const text = buildSignInMessage({ ...notice, city: null });
+    expect(text).toContain("*From:* AR");
+  });
+
+  it("does not let a display name open a markdown entity", () => {
+    // A name comes from Google's profile or the user's own profile edit, so it
+    // is no more trusted than the contact form's.
+    const text = buildSignInMessage({ ...notice, name: "*admin* [x](y)" });
+    expect(text).toContain("\\*admin\\* \\[x\\]\\(y\\)");
+  });
+
+  it("does not let an address close its code span", () => {
+    const text = buildSignInMessage({ ...notice, email: "we`ird@example.com" });
+    expect(text).toContain("`we\\`ird@example.com`");
+  });
+
+  it("says so rather than printing nothing when there is no address", () => {
+    expect(buildSignInMessage({ ...notice, email: null })).toContain(
+      "*Email:* `unknown`",
+    );
+  });
+});
+
+describe("signInNoticeMode", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("posts everything when unset", () => {
+    vi.stubEnv("TELEGRAM_NOTIFY_SIGNINS", "");
+    expect(signInNoticeMode()).toBe("all");
+    expect(shouldNotifySignIn(false)).toBe(true);
+  });
+
+  it("goes silent on off", () => {
+    for (const value of ["off", "OFF", " false ", "0", "none", "no"]) {
+      vi.stubEnv("TELEGRAM_NOTIFY_SIGNINS", value);
+      expect(signInNoticeMode()).toBe("off");
+      expect(shouldNotifySignIn(true)).toBe(false);
+    }
+  });
+
+  it("keeps sign-ups but drops returning sign-ins on new", () => {
+    vi.stubEnv("TELEGRAM_NOTIFY_SIGNINS", "new");
+    expect(shouldNotifySignIn(true)).toBe(true);
+    expect(shouldNotifySignIn(false)).toBe(false);
+  });
+
+  it("fails noisy on a value it doesn't recognize", () => {
+    // A typo in the variable that silences the notice must not silence it.
+    vi.stubEnv("TELEGRAM_NOTIFY_SIGNINS", "of");
+    expect(signInNoticeMode()).toBe("all");
   });
 });
 

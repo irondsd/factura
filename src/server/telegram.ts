@@ -18,6 +18,7 @@
  */
 
 import type { Locale } from "@/i18n/config";
+import { parseUserAgent } from "@/lib/userAgent";
 
 /** Telegram rejects a `sendMessage` longer than this. */
 const MESSAGE_LIMIT = 4096;
@@ -169,6 +170,99 @@ export function buildUnrecognizedBillMessage(bill: UnrecognizedBill): string {
   );
 }
 
+export type SignInNotice = {
+  email: string | null;
+  name: string | null;
+  /** The Auth.js provider id that carried it — "google", or "resend" for our
+   * email one-time code. */
+  provider: string | null;
+  /** First sign-in of an account that did not exist a moment ago, rather than
+   * someone coming back. */
+  isNewUser: boolean;
+  city: string | null;
+  country: string | null;
+  userAgent: string | null;
+  /** How many accounts exist now. Only counted for a sign-up — on a returning
+   * sign-in the number hasn't moved, and it isn't worth a query. */
+  userCount?: number | null;
+};
+
+/** What to call each provider in the post. The ids are Auth.js's; "resend" in
+ * particular says nothing to a reader, since what the user did was type a code. */
+const PROVIDER_LABELS: Record<string, string> = {
+  google: "Google",
+  resend: "Email code",
+};
+
+/** The channel post for one sign-in.
+ *
+ * Deliberately short: this is a heartbeat, not a record. Everything here is
+ * already in the database — `/app/sessions` is the place that answers questions
+ * about a session — so the post carries only what makes it worth glancing at:
+ * who, whether they're new, and roughly from where.
+ *
+ * No IP address on purpose. City and country say as much as this notice needs,
+ * and a channel is a longer-lived, less controlled home for an address than the
+ * session row it also lives in.
+ */
+export function buildSignInMessage(notice: SignInNotice): string {
+  const lines = [
+    notice.isNewUser ? "🎉 *New account*" : "👋 *Signed in*",
+    "",
+    // Code span: tap-to-copy, the same reason the contact form's address gets
+    // one — this is the handle for looking the account up anywhere else.
+    `*Email:* \`${escapeCode(notice.email ?? "unknown")}\``,
+  ];
+  if (notice.name) lines.push(`*Name:* ${escapeMarkdownV2(notice.name)}`);
+  if (notice.provider)
+    lines.push(
+      `*Via:* ${escapeMarkdownV2(PROVIDER_LABELS[notice.provider] ?? notice.provider)}`,
+    );
+
+  // Absent in local dev (no edge in front to resolve it) and on any request the
+  // CDN didn't geolocate, so it's a line that appears rather than one that
+  // renders "unknown".
+  const place = [notice.city, notice.country].filter(Boolean).join(", ");
+  if (place) lines.push(`*From:* ${escapeMarkdownV2(place)}`);
+
+  const { browser, os } = parseUserAgent(notice.userAgent);
+  const device = [browser, os].filter(Boolean).join(" on ");
+  if (device) lines.push(`*Device:* ${escapeMarkdownV2(device)}`);
+
+  if (notice.userCount != null)
+    lines.push(`*Accounts:* ${escapeMarkdownV2(String(notice.userCount))}`);
+
+  return clipEscaped(lines.join("\n"), MESSAGE_LIMIT);
+}
+
+/** How much of the sign-in traffic reaches the channel. */
+export type SignInNoticeMode = "all" | "new" | "off";
+
+/** Read that setting out of the environment.
+ *
+ * `all` while every sign-in is still worth seeing, `new` once the returning
+ * ones are noise and only accounts being created still matter, `off` for
+ * silence. Unset means `all`: this exists to be watched, and the volume that
+ * makes it too much is exactly the volume that makes changing it obvious.
+ *
+ * Anything unrecognized also reads as `all` — a typo in the one variable that
+ * silences a notice should leave it noisy, not quiet.
+ */
+export function signInNoticeMode(): SignInNoticeMode {
+  const raw = process.env.TELEGRAM_NOTIFY_SIGNINS?.trim().toLowerCase();
+  if (!raw) return "all";
+  if (["off", "false", "0", "none", "no"].includes(raw)) return "off";
+  if (["new", "signups", "new-users"].includes(raw)) return "new";
+  return "all";
+}
+
+/** Whether this particular sign-in is one the channel wants. Checked before
+ * anything is gathered, so a switched-off notice costs a string compare. */
+export function shouldNotifySignIn(isNewUser: boolean): boolean {
+  const mode = signInNoticeMode();
+  return mode === "all" || (mode === "new" && isNewUser);
+}
+
 /** Whether a channel is configured at all. Lets a caller skip the work of
  * gathering an attachment it has nowhere to send. */
 export function isTelegramConfigured(): boolean {
@@ -313,4 +407,11 @@ export async function sendContactMessage(
   contact: ContactMessage,
 ): Promise<{ ok: boolean; skipped: boolean }> {
   return sendTelegramMessage(buildContactMessage(contact));
+}
+
+/** One sign-in, formatted and posted. */
+export async function sendSignInMessage(
+  notice: SignInNotice,
+): Promise<{ ok: boolean; skipped: boolean }> {
+  return sendTelegramMessage(buildSignInMessage(notice));
 }
