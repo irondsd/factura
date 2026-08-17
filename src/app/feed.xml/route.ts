@@ -1,13 +1,14 @@
-import { listedStatsPages } from "@/content/estadisticas/pages";
 import { getCategory } from "@/content/guias/categories";
 import { listedGuides } from "@/content/guias/guides";
+import { SECTIONS } from "@/content/sections";
 import { siteName } from "@/config/meta";
 import { siteUrl } from "@/config/urls";
-import { guideUrl, statsUrl } from "@/i18n/metadata";
+import { guideUrl, sectionUrl } from "@/i18n/metadata";
 
-// Build-time generated RSS 2.0 feed over the two sections that actually publish:
-// the guides and the statistics pages. Both are Spanish-only, so the feed
-// declares `es-AR` and carries no /en items — there is nothing there to carry.
+// Build-time generated RSS 2.0 feed over every section that actually publishes:
+// the guides, the statistics pages and the research pages. All are Spanish-only,
+// so the feed declares `es-AR` and carries no /en items — there is nothing there
+// to carry.
 //
 // Why a feed at all, when the sitemap already lists these URLs: a sitemap says
 // "these pages exist", a feed says "these pages changed, newest first". That's
@@ -49,9 +50,14 @@ const xml = (s: string): string =>
 const rfc822 = (iso: string): string => new Date(iso).toUTCString();
 
 export async function GET(): Promise<Response> {
-  const [guides, stats] = await Promise.all([
+  const [guides, sections] = await Promise.all([
     listedGuides(),
-    listedStatsPages(),
+    Promise.all(
+      SECTIONS.map(async (section) => ({
+        section,
+        pages: await section.listed(),
+      })),
+    ),
   ]);
 
   const items: Item[] = [
@@ -72,18 +78,20 @@ export async function GET(): Promise<Response> {
         // category id that outlives its registry entry can't drop the item.
         category: getCategory(g.meta.categories[0])?.label ?? "Guías",
       })),
-    ...stats.map((p) => ({
-      url: statsUrl(p.slug),
-      title: p.meta.title,
-      summary: p.meta.summary,
-      published: p.meta.published,
-      updated: p.meta.updated,
-      category: "Estadísticas",
-    })),
+    ...sections.flatMap(({ section, pages }) =>
+      pages.map((p) => ({
+        url: sectionUrl(section.id, p.slug),
+        title: p.meta.title,
+        summary: p.meta.summary,
+        published: p.meta.published,
+        updated: p.meta.updated,
+        category: section.label,
+      })),
+    ),
   ];
 
   // Newest change first. `updated` rather than `published` is the whole point
-  // for the statistics half: those pages are republished every month as IDECBA
+  // for the data sections: those pages are republished every month as IDECBA
   // and INDEC publish, and a feed sorted by original publication date would
   // never resurface them.
   items.sort((a, b) => Date.parse(b.updated) - Date.parse(a.updated));
@@ -95,9 +103,9 @@ export async function GET(): Promise<Response> {
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${xml(siteName)} — Guías y Estadísticas</title>
+    <title>${xml(siteName)} — Guías, Estadísticas e Investigación</title>
     <link>${siteUrl}</link>
-    <description>Guías sobre las facturas del hogar en Argentina y estadísticas de precios, alquileres y servicios, actualizadas cada mes.</description>
+    <description>Guías sobre las facturas del hogar en Argentina, estadísticas de precios, alquileres y servicios, e investigaciones que las cruzan, actualizadas cada mes.</description>
     <language>es-AR</language>
     <lastBuildDate>${lastBuild}</lastBuildDate>
     <atom:link href="${siteUrl}/feed.xml" rel="self" type="application/rss+xml"/>

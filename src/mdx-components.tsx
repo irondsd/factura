@@ -31,7 +31,6 @@ import { OfertaCobertura } from "@/components/estadisticas/OfertaCobertura";
 import { OfertaComposicion } from "@/components/estadisticas/OfertaComposicion";
 import { OfertaHistoria } from "@/components/estadisticas/OfertaHistoria";
 import { OfertaPorZona } from "@/components/estadisticas/OfertaPorZona";
-import { PaginaRelacionada } from "@/components/estadisticas/PaginaRelacionada";
 import { RentabilidadBuscados } from "@/components/estadisticas/RentabilidadBuscados";
 import { RentabilidadCabaMapa } from "@/components/estadisticas/RentabilidadCabaMapa";
 import { RentabilidadContraste } from "@/components/estadisticas/RentabilidadContraste";
@@ -48,6 +47,13 @@ import {
   SignupCta,
 } from "@/components/guides/cta";
 import { InflacionChart } from "@/components/guides/InflacionChart";
+import { PrecioSeguridadCobertura } from "@/components/investigacion/PrecioSeguridadCobertura";
+import { PrecioSeguridadDispersion } from "@/components/investigacion/PrecioSeguridadDispersion";
+import { PrecioSeguridadMapa } from "@/components/investigacion/PrecioSeguridadMapa";
+import { PrecioSeguridadRanking } from "@/components/investigacion/PrecioSeguridadRanking";
+import { PrecioSeguridadResumen } from "@/components/investigacion/PrecioSeguridadResumen";
+import { PrecioSeguridadSensibilidad } from "@/components/investigacion/PrecioSeguridadSensibilidad";
+import { PaginaRelacionada } from "@/components/section/PaginaRelacionada";
 import { TrustBlock } from "@/components/landing/TrustBlock";
 import { cn } from "@/lib/cn";
 
@@ -240,8 +246,23 @@ const components: MDXComponents = {
   DelitosCuando,
   DelitosRobos,
   DelitosPorZona,
+  // /investigacion. Same contract as the statistics figures — each reads the
+  // joined dataset in `content/investigacion/data` and takes nothing — with one
+  // difference worth naming: <PrecioSeguridadSensibilidad /> and
+  // <PrecioSeguridadCobertura /> exist to argue *against* the map above them,
+  // by recomputing it under other assumptions and by listing what it cannot
+  // see. On a page whose whole output is a derived index, those two are not
+  // appendices.
+  PrecioSeguridadResumen,
+  PrecioSeguridadMapa,
+  PrecioSeguridadDispersion,
+  PrecioSeguridadRanking,
+  PrecioSeguridadSensibilidad,
+  PrecioSeguridadCobertura,
   // The one component in this map that takes a prop: which page to point at.
-  // See the note in the component for why it's a slug and not the copy.
+  // See the note in the component for why it's an href and not the copy — and
+  // why it is the one figure-adjacent component that is not per-section: the
+  // card works in both directions between /estadisticas and /investigacion.
   PaginaRelacionada,
   ProbarCta,
   SignupCta,

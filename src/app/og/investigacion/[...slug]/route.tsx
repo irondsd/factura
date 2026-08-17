@@ -1,15 +1,15 @@
 import { cardParams, sectionCard } from "@/components/section/card";
-import { estadisticas } from "@/content/estadisticas/pages";
+import { investigacion } from "@/content/investigacion/pages";
 
-// /og/estadisticas/<path>/card.png — the social card. The picture and the
+// /og/investigacion/<path>/card.png — the social card. The picture and the
 // reasoning behind the route's shape live in `components/section/card.tsx`,
-// shared with /investigacion.
+// shared with /estadisticas.
 
 export const dynamic = "force-static";
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return cardParams(estadisticas);
+  return cardParams(investigacion);
 }
 
 export async function GET(
@@ -17,5 +17,5 @@ export async function GET(
   { params }: { params: Promise<{ slug: string[] }> },
 ) {
   const { slug } = await params;
-  return sectionCard(estadisticas, slug);
+  return sectionCard(investigacion, slug);
 }

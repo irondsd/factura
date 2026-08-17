@@ -1,8 +1,8 @@
 import { Eyebrow } from "@/components/landing/parts";
-import type { StatsMeta } from "@/content/estadisticas/pages";
 import { SOURCES_SECTION } from "@/content/headings";
+import type { SectionMeta } from "@/content/section";
 
-// The sources block a statistics page drops in with a bare <Fuentes />. Same
+// The sources block a page drops in with a bare <Fuentes />. Same
 // contract as <Faq />: the tag takes no props, the route injects `meta.sources`
 // through the MDX `components` prop, so the author picks the *placement* and the
 // meta block owns the *content*.
@@ -12,7 +12,7 @@ import { SOURCES_SECTION } from "@/content/headings";
 // source it didn't declare — or declared one it didn't show — would be exactly
 // the kind of markup/page mismatch the guides' FAQ is careful to avoid.
 
-export function Fuentes({ items }: { items: StatsMeta["sources"] }) {
+export function Fuentes({ items }: { items: SectionMeta["sources"] }) {
   if (items.length === 0) return null;
 
   return (

@@ -7,7 +7,7 @@ import { SiteNav } from "@/components/landing/SiteNav";
 import { TrustBlock } from "@/components/landing/TrustBlock";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Button } from "@/components/ui";
-import { statsChildren, statsHref } from "@/content/estadisticas/pages";
+import { estadisticas } from "@/content/estadisticas/pages";
 import { listedGuides } from "@/content/guias/guides";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
@@ -46,14 +46,14 @@ export default async function LandingPage({ params }: Props) {
   // homepage (a high-authority internal link). The footer's own links follow the
   // same rule.
   //
-  // `statsChildren([])` rather than `listedStatsPages()`: the latter includes
+  // `estadisticas.children([])` rather than `estadisticas.listed()`: the latter includes
   // the six regional pages nested under Inflación de vivienda, and a homepage
   // teaser listing "GBA", "Cuyo", "Patagonia" as peers of the sections they
   // belong to reads as a sitemap. This is the top level only — one row per
   // subject.
   const [guides, stats] =
     locale === "es"
-      ? await Promise.all([listedGuides(), statsChildren([])])
+      ? await Promise.all([listedGuides(), estadisticas.children([])])
       : [[], []];
 
   return (
@@ -187,7 +187,7 @@ export default async function LandingPage({ params }: Props) {
                 {stats.slice(0, 4).map((p, i) => (
                   <Link
                     key={p.slug.join("/")}
-                    href={statsHref(p.slug)}
+                    href={estadisticas.href(p.slug)}
                     className={cn(
                       "group flex items-baseline justify-between gap-4 py-[14px] no-underline",
                       i !== 0 && HAIRLINE,

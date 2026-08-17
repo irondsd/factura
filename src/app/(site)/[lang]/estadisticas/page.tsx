@@ -1,20 +1,12 @@
 import type { Metadata } from "next";
-import { Breadcrumbs } from "@/components/article/Breadcrumbs";
-import { StatsList } from "@/components/estadisticas/StatsList";
-import { ClosingCta } from "@/components/guides/cta";
-import { SHELL } from "@/components/landing/parts";
-import { JsonLd } from "@/components/seo/JsonLd";
-import { statsChildren } from "@/content/estadisticas/pages";
-import { statsIndexMetadata } from "@/i18n/metadata";
-import { statsIndexLd } from "@/i18n/structuredData";
+import { SectionIndex } from "@/components/section/SectionIndex";
+import { estadisticas } from "@/content/estadisticas/pages";
+import { sectionIndexMetadata } from "@/i18n/metadata";
 
-// The /estadisticas index. Spanish-only, so the copy is inlined in Spanish
-// rather than looked up — the section never renders in English (see the layout).
-//
-// It lists the *top-level* pages only. A statistic with per-province pages under
-// it is one entry here and lists its own children on its page, which is what
-// keeps this index a short table of contents rather than a directory of every
-// district as the section grows.
+// The /estadisticas index. Everything structural — the breadcrumb, the row
+// list, the CollectionPage markup — is `<SectionIndex />`, shared with
+// /investigacion. What is here is the copy, which is the only part of an index
+// that is the section's own.
 
 const TITLE = "Estadísticas de precios y servicios en Argentina";
 const DESCRIPTION =
@@ -23,58 +15,33 @@ const INTRO =
   "Series de datos públicos sobre los precios del hogar, ordenadas y graficadas para que se puedan leer de un vistazo. Cada página cita su fuente y se actualiza cuando el organismo publica el dato nuevo.";
 
 export function generateMetadata(): Metadata {
-  return statsIndexMetadata({ title: TITLE, description: DESCRIPTION });
+  return sectionIndexMetadata({
+    id: estadisticas.id,
+    title: TITLE,
+    description: DESCRIPTION,
+  });
 }
 
-export default async function EstadisticasIndexPage() {
-  const pages = await statsChildren([]);
-
+export default function EstadisticasIndexPage() {
   return (
-    <>
-      <JsonLd
-        data={statsIndexLd({
-          title: TITLE,
-          description: DESCRIPTION,
-          pages: pages.map((p) => ({ slug: p.slug, title: p.meta.title })),
-        })}
-      />
-
-      <main className={SHELL}>
-        <Breadcrumbs
-          className="pt-10"
-          items={[
-            { name: "Inicio", href: "/" },
-            { name: "Estadísticas", href: "/estadisticas" },
-          ]}
-        />
-
-        <header className="max-w-[640px] pt-7 pb-2">
-          <h1 className="font-display font-semibold text-[36px] sm:text-[46px] tracking-[-0.025em] leading-[1.05] mt-0 mb-0">
-            {TITLE}
-          </h1>
-          <p className="font-mono text-[15px] leading-[1.7] text-muted mt-[18px] mb-0">
-            {INTRO}
-          </p>
-        </header>
-
-        <div className="mt-12 border-t border-line">
-          <StatsList pages={pages} />
-        </div>
-
-        {/* The index had no offer of any kind: a visitor who arrived here from
-            search read five titles and left. The pitch it can make is the one
-            the section itself earns — every page above is somebody else's
-            series, and the account turns your own bills into one. Held to the
-            article column so it doesn't stretch across the full shell. */}
-        <div className="max-w-[760px] pb-16">
-          <ClosingCta title="La misma cuenta, con tus números">
+    <SectionIndex
+      section={estadisticas}
+      title={TITLE}
+      description={DESCRIPTION}
+      intro={INTRO}
+      closing={{
+        // The pitch this section earns: every page above is somebody else's
+        // series, and the account turns your own bills into one.
+        title: "La misma cuenta, con tus números",
+        body: (
+          <>
             Cada página de aquí arriba mide un promedio: de un país, de una
             región, de un barrio. Factura hace lo mismo con lo que pagas tú —
             subes el PDF de tus boletas de luz, gas y agua y se arma tu serie
             mes a mes, en pesos y en dólares, para poner al lado de estas.
-          </ClosingCta>
-        </div>
-      </main>
-    </>
+          </>
+        ),
+      }}
+    />
   );
 }

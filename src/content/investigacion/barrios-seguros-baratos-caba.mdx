@@ -1,0 +1,219 @@
+import { TEMPORAL_COVERAGE } from "./data/alquiler-seguridad";
+
+export const meta = {
+  title: "Barrios más seguros y baratos para alquilar en CABA",
+  titleTag: "Barrios seguros y baratos para alquilar en CABA",
+  description:
+    "Cruzamos el alquiler pedido y los delitos registrados en cada barrio de la Ciudad de Buenos Aires para ver dónde se consiguen las dos cosas a la vez.",
+  summary:
+    "Qué barrios de la Ciudad de Buenos Aires combinan mejor alquiler bajo y pocos delitos registrados, con un mapa del puntaje combinado, el descuento en pesos que el mercado ya aplica por la inseguridad y la lista de barrios que el dato no alcanza a cubrir.",
+  ogStat: "Precio y delitos, barrio por barrio",
+  preview: "/img/investigacion/previews/barrios-seguros-baratos-caba.png",
+  cta: "Un barrio se elige por lo que cuesta y por cómo se vive.",
+  keywords: [
+    "barrios mas seguros y baratos de caba",
+    "donde alquilar en caba",
+    "mejores barrios para alquilar en buenos aires",
+    "barrios baratos para alquilar caba",
+    "barrios seguros caba alquiler",
+    "en que barrio vivir en caba",
+    "alquiler y seguridad por barrio buenos aires",
+    "barrios tranquilos de caba",
+    "mudarse a caba que barrio",
+    "relacion precio seguridad barrios caba",
+    "comuna mas segura de caba",
+    "cuanto sale alquilar en caba por barrio",
+  ],
+  published: "2026-08-17T10:00:00-03:00",
+  updated: "2026-08-17T10:00:00-03:00",
+  faq: [
+    {
+      q: "¿Cuál es el barrio más seguro y barato para alquilar en CABA?",
+      a: "La tabla del ranking de esta página lo contesta con el dato del último trimestre, y el resultado no depende de un solo cálculo: hay una tabla que lo recalcula con los tres tamaños de departamento y con dos recortes de delitos distintos, y los barrios que aparecen en todas las combinaciones son la respuesta más firme que este cruce puede dar. En general se concentran en el oeste residencial de la Ciudad y en el eje de Caballito a Flores, no en el norte caro ni en el sur más barato.",
+    },
+    {
+      q: "¿Cómo se comparan delitos con pesos?",
+      a: "De dos maneras, y esta página usa las dos. La primera es convertir cada barrio a su posición entre los demás en cada variable y promediar esas dos posiciones, que es lo que colorea el mapa. La segunda no inventa ninguna conversión: mide la que el mercado ya aplica, ajustando una recta entre el alquiler por metro cuadrado y la tasa de delitos de cada barrio. La pendiente de esa recta es cuántos pesos de alquiler se descuentan, en promedio, por cada hecho registrado de más cada mil habitantes.",
+    },
+    {
+      q: "¿Hay que elegir entre barato y seguro en Buenos Aires?",
+      a: "En promedio sí, y bastante menos de lo que se supone. Los datos muestran que el alquiler pedido baja donde se registran más delitos, así que el canje existe y se puede medir en pesos. Pero la relación es floja: los delitos explican una fracción chica de lo que hace caro a un barrio, y el resto es transporte, arbolado, colegios y moda. Por eso hay un puñado de barrios que quedan por debajo de las dos medianas a la vez, más baratos y más tranquilos que la mitad de la Ciudad, y encontrarlos es para lo que sirve esta página.",
+    },
+    {
+      q: "¿Por qué faltan barrios en el ranking?",
+      a: "Porque el organismo que publica los alquileres no informa un barrio cuando la cantidad de avisos del trimestre es demasiado chica para promediarla, y eso deja afuera a bastante más de un tercio de la Ciudad. La lista completa de los que faltan está en esta página, ordenada por qué tan tranquilos son. Vale la pena mirarla: varios de los barrios más tranquilos de la Ciudad no tienen alquiler publicado, así que no pueden entrar en el ranking aunque probablemente estarían arriba.",
+    },
+    {
+      q: "¿Estos son los delitos que realmente ocurren en cada barrio?",
+      a: "No. Son hechos registrados: los que llegaron a una denuncia, a una actuación policial o a un expediente judicial. Un delito que nadie denuncia no está en la serie, y la disposición a denunciar no es igual en toda la Ciudad. Además la tasa se calcula sobre residentes censados, así que los barrios del microcentro, donde circulan cientos de miles de personas que no viven ahí, quedan con una tasa mucho más alta de la que enfrenta quien vive en ellos.",
+    },
+    {
+      q: "¿Conviene mirar el mapa por barrio o por comuna?",
+      a: "Por comuna para tener el panorama, por barrio para decidir. La cobertura del alquiler es casi completa a nivel comuna y bastante incompleta a nivel barrio, así que el mapa abre en comunas. Pero una comuna puede juntar barrios muy distintos entre sí: la del microcentro incluye a la vez oficinas, terminales y barrios residenciales tranquilos, y su promedio no describe bien a ninguno.",
+    },
+    {
+      q: "¿Con qué frecuencia se actualiza esta página?",
+      a: "Cada vez que se mueve alguna de las dos series que cruza. Los alquileres se publican por trimestre y los delitos una vez al año, unos meses después de que cierra el año, así que la mitad de precio del cálculo se refresca bastante más seguido que la mitad de seguridad. La fecha de cada dato está escrita en todas las figuras.",
+    },
+    {
+      q: "¿Sirve este puntaje para decidir dónde mudarse?",
+      a: "Sirve para armar una lista corta, no para cerrarla. El puntaje combina dos variables que tienen dato público y deja afuera todo lo que no lo tiene: cuánto se tarda al trabajo, qué colegios hay cerca, cuánto se paga de expensas, cómo es la cuadra. Lo razonable es usarlo para descartar y para descubrir barrios que no estaban en el radar, y después caminar los tres o cuatro que queden.",
+    },
+  ],
+  sources: [
+    {
+      label: "IDECBA — Precios de oferta de departamentos en alquiler",
+      href: "https://www.estadisticaciudad.gob.ar/eyc/?p=27403",
+      note: "Precio pedido en avisos para departamentos usados de 1, 2 y 3 ambientes, por barrio y por comuna, trimestral. Dirección General de Estadística y Censos (GCBA).",
+    },
+    {
+      label: "Buenos Aires Data — Delitos (Mapa del Delito)",
+      href: "https://data.buenosaires.gob.ar/dataset/delitos",
+      note: "Un archivo por año, con un registro por hecho: barrio, comuna, fecha, hora, tipo y subtipo. Ministerio de Justicia y Seguridad (GCBA). Licencia CC-BY.",
+    },
+    {
+      label: "INDEC — Censo 2022, resultados definitivos de CABA",
+      href: "https://censo.gob.ar/index.php/datos_definitivos_caba/",
+      note: "Población por comuna, el divisor con el que se calculan las tasas de delitos de esta página.",
+    },
+    {
+      label: "Buenos Aires Data — Barrios y comunas",
+      href: "https://data.buenosaires.gob.ar/dataset/barrios",
+      note: "Límites oficiales de los 48 barrios y las 15 comunas, con los que está dibujado el mapa, y la población por barrio del censo de 2010.",
+    },
+  ],
+  dataset: {
+    name: "Alquiler y delitos registrados por barrio y comuna (CABA)",
+    description:
+      "Cruce del precio de oferta de alquiler de departamentos por metro cuadrado con los delitos registrados cada 1.000 habitantes, para los 48 barrios y las 15 comunas de la Ciudad Autónoma de Buenos Aires, con las posiciones percentiles de cada región en ambas variables, el puntaje combinado que resulta de promediarlas y el ajuste lineal entre las dos series.",
+    temporalCoverage: TEMPORAL_COVERAGE,
+    spatialCoverage: "Ciudad Autónoma de Buenos Aires, Argentina",
+    variableMeasured: [
+      "Alquiler pedido por metro cuadrado, por barrio y por comuna",
+      "Delitos registrados cada 1.000 habitantes, por barrio y por comuna",
+      "Posición percentil de cada región en alquiler",
+      "Posición percentil de cada región en delitos registrados",
+      "Puntaje combinado de precio y seguridad, de 0 a 100",
+      "Pendiente y R² del ajuste entre alquiler y delitos registrados",
+      "Descuento de alquiler por hecho registrado adicional cada 1.000 habitantes",
+      "Barrios sin precio de alquiler publicado y su posición en delitos registrados",
+    ],
+  },
+};
+
+Quien busca departamento en Buenos Aires hace dos preguntas y las hace por separado. Cuánto sale, y cómo es el barrio. Las dos tienen dato público y oficial, las dos están dibujadas sobre la misma geografía, y prácticamente nadie las mira juntas — entre otras cosas porque ponerlas en la misma tabla obliga a contestar algo incómodo: cuántos pesos vale un robo.
+
+Esta página contesta esa pregunta dos veces, con dos métodos distintos, y muestra las dos respuestas. La primera convierte cada barrio a su **posición** entre los demás en cada variable y promedia las dos posiciones; es un puntaje, es una elección, y por eso el peso entre precio y seguridad queda en manos de quien lee. La segunda no elige nada: mide el descuento que el propio mercado de alquileres ya aplica a los barrios donde se registran más delitos. Ese número existe, se puede calcular, y está en pesos.
+
+Antes de bajar conviene tener presente qué son los dos insumos. El alquiler es el **precio pedido en avisos**, no el firmado, y no está publicado para todos los barrios. Los delitos son **hechos registrados**, no ocurridos, y la tasa se divide por residentes censados, lo que exagera al microcentro, donde de día hay muchísima más gente de la que vive ahí. Ninguna de esas dos limitaciones se puede corregir aquí; las dos se pueden decir, y el resto de la página las dice cada vez que muerden.
+
+## Qué vas a encontrar en esta página
+
+- **Las dos variables**, con la razón por la que no se pueden sumar directamente.
+- **El mapa combinado**, con el peso entre precio y seguridad a elección.
+- **Cuántos pesos vale un delito** según el propio mercado de alquileres.
+- **El ranking barrio por barrio**, con el cálculo a la vista.
+- **Si la respuesta aguanta** que se cambien los supuestos.
+- **Los barrios que este cruce no puede ver**, que son muchos y no son al azar.
+- **Cómo se construye el puntaje**, paso por paso.
+- **Las fuentes**, al final, para ir al dato original.
+
+## Las dos variables que hay que comparar
+
+<PrecioSeguridadResumen />
+
+La asimetría de esa última columna es lo que decide todo el método. Si las dos medidas se llevaran a una escala común dividiéndolas por su propio rango, la cola larga de la variable de delitos —que la produce un puñado de barrios del centro con muy pocos residentes— aplastaría las diferencias entre todos los barrios residenciales, y el puntaje «combinado» terminaría siendo el ranking de precios con otro nombre.
+
+Trabajar con posiciones evita eso: cada variable aporta exactamente la mitad, por construcción. El costo es real y conviene tenerlo presente todo el tiempo: una posición dice dónde está un barrio respecto de los otros, no a qué distancia. Por eso todas las tablas de esta página imprimen los valores al lado del puntaje.
+
+## El mapa: dónde se juntan las dos cosas
+
+<PrecioSeguridadMapa />
+
+Lo primero que hay que hacer con este mapa es leer la leyenda al revés de la costumbre: aquí **el color oscuro es lo bueno**. En los mapas de precios de este sitio oscuro significa caro; en este significa mejor puntaje.
+
+Lo segundo es mover el control de arriba. Las tres posiciones no son tres mapas distintos: son el mismo mapa con la balanza corrida, y lo interesante es cuánto —o qué poco— se mueve la mancha oscura. Que buena parte del oeste residencial aguante las tres posiciones significa que esos barrios no están arriba por una elección del método, sino porque están razonablemente bien en las dos cosas.
+
+Y lo tercero es no confundir el mapa por comuna con el mapa por barrio. La comuna promedia, y hay comunas que juntan barrios que no se parecen en nada.
+
+## Cómo se compara un delito con un peso
+
+<PrecioSeguridadDispersion />
+
+Esta figura es la que hace que el resto de la página sea algo más que una opinión ordenada. El puntaje del mapa combina dos cosas con un peso elegido; la recta de aquí arriba no elige nada: sale de los propios datos, y es la tasa de cambio que el mercado de alquileres viene usando sin que nadie la escriba.
+
+Las dos lecturas de la figura son igual de importantes y apuntan en direcciones distintas. La pendiente dice que el canje existe: en promedio se paga menos donde se registra más, y ese descuento se puede escribir en pesos. El R² dice que el canje se cumple flojo, porque la mayor parte de lo que hace caro a un barrio no tiene nada que ver con lo que se registra en su calle.
+
+Y esa flojedad es la buena noticia para quien busca. Si la relación fuera estrecha, el cuadrante barato y tranquilo estaría vacío y no habría nada que buscar: habría que resignar una cosa para conseguir la otra, sin excepciones. Como es floja, ese cuadrante tiene nombres adentro. Son minoría —la recta explica por qué— y por eso vale la pena tenerlos anotados en lugar de descubrirlos de casualidad.
+
+## El ranking, barrio por barrio
+
+<PrecioSeguridadRanking />
+
+Los dos extremos de la tabla se leen de manera distinta. Arriba hay barrios que llegan por caminos diferentes —algunos son netamente baratos y del montón en delitos, otros son muy tranquilos y del montón en precio— y las columnas del medio dejan ver cuál es cuál, que es exactamente el tipo de detalle que un puntaje solo esconde.
+
+Abajo, en cambio, hay un patrón único: casi todos los últimos puestos son del centro y del microcentro, y casi ninguno está ahí por caro. Están ahí por la tasa de delitos, y esa tasa está inflada por el mismo motivo de siempre — se divide por los que duermen en el barrio, no por los que pasan por él. Para quien va a vivir en el microcentro, el número real es mejor que el de la tabla; cuánto mejor, este dato no lo puede decir.
+
+## Qué tan firme es esta respuesta
+
+<PrecioSeguridadSensibilidad />
+
+Un índice que combina dos variables con un peso elegido vale lo que aguante cuando se cambian sus supuestos, y la única forma honesta de mostrarlo es cambiarlos y publicar el resultado.
+
+Lo que hay que mirar aquí no es tanto quién gana como cuánto se mueve la lista. Los nombres que aparecen en todas las filas están arriba por el dato y no por el método; los que entran y salen indican que en esa zona del ranking las diferencias son menores que el ruido de los supuestos, y que ordenar el tercer puesto contra el octavo es pedirle a este cruce una precisión que no tiene.
+
+## Lo que este ranking no puede ver
+
+<PrecioSeguridadCobertura />
+
+Esta es la limitación más grande de la página y no está al final por casualidad: hasta aquí todo se calculó sobre los barrios que se pueden puntuar, que no son todos ni son una muestra al azar de los demás.
+
+El sesgo corta para los dos lados. Faltan barrios de la periferia barata, donde hay poca oferta formal publicada, y faltan barrios chicos y quietos del norte y del oeste donde casi nunca se publica nada. Los segundos son los que más duelen: varios están entre los más tranquilos de la Ciudad y no aparecen en ninguna tabla de esta página, no porque anden mal sino porque no hay con qué ponerles precio. Si lo que se busca es tranquilidad, esa lista es casi una recomendación.
+
+## Cómo se construye el puntaje
+
+El cálculo entero son cuatro pasos y no hay nada oculto en ninguno:
+
+1. **Se toma el alquiler por metro cuadrado**, no el mensual. El organismo publica el precio de un departamento de una superficie de referencia que declara en cada planilla; dividir por esa superficie devuelve la cifra por metro, que es la única que se puede comparar entre un monoambiente y un tres ambientes.
+2. **Se toman los delitos registrados cada 1.000 residentes** del último año cerrado, con la población del Censo 2022. Por comuna es la cifra del INDEC; por barrio es una estimación, porque el barrio no es unidad censal.
+3. **Cada barrio se convierte a dos posiciones percentiles**, una en cada variable, calculadas siempre sobre el mismo conjunto: los barrios que tienen las dos cifras. 100 es el extremo bueno —el más barato, el más tranquilo— entre los comparados.
+4. **Las dos posiciones se promedian** con el peso que elige quien lee: tres cuartos al precio, mitad y mitad, o tres cuartos a la seguridad.
+
+La recta del gráfico de dispersión es aparte y no entra en el puntaje: es una regresión lineal simple del alquiler por metro cuadrado contra la tasa de delitos, sobre los mismos barrios, y describe una asociación y no una causa. Nadie sostiene que el alquiler baje _porque_ suben los delitos; lo que se mide es que las dos cosas se mueven juntas en el mapa de la Ciudad, y cuánto.
+
+Las dos series tienen períodos distintos —el alquiler es trimestral, los delitos anuales— así que cada fila cruza el último trimestre publicado con el último año cerrado. Para un ranking eso alcanza: los barrios no se cambian de lugar en ninguna de las dos variables dentro de un año. Para una foto de un instante, no.
+
+## Lo que este cruce no contesta
+
+Tres cosas, y son las tres con las que mucha gente llega a una página como esta.
+
+La primera es **el riesgo personal**. Una tasa territorial no es una probabilidad individual: depende de la edad, de los horarios, de si se maneja o se viaja en subte, de si hay portero en la puerta. Nada de eso está en esta serie, y conviene leer la página de delitos completa antes de sacar conclusiones sobre un barrio.
+
+La segunda es **el costo real de vivir ahí**. El alquiler es una parte del gasto y no siempre la que más se mueve: faltan [las expensas](/guias/expensas-promedio-caba-2026), que en un edificio con seguridad privada y accesos controlados son sensiblemente más altas, [el ABL](/guias/que-es-el-abl-y-el-impuesto-inmobiliario), y los servicios. Un barrio tranquilo con expensas altas puede terminar más caro que uno con peor puntaje.
+
+La tercera es **el conurbano**, que es la comparación que más se busca y la que no se puede hacer aquí. Las dos series de esta página cubren la Ciudad Autónoma y nada más, y no existe un equivalente provincial con la misma metodología ni el mismo nivel de detalle.
+
+<PaginaRelacionada href="/estadisticas/alquiler-caba">
+  La mitad de precio de este cruce, sola y completa: cuánto se pide por mes en
+  cada barrio y comuna, por tamaño de departamento y trimestre a trimestre.
+</PaginaRelacionada>
+
+<PaginaRelacionada href="/estadisticas/delitos-caba">
+  La mitad de seguridad, con los 48 barrios y la corrección que el mapa
+  necesita: dónde se registran los delitos y dónde vive la gente.
+</PaginaRelacionada>
+
+## Elegir un barrio, y después vivir en él
+
+Las dos variables de esta página se miran una vez, antes de firmar. Lo que viene después no aparece en ninguna de las dos y llega todos los meses: la luz, el gas, el agua, internet, las expensas. Ese gasto sí cambia entre barrios, entre edificios y entre estaciones del año, y a diferencia del alquiler no está publicado en ninguna estadística — está en tus propias boletas.
+
+<ClosingCta title="El barrio se elige una vez; las boletas llegan todos los meses">
+  Este cruce ayuda a armar la lista corta. Lo que cuesta vivir en el barrio
+  elegido llega después, en PDF y de cinco empresas distintas. Sube esas
+  facturas a Factura y quedan convertidas en una serie mensual como las de esta
+  página, en pesos y en dólares, con tu costo real de vivienda mes a mes.
+</ClosingCta>
+
+<Faq />
+
+<Fuentes />

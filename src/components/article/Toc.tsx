@@ -5,7 +5,7 @@ import type { Heading } from "@/content/headings";
 import { cn } from "@/lib/cn";
 
 // An article's table of contents, built from its own `##` headings — see
-// `guideHeadings` / `statsHeadings` in the content modules. Two placements of
+// `guideHeadings` / a section's `headings()` in the content modules. Two placements of
 // the same list: a sticky column beside the article on a wide screen, and a
 // collapsed block at the top of the page on a phone. Both are server-rendered
 // into the HTML, so the anchors are there for a crawler (and for anyone with JS

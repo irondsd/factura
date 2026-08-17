@@ -129,36 +129,48 @@ export function normativaMetadata({
   return listingMetadata(normativaUrl, title, description);
 }
 
-// ── Statistics (Spanish-only) ─────────────────────────────────────────────
+// ── Registry sections: /estadisticas, /investigacion (Spanish-only) ────────
 // Same treatment as the guides: one language, no hreflang alternates, canonical
 // is the bare (es) URL. The only structural difference is that a page's slug is
-// a path rather than a single segment — see `content/estadisticas/pages.ts`.
+// a path rather than a single segment — see `content/section.ts`.
+//
+// Parameterised by the section's `id` rather than written once per section: the
+// two differ in a URL segment and nothing else here, and a second copy of these
+// five functions is a second place for a `?v=` stamp to go missing.
 
-/** Absolute canonical URL for the statistics index. */
-export const statsIndexUrl = `${siteUrl}/estadisticas`;
+/** Absolute canonical URL for a section index. */
+export const sectionIndexUrl = (id: string): string => `${siteUrl}/${id}`;
 
-/** Absolute canonical URL for one statistics page. */
-export const statsUrl = (slug: string[]): string =>
-  `${statsIndexUrl}/${slug.join("/")}`;
+/** Absolute canonical URL for one page of a section. */
+export const sectionUrl = (id: string, slug: string[]): string =>
+  `${sectionIndexUrl(id)}/${slug.join("/")}`;
 
 /** The page's generated social card. `updated` becomes a `?v=` stamp so a
  * re-scraped card follows the page — see `guideCardUrl` for the full reasoning. */
-export const statsCardUrl = (slug: string[], updated: string): string =>
-  `${siteUrl}/og/estadisticas/${slug.join("/")}/card.png?v=${updated.slice(0, 10).replace(/-/g, "")}`;
+export const sectionCardUrl = (
+  id: string,
+  slug: string[],
+  updated: string,
+): string =>
+  `${siteUrl}/og/${id}/${slug.join("/")}/card.png?v=${updated.slice(0, 10).replace(/-/g, "")}`;
 
-export function statsIndexMetadata({
+export function sectionIndexMetadata({
+  id,
   title,
   description,
 }: {
+  id: string;
   title: string;
   description: string;
 }): Metadata {
-  return listingMetadata(statsIndexUrl, title, description);
+  return listingMetadata(sectionIndexUrl(id), title, description);
 }
 
-/** One statistics page. Takes its `meta` verbatim (`{ slug, ...meta }`), like
- * `guideMetadata`, so an optional SEO field is wired up by being declared. */
-export function statsMetadata({
+/** One page of a registry section. Takes its `meta` verbatim
+ * (`{ id, slug, ...meta }`), like `guideMetadata`, so an optional SEO field is
+ * wired up by being declared. */
+export function sectionMetadata({
+  id,
   slug,
   title,
   titleTag,
@@ -170,6 +182,7 @@ export function statsMetadata({
   updated,
   noindex,
 }: {
+  id: string;
   slug: string[];
   title: string;
   titleTag?: string;
@@ -182,7 +195,7 @@ export function statsMetadata({
   noindex?: boolean;
 }): Metadata {
   return buildMetadata({
-    url: statsUrl(slug),
+    url: sectionUrl(id, slug),
     locale: "es",
     title: titleTag ?? title,
     titleAbsolute: true,
@@ -191,7 +204,7 @@ export function statsMetadata({
     ogDescription,
     images: [
       {
-        url: statsCardUrl(slug, updated),
+        url: sectionCardUrl(id, slug, updated),
         width: 1200,
         height: 630,
         alt: ogTitle ?? title,

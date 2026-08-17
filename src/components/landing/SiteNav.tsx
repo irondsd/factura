@@ -38,6 +38,7 @@ export function siteNavLinks(
       ...(locale === "es"
         ? [
             { label: t.nav.stats, href: "/estadisticas" },
+            { label: t.nav.research, href: "/investigacion" },
             { label: t.nav.guides, href: "/guias" },
           ]
         : []),
@@ -76,11 +77,17 @@ export function siteFooterColumns(
         ...(locale === "es"
           ? [
               { label: t.nav.stats, href: "/estadisticas" },
+              // Directly under Estadísticas, because that is what it is read
+              // against: every research page joins series that live over there.
+              // Like Normativa below it, it lives here and not in the top bar —
+              // that row already carries six links plus Ingresar, and a seventh
+              // uppercase tracked label pushes it into the wordmark. The pages
+              // themselves cross-link, which is where a reader actually meets
+              // the section.
+              { label: t.nav.research, href: "/investigacion" },
               { label: t.nav.guides, href: "/guias" },
-              // Spanish-only for the same reason as the two above — the page is
-              // Argentine law and exists only in Spanish. It lives here and not
-              // in the top bar: that row already carries six links plus Ingresar,
-              // and a seventh uppercase tracked label pushes it into the wordmark.
+              // Spanish-only for the same reason as the three above — the page
+              // is Argentine law and exists only in Spanish.
               { label: t.nav.regulations, href: "/normativa" },
             ]
           : []),

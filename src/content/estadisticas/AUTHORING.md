@@ -70,7 +70,8 @@ there.
 ## 3. The `meta` block
 
 A plain JS object at the top of the `.mdx`. The full field list, with what each
-one is for, is the `StatsMeta` type in `pages.ts` — read it rather than copying
+one is for, is the `SectionMeta` type in `src/content/section.ts` — shared with
+`/investigacion`, so read it rather than copying
 blindly. The fields the guides don't have:
 
 - **`sources`** — where the numbers come from. Rendered as the page's sources
@@ -276,7 +277,7 @@ without an import.
 bun run validate:content && bun run typecheck && bun run lint && bun run test && bun run build
 ```
 
-`validate:content` checks both content sections against their specs — this one
+`validate:content` checks every content section against its spec — this one
 included — and is what CI runs. `bun run validate:stats` is the same pass over
 `/estadisticas` alone, minus the cross-section check for two pages sharing a
 title or a description. Between them they cover most of this document: the

@@ -1,14 +1,14 @@
 import type { MetadataRoute } from "next";
-import { listedStatsPages } from "@/content/estadisticas/pages";
 import { listedGuides, nonEmptyCategories } from "@/content/guias/guides";
+import { SECTIONS } from "@/content/sections";
 import {
   guideCategoryUrl,
   guidesIndexUrl,
   guideUrl,
   localeUrl,
   normativaUrl,
-  statsIndexUrl,
-  statsUrl,
+  sectionIndexUrl,
+  sectionUrl,
 } from "@/i18n/metadata";
 
 // Only genuinely public, logged-out-visible pages belong here. The
@@ -94,9 +94,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })),
   ];
 
-  // Statistics pages, Spanish-only like the guides. `lastModified` is
-  // `meta.updated` and that's load-bearing here: these pages gain a data point
-  // every month, and the date is how a crawler learns to come back.
+  // The registry sections — /estadisticas and /investigacion — Spanish-only like
+  // the guides. `lastModified` is `meta.updated` and that's load-bearing here:
+  // these pages gain a data point every month, and the date is how a crawler
+  // learns to come back.
   //
   // Ranked a notch above the guides at every level — index 0.8 against 0.7, leaf
   // 0.7 against 0.6. Priority is only ever a hint about *relative* importance
@@ -104,23 +105,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // worth crawling first: they carry data published nowhere else in this form,
   // they change monthly, and they're what another site would cite. A guide
   // explaining what expensas are is worth having and is not that.
-  const stats = await listedStatsPages();
-  const statsEntries: MetadataRoute.Sitemap = [
-    {
-      url: statsIndexUrl,
-      lastModified: stats.length
-        ? new Date(Math.max(...stats.map((p) => Date.parse(p.meta.updated))))
-        : now,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    ...stats.map((p) => ({
-      url: statsUrl(p.slug),
-      lastModified: new Date(p.meta.updated),
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    })),
-  ];
+  const sectionEntries: MetadataRoute.Sitemap = (
+    await Promise.all(
+      SECTIONS.map(async (section) => {
+        const pages = await section.listed();
+        return [
+          {
+            url: sectionIndexUrl(section.id),
+            lastModified: pages.length
+              ? new Date(
+                  Math.max(...pages.map((p) => Date.parse(p.meta.updated))),
+                )
+              : now,
+            changeFrequency: "monthly" as const,
+            priority: 0.8,
+          },
+          ...pages.map((p) => ({
+            url: sectionUrl(section.id, p.slug),
+            lastModified: new Date(p.meta.updated),
+            changeFrequency: "monthly" as const,
+            priority: 0.7,
+          })),
+        ];
+      }),
+    )
+  ).flat();
 
   // Spanish-only like the guides, so no hreflang alternates. `now` rather than
   // a content date: the registry has no per-norm timestamp, and what changes on
@@ -134,8 +143,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // Statistics ahead of the guides, matching both the priorities above and the
-  // nav order. Order carries no formal weight in the protocol, but it's the
-  // reading order of anyone — or anything — walking the file top to bottom.
-  return [...landing, ...statsEntries, ...guidesEntries, ...normativa];
+  // The data sections ahead of the guides, matching both the priorities above
+  // and the nav order. Order carries no formal weight in the protocol, but it's
+  // the reading order of anyone — or anything — walking the file top to bottom.
+  return [...landing, ...sectionEntries, ...guidesEntries, ...normativa];
 }

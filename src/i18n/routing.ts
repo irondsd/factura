@@ -29,7 +29,12 @@ export function localizedHref(path: string, locale: Locale): string {
 // locale, so nothing may offer a visitor an English counterpart that isn't
 // there. One list rather than a check per section — the previous single
 // hardcoded `/guias` test is exactly what goes stale when a section is added.
-const SPANISH_ONLY_PREFIXES = ["/guias", "/estadisticas", "/normativa"];
+const SPANISH_ONLY_PREFIXES = [
+  "/guias",
+  "/estadisticas",
+  "/investigacion",
+  "/normativa",
+];
 
 /** Whether a landing pathname belongs to a Spanish-only section. Takes a
  * browser pathname, so it tolerates (and ignores) an `/en` prefix. */

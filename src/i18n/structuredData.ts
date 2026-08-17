@@ -8,9 +8,9 @@ import {
   guideUrl,
   localeUrl,
   normativaUrl,
-  statsCardUrl,
-  statsIndexUrl,
-  statsUrl,
+  sectionCardUrl,
+  sectionIndexUrl,
+  sectionUrl,
 } from "./metadata";
 
 // schema.org structured data (JSON-LD) for the public landing. Builders return
@@ -265,7 +265,7 @@ export function guideListLd(
   };
 }
 
-// ── Statistics (Spanish-only) ─────────────────────────────────────────────
+// ── Registry sections: /estadisticas, /investigacion (Spanish-only) ────────
 
 /** An `Article` describing the page plus the `Dataset` it publishes.
  *
@@ -275,8 +275,14 @@ export function guideListLd(
  * Dataset Search and the LLM crawlers look for — a statistics page that only
  * claimed to be an article would be invisible to exactly the surfaces it's
  * written for. The article `about`s the dataset so the two are linked rather
- * than competing. */
-export function statsPageLd({
+ * than competing.
+ *
+ * A research page emits the same pair. Its dataset is derived rather than
+ * republished — the join of two official series is still a table of numbers
+ * with a coverage and a set of measured variables, and `creator` still names
+ * the agencies whose figures went in, because the observations are theirs. */
+export function sectionPageLd({
+  id,
   slug,
   title,
   description,
@@ -288,6 +294,7 @@ export function statsPageLd({
   words,
   minutes,
 }: {
+  id: string;
   slug: string[];
   title: string;
   description: string;
@@ -305,7 +312,7 @@ export function statsPageLd({
   words: number;
   minutes: number;
 }) {
-  const url = statsUrl(slug);
+  const url = sectionUrl(id, slug);
   const datasetId = `${url}#dataset`;
 
   return {
@@ -320,7 +327,7 @@ export function statsPageLd({
         datePublished: published,
         dateModified: updated,
         mainEntityOfPage: url,
-        image: statsCardUrl(slug, updated),
+        image: sectionCardUrl(id, slug, updated),
         keywords: keywords.join(", "),
         wordCount: words,
         timeRequired: `PT${minutes}M`,
@@ -357,21 +364,24 @@ export function statsPageLd({
   };
 }
 
-/** CollectionPage for the statistics index, listing each page as a member. */
-export function statsIndexLd({
+/** CollectionPage for a section index, listing each page as a member. */
+export function sectionIndexLd({
+  id,
   title,
   description,
   pages,
 }: {
+  id: string;
   title: string;
   description: string;
   pages: { slug: string[]; title: string }[];
 }) {
+  const url = sectionIndexUrl(id);
   return {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    "@id": `${statsIndexUrl}#collection`,
-    url: statsIndexUrl,
+    "@id": `${url}#collection`,
+    url,
     name: title,
     description,
     inLanguage: "es",
@@ -383,7 +393,7 @@ export function statsIndexLd({
         "@type": "ListItem",
         position: i + 1,
         name: p.title,
-        url: statsUrl(p.slug),
+        url: sectionUrl(id, p.slug),
       })),
     },
   };

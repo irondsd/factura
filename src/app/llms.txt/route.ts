@@ -1,17 +1,40 @@
-import { listedStatsPages } from "@/content/estadisticas/pages";
 import {
   guidesByPrimaryCategory,
   nonEmptyCategories,
 } from "@/content/guias/guides";
 import { NORMAS } from "@/content/normativa/normas";
+import { SECTIONS } from "@/content/sections";
 import {
   guideCategoryUrl,
   guidesIndexUrl,
   guideUrl,
   normativaUrl,
-  statsIndexUrl,
-  statsUrl,
+  sectionIndexUrl,
+  sectionUrl,
 } from "@/i18n/metadata";
+
+// What each registry section is, in English, for the reader of this file. Kept
+// here rather than in `SectionConfig` because it is the only English copy any
+// section owns and it belongs beside the rest of this document's prose. Keyed by
+// section id, so adding a section without a blurb fails the build below rather
+// than shipping a heading with nothing under it.
+const SECTION_LLMS: Record<
+  string,
+  { heading: string; blurb: string; index: string }
+> = {
+  estadisticas: {
+    heading: "Estadísticas",
+    blurb:
+      "Spanish-only statistics pages: official Argentine price data about the cost of running a home, republished as charts with the methodology and the sources spelled out. Each page states the series it publishes, the region breakdown, and the month of the last data point, and is refreshed when the statistical office publishes.",
+    index: "Every dataset Factura publishes.",
+  },
+  investigacion: {
+    heading: "Investigación",
+    blurb:
+      "Spanish-only research pages: analyses that join several of the official series above to answer a question none of them answers alone — which barrio to rent in, what the market charges for safety. Each page publishes the derived dataset, states the arithmetic that produced it, and names what the join cannot see.",
+    index: "Every analysis Factura publishes, and the series each one joins.",
+  },
+};
 
 // The file is English prose, so the Spanish `estado` values are spelled out for
 // the reader of /llms.txt rather than passed through.
@@ -83,14 +106,19 @@ There is one scope, \`mcp:read\`. The tools cover properties, vendors, bills (li
 
 ## Optional
 
-- [Feed](https://factura.uno/feed.xml): RSS 2.0 over the Guías and Estadísticas above, newest change first. Items carry both \`pubDate\` (first published) and \`atom:updated\` (last revised) — the statistics pages are republished monthly as new official data lands, so the second is the one that moves.
+- [Feed](https://factura.uno/feed.xml): RSS 2.0 over the Guías, Estadísticas and Investigación above, newest change first. Items carry both \`pubDate\` (first published) and \`atom:updated\` (last revised) — the statistics pages are republished monthly as new official data lands, so the second is the one that moves.
 - The signed-in application lives under https://factura.uno/app and requires authentication; it is not publicly indexable. The /demo pages above show the same screens on sample data.`;
 
 export async function GET() {
-  const [sections, categories, stats] = await Promise.all([
+  const [guideSections, categories, sections] = await Promise.all([
     guidesByPrimaryCategory(),
     nonEmptyCategories(),
-    listedStatsPages(),
+    Promise.all(
+      SECTIONS.map(async (section) => ({
+        section,
+        pages: await section.listed(),
+      })),
+    ),
   ]);
 
   const guidesSection = [
@@ -105,7 +133,7 @@ export async function GET() {
     ...categories.map(
       (c) => `- [${c.label}](${guideCategoryUrl(c.id)}): ${c.description}`,
     ),
-    ...sections.flatMap(({ category, guides }) => [
+    ...guideSections.flatMap(({ category, guides }) => [
       "",
       `### ${category.label}`,
       "",
@@ -115,16 +143,27 @@ export async function GET() {
     ]),
   ].join("\n");
 
-  const statsSection = [
-    "## Estadísticas",
-    "",
-    "Spanish-only statistics pages: official Argentine price data about the cost of running a home, republished as charts with the methodology and the sources spelled out. Each page states the series it publishes, the region breakdown, and the month of the last data point, and is refreshed when the statistical office publishes.",
-    "",
-    `- [Estadísticas index](${statsIndexUrl}): Every dataset Factura publishes.`,
-    ...stats.map(
-      (p) => `- [${p.meta.title}](${statsUrl(p.slug)}): ${p.meta.summary}`,
-    ),
-  ].join("\n");
+  const dataSections = sections
+    .map(({ section, pages }) => {
+      const copy = SECTION_LLMS[section.id];
+      if (!copy) {
+        throw new Error(
+          `llms.txt: no SECTION_LLMS entry for "${section.id}" — every section needs one line about what it is`,
+        );
+      }
+      return [
+        `## ${copy.heading}`,
+        "",
+        copy.blurb,
+        "",
+        `- [${copy.heading} index](${sectionIndexUrl(section.id)}): ${copy.index}`,
+        ...pages.map(
+          (p) =>
+            `- [${p.meta.title}](${sectionUrl(section.id, p.slug)}): ${p.meta.summary}`,
+        ),
+      ].join("\n");
+    })
+    .join("\n\n");
 
   // One page, so it's a single section rather than an index plus children. The
   // per-norm lines carry the status because that is the fact an assistant most
@@ -142,7 +181,7 @@ export async function GET() {
     ),
   ].join("\n");
 
-  const body = `${PREAMBLE}\n\n${guidesSection}\n\n${statsSection}\n\n${normativaSection}\n\n${AFTER}\n`;
+  const body = `${PREAMBLE}\n\n${guidesSection}\n\n${dataSections}\n\n${normativaSection}\n\n${AFTER}\n`;
 
   return new Response(body, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },

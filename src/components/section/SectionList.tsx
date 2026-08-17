@@ -1,14 +1,17 @@
 import Link from "next/link";
-import { type StatsPage, statsHref } from "@/content/estadisticas/pages";
+import type { ContentSection, SectionPage } from "@/content/section";
 
-// The row list of statistics pages, shared by the section index and by a hub
-// page listing its children, so the two can't drift. Same shape as the guides'
-// `GuideList`, with one deliberate difference: the timestamp shown is `updated`,
-// not `published`.
+// The row list of pages, shared by a section index and by a hub page listing its
+// children, so the two can't drift — and shared by /estadisticas and
+// /investigacion, so those two can't either.
 //
-// That difference is the section. A guide is written once and is as good a year
-// later; a statistics page is a series that gains a point every month, and the
-// only date a reader cares about is how fresh the numbers are.
+// Same shape as the guides' `GuideList`, with one deliberate difference: the
+// timestamp shown is `updated`, not `published`.
+//
+// That difference is what these sections are. A guide is written once and is as
+// good a year later; a page here is a series that gains a point every month, or
+// a finding recomputed when its inputs move, and the only date a reader cares
+// about is how fresh the numbers are.
 
 const fmtDate = (iso: string) =>
   new Intl.DateTimeFormat("es-AR", {
@@ -18,21 +21,23 @@ const fmtDate = (iso: string) =>
     timeZone: "America/Argentina/Buenos_Aires",
   }).format(new Date(iso));
 
-export function StatsList({
+export function SectionList({
+  section,
   pages,
   /** Heading level for the titles — the index nests them under its <h1>, so h2
    * there; a hub page listing children under a section <h2> makes them h3. */
   titleAs: Title = "h2",
 }: {
-  pages: StatsPage[];
+  section: ContentSection;
+  pages: SectionPage[];
   titleAs?: "h2" | "h3";
 }) {
   return (
     <ul className="list-none p-0 m-0">
       {pages.map((p) => (
-        <li key={statsHref(p.slug)} className="border-b border-line">
+        <li key={section.href(p.slug)} className="border-b border-line">
           <Link
-            href={statsHref(p.slug)}
+            href={section.href(p.slug)}
             className="group flex items-start gap-4 sm:gap-[22px] no-underline py-6"
           >
             {/* Optional, exactly as on a guide row: a page without a preview
