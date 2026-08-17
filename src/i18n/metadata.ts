@@ -129,7 +129,7 @@ export function normativaMetadata({
   return listingMetadata(normativaUrl, title, description);
 }
 
-// ── Registry sections: /estadisticas, /investigacion (Spanish-only) ────────
+// ── Registry sections: /estadisticas, /investigaciones (Spanish-only) ─────
 // Same treatment as the guides: one language, no hreflang alternates, canonical
 // is the bare (es) URL. The only structural difference is that a page's slug is
 // a path rather than a single segment — see `content/section.ts`.
@@ -138,8 +138,13 @@ export function normativaMetadata({
 // two differ in a URL segment and nothing else here, and a second copy of these
 // five functions is a second place for a `?v=` stamp to go missing.
 
+const SECTION_BASES: Record<string, string> = {
+  investigacion: "investigaciones",
+};
+
 /** Absolute canonical URL for a section index. */
-export const sectionIndexUrl = (id: string): string => `${siteUrl}/${id}`;
+export const sectionIndexUrl = (id: string): string =>
+  `${siteUrl}/${SECTION_BASES[id] ?? id}`;
 
 /** Absolute canonical URL for one page of a section. */
 export const sectionUrl = (id: string, slug: string[]): string =>
@@ -152,7 +157,7 @@ export const sectionCardUrl = (
   slug: string[],
   updated: string,
 ): string =>
-  `${siteUrl}/og/${id}/${slug.join("/")}/card.png?v=${updated.slice(0, 10).replace(/-/g, "")}`;
+  `${siteUrl}/og/${SECTION_BASES[id] ?? id}/${slug.join("/")}/card.png?v=${updated.slice(0, 10).replace(/-/g, "")}`;
 
 export function sectionIndexMetadata({
   id,

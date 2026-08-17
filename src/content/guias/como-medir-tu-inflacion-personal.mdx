@@ -41,7 +41,7 @@ export const meta = {
   ],
 };
 
-Cada mes sale un número y cada mes alguien dice "a mí me subió mucho más". Casi siempre tiene razón. El IPC del INDEC mide un hogar promedio y tu hogar no es promedio: tu **inflación personal** depende de qué servicios pagas, de cuánto pesa cada uno en tu presupuesto y de dónde vives.
+Cada mes sale un número y cada mes alguien dice "a mí me subió mucho más". Casi siempre tiene razón. El IPC del INDEC mide un hogar promedio y tu hogar no es promedio: tu **inflación personal** depende de qué servicios pagás, de cuánto pesa cada uno en tu presupuesto y de dónde vivís.
 
 La buena noticia es que se puede calcular, y no hace falta ser economista. Toda la materia prima ya te llega al mail todos los meses. Si todavía no leíste [qué es la inflación](/guias/que-es-la-inflacion-y-como-te-afecta), ahí está el contexto; esta guía es el método.
 
@@ -49,7 +49,7 @@ La buena noticia es que se puede calcular, y no hace falta ser economista. Toda 
 
 Tu inflación personal es la variación de precios de **tu** canasta. La diferencia con el IPC no está en la fórmula, está en los pesos: el INDEC usa los del hogar promedio del país y tú deberías usar los tuyos.
 
-Un ejemplo concreto. Si vives en un departamento en CABA, tu gasto mensual fijo se parece a esto:
+Un ejemplo concreto. Si vivís en un departamento en CABA, tu gasto mensual fijo se parece a esto:
 
 - Expensas
 - Luz
@@ -69,11 +69,11 @@ Toma un mes y llámalo 100. Conviene elegir uno "normal", sin gastos extraordina
 
 ### 2. Junta los montos, mes a mes y por servicio
 
-No sirve un total mensual: necesitas el detalle por servicio, porque el interés está justamente en cuál se disparó. Anota también el **período** que cubre cada factura, no la fecha en que la pagaste. Una boleta de gas de julio que pagaste en agosto pertenece a julio.
+No sirve un total mensual: necesitás el detalle por servicio, porque el interés está justamente en cuál se disparó. Anota también el **período** que cubre cada factura, no la fecha en que la pagaste. Una boleta de gas de julio que pagaste en agosto pertenece a julio.
 
 ### 3. Calcula el peso de cada servicio
 
-Divide lo que gastas en cada servicio por el total del mes base. Si las expensas son $350.000 de un total de $600.000, pesan 58%. Ese porcentaje es lo que hace que tu índice sea tuyo y no el de otro.
+Divide lo que gastás en cada servicio por el total del mes base. Si las expensas son $350.000 de un total de $600.000, pesan 58%. Ese porcentaje es lo que hace que tu índice sea tuyo y no el de otro.
 
 ### 4. Compara contra el mes base
 
@@ -105,21 +105,21 @@ Dónde encontrar esos números en cada boleta está en las guías de lectura: [l
 
 Todo lo anterior se puede llevar en una planilla, y funciona. El problema es sostenerlo: son doce cargas de datos por año por servicio, cada una con su fecha de período, su importe y su consumo, y basta con abandonar dos meses para que la serie deje de servir.
 
-Factura hace ese trabajo. Subes el PDF —o lo compartes desde el mail— y de cada factura salen el emisor, el importe, el período y el consumo. Con eso arma la serie de cada servicio, y en `/app/insights` la muestra en la mirada a la inflación: tu gasto rebasado a 100, en pesos y en dólares, sobre la misma escala.
+Factura hace ese trabajo. Subes el PDF —o lo compartís desde el mail— y de cada factura salen el emisor, el importe, el período y el consumo. Con eso arma la serie de cada servicio, y en `/app/insights` la muestra en la mirada a la inflación: tu gasto rebasado a 100, en pesos y en dólares, sobre la misma escala.
 
 ![Mirada a la inflación en Factura: el gasto del hogar rebasado a 100, con la línea en pesos y la línea del costo real en dólares](/img/guias/inflacion-lente-app.png)
 
 La lectura es directa. Si las dos líneas suben juntas, el servicio se encareció de verdad. Si la de pesos se despega y la de dólares queda plana, lo que se movió fue la moneda. Y si la de dólares baja mientras la de pesos sube, estás pagando más pesos por algo que, en términos reales, se abarató.
 
-## Empieza con lo que tienes
+## Empieza con lo que tenés
 
 No hace falta reconstruir tres años de historial para arrancar. Con tres meses ya se ve una pendiente y con doce se puede comparar contra el mismo mes del año anterior, que es la comparación que anula la estacionalidad del invierno. El resto se completa solo, factura a factura.
 
-Si quieres ver el mecanismo antes de subir nada tuyo, [la demo](/demo) tiene un hogar de ejemplo con historial cargado y las mismas vistas.
+Si querés ver el mecanismo antes de subir nada tuyo, [la demo](/demo) tiene un hogar de ejemplo con historial cargado y las mismas vistas.
 
 ## Léelo automáticamente
 
-Medir tu inflación personal es, en el fondo, un problema de constancia: la parte difícil no es la fórmula sino tener todas las facturas, con los montos bien leídos y asignadas al mes correcto. Eso es exactamente lo que Factura automatiza. Tú subes la boleta; el índice, en pesos y en dólares, se actualiza solo.
+Medir tu inflación personal es, en el fondo, un problema de constancia: la parte difícil no es la fórmula sino tener todas las facturas, con los montos bien leídos y asignadas al mes correcto. Eso es exactamente lo que Factura automatiza. Tú subís la boleta; el índice, en pesos y en dólares, se actualiza solo.
 
 <Faq />
 
