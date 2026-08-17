@@ -16,7 +16,7 @@ import {
   type SizeId,
   SIZES,
 } from "@/content/estadisticas/data/venta-caba";
-import { MapaCaba, type MapView } from "./MapaCaba";
+import { MapaCaba, type MapView } from "@/components/maps/MapaCaba";
 
 // The map on /estadisticas/precio-m2-caba: asking price per square metre, in
 // dollars, by barrio or comuna, for 1/2/3-ambiente used apartments.

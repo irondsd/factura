@@ -1,5 +1,6 @@
 import * as alquiler from "../../estadisticas/data/alquiler-caba";
 import * as delitos from "../../estadisticas/data/delitos-caba";
+import { linearFit, median, percentileRanks } from "@/lib/statistics";
 
 // Rent against recorded crime, barrio by barrio and comuna by comuna — the
 // dataset behind /investigacion/barrios-seguros-baratos-caba.
@@ -209,25 +210,6 @@ export type Row = {
  * them consecutive ranks would order them by array position, which is
  * alphabetical, which is nothing.
  */
-function percentiles(values: number[]): number[] {
-  const n = values.length;
-  if (n === 0) return [];
-  if (n === 1) return [0.5];
-  const order = values
-    .map((v, i) => [v, i] as const)
-    .sort((a, b) => a[0] - b[0]);
-  const out = new Array<number>(n);
-  let i = 0;
-  while (i < n) {
-    let j = i;
-    while (j + 1 < n && order[j + 1][0] === order[i][0]) j++;
-    const shared = (i + j) / 2 / (n - 1);
-    for (let k = i; k <= j; k++) out[order[k][1]] = shared;
-    i = j + 1;
-  }
-  return out;
-}
-
 /** Every region of a map, in registry order, for one size, one crime category
  * and one weighting. Regions IDECBA withheld a rent for are present with `null`
  * scores rather than dropped — the map hatches them and the coverage note names
@@ -266,8 +248,8 @@ export function rows(
       r.rentPerMetre !== null,
   );
   // Both axes inverted: the highest score is the cheapest and the calmest.
-  const cheap = percentiles(scorable.map((r) => r.rentPerMetre));
-  const safe = percentiles(scorable.map((r) => r.crimeRate));
+  const cheap = percentileRanks(scorable.map((r) => r.rentPerMetre));
+  const safe = percentileRanks(scorable.map((r) => r.crimeRate));
   const scores = new Map(
     scorable.map((r, i) => {
       const c = (1 - cheap[i]) * 100;
@@ -431,28 +413,16 @@ export function fit(
 
   const xs = points.map((p) => p.crimeRate);
   const ys = points.map((p) => p.rentPerMetre);
-  const n = xs.length;
-  const mx = xs.reduce((s, x) => s + x, 0) / n;
-  const my = ys.reduce((s, y) => s + y, 0) / n;
-  let sxy = 0;
-  let sxx = 0;
-  let syy = 0;
-  for (let i = 0; i < n; i++) {
-    sxy += (xs[i] - mx) * (ys[i] - my);
-    sxx += (xs[i] - mx) ** 2;
-    syy += (ys[i] - my) ** 2;
-  }
-  if (sxx === 0 || syy === 0) return null;
-
-  const slope = sxy / sxx;
-  const intercept = my - slope * mx;
+  const regression = linearFit(xs, ys);
+  if (!regression) return null;
+  const { slope, intercept, r, r2, n } = regression;
   const calmestRate = Math.min(...xs);
   const worstRate = Math.max(...xs);
   return {
     slope,
     intercept,
-    r: sxy / Math.sqrt(sxx * syy),
-    r2: (sxy * sxy) / (sxx * syy),
+    r,
+    r2,
     n,
     perFlat: slope * REFERENCE_AREA[size],
     area: REFERENCE_AREA[size],
@@ -505,16 +475,10 @@ export function dispersion(
       { crimeRate: f.worstRate, rentPerMetre: f.atWorst },
     ],
     median: {
-      crimeRate: median(points.map((p) => p.crimeRate)),
-      rentPerMetre: median(points.map((p) => p.rentPerMetre)),
+      crimeRate: median(points.map((p) => p.crimeRate))!,
+      rentPerMetre: median(points.map((p) => p.rentPerMetre))!,
     },
   };
-}
-
-function median(values: number[]): number {
-  const s = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(s.length / 2);
-  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
 // ── Does the answer survive the assumptions ────────────────────────────────

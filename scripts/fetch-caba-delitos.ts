@@ -43,11 +43,7 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  BARRIOS,
-  COMUNA_IDS,
-  findBarrio,
-} from "../src/content/estadisticas/data/caba";
+import { BARRIOS, COMUNA_IDS, findBarrio } from "../src/content/shared/caba";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(here, "../src/content/estadisticas/data");

@@ -7,7 +7,7 @@ import {
   ZONAS,
   type ZonaId,
   zonaCovers,
-} from "./caba";
+} from "@/content/shared/caba";
 import raw from "./delitos-caba.json";
 
 // Crimes recorded in CABA, by barrio and by comuna, every year since 2016 —

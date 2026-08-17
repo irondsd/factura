@@ -21,7 +21,7 @@ import {
   type SizeId,
   SIZES,
 } from "@/content/estadisticas/data/alquiler-caba";
-import { MapaCaba, type MapView } from "./MapaCaba";
+import { MapaCaba, type MapView } from "@/components/maps/MapaCaba";
 
 // The map on /estadisticas/alquiler-caba: asking rent in pesos a month, by
 // barrio or comuna, for 1/2/3-ambiente used apartments.

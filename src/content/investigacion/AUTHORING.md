@@ -144,8 +144,10 @@ places publishing the same thing.
 Same split as `/estadisticas` §7 — a server component owning the `<figure>`
 shell and every formatted string, a `"use client"` body owning anything that
 changes when the reader clicks. Components live in
-`src/components/investigacion/` and must be registered in
-`src/mdx-components.tsx`.
+`src/components/investigacion/` and must be imported directly by the `.mdx`
+page that renders them. Do not register data figures in `src/mdx-components.tsx`:
+that map is shared by every content page, so a figure there ships its client
+code to unrelated routes.
 
 Two things a research figure does that a statistics figure usually doesn't:
 
@@ -157,7 +159,7 @@ Two things a research figure does that a statistics figure usually doesn't:
   the quoted coefficient have to come from one computation, or the page can end
   up describing a model it doesn't draw.
 
-Maps reuse `@/components/estadisticas/MapaCaba`, which knows the city's geometry
+Maps reuse `@/components/maps/MapaCaba`, which knows the city's geometry
 and nothing about what is being measured. Do not copy it.
 
 ---

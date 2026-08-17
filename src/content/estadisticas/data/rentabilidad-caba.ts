@@ -1,7 +1,8 @@
 import * as alquiler from "./alquiler-caba";
-import { BARRIOS } from "./caba";
+import { BARRIOS } from "@/content/shared/caba";
 import { rate, type RateId, RATE } from "./dolar";
 import * as venta from "./venta-caba";
+import { linearFit } from "@/lib/statistics";
 
 // Gross rental yield for CABA — what a flat returns a year, as a percentage of
 // what it costs to buy. The dataset behind
@@ -333,23 +334,13 @@ export function elasticity(
   const rentPerMetre = points.map((p) => p.rentArs / REFERENCE_AREA[size]);
   const xs = points.map((p) => Math.log(p.price));
   const ys = rentPerMetre.map(Math.log);
-  const n = xs.length;
-  const mx = xs.reduce((s, x) => s + x, 0) / n;
-  const my = ys.reduce((s, y) => s + y, 0) / n;
-  let sxy = 0;
-  let sxx = 0;
-  let syy = 0;
-  for (let i = 0; i < n; i++) {
-    sxy += (xs[i] - mx) * (ys[i] - my);
-    sxx += (xs[i] - mx) ** 2;
-    syy += (ys[i] - my) ** 2;
-  }
-  if (sxx === 0 || syy === 0) return null;
-  const beta = sxy / sxx;
+  const regression = linearFit(xs, ys);
+  if (!regression) return null;
+  const { slope: beta, r2, n } = regression;
   const prices = points.map((p) => p.price);
   return {
     beta,
-    r2: (sxy * sxy) / (sxx * syy),
+    r2,
     n,
     priceSpread: Math.max(...prices) / Math.min(...prices),
     rentSpread: Math.max(...rentPerMetre) / Math.min(...rentPerMetre),

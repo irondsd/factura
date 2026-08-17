@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArticlePreview } from "@/components/article/ArticlePreview";
 import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { CategoryChips } from "@/components/guides/CategoryChips";
 import { TopCta } from "@/components/guides/cta";
@@ -18,7 +19,7 @@ import {
 } from "@/content/guias/guides";
 import { guideMetadata } from "@/i18n/metadata";
 import { faqPageLd, guideLd } from "@/i18n/structuredData";
-import { cn } from "@/lib/cn";
+import { formatContentDateTime } from "@/lib/content-date";
 
 // One guide article. Static set only — `dynamicParams = false` 404s any slug
 // that isn't a real `.mdx` file. (The Spanish-only guard lives in the layout.)
@@ -40,45 +41,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 // in — Google requires the visible date (and time, when shown) to match the
 // structured data, and the JSON-LD emits `meta.published` verbatim. 24-hour
 // clock: that's how Argentina writes times.
-const fmtDateTime = (iso: string) =>
-  new Intl.DateTimeFormat("es-AR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "America/Argentina/Buenos_Aires",
-  }).format(new Date(iso));
-
-/** The guide's illustration, at whichever of its two placements is showing.
- * Written once and rendered twice — at the top of the contents column from `lg`
- * up, and above the headline below that, where there is no column — the same
- * shape `TocSidebar` / `TocInline` already use for the contents itself. One
- * `src`, so the second copy costs a cache hit rather than a download.
- *
- * `alt=""` for the reason the listing thumbnail uses it: the <h1> right beside
- * it already names the guide, and the image adds nothing a screen reader would
- * want read a second time. The intrinsic size is the file's, so the box is
- * reserved before it loads and the headline under it doesn't jump. Not lazy:
- * at both placements it is on the first screen. */
-function Preview({ src, className }: { src: string; className?: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt=""
-      width={960}
-      height={540}
-      decoding="async"
-      className={cn(
-        "w-full aspect-video object-cover border border-line bg-card",
-        className,
-      )}
-    />
-  );
-}
-
 export default async function GuidePage({ params }: Props) {
   const { slug } = await params;
   const { Content, meta } = await loadGuide(slug);
@@ -139,7 +101,7 @@ export default async function GuidePage({ params }: Props) {
               up it's the sidebar's copy that shows instead, so this one is
               hidden rather than duplicated on screen. */}
             {meta.preview && (
-              <Preview src={meta.preview} className="mb-7 lg:hidden" />
+              <ArticlePreview src={meta.preview} className="mb-7 lg:hidden" />
             )}
 
             <header className="pb-2">
@@ -156,7 +118,7 @@ export default async function GuidePage({ params }: Props) {
                 <span>
                   Publicado el{" "}
                   <time dateTime={meta.published}>
-                    {fmtDateTime(meta.published)}
+                    {formatContentDateTime(meta.published)}
                   </time>
                   <span aria-hidden="true"> ·</span>
                 </span>
@@ -164,7 +126,7 @@ export default async function GuidePage({ params }: Props) {
                   <span>
                     Actualizado el{" "}
                     <time dateTime={meta.updated}>
-                      {fmtDateTime(meta.updated)}
+                      {formatContentDateTime(meta.updated)}
                     </time>
                     <span aria-hidden="true"> ·</span>
                   </span>
@@ -219,7 +181,7 @@ export default async function GuidePage({ params }: Props) {
           <TocSidebar
             headings={headings}
             label="En esta guía"
-            above={meta.preview && <Preview src={meta.preview} />}
+            above={meta.preview && <ArticlePreview src={meta.preview} />}
           />
         </div>
       </main>

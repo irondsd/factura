@@ -1,5 +1,5 @@
-import { MapaCaba, type MapView } from "@/components/estadisticas/MapaCaba";
-import { BARRIOS, COMUNA_IDS } from "@/content/estadisticas/data/caba";
+import { MapaCaba, type MapView } from "@/components/maps/MapaCaba";
+import { BARRIOS, COMUNA_IDS } from "@/content/shared/caba";
 import {
   BREAKS,
   coverage,
@@ -25,10 +25,9 @@ import {
 // The server half, in the same split as every map in /estadisticas (see
 // VentaCabaMapa.tsx) — it owns the <figure> shell, the caption and the source
 // note, and turns the join into six plain views the interactive half draws,
-// including every formatted string. `MapaCaba` itself is imported from the
-// statistics section rather than copied: it knows the city's geometry and
-// nothing about what is being measured, which is exactly what makes it reusable
-// here.
+// including every formatted string. `MapaCaba` lives with the shared map
+// primitives: it knows the city's geometry and nothing about what is being
+// measured, which is exactly what makes it reusable here.
 //
 // ── Why the weighting is a control and not a decision ─────────────────────
 // Every combined index picks a weight, and picking one silently is the way a

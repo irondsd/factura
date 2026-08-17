@@ -355,11 +355,14 @@ and a bill that fails is a normal, useful outcome — `/probar` asks who it's fr
 and takes an address to write back. Promising a clean read sets up the one
 disappointment this card can cause.
 
-**Charts** — `<InflacionChart chart="luz-y-gas" />` drops a chart into the body.
-It takes one prop, the id of a chart in the registry; the data and the drawing
-both live in the code, so a guide never carries numbers of its own:
+**Charts** — import `InflacionChart` only in a guide that uses it, then
+`<InflacionChart chart="luz-y-gas" />` drops a chart into the body. It takes one
+prop, the id of a chart in the registry; the data and the drawing both live in
+the code, so a guide never carries numbers of its own:
 
 ```mdx
+import { InflacionChart } from "@/components/guides/InflacionChart";
+
 <InflacionChart chart="servicios-vs-general" />
 ```
 
