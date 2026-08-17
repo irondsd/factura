@@ -256,7 +256,7 @@ async function teaserBlocks(): Promise<TeaserBlock[]> {
       label: "Investigaciones",
       blurb: "Informes propios a partir de datos públicos y de facturas reales.",
       cards: sectionCards(investigacion, newest(research)),
-      allHref: "/investigacion",
+      allHref: "/investigaciones",
       allLabel: "Ver todas las investigaciones",
     },
     {

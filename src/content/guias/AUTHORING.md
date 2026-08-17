@@ -31,10 +31,10 @@ all strings, keep the trailing comma style. No YAML `---` frontmatter.
 export const meta = {
   title: "Cómo leer una factura de luz: guía paso a paso",
   description:
-    "Aprende a entender tu factura de electricidad: cargos fijos, consumo en kWh, impuestos y el total a pagar, explicados con un ejemplo simple.",
+    "Aprendé a entender tu factura de electricidad: cargos fijos, consumo en kWh, impuestos y el total a pagar, explicados con un ejemplo simple.",
   summary:
     "Qué significa cada sección de la factura de electricidad y cómo identificar lo que realmente estás pagando.",
-  cta: "¿Tu factura de luz subió? Mira cuánto y por qué.",
+  cta: "¿Tu factura de luz subió? Mirá cuánto y por qué.",
   keywords: [
     "cómo leer una factura de luz",
     "entender factura de electricidad",
@@ -226,8 +226,10 @@ Structure:
 - Use `###` for sub-sections, and `####` for small uppercase mono labels.
 - End with a short CTA section (see §5).
 
-**Voice:** neutral Latin-American Spanish, **tú** (not vos/usted), professional
-but plain. Use "aquí" not "acá". No peninsular vocabulary. Short paragraphs.
+**Voice:** Argentine Spanish, **vos** (not tú/usted), professional, educated and
+plain. Use "aquí" rather than "acá" when it fits the sentence. Avoid Argentine
+slang and regionalisms; the voseo is the personalization, not a reason to make
+the prose casual. No peninsular vocabulary. Short paragraphs.
 
 ---
 
@@ -285,7 +287,7 @@ before the article has explained anything. The shape that works is **a question
 this guide's reader already has, then what an account does about it**:
 
 ```js
-cta: "¿Tu factura de Edesur subió? Mira cuánto y por qué.",
+cta: "¿Tu factura de Edesur subió? Mirá cuánto y por qué.",
 cta: "¿Cuánto se fue en obras este año? Sepáralo.",
 ```
 
@@ -299,7 +301,7 @@ says that), and no reusing `summary`: this is a hook, not a description.
 ```mdx
 <ClosingCta title="¿Fue la tarifa o el termostato?">
   Responder eso exige tener la boleta del invierno pasado con sus m³. Factura la
-  guarda por ti y arma la serie de precio por m³, así la comparación de julio
+  guarda por vos y arma la serie de precio por m³, así la comparación de julio
   contra julio sale en un vistazo.
 </ClosingCta>
 ```
@@ -349,7 +351,7 @@ It belongs in any guide walking through a real document — the `leer-facturas`
 category, essentially. Skip it on conceptual pieces (what expensas are, how a
 subsidy works) where the reader has no PDF in hand.
 
-Keep the copy honest about the outcome: **"mira qué datos extrae"**, never "la
+Keep the copy honest about the outcome: **"mirá qué datos extrae"**, never "la
 leemos" or "la procesamos correctamente". Most vendors don't have a parser yet,
 and a bill that fails is a normal, useful outcome — `/probar` asks who it's from
 and takes an address to write back. Promising a clean read sets up the one

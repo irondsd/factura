@@ -155,7 +155,7 @@ A page carries three, and only one of them is written in the body:
   on — and on the property pages that means **bridging**, because the visitor
   came for a price and Factura tracks bills. "Este mapa mide lo que cuesta
   comprar; lo que se paga después llega en PDF todos los meses" is an argument;
-  "organiza tus servicios" is not. The paragraph above it should set the bridge
+  "organizá tus servicios" is not. The paragraph above it should set the bridge
   up, so the block lands on a reader who has already been told the page doesn't
   answer their next question.
 

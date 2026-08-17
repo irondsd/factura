@@ -40,6 +40,7 @@ const ENTRIES: SectionEntry[] = [
 
 export const investigacion = createSection({
   id: "investigacion",
+  base: "investigaciones",
   label: "Investigación",
   backLabel: "← Todas las investigaciones",
   relatedLabel: "Investigación relacionada",

@@ -1,4 +1,4 @@
-# Authoring a research page (`/investigacion`)
+# Authoring a research page (`/investigaciones`)
 
 The research section publishes **findings**, not series. Each page takes two or
 more public datasets that Factura already publishes under `/estadisticas`, joins
@@ -20,7 +20,7 @@ only what is different here.
 The line is what the page is _for_, and it decides which directory the `.mdx`
 goes in:
 
-|             | `/estadisticas`           | `/investigacion`             |
+|             | `/estadisticas`           | `/investigaciones`           |
 | ----------- | ------------------------- | ---------------------------- |
 | Publishes   | one series                | a join of several            |
 | Answers     | "what is the number"      | "so which one should I pick" |

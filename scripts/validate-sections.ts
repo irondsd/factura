@@ -61,6 +61,7 @@ const MDX_COMPONENTS = path.join(CONTENT_DIR, "../mdx-components.tsx");
 export const SECTION_CONFIGS = [
   {
     id: "estadisticas",
+    base: "estadisticas",
     /** Heading for this section's block of the report. */
     name: "Estadísticas",
     /** Used in error copy: "…is not a statistics page". */
@@ -68,6 +69,7 @@ export const SECTION_CONFIGS = [
   },
   {
     id: "investigacion",
+    base: "investigaciones",
     name: "Investigación",
     noun: "research page",
   },
@@ -718,7 +720,7 @@ function validatePage(
     target: string,
   ): { index: SectionIndex; to: string } | { problem: string } => {
     for (const index of world.sections.values()) {
-      const base = `/${index.cfg.id}/`;
+      const base = `/${index.cfg.base}/`;
       if (!target.startsWith(base)) continue;
       const to = target.slice(base.length);
       if (!index.paths.has(to)) {
@@ -729,7 +731,9 @@ function validatePage(
     return { problem: "not a section path" };
   };
 
-  const sectionAlternation = [...world.sections.keys()].join("|");
+  const sectionAlternation = [...world.sections.values()]
+    .map((index) => index.cfg.base)
+    .join("|");
   const seenLinks = new Set<string>();
   for (const m of body.matchAll(
     new RegExp(`\\]\\((/(?:guias|${sectionAlternation})/[^)\\s]+)\\)`, "g"),

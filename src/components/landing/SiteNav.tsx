@@ -38,7 +38,7 @@ export function siteNavLinks(
       ...(locale === "es"
         ? [
             { label: t.nav.stats, href: "/estadisticas" },
-            { label: t.nav.research, href: "/investigacion" },
+            { label: t.nav.research, href: "/investigaciones" },
             { label: t.nav.guides, href: "/guias" },
           ]
         : []),
@@ -84,7 +84,7 @@ export function siteFooterColumns(
               // uppercase tracked label pushes it into the wordmark. The pages
               // themselves cross-link, which is where a reader actually meets
               // the section.
-              { label: t.nav.research, href: "/investigacion" },
+              { label: t.nav.research, href: "/investigaciones" },
               { label: t.nav.guides, href: "/guias" },
               // Spanish-only for the same reason as the three above — the page
               // is Argentine law and exists only in Spanish.

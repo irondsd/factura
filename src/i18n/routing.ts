@@ -32,7 +32,7 @@ export function localizedHref(path: string, locale: Locale): string {
 const SPANISH_ONLY_PREFIXES = [
   "/guias",
   "/estadisticas",
-  "/investigacion",
+  "/investigaciones",
   "/normativa",
 ];
 
