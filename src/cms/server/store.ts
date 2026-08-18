@@ -43,6 +43,9 @@ export type CmsPageInsert = {
   cta: string;
   canonicalSlug: string | null;
   metadata: unknown;
+  parentId: string | null;
+  sortOrder: number;
+  crumb: string | null;
   actorId: string;
   now: Date;
 };
@@ -64,6 +67,9 @@ export type CmsPageUpdate = {
     cta?: string;
     canonicalSlug?: string | null;
     metadata?: unknown;
+    parentId?: string | null;
+    sortOrder?: number;
+    crumb?: string | null;
     publishedAt?: Date | null;
     contentUpdatedAt?: Date;
   };
@@ -111,7 +117,10 @@ export class CmsPageStore {
     const rows = await this.db.query.cmsPages.findMany({
       where: conditions.length ? and(...conditions) : undefined,
       columns: { bodyMdx: false },
-      orderBy: [desc(cmsPages.updatedAt), asc(cmsPages.slug)],
+      // Editorial order, not "most recently touched": the CMS list renders the
+      // page tree, and a tree that reshuffled as you edited would be unusable.
+      // `buildContentTree` re-sorts anyway; this makes the query deterministic.
+      orderBy: [asc(cmsPages.sortOrder), asc(cmsPages.slug)],
     });
     return rows.map(rowToSummary);
   }
@@ -131,6 +140,9 @@ export class CmsPageStore {
         cta: input.cta,
         canonicalSlug: input.canonicalSlug,
         metadata: input.metadata,
+        parentId: input.parentId,
+        sortOrder: input.sortOrder,
+        crumb: input.crumb,
         lockVersion: 1,
         createdBy: input.actorId,
         updatedBy: input.actorId,
@@ -171,6 +183,11 @@ export class CmsPageStore {
           ? { canonicalSlug: patch.canonicalSlug }
           : {}),
         ...(patch.metadata !== undefined ? { metadata: patch.metadata } : {}),
+        ...(patch.parentId !== undefined ? { parentId: patch.parentId } : {}),
+        ...(patch.sortOrder !== undefined
+          ? { sortOrder: patch.sortOrder }
+          : {}),
+        ...(patch.crumb !== undefined ? { crumb: patch.crumb } : {}),
         ...(patch.publishedAt !== undefined
           ? { publishedAt: patch.publishedAt }
           : {}),

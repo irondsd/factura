@@ -67,6 +67,14 @@ export type ContentDocument = {
   cta: string;
   /** Slug this page's canonical points at, when it is not its own. */
   canonicalSlug: string | null;
+  /** The editorial tree, uniform across sections — null is a top-level page.
+   * See `src/content-system/hierarchy.ts` for the invariant that keeps this and
+   * `slug` in agreement. */
+  parentId: string | null;
+  /** Explicit order among siblings. */
+  sortOrder: number;
+  /** Short breadcrumb/index label; falls back to `title` when null. */
+  crumb: string | null;
   metadata: ContentMetadata;
   /** Null until the page has been published once. */
   publishedAt: string | null;

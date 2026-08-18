@@ -6,6 +6,7 @@ import {
   serializeSnapshot,
 } from "@/content-system/adapters/database";
 import { PostgresContentRepository } from "@/content-system/repository/postgres";
+import { buildContentTree, ownSegment } from "@/content-system/hierarchy";
 import type { ContentStatus, ValidationResult } from "@/content-system/types";
 import type { CmsActor } from "../types";
 import { CmsContentService } from "./contentService";
@@ -380,6 +381,142 @@ if (!hasTestDatabase()) {
         const after = await service.get(actor, page.id);
         expect(after.body).toBe(page.body);
         expect(after.lockVersion).toBe(page.lockVersion);
+      });
+    });
+
+    describe("hierarchy", () => {
+      // Exercised in `guias` deliberately. Guides are all flat today, but the
+      // capability is uniform — if any of this only worked for statistics, a
+      // per-section branch would have crept in.
+      it("creates a child under a parent", async () => {
+        const hub = await service.create(actor, draftInput("hub"));
+        const child = await service.create(actor, {
+          ...draftInput("hub/hija"),
+          slug: `${hub.slug}/hija`,
+          parentId: hub.id,
+          sortOrder: 1,
+          crumb: "Hija",
+        });
+
+        expect(child.parentId).toBe(hub.id);
+        expect(child.slug).toBe(`${hub.slug}/hija`);
+        expect(child.crumb).toBe("Hija");
+      });
+
+      it("refuses a child whose path does not sit under its parent", async () => {
+        const hub = await service.create(actor, draftInput("hub2"));
+        await expect(
+          service.create(actor, {
+            ...draftInput("otra-rama"),
+            parentId: hub.id,
+          }),
+        ).rejects.toThrow(CmsValidationError);
+      });
+
+      it("refuses a nested path with no parent", async () => {
+        await expect(
+          service.create(actor, {
+            ...draftInput("huerfana"),
+            slug: `${TEST_PREFIX}sin-padre/huerfana`,
+          }),
+        ).rejects.toThrow(CmsValidationError);
+      });
+
+      it("refuses a parent in another section", async () => {
+        const hub = await service.create(actor, draftInput("hub3"));
+        await expect(
+          service.create(actor, {
+            ...draftInput("ajena"),
+            section: "estadisticas",
+            slug: `${hub.slug}/ajena`,
+            parentId: hub.id,
+          }),
+        ).rejects.toThrow(CmsValidationError);
+      });
+
+      it("refuses to re-parent a page onto its own descendant", async () => {
+        const hub = await service.create(actor, draftInput("hub4"));
+        const child = await service.create(actor, {
+          ...draftInput("hub4/hija"),
+          slug: `${hub.slug}/hija`,
+          parentId: hub.id,
+        });
+
+        await expect(
+          service.update(actor, {
+            id: hub.id,
+            expectedLockVersion: hub.lockVersion,
+            patch: { parentId: child.id },
+          }),
+        ).rejects.toThrow(CmsValidationError);
+      });
+
+      it("orders siblings by sortOrder, not alphabetically", async () => {
+        const hub = await service.create(actor, draftInput("orden"));
+        await service.create(actor, {
+          ...draftInput("orden/zeta"),
+          slug: `${hub.slug}/zeta`,
+          parentId: hub.id,
+          sortOrder: 1,
+        });
+        await service.create(actor, {
+          ...draftInput("orden/alfa"),
+          slug: `${hub.slug}/alfa`,
+          parentId: hub.id,
+          sortOrder: 2,
+        });
+
+        const listed = await service.list(actor, {
+          search: `${TEST_PREFIX}orden/`,
+        });
+        expect(listed.map((s) => ownSegment(s.slug))).toEqual(["zeta", "alfa"]);
+      });
+
+      it("builds the tree the CMS list renders", async () => {
+        const hub = await service.create(actor, draftInput("arbol"));
+        const child = await service.create(actor, {
+          ...draftInput("arbol/rama"),
+          slug: `${hub.slug}/rama`,
+          parentId: hub.id,
+        });
+
+        const pages = await service.list(actor, {
+          search: `${TEST_PREFIX}arbol`,
+        });
+        const tree = buildContentTree(
+          pages.map((p) => ({
+            id: p.id,
+            section: p.section,
+            slug: p.slug,
+            parentId: p.parentId,
+            sortOrder: p.sortOrder,
+          })),
+        );
+        expect(tree).toHaveLength(1);
+        expect(tree[0].page.id).toBe(hub.id);
+        expect(tree[0].children.map((c) => c.page.id)).toEqual([child.id]);
+      });
+
+      it("resolves a nested public path", async () => {
+        const hub = await service.create(actor, draftInput("publica"));
+        const child = await service.create(actor, {
+          ...draftInput("publica/hija"),
+          slug: `${hub.slug}/hija`,
+          parentId: hub.id,
+        });
+        await service.setStatus(actor, {
+          id: child.id,
+          status: "published",
+          expectedLockVersion: child.lockVersion,
+        });
+
+        // The slug is a materialised path, so this stays one indexed lookup
+        // rather than a recursive walk.
+        const found = await repository.getByPath(
+          "guias",
+          child.slug.split("/"),
+        );
+        expect(found?.id).toBe(child.id);
       });
     });
 

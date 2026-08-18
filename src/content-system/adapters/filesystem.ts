@@ -122,6 +122,12 @@ export function documentFromMdx(
     summary: str(meta, "summary"),
     cta: str(meta, "cta"),
     canonicalSlug: optStr(meta, "canonical"),
+    // Every guide sits at the top level today. The importer derives the parent
+    // from the path (see `parentSlugFromPath`) once a section has hubs; guides
+    // have none, so this is a fact about the content rather than a limitation.
+    parentId: null,
+    sortOrder: 0,
+    crumb: null,
     metadata: metadata as ContentDocument["metadata"],
     publishedAt: published,
     contentUpdatedAt: updated,

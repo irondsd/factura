@@ -19,6 +19,9 @@ const base: ContentDocument = {
   summary: "Qué significa cada sección de la factura de Edesur.",
   cta: "¿Tu factura de Edesur subió? Mira cuánto y por qué.",
   canonicalSlug: null,
+  parentId: null,
+  sortOrder: 0,
+  crumb: null,
   metadata: {
     keywords: [
       "factura de edesur",

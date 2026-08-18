@@ -6,6 +6,7 @@ import {
   type ContentSummary,
   type ValidationResult,
 } from "@/content-system/types";
+import { checkHierarchy, type HierarchyNode } from "@/content-system/hierarchy";
 import { canPublish } from "../auth/policy";
 import type { CmsActor } from "../types";
 import {
@@ -57,6 +58,11 @@ export type CreateContentInput = {
   canonicalSlug?: string | null;
   body: string;
   metadata: unknown;
+  /** Where the page sits in the section's tree. Every section has this; a
+   * section whose pages are all top level simply never sets it. */
+  parentId?: string | null;
+  sortOrder?: number;
+  crumb?: string | null;
 };
 
 export type UpdateContentInput = {
@@ -71,8 +77,16 @@ export type UpdateContentInput = {
     canonicalSlug?: string | null;
     body?: string;
     metadata?: unknown;
+    parentId?: string | null;
+    sortOrder?: number;
+    crumb?: string | null;
   };
 };
+
+/** Stand-in id for a page that does not exist yet, so the hierarchy rules can
+ * be checked before the insert rather than after. It can never collide with a
+ * real row: ids are UUIDs. */
+const PENDING_ID = "pending";
 
 export class CmsContentService {
   constructor(
@@ -107,6 +121,14 @@ export class CmsContentService {
     const existing = await this.store.findBySlug(input.section, input.slug);
     if (existing) throw new CmsSlugTakenError(input.section, input.slug);
 
+    await this.assertHierarchy({
+      id: PENDING_ID,
+      section: input.section,
+      slug: input.slug,
+      parentId: input.parentId ?? null,
+      sortOrder: input.sortOrder ?? 0,
+    });
+
     const now = this.clock();
     const draft = await this.store.insert({
       section: input.section,
@@ -120,6 +142,9 @@ export class CmsContentService {
       cta: input.cta,
       canonicalSlug: input.canonicalSlug ?? null,
       metadata: input.metadata,
+      parentId: input.parentId ?? null,
+      sortOrder: input.sortOrder ?? 0,
+      crumb: input.crumb ?? null,
       actorId: actor.userId,
       now,
     });
@@ -140,11 +165,21 @@ export class CmsContentService {
     const current = await this.store.findById(input.id);
     if (!current) throw new CmsNotFoundError(`Page ${input.id}`);
 
+    const next = { ...current, ...input.patch } as ContentDocument;
+
+    // Placement is checked before content: a page in the wrong place in the
+    // tree is a broken URL and a broken breadcrumb whatever its prose says, and
+    // this is also what stops a page being re-parented onto its own descendant.
+    await this.assertHierarchy({
+      id: current.id,
+      section: current.section,
+      slug: next.slug,
+      parentId: next.parentId,
+      sortOrder: next.sortOrder,
+    });
+
     const level = levelForSave(current.status);
-    await this.assertValid(
-      { ...current, ...input.patch } as ContentDocument,
-      level,
-    );
+    await this.assertValid(next, level);
 
     const now = this.clock();
     const saved = await this.store.updateWithLock({
@@ -219,6 +254,38 @@ export class CmsContentService {
       document,
       level: input.level ?? levelForSave(current.status),
     });
+  }
+
+  /** Enforce the one invariant that keeps `slug` and `parentId` in agreement,
+   * plus the tree's own rules (no cycles, no cross-section parents, no orphaned
+   * intermediate paths). Uniform for every section — this is the alternative to
+   * a per-section branch in the editor, the list and the breadcrumb. */
+  private async assertHierarchy(node: HierarchyNode): Promise<void> {
+    const siblings = await this.store.list({
+      section: node.section as ContentSection,
+    });
+    const problems = checkHierarchy(
+      node,
+      siblings
+        .filter((s) => s.id !== node.id)
+        .map((s) => ({
+          id: s.id,
+          section: s.section,
+          slug: s.slug,
+          parentId: s.parentId,
+          sortOrder: s.sortOrder,
+        })),
+    );
+    if (problems.length > 0) {
+      throw new CmsValidationError(
+        problems.map((p) => ({
+          code: p.code,
+          severity: "error" as const,
+          message: p.message,
+          field: "parentId",
+        })),
+      );
+    }
   }
 
   private async assertValid(

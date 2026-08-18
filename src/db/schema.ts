@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   date,
   index,
@@ -979,6 +980,37 @@ export const cmsPages = pgTable(
     canonicalSlug: text("canonical_slug"),
     metadata: jsonb("metadata").notNull(),
 
+    /** The editorial tree, uniform across every section. Null is a top-level
+     * page.
+     *
+     * Statistics needed a second level first, but the capability is not a
+     * statistics feature — a guides hub with children is a matter of when, not
+     * whether, and building it per section is how `if (section === "…")` gets
+     * into the list, the editor, the breadcrumb and the sitemap. Every section
+     * has it; guides simply all sit at the top level today.
+     *
+     * `slug` still holds the *full* path, so a public read is one indexed
+     * equality lookup rather than a recursive walk. The invariant tying the two
+     * together — a child's slug is its parent's slug plus one segment — is
+     * enforced in `src/content-system/hierarchy.ts` on every write.
+     *
+     * `restrict` rather than cascade or set null: deleting a page that others
+     * hang off must be refused, not silently orphan or delete them. Iteration 1
+     * has no hard delete at all (archive-by-status), so this is a guard against
+     * a later one. */
+    parentId: uuid("parent_id").references((): AnyPgColumn => cmsPages.id, {
+      onDelete: "restrict",
+    }),
+    /** Explicit editorial order among siblings — the order the index lists
+     * them, which is the author's call and not alphabetical. Ties break on
+     * slug so the order is total and a listing never reshuffles between
+     * requests. */
+    sortOrder: integer("sort_order").notNull().default(0),
+    /** Short label for breadcrumbs and index rows, where the full title is too
+     * long — "GBA" for "Inflación de vivienda en el Gran Buenos Aires". Null
+     * falls back to the title, which is what every guide uses today. */
+    crumb: text("crumb"),
+
     /** Optimistic concurrency, *not* a revision counter. Every update carries
      * the version the editor last read and bumps it; the UPDATE matches on it,
      * so a stale save changes zero rows and is reported as a conflict instead
@@ -1021,5 +1053,7 @@ export const cmsPages = pgTable(
     uniqueIndex("cms_page_section_slug_idx").on(t.section, t.slug),
     // Every listing is "this section, these statuses", newest first.
     index("cms_page_section_status_idx").on(t.section, t.status),
+    // Children of a page, for the tree the CMS list and the breadcrumbs build.
+    index("cms_page_parent_idx").on(t.parentId),
   ],
 );

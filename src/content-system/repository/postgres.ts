@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { db as defaultDb, type Database } from "@/db";
 import { cmsPages } from "@/db/schema";
 import type { ContentDocument, ContentSection, ContentSummary } from "../types";
@@ -71,7 +71,16 @@ export class PostgresContentRepository implements ContentRepository {
         ),
       ),
       columns: SUMMARY_COLUMNS,
-      orderBy: [desc(cmsPages.publishedAt), desc(cmsPages.contentUpdatedAt)],
+      // Editorial order first: an index that lists a hub's children in the
+      // order their author chose is the whole point of `sort_order`, and it is
+      // uniform across sections. Publication date breaks ties, which is what a
+      // flat section like guides falls back to since every row shares
+      // `sortOrder` 0.
+      orderBy: [
+        asc(cmsPages.sortOrder),
+        desc(cmsPages.publishedAt),
+        desc(cmsPages.contentUpdatedAt),
+      ],
     });
     return rows.map(rowToSummary);
   }

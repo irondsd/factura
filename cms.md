@@ -378,6 +378,9 @@ summary               text not null
 cta                   text not null
 canonical_slug        text nullable
 metadata              jsonb not null
+parent_id             uuid nullable, FK cms_pages.id (restrict)
+sort_order            integer not null default 0
+crumb                 text nullable
 lock_version          integer not null default 1
 created_by            uuid not null, FK users.id
 updated_by            uuid not null, FK users.id
@@ -387,6 +390,12 @@ published_at          timestamptz nullable
 content_updated_at    timestamptz not null
 unique(section, slug)
 ```
+
+`parent_id`, `sort_order` and `crumb` are the universal hierarchy (§7.1), on
+every section rather than only the ones with hubs today. `slug` remains the full
+path; `parent_id` is the editorial tree. `restrict` on the foreign key so a page
+with children can never be removed silently — iteration 1 has no hard delete at
+all, so it is a guard against a later one.
 
 `lock_version` is optimistic concurrency, not revision history. Every update
 includes the version last read by the editor/agent and increments it. A mismatch
@@ -525,19 +534,21 @@ Iteration 1 routes, scoped by section:
 /cms/tokens                     CMS MCP token management (admin only)
 ```
 
-`[section]` is the section _id_ — the same value as the `cms_page.section`
-column — so a CMS URL and the row it edits always agree. That produces one
-divergence from the public site, and only one: research is `/investigaciones`
-publicly and `/cms/investigacion` here. `src/cms/sections.ts` holds the mapping.
+`[section]` mirrors the **public** path, so `/cms/investigaciones` edits what
+readers see at `/investigaciones`. An editor should never have to hold two names
+for one section in their head.
 
-Why sections get their own URLs rather than one filtered list: statistics and
-research (section 12) are not simply more rows. They carry hierarchy,
-parent/child ordering, breadcrumbs, datasets and sources that a guide has no
-concept of, a different component surface, and a different metadata schema. One
-combined list would need a section filter on every query, a form that changes
-shape per row, and a component palette that depends on the selected item. The
-URL is also a better home for "which section am I in" than component state: it
-is bookmarkable and it scopes the data fetch.
+That segment is not always the `cms_page.section` value — research is
+`investigaciones` publicly and `investigacion` in the column, a plural the
+public URLs adopted and the data never did. `src/cms/sections.ts` is the single
+place that mapping is written down, and `findCmsSectionBySegment` is the only
+way to cross it, so no route file knows about the exception.
+
+Why sections get their own URLs rather than one filtered list: one combined list
+would need a section filter on every query, a form that changes shape per row,
+and a component palette that depends on the selected item. The URL is also a
+better home for "which section am I in" than component state — it is
+bookmarkable and it scopes the data fetch.
 
 These are **one dynamic route set**, not a directory per section. The section
 registry (`src/cms/sections.ts`) drives the routes, the navigation and the
@@ -556,6 +567,46 @@ editor. Statistics and research are `planned` until section 12 promotes them.
 `/cms/tokens` stays top-level — it is not scoped to a section. Note that
 `tokens`, `new` and `preview` are therefore reserved segments and cannot be
 section ids or page ids; page ids are UUIDs, so no collision is possible.
+
+### 7.1 Sections differ in data, never in branches
+
+Sections are separated in the URL and unified in the model. Anything that
+differs between them is an entry in the section registry, the component manifest
+or a metadata schema — never `if (section === "estadisticas")` in a list, an
+editor, a breadcrumb, a sitemap or a validator.
+
+The rule this follows from: **when one section has a capability and the others
+do not, that is usually because it needed it first, not because the others never
+will.** A guides hub with children is a matter of when, not whether; news will
+want one on day one. So the capability is built once, uniformly, and a section
+that does not use it simply has every page at the top level.
+
+Applied in iteration 1:
+
+- **Hierarchy is universal.** Every page in every section has `parent_id`,
+  `sort_order` and `crumb`. Statistics needed a second level first
+  (`/estadisticas/inflacion-de-vivienda` and its six regions); guides get the
+  same model and happen to sit flat today. `src/content-system/hierarchy.ts`
+  holds the rules, and the CMS list, breadcrumbs and indexes build from
+  `buildContentTree` for all sections.
+- **Two representations, one invariant.** `slug` stores the full materialised
+  path, so a public read stays one indexed equality lookup rather than a
+  recursive walk; `parent_id` carries the editorial tree an author reorders.
+  The invariant — a child's slug is its parent's slug plus one segment — is
+  checked in `checkHierarchy` on every create and every update, so they cannot
+  drift.
+- **The tree's rules are enforced once:** no cross-section parent, no cycle, no
+  page parented to itself, and no nested path without a parent row. That last
+  one is §12's "every intermediate path exists" invariant, applied to all three
+  sections rather than the two with hubs today.
+- **Section metadata schemas** are registry entries, so the shared form renders
+  the right fields without a conditional.
+- **Component availability** is already data: the manifest's `sections` field
+  per component (§3.6).
+
+Section 12's job therefore shrinks to registering statistics' and research'
+metadata schemas and components and flipping their registry status to `live` —
+not building a second editor.
 
 Required behavior:
 
@@ -1271,6 +1322,8 @@ validate:content: pass — 63 files · 0 errors · 0 warnings, output byte-ident
       initial draft.
 - [ ] Make the metadata form section-driven so statistics and research can reuse
       it in section 12 without a second editor.
+- [ ] Render the content list as the page tree (`buildContentTree`), with a
+      parent picker and sibling ordering available in every section.
 - [ ] Add CodeMirror 6 with Markdown/MDX highlighting, line numbers, search,
       matching, and lint support.
 - [ ] Add Markdown, Preview, and Validation tabs.
@@ -1483,10 +1536,15 @@ production migration.
       client-component behavior.
 - [ ] Extend CMS metadata schemas/forms for hierarchy, crumbs, hubs, datasets,
       sources, OG statistics, and subpages.
-- [ ] Represent explicit editorial ordering and parent/child relationships in
+- [x] Represent explicit editorial ordering and parent/child relationships in
       the database without deriving them from filenames.
-- [ ] Preserve the invariant that every intermediate path/hub exists and every
+      Done ahead of schedule and for every section — see §7.1. `parent_id`,
+      `sort_order` and `crumb` landed with the Phase 2 schema; the rules and
+      their tests are in `src/content-system/hierarchy.ts`.
+- [x] Preserve the invariant that every intermediate path/hub exists and every
       breadcrumb target resolves.
+      Enforced by `checkHierarchy` on every create and update, for all three
+      sections rather than only the two with hubs.
 - [ ] Extend pure document and collection validation for both sections.
 - [ ] Extend the CMS editor, preview, list filters, and MCP schemas for these
       section-specific fields.
@@ -1772,6 +1830,16 @@ original checkbox complete.
   editor stay shared and a new section is a registry entry. The CMS segment is
   the section id, which makes `/cms/investigacion` differ from the public
   `/investigaciones`.
+
+- 2026-08-18: The CMS URL segment mirrors the public path, not the section id,
+  so `/cms/investigaciones` edits `/investigaciones`. `src/cms/sections.ts` is
+  the only place the two names are reconciled.
+- 2026-08-18: Hierarchy (`parent_id`, `sort_order`, `crumb`) is universal across
+  sections rather than a statistics feature, on the principle that a capability
+  one section needs first is one the others will want later — and that building
+  it per section is how `if (section === "…")` gets into the list, the editor,
+  the breadcrumb and the sitemap. Guides are flat today by content, not by
+  model. See §7.1.
 
 ### Baseline results
 
