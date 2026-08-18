@@ -53,6 +53,28 @@ export const parserTier = pgEnum("parser_tier", [
 // Keep in sync with `locales` in src/i18n/config.ts. Spanish is the default.
 export const userLocale = pgEnum("user_locale", ["es", "en"]);
 
+// ── CMS ─────────────────────────────────────────────────────────────────────
+// Everything CMS carries a `cms_` prefix so the whole publishing schema can be
+// identified and lifted into its own database later (see cms.md §2.2/§13.8).
+// It is deliberately additive: nothing in the bill app reads these tables, and
+// a deployment that has them but never writes to them behaves exactly as it did
+// before.
+
+/** CMS membership role. `editor` and `admin` may both author; only `admin` may
+ * manage CMS API tokens. Whether publishing is admin-only is a policy decision
+ * that lives in `src/cms/auth`, not in this enum — see `canPublish`. */
+export const cmsRole = pgEnum("cms_role", ["admin", "editor"]);
+
+/** Publication state of one CMS page. `draft` is CMS-only and 404s publicly;
+ * `preview` renders at its public URL with `noindex, nofollow` but is excluded
+ * from every listing; `published` is fully public. The existing guides'
+ * `meta.noindex` maps onto `preview` at migration time. */
+export const cmsPageStatus = pgEnum("cms_page_status", [
+  "draft",
+  "preview",
+  "published",
+]);
+
 // ── Auth.js (NextAuth) tables ───────────────────────────────────────────────
 // Column *property* names (id, emailVerified, userId, …) must match what the
 // @auth/drizzle-adapter reads; the DB column names stay snake_case to match the
@@ -891,3 +913,32 @@ export const apiTokens = pgTable(
   },
   (t) => [index("api_token_user_idx").on(t.userId)],
 );
+
+// ── CMS tables ──────────────────────────────────────────────────────────────
+
+/** Who may use the CMS. An explicit allowlist, deliberately separate from
+ * `property_members` and from anything on `users`: being a Factura account
+ * holder says nothing about being an editor of the public site, and the two
+ * must not be able to grant each other by accident.
+ *
+ * Rows are inserted by hand (locally, and once in production at the rollout
+ * gate) — there is no self-service path into this table, which is the point.
+ * Deleting a row removes authority immediately, including for any CMS API
+ * token the user minted, because every token check re-reads this table.
+ *
+ * `user_id` is the primary key: one membership per account, so there is no
+ * "which row wins" question when resolving a role. */
+export const cmsMembers = pgTable("cms_member", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  role: cmsRole("role").notNull(),
+  /** Who granted the membership. Null for the rows inserted by hand to
+   * bootstrap an environment, since at that point nobody is a member yet. */
+  createdBy: uuid("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

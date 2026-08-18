@@ -187,11 +187,11 @@ the simple CMS is stable in production.
 
 Each page has exactly one of these states:
 
-| Status | CMS | Direct public URL | Search/list discovery |
-| --- | --- | --- | --- |
-| `draft` | visible | 404 | excluded |
-| `preview` | visible | rendered with `noindex, nofollow` | excluded |
-| `published` | visible | rendered normally | included |
+| Status      | CMS     | Direct public URL                 | Search/list discovery |
+| ----------- | ------- | --------------------------------- | --------------------- |
+| `draft`     | visible | 404                               | excluded              |
+| `preview`   | visible | rendered with `noindex, nofollow` | excluded              |
+| `published` | visible | rendered normally                 | included              |
 
 Rules:
 
@@ -446,16 +446,16 @@ Refactor existing validation into pure functions without losing the CLI checks.
 Expose pure entry points similar to:
 
 ```ts
-validateContentDocument(document, index, level)
-validateContentCollection(documents)
-buildContentIndex(documents)
+validateContentDocument(document, index, level);
+validateContentCollection(documents);
+buildContentIndex(documents);
 ```
 
 Keep adapters for:
 
 ```ts
-documentsFromFilesystem()  // CI and migration comparison
-documentsFromDatabase()    // CMS and public site
+documentsFromFilesystem(); // CI and migration comparison
+documentsFromDatabase(); // CMS and public site
 ```
 
 The existing `bun run validate:content` command must continue to work during
@@ -486,7 +486,10 @@ Introduce a repository contract before changing routes:
 
 ```ts
 interface ContentRepository {
-  getByPath(section: ContentSection, slug: string[]): Promise<ContentDocument | null>;
+  getByPath(
+    section: ContentSection,
+    slug: string[],
+  ): Promise<ContentDocument | null>;
   listPublished(section: ContentSection): Promise<ContentSummary[]>;
   listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>;
 }
@@ -576,48 +579,262 @@ Tool rules:
 
 ### Phase 0 — Confirm baseline and inventory
 
-- [ ] Create or switch to the branch named exactly `cms` and confirm all work
+- [x] Create or switch to the branch named exactly `cms` and confirm all work
       through section 12 will remain on it until the branch-wide merge gate.
-- [ ] Start and verify the local Postgres service with `docker compose`; record
+- [x] Start and verify the local Postgres service with `docker compose`; record
       that all CMS development and testing will target the local database.
-- [ ] Run `bun run build`, `bun run lint`, `bun run typecheck`, and `bun run test`
+- [x] Run `bun run build`, `bun run lint`, `bun run typecheck`, and `bun run test`
       before implementation and record any pre-existing failures below.
-- [ ] Run `bun run validate:content` and save the baseline count of errors and
+- [x] Run `bun run validate:content` and save the baseline count of errors and
       warnings.
-- [ ] Inventory every guide metadata field and record whether it maps to a
+- [x] Inventory every guide metadata field and record whether it maps to a
       dedicated column or JSONB.
-- [ ] Inventory every guide custom component, its properties, children rules,
+- [x] Inventory every guide custom component, its properties, children rules,
       and allowed values.
-- [ ] Inventory every consumer of guide content: article route, index,
+- [x] Inventory every consumer of guide content: article route, index,
       categories, related guides, metadata, JSON-LD, sitemap, RSS, `llms.txt`,
       OG images, validation, and IndexNow.
-- [ ] Add a short implementation note here for any consumer or component missed
+- [x] Add a short implementation note here for any consumer or component missed
       by this plan.
 
 **Gate:** No schema or route work begins until the content and consumer
 inventories are complete.
 
+#### Phase 0 inventory results
+
+Recorded 2026-08-18. Source of truth for the fields is
+`src/content/guias/guides.ts` (`GuideMeta`); the 43 `.mdx` files under
+`src/content/guias/` were counted directly.
+
+##### Guide metadata fields → storage
+
+| `GuideMeta` field | Present in | Required | Iteration 1 storage             | Note                                                          |
+| ----------------- | ---------- | -------- | ------------------------------- | ------------------------------------------------------------- |
+| `title`           | 43/43      | yes      | column `title`                  |                                                               |
+| `description`     | 43/43      | yes      | column `description`            |                                                               |
+| `summary`         | 43/43      | yes      | column `summary`                |                                                               |
+| `cta`             | 43/43      | yes      | column `cta`                    | `<TopCta>` copy                                               |
+| `keywords`        | 43/43      | yes      | JSONB `metadata.keywords`       | `string[]`                                                    |
+| `categories`      | 43/43      | yes      | JSONB `metadata.categories`     | `CategoryId[]`, 1–3, first is primary                         |
+| `published`       | 43/43      | yes      | column `published_at`           | ISO 8601 with `-03:00` offset                                 |
+| `updated`         | 43/43      | yes      | column `content_updated_at`     | ISO 8601 with offset                                          |
+| `faq`             | 18/43      | no       | JSONB `metadata.faq`            | `{ q, a }[]`; drives `<Faq />` **and** FAQPage JSON-LD        |
+| `preview`         | 15/43      | no       | JSONB `metadata.preview_image`  | path under `/img/guias/previews/`                             |
+| `vendor`          | 10/43      | no       | JSONB `metadata.vendor`         | JSON-LD `about` + OG eyebrow                                  |
+| `titleTag`        | 2/43       | no       | column `title_tag`              | `<title>` override only                                       |
+| `ogImage`         | 1/43       | no       | JSONB `metadata.og_image`       | `{ eyebrow?, stat? }` — text slots, not an image URL          |
+| `ogTitle`         | 0/43       | no       | JSONB `metadata.og_title`       | typed but unused today; keep                                  |
+| `ogDescription`   | 0/43       | no       | JSONB `metadata.og_description` | typed but unused today; keep                                  |
+| `canonical`       | 0/43       | no       | column `canonical_slug`         | cannibalization lever; also drops the guide from sitemap/feed |
+| `noindex`         | 0/43       | no       | **not a column** — see below    |                                                               |
+
+Two deviations from section 3.7 worth recording:
+
+- `noindex?: true` is not stored as metadata. It is exactly the plan's
+  `preview` lifecycle state (renders at its URL, excluded from every listing),
+  so the importer maps `noindex: true` → `status = 'preview'` and its absence →
+  `status = 'published'`. Nothing currently sets it, so all 43 guides import as
+  `published`. Recorded here because section 3.7 lists neither field.
+- The plan's `title_tag` / `canonical_slug` columns correspond to `titleTag` /
+  `canonical`. `slug` itself is the filename, not a `meta` field.
+
+`ogImage` is a `{ eyebrow?, stat? }` text pair that steers the generated card,
+**not** an uploaded image. The plan's `og_image` JSONB key keeps that shape;
+the CMS form must present two text inputs, not a file field.
+
+##### Guide component surface
+
+Six components appear in guide MDX. All six are already in the plan's list; the
+audit found no additional ones.
+
+| Component        | Uses | Kind                             | Props                                                    | Source                                     |
+| ---------------- | ---- | -------------------------------- | -------------------------------------------------------- | ------------------------------------------ |
+| `RelatedGuides`  | 43   | leaf                             | none — the article route binds the resolved list         | `src/components/guides/RelatedGuides.tsx`  |
+| `ClosingCta`     | 43   | container (all 43 pass children) | `title?: string`                                         | `src/components/guides/cta.tsx`            |
+| `Faq`            | 18   | leaf                             | none — bound to `meta.faq` by the article route          | `src/components/article/Faq.tsx`           |
+| `TrustBlock`     | 14   | leaf                             | none (`className` is bound in `mdx-components.tsx`)      | `src/components/landing/TrustBlock.tsx`    |
+| `ProbarCta`      | 14   | container (all 14 pass children) | `vendor?: string`, `noun?: string` (default `"factura"`) | `src/components/guides/cta.tsx`            |
+| `InflacionChart` | 10   | leaf                             | `chart: ChartId` (required, enum)                        | `src/components/guides/InflacionChart.tsx` |
+
+`InflacionChart`'s `chart` is a closed enum of 7 ids in
+`src/content/guias/data/inflacion.ts` (`CHART_IDS`): `servicios-vs-general`,
+`cuanto-subio-cada-servicio`, `pesos-vs-dolares`, `luz-y-gas`, `expensas`,
+`agua-y-vivienda`, `internet-y-celular`. The manifest's Zod schema must be a
+`z.enum` derived from `CHART_IDS`, not a free string.
+
+`InflacionChart` is the only component reached by a local `import` — 8 guide
+files import it from `@/components/guides/InflacionChart` for 10 usages. Those
+8 import lines are the only imports in any guide body and are the exact set
+Phase 3/Phase 7 must move to the manifest and strip.
+
+The global map in `src/mdx-components.tsx` exposes six further components no
+guide currently uses: `CtaButton`, `CtaRow`, `DemoCta`, `SignupCta`,
+`PaginaRelacionada`, and the `Fuentes`/`Subpaginas` no-ops. The manifest must
+decide each one's `sections` explicitly rather than inheriting the global map —
+`PaginaRelacionada`, `Fuentes`, and `Subpaginas` belong to
+`estadisticas`/`investigacion` (section 12), not to `guias`.
+
+`Faq`, `RelatedGuides`, `Fuentes`, and `Subpaginas` are article-context
+components: `mdx-components.tsx` registers them as no-ops and the article route
+overrides them through the `components` prop, because `useMDXComponents()` takes
+no arguments. The CMS preview route (Phase 6) must perform the same binding or
+those blocks silently render nothing.
+
+##### Guide content consumers
+
+| Consumer        | File                                                                                        | Reads                                                                                         |
+| --------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Article route   | `src/app/(site)/[lang]/guias/[slug]/page.tsx`                                               | `loadGuide`, `guideSlugs`, `guideStats`, `guideHeadings`, `relatedGuides`                     |
+| Guides index    | `src/app/(site)/[lang]/guias/page.tsx`                                                      | `guidesByPrimaryCategory`, `listedGuides`                                                     |
+| Category hubs   | `src/app/(site)/[lang]/guias/categoria/[categoria]/page.tsx`                                | `guidesInCategory`, `nonEmptyCategories`                                                      |
+| Guides layout   | `src/app/(site)/[lang]/guias/layout.tsx`                                                    | Spanish-only guard                                                                            |
+| Related guides  | `src/components/guides/RelatedGuides.tsx`                                                   | `Guide` type                                                                                  |
+| Guide list rows | `src/components/guides/GuideList.tsx`                                                       | `Guide` type                                                                                  |
+| Category chips  | `src/components/guides/CategoryChips.tsx`                                                   | `categories.ts`                                                                               |
+| Page metadata   | `src/i18n/metadata.ts` (`guideMetadata`, `guideUrl`, `guideCardUrl`, `guideCategoryUrl`)    | title/titleTag/description/ogTitle/ogDescription/keywords/published/updated/canonical/noindex |
+| JSON-LD         | `src/i18n/structuredData.ts` (`guideLd`, `faqPageLd`)                                       | full meta + word/minute stats                                                                 |
+| Sitemap         | `src/app/sitemap.ts`                                                                        | `listedGuides`, `nonEmptyCategories`                                                          |
+| RSS feed        | `src/app/feed.xml/route.ts`                                                                 | `listedGuides`, `getCategory`                                                                 |
+| `llms.txt`      | `src/app/llms.txt/route.ts`                                                                 | `guidesByPrimaryCategory`, `nonEmptyCategories`                                               |
+| OG cards        | `src/app/og/guias/[slug]/card.png/route.tsx`                                                | `loadGuide` meta: `title`, `vendor`, `ogImage`, `categories`                                  |
+| Validation      | `scripts/validate-guides.ts`, `scripts/validate-content.ts`, `scripts/validate-sections.ts` | filesystem MDX                                                                                |
+| IndexNow        | `scripts/ping-indexnow.ts`                                                                  | URL arguments only — no registry import                                                       |
+
+Consumers **not** named in the plan's checklist, found by this audit:
+
+- **Landing page guide block** — `src/app/(site)/[lang]/page.tsx` calls
+  `listedGuides()` and renders the newest guides as cards
+  (`title`, `summary`, `preview`, `published`). Must move to the repository at
+  cutover or the home page keeps reading the filesystem.
+- **Normativa page** — `src/app/(site)/[lang]/normativa/page.tsx` calls
+  `listedGuides()` to build a slug → title map so its cards can name the guide
+  they link to. A slug with no listed guide renders no link, so an unpublished
+  guide degrades correctly; the call still has to move to the repository.
+- **Cross-section link validation** —
+  `scripts/validate-sections.ts` validates `/guias/*` links from the statistics
+  and research sections against the guide slug set. After cutover this needs a
+  database-or-snapshot slug source, otherwise section 12's validation breaks.
+- **`src/i18n/routing.ts`** hardcodes `/guias` in the list of Spanish-only
+  section prefixes; unchanged by the migration but it is a guide-path consumer.
+- **`scripts/ping-indexnow.ts`** takes paths as arguments and imports nothing
+  from the registry, so it needs no migration work — recorded so Phase 7 does
+  not go looking for one.
+
+Additional facts the plan's data model should absorb:
+
+- `guideStats` and `guideHeadings` read the `.mdx` file from disk with
+  `fs.readFileSync` and are called per-request by the article route. The
+  database repository must compute reading time and headings from `body_mdx`
+  instead; `readingStats` counts the FAQ text too (`src/content/mdx.ts`,
+  `src/content/headings.ts`).
+- `guideHeadings` appends a synthetic FAQ heading only when the body actually
+  contains `<Faq`, which is what keeps the table of contents honest. That rule
+  must survive into the repository.
+- `listedGuides()` is memoized in a module-level promise for the process
+  lifetime. The database repository replaces this with the one-hour
+  `unstable_cache` from section 3.3; the memo must not be carried over or
+  published edits will never appear in a warm process.
+- `allGuides()` is deliberately unexported so drafts cannot leak into listings.
+  The repository contract in section 6 is the direct replacement for that
+  invariant and must keep it enforced in one place.
+- Guide slugs come from filenames, so `slug` has no `meta` field to import
+  from — the importer derives it from the filename.
+
 ### Phase 1 — Establish isolated CMS shell and authorization
 
-- [ ] Add `cms_role` and `cms_page_status` database enums.
-- [ ] Add the `cms_members` table.
-- [ ] Add Drizzle relations and migrations using the project's normal schema
+- [x] Add `cms_role` and `cms_page_status` database enums.
+- [x] Add the `cms_members` table.
+- [x] Add Drizzle relations and migrations using the project's normal schema
       workflow.
-- [ ] Create `src/cms/auth/requireCmsMember.ts` (or equivalent) as the only CMS
+- [x] Create `src/cms/auth/requireCmsMember.ts` (or equivalent) as the only CMS
       role-checking entry point.
-- [ ] Add unit tests for anonymous, non-member, editor, removed-member, and admin
+- [x] Add unit tests for anonymous, non-member, editor, removed-member, and admin
       authorization outcomes.
-- [ ] Create the independent `src/app/(cms)/layout.tsx` root layout.
-- [ ] Create the `/cms` route and minimal CMS-only shell under
+- [x] Create the independent `src/app/(cms)/layout.tsx` root layout.
+- [x] Create the `/cms` route and minimal CMS-only shell under
       `src/cms/components`.
-- [ ] Add private/noindex metadata for every CMS route.
-- [ ] Exclude `cms` from `src/proxy.ts` locale rewriting.
-- [ ] Verify `/cms` redirects anonymous users, rejects signed-in non-members,
+- [x] Add private/noindex metadata for every CMS route.
+- [x] Exclude `cms` from `src/proxy.ts` locale rewriting.
+- [x] Verify `/cms` redirects anonymous users, rejects signed-in non-members,
       and renders for a manually inserted member.
-- [ ] Confirm no `src/cms` file imports from `src/components/app` or app-domain
+- [x] Confirm no `src/cms` file imports from `src/components/app` or app-domain
       routers.
 
 **Gate:** Authorization is enforced server-side, not only by hidden navigation.
+
+#### Phase 1 implementation notes
+
+Recorded 2026-08-18. Everything below ran against local PostgreSQL
+(`docker compose` service `db`); no production command was run.
+
+Files added or changed:
+
+| File                               | Role                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------ |
+| `src/db/schema.ts`                 | `cms_role` + `cms_page_status` enums, `cms_member` table                 |
+| `src/cms/types.ts`                 | `CmsRole`, `CmsActor`, `CmsAccess`                                       |
+| `src/cms/auth/policy.ts`           | pure authorization rules — no I/O                                        |
+| `src/cms/auth/policy.test.ts`      | the five outcomes plus the capability toggles                            |
+| `src/cms/auth/requireCmsMember.ts` | the single CMS gate; the only file that touches Auth.js and `cms_member` |
+| `src/cms/metadata.ts`              | `noindex, nofollow, nocache` for the whole subtree                       |
+| `src/cms/components/CmsShell.tsx`  | CMS-only chrome                                                          |
+| `src/cms/boundaries.test.ts`       | enforces the §2.2 dependency rules as a test                             |
+| `src/app/(cms)/layout.tsx`         | independent CMS root layout                                              |
+| `src/app/(cms)/cms/page.tsx`       | thin route adapter                                                       |
+| `src/proxy.ts`                     | `cms` added to the matcher's exclusion list                              |
+
+Deviations from the plan text, and why:
+
+- The table is `cms_member`, singular, not `cms_members`. Every table in
+  `src/db/schema.ts` is singular (`property_member`, `api_token`, `oauth_token`)
+  and the Drizzle export is plural (`cmsMembers`). Section 4 permits adjusting
+  names to existing conventions; the columns and semantics are as specified.
+- No Drizzle `relations()` call was added: this schema does not use the
+  relations API anywhere, and joins are written explicitly. Adding it for one
+  table only would be a new convention, not the project's normal workflow.
+- No migration file was written, for the same reason: the project's schema
+  workflow is `bun run db:push` (drizzle-kit push) with no `drizzle/` directory
+  under version control. The production rollout in section 12 must therefore be
+  a reviewed `db:push` against a backed-up database, not an `up.sql` — worth
+  knowing now rather than at the gate.
+- `robots.txt` was deliberately **not** changed. `src/app/robots.ts` documents
+  the reasoning: a disallowed URL is one a crawler can never read a `noindex`
+  from, so private HTML pages here are crawlable and say `noindex` in the
+  markup. The CMS follows that, which is why `cmsRootMetadata` exists.
+- `canPublish`/`canAuthor` are driven by role arrays rather than returning a
+  constant `true`, so §4.1's "policy toggle" is a real one-line edit and lint
+  does not flag an unused parameter.
+
+Authorization behaviour, verified at runtime on `http://localhost:4000/cms`:
+
+| Case                   | Result                                                                             |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| anonymous              | `307` → `/login?next=%2Fcms`, no `x-middleware-rewrite` header                     |
+| signed-in non-member   | `404`, rendered inside the CMS layout — no editor data, no hint the surface exists |
+| `editor` member        | `200`, shell renders, `Tokens` nav link absent                                     |
+| `admin` member         | `200`, `Tokens` nav link present                                                   |
+| membership row deleted | `404` on the very next request, same session cookie                                |
+
+The nav filtering above is cosmetic. `requireCmsMember` is the boundary, and
+`/cms/tokens` will call it with the admin check of its own in Phase 8.
+
+Granting membership locally (there is no self-service path, by design):
+
+```sql
+insert into cms_member (user_id, role)
+select id, 'admin' from users where email = 'you@example.com'
+on conflict (user_id) do update set role = excluded.role;
+```
+
+Floor after Phase 1, all against local PostgreSQL:
+
+```text
+build:            pass — /cms builds as ƒ (dynamic)
+lint:             pass — 0 errors, 0 warnings
+typecheck:        pass
+test:             pass — 50 files / 734 tests (baseline 48 / 720; +14 CMS tests)
+validate:content: pass — 63 files · 0 errors · 0 warnings (unchanged)
+```
 
 ### Phase 2 — Add content schema and repository contracts
 
@@ -1124,15 +1341,35 @@ original checkbox complete.
   validated on the long-lived `cms` branch. After complete local verification,
   production CMS data is migrated and verified from that branch; only then is
   `cms` merged into `main` and deployed for the public cutover.
+- 2026-08-18: Phase 0 inventory found no guide components or metadata fields
+  beyond those the plan names, but three consumers the checklist misses: the
+  landing page's guide block, the `/normativa` slug→title map, and
+  `scripts/validate-sections.ts`'s cross-section link check. All three are
+  recorded under the Phase 0 gate and must move at the Phase 7 cutover.
+- 2026-08-18: `meta.noindex` is not stored as metadata. It is the `preview`
+  lifecycle state, and the importer maps it that way. No guide currently sets
+  it, so all 43 import as `published`.
+- 2026-08-18: Phase 1 landed with the table named `cms_member` (singular, per
+  the project's schema convention), no Drizzle `relations()` call and no
+  migration file — this project's schema workflow is `drizzle-kit push`. The
+  production rollout in section 12 is therefore a reviewed `db:push` against a
+  backed-up database, not a hand-written migration.
 
 ### Baseline results
 
 Record Phase 0 command results here before implementation:
 
+Recorded 2026-08-18 on `cms` at commit `5782f44`, against local PostgreSQL
+(`docker compose` service `db`, `postgres:18-alpine`, host port 5433).
+
 ```text
-build:
-lint:
-typecheck:
-test:
-validate:content:
+build:            pass (exit 0) — Next.js production build, no errors
+lint:             pass (exit 0) — eslint, no errors or warnings
+typecheck:        pass (exit 0) — tsc --noEmit
+test:             pass (exit 0) — vitest run, 48 files / 720 tests passed
+validate:content: pass (exit 0) — 63 files · 0 errors · 0 warnings
+                  (43 guías, 16 estadísticas, 4 investigación)
 ```
+
+No pre-existing failures. Any failure appearing later in the program is a
+regression introduced by CMS work, not inherited.
