@@ -964,22 +964,118 @@ validate:content: pass — 63 files · 0 errors · 0 warnings (unchanged)
 
 ### Phase 3 — Build the restricted MDX and component system
 
-- [ ] Create the typed content component manifest.
-- [ ] Register every guide component and its Zod property schema.
-- [ ] Move `InflacionChart` resolution out of per-document imports and into the
+- [x] Create the typed content component manifest.
+- [x] Register every guide component and its Zod property schema.
+- [x] Move `InflacionChart` resolution out of per-document imports and into the
       manifest.
-- [ ] Implement AST-based restricted-MDX grammar validation.
-- [ ] Reject imports, exports, expressions, functions, event handlers, spreads,
+- [x] Implement AST-based restricted-MDX grammar validation.
+- [x] Reject imports, exports, expressions, functions, event handlers, spreads,
       scripts, unknown components, and invalid properties.
-- [ ] Return stable diagnostic codes plus severity, message, line, and column.
-- [ ] Implement rendering from a database string only after grammar validation.
-- [ ] Preserve `remark-gfm` and heading-slug behavior used by current pages.
-- [ ] Add tests for every allowed component.
-- [ ] Add tests for every forbidden syntax category.
-- [ ] Add tests for malformed/nested tags and invalid component properties.
-- [ ] Add a test proving forbidden content cannot reach compilation/evaluation.
+- [x] Return stable diagnostic codes plus severity, message, line, and column.
+- [x] Implement rendering from a database string only after grammar validation.
+- [x] Preserve `remark-gfm` and heading-slug behavior used by current pages.
+- [x] Add tests for every allowed component.
+- [x] Add tests for every forbidden syntax category.
+- [x] Add tests for malformed/nested tags and invalid component properties.
+- [x] Add a test proving forbidden content cannot reach compilation/evaluation.
 
 **Gate:** Database content cannot execute arbitrary JavaScript.
+
+#### Phase 3 implementation notes
+
+Recorded 2026-08-18.
+
+| File                                          | Role                                             |
+| --------------------------------------------- | ------------------------------------------------ |
+| `src/content-system/components/manifest.tsx`  | the typed manifest — 10 guide components         |
+| `src/content-system/validation/grammar.ts`    | AST-based restricted-MDX validation              |
+| `src/content-system/render/renderContent.tsx` | compile-from-database, gated on the above        |
+| `src/mdx-components.tsx`                      | new `markdownComponents` export (see below)      |
+| `test/renderToHtml.ts`                        | test helper that renders async server components |
+
+`@mdx-js/mdx@3.1.1` is now a direct dependency. It was already present
+transitively through `@mdx-js/loader`; this phase imports it directly, so it is
+declared.
+
+##### How the gate is enforced
+
+`createProcessor().parse()` builds an AST **without compiling or evaluating**.
+Grammar validation walks that tree and `compileContent` refuses to call
+`evaluate` unless the walk is clean. There is deliberately no "trusted" flag to
+skip the check — that flag becomes the way every caller bypasses it.
+
+The rule is an **allowlist, not a denylist**: every JSX element must be a
+manifest component registered for that section, and everything else is rejected
+by name. Raw HTML falls out of the same rule rather than needing its own — a
+lowercase JSX name is an HTML element to MDX, so `<script>`, `<iframe>` and
+`<img onerror=…>` are all "not a registered component". No guide contains raw
+HTML today (verified across all 43), so this costs nothing.
+
+Rejected categories, each with its own test: ESM (`import`/`export`), flow and
+text expressions, spread attributes, expression-valued attributes (which is what
+catches every event handler at once, rather than a list of `on*` names to keep
+current), raw HTML, fragments, unknown components, components used in the wrong
+section, content between the tags of a leaf component, invalid or missing
+properties, and `javascript:`/`data:` hrefs.
+
+Diagnostics carry a stable `code` from `GRAMMAR_CODES` plus severity, message
+and 1-based line/column — the codes are API (the editor's lint gutter and the
+MCP read them), the messages are not.
+
+##### The proof that content cannot execute
+
+`renderContent.test.tsx` compiles a body containing
+`{(globalThis.__contentEscaped = true)}` and asserts both that the call rejects
+_and_ that the global is still unset. Verified out-of-band that the same body
+does set the global when `evaluate` is called without the gate — so the test
+fails if the check is ever removed or moved after compilation, not merely if the
+error message changes.
+
+##### Parity with the filesystem path
+
+The manifest binds what actually renders, not the bare component:
+
+- `TrustBlock` is registered as the `className="my-10"` form, matching
+  `mdx-components.tsx`. Registering the bare component would give a
+  database-rendered guide different spacing from the same source — exactly what
+  the exact preview in Phase 6 promises cannot happen.
+- `Faq` and `RelatedGuides` are registered as the same `() => null` no-ops the
+  global map uses, because they need article context. `contentComponents(overrides)`
+  is how the article route binds them, the same mechanism the filesystem route
+  already uses.
+
+`markdownComponents` was added to `src/mdx-components.tsx` as a plain value.
+`useMDXComponents` is the name `@next/mdx` requires and its `use` prefix makes
+every linter treat it as a React hook, which it is not — it returns a module
+constant. Database rendering needs the map outside a component.
+
+The render pipeline uses `remark-gfm` and `rehype-slug`, matching
+`next.config.ts` exactly. Both are load-bearing: the bill comparison tables are
+GFM, and every heading id the contents column links to comes from `rehype-slug`.
+A second, slightly different pipeline would make the CMS preview a lie.
+
+##### Verification against real content
+
+All **43 guide bodies** were run through `validateGrammar` with the meta block
+and import lines stripped — the shape they will have in the database. **43
+clean, 0 problems.** The restricted dialect accepts every existing guide, and
+the manifest is complete for `guias`.
+
+`InflacionChart` is registered centrally and is the only component reached by a
+local import today; those eight import lines are what Phase 7 strips. The
+manifest test asserts it is registered _and_ that the global map still does not
+have it, so the two paths stay honest about which one resolves it.
+
+Floor after Phase 3:
+
+```text
+build:            pass
+lint:             pass — 0 errors, 0 warnings
+typecheck:        pass
+test:             pass — 56 files / 845 tests, 1 file skipped (no database)
+test:db:          pass — 57 files / 862 tests
+validate:content: pass — 63 files · 0 errors · 0 warnings (unchanged)
+```
 
 ### Phase 4 — Refactor validation without losing CI coverage
 
@@ -1472,6 +1568,14 @@ original checkbox complete.
 - 2026-08-18: Repository and concurrency proofs run against local PostgreSQL
   via `bun run test:db` and are skipped in CI, which has no database. The test
   connection refuses any non-local host.
+- 2026-08-18: Restricted MDX is an allowlist of manifest components, not a
+  denylist of forbidden syntax. Raw HTML is rejected by the same rule as an
+  unknown component, since a lowercase JSX name is an HTML element to MDX. All
+  43 existing guide bodies pass unchanged.
+- 2026-08-18: Manifest entries register the _bound_ form of a component
+  (`TrustBlock` with its article margin, `Faq`/`RelatedGuides` as no-ops the
+  article route overrides), so a database-rendered page is identical to the
+  filesystem-rendered one.
 
 ### Baseline results
 

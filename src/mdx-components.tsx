@@ -165,3 +165,12 @@ const components: MDXComponents = {
 export function useMDXComponents(): MDXComponents {
   return components;
 }
+
+/** The same map, as a plain value.
+ *
+ * `useMDXComponents` is the name `@next/mdx` requires, and its `use` prefix
+ * makes every linter treat it as a React hook — which it is not; it returns a
+ * module constant. Database-backed rendering (`src/content-system/render`) needs
+ * this map outside a component, so it reads it under a name that does not lie
+ * about what it is. */
+export const markdownComponents: MDXComponents = components;
