@@ -8,6 +8,7 @@
     "email": "email dev --dir emails --port 3001",
     "build": "next build",
     "test": "vitest run",
+    "test:db": "dotenv -e .env.local -- vitest run",
     "predev": "npm run build:worker",
     "prebuild": "npm run build:worker",
     "indexnow": "bun scripts/ping-indexnow.ts",

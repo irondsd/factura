@@ -104,3 +104,54 @@ describe("src/cms module boundaries", () => {
     expect(violations).toEqual([]);
   });
 });
+
+// cms.md §2 and Phase 2: "Ensure callers outside repository/service modules do
+// not query `cms_pages` directly." Two modules may — the public repository and
+// the CMS store — and everything else goes through them, so the lifecycle rules
+// cannot be bypassed by a route that writes its own `where` clause.
+describe("cms_page access", () => {
+  const ALLOWED = [
+    path.join("src", "content-system", "repository", "postgres.ts"),
+    path.join("src", "content-system", "repository", "mapping.ts"),
+    path.join("src", "cms", "server", "store.ts"),
+    // The schema defines the table; the seed and test helpers may reference it.
+    path.join("src", "db", "schema.ts"),
+  ];
+
+  function sourceFiles(dir: string): string[] {
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      if (entry.name === "node_modules") return [];
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) return sourceFiles(full);
+      return /\.tsx?$/.test(entry.name) ? [full] : [];
+    });
+  }
+
+  it("actually finds the modules that do query it", () => {
+    // Guards the guard: if the identifier is ever renamed, the check below
+    // would find nothing and pass for the wrong reason.
+    const users = ALLOWED.filter((rel) =>
+      /\bcmsPages\b/.test(
+        fs.readFileSync(path.join(process.cwd(), rel), "utf8"),
+      ),
+    );
+    expect(users).toContain(path.join("src", "cms", "server", "store.ts"));
+    expect(users).toContain(
+      path.join("src", "content-system", "repository", "postgres.ts"),
+    );
+  });
+
+  it("is confined to the repository and the CMS store", () => {
+    const root = path.join(process.cwd(), "src");
+    const offenders = sourceFiles(root)
+      .map((file) => path.relative(process.cwd(), file))
+      .filter((rel) => !ALLOWED.includes(rel))
+      .filter((rel) => !rel.endsWith(".test.ts") && !rel.endsWith(".test.tsx"))
+      .filter((rel) =>
+        /\bcmsPages\b/.test(
+          fs.readFileSync(path.join(process.cwd(), rel), "utf8"),
+        ),
+      );
+    expect(offenders).toEqual([]);
+  });
+});

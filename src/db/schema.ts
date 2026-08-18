@@ -942,3 +942,84 @@ export const cmsMembers = pgTable("cms_member", {
     .notNull()
     .defaultNow(),
 });
+
+/** One editable content page. Iteration 1 stores exactly one mutable copy per
+ * page — no revisions, no draft/published pair (cms.md §3.2, §13.1). Editing a
+ * published page edits the copy that is live, which is why a published save has
+ * to pass the full publish validation suite: there is no previous revision to
+ * fall back to.
+ *
+ * `section` is text rather than an enum on purpose: `estadisticas` and
+ * `investigacion` arrive in the same table (cms.md §12) and adding a section
+ * should not need an enum migration. The allowed values are a TypeScript union
+ * in `src/content-system/types.ts`, checked on the way in.
+ *
+ * Metadata is split the way cms.md §3.7 specifies: identity, lifecycle and
+ * anything queried or sorted gets a column; the structured and optional rest
+ * lives in validated `metadata` JSONB. Editors never see the JSON — one Zod
+ * schema covers the form, the mutations, the MCP tools and the importer. */
+export const cmsPages = pgTable(
+  "cms_page",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    section: text("section").notNull(),
+    slug: text("slug").notNull(),
+    status: cmsPageStatus("status").notNull().default("draft"),
+    bodyMdx: text("body_mdx").notNull(),
+
+    title: text("title").notNull(),
+    /** Overrides `title` in `<title>` only. See `GuideMeta.titleTag`. */
+    titleTag: text("title_tag"),
+    description: text("description").notNull(),
+    summary: text("summary").notNull(),
+    cta: text("cta").notNull(),
+    /** Slug of the page this one's canonical should point at, when two pages
+     * compete for the same query. A column rather than JSONB because the
+     * collection validator resolves it across pages. */
+    canonicalSlug: text("canonical_slug"),
+    metadata: jsonb("metadata").notNull(),
+
+    /** Optimistic concurrency, *not* a revision counter. Every update carries
+     * the version the editor last read and bumps it; the UPDATE matches on it,
+     * so a stale save changes zero rows and is reported as a conflict instead
+     * of silently overwriting whatever landed in between. */
+    lockVersion: integer("lock_version").notNull().default(1),
+
+    /** Authorship is informational and deliberately nullable: accounts are hard
+     * deleted (`deleteUserRecord`), and neither answer a non-null column can
+     * give is acceptable — cascade would delete the public site's content along
+     * with an author's account, and restrict would make deleting that account
+     * fail forever. Content outlives its author; provenance degrades to
+     * unknown. cms.md §13.8 replaces these with external subject ids. */
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: uuid("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    /** When the page first became public. Null until the first publish, and
+     * kept across an unpublish/republish so the visible dateline and the
+     * JSON-LD don't jump when a page is briefly taken down. */
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    /** The editorial "last updated" shown on the page — moved by content
+     * edits, not by a status flip. Distinct from `updated_at`, which is a row
+     * timestamp and moves on every write. */
+    contentUpdatedAt: timestamp("content_updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    // The public URL is (section, slug); the database is what makes that unique
+    // rather than a validator that can only see one page at a time.
+    uniqueIndex("cms_page_section_slug_idx").on(t.section, t.slug),
+    // Every listing is "this section, these statuses", newest first.
+    index("cms_page_section_status_idx").on(t.section, t.status),
+  ],
+);

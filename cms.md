@@ -838,20 +838,129 @@ validate:content: pass — 63 files · 0 errors · 0 warnings (unchanged)
 
 ### Phase 2 — Add content schema and repository contracts
 
-- [ ] Add the `cms_pages` table, unique constraint, timestamps, authorship, and
+- [x] Add the `cms_pages` table, unique constraint, timestamps, authorship, and
       `lock_version`.
-- [ ] Define `ContentDocument`, `ContentSummary`, lifecycle, metadata, and
+- [x] Define `ContentDocument`, `ContentSummary`, lifecycle, metadata, and
       diagnostic types in `src/content-system/types.ts`.
-- [ ] Define the shared Zod guide metadata schema.
-- [ ] Implement the public `ContentRepository` contract.
-- [ ] Implement the authenticated CMS repository/service contract.
-- [ ] Add repository tests for every lifecycle visibility rule.
-- [ ] Add optimistic concurrency tests proving stale saves cannot overwrite a
+- [x] Define the shared Zod guide metadata schema.
+- [x] Implement the public `ContentRepository` contract.
+- [x] Implement the authenticated CMS repository/service contract.
+- [x] Add repository tests for every lifecycle visibility rule.
+- [x] Add optimistic concurrency tests proving stale saves cannot overwrite a
       newer save.
-- [ ] Ensure callers outside repository/service modules do not query
+- [x] Ensure callers outside repository/service modules do not query
       `cms_pages` directly.
 
 **Gate:** Lifecycle behavior is proven at the repository layer before UI work.
+
+#### Phase 2 implementation notes
+
+Recorded 2026-08-18, against local PostgreSQL only.
+
+| File                                          | Role                                                        |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| `src/db/schema.ts`                            | `cms_page` table, unique `(section, slug)`, `lock_version`  |
+| `src/content-system/types.ts`                 | `ContentDocument`, `ContentSummary`, statuses, `Diagnostic` |
+| `src/content-system/metadata/guias.ts`        | the one Zod guide metadata schema                           |
+| `src/content-system/repository/visibility.ts` | the §3.2 lifecycle table, as pure functions                 |
+| `src/content-system/repository/contract.ts`   | `ContentRepository`                                         |
+| `src/content-system/repository/mapping.ts`    | the only row → document translation                         |
+| `src/content-system/repository/postgres.ts`   | public repository                                           |
+| `src/cms/server/store.ts`                     | authenticated SQL, including the concurrency UPDATE         |
+| `src/cms/server/lifecycle.ts`                 | §5.3 save/transition levels, pure                           |
+| `src/cms/server/errors.ts`                    | conflict / not-found / invalid / forbidden / slug-taken     |
+| `src/cms/server/contentService.ts`            | the single mutation entry point for browser **and** MCP     |
+| `src/cms/server/testDb.ts`                    | local-only test connection, with a non-local guard          |
+
+Deviations and decisions:
+
+- **`created_by` / `updated_by` are nullable**, against §4.2's `not null`.
+  Accounts are hard deleted (`deleteUserRecord`), and both answers a non-null
+  column can give are wrong: `cascade` deletes the public site's content along
+  with an author's account, and `restrict` makes deleting that account fail
+  permanently. They are `on delete set null` — content outlives its author and
+  provenance degrades to unknown, which §13.8 replaces with external subject
+  ids anyway.
+- **`section` is `text`, not an enum**, as §4.2 specifies. Recorded because it
+  is load-bearing for section 12: adding `estadisticas` needs no enum
+  migration. The allowed values are a TypeScript union checked on the way in.
+- **The service takes its validator as a constructor argument** with no
+  default. Phase 4 supplies the real one. A default would be a service that
+  silently permits everything, and there would be no way to tell a wired-up
+  call site from an unwired one.
+- **Validation is not run on `create`.** A new page is always `draft`, and a
+  draft is allowed to be incomplete (§5.3). Diagnostics come from
+  `validateOnly`, which is what the Validation tab and the MCP's
+  `validate_content` call.
+- **Caching is deliberately absent from the repository.** §3.3 puts the
+  one-hour `unstable_cache` at the call site in Phase 7, where `revalidate` has
+  to be statically analyzable — and a repository that cached itself could not be
+  reused for the CMS's uncached previews.
+- **`unstable_cache`, the composite repository and the filesystem adapter are
+  Phase 7**, not Phase 2. The contract exists so that cutover is a change of
+  implementation rather than a change of shape.
+
+Two rules the plan states in prose are now enforced by tests rather than
+review:
+
+- `src/cms/boundaries.test.ts` fails if any module outside
+  `content-system/repository/postgres.ts`, `repository/mapping.ts` and
+  `cms/server/store.ts` references `cmsPages`. It also asserts those two _do_,
+  so a rename cannot make the check vacuous.
+- The same file already enforced the §2.2 import rules from Phase 1.
+
+##### Database-backed tests
+
+`.github/workflows/ci.yml` has no PostgreSQL service, so `bun run test` must
+stay green without one. The lifecycle and concurrency proofs need a real
+database — a `where` clause and an UPDATE's row count are not exercised by a
+stub — so they live in `contentService.integration.test.ts` and are registered
+only when `DATABASE_URL` is set:
+
+```bash
+bun run test:db
+```
+
+`src/cms/server/testDb.ts` refuses any non-local host outright rather than
+skipping, because a suite that writes and deletes rows pointed at production is
+not something to fail quietly. Test rows are prefixed `zz-cms-test-` and only
+rows with that prefix are ever deleted — the local database also holds
+hand-made pages and, from Phase 7, imported guides.
+
+Note that `describe.skip` still evaluates its callback, so the skip branches
+_before_ the suite is registered; otherwise the connection is opened on a
+machine that has no database and the file fails to collect.
+
+`vitest.config.ts` now aliases `server-only` to an empty stub
+(`test/stubs/server-only.ts`). Next resolves that marker through its own
+bundler alias and the package is not in `node_modules`, so any test touching a
+server module failed on the import. The guard it provides is a build-time one
+and `bun run build` still enforces it.
+
+##### What the gate proved
+
+Sixteen integration tests against local PostgreSQL, covering: draft hidden from
+`getByPath`/`listPublished`/`listPubliclyRenderable`; preview renders at its URL
+but is absent from listings and present in `listPubliclyRenderable`; published
+renders and lists; unpublish removes it from public reads while keeping
+`published_at`; every status visible to the CMS; duplicate slug refused; a stale
+save rejected with the _actual_ version reported and the winning save intact; a
+stale status transition likewise; `lock_version` incrementing per accepted
+save; `content_updated_at` moving on an edit but not on a status flip; publish
+refused when validation fails while take-down still succeeds; a grammar-level
+failure blocking even a draft save with the previous body intact; metadata
+round-tripping through JSONB.
+
+Floor after Phase 2:
+
+```text
+build:            pass
+lint:             pass — 0 errors, 0 warnings
+typecheck:        pass
+test:             pass — 53 files / 771 tests, 1 file skipped (no database)
+test:db:          pass — 54 files / 788 tests
+validate:content: pass — 63 files · 0 errors · 0 warnings (unchanged)
+```
 
 ### Phase 3 — Build the restricted MDX and component system
 
@@ -1354,6 +1463,15 @@ original checkbox complete.
   migration file — this project's schema workflow is `drizzle-kit push`. The
   production rollout in section 12 is therefore a reviewed `db:push` against a
   backed-up database, not a hand-written migration.
+- 2026-08-18: `cms_page.created_by`/`updated_by` are nullable with
+  `on delete set null`, not `not null` as §4.2 says. Accounts are hard deleted,
+  and content must neither be deleted with its author nor block that deletion.
+- 2026-08-18: The CMS content service takes its validator as a required
+  dependency rather than importing one, so Phase 2 cannot ship a service that
+  quietly permits everything. Phase 4 supplies the implementation.
+- 2026-08-18: Repository and concurrency proofs run against local PostgreSQL
+  via `bun run test:db` and are skipped in CI, which has no database. The test
+  connection refuses any non-local host.
 
 ### Baseline results
 

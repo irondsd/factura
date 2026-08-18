@@ -3,7 +3,12 @@ import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
-    alias: { "@": path.resolve(__dirname, "src") },
+    alias: {
+      "@": path.resolve(__dirname, "src"),
+      // Next resolves this marker itself; Node cannot. See the stub for why an
+      // empty module is the right answer here.
+      "server-only": path.resolve(__dirname, "test/stubs/server-only.ts"),
+    },
   },
   test: {
     // `.claude/worktrees/*` holds whole checkouts of this repo for agent
