@@ -26,6 +26,7 @@
     "data:delitos": "bun scripts/fetch-caba-delitos.ts",
     "data:dolar": "bun scripts/fetch-dolar.ts",
     "data:caba-geo": "bun scripts/build-caba-geo.ts",
+    "data:pba-geo": "bun scripts/build-pba-geo.ts",
     "db:push": "dotenv -e .env.local drizzle-kit push",
     "db:push:prod": "dotenv -e .env.prod drizzle-kit push",
     "db:seed": "dotenv -e .env.local tsx src/db/seed.ts",

@@ -54,6 +54,13 @@
   --choro-6: #8a3d10;
   --choro-none: #e2ddd0;
   --choro-none-line: #c6bda7;
+
+  /* Territory the map draws but does not measure — CABA in the middle of the
+     Gran Buenos Aires map. A third meaning needs a third treatment: the ramp
+     says "this much", the hatch says "no figure published", and this says "not
+     part of this map at all". Flat, unhatched, and darker than every step of
+     the ramp, so it reads as a hole rather than as an extreme value. */
+  --choro-backdrop: #b3aa99;
 }
 
 /* Background utilities for vendor swatches/dots — apply by name, no inline
