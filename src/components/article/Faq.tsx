@@ -1,42 +1,105 @@
+"use client";
+
+import { useId, useState } from "react";
 import { Eyebrow } from "@/components/landing/parts";
 import { FAQ_SECTION } from "@/content/headings";
+import { cn } from "@/lib/cn";
 
 // The "Preguntas frecuentes" block an article drops in with a bare <Faq />.
-// Shared by /guias and /estadisticas. Same contract as RelatedGuides (see
-// AUTHORING.md §5): the tag takes no props, the route injects `meta.faq` through
-// the MDX `components` prop, so the author picks the *placement* and the meta
-// block owns the *content*.
-//
-// Rendered as a plain <dl> rather than <details> accordions. The questions are
-// the reason the block exists — each one targets a search a visitor actually
-// typed — and collapsing them hides that text behind a click for no gain, since
-// there is no rich result to win by being tidy about it.
+// Shared by /guias, /estadisticas and /investigacion. The route injects
+// `meta.faq`, so the MDX author owns the placement and the meta block owns the
+// content. Every answer stays in the HTML; the accordion only changes how much
+// of a long FAQ is visible at once.
+
+const INITIALLY_OPEN = 5;
 
 export function Faq({ items }: { items: { q: string; a: string }[] }) {
   if (items.length === 0) return null;
 
   return (
-    // The id is the anchor the table of contents links to — the block is a
-    // section of the article like any other, but its heading isn't in the MDX
-    // for rehype-slug to have given one. `scroll-mt` matches the body headings.
+    // The id is the anchor the table of contents links to. `scroll-mt` matches
+    // the body headings, whose sticky header offset is the same.
     <section
       id={FAQ_SECTION.id}
       className="my-12 scroll-mt-24 border-t border-line pt-6"
     >
       <Eyebrow>{FAQ_SECTION.text}</Eyebrow>
 
-      <dl className="mt-5 m-0 flex flex-col gap-6">
-        {items.map(({ q, a }) => (
-          <div key={q}>
-            <dt className="font-display font-semibold text-[17px] sm:text-[18px] leading-[1.3] text-ink">
-              {q}
-            </dt>
-            <dd className="mt-2 ml-0 font-mono text-[14.5px] leading-[1.7] text-ink/90">
-              {a}
-            </dd>
-          </div>
+      <dl className="mt-5 m-0 border-t border-line">
+        {items.map(({ q, a }, index) => (
+          <FaqItem
+            key={q}
+            question={q}
+            answer={a}
+            initiallyOpen={index < INITIALLY_OPEN}
+          />
         ))}
       </dl>
     </section>
+  );
+}
+
+function FaqItem({
+  question,
+  answer,
+  initiallyOpen,
+}: {
+  question: string;
+  answer: string;
+  initiallyOpen: boolean;
+}) {
+  const [open, setOpen] = useState(initiallyOpen);
+  const id = useId();
+  const answerId = `${id}-answer`;
+
+  return (
+    <div className="border-b border-line">
+      <dt className="m-0">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={answerId}
+          onClick={() => setOpen((current) => !current)}
+          className={cn(
+            "flex min-h-11 w-full cursor-pointer items-center justify-between gap-4 bg-transparent py-4 text-left",
+            "font-display text-[17px] leading-[1.3] font-semibold sm:text-[18px]",
+            "text-ink transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent",
+          )}
+        >
+          <span>{question}</span>
+          <svg
+            viewBox="0 0 20 20"
+            fill="none"
+            aria-hidden="true"
+            className={cn(
+              "size-5 flex-none text-muted transition-transform duration-300 ease-[var(--ease-standard)] motion-reduce:transition-none",
+              open && "rotate-180 text-accent",
+            )}
+          >
+            <path
+              d="m5 7.5 5 5 5-5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      </dt>
+      <dd
+        id={answerId}
+        aria-hidden={!open}
+        className={cn(
+          "ml-0 grid transition-[grid-template-rows,opacity] duration-300 ease-[var(--ease-standard)] motion-reduce:transition-none",
+          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <p className="m-0 pr-8 pb-5 font-mono text-[14.5px] leading-[1.7] text-ink/90 sm:pr-10">
+            {answer}
+          </p>
+        </div>
+      </dd>
+    </div>
   );
 }
