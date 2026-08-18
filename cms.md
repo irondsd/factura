@@ -100,6 +100,38 @@ All CMS authorization must go through a small adapter (`src/cms/auth`) so a
 future deployment can replace shared Auth.js/database access without rewriting
 CMS pages or services.
 
+### 2.4 Development and production database policy
+
+The local PostgreSQL database is the required development and testing target.
+Agents are explicitly allowed and expected to create CMS tables, grant local CMS
+membership, import and re-import guides, create test pages, and exercise every
+lifecycle/MCP operation against the local database. Local content is disposable
+development data; using it fully is not a risk or a workaround.
+
+Rules:
+
+- Use the Postgres service from `docker compose` and the normal local environment
+  configuration for all implementation phases.
+- Start it with `docker compose up -d db` when needed and verify it with
+  `docker compose ps`.
+- Apply schema changes and run the guide importer locally first.
+- It is fine to clear or re-import CMS rows in the local database when testing
+  idempotence, as long as commands target the CMS tables explicitly.
+- Complete validation parity, browser verification, MCP verification, and the
+  full build/lint/typecheck/test floor against local data.
+- Do not point development, automated tests, agent verification, or migration
+  experiments at the production database.
+- Do not use `.env.prod` or production database commands before the dedicated
+  production rollout phase and explicit authorization to perform that rollout.
+- The first production CMS database work happens only after the guide schema,
+  importer, public renderer, and rollback path have all passed locally.
+- Production guide migration is a deployment operation: back up, apply schema,
+  dry-run import, import, verify parity, then cut over public reads.
+
+The import tooling must make the target environment obvious in its output and
+must require an explicit production flag/confirmation rather than silently
+choosing production from ambient configuration.
+
 ## 3. Iteration 1 decisions
 
 ### 3.1 Content scope
@@ -505,6 +537,8 @@ Tool rules:
 
 ### Phase 0 — Confirm baseline and inventory
 
+- [ ] Start and verify the local Postgres service with `docker compose`; record
+      that all CMS development and testing will target the local database.
 - [ ] Run `bun run build`, `bun run lint`, `bun run typecheck`, and `bun run test`
       before implementation and record any pre-existing failures below.
 - [ ] Run `bun run validate:content` and save the baseline count of errors and
@@ -639,6 +673,8 @@ page; there is no separate approximate Markdown renderer.
 ### Phase 7 — Migrate guides and cut over public reads
 
 - [ ] Write a repeatable, idempotent import script for guide MDX files.
+- [ ] Make the importer default to the local database and refuse a production
+      target unless an explicit production option and environment are supplied.
 - [ ] Parse metadata into typed fields/JSONB.
 - [ ] Remove allowed import declarations during migration only after verifying
       they correspond to a registered component; reject any unexpected import.
@@ -646,6 +682,8 @@ page; there is no separate approximate Markdown renderer.
       FAQ, OG data, preview image, and body exactly.
 - [ ] Assign imported rows to a named CMS member and record migration provenance.
 - [ ] Add a dry-run mode that reports changes without writing.
+- [ ] Run dry-run, initial import, repeat import, and rollback/re-import tests
+      against the local database.
 - [ ] Add parity checks for document counts, slugs, metadata, headings, word
       counts, links, and validation diagnostics.
 - [ ] Implement the cached PostgreSQL guide repository with one-hour TTL.
@@ -707,11 +745,44 @@ and lifecycle semantics.
 - [ ] Check sitemap, feed, `llms.txt`, categories, related guides, and OG routes.
 - [ ] Confirm a new slug renders without a deployment.
 - [ ] Confirm a draft returns 404 publicly and a preview emits `noindex`.
+- [ ] Confirm every browser, migration, validation, and MCP verification above
+      used the local database and no production credentials.
 - [ ] Document production migration, backup, rollback, and manual CMS membership
       commands.
 - [ ] Record intentionally deferred work in the long-term section below.
 
-**Iteration 1 is complete only when every Phase 9 check passes.**
+**Local implementation is complete only when every Phase 9 check passes.**
+
+### Phase 10 — Production guide migration and cutover
+
+Run this phase only after Phase 9 passes and the project owner explicitly
+authorizes production deployment. Agents must not treat implementation work as
+implicit permission to modify production.
+
+- [ ] Confirm the production database target and deployment commit/version.
+- [ ] Back up the affected production schema/tables and verify the recovery
+      procedure before writes.
+- [ ] Apply the reviewed CMS schema migration to production.
+- [ ] Add the initial production `cms_members` rows manually and verify access.
+- [ ] Run the guide importer in production dry-run mode and review counts,
+      slugs, metadata, and proposed writes.
+- [ ] Run the production guide import once.
+- [ ] Run the import again in dry-run/idempotence mode and confirm it proposes no
+      unintended changes.
+- [ ] Compare production database documents with the repository source using the
+      same parity report proven locally.
+- [ ] Cut public guide reads over using the documented feature switch/deployment.
+- [ ] Verify representative public guides, preview behavior, indexes, category
+      pages, sitemap, feed, `llms.txt`, metadata, JSON-LD, and OG routes against
+      production.
+- [ ] Verify CMS browser access and one non-destructive CMS MCP read against
+      production.
+- [ ] Keep repository MDX and the rollback switch until the production
+      observation window is complete.
+- [ ] Record the migration timestamp, operator, backup reference, imported row
+      count, verification results, and any deviations in this document.
+
+**Iteration 1 production rollout is complete only when Phase 10 passes.**
 
 ## 10. Testing strategy
 
@@ -746,6 +817,11 @@ and lifecycle semantics.
 
 ## 11. Operations and recovery
 
+- Use the local Postgres database freely for CMS schema development, imports,
+  lifecycle tests, browser verification, and MCP verification. This is the
+  expected workflow.
+- Production is not a testing environment. It is first touched in Phase 10,
+  after the complete guide migration and cutover path has passed locally.
 - Back up `cms_pages`, `cms_members`, and `cms_api_tokens` before production
   migration and before deleting repository MDX files.
 - Keep the import script deterministic and safe to rerun.
@@ -753,17 +829,65 @@ and lifecycle semantics.
   back to filesystem content without a schema rollback.
 - Never make production content validation depend on local source files after
   the final cutover.
-- Do not connect local agent verification to the production database.
+- Do not connect local development or agent verification to the production
+  database.
 - Do not log MDX bodies, metadata payloads, session cookies, or API tokens.
 - Add reasonable body-size, request-size, and rate limits to browser mutations
   and MCP calls.
 
-## 12. Deliberately deferred work
+## 12. Next content migration: statistics and research
+
+After the guides-first CMS is stable, migrate `/estadisticas` and
+`/investigacion` into the same simple, mutable-row CMS model **before** adding
+revisions, history, immediate invalidation, or richer publishing workflow. The
+goal is to put all MDX content behind one repository and publishing system
+before making that system more sophisticated.
+
+This is the next milestone after iteration 1, not part of the guide rollout.
+It must follow the same local-first rule: implement, import, validate, and
+visually verify against local PostgreSQL before a separately authorized
+production migration.
+
+- [ ] Inventory and register the complete statistics/research chart, map, table,
+      data, source, related-page, FAQ, subpage, and CTA component surface.
+- [ ] Define component property schemas and section restrictions in the shared
+      manifest.
+- [ ] Replace per-MDX imports with manifest entries while preserving bundle and
+      client-component behavior.
+- [ ] Extend CMS metadata schemas/forms for hierarchy, crumbs, hubs, datasets,
+      sources, OG statistics, and subpages.
+- [ ] Represent explicit editorial ordering and parent/child relationships in
+      the database without deriving them from filenames.
+- [ ] Preserve the invariant that every intermediate path/hub exists and every
+      breadcrumb target resolves.
+- [ ] Extend pure document and collection validation for both sections.
+- [ ] Extend the CMS editor, preview, list filters, and MCP schemas for these
+      section-specific fields.
+- [ ] Write repeatable, idempotent, local-first importers with dry-run and target
+      environment safeguards.
+- [ ] Migrate both sections locally and compare document counts, metadata,
+      headings, sources, datasets, links, hierarchy, validation, rendered HTML,
+      charts, maps, JSON-LD, OG images, sitemap, feed, and `llms.txt`.
+- [ ] Change the composite repository so all three MDX sections read from
+      PostgreSQL while normativa remains unchanged.
+- [ ] Remove the explicit TypeScript page registries only after hierarchy,
+      ordering, build behavior, and rollback have database equivalents.
+- [ ] Complete the full build/lint/typecheck/test/content-validation and browser
+      verification floor locally.
+- [ ] Prepare and execute a separately authorized production backup, schema
+      migration, dry run, import, parity check, cutover, and observation window.
+- [ ] Keep source files and rollback switches until production verification is
+      complete.
+
+**Gate:** Revisions and the advanced roadmap below do not begin until guides,
+statistics, and research all use the simple database-backed CMS in production.
+
+## 13. Deliberately deferred work
 
 These are not iteration 1 requirements. Preserve clean extension points, but do
 not partially implement them unless iteration 1 requires it.
 
-### 12.1 Revisions and change history
+### 13.1 Revisions and change history
 
 Future data model:
 
@@ -800,7 +924,7 @@ Migration path: backfill each current `cms_pages` row as revision 1, add draft
 and published pointers, then change only repository/service internals. Stable
 page UUIDs and the service boundary in iteration 1 make this feasible.
 
-### 12.2 Audit/change event history
+### 13.2 Audit/change event history
 
 Iteration 1 records current creator/editor and operational mutation logs, but
 does not promise a complete historical audit trail.
@@ -810,7 +934,7 @@ does not promise a complete historical audit trail.
 - [ ] Expose filterable history in the CMS.
 - [ ] Define retention and privacy policy.
 
-### 12.3 On-demand cache and slug invalidation
+### 13.3 On-demand cache and slug invalidation
 
 - [ ] Add content-specific cache tags.
 - [ ] Revalidate the article, old/new slug, indexes, categories, related content,
@@ -820,7 +944,7 @@ does not promise a complete historical audit trail.
       behavior.
 - [ ] Trigger IndexNow only after a successful publish transaction.
 
-### 12.4 Slug changes and redirects
+### 13.4 Slug changes and redirects
 
 Slug edits are not supported after creation in iteration 1 unless the page has
 never been published.
@@ -831,17 +955,7 @@ never been published.
 - [ ] Render permanent redirects from old slugs.
 - [ ] Update internal links and discovery surfaces transactionally.
 
-### 12.5 Statistics and research migration
-
-- [ ] Inventory and register their larger set of chart/map/data components.
-- [ ] Replace all per-MDX imports with manifest entries.
-- [ ] Model section hierarchy, crumbs, hubs, datasets, sources, and subpages in
-      database fields.
-- [ ] Migrate `/estadisticas` and `/investigacion` with the same parity process.
-- [ ] Remove their explicit TypeScript page registries only after hierarchy and
-      ordering have database equivalents.
-
-### 12.6 Media library
+### 13.5 Media library
 
 - [ ] Upload and manage images outside the repository.
 - [ ] Add alt-text, dimensions, attribution, and usage references.
@@ -850,7 +964,7 @@ never been published.
 - [ ] Reuse existing object-storage infrastructure only after separating public
       CMS assets from private bill storage permissions.
 
-### 12.7 Richer editor experience
+### 13.6 Richer editor experience
 
 - [ ] Component-name and property autocomplete from the manifest.
 - [ ] Insert-component palette with safe templates.
@@ -860,7 +974,7 @@ never been published.
 - [ ] Optional MDXEditor evaluation only after proving it preserves the exact
       restricted dialect; WYSIWYG remains nonessential.
 
-### 12.8 Publishing workflow
+### 13.7 Publishing workflow
 
 - [ ] Scheduled publishing/unpublishing.
 - [ ] Review/approval roles.
@@ -869,7 +983,7 @@ never been published.
 - [ ] Bulk operations.
 - [ ] Required second-person approval for agent-generated content.
 
-### 12.9 Separate deployments and databases
+### 13.8 Separate deployments and databases
 
 Target extraction sequence:
 
@@ -894,7 +1008,7 @@ Deferred tasks:
 - [ ] Add cross-domain session, redirect, CORS, CSP, and cookie tests.
 - [ ] Separate deployment pipelines and rollback procedures.
 
-### 12.10 Additional deferred capabilities
+### 13.9 Additional deferred capabilities
 
 - [ ] Content localization beyond the current Spanish-only guide model.
 - [ ] Automatic link suggestions and SEO briefs.
@@ -905,7 +1019,7 @@ Deferred tasks:
 - [ ] Webhooks for external systems.
 - [ ] Agent-generated media workflow.
 
-## 13. Known iteration 1 limitations
+## 14. Known iteration 1 limitations
 
 - There is no revision history or rollback after overwriting a page.
 - Editing a published page edits its only stored copy.
@@ -918,7 +1032,7 @@ Deferred tasks:
 - CMS and app still share Auth.js users and one physical database.
 - Manual database changes are required to grant initial CMS membership.
 
-## 14. Implementation notes and decisions log
+## 15. Implementation notes and decisions log
 
 Agents should append dated decisions here when implementation evidence requires
 a change to this plan. Do not silently change architecture while marking the
@@ -927,7 +1041,13 @@ original checkbox complete.
 - 2026-08-18: Iteration 1 is guides-first and uses one mutable page row, a
   one-hour TTL, explicit saves, restricted MDX, and a separate CMS MCP endpoint.
 - 2026-08-18: Revision history, immediate invalidation, post-publication slug
-  changes, media management, and statistics/research migration are deferred.
+  changes, and media management are deferred until after all three MDX sections
+  use the simple CMS.
+- 2026-08-18: All development, migration rehearsal, and verification use local
+  PostgreSQL. Production guide migration is a separate, explicitly authorized
+  rollout after local Phase 9 completion.
+- 2026-08-18: Statistics and research migration is the next milestone after the
+  guides rollout and precedes revisions and the advanced CMS roadmap.
 
 ### Baseline results
 
