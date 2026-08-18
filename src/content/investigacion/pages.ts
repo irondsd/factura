@@ -36,6 +36,12 @@ const ENTRIES: SectionEntry[] = [
     file: "barrios-seguros-baratos-caba.mdx",
     load: () => import("./barrios-seguros-baratos-caba.mdx"),
   },
+  {
+    slug: ["barrios-seguros-tipo-delito-caba"],
+    crumb: "Seguridad por delito",
+    file: "barrios-seguros-tipo-delito-caba.mdx",
+    load: () => import("./barrios-seguros-tipo-delito-caba.mdx"),
+  },
 ];
 
 export const investigacion = createSection({

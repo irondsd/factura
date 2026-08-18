@@ -1,0 +1,99 @@
+import { TEMPORAL_COVERAGE } from "./data/seguridad-por-delito";
+import { SeguridadPorDelitoComparacion } from "@/components/investigacion/SeguridadPorDelitoComparacion";
+import { SeguridadPorDelitoGanadores } from "@/components/investigacion/SeguridadPorDelitoGanadores";
+
+export const meta = {
+  title: "Los barrios más seguros de CABA según el tipo de delito",
+  titleTag: "Barrios más seguros de CABA según el tipo de delito",
+  description: "Robos, hurtos y delitos contra las personas no dibujan el mismo mapa de CABA. Cruzamos sus tasas por barrio y el alquiler para separar calma real de reputación.",
+  summary: "El barrio más seguro depende de qué se quiere evitar: Agronomía lidera en robos, Villa Lugano en hurtos y Villa del Parque en delitos contra las personas. La comparación muestra qué barrios sostienen las tres cosas.",
+  ogStat: "3 delitos, 48 barrios, sin podio único",
+  preview: "/img/investigacion/previews/barrios-seguros-tipo-delito-caba.png",
+  cta: "Elegir barrio empieza por decidir qué riesgo importa.",
+  keywords: ["barrios mas seguros caba", "barrios seguros robos caba", "hurtos caba por barrio", "delitos caba por barrio", "seguridad para alquilar caba", "barrios tranquilos buenos aires"],
+  published: "2026-08-18T12:00:00-03:00",
+  updated: "2026-08-18T12:00:00-03:00",
+  faq: [
+    { q: "¿Cuál es el barrio más seguro de CABA?", a: "No hay un único ganador. En los hechos registrados de 2025, Agronomía tiene la menor tasa de robos, Villa Lugano la menor de hurtos y Villa del Parque la menor de delitos contra las personas. Para elegir conviene mirar las tres columnas, no una tasa total aislada." },
+    { q: "¿Caballito es un barrio seguro?", a: "Sí, aparece en el grupo de barrios con menor tasa total de delitos registrados y también queda bajo en robos y hurtos frente a la Ciudad. Eso coincide con la reputación pública de la Comuna 6, pero no significa que toda cuadra ni todo horario tengan el mismo riesgo." },
+    { q: "¿Puerto Madero es el barrio más seguro?", a: "No según esta tasa territorial: su baja población residente y alta circulación diaria vuelven poco representativo el cociente de hechos por residente. La reputación vecinal de seguridad y la tasa de un registro administrativo responden preguntas distintas; ninguna permite garantizar riesgo personal." },
+    { q: "¿Se puede saber en qué barrios hay más robos a mano armada?", a: "No con este ranking. El Mapa del Delito publica el total porteño de robos con arma, pero el dataset barrial que se usa aquí no separa esa modalidad. La página no la estima ni llama «armado» a todo robo con violencia." },
+    { q: "¿Los delitos registrados reflejan todos los delitos?", a: "No. Son denuncias, actuaciones o expedientes registrados. La propia fuente advierte que una mejora en la denuncia o en la clasificación puede elevar el registro sin que haya crecido la criminalidad real." },
+  ],
+  sources: [
+    { label: "Buenos Aires Data — Delitos (Mapa del Delito)", href: "https://data.buenosaires.gob.ar/dataset/delitos", note: "Registro anual por hecho y barrio; clasifica robos, hurtos, lesiones, amenazas y homicidios. Base de las tasas de esta investigación." },
+    { label: "Mapa del Delito 2025 — Resumen ejecutivo", href: "https://cdn.buenosaires.gob.ar/datosabiertos/datasets/ministerio-de-justicia-y-seguridad/delitos/2025_informe_ejecutivo.pdf", note: "Define robos y hurtos como categorías diferenciadas, advierte sobre el subregistro y publica las modalidades de robo con arma sólo a escala ciudad." },
+    { label: "IDECBA — Robos y hurtos por comuna", href: "https://www.estadisticaciudad.gob.ar/eyc/banco-datos/hechos-registrados-de-robo-con-violencia-y-hurto-sin-violencia-y-distribucion-porcentual-por-comuna-de-ocurrencia-ciudad-de-buenos-aires-anos-2016-2018/", note: "Serie oficial 2016–2025 por comuna, publicada sobre la base del Ministerio de Justicia y Seguridad." },
+    { label: "IDECBA — Precios de oferta de departamentos en alquiler", href: "https://www.estadisticaciudad.gob.ar/eyc/?p=27403", note: "Precio pedido promedio de departamentos usados por barrio y trimestre; se muestra como contexto, no como medida de seguridad." },
+  ],
+  dataset: { name: "Perfiles de seguridad por tipo de delito y alquiler, CABA", description: "Tasas anuales de robos, hurtos y delitos contra las personas cada 1.000 residentes por barrio, con alquiler pedido de dos ambientes como contexto.", temporalCoverage: TEMPORAL_COVERAGE, spatialCoverage: "Ciudad Autónoma de Buenos Aires, Argentina", variableMeasured: ["Robos registrados cada 1.000 residentes", "Hurtos registrados cada 1.000 residentes", "Delitos contra las personas registrados cada 1.000 residentes", "Total de delitos registrados cada 1.000 residentes", "Alquiler pedido mensual de dos ambientes"] },
+};
+
+Decir que un barrio es «seguro» sin decir **de qué** es una simplificación que cambia la respuesta. Un teléfono sacado sin violencia, un robo y una amenaza no siguen necesariamente los mismos recorridos urbanos. Por eso esta investigación no suma todo y termina: abre los tres tipos que publica el Mapa del Delito y compara los 48 barrios bajo el mismo denominador.
+
+El resultado desmonta una respuesta cómoda. Agronomía es el barrio con menor tasa de robos registrados; Villa Lugano tiene la menor de hurtos; Villa del Parque la menor de delitos contra las personas. Los barrios que se mantienen calmos en las tres columnas son una lista más corta —y más útil— que cualquier podio único.
+
+También contrasta una idea muy repetida en notas y conversaciones: Caballito suele aparecer como la comuna de menor incidencia de robos y hurtos, mientras que el norte y Puerto Madero sostienen una reputación de seguridad. El primer punto es compatible con el dato. El segundo necesita una advertencia: la tasa por residente no funciona igual en un barrio de oficinas, turismo o visitantes que en uno residencial. Esta página no usa anécdotas para corregir el registro; las deja como contexto, no como prueba.
+
+## Qué vas a encontrar en esta página
+
+- **El barrio más calmo en cada delito**, en lugar de un ganador ficticio.
+- **Los perfiles comparables**, con robos, hurtos, delitos contra las personas, total y alquiler.
+- **La diferencia entre reputación y tasa**, especialmente en zonas de mucha población flotante.
+- **Qué no permite afirmar el dato**, incluidos los robos con arma por barrio.
+- **Cómo usar el alquiler**, como contexto de decisión y no como sustituto de seguridad.
+
+## El podio cambia cuando cambia la pregunta
+
+<SeguridadPorDelitoGanadores />
+
+La diferencia entre robos y hurtos no es semántica. La fuente los trata como categorías distintas: robo implica violencia; hurto, sustracción sin violencia. Agruparlos es razonable para ver actividad contra la propiedad, pero es insuficiente para alguien que elige según cómo vuelve de noche, dónde usa el teléfono o cuánto deja el auto en la calle.
+
+La tercera columna es deliberadamente más amplia. Lesiones, amenazas y homicidios tienen frecuencias y gravedad muy distintas, y no se deben usar para describir un riesgo único. Se agrupan sólo porque son la partición publicada de delitos contra las personas; la tabla deja visible que no son robos ni hurtos con otro nombre.
+
+## Los barrios que sostienen más de una prueba
+
+<SeguridadPorDelitoComparacion />
+
+Villa del Parque, Coghlan, Parque Chas, Villa Pueyrredón y Colegiales aparecen repetidamente entre los valores bajos. Agronomía agrega el mejor registro de robos. Son señales para armar una lista corta, no un certificado para una cuadra: los barrios chicos pueden cambiar de posición con pocos hechos y dentro de cada límite administrativo hay avenidas, estaciones y horarios muy distintos.
+
+El alquiler añade una segunda pregunta práctica. Cuando IDECBA tiene suficiente oferta para publicar el barrio, la última columna permite ver qué parte de esa calma ya está incorporada en el precio pedido. Cuando dice «Sin dato», no significa que sea barato ni caro: significa que no había avisos suficientes para que el organismo difundiera un promedio. Es el mismo límite que la [investigación de barrios seguros y baratos](/investigaciones/barrios-seguros-baratos-caba) trata como cobertura, no como cero.
+
+## Lo que la reputación acierta —y lo que no alcanza a medir
+
+Las notas periodísticas recientes que ordenan comunas suelen ubicar a Caballito, Comuna 10 y Comuna 12 entre las zonas de menor robo y hurto; ese patrón aparece también al mirar la serie oficial. Es una buena comprobación externa de que el resultado no es extravagante. Pero una comuna contiene barrios y corredores distintos, y transformar ese promedio en «todo Caballito es seguro» sería ir más lejos que el dato.
+
+Puerto Madero ilustra el problema inverso. Mucha gente lo describe como muy seguro por su vigilancia y menor exposición callejera, pero sus cifras por residente son difíciles de comparar con un barrio puramente residencial: recibe oficinas, turistas y visitantes que no entran al denominador. San Nicolás, Retiro y los nodos del centro tienen el mismo problema en una escala mayor. Una tasa alta ahí habla de hechos localizados, pero no calcula la probabilidad de una persona que vive, trabaja o sólo pasa por la zona.
+
+## El límite importante: «robo» no significa necesariamente «armado»
+
+El Mapa del Delito 2025 publica el robo con uso de armas como modalidad para toda CABA. El archivo barrial disponible para esta investigación sí separa robo, hurto, vehículos y delitos contra las personas, pero no entrega aquella modalidad por barrio en la serie que podemos verificar y actualizar. Sería tentador usar los robos como reemplazo; sería incorrecto.
+
+Por eso la conclusión útil es más modesta: se puede identificar dónde el registro muestra menos robos con violencia, menos hurtos sin violencia o menos hechos contra las personas por residente. No se puede afirmar desde estos datos que un barrio tenga menos robos armados, ni prometer que tenga menor riesgo personal.
+
+## Cómo leer este mapa sin engañarse
+
+1. **Compará tasas, no sólo conteos.** Palermo puede registrar más hechos que Agronomía porque tiene más habitantes y más tránsito; la tasa ordena por residentes.
+2. **No confundas residente con exposición.** El divisor no cuenta la población flotante. En áreas comerciales, turísticas o de transporte el número debe leerse con especial cautela.
+3. **No confundas registrado con ocurrido.** La fuente oficial advierte que más denuncia o mejor clasificación también pueden elevar los hechos registrados.
+4. **Usá los perfiles para descartar, no para decidir solo.** Visitá la cuadra, recorré el trayecto de noche y evaluá los horarios en los que realmente vas a usarla.
+
+<PaginaRelacionada href="/estadisticas/delitos-caba">
+  La serie completa permite cambiar el tipo de delito, el año y la geografía antes de llegar a una conclusión barrial.
+</PaginaRelacionada>
+
+<PaginaRelacionada href="/estadisticas/alquiler-caba">
+  Los precios pedidos por barrio y por tamaño de departamento son el contexto de alquiler de esta investigación.
+</PaginaRelacionada>
+
+<PaginaRelacionada href="/investigaciones/barrios-seguros-baratos-caba">
+  Para cruzar seguridad total con precio, esta investigación anterior ofrece el ranking y muestra qué barrios quedan fuera por falta de avisos.
+</PaginaRelacionada>
+
+<ClosingCta title="Una tasa no reemplaza el recorrido hasta tu puerta">
+  Encontrá y organizá las facturas del hogar para decidir con menos incertidumbre cuánto cuesta vivir en cada opción.
+</ClosingCta>
+
+<Faq />
+
+<Fuentes />
