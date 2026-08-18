@@ -3,8 +3,8 @@ import { SeguridadPorDelitoComparacion } from "@/components/investigacion/Seguri
 import { SeguridadPorDelitoGanadores } from "@/components/investigacion/SeguridadPorDelitoGanadores";
 
 export const meta = {
-  title: "Los barrios más seguros de CABA según el tipo de delito",
-  titleTag: "Barrios más seguros de CABA según el tipo de delito",
+  title: "Barrios con menos robos en CABA según el tipo de delito",
+  titleTag: "Barrios con menos robos en CABA",
   description:
     "Robos, hurtos y delitos contra las personas no dibujan el mismo mapa de CABA. Cruzamos sus tasas por barrio y el alquiler para separar calma real de reputación.",
   summary:
@@ -13,6 +13,8 @@ export const meta = {
   preview: "/img/investigacion/previews/barrios-seguros-tipo-delito-caba.png",
   cta: "Elegir barrio empieza por decidir qué riesgo importa.",
   keywords: [
+    "barrios con menos robos caba mapa",
+    "qué barrio tiene menos robos caba",
     "barrios mas seguros caba",
     "barrios seguros robos caba",
     "hurtos caba por barrio",
@@ -21,8 +23,12 @@ export const meta = {
     "barrios tranquilos buenos aires",
   ],
   published: "2026-08-18T12:00:00-03:00",
-  updated: "2026-08-18T12:00:00-03:00",
+  updated: "2026-08-18T16:30:00-03:00",
   faq: [
+    {
+      q: "¿Qué barrio tiene menos robos en CABA?",
+      a: "Agronomía tiene la menor tasa de robos registrados cada 1.000 residentes en los datos de 2025 que compara esta página. Esa respuesta no equivale a «el barrio más seguro» en general: Villa Lugano lidera en hurtos y Villa del Parque en delitos contra las personas. La tabla permite ver el resto de los barrios bajo el mismo denominador.",
+    },
     {
       q: "¿Cuál es el barrio más seguro de CABA?",
       a: "No hay un único ganador. En los hechos registrados de 2025, Agronomía tiene la menor tasa de robos, Villa Lugano la menor de hurtos y Villa del Parque la menor de delitos contra las personas. Para elegir conviene mirar las tres columnas, no una tasa total aislada.",
@@ -38,6 +44,18 @@ export const meta = {
     {
       q: "¿Se puede saber en qué barrios hay más robos a mano armada?",
       a: "No con este ranking. El Mapa del Delito publica el total porteño de robos con arma, pero el dataset barrial que se usa aquí no separa esa modalidad. La página no la estima ni llama «armado» a todo robo con violencia.",
+    },
+    {
+      q: "¿Cuál es la diferencia entre robo y hurto?",
+      a: "La diferencia es la violencia o fuerza: un robo implica que hubo violencia, amenaza o fuerza sobre las cosas; un hurto es una sustracción sin esas circunstancias. No son sinónimos ni tienen por qué concentrarse en los mismos barrios, por eso esta investigación los muestra en columnas separadas.",
+    },
+    {
+      q: "¿Qué es robo?",
+      a: "En esta investigación, robo es la categoría de hecho registrado que implica sustracción con violencia, amenaza o fuerza. No permite concluir que haya arma: la modalidad con armas sólo está disponible de forma agregada para toda la Ciudad, no por barrio en la serie que usamos.",
+    },
+    {
+      q: "¿Qué es hurto?",
+      a: "Hurto es la sustracción de una cosa sin violencia, amenaza ni fuerza. Un caso típico puede ser el apoderamiento de un objeto sin que la víctima lo advierta; la calificación final depende de las circunstancias y del registro oficial. Por eso no se debe sumar mecánicamente a robo y llamar a todo «inseguridad».",
     },
     {
       q: "¿Los delitos registrados reflejan todos los delitos?",
@@ -84,7 +102,7 @@ export const meta = {
 
 Decir que un barrio es «seguro» sin decir **de qué** es una simplificación que cambia la respuesta. Un teléfono sacado sin violencia, un robo y una amenaza no siguen necesariamente los mismos recorridos urbanos. Por eso esta investigación no suma todo y termina: abre los tres tipos que publica el Mapa del Delito y compara los 48 barrios bajo el mismo denominador.
 
-El resultado desmonta una respuesta cómoda. Agronomía es el barrio con menor tasa de robos registrados; Villa Lugano tiene la menor de hurtos; Villa del Parque la menor de delitos contra las personas. Los barrios que se mantienen calmos en las tres columnas son una lista más corta —y más útil— que cualquier podio único.
+El resultado desmonta una respuesta cómoda. Si la pregunta es «¿qué barrio tiene menos robos en CABA?», Agronomía tiene la menor tasa de robos registrados. Villa Lugano tiene la menor de hurtos y Villa del Parque la menor de delitos contra las personas. Los barrios que se mantienen calmos en las tres columnas son una lista más corta —y más útil— que cualquier podio único.
 
 También contrasta una idea muy repetida en notas y conversaciones: Caballito suele aparecer como la comuna de menor incidencia de robos y hurtos, mientras que el norte y Puerto Madero sostienen una reputación de seguridad. El primer punto es compatible con el dato. El segundo necesita una advertencia: la tasa por residente no funciona igual en un barrio de oficinas, turismo o visitantes que en uno residencial. Esta página no usa anécdotas para corregir el registro; las deja como contexto, no como prueba.
 
@@ -100,7 +118,7 @@ También contrasta una idea muy repetida en notas y conversaciones: Caballito su
 
 <SeguridadPorDelitoGanadores />
 
-La diferencia entre robos y hurtos no es semántica. La fuente los trata como categorías distintas: robo implica violencia; hurto, sustracción sin violencia. Agruparlos es razonable para ver actividad contra la propiedad, pero es insuficiente para alguien que elige según cómo vuelve de noche, dónde usa el teléfono o cuánto deja el auto en la calle.
+La diferencia entre robo y hurto no es semántica. **Robo** es una sustracción con violencia, amenaza o fuerza; **hurto**, una sustracción sin esas circunstancias. La fuente los trata como categorías distintas. Agruparlos es razonable para ver actividad contra la propiedad, pero es insuficiente para alguien que elige según cómo vuelve de noche, dónde usa el teléfono o cuánto deja el auto en la calle.
 
 La tercera columna es deliberadamente más amplia. Lesiones, amenazas y homicidios tienen frecuencias y gravedad muy distintas, y no se deben usar para describir un riesgo único. Se agrupan sólo porque son la partición publicada de delitos contra las personas; la tabla deja visible que no son robos ni hurtos con otro nombre.
 
@@ -124,7 +142,9 @@ El Mapa del Delito 2025 publica el robo con uso de armas como modalidad para tod
 
 Por eso la conclusión útil es más modesta: se puede identificar dónde el registro muestra menos robos con violencia, menos hurtos sin violencia o menos hechos contra las personas por residente. No se puede afirmar desde estos datos que un barrio tenga menos robos armados, ni prometer que tenga menor riesgo personal.
 
-## Cómo leer este mapa sin engañarse
+## Mapa de barrios con menos robos en CABA: cómo leerlo
+
+La tabla de arriba da la respuesta para el mapa de barrios con menos robos de CABA; para explorar la geografía completa, con los 48 barrios, usá el [mapa de delitos de Factura](/estadisticas/delitos-caba). Esta investigación conserva un propósito distinto: comparar robo, hurto y delitos contra las personas en la misma lectura, en vez de publicar otra serie general de delitos.
 
 1. **Compará tasas, no sólo conteos.** Palermo puede registrar más hechos que Agronomía porque tiene más habitantes y más tránsito; la tasa ordena por residentes.
 2. **No confundas residente con exposición.** El divisor no cuenta la población flotante. En áreas comerciales, turísticas o de transporte el número debe leerse con especial cautela.
