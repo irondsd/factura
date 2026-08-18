@@ -10,6 +10,7 @@ import {
   PERIODS,
   periodLabel,
   periodShort,
+  SCOPE,
   SOURCE,
   value,
 } from "@/content/estadisticas/data/venta-pba";
@@ -76,11 +77,11 @@ export function VentaPbaHistoria() {
       />
 
       <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        El precio del metro cuadrado de cada partido, mes a mes, en dólares. En
-        dólares y no en pesos porque así se opera y así se publica: una serie en
-        dólares se puede leer de punta a punta sin corregir por inflación, cosa
-        que con precios en pesos argentinos no se puede hacer. Los cortes en las
-        líneas son meses sin dato, no meses sin mercado.
+        El precio del metro cuadrado de cada partido de {SCOPE}, mes a mes, en
+        dólares. En dólares y no en pesos porque así se opera y así se publica:
+        una serie en dólares se puede leer de punta a punta sin corregir por
+        inflación, cosa que con precios en pesos argentinos no se puede hacer.
+        Los cortes en las líneas son meses sin dato, no meses sin mercado.
       </figcaption>
 
       <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">

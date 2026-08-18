@@ -75,6 +75,23 @@ export const LAST_PERIOD = PERIODS[PERIODS.length - 1];
  * thing a reader has to know about a number nobody official publishes. */
 export const SOURCE = DATA.source;
 
+/**
+ * What this dataset actually covers, in the words the page uses for it.
+ *
+ * The page is titled for the province because that is what people search, and
+ * the province is genuinely the subject — but the data is not province-wide and
+ * never will be, so every figure has to name its own scope. These two constants
+ * exist so that scope is written once: a component that invents its own phrase
+ * is a component that will still say "la provincia" after somebody tightens the
+ * wording everywhere else.
+ *
+ * `SCOPE` is the short form for a heading. `SCOPE_LONG` is the one that has to
+ * be exact, and it is exact about La Plata, which is not Gran Buenos Aires by
+ * any definition — it is here because the source started publishing it.
+ */
+export const SCOPE = "el Gran Buenos Aires";
+export const SCOPE_LONG = "el Gran Buenos Aires y La Plata";
+
 /** The period from which the zone aggregate means "oeste alone". Before it,
  * `oeste-sur`. See the header. */
 export const ZONA_SERIES_BREAK = "2026-03";

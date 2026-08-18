@@ -11,6 +11,8 @@ import {
   NO_DATA,
   ranked,
   rows,
+  SCOPE,
+  SCOPE_LONG,
   SOURCE,
 } from "@/content/estadisticas/data/venta-pba";
 
@@ -69,7 +71,7 @@ function note(): string {
   // Derived, because the day a portal starts pricing another partido this
   // sentence has to shrink with the map rather than contradict it.
   const unpriced = PARTIDOS.length - total;
-  return `${shaded} La Ciudad de Buenos Aires se dibuja en gris: no es parte de la provincia y tiene su propia página. Los otros ${unpriced} partidos no aparecen porque ningún portal publica un precio para ellos —el mapa termina donde termina el dato, no donde termina la provincia.`;
+  return `${shaded} Este es ${SCOPE_LONG}, no la provincia entera: los otros ${unpriced} partidos no aparecen porque ningún portal publica un precio para ellos, así que el mapa termina donde termina el dato y no donde termina la provincia. La Ciudad de Buenos Aires se dibuja en gris porque no es parte de la provincia y tiene su propia página.`;
 }
 
 export function VentaPbaMapa() {
@@ -90,7 +92,7 @@ export function VentaPbaMapa() {
   return (
     <figure className="fd-card my-8 px-5 pt-5 pb-4">
       <MapaAmba
-        title="Precio del m² por partido, en dólares"
+        title={`Precio del m² por partido en ${SCOPE_LONG}`}
         dimensions={[]}
         initial={{}}
         views={{ "": view }}
@@ -108,12 +110,12 @@ export function VentaPbaMapa() {
 
       <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
         El valor del metro cuadrado de los departamentos en venta en los{" "}
-        {rows().length} partidos de la provincia para los que hay dato, en
-        dólares. El mapa no se ordena en bloques por zona: la franja más cara es
-        continua y corre pegada al río hacia el norte, y a medida que uno se
-        aleja de la Ciudad —en cualquier dirección— el valor cae. Dos partidos
-        vecinos pueden estar al doble uno del otro, y eso se ve mejor acá que en
-        la tabla.
+        {rows().length} partidos de la provincia para los que hay dato —{SCOPE}{" "}
+        y La Plata—, en dólares. El mapa no se ordena en bloques por zona: la
+        franja más cara es continua y corre pegada al río hacia el norte, y a
+        medida que uno se aleja de la Ciudad —en cualquier dirección— el valor
+        cae. Dos partidos vecinos pueden estar al doble uno del otro, y eso se
+        ve mejor acá que en la tabla.
       </figcaption>
 
       <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">

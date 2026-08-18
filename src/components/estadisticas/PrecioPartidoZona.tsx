@@ -1,6 +1,7 @@
 import {
   formatUsd,
   LAST_UPDATED,
+  SCOPE,
   SOURCE,
   zonaIndex,
   zonas,
@@ -35,7 +36,7 @@ export function PrecioPartidoZona() {
     <figure className="fd-card my-8 px-5 pt-5 pb-4">
       <figcaption className="mb-4">
         <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          El precio del m² por zona
+          El precio del m² por zona del Gran Buenos Aires
         </h3>
         <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
           Norte, oeste y sur · {LAST_UPDATED}
@@ -102,18 +103,21 @@ export function PrecioPartidoZona() {
       </div>
 
       <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Cada zona va de su partido más caro al más barato, y los tres rangos se
-        pisan entre sí: hay partidos del oeste por encima de partidos del norte
-        y al revés. La zona sirve para ubicarse en el mapa, no para estimar un
-        precio —para eso está el partido.
+        Las tres zonas son las del conurbano, no las de la provincia: {SCOPE} se
+        divide en norte, oeste y sur, y el interior bonaerense no entra en
+        ninguna. Cada zona va de su partido más caro al más barato, y los tres
+        rangos se pisan entre sí: hay partidos del oeste por encima de partidos
+        del norte y al revés. La zona sirve para ubicarse en el mapa, no para
+        estimar un precio —para eso está el partido.
       </p>
 
       <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
         El «partido del medio» es la mediana de los partidos de la zona, con
         cada partido contando una vez. El «índice del portal» es el promedio que
         publica la fuente, ponderado por la cantidad de avisos, así que los dos
-        números no tienen por qué coincidir. Zona Norte:{" "}
-        {rows.find((z) => z.id === "norte")?.covers}. Zona Oeste:{" "}
+        números no tienen por qué coincidir. La Plata figura en la zona sur
+        porque es donde la ubica la fuente, aunque no sea parte del conurbano.
+        Zona Norte: {rows.find((z) => z.id === "norte")?.covers}. Zona Oeste:{" "}
         {rows.find((z) => z.id === "oeste")?.covers}. Zona Sur:{" "}
         {rows.find((z) => z.id === "sur")?.covers}. Fuente: {SOURCE}, datos
         hasta {LAST_UPDATED}.

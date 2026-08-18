@@ -73,7 +73,7 @@ const ENTRIES: SectionEntry[] = [
   // a hub whose only content is "here are the two" is a doorway.
   {
     slug: ["precio-m2-provincia-buenos-aires"],
-    crumb: "Precio del m² en Provincia",
+    crumb: "Precio del m² en GBA",
     file: "precio-m2-provincia-buenos-aires.mdx",
     load: () => import("./precio-m2-provincia-buenos-aires.mdx"),
   },

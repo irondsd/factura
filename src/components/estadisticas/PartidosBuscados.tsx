@@ -6,6 +6,7 @@ import {
   rankOf,
   REFERENCE_AREA,
   rows,
+  SCOPE_LONG,
   totalPrice,
 } from "@/content/estadisticas/data/venta-pba";
 
@@ -104,8 +105,8 @@ export function PartidosBuscados() {
         El puesto es sobre los partidos que tienen precio publicado este mes,
         del más caro al más barato. El precio del dos ambientes usa {AREA} m²
         cubiertos de referencia; para otra superficie, multiplicá los metros por
-        el valor del m². Los {rows().length} partidos con dato están en la tabla
-        que sigue al mapa.
+        el valor del m². Los {rows().length} partidos con dato —{SCOPE_LONG}—
+        están en la tabla que sigue al mapa.
       </p>
     </figure>
   );
