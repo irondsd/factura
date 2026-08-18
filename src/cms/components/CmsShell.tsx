@@ -50,7 +50,7 @@ export function CmsShell({
             href="/cms"
             className="font-display font-semibold text-[19px] tracking-[-0.02em] no-underline text-ink"
           >
-            Factura CMS
+            Factura<span className="text-accent">.</span>CMS
           </Link>
           <nav className="flex items-center gap-4">
             {links.map((l) => (
