@@ -110,6 +110,32 @@ export function siteFooterColumns(
 const ACTIVE_LINK =
   "text-accent underline decoration-dotted underline-offset-[5px]";
 
+// Glyph markers for the mobile burger menu, keyed by canonical href.
+//
+// The product ships no icon set — its iconography is typographic, the same
+// mono glyphs the ledger and the section labels already use — so the menu
+// marks its rows with characters rather than importing a line-icon library
+// that would read as a different, more conventional app.
+//
+// Mobile only. The desktop row is seven tracked uppercase labels with 26px
+// between them; hanging a glyph off each one turns a quiet line of type into a
+// toolbar, which is exactly what that row is not.
+//
+// Every glyph here must exist in the *latin subset* of IBM Plex Mono, which is
+// all `src/config/fonts.ts` loads. A character outside it (▸, ∑ — the obvious
+// picks for Demo and Estadísticas) silently falls through to a system font and
+// lands in the row at the wrong weight, width and size, which is worse than a
+// plainer glyph that belongs. Test any replacement before using it.
+const NAV_GLYPH: Record<string, string> = {
+  "/probar": "\u2193", // ↓ drop a bill in
+  "/docs": "\u00a7", // § section mark
+  "/faq": "?",
+  "/demo": "\u00bb", // » run it
+  "/estadisticas": "%", // rates and variations
+  "/investigaciones": "*", // footnote star
+  "/guias": "\u00b6", // ¶ prose
+};
+
 // The marketing nav links, in two dresses:
 //
 // - `bar` (inside <SiteHeader/> on sub-pages): a full nav row only once its
@@ -183,6 +209,7 @@ export async function SiteNav({
           links={links.map((link) => ({
             label: link.label,
             href: localizedHref(link.href, locale),
+            glyph: NAV_GLYPH[link.href],
             active: link.href === active,
           }))}
         />
