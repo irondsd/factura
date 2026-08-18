@@ -35,11 +35,14 @@ export async function SiteFooter({
             <Eyebrow>{t.siteChrome.footerLeft}</Eyebrow>
           </div>
 
-          {/* Three across from `md:`, not from `sm:`. Nav labels don't wrap, and
+          {/* Two across on phones, three from `md:`. Nav labels don't wrap, and
               "Estadísticas" is wider than a third of a 640px column once the
-              brand block is beside it — so below that the groups stack in order
-              rather than colliding. */}
-          <nav className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-10 lg:gap-16">
+              brand block is beside it — so below `md:` the three groups fall
+              into a 2-up grid (producto / aprender, then factura on its own
+              row) rather than colliding or running down one long column. The
+              x-gap stays tighter than the y-gap so the widest label
+              ("Investigaciónes") still clears a 320px viewport. */}
+          <nav className="grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 md:gap-10 lg:gap-16">
             {columns.map((column) => (
               <div key={column.label} className="flex flex-col gap-3">
                 {/* A label, not a link — see siteFooterColumns. */}
