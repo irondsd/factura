@@ -19,7 +19,9 @@ export function BarriosSubestimadosPerfiles() {
               </h3>
             </div>
             <div className="font-mono text-xs text-right tabular-nums text-muted shrink-0">
-              <span className="block text-ink">{formatArsPerMetre(barrio.rentPerMetre)}</span>
+              <span className="block text-ink">
+                {formatArsPerMetre(barrio.rentPerMetre)}
+              </span>
               <span>{formatRate(barrio.crimeRate)} delitos</span>
             </div>
           </div>
@@ -29,19 +31,27 @@ export function BarriosSubestimadosPerfiles() {
           </p>
           <dl className="font-mono text-xs leading-[1.55] mt-5 space-y-3">
             <div>
-              <dt className="uppercase tracking-label-wide text-muted">Mejor para</dt>
+              <dt className="uppercase tracking-label-wide text-muted">
+                Mejor para
+              </dt>
               <dd className="text-ink/90 mt-1">{barrio.bestFor}</dd>
             </div>
             <div>
-              <dt className="uppercase tracking-label-wide text-muted">Lo que entrega</dt>
+              <dt className="uppercase tracking-label-wide text-muted">
+                Lo que entrega
+              </dt>
               <dd className="text-ink/90 mt-1">{barrio.upside}</dd>
             </div>
             <div>
-              <dt className="uppercase tracking-label-wide text-muted">Lo que cobra</dt>
+              <dt className="uppercase tracking-label-wide text-muted">
+                Lo que cobra
+              </dt>
               <dd className="text-ink/90 mt-1">{barrio.tradeoff}</dd>
             </div>
             <div>
-              <dt className="uppercase tracking-label-wide text-muted">Próximos años</dt>
+              <dt className="uppercase tracking-label-wide text-muted">
+                Próximos años
+              </dt>
               <dd className="text-ink/90 mt-1">{barrio.outlook}</dd>
             </div>
           </dl>
@@ -50,4 +60,3 @@ export function BarriosSubestimadosPerfiles() {
     </div>
   );
 }
-

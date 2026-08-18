@@ -33,19 +33,27 @@ export function BarriosSubestimadosContraste() {
           Los que quedaron en la puerta —y por qué
         </h3>
         <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          La prueba contra la selección: un candidato cercano, uno ya valorado, dos sin cobertura y un falso atajo.
+          La prueba contra la selección: un candidato cercano, uno ya valorado,
+          dos sin cobertura y un falso atajo.
         </p>
       </figcaption>
       <div className="divide-y divide-line">
         {OUT.map((item) => (
-          <div key={item.barrio} className="grid sm:grid-cols-[190px_1fr] gap-2 sm:gap-5 py-3 first:pt-0">
+          <div
+            key={item.barrio}
+            className="grid sm:grid-cols-[190px_1fr] gap-2 sm:gap-5 py-3 first:pt-0"
+          >
             <div>
-              <strong className="font-mono text-sm font-medium text-ink">{item.barrio}</strong>
+              <strong className="font-mono text-sm font-medium text-ink">
+                {item.barrio}
+              </strong>
               <span className="block font-mono text-micro uppercase tracking-label-wide text-accent mt-1">
                 {item.reason}
               </span>
             </div>
-            <p className="font-mono text-xs leading-[1.65] text-muted m-0">{item.detail}</p>
+            <p className="font-mono text-xs leading-[1.65] text-muted m-0">
+              {item.detail}
+            </p>
           </div>
         ))}
       </div>

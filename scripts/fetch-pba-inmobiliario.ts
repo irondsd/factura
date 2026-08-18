@@ -349,12 +349,10 @@ async function main(): Promise<void> {
         );
       }
       if (!fetched.has(period)) fetched.set(period, new Map());
-      fetched
-        .get(period)!
-        .set(fam.key, {
-          rows,
-          ...(unit ? unidadMedia(unit) : { amb2: null, amb3: null }),
-        });
+      fetched.get(period)!.set(fam.key, {
+        rows,
+        ...(unit ? unidadMedia(unit) : { amb2: null, amb3: null }),
+      });
     }
   }
 

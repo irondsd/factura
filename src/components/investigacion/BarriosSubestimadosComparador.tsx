@@ -33,12 +33,16 @@ export function BarriosSubestimadosComparador() {
           Cambiá la prioridad, no los datos
         </h3>
         <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Precio y seguridad son posiciones oficiales; transporte, verde y futuro son
-          evaluaciones editoriales publicadas en esta misma figura.
+          Precio y seguridad son posiciones oficiales; transporte, verde y
+          futuro son evaluaciones editoriales publicadas en esta misma figura.
         </p>
       </figcaption>
 
-      <div className="flex flex-wrap gap-2 mt-5" role="group" aria-label="Prioridad para ordenar los barrios">
+      <div
+        className="flex flex-wrap gap-2 mt-5"
+        role="group"
+        aria-label="Prioridad para ordenar los barrios"
+      >
         {PREFERENCES.map((item) => (
           <button
             key={item.id}
@@ -58,24 +62,42 @@ export function BarriosSubestimadosComparador() {
 
       <div className="grid sm:grid-cols-2 gap-3 mt-5">
         {ordered.map(({ candidate, score }, index) => (
-          <div key={candidate.id} className="border border-line bg-paper/35 p-4">
+          <div
+            key={candidate.id}
+            className="border border-line bg-paper/35 p-4"
+          >
             <div className="flex items-baseline justify-between gap-4">
               <div className="font-display text-[20px] font-semibold text-ink">
-                <span className="font-mono text-xs text-muted mr-2">{index + 1}</span>
+                <span className="font-mono text-xs text-muted mr-2">
+                  {index + 1}
+                </span>
                 {candidate.label}
               </div>
-              <span className="font-mono text-sm tabular-nums text-accent">{Math.round(score)}/100</span>
+              <span className="font-mono text-sm tabular-nums text-accent">
+                {Math.round(score)}/100
+              </span>
             </div>
             <div className="mt-4 space-y-2">
               {metrics.map(([key, label]) => {
                 const value = candidate[key];
                 return (
-                  <div key={key} className="grid grid-cols-[78px_1fr_28px] items-center gap-2 font-mono text-[11px]">
+                  <div
+                    key={key}
+                    className="grid grid-cols-[78px_1fr_28px] items-center gap-2 font-mono text-[11px]"
+                  >
                     <span className="text-muted">{label}</span>
-                    <span className="h-1.5 bg-line/70 overflow-hidden" aria-hidden="true">
-                      <span className="block h-full bg-accent" style={{ width: `${value}%` }} />
+                    <span
+                      className="h-1.5 bg-line/70 overflow-hidden"
+                      aria-hidden="true"
+                    >
+                      <span
+                        className="block h-full bg-accent"
+                        style={{ width: `${value}%` }}
+                      />
                     </span>
-                    <span className="tabular-nums text-right text-muted">{Math.round(value)}</span>
+                    <span className="tabular-nums text-right text-muted">
+                      {Math.round(value)}
+                    </span>
                   </div>
                 );
               })}
@@ -85,9 +107,12 @@ export function BarriosSubestimadosComparador() {
       </div>
 
       <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Pesos actuales para «{selected.label.toLowerCase()}»: precio {selected.weights.cheap}%,
-        seguridad {selected.weights.safe}%, transporte {selected.weights.transport}%, verde {selected.weights.publicSpace}%
-        y futuro {selected.weights.future}%. El resultado sirve para revelar el canje, no para fingir precisión inmobiliaria.
+        Pesos actuales para «{selected.label.toLowerCase()}»: precio{" "}
+        {selected.weights.cheap}%, seguridad {selected.weights.safe}%,
+        transporte {selected.weights.transport}%, verde{" "}
+        {selected.weights.publicSpace}% y futuro {selected.weights.future}%. El
+        resultado sirve para revelar el canje, no para fingir precisión
+        inmobiliaria.
       </p>
     </figure>
   );

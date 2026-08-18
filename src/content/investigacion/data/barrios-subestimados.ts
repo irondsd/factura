@@ -69,8 +69,10 @@ const EDITORIAL: EditorialProfile[] = [
     publicSpace: 30,
     future: 72,
     transportLabel: "A, B y H + Sarmiento + gran red de colectivos",
-    publicSpaceLabel: "Déficit fuerte, amortiguado por Manzana 66 y Parque de la Estación",
-    futureLabel: "Once ordenado desde 2024; Línea F en licitación, con plazo incierto",
+    publicSpaceLabel:
+      "Déficit fuerte, amortiguado por Manzana 66 y Parque de la Estación",
+    futureLabel:
+      "Once ordenado desde 2024; Línea F en licitación, con plazo incierto",
     bestFor: "Quien quiere resolver casi toda la ciudad sin auto",
     upside:
       "El alquiler de los cuatro más bajo después de Villa General Mitre y una conectividad difícil de igualar: tres líneas de subte, tren y corredores de colectivos caminables.",
@@ -172,12 +174,24 @@ export const PREFERENCES = [
   {
     id: "equilibrio",
     label: "Equilibrio",
-    weights: { cheap: 25, safe: 25, transport: 25, publicSpace: 15, future: 10 },
+    weights: {
+      cheap: 25,
+      safe: 25,
+      transport: 25,
+      publicSpace: 15,
+      future: 10,
+    },
   },
   {
     id: "movilidad",
     label: "Moverme fácil",
-    weights: { cheap: 15, safe: 15, transport: 45, publicSpace: 10, future: 15 },
+    weights: {
+      cheap: 15,
+      safe: 15,
+      transport: 45,
+      publicSpace: 10,
+      future: 15,
+    },
   },
   {
     id: "calma",
@@ -187,13 +201,22 @@ export const PREFERENCES = [
   {
     id: "verde",
     label: "Verde y barrio",
-    weights: { cheap: 15, safe: 20, transport: 15, publicSpace: 40, future: 10 },
+    weights: {
+      cheap: 15,
+      safe: 20,
+      transport: 15,
+      publicSpace: 40,
+      future: 10,
+    },
   },
 ] as const;
 
 export type PreferenceId = (typeof PREFERENCES)[number]["id"];
 
-export function preferenceScore(candidate: Candidate, id: PreferenceId): number {
+export function preferenceScore(
+  candidate: Candidate,
+  id: PreferenceId,
+): number {
   const { weights } = PREFERENCES.find((preference) => preference.id === id)!;
   return (
     (candidate.cheap * weights.cheap +
@@ -208,4 +231,3 @@ export function preferenceScore(candidate: Candidate, id: PreferenceId): number 
 export const PRICE_SAFETY_COVERAGE = rows("barrios").filter(
   (row) => row.rentPerMetre !== null,
 ).length;
-
