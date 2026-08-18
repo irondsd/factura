@@ -114,6 +114,7 @@ describe("cms_page access", () => {
     path.join("src", "content-system", "repository", "postgres.ts"),
     path.join("src", "content-system", "repository", "mapping.ts"),
     path.join("src", "cms", "server", "store.ts"),
+    path.join("src", "content-system", "adapters", "database.ts"),
     // The schema defines the table; the seed and test helpers may reference it.
     path.join("src", "db", "schema.ts"),
   ];
@@ -153,5 +154,49 @@ describe("cms_page access", () => {
         ),
       );
     expect(offenders).toEqual([]);
+  });
+});
+
+// `src/content-system/adapters/mdxMeta.ts` evaluates a repository `.mdx` file's
+// meta block with `new Function`. That is safe for the reason it has always
+// been safe — the input is a file only the maintainers can commit — and is
+// exactly the thing database content may never do. It belongs to the CLI and
+// the importer; nothing a request can reach may import it.
+describe("mdxMeta stays off the request path", () => {
+  const EVAL_MODULE = "content-system/adapters/mdxMeta";
+
+  function sourceFiles(dir: string): string[] {
+    if (!fs.existsSync(dir)) return [];
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) return sourceFiles(full);
+      return /\.tsx?$/.test(entry.name) ? [full] : [];
+    });
+  }
+
+  it("is not imported by any route, CMS module or public repository", () => {
+    const roots = [
+      path.join(process.cwd(), "src/app"),
+      path.join(process.cwd(), "src/cms"),
+      path.join(process.cwd(), "src/components"),
+      path.join(process.cwd(), "src/content-system/repository"),
+    ];
+    const offenders = roots
+      .flatMap(sourceFiles)
+      .filter(
+        (file) => !file.endsWith(".test.ts") && !file.endsWith(".test.tsx"),
+      )
+      .filter((file) => fs.readFileSync(file, "utf8").includes(EVAL_MODULE))
+      .map((file) => path.relative(process.cwd(), file));
+    expect(offenders).toEqual([]);
+  });
+
+  it("is imported by the filesystem adapter, which is where it belongs", () => {
+    // Guards the guard: a rename would make the check above pass vacuously.
+    const adapter = fs.readFileSync(
+      path.join(process.cwd(), "src/content-system/adapters/filesystem.ts"),
+      "utf8",
+    );
+    expect(adapter).toContain("./mdxMeta");
   });
 });

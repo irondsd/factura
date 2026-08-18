@@ -1,5 +1,10 @@
 import { eq, like } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  documentsFromDatabase,
+  parseSnapshot,
+  serializeSnapshot,
+} from "@/content-system/adapters/database";
 import { PostgresContentRepository } from "@/content-system/repository/postgres";
 import type { ContentStatus, ValidationResult } from "@/content-system/types";
 import type { CmsActor } from "../types";
@@ -375,6 +380,27 @@ if (!hasTestDatabase()) {
         const after = await service.get(actor, page.id);
         expect(after.body).toBe(page.body);
         expect(after.lockVersion).toBe(page.lockVersion);
+      });
+    });
+
+    describe("database adapter", () => {
+      it("returns every state, unlike the public repository", async () => {
+        // A collection validator has to see drafts: "this published page links to
+        // a draft" is the finding it exists to produce.
+        const draft = await service.create(actor, draftInput("adapter-draft"));
+        const documents = await documentsFromDatabase("guias", db);
+        expect(documents.map((d) => d.slug)).toContain(draft.slug);
+        expect(
+          (await repository.listPublished("guias")).map((s) => s.slug),
+        ).not.toContain(draft.slug);
+      });
+
+      it("round-trips a snapshot", async () => {
+        // CI has no database, so `validate:content` after cutover validates an
+        // exported snapshot. It has to survive JSON.
+        await service.create(actor, draftInput("adapter-snapshot"));
+        const documents = await documentsFromDatabase("guias", db);
+        expect(parseSnapshot(serializeSnapshot(documents))).toEqual(documents);
       });
     });
 

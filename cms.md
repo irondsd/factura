@@ -1079,20 +1079,147 @@ validate:content: pass — 63 files · 0 errors · 0 warnings (unchanged)
 
 ### Phase 4 — Refactor validation without losing CI coverage
 
-- [ ] Extract pure metadata and document validators from
+- [x] Extract pure metadata and document validators from
       `scripts/validate-guides.ts`.
-- [ ] Extract pure cross-document validation from the current scripts.
-- [ ] Implement filesystem and database/snapshot adapters.
-- [ ] Preserve existing validator messages where practical so migration diffs
+- [x] Extract pure cross-document validation from the current scripts.
+- [x] Implement filesystem and database/snapshot adapters.
+- [x] Preserve existing validator messages where practical so migration diffs
       remain understandable.
-- [ ] Add validation levels for draft save, preview, publish, and published save.
-- [ ] Add deterministic validator tests using in-memory documents.
-- [ ] Keep `bun run validate:content` operational during the transition.
-- [ ] Compare old and new validation reports over all existing guides and
+- [x] Add validation levels for draft save, preview, publish, and published save.
+- [x] Add deterministic validator tests using in-memory documents.
+- [x] Keep `bun run validate:content` operational during the transition.
+- [x] Compare old and new validation reports over all existing guides and
       resolve unexplained differences.
 
 **Gate:** Existing guides receive equivalent or stricter validation under the
 new pure validator.
+
+#### Phase 4 implementation notes
+
+Recorded 2026-08-18.
+
+| File                                           | Role                                                                  |
+| ---------------------------------------------- | --------------------------------------------------------------------- |
+| `src/content-system/validation/text.ts`        | `fold` / `missingKeywordWords`, moved out of `scripts/lib/content.ts` |
+| `src/content-system/validation/document.ts`    | layer 2 — every per-page rule, pure                                   |
+| `src/content-system/validation/collection.ts`  | layer 3 — cross-page rules and `buildContentIndex`                    |
+| `src/content-system/validation/index.ts`       | `validateContentDocument` / `validateContentCollection`, level policy |
+| `src/content-system/adapters/mdxMeta.ts`       | the meta-block reader, moved out of `scripts/lib/content.ts`          |
+| `src/content-system/adapters/filesystem.ts`    | `documentsFromFilesystem()`                                           |
+| `src/content-system/adapters/database.ts`      | `documentsFromDatabase()` + snapshot serialization                    |
+| `src/content-system/components/definitions.ts` | manifest rules, split from the React bindings                         |
+| `src/cms/server/validation.ts`                 | wires the pure layers to the CMS service, adds layer 4                |
+| `scripts/validate-guides.ts`                   | rewritten as a thin adapter over the above (529 → 74 lines)           |
+
+##### One implementation, not two
+
+The rules moved into `src/content-system/validation` and are now the same
+functions the CMS editor, the publish gate and the CMS MCP call. Leaving the old
+copy in place would have been less work and would have drifted within a phase or
+two. `scripts/lib/content.ts` re-exports the moved helpers, so
+`validate-sections.ts` and every other importer kept working untouched.
+
+##### The manifest had to be split
+
+Grammar validation needs the manifest, and `bun run validate:content` is a CLI —
+importing the manifest pulled in the React component tree and failed on
+`server-only`. `components/definitions.ts` now holds the rules (names, sections,
+`kind`, Zod property schemas, descriptions) with no React import, and
+`components/manifest.tsx` merges in the bindings for rendering. The manifest is
+built by mapping over the definitions, so a name cannot be renderable without
+being validated.
+
+##### Old versus new: the comparison
+
+Both validators were run over the 43 real guides **and** over 19 deliberately
+broken variants of one guide — a mutation per rule: long title, short
+description, bad dates, unknown category, self-canonical, broken link, missing
+`<Faq />`, H1 in body, and so on.
+
+- **The real corpus: identical.** `NO_COLOR=1 bun run validate:content` before
+  and after the rewrite diffs to nothing, byte for byte.
+- **18 of 19 mutations: identical**, message for message.
+- **1 of 19 differs, deliberately:** an unrecognized `meta` key was a _warning_
+  and is now an _error_. The wording is unchanged (`meta has unexpected key
+"…"`); only the severity moved. A validated JSONB column cannot hold a key
+  nothing reads, and the importer must not quietly drop one.
+
+The first run of that comparison found three real bugs in the new validator, all
+fixed before the rewrite landed:
+
+1. When the metadata schema failed for _any_ reason, `faq` came back undefined
+   and a body containing `<Faq />` was reported as "faq is missing" — a
+   fabricated second error on top of the real one. The FAQ checks now read the
+   raw metadata, so one broken field no longer invents findings about others.
+2. `categories` was reported twice: once by the Zod schema and once by the
+   explicit check that names the offending id. Zod issues for fields with their
+   own wording are now skipped.
+3. A canonical pointing at a slug that does not exist got both "is not a guide
+   slug" (document layer) and "is not published" (collection layer). The
+   collection rule now fires only when the target actually exists.
+
+The comparison harness was a scratch file and is not committed. Its permanent
+replacement is `adapters/filesystem.test.ts`, which validates all 43 real guides
+through the pure validator on every run — the regression test for this phase's
+gate.
+
+##### Validation levels
+
+`LEVEL_LAYERS` in `validation/index.ts` implements §5.3:
+
+| level     | grammar | document | collection | render |
+| --------- | ------- | -------- | ---------- | ------ |
+| `draft`   | yes     |          |            |        |
+| `preview` | yes     | yes      |            |        |
+| `publish` | yes     | yes      | yes        | yes    |
+
+Validation stops after grammar when grammar fails: later layers would otherwise
+report about a tree that was never parsed. Layer 4 (render) lives in
+`src/cms/server/validation.ts` rather than the pure module, because it has to
+compile and execute the body — and only the publish path pays that cost.
+
+`createCmsValidator()` is what Phase 2's deliberately-defaultless
+`ContentValidator` argument was waiting for. Only `publish` reads the whole
+collection out of the database; a draft save runs the grammar alone.
+
+##### Two rules restated in lifecycle terms
+
+- "links to a `noindex` guide" is now "links to a guide that is not published",
+  which is the same condition once `noindex` became the `preview` status.
+- `meta.preview`'s file-exists check is a _capability_ the caller supplies
+  (`assetExists`), not something the validator assumes. The CLI passes one; a
+  database validator has no filesystem to check against, so the rule is skipped
+  rather than silently failing.
+
+Two collection rules the old validator did not have, both stricter: a published
+page may not canonicalize to an unpublished one, and canonical chains
+(A → B → C) are rejected because search engines do not follow them.
+
+##### Adapters
+
+`documentsFromFilesystem()` resolves the three shape differences between the two
+worlds: `meta.noindex` becomes the `preview` status, `meta.preview`/`meta.canonical`
+become `previewImage`/`canonicalSlug`, and body imports are stripped.
+`declaredImports()` enumerates what was stripped, and a test asserts the only
+specifier present anywhere in the corpus is
+`@/components/guides/InflacionChart` — the allowlist Phase 7 needs.
+
+`documentsFromDatabase()` returns every state, unlike `ContentRepository`,
+because a collection validator has to see drafts. `serializeSnapshot` /
+`parseSnapshot` are the CI story from §5.2: after cutover, `validate:content`
+can validate an exported snapshot without production database access.
+
+Floor after Phase 4:
+
+```text
+build:            pass
+lint:             pass — 0 errors, 0 warnings
+typecheck:        pass
+test:             pass — 59 files / 908 tests, 1 file skipped (no database)
+test:db:          pass — 60 files / 927 tests
+validate:content: pass — 63 files · 0 errors · 0 warnings, output byte-identical
+                  to the pre-refactor baseline
+```
 
 ### Phase 5 — Build the CMS content list and editor
 
@@ -1576,6 +1703,17 @@ original checkbox complete.
   (`TrustBlock` with its article margin, `Faq`/`RelatedGuides` as no-ops the
   article route overrides), so a database-rendered page is identical to the
   filesystem-rendered one.
+
+- 2026-08-18: Phase 4 replaced the rules in `scripts/validate-guides.ts` rather
+  than duplicating them; the script is now a thin filesystem adapter over
+  `src/content-system/validation`, and `validate:content` output is
+  byte-identical to the pre-refactor baseline.
+- 2026-08-18: The only intentional behaviour change is that an unrecognized
+  `meta` key is an error rather than a warning — a validated JSONB column cannot
+  hold a key nothing reads, and the importer must not drop one silently.
+- 2026-08-18: The component manifest is split into `definitions.ts` (rules, no
+  React) and `manifest.tsx` (bindings), because the CLI validator cannot import
+  the component tree without pulling in `server-only`.
 
 ### Baseline results
 

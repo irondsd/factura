@@ -4,7 +4,7 @@ import {
   componentDefinition,
   componentsForSection,
   isContentComponentName,
-} from "../components/manifest";
+} from "../components/definitions";
 import type { ContentSection, Diagnostic, ValidationResult } from "../types";
 import { validationResult } from "../types";
 
