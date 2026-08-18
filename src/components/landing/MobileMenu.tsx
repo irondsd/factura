@@ -8,8 +8,13 @@ import { cn } from "@/lib/cn";
 // stays in the header bar (rendered by SiteHeader), so it is NOT passed here —
 // everything else lives behind the burger. Hidden from 900px up, where the full
 // nav row has enough room to take over. `href`s arrive already localized from
-// the server.
-type NavItem = { label: string; href: string; active?: boolean };
+// the server, each with the glyph marker <SiteNav/> assigned it.
+type NavItem = {
+  label: string;
+  href: string;
+  glyph?: string;
+  active?: boolean;
+};
 
 export function MobileMenu({ links }: { links: NavItem[] }) {
   const [open, setOpen] = useState(false);
@@ -74,10 +79,24 @@ export function MobileMenu({ links }: { links: NavItem[] }) {
                     href={link.href}
                     onClick={() => setOpen(false)}
                     className={cn(
-                      "block px-5 py-4 font-mono text-[14px] uppercase tracking-[0.14em] no-underline transition-colors hover:bg-[var(--accent-soft)] hover:text-accent",
+                      "group flex items-center gap-4 px-5 py-4 font-mono text-[14px] uppercase tracking-[0.14em] no-underline transition-colors hover:bg-[var(--accent-soft)] hover:text-accent",
                       link.active ? "text-accent" : "text-ink",
                     )}
                   >
+                    {/* Fixed 20px column so every label starts on the same
+                        optical line whatever the glyph's own width. Decorative:
+                        the label already says where the row goes. */}
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "w-5 shrink-0 text-center text-[15px] leading-none transition-colors",
+                        link.active
+                          ? "text-accent"
+                          : "text-muted group-hover:text-accent",
+                      )}
+                    >
+                      {link.glyph}
+                    </span>
                     {link.label}
                   </Link>
                 </li>
