@@ -123,14 +123,52 @@ Rules:
   experiments at the production database.
 - Do not use `.env.prod` or production database commands before the dedicated
   production rollout phase and explicit authorization to perform that rollout.
-- The first production CMS database work happens only after the guide schema,
-  importer, public renderer, and rollback path have all passed locally.
-- Production guide migration is a deployment operation: back up, apply schema,
-  dry-run import, import, verify parity, then cut over public reads.
+- The first production CMS database work happens only after every implementation
+  task before section 13—including all three content sections, importers, public
+  renderers, and rollback paths—has passed locally on `cms`.
+- Production content migration is a branch-wide deployment operation: back up,
+  apply schema, dry-run all imports, import, verify parity, merge `cms` into
+  `main`, deploy, then cut over public reads.
 
 The import tooling must make the target environment obvious in its output and
 must require an explicit production flag/confirmation rather than silently
 choosing production from ambient configuration.
+
+### 2.5 Branch, production migration, and merge policy
+
+All work described before section 13—including the guides-first implementation
+and the statistics/research migration in section 12—must be developed on the
+single long-lived branch named exactly `cms`.
+
+Rules:
+
+- Create or switch to `cms` before implementation begins.
+- Keep all CMS code, schema changes, importers, migrations, source-content
+  compatibility, and documentation on `cms` until the complete simple CMS is
+  ready.
+- Do not merge the guides milestone into `main` separately. Guides,
+  statistics, and research are one integration program even though they have
+  separate implementation gates.
+- Commit incremental, reviewable changes on `cms` and keep the branch current
+  with `main` as needed, resolving integration drift on `cms`.
+- Run the build/lint/typecheck/test/content-validation floor repeatedly
+  throughout development, not only at the final gate.
+- Use only local PostgreSQL during implementation and migration rehearsal.
+- After every task through section 12 passes locally, perform one explicitly
+  authorized production database rollout from the reviewed `cms` branch:
+  backup, schema migration, dry-run imports, imports, and parity verification.
+- Production database migration happens before merging `cms` into `main`. The
+  current `main` deployment must remain compatible while the new additive CMS
+  tables are populated.
+- If production migration or parity verification fails, do not merge `cms`.
+- Merge `cms` into `main` only after production data is ready and verified.
+- Deploy the merged `main` branch, which performs the public read cutover, then
+  run the final production browser/discovery/MCP smoke checks.
+- Keep source MDX and rollback switches through the post-merge observation
+  window. Remove them only in a later reviewed cleanup.
+
+Section 13 work starts in a new follow-up branch after `cms` has been merged and
+the simple CMS is stable in production.
 
 ## 3. Iteration 1 decisions
 
@@ -142,7 +180,8 @@ choosing production from ambient configuration.
 - Make public discovery surfaces consume a combined repository so database
   guides and filesystem-backed sections can coexist.
 - Do not delete the guide MDX files until migration parity and rollback have
-  been verified. Remove them in a final, explicit cutover task.
+  been verified. Keep them through the branch-wide merge and observation window;
+  remove them in a later, explicit cleanup.
 
 ### 3.2 Lifecycle
 
@@ -537,6 +576,8 @@ Tool rules:
 
 ### Phase 0 — Confirm baseline and inventory
 
+- [ ] Create or switch to the branch named exactly `cms` and confirm all work
+      through section 12 will remain on it until the branch-wide merge gate.
 - [ ] Start and verify the local Postgres service with `docker compose`; record
       that all CMS development and testing will target the local database.
 - [ ] Run `bun run build`, `bun run lint`, `bun run typecheck`, and `bun run test`
@@ -699,8 +740,9 @@ page; there is no separate approximate Markdown renderer.
 - [ ] Keep a documented feature flag or simple repository switch for rollback
       during the cutover.
 - [ ] Remove filesystem guide reads only after parity and browser verification.
-- [ ] Remove guide MDX files in a dedicated final change after the database
-      backup/import has been verified in the target environment.
+- [ ] Keep guide MDX files on `cms` as migration fixtures and rollback content;
+      do not remove them before the branch-wide production migration, merge,
+      deployment, and observation window.
 
 **Gate:** Every previously public guide renders the same user-visible content,
 metadata, structured data, and discovery behavior from PostgreSQL.
@@ -753,36 +795,24 @@ and lifecycle semantics.
 
 **Local implementation is complete only when every Phase 9 check passes.**
 
-### Phase 10 — Production guide migration and cutover
+### Phase 10 — Guide milestone checkpoint on `cms`
 
-Run this phase only after Phase 9 passes and the project owner explicitly
-authorizes production deployment. Agents must not treat implementation work as
-implicit permission to modify production.
+This checkpoint finishes the guides implementation but does not touch
+production and does not merge to `main`. Continue on the same `cms` branch with
+the statistics/research work in section 12.
 
-- [ ] Confirm the production database target and deployment commit/version.
-- [ ] Back up the affected production schema/tables and verify the recovery
-      procedure before writes.
-- [ ] Apply the reviewed CMS schema migration to production.
-- [ ] Add the initial production `cms_members` rows manually and verify access.
-- [ ] Run the guide importer in production dry-run mode and review counts,
-      slugs, metadata, and proposed writes.
-- [ ] Run the production guide import once.
-- [ ] Run the import again in dry-run/idempotence mode and confirm it proposes no
-      unintended changes.
-- [ ] Compare production database documents with the repository source using the
-      same parity report proven locally.
-- [ ] Cut public guide reads over using the documented feature switch/deployment.
-- [ ] Verify representative public guides, preview behavior, indexes, category
-      pages, sitemap, feed, `llms.txt`, metadata, JSON-LD, and OG routes against
-      production.
-- [ ] Verify CMS browser access and one non-destructive CMS MCP read against
-      production.
-- [ ] Keep repository MDX and the rollback switch until the production
-      observation window is complete.
-- [ ] Record the migration timestamp, operator, backup reference, imported row
-      count, verification results, and any deviations in this document.
+- [ ] Confirm Phases 0–9 are complete on local PostgreSQL.
+- [ ] Rebase or merge the current `main` into `cms` as appropriate and resolve
+      integration drift on `cms`.
+- [ ] Re-run build, lint, typecheck, tests, content validation, import parity,
+      browser verification, and MCP verification after synchronization.
+- [ ] Confirm the current `main` branch remains unchanged by the CMS program.
+- [ ] Confirm no production database command has been run.
+- [ ] Tag or record the reviewed guide milestone commit in this document.
+- [ ] Continue directly to section 12 on `cms`; do not open a guide-only merge.
 
-**Iteration 1 production rollout is complete only when Phase 10 passes.**
+**The guides milestone is complete when this checkpoint passes, but the `cms`
+branch is not mergeable until section 12 and its branch-wide rollout pass.**
 
 ## 10. Testing strategy
 
@@ -820,13 +850,14 @@ implicit permission to modify production.
 - Use the local Postgres database freely for CMS schema development, imports,
   lifecycle tests, browser verification, and MCP verification. This is the
   expected workflow.
-- Production is not a testing environment. It is first touched in Phase 10,
-  after the complete guide migration and cutover path has passed locally.
+- Production is not a testing environment. It is first touched at the
+  branch-wide production migration and merge gate in section 12, after every
+  earlier task has passed locally and the rollout is explicitly authorized.
 - Back up `cms_pages`, `cms_members`, and `cms_api_tokens` before production
   migration and before deleting repository MDX files.
 - Keep the import script deterministic and safe to rerun.
-- Keep a repository feature switch during initial cutover so guides can fall
-  back to filesystem content without a schema rollback.
+- Keep repository feature switches during initial cutover so all content
+  sections can fall back to filesystem content without a schema rollback.
 - Never make production content validation depend on local source files after
   the final cutover.
 - Do not connect local development or agent verification to the production
@@ -843,9 +874,10 @@ revisions, history, immediate invalidation, or richer publishing workflow. The
 goal is to put all MDX content behind one repository and publishing system
 before making that system more sophisticated.
 
-This is the next milestone after iteration 1, not part of the guide rollout.
+This is the next milestone after iteration 1, not part of the guide rollout,
+but it is implemented on the same `cms` branch before that branch is merged.
 It must follow the same local-first rule: implement, import, validate, and
-visually verify against local PostgreSQL before a separately authorized
+visually verify against local PostgreSQL before the single branch-wide
 production migration.
 
 - [ ] Inventory and register the complete statistics/research chart, map, table,
@@ -874,13 +906,53 @@ production migration.
       ordering, build behavior, and rollback have database equivalents.
 - [ ] Complete the full build/lint/typecheck/test/content-validation and browser
       verification floor locally.
-- [ ] Prepare and execute a separately authorized production backup, schema
-      migration, dry run, import, parity check, cutover, and observation window.
-- [ ] Keep source files and rollback switches until production verification is
-      complete.
+- [ ] Confirm every implementation item before section 13 is committed on
+      `cms`, reviewed, and complete against local PostgreSQL.
+- [ ] Synchronize `cms` with the final intended `main` base and rerun the full
+      build/lint/typecheck/test/content-validation floor.
+- [ ] Re-run all guide/statistics/research imports from an empty local CMS and
+      prove idempotence and complete rendering/discovery parity.
+
+### Branch-wide production migration and merge gate
+
+Run this gate only after all preceding section 12 tasks pass and the project
+owner explicitly authorizes production rollout. Implementation work is not
+implicit permission to modify production.
+
+- [ ] Confirm the production database target and exact reviewed `cms` commit.
+- [ ] Back up the affected production schema/tables and verify the recovery
+      procedure before writes.
+- [ ] Apply the reviewed additive CMS schema migration to production from
+      `cms`.
+- [ ] Add the initial production `cms_members` rows manually.
+- [ ] Run all content importers in production dry-run mode and review counts,
+      paths, metadata, hierarchy, and proposed writes.
+- [ ] Import guides, statistics, and research into production.
+- [ ] Run every importer again in dry-run/idempotence mode and confirm it
+      proposes no unintended changes.
+- [ ] Compare production CMS data with repository sources using the complete
+      parity report proven locally.
+- [ ] Confirm the still-running `main` deployment remains healthy and compatible
+      with the newly populated additive tables.
+- [ ] If any migration or parity check fails, stop and do not merge `cms`.
+- [ ] Record the migration timestamp, operator, backup reference, source commit,
+      imported row counts, and verification results in this document.
+- [ ] Merge the verified `cms` branch into `main` only after all production data
+      checks pass.
+- [ ] Deploy merged `main` to perform the public content/CMS cutover.
+- [ ] Verify representative guides, statistics, research, previews, CMS access,
+      indexes, hierarchy, categories, sitemap, feed, `llms.txt`, metadata,
+      JSON-LD, OG routes, charts, and maps in production.
+- [ ] Verify one non-destructive CMS MCP read, then a controlled draft
+      create/update/validate flow in production without publishing test content.
+- [ ] Keep all source MDX and repository rollback switches throughout the
+      observation window.
+- [ ] Remove or archive the `cms` branch only after merge, deployment, production
+      verification, and the observation window are complete.
 
 **Gate:** Revisions and the advanced roadmap below do not begin until guides,
-statistics, and research all use the simple database-backed CMS in production.
+statistics, and research all use the simple database-backed CMS in production
+and `cms` has been merged into `main`.
 
 ## 13. Deliberately deferred work
 
@@ -1044,10 +1116,14 @@ original checkbox complete.
   changes, and media management are deferred until after all three MDX sections
   use the simple CMS.
 - 2026-08-18: All development, migration rehearsal, and verification use local
-  PostgreSQL. Production guide migration is a separate, explicitly authorized
-  rollout after local Phase 9 completion.
+  PostgreSQL. Production CMS migration is a separate, explicitly authorized
+  branch-wide rollout only after all work through section 12 passes locally.
 - 2026-08-18: Statistics and research migration is the next milestone after the
   guides rollout and precedes revisions and the advanced CMS roadmap.
+- 2026-08-18: All work through section 12 is implemented and continuously
+  validated on the long-lived `cms` branch. After complete local verification,
+  production CMS data is migrated and verified from that branch; only then is
+  `cms` merged into `main` and deployed for the public cutover.
 
 ### Baseline results
 
