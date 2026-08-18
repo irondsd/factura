@@ -1,0 +1,246 @@
+import { TEMPORAL_COVERAGE } from "./data/venta-pba";
+import { PartidosBuscados } from "@/components/estadisticas/PartidosBuscados";
+import { PrecioDepartamentoPba } from "@/components/estadisticas/PrecioDepartamentoPba";
+import { PrecioPartidoZona } from "@/components/estadisticas/PrecioPartidoZona";
+import { SueloPbaInterior } from "@/components/estadisticas/SueloPbaInterior";
+import { VentaPbaHistoria } from "@/components/estadisticas/VentaPbaHistoria";
+import { VentaPbaMapa } from "@/components/estadisticas/VentaPbaMapa";
+
+export const meta = {
+  title:
+    "Valor del metro cuadrado en Provincia de Buenos Aires, partido por partido",
+  titleTag: "Valor del metro cuadrado en Provincia de Buenos Aires",
+  description:
+    "Cuánto vale el metro cuadrado en la Provincia de Buenos Aires, partido por partido y en dólares. Mapa del conurbano y La Plata, y cuánto sale un depto.",
+  summary:
+    "El precio del m² en dólares en los 27 partidos de la provincia con dato publicado, con el mapa comparativo, el precio por zona, cuánto sale un departamento y qué dato oficial hay para el resto de la provincia.",
+  ogStat: "US$ por m², partido por partido",
+  preview: "/img/estadisticas/previews/precio-m2-provincia-buenos-aires.jpg",
+  cta: "Ya sabés cuánto vale el m². Mira cuánto cuesta mantenerlo.",
+  keywords: [
+    "valor metro cuadrado provincia buenos aires",
+    "valor del metro cuadrado en provincia de buenos aires",
+    "precio del metro cuadrado en provincia de buenos aires",
+    "precio m2 provincia de buenos aires",
+    "valor del m2 en gba",
+    "precio del metro cuadrado en el conurbano",
+    "cuánto vale el metro cuadrado en zona norte",
+    "cuánto vale el metro cuadrado en zona sur",
+    "cuánto vale el metro cuadrado en zona oeste",
+    "precio del m2 por partido",
+    "cuánto cuesta un departamento en el gran buenos aires",
+    "valor del metro cuadrado en la plata",
+    "valor del metro cuadrado en la matanza",
+    "valor del metro cuadrado en quilmes",
+    "valor del metro cuadrado en vicente lópez",
+    "valor del metro cuadrado en tigre",
+    "valor del metro cuadrado en pilar",
+    "valor del metro cuadrado en lomas de zamora",
+    "precio del terreno por m2 en provincia de buenos aires",
+    "valor del metro cuadrado en mar del plata",
+    "valor del metro cuadrado en bahía blanca",
+  ],
+  published: "2026-08-18T12:00:00-03:00",
+  updated: "2026-08-18T12:00:00-03:00",
+  sources: [
+    {
+      label: "Zonaprop — Index, informes mensuales del mercado inmobiliario",
+      href: "https://www.zonaprop.com.ar/blog/zpindex/gba-venta/",
+      note: "Precio de publicación del m² de departamentos en venta, por partido, calculado sobre los avisos del portal. Informes mensuales de GBA Norte, GBA Oeste y GBA Sur.",
+    },
+    {
+      label:
+        "Observatorio de Valores de Suelo (OVS), Provincia de Buenos Aires",
+      href: "https://observatoriosuelo.gba.gob.ar/",
+      note: "Relevamiento de valores de terreno en oferta, con muestras georreferenciadas en 115 partidos. Relevamiento de LINTA-CIC.",
+    },
+    {
+      label: "Datos Abiertos PBA — Límites de los partidos",
+      href: "https://catalogo.datos.gba.gob.ar/dataset/partidos",
+      note: "Geometría de los 135 partidos, usada para dibujar el mapa. Licencia CC BY 4.0.",
+    },
+  ],
+  dataset: {
+    name: "Precio de publicación del m² de departamentos en venta, por partido, Provincia de Buenos Aires",
+    description:
+      "Precio medio de publicación del metro cuadrado de departamentos en venta, en dólares, por partido y por mes, para los 27 partidos de la Provincia de Buenos Aires con precio publicado: los 24 del Gran Buenos Aires más Escobar, Pilar y La Plata.",
+    temporalCoverage: TEMPORAL_COVERAGE,
+    spatialCoverage: "Provincia de Buenos Aires, Argentina",
+    variableMeasured: [
+      "Precio de publicación del m² en dólares, por partido",
+      "Variación mensual del precio del m², por partido",
+      "Variación interanual del precio del m², por partido",
+      "Precio del m² de la unidad media de 2 y 3 ambientes, por zona",
+      "Precio mediano del m² de terreno en oferta, por partido",
+    ],
+  },
+  faq: [
+    {
+      q: "¿Cuánto vale el metro cuadrado en la Provincia de Buenos Aires?",
+      a: "Depende mucho del partido: entre el más caro y el más barato hay casi tres veces de diferencia. El mapa y la tabla de esta página tienen el valor de cada uno de los partidos con dato publicado, y se actualizan todos los meses.",
+    },
+    {
+      q: "¿Por qué el mapa no muestra toda la provincia?",
+      a: "Porque no hay dato para todos los partidos. Ningún organismo oficial releva el precio del metro cuadrado en la provincia, y los portales inmobiliarios solo publican un promedio donde tienen suficientes avisos: los 24 partidos del conurbano, más Escobar, Pilar y La Plata. Los otros 108 no aparecen en el mapa porque no hay número que poner, no porque valgan cero. Para esos partidos, la sección sobre el resto de la provincia muestra lo único oficial que existe, que es el precio del terreno.",
+    },
+    {
+      q: "¿Estos precios son lo que se paga o lo que se pide?",
+      a: "Lo que se pide. Son precios de publicación calculados sobre los avisos de un portal inmobiliario, no precios de escrituración. El valor final de una operación suele cerrarse por debajo del publicado, y cuánto por debajo depende de cada negociación.",
+    },
+    {
+      q: "¿Es un dato oficial?",
+      a: "No, y no existe uno. Para la Ciudad de Buenos Aires el precio del m² lo publica el organismo de estadística porteño; para la provincia no hay equivalente, así que la única fuente mensual es la de los portales inmobiliarios. Lo decimos en cada figura porque cambia cómo hay que leer los números.",
+    },
+    {
+      q: "¿Cuánto cuesta un departamento en el Gran Buenos Aires?",
+      a: "La tabla «Cuánto cuesta un departamento en el Gran Buenos Aires» hace la cuenta por zona, con superficies de referencia para dos y tres ambientes. Para un partido en concreto, la cuenta es el valor del m² de ese partido por los metros cubiertos de la unidad que estés mirando.",
+    },
+    {
+      q: "¿Cuál es el partido más caro y cuál el más barato?",
+      a: "Cambia mes a mes, así que no lo escribimos en el texto: el mapa lo dice arriba de todo, con el máximo y el mínimo del mes en la línea que está debajo del título, y la tabla ordena los partidos del más caro al más barato.",
+    },
+    {
+      q: "¿Por qué la serie histórica es tan corta?",
+      a: "Porque la fuente borra sus propios informes anteriores al cabo de unos once meses. La serie de esta página empieza cuando Factura empezó a guardarlos, y se alarga un mes cada mes. La variación interanual, en cambio, sí mira doce meses atrás, porque ese número lo publica la fuente en cada informe.",
+    },
+    {
+      q: "¿Qué diferencia hay entre el precio del m² y el precio del terreno?",
+      a: "El precio del m² de esta página es el de un departamento construido: incluye la construcción, la ubicación y todo lo demás. El precio del terreno es el del suelo pelado, sin nada encima, y es un orden de magnitud más bajo. Son dos medidas distintas y no se comparan entre sí.",
+    },
+    {
+      q: "¿Sirve para tasar mi departamento?",
+      a: "Sirve como referencia, no como tasación. El valor de un partido es un promedio de avisos muy distintos entre sí: dentro de un mismo partido hay barrios que están al doble de otros, y el estado, la antigüedad, el piso y la orientación mueven el precio de una unidad concreta bastante más que el promedio del partido.",
+    },
+  ],
+};
+
+En la Provincia de Buenos Aires viven diecisiete millones de personas y no hay
+un organismo que publique cuánto vale el metro cuadrado. Es una ausencia rara:
+para la Ciudad de Buenos Aires el dato es oficial, trimestral y por barrio,
+mientras que del otro lado de la General Paz —donde vive cuatro veces más
+gente— la única medición mensual y comparable la hacen los portales
+inmobiliarios sobre sus propios avisos.
+
+Esta página publica esa medición, partido por partido, y dice en cada figura de
+dónde sale. Son **precios de publicación**: lo que se pide, no lo que se
+escritura. Y cubren 27 partidos —los 24 del conurbano, más Escobar, Pilar y La
+Plata— porque son los únicos para los que hay suficientes avisos como para
+promediar. Para los otros 108 hay una sola cosa oficial, que mide el suelo y no
+lo construido, y está al final.
+
+## Qué vas a encontrar en esta página
+
+- El mapa del valor del m² en dólares, partido por partido.
+- El precio por zona: norte, oeste y sur, con los dos extremos de cada una.
+- Cuánto sale un departamento de dos y de tres ambientes en cada zona.
+- El valor del m² en los partidos más consultados, con su puesto.
+- Cómo se movió el precio mes a mes desde que llevamos registro.
+- Qué dato oficial existe para el resto de la provincia, y por qué no se compara
+  con el de arriba.
+
+## El mapa del precio del m² por partido
+
+<VentaPbaMapa />
+
+## Cómo se mide y de dónde sale
+
+El número de cada partido es el **precio medio de publicación del metro
+cuadrado de los departamentos en venta**, en dólares, calculado sobre todos los
+avisos activos de un portal inmobiliario en ese partido durante el mes. No es
+una encuesta ni un registro de operaciones: es el promedio de lo que piden los
+que están vendiendo.
+
+Eso tiene tres consecuencias que conviene tener presentes al leer cualquier
+figura de esta página.
+
+**Es lo que se pide, no lo que se paga.** El precio de cierre suele quedar por
+debajo del publicado. La diferencia no es fija y no se publica, así que estos
+valores son el techo de una negociación, no su resultado.
+
+**No es un dato oficial.** No hay uno. El organismo de estadística porteño
+releva la Ciudad; la provincia no tiene equivalente. Cuando una nota periodística
+cita el valor del m² en el conurbano, está citando esta misma clase de fuente.
+
+**El mapa termina donde termina el dato.** Un portal solo publica un promedio
+donde tiene avisos suficientes, y eso deja afuera a la mayor parte del
+territorio provincial: partidos enteros del interior no aparecen, no porque no
+se venda nada sino porque no hay volumen para promediar.
+
+La geografía del mapa —los límites de los 135 partidos— viene del catálogo de
+datos abiertos de la provincia. El delta de Tigre y San Fernando no se dibuja:
+son islas, y el precio que publica el portal corresponde a la parte
+continental.
+
+## El precio del m² por zona
+
+<PrecioPartidoZona />
+
+## Cuánto cuesta un departamento
+
+<PrecioDepartamentoPba />
+
+## Los partidos más consultados
+
+<PartidosBuscados />
+
+## Cómo se movió el precio
+
+<VentaPbaHistoria />
+
+## El resto de la provincia
+
+Todo lo anterior cubre el Gran Buenos Aires y La Plata. Queda afuera Mar del
+Plata, queda afuera Bahía Blanca, quedan afuera Tandil, Junín, Pergamino y un
+centenar de partidos más, y no hay ninguna fuente mensual que los cubra.
+
+Lo que sí existe es un relevamiento oficial de la propia provincia, el
+Observatorio de Valores de Suelo, que salió a medir el precio del **terreno** en
+115 partidos. Mide otra cosa —el suelo, no lo construido— y es una foto de hace
+unos años en lugar de una serie, pero es el único número por metro cuadrado que
+un organismo público publicó para toda la Provincia de Buenos Aires.
+
+<SueloPbaInterior />
+
+## La otra mitad del área metropolitana
+
+En el agujero del medio del mapa está la Ciudad de Buenos Aires, que no es parte
+de la provincia y tiene su propio relevamiento: uno oficial, trimestral y por
+barrio. Es el mismo mercado y la misma unidad, pero no es la misma medición, así
+que conviene leerlas por separado.
+
+<PaginaRelacionada href="/estadisticas/precio-m2-caba">
+  El precio del m² en los 48 barrios y las 15 comunas de la Ciudad, con datos
+  del organismo de estadística porteño. Es el dato oficial que la provincia no
+  tiene, y es el que conviene usar para cualquier comparación dentro de CABA.
+</PaginaRelacionada>
+
+<PaginaRelacionada href="/estadisticas/inflacion-de-vivienda/gba">
+  Lo que cuesta sostener una vivienda en el Gran Buenos Aires —alquiler,
+  expensas, luz, gas y agua— mes a mes, con datos del INDEC. Es en pesos y por
+  otra vía, y es la pregunta que sigue a esta.
+</PaginaRelacionada>
+
+## Qué mide y qué no mide el precio del m²
+
+El precio por metro cuadrado sirve para comparar: es la unidad que permite poner
+al lado un departamento de 45 m² y uno de 80, o un partido y el de al lado. Lo
+que no hace es tasar una propiedad concreta. Dentro de un mismo partido hay
+barrios que están al doble de otros, y sobre eso todavía pesan la antigüedad, el
+estado, el piso, la orientación y si tiene cochera.
+
+Hay además una cosa que el precio del m² no dice y que aparece el primer mes:
+cuánto cuesta **habitar** esos metros. La luz, el gas, el agua, los impuestos
+municipales y las expensas no escalan igual que el precio de compra, y en el
+conurbano dependen además de qué distribuidora te toque, que cambia de partido
+en partido.
+
+<ClosingCta title="El m² se compra una vez; los servicios llegan todos los meses">
+  Esta página mide lo que cuesta comprar. Lo que se paga después llega en PDF
+  todos los meses, de cuatro o cinco empresas distintas, y nadie lo suma.
+  Factura lo hace por vos: subís la factura y ves cuánto te sale realmente vivir
+  donde vivís.
+</ClosingCta>
+
+<Faq />
+
+<Fuentes />

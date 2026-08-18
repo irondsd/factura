@@ -66,6 +66,17 @@ const ENTRIES: SectionEntry[] = [
     file: "precio-m2-caba.mdx",
     load: () => import("./precio-m2-caba.mdx"),
   },
+  // The same question one jurisdiction over, and the reason the page above
+  // can't just be renamed: the province has no official series, so this one is
+  // built on a portal's index and has to say so on every figure. Flat rather
+  // than nested under a `precio-m2` hub — two siblings don't need a parent, and
+  // a hub whose only content is "here are the two" is a doorway.
+  {
+    slug: ["precio-m2-provincia-buenos-aires"],
+    crumb: "Precio del m² en Provincia",
+    file: "precio-m2-provincia-buenos-aires.mdx",
+    load: () => import("./precio-m2-provincia-buenos-aires.mdx"),
+  },
   // The cost side of the same market, and flat for the same reason as its
   // neighbours: the series is CABA-only. Straight after the sale-price page
   // because it is the other half of "what does a square metre cost" — that one

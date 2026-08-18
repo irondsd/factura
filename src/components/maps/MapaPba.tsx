@@ -6,10 +6,11 @@ import {
   type MapRegion,
   type MapView,
 } from "@/components/maps/Mapa";
-import gbaGeo from "@/content/shared/gba-geo.json";
+import ambaGeo from "@/content/shared/amba-geo.json";
 
-// `Mapa` bound to the Gran Buenos Aires: the 26 partidos a price is published
-// for, with CABA drawn as an inert silhouette in the middle.
+// `Mapa` bound to the 27 partidos a price is published for — the 24 of the
+// Gran Buenos Aires, plus Escobar and Pilar in the north and La Plata in the
+// south — with CABA drawn as an inert silhouette in the middle.
 //
 // The city has to be on this map even though no figure on the page is about it.
 // The conurbano is a ring, and a ring with nothing in the hole reads as a
@@ -30,18 +31,18 @@ export type { MapDimension, MapRegion, MapView };
 /** The geo ids this wrapper accepts in `view.geo`. One, for now: unlike CABA
  * there is no second administrative level to switch to — a partido is the
  * smallest unit anything publishes a price for. */
-export type GbaGeo = "partidos";
+export type AmbaGeo = "partidos";
 
 const PATHS: Record<string, Record<string, string>> = {
-  partidos: gbaGeo.partidos,
+  partidos: ambaGeo.partidos,
 };
 
-const CABA = { d: gbaGeo.caba, label: "Ciudad Autónoma de Buenos Aires" };
+const CABA = { d: ambaGeo.caba, label: "Ciudad Autónoma de Buenos Aires" };
 
-export function MapaGba(
+export function MapaAmba(
   props: Omit<Parameters<typeof Mapa>[0], "paths" | "viewBox" | "backdrop">,
 ) {
   return (
-    <Mapa {...props} paths={PATHS} viewBox={gbaGeo.viewBox} backdrop={CABA} />
+    <Mapa {...props} paths={PATHS} viewBox={ambaGeo.viewBox} backdrop={CABA} />
   );
 }

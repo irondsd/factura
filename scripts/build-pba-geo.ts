@@ -2,7 +2,7 @@
 /**
  * Rebuilds the two Provincia de Buenos Aires map assets:
  *
- *   src/content/shared/gba-geo.json   the 26 partidos of the Gran Buenos Aires
+ *   src/content/shared/amba-geo.json  the 27 partidos a price is published for
  *   src/content/shared/pba-geo.json   all 135 partidos of the province
  *
  * Run: `bun scripts/build-pba-geo.ts`   (or `npm run data:pba-geo`)
@@ -24,8 +24,8 @@
  * publishes prices for imports 30 KB, not 180 KB. Measured on the current
  * boundary file:
  *
- *   gba-geo.json    26 features   ~30 KB   ~6 KB gzipped
- *   pba-geo.json   135 features  ~181 KB  ~25 KB gzipped
+ *   amba-geo.json   27 features   ~45 KB   ~6 KB gzipped
+ *   pba-geo.json   135 features  ~182 KB  ~25 KB gzipped
  *
  * Both are smaller over the wire than any image of the same map would be, which
  * is why these are inline SVG paths and not a PNG.
@@ -54,10 +54,10 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { findPartido, GBA_IDS, PARTIDOS } from "../src/content/shared/pba";
+import { findPartido, PARTIDOS, PRICED_IDS } from "../src/content/shared/pba";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const OUT_GBA = path.join(here, "../src/content/shared/gba-geo.json");
+const OUT_AMBA = path.join(here, "../src/content/shared/amba-geo.json");
 const OUT_PBA = path.join(here, "../src/content/shared/pba-geo.json");
 
 /** Límites de los partidos, Datos Abiertos PBA. The zip is the only resource
@@ -284,9 +284,10 @@ async function main(): Promise<void> {
   const resolved: { id: string; feature: Feature; island: boolean }[] = [];
   for (const feature of raw) {
     const name = String(feature.properties.municipio_nombre);
-    const parent = name.replace(/^Islas\s+(de\s+)?/i, "");
-    const island = parent !== name;
-    const partido = findPartido(parent);
+    const island = /^Islas\s/i.test(name);
+    // `findPartido` folds "Islas X" onto X — see its comment; ARBA and the OVS
+    // both split them out, so the normalisation lives there rather than here.
+    const partido = findPartido(name);
     if (!partido) {
       throw new Error(
         `boundary file has a partido we don't know: ${JSON.stringify(name)}. Add it to src/content/shared/pba.ts.`,
@@ -310,7 +311,7 @@ async function main(): Promise<void> {
   // ── The province ────────────────────────────────────────────────────────
   const pba = build(resolved);
 
-  // ── The Gran Buenos Aires, plus CABA as the hole in the middle ──────────
+  // ── The priced partidos, plus CABA as the hole in the middle ───────────
   // Without the delta. Tigre's and San Fernando's islands reach 50 km up the
   // Paraná, and drawn at conurbano scale they are a third of the frame and a
   // fifth of the ink — an empty pale wedge above the map, pushing the 26
@@ -319,9 +320,9 @@ async function main(): Promise<void> {
   // centro, and there is no apartment market on the islands to average. The
   // province map keeps them, where they are in proportion and where the page
   // is about the whole territory.
-  const gbaSet = new Set<string>(GBA_IDS);
-  const gbaFeatures = resolved.filter((r) => gbaSet.has(r.id) && !r.island);
-  const gba = build(gbaFeatures);
+  const pricedSet = new Set<string>(PRICED_IDS);
+  const ambaFeatures = resolved.filter((r) => pricedSet.has(r.id) && !r.island);
+  const amba = build(ambaFeatures);
 
   // Projected into the box the partidos already fixed, so the city lands where
   // it belongs rather than redefining the frame.
@@ -331,7 +332,7 @@ async function main(): Promise<void> {
     for (const ring of ringsOf(f)) {
       const points: [number, number][] = [];
       for (const c of ring) {
-        const p = gba.snap(c);
+        const p = amba.snap(c);
         const last = points[points.length - 1];
         if (!last || last[0] !== p[0] || last[1] !== p[1]) points.push(p);
       }
@@ -367,15 +368,15 @@ async function main(): Promise<void> {
   const files: { out: string; body: Record<string, unknown>; built: Built }[] =
     [
       {
-        out: OUT_GBA,
-        built: gba,
+        out: OUT_AMBA,
+        built: amba,
         body: {
-          id: "gba-geo",
+          id: "amba-geo",
           ...common,
-          note: "Los 26 partidos del Gran Buenos Aires para los que se publica un precio, sin las islas del delta de Tigre y San Fernando. `caba` es la silueta de la Ciudad, que no forma parte de la provincia y se dibuja apagada.",
+          note: "Los 27 partidos para los que se publica un precio —los 24 del conurbano, más Escobar y Pilar en el norte y La Plata en el sur—, sin las islas del delta de Tigre y San Fernando. `caba` es la silueta de la Ciudad, que no forma parte de la provincia y se dibuja apagada.",
           cabaSource: "Buenos Aires Data (GCBA) — comunas",
-          viewBox: gba.viewBox,
-          partidos: gba.paths,
+          viewBox: amba.viewBox,
+          partidos: amba.paths,
           caba,
         },
       },

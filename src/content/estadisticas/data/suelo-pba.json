@@ -1,0 +1,1177 @@
+{
+  "id": "suelo-pba",
+  "title": "Precio de oferta del m² de terreno en la Provincia de Buenos Aires, por partido",
+  "source": "Observatorio de Valores de Suelo (OVS), Provincia de Buenos Aires",
+  "sourceUrl": "https://observatoriosuelo.gba.gob.ar/",
+  "viewerUrl": "https://visualizador.ideba.gba.gob.ar/ovs",
+  "sourceNote": "Relevamiento de LINTA-CIC. Precios de oferta de terrenos, no de departamentos construidos, y no es una serie: es una foto de 18.042 muestras tomadas entre 2021 y 2024.",
+  "unit": "USD por m² de terreno",
+  "generatedBy": "scripts/fetch-pba-suelo.ts",
+  "method": {
+    "maxSupM2": 5000,
+    "minSamples": 15,
+    "statistic": "mediana"
+  },
+  "coverage": {
+    "samplesTotal": 18042,
+    "samplesUrban": 17183,
+    "partidosWithSamples": 115,
+    "partidosWithFigure": 74,
+    "partidosTotal": 135,
+    "from": "2021-06",
+    "to": "2024-03"
+  },
+  "provincial": 125,
+  "partidos": {
+    "adolfo-gonzales-chaves": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 13,
+      "p75": 13,
+      "supMedian": 400,
+      "from": "2023-10",
+      "to": "2023-10"
+    },
+    "almirante-brown": {
+      "n": 309,
+      "nRaw": 315,
+      "usdM2": 183,
+      "p25": 94,
+      "p75": 323,
+      "supMedian": 420,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "arrecifes": {
+      "n": 1,
+      "nRaw": 2,
+      "usdM2": null,
+      "p25": 25,
+      "p75": 25,
+      "supMedian": 2603,
+      "from": "2023-07",
+      "to": "2023-07"
+    },
+    "avellaneda": {
+      "n": 304,
+      "nRaw": 314,
+      "usdM2": 408,
+      "p25": 262,
+      "p75": 686,
+      "supMedian": 311,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "azul": {
+      "n": 6,
+      "nRaw": 6,
+      "usdM2": null,
+      "p25": 17,
+      "p75": 44,
+      "supMedian": 483,
+      "from": "2023-07",
+      "to": "2024-02"
+    },
+    "bahia-blanca": {
+      "n": 135,
+      "nRaw": 151,
+      "usdM2": 63,
+      "p25": 38,
+      "p75": 100,
+      "supMedian": 570,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "balcarce": {
+      "n": 48,
+      "nRaw": 50,
+      "usdM2": 44,
+      "p25": 30,
+      "p75": 67,
+      "supMedian": 658,
+      "from": "2023-06",
+      "to": "2024-02"
+    },
+    "baradero": {
+      "n": 19,
+      "nRaw": 23,
+      "usdM2": 36,
+      "p25": 29,
+      "p75": 53,
+      "supMedian": 1000,
+      "from": "2023-06",
+      "to": "2024-03"
+    },
+    "benito-juarez": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 42,
+      "p75": 42,
+      "supMedian": 227,
+      "from": "2023-07",
+      "to": "2023-07"
+    },
+    "berazategui": {
+      "n": 411,
+      "nRaw": 414,
+      "usdM2": 125,
+      "p25": 83,
+      "p75": 188,
+      "supMedian": 536,
+      "from": "2021-07",
+      "to": "2024-03"
+    },
+    "berisso": {
+      "n": 56,
+      "nRaw": 60,
+      "usdM2": 68,
+      "p25": 39,
+      "p75": 152,
+      "supMedian": 406,
+      "from": "2021-09",
+      "to": "2024-03"
+    },
+    "bolivar": {
+      "n": 3,
+      "nRaw": 3,
+      "usdM2": null,
+      "p25": 17,
+      "p75": 53,
+      "supMedian": 2000,
+      "from": "2023-06",
+      "to": "2023-11"
+    },
+    "bragado": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 16,
+      "p75": 16,
+      "supMedian": 3800,
+      "from": "2023-11",
+      "to": "2023-11"
+    },
+    "brandsen": {
+      "n": 146,
+      "nRaw": 151,
+      "usdM2": 26,
+      "p25": 18,
+      "p75": 46,
+      "supMedian": 1000,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "campana": {
+      "n": 186,
+      "nRaw": 217,
+      "usdM2": 61,
+      "p25": 38,
+      "p75": 137,
+      "supMedian": 966,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "canuelas": {
+      "n": 244,
+      "nRaw": 255,
+      "usdM2": 42,
+      "p25": 30,
+      "p75": 66,
+      "supMedian": 600,
+      "from": "2021-07",
+      "to": "2024-03"
+    },
+    "capitan-sarmiento": {
+      "n": 9,
+      "nRaw": 10,
+      "usdM2": null,
+      "p25": 39,
+      "p75": 55,
+      "supMedian": 500,
+      "from": "2023-05",
+      "to": "2024-02"
+    },
+    "carmen-de-areco": {
+      "n": 14,
+      "nRaw": 16,
+      "usdM2": null,
+      "p25": 16,
+      "p75": 32,
+      "supMedian": 880,
+      "from": "2023-05",
+      "to": "2024-02"
+    },
+    "castelli": {
+      "n": 2,
+      "nRaw": 2,
+      "usdM2": null,
+      "p25": 20,
+      "p75": 111,
+      "supMedian": 488,
+      "from": "2023-10",
+      "to": "2024-01"
+    },
+    "chacabuco": {
+      "n": 3,
+      "nRaw": 4,
+      "usdM2": null,
+      "p25": 20,
+      "p75": 76,
+      "supMedian": 900,
+      "from": "2024-01",
+      "to": "2024-02"
+    },
+    "chascomus": {
+      "n": 56,
+      "nRaw": 60,
+      "usdM2": 60,
+      "p25": 36,
+      "p75": 100,
+      "supMedian": 600,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "chivilcoy": {
+      "n": 12,
+      "nRaw": 13,
+      "usdM2": null,
+      "p25": 47,
+      "p75": 100,
+      "supMedian": 565,
+      "from": "2023-05",
+      "to": "2024-02"
+    },
+    "colon": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 20,
+      "p75": 20,
+      "supMedian": 891,
+      "from": "2024-03",
+      "to": "2024-03"
+    },
+    "coronel-dorrego": {
+      "n": 8,
+      "nRaw": 8,
+      "usdM2": null,
+      "p25": 44,
+      "p75": 62,
+      "supMedian": 562,
+      "from": "2023-06",
+      "to": "2024-02"
+    },
+    "coronel-rosales": {
+      "n": 21,
+      "nRaw": 21,
+      "usdM2": 30,
+      "p25": 25,
+      "p75": 46,
+      "supMedian": 850,
+      "from": "2023-06",
+      "to": "2024-02"
+    },
+    "coronel-suarez": {
+      "n": 10,
+      "nRaw": 11,
+      "usdM2": null,
+      "p25": 30,
+      "p75": 48,
+      "supMedian": 718,
+      "from": "2023-05",
+      "to": "2023-11"
+    },
+    "dolores": {
+      "n": 4,
+      "nRaw": 7,
+      "usdM2": null,
+      "p25": 45,
+      "p75": 60,
+      "supMedian": 700,
+      "from": "2023-07",
+      "to": "2024-02"
+    },
+    "ensenada": {
+      "n": 29,
+      "nRaw": 31,
+      "usdM2": 125,
+      "p25": 48,
+      "p75": 163,
+      "supMedian": 400,
+      "from": "2022-01",
+      "to": "2024-03"
+    },
+    "escobar": {
+      "n": 787,
+      "nRaw": 859,
+      "usdM2": 97,
+      "p25": 67,
+      "p75": 160,
+      "supMedian": 690,
+      "from": "2021-07",
+      "to": "2024-03"
+    },
+    "esteban-echeverria": {
+      "n": 322,
+      "nRaw": 334,
+      "usdM2": 158,
+      "p25": 105,
+      "p75": 234,
+      "supMedian": 600,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "exaltacion-de-la-cruz": {
+      "n": 293,
+      "nRaw": 312,
+      "usdM2": 42,
+      "p25": 25,
+      "p75": 59,
+      "supMedian": 1000,
+      "from": "2021-07",
+      "to": "2024-03"
+    },
+    "ezeiza": {
+      "n": 399,
+      "nRaw": 417,
+      "usdM2": 93,
+      "p25": 60,
+      "p75": 169,
+      "supMedian": 600,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "florencio-varela": {
+      "n": 114,
+      "nRaw": 132,
+      "usdM2": 110,
+      "p25": 50,
+      "p75": 188,
+      "supMedian": 433,
+      "from": "2021-10",
+      "to": "2024-03"
+    },
+    "florentino-ameghino": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 34,
+      "p75": 34,
+      "supMedian": 375,
+      "from": "2024-01",
+      "to": "2024-01"
+    },
+    "general-alvarado": {
+      "n": 110,
+      "nRaw": 110,
+      "usdM2": 40,
+      "p25": 26,
+      "p75": 59,
+      "supMedian": 351,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "general-alvear": {
+      "n": 5,
+      "nRaw": 5,
+      "usdM2": null,
+      "p25": 40,
+      "p75": 52,
+      "supMedian": 383,
+      "from": "2023-05",
+      "to": "2024-01"
+    },
+    "general-belgrano": {
+      "n": 55,
+      "nRaw": 57,
+      "usdM2": 48,
+      "p25": 36,
+      "p75": 61,
+      "supMedian": 355,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "general-la-madrid": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 8,
+      "p75": 8,
+      "supMedian": 2500,
+      "from": "2023-11",
+      "to": "2023-11"
+    },
+    "general-las-heras": {
+      "n": 92,
+      "nRaw": 94,
+      "usdM2": 70,
+      "p25": 45,
+      "p75": 100,
+      "supMedian": 439,
+      "from": "2021-07",
+      "to": "2024-03"
+    },
+    "general-lavalle": {
+      "n": 47,
+      "nRaw": 51,
+      "usdM2": 27,
+      "p25": 19,
+      "p75": 59,
+      "supMedian": 912,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "general-madariaga": {
+      "n": 38,
+      "nRaw": 42,
+      "usdM2": 41,
+      "p25": 31,
+      "p75": 83,
+      "supMedian": 685,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "general-paz": {
+      "n": 6,
+      "nRaw": 6,
+      "usdM2": null,
+      "p25": 51,
+      "p75": 88,
+      "supMedian": 400,
+      "from": "2023-06",
+      "to": "2024-02"
+    },
+    "general-pinto": {
+      "n": 2,
+      "nRaw": 2,
+      "usdM2": null,
+      "p25": 13,
+      "p75": 13,
+      "supMedian": 2710,
+      "from": "2024-02",
+      "to": "2024-02"
+    },
+    "general-pueyrredon": {
+      "n": 534,
+      "nRaw": 555,
+      "usdM2": 75,
+      "p25": 40,
+      "p75": 186,
+      "supMedian": 484,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "general-rodriguez": {
+      "n": 347,
+      "nRaw": 367,
+      "usdM2": 53,
+      "p25": 33,
+      "p75": 93,
+      "supMedian": 475,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "general-san-martin": {
+      "n": 311,
+      "nRaw": 313,
+      "usdM2": 430,
+      "p25": 298,
+      "p75": 615,
+      "supMedian": 302,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "general-viamonte": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 43,
+      "p75": 43,
+      "supMedian": 464,
+      "from": "2024-02",
+      "to": "2024-02"
+    },
+    "general-villegas": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 70,
+      "p75": 70,
+      "supMedian": 315,
+      "from": "2024-03",
+      "to": "2024-03"
+    },
+    "hipolito-yrigoyen": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 29,
+      "p75": 29,
+      "supMedian": 1400,
+      "from": "2023-11",
+      "to": "2023-11"
+    },
+    "hurlingham": {
+      "n": 98,
+      "nRaw": 101,
+      "usdM2": 248,
+      "p25": 167,
+      "p75": 344,
+      "supMedian": 405,
+      "from": "2021-07",
+      "to": "2024-03"
+    },
+    "ituzaingo": {
+      "n": 594,
+      "nRaw": 599,
+      "usdM2": 289,
+      "p25": 202,
+      "p75": 452,
+      "supMedian": 454,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "jose-c-paz": {
+      "n": 194,
+      "nRaw": 197,
+      "usdM2": 85,
+      "p25": 67,
+      "p75": 132,
+      "supMedian": 372,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "junin": {
+      "n": 38,
+      "nRaw": 39,
+      "usdM2": 55,
+      "p25": 35,
+      "p75": 71,
+      "supMedian": 436,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "la-costa": {
+      "n": 488,
+      "nRaw": 492,
+      "usdM2": 64,
+      "p25": 38,
+      "p75": 97,
+      "supMedian": 539,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "la-matanza": {
+      "n": 747,
+      "nRaw": 776,
+      "usdM2": 440,
+      "p25": 283,
+      "p75": 667,
+      "supMedian": 336,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "la-plata": {
+      "n": 1184,
+      "nRaw": 1226,
+      "usdM2": 86,
+      "p25": 47,
+      "p75": 167,
+      "supMedian": 440,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "lanus": {
+      "n": 346,
+      "nRaw": 347,
+      "usdM2": 457,
+      "p25": 296,
+      "p75": 674,
+      "supMedian": 303,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "las-flores": {
+      "n": 2,
+      "nRaw": 2,
+      "usdM2": null,
+      "p25": 27,
+      "p75": 102,
+      "supMedian": 632,
+      "from": "2023-05",
+      "to": "2023-10"
+    },
+    "leandro-n-alem": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 19,
+      "p75": 19,
+      "supMedian": 400,
+      "from": "2023-08",
+      "to": "2023-08"
+    },
+    "lezama": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 25,
+      "p75": 25,
+      "supMedian": 2325,
+      "from": "2023-06",
+      "to": "2023-06"
+    },
+    "lincoln": {
+      "n": 5,
+      "nRaw": 5,
+      "usdM2": null,
+      "p25": 16,
+      "p75": 242,
+      "supMedian": 2600,
+      "from": "2023-07",
+      "to": "2024-01"
+    },
+    "loberia": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 11,
+      "p75": 11,
+      "supMedian": 450,
+      "from": "2023-12",
+      "to": "2023-12"
+    },
+    "lobos": {
+      "n": 82,
+      "nRaw": 88,
+      "usdM2": 38,
+      "p25": 28,
+      "p75": 60,
+      "supMedian": 788,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "lomas-de-zamora": {
+      "n": 288,
+      "nRaw": 288,
+      "usdM2": 383,
+      "p25": 233,
+      "p75": 650,
+      "supMedian": 402,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "lujan": {
+      "n": 348,
+      "nRaw": 371,
+      "usdM2": 44,
+      "p25": 32,
+      "p75": 74,
+      "supMedian": 900,
+      "from": "2021-09",
+      "to": "2024-03"
+    },
+    "magdalena": {
+      "n": 13,
+      "nRaw": 19,
+      "usdM2": null,
+      "p25": 31,
+      "p75": 72,
+      "supMedian": 597,
+      "from": "2023-06",
+      "to": "2024-03"
+    },
+    "maipu": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 48,
+      "p75": 48,
+      "supMedian": 352,
+      "from": "2023-08",
+      "to": "2023-08"
+    },
+    "malvinas-argentinas": {
+      "n": 245,
+      "nRaw": 258,
+      "usdM2": 150,
+      "p25": 100,
+      "p75": 200,
+      "supMedian": 532,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "mar-chiquita": {
+      "n": 130,
+      "nRaw": 132,
+      "usdM2": 60,
+      "p25": 44,
+      "p75": 83,
+      "supMedian": 424,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "marcos-paz": {
+      "n": 160,
+      "nRaw": 164,
+      "usdM2": 44,
+      "p25": 24,
+      "p75": 72,
+      "supMedian": 441,
+      "from": "2021-07",
+      "to": "2024-03"
+    },
+    "mercedes": {
+      "n": 48,
+      "nRaw": 61,
+      "usdM2": 47,
+      "p25": 24,
+      "p75": 82,
+      "supMedian": 1000,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "merlo": {
+      "n": 299,
+      "nRaw": 305,
+      "usdM2": 82,
+      "p25": 25,
+      "p75": 203,
+      "supMedian": 449,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "monte": {
+      "n": 34,
+      "nRaw": 50,
+      "usdM2": 38,
+      "p25": 27,
+      "p75": 58,
+      "supMedian": 838,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "monte-hermoso": {
+      "n": 57,
+      "nRaw": 57,
+      "usdM2": 76,
+      "p25": 47,
+      "p75": 114,
+      "supMedian": 500,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "moreno": {
+      "n": 733,
+      "nRaw": 795,
+      "usdM2": 74,
+      "p25": 43,
+      "p75": 150,
+      "supMedian": 605,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "moron": {
+      "n": 372,
+      "nRaw": 374,
+      "usdM2": 452,
+      "p25": 295,
+      "p75": 686,
+      "supMedian": 352,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "navarro": {
+      "n": 15,
+      "nRaw": 16,
+      "usdM2": 50,
+      "p25": 33,
+      "p75": 75,
+      "supMedian": 800,
+      "from": "2023-05",
+      "to": "2024-02"
+    },
+    "necochea": {
+      "n": 64,
+      "nRaw": 65,
+      "usdM2": 38,
+      "p25": 24,
+      "p75": 56,
+      "supMedian": 400,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "nueve-de-julio": {
+      "n": 13,
+      "nRaw": 13,
+      "usdM2": null,
+      "p25": 29,
+      "p75": 52,
+      "supMedian": 703,
+      "from": "2023-05",
+      "to": "2024-01"
+    },
+    "olavarria": {
+      "n": 24,
+      "nRaw": 28,
+      "usdM2": 39,
+      "p25": 23,
+      "p75": 82,
+      "supMedian": 631,
+      "from": "2023-05",
+      "to": "2024-02"
+    },
+    "patagones": {
+      "n": 11,
+      "nRaw": 11,
+      "usdM2": null,
+      "p25": 11,
+      "p75": 124,
+      "supMedian": 800,
+      "from": "2023-06",
+      "to": "2024-02"
+    },
+    "pehuajo": {
+      "n": 8,
+      "nRaw": 9,
+      "usdM2": null,
+      "p25": 50,
+      "p75": 70,
+      "supMedian": 516,
+      "from": "2023-06",
+      "to": "2024-02"
+    },
+    "pergamino": {
+      "n": 28,
+      "nRaw": 30,
+      "usdM2": 46,
+      "p25": 25,
+      "p75": 74,
+      "supMedian": 800,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "pila": {
+      "n": 1,
+      "nRaw": 2,
+      "usdM2": null,
+      "p25": 23,
+      "p75": 23,
+      "supMedian": 436,
+      "from": "2023-05",
+      "to": "2023-05"
+    },
+    "pilar": {
+      "n": 733,
+      "nRaw": 815,
+      "usdM2": 82,
+      "p25": 57,
+      "p75": 123,
+      "supMedian": 691,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "pinamar": {
+      "n": 216,
+      "nRaw": 217,
+      "usdM2": 118,
+      "p25": 89,
+      "p75": 179,
+      "supMedian": 738,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "presidente-peron": {
+      "n": 144,
+      "nRaw": 162,
+      "usdM2": 45,
+      "p25": 25,
+      "p75": 68,
+      "supMedian": 800,
+      "from": "2021-09",
+      "to": "2024-03"
+    },
+    "puan": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 20,
+      "p75": 20,
+      "supMedian": 300,
+      "from": "2024-02",
+      "to": "2024-02"
+    },
+    "punta-indio": {
+      "n": 20,
+      "nRaw": 23,
+      "usdM2": 20,
+      "p25": 17,
+      "p75": 27,
+      "supMedian": 1308,
+      "from": "2023-06",
+      "to": "2024-01"
+    },
+    "quilmes": {
+      "n": 377,
+      "nRaw": 385,
+      "usdM2": 355,
+      "p25": 229,
+      "p75": 579,
+      "supMedian": 330,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "ramallo": {
+      "n": 10,
+      "nRaw": 11,
+      "usdM2": null,
+      "p25": 26,
+      "p75": 74,
+      "supMedian": 395,
+      "from": "2023-07",
+      "to": "2024-02"
+    },
+    "rojas": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 20,
+      "p75": 20,
+      "supMedian": 891,
+      "from": "2024-03",
+      "to": "2024-03"
+    },
+    "roque-perez": {
+      "n": 3,
+      "nRaw": 3,
+      "usdM2": null,
+      "p25": 19,
+      "p75": 80,
+      "supMedian": 492,
+      "from": "2023-07",
+      "to": "2024-03"
+    },
+    "saladillo": {
+      "n": 27,
+      "nRaw": 27,
+      "usdM2": 40,
+      "p25": 13,
+      "p75": 67,
+      "supMedian": 642,
+      "from": "2023-05",
+      "to": "2024-02"
+    },
+    "salto": {
+      "n": 5,
+      "nRaw": 5,
+      "usdM2": null,
+      "p25": 40,
+      "p75": 73,
+      "supMedian": 300,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "san-andres-de-giles": {
+      "n": 32,
+      "nRaw": 36,
+      "usdM2": 20,
+      "p25": 14,
+      "p75": 72,
+      "supMedian": 2000,
+      "from": "2023-06",
+      "to": "2024-03"
+    },
+    "san-antonio-de-areco": {
+      "n": 23,
+      "nRaw": 27,
+      "usdM2": 81,
+      "p25": 51,
+      "p75": 115,
+      "supMedian": 649,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "san-fernando": {
+      "n": 174,
+      "nRaw": 194,
+      "usdM2": 661,
+      "p25": 405,
+      "p75": 925,
+      "supMedian": 427,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "san-isidro": {
+      "n": 548,
+      "nRaw": 550,
+      "usdM2": 696,
+      "p25": 503,
+      "p75": 942,
+      "supMedian": 433,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "san-miguel": {
+      "n": 462,
+      "nRaw": 465,
+      "usdM2": 262,
+      "p25": 173,
+      "p75": 397,
+      "supMedian": 450,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "san-nicolas": {
+      "n": 33,
+      "nRaw": 37,
+      "usdM2": 77,
+      "p25": 60,
+      "p75": 119,
+      "supMedian": 445,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "san-pedro": {
+      "n": 30,
+      "nRaw": 31,
+      "usdM2": 48,
+      "p25": 25,
+      "p75": 136,
+      "supMedian": 434,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "san-vicente": {
+      "n": 322,
+      "nRaw": 330,
+      "usdM2": 44,
+      "p25": 28,
+      "p75": 60,
+      "supMedian": 617,
+      "from": "2021-07",
+      "to": "2024-03"
+    },
+    "tandil": {
+      "n": 276,
+      "nRaw": 298,
+      "usdM2": 56,
+      "p25": 40,
+      "p75": 97,
+      "supMedian": 650,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "tapalque": {
+      "n": 18,
+      "nRaw": 18,
+      "usdM2": 38,
+      "p25": 19,
+      "p75": 57,
+      "supMedian": 458,
+      "from": "2023-06",
+      "to": "2024-02"
+    },
+    "tigre": {
+      "n": 552,
+      "nRaw": 640,
+      "usdM2": 267,
+      "p25": 146,
+      "p75": 506,
+      "supMedian": 698,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "tornquist": {
+      "n": 43,
+      "nRaw": 44,
+      "usdM2": 40,
+      "p25": 29,
+      "p75": 50,
+      "supMedian": 896,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "trenque-lauquen": {
+      "n": 18,
+      "nRaw": 18,
+      "usdM2": 48,
+      "p25": 29,
+      "p75": 81,
+      "supMedian": 608,
+      "from": "2023-05",
+      "to": "2024-02"
+    },
+    "tres-arroyos": {
+      "n": 39,
+      "nRaw": 40,
+      "usdM2": 42,
+      "p25": 20,
+      "p75": 58,
+      "supMedian": 480,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "tres-de-febrero": {
+      "n": 231,
+      "nRaw": 231,
+      "usdM2": 446,
+      "p25": 333,
+      "p75": 598,
+      "supMedian": 322,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "veinticinco-de-mayo": {
+      "n": 4,
+      "nRaw": 4,
+      "usdM2": null,
+      "p25": 10,
+      "p75": 30,
+      "supMedian": 735,
+      "from": "2023-11",
+      "to": "2024-02"
+    },
+    "vicente-lopez": {
+      "n": 385,
+      "nRaw": 386,
+      "usdM2": 870,
+      "p25": 633,
+      "p75": 1173,
+      "supMedian": 322,
+      "from": "2021-06",
+      "to": "2024-03"
+    },
+    "villa-gesell": {
+      "n": 168,
+      "nRaw": 179,
+      "usdM2": 96,
+      "p25": 72,
+      "p75": 146,
+      "supMedian": 475,
+      "from": "2023-05",
+      "to": "2024-03"
+    },
+    "villarino": {
+      "n": 1,
+      "nRaw": 1,
+      "usdM2": null,
+      "p25": 13,
+      "p75": 13,
+      "supMedian": 600,
+      "from": "2024-02",
+      "to": "2024-02"
+    },
+    "zarate": {
+      "n": 107,
+      "nRaw": 129,
+      "usdM2": 45,
+      "p25": 33,
+      "p75": 113,
+      "supMedian": 596,
+      "from": "2021-07",
+      "to": "2024-03"
+    }
+  }
+}

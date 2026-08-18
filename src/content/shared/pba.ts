@@ -11,29 +11,38 @@
 // that costs nothing; `aka` is only for a genuinely different spelling.
 //
 // ── The two groupings, and why `report` is not `zona` ──────────────────────
-// Two different cuts of the same 26 partidos live here and they are not the
+// Two different cuts of the same 27 partidos live here and they are not the
 // same cut:
 //
 //   • `zona` is the one a reader uses. Norte, Oeste and Sur are how everyone in
 //     Buenos Aires describes where they live, and it is what the page groups
-//     its table by.
-//   • `report` is which of Zonaprop's two monthly PDFs the partido's figure
-//     comes from — `norte` or `oeste-sur`. It exists because each report also
-//     publishes its own *aggregate* index, and an aggregate can only be quoted
-//     against the partidos it was computed over.
+//     its table by. It never changes.
+//   • `report` is which of Zonaprop's monthly PDFs publishes the partido's
+//     figure. It exists because each report also publishes its own *aggregate*
+//     index, and an aggregate can only be quoted against the partidos it was
+//     computed over — so the composition of a report is data, not trivia.
 //
 // They disagree in one place, and it is load-bearing: Zonaprop files **General
 // San Martín** under GBA Norte, while a reader would call it oeste. Following
 // the source for `report` and the reader for `zona` is the only way both the
 // aggregate and the table stay true. Tres de Febrero is the mirror case —
-// Zonaprop puts it in the Oeste y Sur report, and so does everyday usage.
+// Zonaprop puts it in the Oeste report, and so does everyday usage.
 //
-// ── Why 26 and not 24 ─────────────────────────────────────────────────────
+// `report` is the *current* structure. It has already changed once: until
+// 2026-01 there were two reports, and oeste and sur shared one called "GBA
+// Oeste y Sur"; from 2026-03 there are three, and the old aggregate is not
+// continuous with either successor. The fetcher owns that history — see
+// `scripts/fetch-pba-inmobiliario.ts` — because it is about periods, and
+// nothing in this file is.
+//
+// ── Why 27 and not 24 ─────────────────────────────────────────────────────
 // The Gran Buenos Aires is conventionally 24 partidos. Zonaprop's Norte report
-// adds Escobar and Pilar, which are third-cordón rather than conurbano proper
-// but are where a lot of the northern market actually is. `GBA` is therefore
-// "the partidos a portal publishes a price for", not an administrative fact,
-// and `isConurbano24` marks the official set for anything that needs it.
+// adds Escobar and Pilar, third-cordón rather than conurbano proper but where a
+// lot of the northern market is, and its Sur report added La Plata in 2026-03,
+// which is not Gran Buenos Aires at all. `PRICED` is therefore "the partidos a
+// portal publishes a price for", not an administrative fact, and it grows when
+// they add one. `isConurbano24` marks the official set for anything that needs
+// it.
 
 type Partido = {
   /** Join key: ASCII slug of `label`. Stable — changing one silently orphans a
@@ -54,7 +63,7 @@ type Partido = {
 };
 
 export type ZonaId = "norte" | "oeste" | "sur";
-export type ReportId = "norte" | "oeste-sur";
+export type ReportId = "norte" | "oeste" | "sur";
 
 /** The three zonas of the Gran Buenos Aires, in the order the pages list them:
  * dearest first, which is also north to south. */
@@ -88,7 +97,7 @@ export const PARTIDOS = [
     id: "almirante-brown",
     label: "Almirante Brown",
     zona: "sur",
-    report: "oeste-sur",
+    report: "sur",
     isConurbano24: true,
   },
   { id: "arrecifes", label: "Arrecifes" },
@@ -96,7 +105,7 @@ export const PARTIDOS = [
     id: "avellaneda",
     label: "Avellaneda",
     zona: "sur",
-    report: "oeste-sur",
+    report: "sur",
     isConurbano24: true,
   },
   { id: "ayacucho", label: "Ayacucho" },
@@ -109,7 +118,7 @@ export const PARTIDOS = [
     id: "berazategui",
     label: "Berazategui",
     zona: "sur",
-    report: "oeste-sur",
+    report: "sur",
     isConurbano24: true,
   },
   { id: "berisso", label: "Berisso" },
@@ -140,7 +149,7 @@ export const PARTIDOS = [
     id: "esteban-echeverria",
     label: "Esteban Echeverría",
     zona: "sur",
-    report: "oeste-sur",
+    report: "sur",
     isConurbano24: true,
   },
   { id: "exaltacion-de-la-cruz", label: "Exaltación de la Cruz" },
@@ -148,14 +157,14 @@ export const PARTIDOS = [
     id: "ezeiza",
     label: "Ezeiza",
     zona: "sur",
-    report: "oeste-sur",
+    report: "sur",
     isConurbano24: true,
   },
   {
     id: "florencio-varela",
     label: "Florencio Varela",
     zona: "sur",
-    report: "oeste-sur",
+    report: "sur",
     isConurbano24: true,
   },
   { id: "florentino-ameghino", label: "Florentino Ameghino" },
@@ -191,14 +200,14 @@ export const PARTIDOS = [
     id: "hurlingham",
     label: "Hurlingham",
     zona: "oeste",
-    report: "oeste-sur",
+    report: "oeste",
     isConurbano24: true,
   },
   {
     id: "ituzaingo",
     label: "Ituzaingó",
     zona: "oeste",
-    report: "oeste-sur",
+    report: "oeste",
     isConurbano24: true,
   },
   {
@@ -214,15 +223,19 @@ export const PARTIDOS = [
     id: "la-matanza",
     label: "La Matanza",
     zona: "oeste",
-    report: "oeste-sur",
+    report: "oeste",
     isConurbano24: true,
   },
-  { id: "la-plata", label: "La Plata" },
+  // Not conurbano at all — the provincial capital, its own agglomeration.
+  // It is here because Zonaprop's Sur report started publishing it in
+  // 2026-03, and it is the only partido outside the Gran Buenos Aires that
+  // any portal prices monthly.
+  { id: "la-plata", label: "La Plata", zona: "sur", report: "sur" },
   {
     id: "lanus",
     label: "Lanús",
     zona: "sur",
-    report: "oeste-sur",
+    report: "sur",
     isConurbano24: true,
   },
   { id: "laprida", label: "Laprida" },
@@ -236,7 +249,7 @@ export const PARTIDOS = [
     id: "lomas-de-zamora",
     label: "Lomas de Zamora",
     zona: "sur",
-    report: "oeste-sur",
+    report: "sur",
     isConurbano24: true,
   },
   { id: "lujan", label: "Luján" },
@@ -256,7 +269,7 @@ export const PARTIDOS = [
     id: "merlo",
     label: "Merlo",
     zona: "oeste",
-    report: "oeste-sur",
+    report: "oeste",
     isConurbano24: true,
   },
   { id: "monte", label: "Monte" },
@@ -265,14 +278,14 @@ export const PARTIDOS = [
     id: "moreno",
     label: "Moreno",
     zona: "oeste",
-    report: "oeste-sur",
+    report: "oeste",
     isConurbano24: true,
   },
   {
     id: "moron",
     label: "Morón",
     zona: "oeste",
-    report: "oeste-sur",
+    report: "oeste",
     isConurbano24: true,
   },
   { id: "navarro", label: "Navarro" },
@@ -294,7 +307,7 @@ export const PARTIDOS = [
     id: "quilmes",
     label: "Quilmes",
     zona: "sur",
-    report: "oeste-sur",
+    report: "sur",
     isConurbano24: true,
   },
   { id: "ramallo", label: "Ramallo" },
@@ -351,7 +364,7 @@ export const PARTIDOS = [
     id: "tres-de-febrero",
     label: "Tres de Febrero",
     zona: "oeste",
-    report: "oeste-sur",
+    report: "oeste",
     isConurbano24: true,
   },
   { id: "tres-lomas", label: "Tres Lomas" },
@@ -373,29 +386,35 @@ export type PartidoId = (typeof PARTIDOS)[number]["id"];
 /** Every partido in the province. */
 export const PARTIDO_IDS: readonly string[] = PARTIDOS.map((p) => p.id);
 
-/** The 26 partidos a price is published for, in the order above. This is the
- * set the GBA map draws and the set `gba-geo.json` carries paths for. */
-export const GBA: readonly Partido[] = (PARTIDOS as readonly Partido[]).filter(
-  (p) => p.zona !== undefined,
-);
+/** The 27 partidos a price is published for, in the order above. This is the
+ * set the metro map draws and the set `amba-geo.json` carries paths for.
+ *
+ * Named for what it is rather than for a region: it is the 24 of the Gran
+ * Buenos Aires, plus Escobar and Pilar in the north and La Plata in the south,
+ * which is not a territory anybody has a word for. It is defined by Zonaprop's
+ * coverage and it grows when they add a partido — La Plata arrived in 2026-03.
+ */
+export const PRICED: readonly Partido[] = (
+  PARTIDOS as readonly Partido[]
+).filter((p) => p.zona !== undefined);
 
-export const GBA_IDS: readonly string[] = GBA.map((p) => p.id);
+export const PRICED_IDS: readonly string[] = PRICED.map((p) => p.id);
 
-/** The 24 partidos of the Gran Buenos Aires proper — GBA minus Escobar and
- * Pilar. Nothing draws this yet; it is here so a page that needs the official
- * set doesn't reinvent it from a comment. */
-export const CONURBANO_24: readonly Partido[] = GBA.filter(
+/** The 24 partidos of the Gran Buenos Aires proper. Nothing draws this yet; it
+ * is here so a page that needs the official set doesn't reinvent it from a
+ * comment. */
+export const CONURBANO_24: readonly Partido[] = PRICED.filter(
   (p) => p.isConurbano24,
 );
 
 /** The partidos of one zona, in list order. */
 export const partidosOfZona = (zona: ZonaId): readonly Partido[] =>
-  GBA.filter((p) => p.zona === zona);
+  PRICED.filter((p) => p.zona === zona);
 
 /** The partidos in one of Zonaprop's two reports, in list order. Used to check
  * a parsed report against the set it is supposed to contain. */
 export const partidosOfReport = (report: ReportId): readonly Partido[] =>
-  GBA.filter((p) => p.report === report);
+  PRICED.filter((p) => p.report === report);
 
 /** Used in a sentence: "{zonaCovers('norte')}". Derived so it can't drift from
  * the list above. */
@@ -420,8 +439,17 @@ for (const p of PARTIDOS as readonly Partido[]) {
 /** Resolve any published spelling of a partido to its entry. Returns
  * `undefined` rather than throwing: the callers — a PDF parser and a boundary
  * file reader — each want to report the miss with their own context. */
-export const findPartido = (name: string): Partido | undefined =>
-  BY_NAME.get(nameKey(name));
+export const findPartido = (name: string): Partido | undefined => {
+  const direct = BY_NAME.get(nameKey(name));
+  if (direct) return direct;
+  // "Islas Tigre", "Islas de Zárate", "Islas San Fernando". The delta and river
+  // islands belong to a partido, but two provincial sources file them as
+  // separate units of their own — ARBA's boundary file and the OVS land
+  // relevamiento, independently. Neither is a place a reader would name, and
+  // both mean the partido, so they resolve to it.
+  const mainland = name.replace(/^\s*islas\s+(de\s+)?/i, "");
+  return mainland === name ? undefined : BY_NAME.get(nameKey(mainland));
+};
 
 const BY_ID = new Map((PARTIDOS as readonly Partido[]).map((p) => [p.id, p]));
 
