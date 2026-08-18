@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { CmsActor } from "../types";
 import { canManageTokens } from "../auth/policy";
+import { CMS_SECTIONS, cmsSectionPath } from "../sections";
 
 // The CMS chrome. Deliberately its own thing rather than a reuse of `AppShell`:
 // the bill app's shell carries the property switcher, the tRPC providers and the
@@ -15,8 +16,17 @@ import { canManageTokens } from "../auth/policy";
 
 type NavLink = { href: string; label: string; adminOnly?: boolean };
 
+// Built from the section registry, so a new section appears in the navigation
+// by being registered rather than by being remembered. `/cms/tokens` stays
+// top-level: it is not scoped to a section.
 const NAV: readonly NavLink[] = [
-  { href: "/cms", label: "Contenido" },
+  { href: "/cms", label: "Secciones" },
+  ...CMS_SECTIONS.filter((section) => section.status === "live").map(
+    (section) => ({
+      href: cmsSectionPath(section.id),
+      label: section.label,
+    }),
+  ),
   { href: "/cms/tokens", label: "Tokens", adminOnly: true },
 ];
 

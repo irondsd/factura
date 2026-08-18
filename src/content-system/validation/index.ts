@@ -5,7 +5,11 @@ import type {
   ValidationResult,
 } from "../types";
 import { validationResult } from "../types";
-import { validateCollection, buildContentIndex } from "./collection";
+import {
+  buildContentIndex,
+  type CollectionDiagnostic,
+  validateCollection,
+} from "./collection";
 import {
   type ContentIndex,
   type DocumentValidationContext,
@@ -94,7 +98,7 @@ export function validateContentDocument(
     diagnostics.push(
       ...collection.diagnostics
         .filter((d) => d.slug === document.slug)
-        .map(({ slug: _slug, ...rest }) => rest),
+        .map(withoutSlug),
     );
   }
 
@@ -127,11 +131,24 @@ export function validateContentCollection(
   for (const finding of validateCollection(documents).diagnostics) {
     const document = documents.find((d) => d.slug === finding.slug);
     if (!document) continue;
-    const { slug: _slug, ...rest } = finding;
-    byKey.get(keyOf(document))?.push(rest);
+    byKey.get(keyOf(document))?.push(withoutSlug(finding));
   }
 
   return byKey;
+}
+
+/** Collection findings carry the slug they belong to so a caller can route
+ * them; once routed, the slug is redundant on the diagnostic itself. */
+function withoutSlug(finding: CollectionDiagnostic): Diagnostic {
+  const { code, severity, message, line, column, field } = finding;
+  return {
+    code,
+    severity,
+    message,
+    ...(line !== undefined ? { line } : {}),
+    ...(column !== undefined ? { column } : {}),
+    ...(field !== undefined ? { field } : {}),
+  };
 }
 
 /** Every section this validator knows how to check. Section 12 adds the other

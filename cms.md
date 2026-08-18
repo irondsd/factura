@@ -514,15 +514,48 @@ During migration, use a composite repository:
 
 ## 7. CMS browser surface
 
-Iteration 1 routes:
+Iteration 1 routes, scoped by section:
 
 ```text
-/cms                         content list/dashboard
-/cms/new                     create guide
-/cms/[id]                    metadata + Markdown editor
-/cms/preview/[id]            exact private saved preview
-/cms/tokens                  CMS MCP token management (admin only)
+/cms                            section index
+/cms/[section]                  that section's content list
+/cms/[section]/new              create a page in that section
+/cms/[section]/[id]             metadata + Markdown editor
+/cms/[section]/preview/[id]     exact private saved preview
+/cms/tokens                     CMS MCP token management (admin only)
 ```
+
+`[section]` is the section _id_ — the same value as the `cms_page.section`
+column — so a CMS URL and the row it edits always agree. That produces one
+divergence from the public site, and only one: research is `/investigaciones`
+publicly and `/cms/investigacion` here. `src/cms/sections.ts` holds the mapping.
+
+Why sections get their own URLs rather than one filtered list: statistics and
+research (section 12) are not simply more rows. They carry hierarchy,
+parent/child ordering, breadcrumbs, datasets and sources that a guide has no
+concept of, a different component surface, and a different metadata schema. One
+combined list would need a section filter on every query, a form that changes
+shape per row, and a component palette that depends on the selected item. The
+URL is also a better home for "which section am I in" than component state: it
+is bookmarkable and it scopes the data fetch.
+
+These are **one dynamic route set**, not a directory per section. The section
+registry (`src/cms/sections.ts`) drives the routes, the navigation and the
+`/cms` index, so adding a section later — `noticias`, say — is a registry entry
+plus its metadata schema and component registrations, not four more route files
+and a fourth copy of the editor.
+
+`/cms/[section]/preview/[id]` is a sibling of the editor, not a child of it.
+The preview renders in the _article_ shell with no CMS chrome (Phase 6), which a
+route nested under the editor would inherit.
+
+A section may be registered as `planned`: it appears on `/cms` so editors can
+see what is coming, but `/cms/[section]` 404s rather than opening a half-built
+editor. Statistics and research are `planned` until section 12 promotes them.
+
+`/cms/tokens` stays top-level — it is not scoped to a section. Note that
+`tokens`, `new` and `preview` are therefore reserved segments and cannot be
+section ids or page ids; page ids are UUIDs, so no collision is possible.
 
 Required behavior:
 
@@ -532,6 +565,14 @@ Required behavior:
 - Signed-in non-members receive 404 or a plain forbidden screen; do not reveal
   editor data.
 - CMS navigation and layout use only `src/cms/components`.
+- `/cms` lists the registered sections; a `planned` one is shown but not
+  linked.
+- `/cms/[section]` 404s for an unknown or not-yet-editable section, with the
+  same response for both — there is nothing to edit either way.
+- An editor URL whose `[section]` does not match the stored row's section is a
+  404, so a page cannot be opened under the wrong section's form.
+- Section-specific behaviour (metadata fields, component palette, list columns)
+  comes from the registry; the list and editor components themselves are shared.
 - Content list filters by status and searches title/slug.
 - List shows title, slug, status, last editor, and last update.
 - Editor has separately validated metadata fields and Markdown body.
@@ -1223,9 +1264,13 @@ validate:content: pass — 63 files · 0 errors · 0 warnings, output byte-ident
 
 ### Phase 5 — Build the CMS content list and editor
 
-- [ ] Implement `/cms` list data and CMS-only list components.
+- [ ] Implement the `/cms` section index from the section registry.
+- [ ] Implement `/cms/[section]` list data and shared CMS-only list components.
 - [ ] Add status filtering and title/slug search.
-- [ ] Implement `/cms/new` with guide metadata fields and a safe initial draft.
+- [ ] Implement `/cms/[section]/new` with guide metadata fields and a safe
+      initial draft.
+- [ ] Make the metadata form section-driven so statistics and research can reuse
+      it in section 12 without a second editor.
 - [ ] Add CodeMirror 6 with Markdown/MDX highlighting, line numbers, search,
       matching, and lint support.
 - [ ] Add Markdown, Preview, and Validation tabs.
@@ -1246,7 +1291,8 @@ knowing React or JavaScript.
 
 ### Phase 6 — Implement exact previews
 
-- [ ] Add `/cms/preview/[id]` as an authenticated, dynamic, no-store route.
+- [ ] Add `/cms/[section]/preview/[id]` as an authenticated, dynamic, no-store
+      route, rendered outside the CMS chrome.
 - [ ] Render the saved body through the same article shell and component
       manifest as the public guide.
 - [ ] Ensure draft previews carry `noindex, nofollow` and no canonical URL.
@@ -1444,6 +1490,8 @@ production migration.
 - [ ] Extend pure document and collection validation for both sections.
 - [ ] Extend the CMS editor, preview, list filters, and MCP schemas for these
       section-specific fields.
+- [ ] Promote `estadisticas` and `investigacion` from `planned` to `live` in the
+      section registry, and confirm no new route files were needed to do it.
 - [ ] Write repeatable, idempotent, local-first importers with dry-run and target
       environment safeguards.
 - [ ] Migrate both sections locally and compare document counts, metadata,
@@ -1714,6 +1762,16 @@ original checkbox complete.
 - 2026-08-18: The component manifest is split into `definitions.ts` (rules, no
   React) and `manifest.tsx` (bindings), because the CLI validator cannot import
   the component tree without pulling in `server-only`.
+
+- 2026-08-18: CMS routes are scoped by section (`/cms/[section]/…`) rather than
+  a single combined list, decided before Phase 5 on the project owner's
+  suggestion. Statistics and research carry hierarchy, datasets and sources that
+  guides do not, so one list would need a per-row conditional form; and the URL
+  is a better home for section scope than component state. Implemented as one
+  dynamic route set driven by `src/cms/sections.ts`, so the forms, list and
+  editor stay shared and a new section is a registry entry. The CMS segment is
+  the section id, which makes `/cms/investigacion` differ from the public
+  `/investigaciones`.
 
 ### Baseline results
 
