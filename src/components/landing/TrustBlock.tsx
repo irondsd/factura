@@ -21,6 +21,14 @@ import { cn } from "@/lib/cn";
 // The three are one layout with two things swapped: the grid template on the
 // list, and the grid template inside each entry.
 
+// One typographic mark per entry, taken from the character set a printed bill
+// already carries: numero, plus-minus, currency, tilde, almost-equal. They read
+// as ledger notation rather than as an icon set, which is also why they live
+// here and not in the dictionaries — they say nothing a translator could
+// change. Indexed by position, so an entry added to the dictionaries simply
+// arrives unmarked until a glyph is picked for it.
+const GLYPHS = ["№", "±", "¤", "~", "≈"];
+
 // Divider between entries. The 70%-of-line hairline is the landing page's own
 // rule weight, one step softer than a --line border, so the entries read as
 // ruling rather than as five separate boxes.
@@ -43,7 +51,7 @@ const RULE_AFTER = "pb-5 @4xl:pb-0 @4xl:pr-6";
 // no display swap to unwind at the top end.
 const ENTRY = cn(
   "grid grid-cols-1 gap-y-2.5",
-  "@lg:grid-cols-[2.5rem_minmax(0,15rem)_1fr] @lg:gap-x-5 @lg:gap-y-0 @lg:items-baseline",
+  "@lg:grid-cols-[4.5rem_minmax(0,15rem)_1fr] @lg:gap-x-5 @lg:gap-y-0 @lg:items-baseline",
   "@4xl:grid-cols-1 @4xl:gap-y-2.5 @4xl:items-stretch",
 );
 
@@ -94,9 +102,25 @@ export async function TrustBlock({
                 i !== last && RULE_AFTER,
               )}
             >
-              <span className="font-mono text-micro tracking-label text-accent">
-                {String(i + 1).padStart(2, "0")}
-              </span>
+              {/* Number and mark on one line at opposite ends. In the stacked
+                  and strip tiers that line is the entry's full width; in the
+                  ledger tier it is the number column, and the mark closes it
+                  against the heading like a mark made in a margin. Tops
+                  aligned, not baselines: the mark is set large enough that a
+                  shared baseline would drop the number visibly off the line. */}
+              <div className="flex items-start justify-between gap-3">
+                <span className="font-mono text-micro tracking-label text-accent">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                {GLYPHS[i] && (
+                  <span
+                    aria-hidden="true"
+                    className="font-mono text-[19px] @4xl:text-[21px] leading-none text-muted"
+                  >
+                    {GLYPHS[i]}
+                  </span>
+                )}
+              </div>
               <h3 className="font-display font-semibold text-[17px] @lg:text-[19px] leading-[1.2] tracking-tight text-ink text-pretty m-0">
                 {item.title}
               </h3>
