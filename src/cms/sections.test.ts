@@ -42,7 +42,9 @@ describe("the section registry", () => {
     // Research is plural publicly and singular in the data. This is the only
     // crossing, and it is written down here rather than in a route file.
     expect(findCmsSection("investigacion")?.segment).toBe("investigaciones");
-    expect(findCmsSectionBySegment("investigaciones")?.id).toBe("investigacion");
+    expect(findCmsSectionBySegment("investigaciones")?.id).toBe(
+      "investigacion",
+    );
     expect(findCmsSectionBySegment("investigacion")).toBeUndefined();
   });
 });

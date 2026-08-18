@@ -4,6 +4,7 @@ import {
   levelForSave,
   levelForTransition,
   nextPublishedAt,
+  stampsContentUpdatedAt,
 } from "./lifecycle";
 
 describe("levelForSave", () => {
@@ -63,6 +64,26 @@ describe("nextPublishedAt", () => {
 
   it("does not stamp a page that has never been published", () => {
     expect(nextPublishedAt(null, "draft", later)).toBeNull();
+  });
+});
+
+describe("stampsContentUpdatedAt", () => {
+  const first = new Date("2026-01-01T12:00:00Z");
+
+  it("levels the editorial date on a first publication", () => {
+    // A page written Monday and published Friday would otherwise have
+    // "updated" before "published" — which reads as nonsense and which the
+    // document validator rejects, so every later save of that page failed.
+    expect(stampsContentUpdatedAt(null, "published")).toBe(true);
+  });
+
+  it("leaves it alone when republishing", () => {
+    expect(stampsContentUpdatedAt(first, "published")).toBe(false);
+  });
+
+  it("leaves it alone when unpublishing", () => {
+    expect(stampsContentUpdatedAt(null, "draft")).toBe(false);
+    expect(stampsContentUpdatedAt(first, "preview")).toBe(false);
   });
 });
 

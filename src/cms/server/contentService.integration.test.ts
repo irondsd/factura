@@ -292,14 +292,60 @@ if (!hasTestDatabase()) {
         );
       });
 
-      it("leaves the editorial timestamp alone on a status change", async () => {
+      it("levels the editorial timestamp on a first publication", async () => {
+        // Otherwise a page created now and published a moment later has
+        // "updated" before "published", which the document validator rejects —
+        // so every subsequent save of a published page failed.
         const page = await service.create(actor, draftInput("status-only"));
         const live = await service.setStatus(actor, {
           id: page.id,
           status: "published",
           expectedLockVersion: page.lockVersion,
         });
-        expect(live.contentUpdatedAt).toBe(page.contentUpdatedAt);
+        expect(Date.parse(live.contentUpdatedAt)).toBeGreaterThanOrEqual(
+          Date.parse(live.publishedAt as string),
+        );
+      });
+
+      it("leaves the editorial timestamp alone when republishing", async () => {
+        // Taking a page down and putting it back must not tell every reader
+        // the article was rewritten today.
+        const page = await service.create(actor, draftInput("republish"));
+        const live = await service.setStatus(actor, {
+          id: page.id,
+          status: "published",
+          expectedLockVersion: page.lockVersion,
+        });
+        const down = await service.setStatus(actor, {
+          id: live.id,
+          status: "draft",
+          expectedLockVersion: live.lockVersion,
+        });
+        const again = await service.setStatus(actor, {
+          id: down.id,
+          status: "published",
+          expectedLockVersion: down.lockVersion,
+        });
+        expect(again.contentUpdatedAt).toBe(live.contentUpdatedAt);
+        expect(again.publishedAt).toBe(live.publishedAt);
+      });
+
+      it("keeps a published page saveable straight after publishing", async () => {
+        // The end-to-end shape of the bug above: publish, then edit, and the
+        // publish-level validation that save has to pass must not trip on the
+        // timestamps the publish itself wrote.
+        const page = await service.create(actor, draftInput("publish-edit"));
+        const live = await service.setStatus(actor, {
+          id: page.id,
+          status: "published",
+          expectedLockVersion: page.lockVersion,
+        });
+        const edited = await service.update(actor, {
+          id: live.id,
+          expectedLockVersion: live.lockVersion,
+          patch: { body: "Cuerpo corregido tras publicar." },
+        });
+        expect(edited.body).toBe("Cuerpo corregido tras publicar.");
       });
     });
 

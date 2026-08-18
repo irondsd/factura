@@ -31,8 +31,13 @@ const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
  * nothing is reported twice. */
 const EXPLICITLY_REPORTED = new Set(["keywords", "categories"]);
 
+// Fractional seconds are optional: hand-authored MDX writes
+// "2026-07-12T09:00:00-03:00", and a value that has been through a `timestamptz`
+// column comes back as "2026-07-12T12:00:00.000Z". Both name the same instant
+// and both carry an explicit offset, which is the only thing this rule is
+// actually about.
 const DATETIME_RE =
-  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(Z|[+-]\d{2}:\d{2})$/;
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/;
 
 const DATETIME_FORMAT =
   'full ISO 8601 with offset, e.g. "2026-06-29T09:00:00-03:00"';

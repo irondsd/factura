@@ -18,13 +18,17 @@ export type CmsPageRow = typeof cmsPages.$inferSelect;
  * and forgotten in the other. */
 export type CmsPageSummaryRow = Omit<CmsPageRow, "bodyMdx">;
 
-/** Timestamps cross this boundary as ISO strings, not `Date`s.
+/** Timestamps cross this boundary as ISO strings, not `Date`s, so every
+ * consumer downstream — the renderer, the validator, the MCP, a JSON snapshot —
+ * sees one representation and cannot format a `Date` in the server's local zone
+ * by accident.
  *
- * The rendered page prints the publication timestamp verbatim into both the
- * visible dateline and the JSON-LD, and Google requires those two to match. A
- * `Date` has already thrown away the authored offset —
- * `2026-07-12T09:00:00-03:00` comes back as an instant that formats differently
- * depending on where the process runs. Keeping the string keeps the offset. */
+ * The authored offset is not preserved, and cannot be: `timestamptz` stores an
+ * instant, not a zone, so `2026-07-12T09:00:00-03:00` comes back as
+ * `2026-07-12T12:00:00.000Z`. That is the same moment, which is what matters
+ * here — the visible dateline is formatted explicitly in Buenos Aires time
+ * (`formatContentDate`), and the JSON-LD carries the same instant, so the two
+ * still agree, which is Google's actual requirement. */
 const iso = (value: Date): string => value.toISOString();
 
 /** Parse a projected row into a summary, or throw.

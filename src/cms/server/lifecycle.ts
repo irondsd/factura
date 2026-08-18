@@ -59,6 +59,24 @@ export function nextPublishedAt(
   return current ?? now;
 }
 
+/** Whether a first publication should also move the editorial timestamp.
+ *
+ * A page written on Monday and published on Friday has content that was last
+ * *edited* Monday — truthful, but it makes `contentUpdatedAt` earlier than
+ * `publishedAt`, which reads as "updated before it existed" and which the
+ * validator rejects. At the moment of first publication the content is current
+ * by definition, so the two are brought level; the page then shows a single
+ * publication date rather than a nonsensical pair.
+ *
+ * Only on the *first* publication. A republish after an unpublish must not
+ * claim the article was rewritten. */
+export function stampsContentUpdatedAt(
+  previouslyPublishedAt: Date | null,
+  nextStatus: ContentStatus,
+): boolean {
+  return nextStatus === "published" && previouslyPublishedAt === null;
+}
+
 /** Whether a write changed the content itself, as opposed to only its status.
  *
  * Drives `content_updated_at`, which is the "Actualizado el …" the reader sees.

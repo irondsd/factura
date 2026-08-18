@@ -21,6 +21,7 @@ import {
   levelForSave,
   levelForTransition,
   nextPublishedAt,
+  stampsContentUpdatedAt,
   type ValidationLevel,
 } from "./lifecycle";
 import {
@@ -164,6 +165,13 @@ export class CmsContentService {
   ): Promise<ContentDocument> {
     const current = await this.store.findById(input.id);
     if (!current) throw new CmsNotFoundError(`Page ${input.id}`);
+    // Reported from the row already in hand, before validation: a stale save is
+    // not going to land whatever its content says, and "someone else edited
+    // this" is more actionable than a list of rules. The atomic check in
+    // `updateWithLock` still guards the race between this read and the write.
+    if (current.lockVersion !== input.expectedLockVersion) {
+      await this.reportConflict(input.id, input.expectedLockVersion);
+    }
 
     const next = { ...current, ...input.patch } as ContentDocument;
 
@@ -206,15 +214,21 @@ export class CmsContentService {
   ): Promise<ContentDocument> {
     const current = await this.store.findById(input.id);
     if (!current) throw new CmsNotFoundError(`Page ${input.id}`);
+    if (current.lockVersion !== input.expectedLockVersion) {
+      await this.reportConflict(input.id, input.expectedLockVersion);
+    }
 
     if (input.status === "published" && !canPublish(actor)) {
-      throw new CmsForbiddenError("publish content");
+      throw new CmsForbiddenError("publicar contenido");
     }
 
     const level = levelForTransition(current.status, input.status);
     await this.assertValid(current, level);
 
     const now = this.clock();
+    const publishedAt = current.publishedAt
+      ? new Date(current.publishedAt)
+      : null;
     const saved = await this.store.updateWithLock({
       id: input.id,
       expectedLockVersion: input.expectedLockVersion,
@@ -222,14 +236,13 @@ export class CmsContentService {
       now,
       patch: {
         status: input.status,
-        publishedAt: nextPublishedAt(
-          current.publishedAt ? new Date(current.publishedAt) : null,
-          input.status,
-          now,
-        ),
-        // Deliberately absent: `contentUpdatedAt`. Unpublishing and
-        // republishing a page must not tell every reader the article was
-        // rewritten today.
+        publishedAt: nextPublishedAt(publishedAt, input.status, now),
+        // Moved only on a *first* publication, where the content is current by
+        // definition. Unpublishing and republishing must not tell every reader
+        // the article was rewritten today.
+        ...(stampsContentUpdatedAt(publishedAt, input.status)
+          ? { contentUpdatedAt: now }
+          : {}),
       },
     });
     if (!saved) await this.reportConflict(input.id, input.expectedLockVersion);

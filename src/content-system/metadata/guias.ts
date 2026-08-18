@@ -31,8 +31,10 @@ const PREVIEW_PATTERN =
  * but recommends time and zone, and the article renders the timestamp visibly —
  * requiring the offset keeps the dateline and the JSON-LD identical by
  * construction. */
+// Fractional seconds optional — a value round-tripped through a `timestamptz`
+// column comes back with milliseconds, and it is the same instant.
 const DATETIME_PATTERN =
-  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:Z|[+-]\d{2}:\d{2})$/;
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/;
 
 /** Whether the digits describe a real instant. The regex accepts
  * `2026-02-30T25:00:00-03:00`, and `Date.parse` is no help — it rolls February
@@ -94,8 +96,13 @@ export const faqItemSchema = z
  * field turns into data nothing reads. */
 export const guideMetadataSchema = z
   .object({
-    keywords: z.array(filled).min(1),
-    categories: z.array(z.enum(CATEGORY_IDS)).min(1),
+    // Empty is allowed *here* and rejected by the document validator at preview
+    // and publish level. This schema answers "is this the right shape to
+    // store?"; whether it is a finished page is an editorial question, and
+    // cms.md §5.3 says a draft may be incomplete. A `min(1)` here would make a
+    // new draft unreadable the moment it was written.
+    keywords: z.array(filled).default([]),
+    categories: z.array(z.enum(CATEGORY_IDS)).default([]),
     /** Answers are plain text on purpose: the same list renders the visible
      * block and the FAQPage JSON-LD, so a link in an answer would put markup in
      * the structured data. Links belong in the prose. */

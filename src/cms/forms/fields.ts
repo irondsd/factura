@@ -1,0 +1,266 @@
+import { CATEGORIES } from "@/content/guias/categories";
+import type { ContentSection } from "@/content-system/types";
+
+// The metadata form, described as data.
+//
+// §7.1: sections differ in data, never in branches. The editor renders whatever
+// fields a section declares here, so adding statistics in section 12 is a new
+// `FIELDS` entry rather than a second editor with a different form — and the
+// field components below are written once for every section.
+//
+// Editors never see raw JSON (§3.7). A field says where it reads and writes —
+// a column on the document, or a key inside `metadata` — and the form assembles
+// the JSONB object from those.
+
+export type FieldKind =
+  /** One line of text. */
+  | "text"
+  /** Several lines. */
+  | "textarea"
+  /** A URL path segment, validated as a slug. */
+  | "slug"
+  /** A free list of short strings, added one at a time. */
+  | "tags"
+  /** A fixed set, several choices allowed, order meaningful. */
+  | "multiselect"
+  /** Question/answer pairs. */
+  | "faq"
+  /** The two social-card text slots. */
+  | "ogImage"
+  /** Another page in this section, or none. */
+  | "parent"
+  /** A whole number. */
+  | "number";
+
+export type FieldOption = { value: string; label: string };
+
+export type FieldDescriptor = {
+  /** Where the value lives. A bare name is a column on the document; a
+   * `metadata.` prefix is a key inside the JSONB object. */
+  path: string;
+  label: string;
+  kind: FieldKind;
+  /** Shown under the input. Written for someone who does not know React or
+   * SEO jargon — see the Phase 5 gate. */
+  help?: string;
+  required?: boolean;
+  /** Shown as a live counter, and the length the guidance is written around.
+   * Not enforced here: the validator owns the rules, and this is the hint. */
+  softMax?: number;
+  placeholder?: string;
+  options?: readonly FieldOption[];
+  /** Fields in the same group render together under one heading. */
+  group: "identidad" | "busqueda" | "social" | "estructura" | "contenido";
+};
+
+const GUIDE_FIELDS: readonly FieldDescriptor[] = [
+  {
+    path: "title",
+    label: "Título",
+    kind: "text",
+    required: true,
+    softMax: 60,
+    group: "identidad",
+    help: "El encabezado de la página y, salvo que definas un título para buscadores, también el que aparece en Google. Por encima de 60 caracteres Google lo corta.",
+  },
+  {
+    path: "slug",
+    label: "Dirección",
+    kind: "slug",
+    required: true,
+    group: "identidad",
+    help: "La última parte de la URL. Minúsculas, sin acentos ni espacios. No se puede cambiar una vez publicada la página.",
+  },
+  {
+    path: "crumb",
+    label: "Nombre corto",
+    kind: "text",
+    group: "identidad",
+    help: "Cómo se nombra esta página en las migas y en los listados, cuando el título es demasiado largo. Si lo dejas vacío se usa el título.",
+  },
+  {
+    path: "parentId",
+    label: "Página madre",
+    kind: "parent",
+    group: "estructura",
+    help: "Deja «Ninguna» para una página de primer nivel. Si eliges una, esta página cuelga de ella y su dirección empieza por la de la madre.",
+  },
+  {
+    path: "sortOrder",
+    label: "Orden",
+    kind: "number",
+    group: "estructura",
+    help: "En qué posición aparece entre sus hermanas. Menor va primero; si empatan, se ordenan por dirección.",
+  },
+  {
+    path: "description",
+    label: "Descripción",
+    kind: "textarea",
+    required: true,
+    softMax: 160,
+    group: "busqueda",
+    help: "El párrafo que Google muestra debajo del título. Entre 120 y 170 caracteres.",
+  },
+  {
+    path: "metadata.keywords",
+    label: "Palabras clave",
+    kind: "tags",
+    required: true,
+    group: "busqueda",
+    help: "Entre 3 y 6. La primera es la búsqueda que esta página quiere ganar, y conviene que sus palabras aparezcan en el título y en la descripción.",
+  },
+  {
+    path: "metadata.categories",
+    label: "Categorías",
+    kind: "multiselect",
+    required: true,
+    group: "busqueda",
+    options: CATEGORIES.map((category) => ({
+      value: category.id,
+      label: category.label,
+    })),
+    help: "De 1 a 3. La primera decide en qué grupo aparece en el índice y qué miga muestra.",
+  },
+  {
+    path: "canonicalSlug",
+    label: "Página canónica",
+    kind: "slug",
+    group: "busqueda",
+    help: "Solo si esta página compite con otra por la misma búsqueda y la otra es la respuesta. Escribe su dirección: esta seguirá viéndose, pero le cede el lugar en Google.",
+  },
+  {
+    path: "titleTag",
+    label: "Título para buscadores",
+    kind: "text",
+    softMax: 60,
+    group: "busqueda",
+    help: "Solo si el título funciona en la página pero es demasiado largo para un resultado de búsqueda.",
+  },
+  {
+    path: "summary",
+    label: "Resumen",
+    kind: "textarea",
+    required: true,
+    group: "contenido",
+    help: "Una o dos frases. Es lo que se lee en las tarjetas del índice.",
+  },
+  {
+    path: "cta",
+    label: "Frase de invitación",
+    kind: "text",
+    required: true,
+    softMax: 54,
+    group: "contenido",
+    help: "La línea que acompaña al botón al principio del artículo. Por encima de 54 caracteres se parte en dos líneas.",
+  },
+  {
+    path: "metadata.faq",
+    label: "Preguntas frecuentes",
+    kind: "faq",
+    group: "contenido",
+    help: "De 4 a 6 preguntas reales de búsqueda. Se muestran donde el cuerpo escriba <Faq />, y solo ahí. Las respuestas son texto plano: los enlaces van en el cuerpo.",
+  },
+  {
+    path: "metadata.vendor",
+    label: "Empresa",
+    kind: "text",
+    group: "social",
+    help: "La empresa de la que trata la guía — «Edesur», «AySA». Déjalo vacío si la guía trata un tema y no una factura concreta.",
+  },
+  {
+    path: "metadata.previewImage",
+    label: "Imagen de portada",
+    kind: "text",
+    group: "social",
+    placeholder: "/img/guias/previews/nombre.jpg",
+    help: "Opcional. Una imagen 16:9 en /img/guias/previews/. Se ve en los listados y junto al artículo.",
+  },
+  {
+    path: "metadata.ogTitle",
+    label: "Título para redes",
+    kind: "text",
+    softMax: 70,
+    group: "social",
+    help: "Solo si el gancho para compartir debería decir algo distinto del título.",
+  },
+  {
+    path: "metadata.ogDescription",
+    label: "Descripción para redes",
+    kind: "textarea",
+    softMax: 200,
+    group: "social",
+  },
+  {
+    path: "metadata.ogImage",
+    label: "Tarjeta social",
+    kind: "ogImage",
+    group: "social",
+    help: "Dos textos que se imprimen sobre la tarjeta que se genera al compartir. No es una imagen que subas.",
+  },
+];
+
+const FIELDS: Partial<Record<ContentSection, readonly FieldDescriptor[]>> = {
+  guias: GUIDE_FIELDS,
+  // `estadisticas` and `investigacion` arrive in section 12: their own entries
+  // here, plus their metadata schemas and component registrations. No new
+  // editor, no new form.
+};
+
+export function sectionFields(
+  section: ContentSection,
+): readonly FieldDescriptor[] {
+  return FIELDS[section] ?? [];
+}
+
+export const FIELD_GROUPS: readonly {
+  id: FieldDescriptor["group"];
+  label: string;
+}[] = [
+  { id: "identidad", label: "Identidad" },
+  { id: "estructura", label: "Ubicación" },
+  { id: "contenido", label: "Contenido" },
+  { id: "busqueda", label: "Búsqueda" },
+  { id: "social", label: "Redes" },
+];
+
+/** Read a field's value out of a document-shaped object, following the
+ * `metadata.` prefix. One function so no component parses a path itself. */
+export function readField(
+  source: { metadata?: unknown } & Record<string, unknown>,
+  path: string,
+): unknown {
+  if (!path.startsWith("metadata.")) return source[path];
+  const metadata = (source.metadata ?? {}) as Record<string, unknown>;
+  return metadata[path.slice("metadata.".length)];
+}
+
+/** Assemble a document patch from field values, splitting columns from the
+ * JSONB object. The editor never builds that object by hand, which is what
+ * keeps raw JSON out of the form. */
+export function toPatch(
+  fields: readonly FieldDescriptor[],
+  values: Record<string, unknown>,
+): { columns: Record<string, unknown>; metadata: Record<string, unknown> } {
+  const columns: Record<string, unknown> = {};
+  const metadata: Record<string, unknown> = {};
+  for (const field of fields) {
+    const value = values[field.path];
+    if (field.path.startsWith("metadata.")) {
+      const key = field.path.slice("metadata.".length);
+      // An empty optional field is *absent*, not an empty string: the schema
+      // rejects `ogTitle: ""` precisely so a blank does not ship as a value.
+      if (!isBlank(value)) metadata[key] = value;
+    } else {
+      columns[field.path] = isBlank(value) ? null : value;
+    }
+  }
+  return { columns, metadata };
+}
+
+function isBlank(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return false;
+}

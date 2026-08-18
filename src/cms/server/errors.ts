@@ -48,8 +48,9 @@ export class CmsValidationError extends Error {
  * publication is admin-only, minting a token as an editor. */
 export class CmsForbiddenError extends Error {
   readonly code = "forbidden" as const;
+  /** `what` is a Spanish verb phrase — these messages reach an editor. */
   constructor(what: string) {
-    super(`Not allowed to ${what}.`);
+    super(`No tienes permiso para ${what}.`);
     this.name = "CmsForbiddenError";
   }
 }
@@ -59,7 +60,7 @@ export class CmsForbiddenError extends Error {
 export class CmsSlugTakenError extends Error {
   readonly code = "slug_taken" as const;
   constructor(section: string, slug: string) {
-    super(`/${section}/${slug} already exists.`);
+    super(`Ya existe una página en /${section}/${slug}. Elige otra dirección.`);
     this.name = "CmsSlugTakenError";
   }
 }

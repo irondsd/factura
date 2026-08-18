@@ -1315,32 +1315,154 @@ validate:content: pass — 63 files · 0 errors · 0 warnings, output byte-ident
 
 ### Phase 5 — Build the CMS content list and editor
 
-- [ ] Implement the `/cms` section index from the section registry.
-- [ ] Implement `/cms/[section]` list data and shared CMS-only list components.
-- [ ] Add status filtering and title/slug search.
-- [ ] Implement `/cms/[section]/new` with guide metadata fields and a safe
+- [x] Implement the `/cms` section index from the section registry.
+- [x] Implement `/cms/[section]` list data and shared CMS-only list components.
+- [x] Add status filtering and title/slug search.
+- [x] Implement `/cms/[section]/new` with guide metadata fields and a safe
       initial draft.
-- [ ] Make the metadata form section-driven so statistics and research can reuse
+- [x] Make the metadata form section-driven so statistics and research can reuse
       it in section 12 without a second editor.
-- [ ] Render the content list as the page tree (`buildContentTree`), with a
+- [x] Render the content list as the page tree (`buildContentTree`), with a
       parent picker and sibling ordering available in every section.
-- [ ] Add CodeMirror 6 with Markdown/MDX highlighting, line numbers, search,
+- [x] Add CodeMirror 6 with Markdown/MDX highlighting, line numbers, search,
       matching, and lint support.
-- [ ] Add Markdown, Preview, and Validation tabs.
-- [ ] Add explicit Save and unsaved-change navigation protection.
-- [ ] Display server diagnostics in the Validation tab.
-- [ ] Map diagnostic line/column ranges into CodeMirror lint markers.
-- [ ] Implement metadata form validation without exposing raw JSON.
-- [ ] Implement save conflicts using `lock_version` and a clear reload/copy
+- [x] Add Markdown, Preview, and Validation tabs.
+- [x] Add explicit Save and unsaved-change navigation protection.
+- [x] Display server diagnostics in the Validation tab.
+- [x] Map diagnostic line/column ranges into CodeMirror lint markers.
+- [x] Implement metadata form validation without exposing raw JSON.
+- [x] Implement save conflicts using `lock_version` and a clear reload/copy
       recovery path.
-- [ ] Implement lifecycle controls and confirmation dialogs.
-- [ ] Show propagation timing for published edits.
-- [ ] Ensure the CMS UI is usable at desktop and tablet widths.
-- [ ] Add keyboard-focus and screen-reader checks for editor controls and status
+- [x] Implement lifecycle controls and confirmation dialogs.
+- [x] Show propagation timing for published edits.
+- [x] Ensure the CMS UI is usable at desktop and tablet widths.
+- [x] Add keyboard-focus and screen-reader checks for editor controls and status
       transitions.
 
 **Gate:** Both intended human editors can create and save a draft without
 knowing React or JavaScript.
+
+#### Phase 5 implementation notes
+
+Recorded 2026-08-18.
+
+| File                                                  | Role                                                |
+| ----------------------------------------------------- | --------------------------------------------------- |
+| `src/cms/forms/fields.ts`                             | the metadata form described as data, per section    |
+| `src/cms/server/actions.ts`                           | server actions — the browser's way into the service |
+| `src/cms/components/ContentList.tsx`                  | the page tree                                       |
+| `src/cms/components/ListFilters.tsx`                  | status filter + search, via the URL                 |
+| `src/cms/components/MarkdownEditor.tsx`               | CodeMirror 6                                        |
+| `src/cms/components/PageEditor.tsx`                   | tabs, save, conflicts, lifecycle                    |
+| `src/cms/components/NewPageForm.tsx`                  | create, with a body skeleton                        |
+| `src/cms/components/fields/MetadataField.tsx`         | every field kind, written once                      |
+| `src/cms/components/ValidationPanel.tsx`              | diagnostics, errors and warnings apart              |
+| `src/app/(cms)/cms/[section]/{page,new,[id],preview}` | route adapters                                      |
+
+CodeMirror is assembled from its modules (`@codemirror/view`, `state`,
+`commands`, `language`, `search`, `lint`, `lang-markdown`) rather than the
+`codemirror` bundle, so the editor page ships the extensions it uses.
+
+##### Section-driven, not section-branched
+
+`sectionFields(section)` returns field descriptors; the editor renders whatever
+it gets. Adding statistics in section 12 is a `FIELDS` entry, not a second
+editor — §7.1 in practice. The same holds for the list, which renders
+`buildContentTree` for every section: guides are flat today because that is what
+their tree is, not because the component checks which section it is showing.
+
+A field says where it reads and writes (a column, or a `metadata.` key) and
+`toPatch` assembles the JSONB from that, so no editor sees raw JSON (§3.7).
+Blank optional fields are dropped rather than stored as `""`, which is what the
+schema wants — `ogTitle: ""` would otherwise ship as a value.
+
+##### Five bugs the browser found
+
+Every one of these was invisible to the test suite and fatal in use.
+
+1. **A new draft could not be read back.** `rowToDocument` required metadata to
+   satisfy the full schema, but a page created a second ago has no keywords —
+   and §5.3 says a draft may be incomplete. The insert succeeded and the read
+   threw. Fixed by separating the two questions the schema was conflating:
+   `guideMetadataSchema` now validates _shape_ (types, no unknown keys) and the
+   document validator owns _completeness_, which it already did.
+2. **Every database-created page failed the date rule.** A `timestamptz` column
+   round-trips as `2026-07-12T12:00:00.000Z` — milliseconds, and `Z` rather
+   than the authored offset. The pattern was written for hand-authored MDX and
+   rejected both. Fractional seconds are now optional. (The offset genuinely
+   cannot survive: `timestamptz` stores an instant, not a zone. That is fine —
+   the dateline is formatted explicitly in Buenos Aires time and the JSON-LD
+   carries the same instant, so the two still agree, which is Google's actual
+   requirement. The comment in `mapping.ts` claiming otherwise was wrong and is
+   corrected.)
+3. **A published page could not be saved again.** Publishing stamped
+   `published_at` but left `content_updated_at` at creation time, so "updated"
+   was before "published" — which the validator rejects, and publish-level
+   validation is exactly what a published save has to pass. A _first_
+   publication now levels the two (`stampsContentUpdatedAt`); a republish after
+   an unpublish still does not, because taking a page down and putting it back
+   is not a rewrite.
+4. **A failed action left the button spinning.** An error the action does not
+   model — the database down, a deploy mid-request — rejected the promise and
+   nothing caught it. All three now report a failure instead, and never claim
+   the work was saved.
+5. **Editor-facing errors were in developer English**, one of them naming a
+   UUID. Validation and conflict now speak Spanish; a conflict shows no notice
+   at all, because the recovery panel below it _is_ the message.
+
+##### Save, conflict, lifecycle
+
+Explicit Save only (§3.4). "Unsaved" is computed by comparing against the last
+saved snapshot rather than a dirty flag, so undoing an edit by hand clears the
+warning instead of leaving it stuck on. `beforeunload` guards navigation.
+
+A conflict is reported from the row the service already read, before validation
+runs — a stale save is not going to land whatever its content says, and
+"someone else edited this" is more actionable than a list of rules. The atomic
+`WHERE lock_version = ?` still guards the race between that read and the write.
+The recovery path keeps the losing text in a textarea to copy before reloading;
+nothing is overwritten.
+
+Status transitions are disabled while there are unsaved changes, with the reason
+shown, and each confirms with what it will do in plain Spanish. A published page
+carries the one-hour propagation warning.
+
+##### Verified in the browser
+
+Created a page from the form (slug auto-derived, accents folded), saved, was
+refused publication with three errors listed, filled them in, published,
+confirmed the chip and the propagation notice, previewed the saved value through
+the real component pipeline, saw the page in the list, and forced a conflict by
+bumping `lock_version` behind the editor.
+
+`<script>alert(1)</script>` typed into the body produced one error marker in the
+lint gutter on line 1 with the offending text underlined.
+
+Tablet (768px) stacks the editor above the sidebar and stays usable. Every
+input has a label, tabs carry `role`/`aria-selected`, the editor exposes
+`role="textbox"` with an `aria-label`, notices are an `aria-live` region, no
+button lacks an accessible name, and Tab is deliberately not bound to
+indentation so the editor is not a keyboard trap.
+
+##### Brought forward from Phase 6
+
+`/cms/[section]/preview/[id]` exists so the Preview tab has something to show.
+It is authenticated, dynamic, `noindex`, rendered outside the CMS chrome, and
+compiles through `compileContent` + `contentComponents`. Its Phase 6 checkbox
+stays open: the article-shell fidelity — contents column, FAQ binding, related
+guides, structured data, and the public `preview` URL behaviour — is that
+phase's work and is not done here.
+
+Floor after Phase 5:
+
+```text
+build:            pass — 5 CMS routes, all dynamic
+lint:             pass — 0 errors, 0 warnings
+typecheck:        pass
+test:             pass — 944 tests, 1 file skipped (no database)
+test:db:          pass — 973 tests
+validate:content: pass — 63 files · 0 errors · 0 warnings
+```
 
 ### Phase 6 — Implement exact previews
 
@@ -1840,6 +1962,15 @@ original checkbox complete.
   it per section is how `if (section === "…")` gets into the list, the editor,
   the breadcrumb and the sitemap. Guides are flat today by content, not by
   model. See §7.1.
+
+- 2026-08-18: The metadata schema validates shape, not completeness — a draft
+  may be incomplete (§5.3), so requiring keywords at the storage layer made a
+  new draft unreadable. Completeness is the document validator's job, at preview
+  and publish level.
+- 2026-08-18: A first publication levels `content_updated_at` with
+  `published_at`. Otherwise a page written on Monday and published on Friday has
+  "updated" before "published", which the validator rejects — so a published
+  page could never be saved again. A republish does not move it.
 
 ### Baseline results
 

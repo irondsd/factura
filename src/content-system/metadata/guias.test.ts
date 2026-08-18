@@ -48,6 +48,12 @@ describe("contentDateTime", () => {
     expect(contentDateTime.safeParse("2026-07-12").success).toBe(false);
   });
 
+  it("accepts the millisecond form a timestamptz column returns", () => {
+    expect(contentDateTime.safeParse("2026-07-12T12:00:00.000Z").success).toBe(
+      true,
+    );
+  });
+
   it("rejects a date the calendar does not have", () => {
     expect(contentDateTime.safeParse("2026-02-30T09:00:00-03:00").success).toBe(
       false,
@@ -60,13 +66,15 @@ describe("guideMetadataSchema", () => {
     expect(guideMetadataSchema.safeParse(valid).success).toBe(true);
   });
 
-  it("requires at least one keyword and one category", () => {
+  it("stores an incomplete draft without complaint", () => {
+    // Shape, not completeness. A page created a second ago has no keywords yet,
+    // and rejecting it here would make the row unreadable rather than
+    // unfinished. `validateDocument` is what requires them, at preview and
+    // publish level — see `document.test.ts`.
     expect(
-      guideMetadataSchema.safeParse({ ...valid, keywords: [] }).success,
-    ).toBe(false);
-    expect(
-      guideMetadataSchema.safeParse({ ...valid, categories: [] }).success,
-    ).toBe(false);
+      guideMetadataSchema.safeParse({ keywords: [], categories: [] }).success,
+    ).toBe(true);
+    expect(guideMetadataSchema.safeParse({}).success).toBe(true);
   });
 
   it("rejects an unknown category id", () => {

@@ -276,6 +276,24 @@ describe("dates", () => {
     );
   });
 
+  it("accepts a timestamp that has been through the database", () => {
+    // `timestamptz` round-trips as "2026-07-12T12:00:00.000Z" — milliseconds,
+    // and `Z` rather than the authored offset. Rejecting that made *every*
+    // database-created page fail the date rule, which is how this was found.
+    expect(
+      codes({
+        publishedAt: "2026-07-12T12:00:00.000Z",
+        contentUpdatedAt: "2026-08-09T14:30:00.123Z",
+      }),
+    ).toEqual([]);
+  });
+
+  it("still requires an offset of some kind", () => {
+    expect(codes({ contentUpdatedAt: "2026-08-09T14:30:00.123" })).toContain(
+      DOCUMENT_CODES.dateFormat,
+    );
+  });
+
   it("accepts a draft that has never been published", () => {
     // `publishedAt` is null until the first publish; that is a normal state,
     // not a missing date.
