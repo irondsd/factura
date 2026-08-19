@@ -6,10 +6,10 @@ import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Button } from "@/components/ui";
 import {
-  listedGuides,
   guidesByPrimaryCategory,
   nonEmptyCategories,
-} from "@/content/guias/guides";
+  publishedGuides,
+} from "@/content-system/repository/guias";
 import { guidesIndexMetadata } from "@/i18n/metadata";
 import { guideListLd } from "@/i18n/structuredData";
 
@@ -37,7 +37,7 @@ export function generateMetadata(): Metadata {
 
 export default async function GuiasIndexPage() {
   const [guides, sections, categories] = await Promise.all([
-    listedGuides(),
+    publishedGuides(),
     guidesByPrimaryCategory(),
     nonEmptyCategories(),
   ]);
@@ -48,8 +48,8 @@ export default async function GuiasIndexPage() {
         data={guideListLd(
           guides.map((g) => ({
             slug: g.slug,
-            title: g.meta.title,
-            description: g.meta.description,
+            title: g.title,
+            description: g.description,
           })),
         )}
       />

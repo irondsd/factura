@@ -1,7 +1,7 @@
 import {
   guidesByPrimaryCategory,
   nonEmptyCategories,
-} from "@/content/guias/guides";
+} from "@/content-system/repository/guias";
 import { NORMAS } from "@/content/normativa/normas";
 import { SECTIONS } from "@/content/sections";
 import {
@@ -138,7 +138,7 @@ export async function GET() {
       `### ${category.label}`,
       "",
       ...guides.map(
-        (g) => `- [${g.meta.title}](${guideUrl(g.slug)}): ${g.meta.summary}`,
+        (g) => `- [${g.title}](${guideUrl(g.slug)}): ${g.summary}`,
       ),
     ]),
   ].join("\n");

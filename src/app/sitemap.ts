@@ -1,5 +1,8 @@
 import type { MetadataRoute } from "next";
-import { listedGuides, nonEmptyCategories } from "@/content/guias/guides";
+import {
+  nonEmptyCategories,
+  publishedGuides,
+} from "@/content-system/repository/guias";
 import { SECTIONS } from "@/content/sections";
 import {
   guideCategoryUrl,
@@ -54,7 +57,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Guides are Spanish-only: no hreflang alternates (no /en counterpart exists).
   const [guides, categories] = await Promise.all([
-    listedGuides(),
+    publishedGuides(),
     nonEmptyCategories(),
   ]);
   const guidesEntries: MetadataRoute.Sitemap = [
@@ -67,11 +70,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Category hubs sit between the index and the articles: they're listing
     // pages, so `lastModified` tracks the newest guide they contain.
     ...categories.map((c) => {
-      const inCategory = guides.filter((g) => g.meta.categories.includes(c.id));
+      const inCategory = guides.filter((g) => g.metadata.categories.includes(c.id));
       // Compare instants: `updated` carries a timezone offset, so two
       // timestamps don't necessarily order the same way as their text.
       const newest = Math.max(
-        ...inCategory.map((g) => Date.parse(g.meta.updated)),
+        ...inCategory.map((g) => Date.parse(g.contentUpdatedAt)),
       );
       return {
         url: guideCategoryUrl(c.id),
@@ -85,10 +88,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // its canonical at another one — submitting it here would ask Google to
     // index the very copy the tag says isn't the one.
     ...guides
-      .filter((g) => !g.meta.canonical)
+      .filter((g) => !g.canonicalSlug)
       .map((g) => ({
         url: guideUrl(g.slug),
-        lastModified: new Date(g.meta.updated),
+        lastModified: new Date(g.contentUpdatedAt),
         changeFrequency: "monthly" as const,
         priority: 0.6,
       })),

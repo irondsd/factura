@@ -1,5 +1,5 @@
 import { getCategory } from "@/content/guias/categories";
-import { listedGuides } from "@/content/guias/guides";
+import { publishedGuides } from "@/content-system/repository/guias";
 import { SECTIONS } from "@/content/sections";
 import { siteName } from "@/config/meta";
 import { siteUrl } from "@/config/urls";
@@ -51,7 +51,7 @@ const rfc822 = (iso: string): string => new Date(iso).toUTCString();
 
 export async function GET(): Promise<Response> {
   const [guides, sections] = await Promise.all([
-    listedGuides(),
+    publishedGuides(),
     Promise.all(
       SECTIONS.map(async (section) => ({
         section,
@@ -66,17 +66,17 @@ export async function GET(): Promise<Response> {
     // subscribers as a fresh item would contradict its own markup. `noindex` is
     // already gone — `listedGuides` dropped it.
     ...guides
-      .filter((g) => !g.meta.canonical)
+      .filter((g) => !g.canonicalSlug)
       .map((g) => ({
         url: guideUrl(g.slug),
-        title: g.meta.title,
-        summary: g.meta.summary,
-        published: g.meta.published,
-        updated: g.meta.updated,
+        title: g.title,
+        summary: g.summary,
+        published: g.publishedAt ?? g.contentUpdatedAt,
+        updated: g.contentUpdatedAt,
         // The primary category — the first id, the one that decides where the
         // guide is grouped everywhere else. Falls back to the section name so a
         // category id that outlives its registry entry can't drop the item.
-        category: getCategory(g.meta.categories[0])?.label ?? "Guías",
+        category: getCategory(g.metadata.categories[0])?.label ?? "Guías",
       })),
     ...sections.flatMap(({ section, pages }) =>
       pages.map((p) => ({

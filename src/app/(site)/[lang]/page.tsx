@@ -12,7 +12,7 @@ import { TrustBlock } from "@/components/landing/TrustBlock";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Button } from "@/components/ui";
 import { estadisticas } from "@/content/estadisticas/pages";
-import { listedGuides } from "@/content/guias/guides";
+import { publishedGuides } from "@/content-system/repository/guias";
 import { investigacion } from "@/content/investigacion/pages";
 import type { ContentSection, SectionPage } from "@/content/section";
 import { toLocale } from "@/i18n/config";
@@ -241,7 +241,7 @@ async function teaserBlocks(): Promise<TeaserBlock[]> {
   const [stats, research, guides] = await Promise.all([
     estadisticas.children([]),
     investigacion.listed(),
-    listedGuides(),
+    publishedGuides(),
   ]);
 
   return [
@@ -262,17 +262,17 @@ async function teaserBlocks(): Promise<TeaserBlock[]> {
       allLabel: "Ver todas las investigaciones",
     },
     {
-      // `listedGuides()` already comes back newest first by publication.
+      // `publishedGuides()` already comes back newest first by publication.
       label: "Guías",
       blurb:
         "Aprende a leer tus facturas y a entender qué pagas en cada servicio.",
       cards: guides.slice(0, PER_BLOCK).map((guide) => ({
         key: guide.slug,
         href: `/guias/${guide.slug}`,
-        title: guide.meta.title,
-        summary: guide.meta.summary,
-        preview: guide.meta.preview,
-        published: guide.meta.published,
+        title: guide.title,
+        summary: guide.summary,
+        preview: guide.metadata.previewImage,
+        published: guide.publishedAt ?? guide.contentUpdatedAt,
       })),
       allHref: "/guias",
       allLabel: "Ver todas las guías",

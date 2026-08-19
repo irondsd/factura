@@ -2,7 +2,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ImageResponse } from "next/og";
 import { getCategory } from "@/content/guias/categories";
-import { guideSlugs, loadGuide } from "@/content/guias/guides";
+import {
+  publicGuideBySlug,
+  publiclyRenderableGuides,
+} from "@/content-system/repository/guias";
 
 // The social card for a guide — the image WhatsApp, X, Slack and LinkedIn show
 // when someone shares the article. Every guide had been sharing the one static
@@ -25,11 +28,12 @@ import { guideSlugs, loadGuide } from "@/content/guias/guides";
 // runtime image rendering and the font files below are only ever read by the
 // build.
 
-export const dynamic = "force-static";
-export const dynamicParams = false;
+export const dynamicParams = true;
 
-export function generateStaticParams() {
-  return guideSlugs().map((slug) => ({ slug }));
+export async function generateStaticParams() {
+  return (await publiclyRenderableGuides()).map((guide) => ({
+    slug: guide.slug,
+  }));
 }
 
 const SIZE = { width: 1200, height: 630 };
@@ -60,7 +64,8 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
-  const { meta } = await loadGuide(slug);
+  const guide = await publicGuideBySlug(slug);
+  if (!guide) return new Response("Not found", { status: 404 });
 
   const [fraunces, plexMono] = await Promise.all([
     loadFont("Fraunces-SemiBold.ttf"),
@@ -69,9 +74,10 @@ export async function GET(
 
   // "GUÍA · EDESUR" — the vendor when the guide is about one specific bill,
   // otherwise its primary category. An author can override the whole line.
-  const category = getCategory(meta.categories[0]);
+  const category = getCategory(guide.metadata.categories[0]);
   const eyebrow = (
-    meta.ogImage?.eyebrow ?? `Guía · ${meta.vendor ?? category?.label ?? ""}`
+    guide.metadata.ogImage?.eyebrow ??
+    `Guía · ${guide.metadata.vendor ?? category?.label ?? ""}`
   )
     .trim()
     .toUpperCase();
@@ -115,7 +121,7 @@ export async function GET(
       >
         <div
           style={{
-            fontSize: headlineSize(meta.title),
+            fontSize: headlineSize(guide.title),
             lineHeight: 1.12,
             letterSpacing: "-0.025em",
             // Satori has no line clamp; the size steps above are what keep a
@@ -123,12 +129,12 @@ export async function GET(
             display: "flex",
           }}
         >
-          {meta.title}
+          {guide.title}
         </div>
         {/* The stat is mono, like every other figure on the site — and not
               optional here: satori draws Fraunces' "+" with a broken advance,
               so "+318%" collides with its own digits in the display face. */}
-        {meta.ogImage?.stat !== undefined && (
+        {guide.metadata.ogImage?.stat !== undefined && (
           <div
             style={{
               marginTop: 32,
@@ -138,7 +144,7 @@ export async function GET(
               display: "flex",
             }}
           >
-            {meta.ogImage.stat}
+            {guide.metadata.ogImage.stat}
           </div>
         )}
       </div>

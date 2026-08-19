@@ -6,7 +6,10 @@ import { GuideList } from "@/components/guides/GuideList";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getCategory } from "@/content/guias/categories";
-import { guidesInCategory, nonEmptyCategories } from "@/content/guias/guides";
+import {
+  guidesInCategory,
+  nonEmptyCategories,
+} from "@/content-system/repository/guias";
 import { guideCategoryMetadata } from "@/i18n/metadata";
 import { guideCategoryLd } from "@/i18n/structuredData";
 
@@ -52,7 +55,7 @@ export default async function GuideCategoryPage({ params }: Props) {
           id: category.id,
           title: category.title,
           description: category.description,
-          guides: guides.map((g) => ({ slug: g.slug, title: g.meta.title })),
+          guides: guides.map((g) => ({ slug: g.slug, title: g.title })),
         })}
       />
 

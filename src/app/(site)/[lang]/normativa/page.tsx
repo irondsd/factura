@@ -4,7 +4,7 @@ import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { NormaCard } from "@/components/normativa/NormaCard";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Button } from "@/components/ui";
-import { listedGuides } from "@/content/guias/guides";
+import { publishedGuides } from "@/content-system/repository/guias";
 import { GRUPOS, NORMAS, normasDeGrupo } from "@/content/normativa/normas";
 import { normativaMetadata } from "@/i18n/metadata";
 import { normativaLd } from "@/i18n/structuredData";
@@ -38,8 +38,8 @@ export default async function NormativaPage() {
   // Slug → title, so a card can name the guide it points at. A slug with no
   // matching guide simply renders no link (the test keeps that from happening
   // silently), which is also what drafts and unlisted guides should do.
-  const guides = await listedGuides();
-  const guiaTitulos = new Map(guides.map((g) => [g.slug, g.meta.title]));
+  const guides = await publishedGuides();
+  const guiaTitulos = new Map(guides.map((g) => [g.slug, g.title]));
 
   return (
     <>
