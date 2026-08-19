@@ -164,6 +164,14 @@ function Control({
         <OgImageInput value={asOgImage(value)} onChange={onChange} id={id} />
       );
 
+    case "sources":
+      return <SourcesInput value={asSources(value)} onChange={onChange} />;
+
+    case "dataset":
+      return (
+        <DatasetInput value={asDataset(value)} onChange={onChange} id={id} />
+      );
+
     default:
       return (
         <>
@@ -446,3 +454,160 @@ const asOgImage = (value: unknown): { eyebrow?: string; stat?: string } =>
   value && typeof value === "object"
     ? (value as { eyebrow?: string; stat?: string })
     : {};
+
+type Source = { label: string; href: string; note?: string };
+type Dataset = {
+  name?: string;
+  description?: string;
+  temporalCoverage?: string;
+  spatialCoverage?: string;
+  variableMeasured?: string[];
+};
+
+const asSources = (value: unknown): Source[] =>
+  Array.isArray(value)
+    ? value.filter(
+        (item): item is Source => item !== null && typeof item === "object",
+      )
+    : [];
+
+const asDataset = (value: unknown): Dataset =>
+  value !== null && typeof value === "object" ? (value as Dataset) : {};
+
+function SourcesInput({
+  value,
+  onChange,
+}: {
+  value: Source[];
+  onChange: (next: Source[] | undefined) => void;
+}) {
+  const update = (index: number, patch: Partial<Source>) =>
+    onChange(
+      value.map((source, i) =>
+        i === index ? { ...source, ...patch } : source,
+      ),
+    );
+
+  return (
+    <div>
+      {value.map((source, index) => (
+        <div key={index} className="border border-line p-3 mb-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-mono text-[11px] uppercase tracking-label-wide text-muted">
+              Fuente {index + 1}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                onChange(
+                  value.length === 1
+                    ? undefined
+                    : value.filter((_, i) => i !== index),
+                )
+              }
+              className="font-mono text-[11px] text-muted hover:text-accent"
+            >
+              Quitar
+            </button>
+          </div>
+          <input
+            type="text"
+            value={source.label}
+            onChange={(e) => update(index, { label: e.target.value })}
+            placeholder="Organismo o publicación"
+            aria-label={`Nombre de la fuente ${index + 1}`}
+            className={cn(inputClass, "mb-2")}
+          />
+          <input
+            type="url"
+            value={source.href}
+            onChange={(e) => update(index, { href: e.target.value })}
+            placeholder="https://…"
+            aria-label={`Enlace de la fuente ${index + 1}`}
+            className={cn(inputClass, "mb-2")}
+          />
+          <input
+            type="text"
+            value={source.note ?? ""}
+            onChange={(e) => update(index, { note: e.target.value })}
+            placeholder="Nota opcional"
+            aria-label={`Nota de la fuente ${index + 1}`}
+            className={inputClass}
+          />
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...value, { label: "", href: "" }])}
+        className="border border-line px-3 py-1.5 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent"
+      >
+        Añadir fuente
+      </button>
+    </div>
+  );
+}
+
+function DatasetInput({
+  value,
+  onChange,
+  id,
+}: {
+  value: Dataset;
+  onChange: (next: Dataset | undefined) => void;
+  id: string;
+}) {
+  const set = (patch: Partial<Dataset>) => {
+    const next = { ...value, ...patch };
+    onChange(
+      Object.values(next).some((item) =>
+        Array.isArray(item) ? item.length > 0 : (item ?? "").trim() !== "",
+      )
+        ? next
+        : undefined,
+    );
+  };
+  return (
+    <div className="grid gap-2">
+      <input
+        id={id}
+        type="text"
+        value={value.name ?? ""}
+        onChange={(e) => set({ name: e.target.value })}
+        placeholder="Nombre oficial de la serie"
+        aria-label="Nombre del conjunto de datos"
+        className={inputClass}
+      />
+      <textarea
+        rows={2}
+        value={value.description ?? ""}
+        onChange={(e) => set({ description: e.target.value })}
+        placeholder="Qué representa una observación"
+        aria-label="Descripción del conjunto de datos"
+        className={inputClass}
+      />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input
+          type="text"
+          value={value.temporalCoverage ?? ""}
+          onChange={(e) => set({ temporalCoverage: e.target.value })}
+          placeholder="Cobertura temporal, ej. 2020-01/2026-06"
+          aria-label="Cobertura temporal"
+          className={inputClass}
+        />
+        <input
+          type="text"
+          value={value.spatialCoverage ?? ""}
+          onChange={(e) => set({ spatialCoverage: e.target.value })}
+          placeholder="Cobertura geográfica"
+          aria-label="Cobertura geográfica"
+          className={inputClass}
+        />
+      </div>
+      <TagsInput
+        value={value.variableMeasured ?? []}
+        onChange={(variableMeasured) => set({ variableMeasured })}
+        id={`${id}-variables`}
+      />
+    </div>
+  );
+}

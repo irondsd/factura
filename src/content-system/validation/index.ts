@@ -153,4 +153,8 @@ function withoutSlug(finding: CollectionDiagnostic): Diagnostic {
 
 /** Every section this validator knows how to check. Section 12 adds the other
  * two; today only guides have rules of their own. */
-export const VALIDATED_SECTIONS: readonly ContentSection[] = ["guias"];
+export const VALIDATED_SECTIONS: readonly ContentSection[] = [
+  "guias",
+  "estadisticas",
+  "investigacion",
+];

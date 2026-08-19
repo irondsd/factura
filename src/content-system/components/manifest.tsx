@@ -39,8 +39,11 @@ const ArticleTrustBlock = () => <TrustBlock className="my-10" />;
  * `mdx-components.tsx` registers, and for the same reason: with no article
  * context there is nothing to show. */
 const Unbound = () => null;
-const { ClosingCta: _sectionClosingCta, ...DATA_BINDINGS } =
-  SECTION_COMPONENT_BINDINGS;
+const DATA_BINDINGS = Object.fromEntries(
+  Object.entries(SECTION_COMPONENT_BINDINGS).filter(
+    ([name]) => name !== "ClosingCta",
+  ),
+) as Omit<typeof SECTION_COMPONENT_BINDINGS, "ClosingCta">;
 
 const BINDINGS: Record<string, ComponentType<never>> = {
   ClosingCta,

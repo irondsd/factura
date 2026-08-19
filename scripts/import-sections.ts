@@ -7,12 +7,23 @@ import { mdxBody } from "@/content/mdx";
 import { stripImports } from "@/content-system/adapters/filesystem";
 import { extractMeta, isRef, refName } from "@/content-system/adapters/mdxMeta";
 import { parentSlugFromPath } from "@/content-system/hierarchy";
-import type { ContentDocument, ContentMetadata, ContentSection } from "@/content-system/types";
+import type {
+  ContentDocument,
+  ContentMetadata,
+  ContentSection,
+} from "@/content-system/types";
+import { rowToDocument } from "@/content-system/repository/mapping";
+import { validateContentCollection } from "@/content-system/validation";
+import { sectionMetadataSchema } from "@/content-system/metadata/sections";
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
+const verify = args.has("--verify");
 const production = args.has("--production");
-const sections = ["estadisticas", "investigacion"] as const satisfies readonly ContentSection[];
+const sections = [
+  "estadisticas",
+  "investigacion",
+] as const satisfies readonly ContentSection[];
 
 type SourceEntry = { slug: string; crumb: string; file: string; order: number };
 
@@ -20,8 +31,15 @@ type SourceEntry = { slug: string; crumb: string; file: string; order: number };
  * public source.  Parsing their literal entry records preserves the deliberate
  * editorial order and crumbs without importing MDX modules into a CLI. */
 function entriesFor(section: ContentSection): SourceEntry[] {
-  const registry = fs.readFileSync(path.join(process.cwd(), "src/content", section, "pages.ts"), "utf8");
-  const records = [...registry.matchAll(/slug:\s*\[([^\]]+)\],\s*crumb:\s*"([^"]+)",\s*file:\s*"([^"]+)"/g)];
+  const registry = fs.readFileSync(
+    path.join(process.cwd(), "src/content", section, "pages.ts"),
+    "utf8",
+  );
+  const records = [
+    ...registry.matchAll(
+      /slug:\s*\[([^\]]+)\],\s*crumb:\s*"([^"]+)",\s*file:\s*"([^"]+)"/g,
+    ),
+  ];
   return records.map((match, order) => ({
     slug: [...match[1].matchAll(/"([^"]+)"/g)].map((part) => part[1]).join("/"),
     crumb: match[2],
@@ -30,26 +48,65 @@ function entriesFor(section: ContentSection): SourceEntry[] {
   }));
 }
 
-async function resolveRefs(meta: Record<string, unknown>, source: string, file: string): Promise<Record<string, unknown>> {
-  const temporal = (meta.dataset as Record<string, unknown> | undefined)?.temporalCoverage;
-  if (!isRef(temporal) || refName(temporal) !== "TEMPORAL_COVERAGE") return meta;
-  const specifier = /^import\s+\{\s*TEMPORAL_COVERAGE\s*\}\s+from\s*["']([^"']+)["']/m.exec(source)?.[1];
+async function resolveRefs(
+  meta: Record<string, unknown>,
+  source: string,
+  file: string,
+): Promise<Record<string, unknown>> {
+  const temporal = (meta.dataset as Record<string, unknown> | undefined)
+    ?.temporalCoverage;
+  if (!isRef(temporal) || refName(temporal) !== "TEMPORAL_COVERAGE")
+    return meta;
+  const specifier =
+    /^import\s+\{\s*TEMPORAL_COVERAGE\s*\}\s+from\s*["']([^"']+)["']/m.exec(
+      source,
+    )?.[1];
   if (!specifier) throw new Error(`${file}: TEMPORAL_COVERAGE is not imported`);
   const modulePath = path.resolve(path.dirname(file), `${specifier}.ts`);
-  const imported = await import(modulePath) as { TEMPORAL_COVERAGE?: unknown };
-  if (typeof imported.TEMPORAL_COVERAGE !== "string") throw new Error(`${file}: imported TEMPORAL_COVERAGE is not a string`);
-  return { ...meta, dataset: { ...(meta.dataset as Record<string, unknown>), temporalCoverage: imported.TEMPORAL_COVERAGE } };
+  const imported = (await import(modulePath)) as {
+    TEMPORAL_COVERAGE?: unknown;
+  };
+  if (typeof imported.TEMPORAL_COVERAGE !== "string")
+    throw new Error(`${file}: imported TEMPORAL_COVERAGE is not a string`);
+  return {
+    ...meta,
+    dataset: {
+      ...(meta.dataset as Record<string, unknown>),
+      temporalCoverage: imported.TEMPORAL_COVERAGE,
+    },
+  };
+}
+
+function requiredString(
+  metadata: Record<string, unknown>,
+  key: string,
+  file: string,
+): string {
+  const value = metadata[key];
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`${file}: meta.${key} must be a non-empty string`);
+  }
+  return value;
 }
 
 function assertLocalTarget() {
   const value = process.env.DATABASE_URL;
   if (!value) throw new Error("DATABASE_URL is required for content import");
   const host = new URL(value).hostname;
-  const local = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "db"]).has(host);
-  if (!local && (!production || process.env.CMS_IMPORT_PRODUCTION_CONFIRM !== "IMPORT_CONTENT")) {
-    throw new Error(`Refusing non-local database host ${JSON.stringify(host)}. Production requires --production and CMS_IMPORT_PRODUCTION_CONFIRM=IMPORT_CONTENT.`);
+  const local = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "db"]).has(
+    host,
+  );
+  if (
+    !local &&
+    (!production ||
+      process.env.CMS_IMPORT_PRODUCTION_CONFIRM !== "IMPORT_CONTENT")
+  ) {
+    throw new Error(
+      `Refusing non-local database host ${JSON.stringify(host)}. Production requires --production and CMS_IMPORT_PRODUCTION_CONFIRM=IMPORT_CONTENT.`,
+    );
   }
-  if (local && production) throw new Error("--production cannot target a local database");
+  if (local && production)
+    throw new Error("--production cannot target a local database");
   return { host, local };
 }
 
@@ -60,11 +117,15 @@ async function sourceDocuments(): Promise<ContentDocument[]> {
       const file = path.join(process.cwd(), "src/content", section, entry.file);
       const source = fs.readFileSync(file, "utf8");
       const parsed = extractMeta(source);
-      if (!parsed.meta) throw new Error(`${file}: ${parsed.error ?? "missing metadata"}`);
-      const meta = await resolveRefs(parsed.meta, source, file) as Record<string, any>;
+      if (!parsed.meta)
+        throw new Error(`${file}: ${parsed.error ?? "missing metadata"}`);
+      const meta = (await resolveRefs(parsed.meta, source, file)) as Record<
+        string,
+        unknown
+      >;
       const slug = entry.slug;
-      const publishedAt = meta.published as string;
-      const metadata: ContentMetadata = {
+      const publishedAt = requiredString(meta, "published", file);
+      const metadata: ContentMetadata = sectionMetadataSchema.parse({
         keywords: meta.keywords,
         categories: [],
         faq: meta.faq,
@@ -74,81 +135,244 @@ async function sourceDocuments(): Promise<ContentDocument[]> {
         previewImage: meta.preview,
         sources: meta.sources,
         dataset: meta.dataset,
-      };
+      });
       out.push({
         id: `fs:${section}/${slug}`,
         section,
         slug,
         status: meta.noindex ? "preview" : "published",
         body: stripImports(mdxBody(source)).replace(/^\n+/, ""),
-        title: meta.title,
-        titleTag: meta.titleTag ?? null,
-        description: meta.description,
-        summary: meta.summary,
-        cta: meta.cta,
+        title: requiredString(meta, "title", file),
+        titleTag: typeof meta.titleTag === "string" ? meta.titleTag : null,
+        description: requiredString(meta, "description", file),
+        summary: requiredString(meta, "summary", file),
+        cta: requiredString(meta, "cta", file),
         canonicalSlug: null,
         parentId: null,
         sortOrder: entry.order,
         crumb: entry.crumb,
         metadata,
         publishedAt,
-        contentUpdatedAt: meta.updated,
+        contentUpdatedAt: requiredString(meta, "updated", file),
         createdAt: publishedAt,
-        updatedAt: meta.updated,
+        updatedAt: requiredString(meta, "updated", file),
         createdBy: null,
         updatedBy: null,
         lockVersion: 1,
       });
     }
   }
-  return out.sort((a, b) => a.section.localeCompare(b.section) || a.slug.split("/").length - b.slug.split("/").length || a.sortOrder - b.sortOrder);
+  return out.sort(
+    (a, b) =>
+      a.section.localeCompare(b.section) ||
+      a.slug.split("/").length - b.slug.split("/").length ||
+      a.sortOrder - b.sortOrder,
+  );
+}
+
+function sameSource(
+  source: ContentDocument,
+  stored: ContentDocument,
+  expectedParentId: string | null,
+): boolean {
+  return (
+    JSON.stringify({
+      section: source.section,
+      slug: source.slug,
+      status: source.status,
+      body: source.body,
+      title: source.title,
+      titleTag: source.titleTag,
+      description: source.description,
+      summary: source.summary,
+      cta: source.cta,
+      canonicalSlug: source.canonicalSlug,
+      metadata: source.metadata,
+      parentId: expectedParentId,
+      sortOrder: source.sortOrder,
+      crumb: source.crumb,
+      publishedAt: source.publishedAt ? Date.parse(source.publishedAt) : null,
+      contentUpdatedAt: Date.parse(source.contentUpdatedAt),
+    }) ===
+    JSON.stringify({
+      section: stored.section,
+      slug: stored.slug,
+      status: stored.status,
+      body: stored.body,
+      title: stored.title,
+      titleTag: stored.titleTag,
+      description: stored.description,
+      summary: stored.summary,
+      cta: stored.cta,
+      canonicalSlug: stored.canonicalSlug,
+      metadata: stored.metadata,
+      parentId: stored.parentId,
+      sortOrder: stored.sortOrder,
+      crumb: stored.crumb,
+      publishedAt: stored.publishedAt ? Date.parse(stored.publishedAt) : null,
+      contentUpdatedAt: Date.parse(stored.contentUpdatedAt),
+    })
+  );
 }
 
 async function main() {
   const target = assertLocalTarget();
   const actorEmail = process.env.CMS_IMPORT_ACTOR_EMAIL;
-  if (!actorEmail) throw new Error("CMS_IMPORT_ACTOR_EMAIL must name an existing CMS member");
-  const [actor] = await db.select({ id: users.id }).from(users).innerJoin(cmsMembers, eq(cmsMembers.userId, users.id)).where(and(eq(users.email, actorEmail)));
+  if (!actorEmail)
+    throw new Error("CMS_IMPORT_ACTOR_EMAIL must name an existing CMS member");
+  const [actor] = await db
+    .select({ id: users.id })
+    .from(users)
+    .innerJoin(cmsMembers, eq(cmsMembers.userId, users.id))
+    .where(and(eq(users.email, actorEmail)));
   if (!actor) throw new Error(`${actorEmail} is not an active CMS member`);
 
   const documents = await sourceDocuments();
-  console.log(`Section import target: ${target.local ? "local" : "production"} (${target.host})`);
-  console.log(`${documents.filter((d) => d.section === "estadisticas").length} statistics; ${documents.filter((d) => d.section === "investigacion").length} research pages.`);
+  const stored = (
+    await db.query.cmsPages.findMany({
+      where: eq(cmsPages.section, "estadisticas"),
+    })
+  ).map(rowToDocument);
+  const research = (
+    await db.query.cmsPages.findMany({
+      where: eq(cmsPages.section, "investigacion"),
+    })
+  ).map(rowToDocument);
+  const storedByKey = new Map(
+    [...stored, ...research].map((document) => [
+      `${document.section}/${document.slug}`,
+      document,
+    ]),
+  );
+  const ids = new Map(
+    [...stored, ...research].map((document) => [
+      `${document.section}/${document.slug}`,
+      document.id,
+    ]),
+  );
+  const changed = documents.filter((document) => {
+    const parentSlug = parentSlugFromPath(document.slug);
+    const parentId = parentSlug
+      ? ids.get(`${document.section}/${parentSlug}`)
+      : null;
+    const current = storedByKey.get(`${document.section}/${document.slug}`);
+    return !current || !sameSource(document, current, parentId ?? null);
+  });
+  const sourceKeys = new Set(
+    documents.map((document) => `${document.section}/${document.slug}`),
+  );
+  const extra = [...storedByKey.keys()].filter((key) => !sourceKeys.has(key));
+  console.log(
+    `Section import target: ${target.local ? "local" : "production"} (${target.host})`,
+  );
+  console.log(
+    `${documents.filter((d) => d.section === "estadisticas").length} statistics; ${documents.filter((d) => d.section === "investigacion").length} research pages.`,
+  );
+  console.log(
+    `${changed.length} insert/update; ${documents.length - changed.length} unchanged.`,
+  );
+  if (extra.length > 0) {
+    console.log(
+      `${extra.length} database-only page${extra.length === 1 ? "" : "s"}.`,
+    );
+  }
+  if (verify) {
+    if (changed.length > 0 || extra.length > 0) {
+      throw new Error(
+        `Section migration parity failed: ${changed.length} mismatched/missing and ${extra.length} database-only pages.`,
+      );
+    }
+    const diagnostics = validateContentCollection([...stored, ...research]);
+    const problems = [...diagnostics.values()].flat();
+    if (problems.length > 0) {
+      throw new Error(
+        `Stored statistics/research pages have ${problems.length} validation diagnostics`,
+      );
+    }
+    console.log("Section migration parity clean.");
+    return;
+  }
   if (dryRun) return;
 
-  const ids = new Map<string, string>();
-  for (const document of documents) {
+  for (const document of changed) {
     const parentSlug = parentSlugFromPath(document.slug);
-    const parentId = parentSlug ? ids.get(`${document.section}/${parentSlug}`) : null;
-    if (parentSlug && !parentId) throw new Error(`${document.section}/${document.slug}: missing imported parent ${parentSlug}`);
-    const [row] = await db.insert(cmsPages).values({
-      section: document.section,
-      slug: document.slug,
-      status: document.status,
-      bodyMdx: document.body,
-      title: document.title,
-      titleTag: document.titleTag,
-      description: document.description,
-      summary: document.summary,
-      cta: document.cta,
-      canonicalSlug: null,
-      metadata: document.metadata,
-      parentId,
-      sortOrder: document.sortOrder,
-      crumb: document.crumb,
-      createdBy: actor.id,
-      updatedBy: actor.id,
-      createdAt: new Date(document.createdAt),
-      updatedAt: new Date(document.updatedAt),
-      publishedAt: new Date(document.publishedAt ?? document.contentUpdatedAt),
-      contentUpdatedAt: new Date(document.contentUpdatedAt),
-    }).onConflictDoUpdate({
-      target: [cmsPages.section, cmsPages.slug],
-      set: { status: document.status, bodyMdx: document.body, title: document.title, titleTag: document.titleTag, description: document.description, summary: document.summary, cta: document.cta, metadata: document.metadata, parentId, sortOrder: document.sortOrder, crumb: document.crumb, updatedBy: actor.id, updatedAt: new Date(document.updatedAt), publishedAt: new Date(document.publishedAt ?? document.contentUpdatedAt), contentUpdatedAt: new Date(document.contentUpdatedAt) },
-    }).returning({ id: cmsPages.id });
+    const parentId = parentSlug
+      ? ids.get(`${document.section}/${parentSlug}`)
+      : null;
+    if (parentSlug && !parentId)
+      throw new Error(
+        `${document.section}/${document.slug}: missing imported parent ${parentSlug}`,
+      );
+    const [row] = await db
+      .insert(cmsPages)
+      .values({
+        section: document.section,
+        slug: document.slug,
+        status: document.status,
+        bodyMdx: document.body,
+        title: document.title,
+        titleTag: document.titleTag,
+        description: document.description,
+        summary: document.summary,
+        cta: document.cta,
+        canonicalSlug: null,
+        metadata: document.metadata,
+        parentId,
+        sortOrder: document.sortOrder,
+        crumb: document.crumb,
+        createdBy: actor.id,
+        updatedBy: actor.id,
+        createdAt: new Date(document.createdAt),
+        updatedAt: new Date(document.updatedAt),
+        publishedAt: new Date(
+          document.publishedAt ?? document.contentUpdatedAt,
+        ),
+        contentUpdatedAt: new Date(document.contentUpdatedAt),
+      })
+      .onConflictDoUpdate({
+        target: [cmsPages.section, cmsPages.slug],
+        set: {
+          status: document.status,
+          bodyMdx: document.body,
+          title: document.title,
+          titleTag: document.titleTag,
+          description: document.description,
+          summary: document.summary,
+          cta: document.cta,
+          metadata: document.metadata,
+          parentId,
+          sortOrder: document.sortOrder,
+          crumb: document.crumb,
+          updatedBy: actor.id,
+          updatedAt: new Date(document.updatedAt),
+          publishedAt: new Date(
+            document.publishedAt ?? document.contentUpdatedAt,
+          ),
+          contentUpdatedAt: new Date(document.contentUpdatedAt),
+        },
+      })
+      .returning({ id: cmsPages.id });
     ids.set(`${document.section}/${document.slug}`, row.id);
   }
-  console.log(`Imported ${documents.length} statistics/research pages.`);
+  const imported = (
+    await Promise.all(
+      sections.map((section) =>
+        db.query.cmsPages.findMany({ where: eq(cmsPages.section, section) }),
+      ),
+    )
+  )
+    .flat()
+    .map(rowToDocument);
+  const diagnostics = validateContentCollection(imported);
+  const problems = [...diagnostics.values()].flat();
+  if (problems.length) {
+    throw new Error(
+      `Imported statistics/research pages have ${problems.length} validation diagnostics`,
+    );
+  }
+  console.log(
+    `Imported ${changed.length} statistics/research pages; validation clean.`,
+  );
 }
 
 await main();

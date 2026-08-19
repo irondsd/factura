@@ -1,6 +1,10 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
-import { CATEGORIES, type Category, type CategoryId } from "@/content/guias/categories";
+import {
+  CATEGORIES,
+  type Category,
+  type CategoryId,
+} from "@/content/guias/categories";
 import { relatedDocuments } from "../document";
 import type { ContentDocument, ContentSummary } from "../types";
 import { postgresContentRepository } from "./postgres";
@@ -40,8 +44,9 @@ export const publicGuideBySlug = (
   slug: string,
 ): Promise<ContentDocument | null> => getGuideBySlug(slug);
 
-export const primaryCategoryOf = (guide: Pick<ContentSummary, "metadata">): string =>
-  guide.metadata.categories[0] ?? "";
+export const primaryCategoryOf = (
+  guide: Pick<ContentSummary, "metadata">,
+): string => guide.metadata.categories[0] ?? "";
 
 export async function guidesInCategory(
   id: CategoryId,
@@ -58,8 +63,9 @@ export async function guidesByPrimaryCategory(): Promise<
   return CATEGORIES.map((category) => ({
     category,
     guides: guides.filter((guide) => primaryCategoryOf(guide) === category.id),
-    total: guides.filter((guide) => guide.metadata.categories.includes(category.id))
-      .length,
+    total: guides.filter((guide) =>
+      guide.metadata.categories.includes(category.id),
+    ).length,
   })).filter((section) => section.guides.length > 0);
 }
 

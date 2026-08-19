@@ -16,7 +16,7 @@ import type { ParentOption } from "./fields/MetadataField";
 // shape of a guide (sections at `##`, a related-guides block, a closing CTA) is
 // exactly the knowledge a blank box assumes you already have.
 
-const SKELETON = `## Primera sección
+const GUIDE_SKELETON = `## Primera sección
 
 Escribe aquí.
 
@@ -31,6 +31,23 @@ Escribe aquí.
 Dos frases sobre por qué usar Factura para este tema en concreto.
 
 </ClosingCta>
+`;
+
+const DATA_SKELETON = `## Primera sección
+
+Escribe aquí. Indica la fecha, el lugar y qué mide el dato antes de presentar el análisis.
+
+## Qué muestran los datos
+
+Explica el resultado y enlaza la metodología cuando corresponda.
+
+<ClosingCta title="Un título específico de esta página">
+
+Dos frases sobre por qué usar Factura para este tema en concreto.
+
+</ClosingCta>
+
+<Fuentes />
 `;
 
 export function NewPageForm({
@@ -50,6 +67,7 @@ export function NewPageForm({
 
   const parent = parentOptions.find((option) => option.value === parentId);
   const fullSlug = parent ? `${parent.slug}/${slug}` : slug;
+  const body = section.id === "guias" ? GUIDE_SKELETON : DATA_SKELETON;
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -64,7 +82,7 @@ export function NewPageForm({
         description: "",
         summary: "",
         cta: "",
-        body: SKELETON,
+        body,
         metadata: { keywords: [], categories: [] },
         parentId: parentId || null,
       });

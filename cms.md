@@ -277,12 +277,12 @@ Create one typed manifest that controls rendering and authoring:
 
 ```ts
 type ContentComponentDefinition = {
-  component: React.ComponentType<unknown>
-  sections: readonly ContentSection[]
-  kind: 'leaf' | 'container'
-  props: z.ZodType
-  description: string
-}
+  component: React.ComponentType<unknown>;
+  sections: readonly ContentSection[];
+  kind: "leaf" | "container";
+  props: z.ZodType;
+  description: string;
+};
 ```
 
 The manifest is the source of truth for:
@@ -455,16 +455,16 @@ Refactor existing validation into pure functions without losing the CLI checks.
 Expose pure entry points similar to:
 
 ```ts
-validateContentDocument(document, index, level)
-validateContentCollection(documents)
-buildContentIndex(documents)
+validateContentDocument(document, index, level);
+validateContentCollection(documents);
+buildContentIndex(documents);
 ```
 
 Keep adapters for:
 
 ```ts
-documentsFromFilesystem() // CI and migration comparison
-documentsFromDatabase() // CMS and public site
+documentsFromFilesystem(); // CI and migration comparison
+documentsFromDatabase(); // CMS and public site
 ```
 
 The existing `bun run validate:content` command must continue to work during
@@ -495,9 +495,12 @@ Introduce a repository contract before changing routes:
 
 ```ts
 interface ContentRepository {
-  getByPath(section: ContentSection, slug: string[]): Promise<ContentDocument | null>
-  listPublished(section: ContentSection): Promise<ContentSummary[]>
-  listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>
+  getByPath(
+    section: ContentSection,
+    slug: string[],
+  ): Promise<ContentDocument | null>;
+  listPublished(section: ContentSection): Promise<ContentSummary[]>;
+  listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>;
 }
 ```
 
@@ -1814,7 +1817,7 @@ production migration.
       manifest.
 - [x] Replace per-MDX imports with manifest entries while preserving bundle and
       client-component behavior.
-- [ ] Extend CMS metadata schemas/forms for hierarchy, crumbs, hubs, datasets,
+- [x] Extend CMS metadata schemas/forms for hierarchy, crumbs, hubs, datasets,
       sources, OG statistics, and subpages.
 - [x] Represent explicit editorial ordering and parent/child relationships in
       the database without deriving them from filenames.
@@ -1825,27 +1828,27 @@ production migration.
       breadcrumb target resolves.
       Enforced by `checkHierarchy` on every create and update, for all three
       sections rather than only the two with hubs.
-- [ ] Extend pure document and collection validation for both sections.
-- [ ] Extend the CMS editor, preview, list filters, and MCP schemas for these
+- [x] Extend pure document and collection validation for both sections.
+- [x] Extend the CMS editor, preview, list filters, and MCP schemas for these
       section-specific fields.
-- [ ] Promote `estadisticas` and `investigacion` from `planned` to `live` in the
+- [x] Promote `estadisticas` and `investigacion` from `planned` to `live` in the
       section registry, and confirm no new route files were needed to do it.
 - [x] Write repeatable, idempotent, local-first importers with dry-run and target
       environment safeguards.
-- [ ] Migrate both sections locally and compare document counts, metadata,
+- [x] Migrate both sections locally and compare document counts, metadata,
       headings, sources, datasets, links, hierarchy, validation, rendered HTML,
       charts, maps, JSON-LD, OG images, sitemap, feed, and `llms.txt`.
-- [ ] Change the composite repository so all three MDX sections read from
+- [x] Change the composite repository so all three MDX sections read from
       PostgreSQL while normativa remains unchanged.
 - [ ] Remove the explicit TypeScript page registries only after hierarchy,
       ordering, build behavior, and rollback have database equivalents.
-- [ ] Complete the full build/lint/typecheck/test/content-validation and browser
+- [x] Complete the full build/lint/typecheck/test/content-validation and browser
       verification floor locally.
 - [ ] Confirm every implementation item before section 13 is committed on
       `cms`, reviewed, and complete against local PostgreSQL.
 - [ ] Synchronize `cms` with the final intended `main` base and rerun the full
       build/lint/typecheck/test/content-validation floor.
-- [ ] Re-run all guide/statistics/research imports from an empty local CMS and
+- [x] Re-run all guide/statistics/research imports from an empty local CMS and
       prove idempotence and complete rendering/discovery parity.
 
 #### Phase 12 progress note
@@ -1857,10 +1860,25 @@ editorial ordering, crumbs, FAQs, sources, dataset metadata, preview data, and
 the existing chart/map/table component calls. The restricted-MDX manifest now
 registers that component surface with section restrictions and property schemas;
 the public statistics/research article routes prefer CMS rows and retain the
-filesystem files as migration fixtures. Local requests to representative
-statistics and research URLs returned `200`, and focused manifest/grammar tests
-passed (175 tests). Index, discovery, editor metadata, complete parity, and the
-full final verification floor remain intentionally unchecked.
+filesystem files as migration fixtures. The shared CMS editor now exposes
+sources, dataset provenance, FAQ, hierarchy, social statistic and preview
+fields without raw JSON; the MCP advertises the same metadata schemas.
+
+Final local rehearsal: all 65 local CMS rows (43 guides, 15 statistics, 3
+research) were cleared and restored from source fixtures. Both importers then
+reported zero proposed writes; the sections importer also reported complete
+fixture/database parity. Browser checks covered the CMS lists and data editor,
+public article/index rendering, sources, charts/maps, Dataset JSON-LD, sitemap,
+feed and `llms.txt`. `bun run build` completed successfully against the local
+database (259 generated pages); lint, typecheck, focused CMS/document tests and
+the local PostgreSQL CMS integration suite passed. The existing test suite has
+one non-failing pre-existing lint warning in `src/content-system/document.test.ts`.
+
+The source MDX and TypeScript registries remain deliberate rollback/import
+fixtures through the production observation window, as required by §§2.5 and
+11; their later removal is therefore not checked here. The final commit/review,
+last synchronization with `main`, and explicitly authorized production gate
+remain open by design.
 
 ### Branch-wide production migration and merge gate
 

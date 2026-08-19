@@ -4,7 +4,10 @@ import { PaginaRelacionada } from "@/components/section/PaginaRelacionada";
 import { AlquilerCabaMapa } from "@/components/estadisticas/AlquilerCabaMapa";
 import { AlquileresBuscados } from "@/components/estadisticas/AlquileresBuscados";
 import { BarriosBuscados } from "@/components/estadisticas/BarriosBuscados";
-import { ComparacionRegiones, MultiploRegiones } from "@/components/estadisticas/ComparacionRegiones";
+import {
+  ComparacionRegiones,
+  MultiploRegiones,
+} from "@/components/estadisticas/ComparacionRegiones";
 import { CostoCapitulos } from "@/components/estadisticas/CostoCapitulos";
 import { CostoConstruccionHistoria } from "@/components/estadisticas/CostoConstruccionHistoria";
 import { CostoConstruccionMapa } from "@/components/estadisticas/CostoConstruccionMapa";
@@ -59,22 +62,62 @@ import { SeguridadPorDelitoGanadores } from "@/components/investigacion/Segurida
  * statistics/research MDX.  These are imported centrally so database MDX has
  * the identical client-component boundaries as the original modules. */
 export const SECTION_COMPONENT_BINDINGS = {
-  AlquilerCabaMapa, AlquileresBuscados, BarriosBuscados,
-  BarriosSubestimadosComparador, BarriosSubestimadosContraste,
-  BarriosSubestimadosPerfiles, BarriosSubestimadosResumen, ClosingCta,
-  ComparacionRegiones, CostoCapitulos, CostoConstruccionHistoria,
-  CostoConstruccionMapa, CostoConstruccionResumen, CostoPorZona, DelitosCabaMapa,
-  DelitosCuando, DelitosHistoria, DelitosPorZona, DelitosResidentes, DelitosResumen,
-  DelitosRobos, IpcViviendaChart, MultiploRegiones, OfertaAlquilerCabaMapa,
-  OfertaCambio, OfertaCobertura, OfertaComposicion, OfertaHistoria, OfertaPorZona,
-  PaginaRelacionada, PartidosBuscados, PrecioDepartamento, PrecioDepartamentoPba,
-  PrecioPartidoZona, PrecioPorZona, PrecioSeguridadCobertura,
-  PrecioSeguridadDispersion, PrecioSeguridadMapa, PrecioSeguridadRanking,
-  PrecioSeguridadResumen, PrecioSeguridadSensibilidad, RegionesIpc,
-  RentabilidadBuscados, RentabilidadCabaMapa, RentabilidadContraste,
-  RentabilidadDispersion, RentabilidadHistoria, RentabilidadTipoCambio, ResumenIpc,
-  ResumenRegion, SeguridadPorDelitoComparacion, SeguridadPorDelitoGanadores,
-  SueloPbaInterior, VentaCabaMapa, VentaPbaHistoria, VentaPbaMapa,
-} as const satisfies Record<string, ComponentType<any>>;
+  AlquilerCabaMapa,
+  AlquileresBuscados,
+  BarriosBuscados,
+  BarriosSubestimadosComparador,
+  BarriosSubestimadosContraste,
+  BarriosSubestimadosPerfiles,
+  BarriosSubestimadosResumen,
+  ClosingCta,
+  ComparacionRegiones,
+  CostoCapitulos,
+  CostoConstruccionHistoria,
+  CostoConstruccionMapa,
+  CostoConstruccionResumen,
+  CostoPorZona,
+  DelitosCabaMapa,
+  DelitosCuando,
+  DelitosHistoria,
+  DelitosPorZona,
+  DelitosResidentes,
+  DelitosResumen,
+  DelitosRobos,
+  IpcViviendaChart,
+  MultiploRegiones,
+  OfertaAlquilerCabaMapa,
+  OfertaCambio,
+  OfertaCobertura,
+  OfertaComposicion,
+  OfertaHistoria,
+  OfertaPorZona,
+  PaginaRelacionada,
+  PartidosBuscados,
+  PrecioDepartamento,
+  PrecioDepartamentoPba,
+  PrecioPartidoZona,
+  PrecioPorZona,
+  PrecioSeguridadCobertura,
+  PrecioSeguridadDispersion,
+  PrecioSeguridadMapa,
+  PrecioSeguridadRanking,
+  PrecioSeguridadResumen,
+  PrecioSeguridadSensibilidad,
+  RegionesIpc,
+  RentabilidadBuscados,
+  RentabilidadCabaMapa,
+  RentabilidadContraste,
+  RentabilidadDispersion,
+  RentabilidadHistoria,
+  RentabilidadTipoCambio,
+  ResumenIpc,
+  ResumenRegion,
+  SeguridadPorDelitoComparacion,
+  SeguridadPorDelitoGanadores,
+  SueloPbaInterior,
+  VentaCabaMapa,
+  VentaPbaHistoria,
+  VentaPbaMapa,
+} as const satisfies Record<string, ComponentType<never>>;
 
 export type SectionComponentName = keyof typeof SECTION_COMPONENT_BINDINGS;

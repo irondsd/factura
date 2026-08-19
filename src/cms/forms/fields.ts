@@ -27,6 +27,10 @@ export type FieldKind =
   | "faq"
   /** The two social-card text slots. */
   | "ogImage"
+  /** Provenance links for a data-backed page. */
+  | "sources"
+  /** The Dataset JSON-LD payload, shown as named fields rather than JSON. */
+  | "dataset"
   /** Another page in this section, or none. */
   | "parent"
   /** A whole number. */
@@ -199,11 +203,157 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
   },
 ];
 
+// Statistics and research use the same editorial shell as a guide, but their
+// credibility comes from a named dataset and links to the primary sources.
+// Keep those values as regular form fields: an editor should never have to
+// understand the JSONB representation to publish a data page.
+const DATA_FIELDS: readonly FieldDescriptor[] = [
+  {
+    path: "title",
+    label: "Título",
+    kind: "text",
+    required: true,
+    softMax: 60,
+    group: "identidad",
+    help: "El encabezado de la página y, salvo que definas otro, el título que aparece en Google.",
+  },
+  {
+    path: "slug",
+    label: "Dirección",
+    kind: "slug",
+    required: true,
+    group: "identidad",
+    help: "La última parte de la URL. Minúsculas, sin acentos ni espacios. No se puede cambiar una vez publicada.",
+  },
+  {
+    path: "crumb",
+    label: "Nombre corto",
+    kind: "text",
+    group: "identidad",
+    help: "El nombre que aparece en las migas y listados. Si queda vacío se usa el título.",
+  },
+  {
+    path: "parentId",
+    label: "Página madre",
+    kind: "parent",
+    group: "estructura",
+    help: "Deja «Ninguna» para una página de primer nivel. Las páginas hijas forman una URL debajo de esta.",
+  },
+  {
+    path: "sortOrder",
+    label: "Orden",
+    kind: "number",
+    group: "estructura",
+    help: "La posición entre páginas hermanas. Menor va primero.",
+  },
+  {
+    path: "description",
+    label: "Descripción",
+    kind: "textarea",
+    required: true,
+    softMax: 160,
+    group: "busqueda",
+    help: "El resumen para buscadores y redes. Entre 120 y 170 caracteres.",
+  },
+  {
+    path: "metadata.keywords",
+    label: "Palabras clave",
+    kind: "tags",
+    required: true,
+    group: "busqueda",
+    help: "Términos por los que esta página debe poder encontrarse.",
+  },
+  {
+    path: "canonicalSlug",
+    label: "Página canónica",
+    kind: "slug",
+    group: "busqueda",
+    help: "Solo si otra página es la respuesta principal a la misma búsqueda.",
+  },
+  {
+    path: "titleTag",
+    label: "Título para buscadores",
+    kind: "text",
+    softMax: 60,
+    group: "busqueda",
+    help: "Opcional, para acortar un titular largo en resultados de búsqueda.",
+  },
+  {
+    path: "summary",
+    label: "Resumen",
+    kind: "textarea",
+    required: true,
+    group: "contenido",
+    help: "Una o dos frases para tarjetas y páginas madre.",
+  },
+  {
+    path: "cta",
+    label: "Frase de invitación",
+    kind: "text",
+    required: true,
+    softMax: 54,
+    group: "contenido",
+    help: "La línea que acompaña al botón al principio del artículo.",
+  },
+  {
+    path: "metadata.sources",
+    label: "Fuentes",
+    kind: "sources",
+    required: true,
+    group: "contenido",
+    help: "Añade las fuentes primarias que el artículo muestra con <Fuentes />.",
+  },
+  {
+    path: "metadata.dataset",
+    label: "Conjunto de datos",
+    kind: "dataset",
+    required: true,
+    group: "contenido",
+    help: "Describe la serie que sostiene el análisis. Completa nombre, descripción, cobertura temporal y geográfica, y al menos una variable medida. Esto también genera los datos estructurados de la página.",
+  },
+  {
+    path: "metadata.faq",
+    label: "Preguntas frecuentes",
+    kind: "faq",
+    group: "contenido",
+    help: "Opcional. Se muestra donde el cuerpo escriba <Faq />.",
+  },
+  {
+    path: "metadata.previewImage",
+    label: "Imagen de portada",
+    kind: "text",
+    group: "social",
+    placeholder: "/img/estadisticas/previews/nombre.jpg",
+    help: "Opcional. Una imagen 16:9 en la carpeta previews de la sección.",
+  },
+  {
+    path: "metadata.ogTitle",
+    label: "Título para redes",
+    kind: "text",
+    softMax: 70,
+    group: "social",
+    help: "Opcional, si el gancho para compartir es distinto del título.",
+  },
+  {
+    path: "metadata.ogDescription",
+    label: "Descripción para redes",
+    kind: "textarea",
+    softMax: 200,
+    group: "social",
+  },
+  {
+    path: "metadata.ogStat",
+    label: "Cifra destacada",
+    kind: "text",
+    group: "social",
+    help: "Opcional. Un dato breve que se imprime en la tarjeta al compartir.",
+  },
+];
+
 const FIELDS: Partial<Record<ContentSection, readonly FieldDescriptor[]>> = {
   guias: GUIDE_FIELDS,
-  // `estadisticas` and `investigacion` arrive in section 12: their own entries
-  // here, plus their metadata schemas and component registrations. No new
-  // editor, no new form.
+  estadisticas: DATA_FIELDS,
+  investigacion: DATA_FIELDS,
 };
 
 export function sectionFields(
@@ -251,11 +401,24 @@ export function toPatch(
       // rejects `ogTitle: ""` precisely so a blank does not ship as a value.
       if (!isBlank(value)) metadata[key] = value;
     } else {
-      columns[field.path] = isBlank(value) ? null : value;
+      // Drafts deliberately allow unfinished required copy. The database
+      // columns for that copy are NOT NULL, though, so an empty description,
+      // summary or CTA must remain an empty string for validation to report —
+      // never become a database-level 500. Only genuinely nullable columns
+      // use null to mean “not set”.
+      columns[field.path] =
+        isBlank(value) && NULLABLE_COLUMNS.has(field.path) ? null : value;
     }
   }
   return { columns, metadata };
 }
+
+const NULLABLE_COLUMNS = new Set([
+  "titleTag",
+  "canonicalSlug",
+  "crumb",
+  "parentId",
+]);
 
 function isBlank(value: unknown): boolean {
   if (value === undefined || value === null) return true;

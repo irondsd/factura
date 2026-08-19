@@ -1,11 +1,18 @@
 import "server-only";
 import { toJSONSchema, z } from "zod";
 import { isContentSection, isContentStatus } from "@/content-system/types";
+import { guideMetadataSchema } from "@/content-system/metadata/guias";
+import { sectionMetadataSchema } from "@/content-system/metadata/sections";
 import { cmsContentService } from "@/cms/server/service";
 import { hasScope, type CmsTokenCaller, type CmsScope } from "./tokens";
 
 const section = z.string().refine(isContentSection, "Unknown content section.");
 const status = z.string().refine(isContentStatus, "Unknown content status.");
+// The MCP advertises the same structured metadata contracts as the browser
+// editor.  `section` is still supplied separately for create; the service and
+// repository select the appropriate member when the row is stored/read.
+const metadata = z.union([guideMetadataSchema, sectionMetadataSchema]);
+
 const patch = z.object({
   title: z.string().optional(),
   titleTag: z.string().nullable().optional(),
@@ -14,7 +21,7 @@ const patch = z.object({
   cta: z.string().optional(),
   canonicalSlug: z.string().nullable().optional(),
   body: z.string().optional(),
-  metadata: z.unknown().optional(),
+  metadata: metadata.optional(),
   parentId: z.string().uuid().nullable().optional(),
   sortOrder: z.number().int().optional(),
   crumb: z.string().nullable().optional(),
@@ -67,7 +74,7 @@ export const CMS_TOOLS: Tool[] = [
       cta: z.string(),
       canonicalSlug: z.string().nullable().optional(),
       body: z.string(),
-      metadata: z.unknown(),
+      metadata,
       parentId: z.string().uuid().nullable().optional(),
       sortOrder: z.number().int().optional(),
       crumb: z.string().nullable().optional(),

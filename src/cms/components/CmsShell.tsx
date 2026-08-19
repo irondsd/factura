@@ -20,7 +20,7 @@ type NavLink = { href: string; label: string; adminOnly?: boolean };
 // by being registered rather than by being remembered. `/cms/tokens` stays
 // top-level: it is not scoped to a section.
 const NAV: readonly NavLink[] = [
-  { href: "/cms", label: "Secciones" },
+  // { href: "/cms", label: "Secciones" },
   ...CMS_SECTIONS.filter((section) => section.status === "live").map(
     (section) => ({
       href: cmsSectionPath(section.id),

@@ -57,8 +57,8 @@ describe("editable sections", () => {
   it("refuses a planned one", () => {
     // Shown on /cms so editors see what is coming, but not openable — a
     // half-built editor is worse than a 404.
-    expect(findEditableSection("estadisticas")).toBeUndefined();
-    expect(findEditableSection("investigaciones")).toBeUndefined();
+    expect(findEditableSection("estadisticas")?.id).toBe("estadisticas");
+    expect(findEditableSection("investigaciones")?.id).toBe("investigacion");
   });
 
   it("refuses an unknown segment", () => {

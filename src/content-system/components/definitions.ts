@@ -38,16 +38,29 @@ const noProps = z.object({}).strict();
  * it is in. Any attribute written on one of these is a mistake. */
 const CONTEXT_BOUND = noProps;
 
-const DATA_SECTIONS = ["estadisticas", "investigacion"] as const satisfies readonly ContentSection[];
+const DATA_SECTIONS = [
+  "estadisticas",
+  "investigacion",
+] as const satisfies readonly ContentSection[];
 const DATA_LEAF_COMPONENTS = Object.fromEntries(
-  SECTION_COMPONENT_NAMES
-    .filter((name) => !["ClosingCta", "PaginaRelacionada", "IpcViviendaChart", "ResumenRegion"].includes(name))
-    .map((name) => [name, {
+  SECTION_COMPONENT_NAMES.filter(
+    (name) =>
+      ![
+        "ClosingCta",
+        "PaginaRelacionada",
+        "IpcViviendaChart",
+        "ResumenRegion",
+      ].includes(name),
+  ).map((name) => [
+    name,
+    {
       sections: DATA_SECTIONS,
       kind: "leaf" as const,
       props: noProps,
-      description: "Registered statistics/research visualization or data table.",
-    }]),
+      description:
+        "Registered statistics/research visualization or data table.",
+    },
+  ]),
 ) as Record<string, ContentComponentDefinition>;
 
 export const CONTENT_COMPONENT_DEFINITIONS = {
@@ -160,19 +173,45 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
   PaginaRelacionada: {
     sections: DATA_SECTIONS,
     kind: "container",
-    props: z.object({ href: z.string().regex(/^\/(estadisticas|investigaciones)\//) }).strict(),
+    props: z
+      .object({ href: z.string().regex(/^\/(estadisticas|investigaciones)\//) })
+      .strict(),
     description: "A related statistics or research page card.",
   },
   IpcViviendaChart: {
     sections: ["estadisticas"],
     kind: "leaf",
-    props: z.object({ region: z.enum(["nacional", "gba", "pampeana", "noreste", "noroeste", "cuyo", "patagonia"]), variacion: z.enum(["mensual", "interanual"]) }).strict(),
+    props: z
+      .object({
+        region: z.enum([
+          "nacional",
+          "gba",
+          "pampeana",
+          "noreste",
+          "noroeste",
+          "cuyo",
+          "patagonia",
+        ]),
+        variacion: z.enum(["mensual", "interanual"]),
+      })
+      .strict(),
     description: "IPC housing chart for one INDEC region and variation.",
   },
   ResumenRegion: {
     sections: ["estadisticas"],
     kind: "leaf",
-    props: z.object({ region: z.enum(["gba", "pampeana", "noreste", "noroeste", "cuyo", "patagonia"]) }).strict(),
+    props: z
+      .object({
+        region: z.enum([
+          "gba",
+          "pampeana",
+          "noreste",
+          "noroeste",
+          "cuyo",
+          "patagonia",
+        ]),
+      })
+      .strict(),
     description: "Current IPC summary for one INDEC region.",
   },
   ...DATA_LEAF_COMPONENTS,

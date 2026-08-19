@@ -10,7 +10,10 @@ import { GRAMMAR_CODES, validateGrammar } from "./grammar";
 // Every forbidden category below has its own case, because a denylist that is
 // only tested in aggregate is a denylist with a hole in it.
 
-const check = (body: string, section: "guias" | "estadisticas" | "investigacion" = "guias") => validateGrammar(body, section);
+const check = (
+  body: string,
+  section: "guias" | "estadisticas" | "investigacion" = "guias",
+) => validateGrammar(body, section);
 const codes = (body: string) => check(body).diagnostics.map((d) => d.code);
 
 describe("plain markdown", () => {
@@ -69,10 +72,21 @@ describe("allowed components", () => {
     RelatedGuides: "<RelatedGuides />",
     Fuentes: "<Fuentes />",
     Subpaginas: "<Subpaginas />",
-    PaginaRelacionada: '<PaginaRelacionada href="/estadisticas/alquiler-caba">Copia.</PaginaRelacionada>',
+    PaginaRelacionada:
+      '<PaginaRelacionada href="/estadisticas/alquiler-caba">Copia.</PaginaRelacionada>',
     IpcViviendaChart: '<IpcViviendaChart region="gba" variacion="mensual" />',
     ResumenRegion: '<ResumenRegion region="gba" />',
-    ...Object.fromEntries(SECTION_COMPONENT_NAMES.filter((name) => !["ClosingCta", "PaginaRelacionada", "IpcViviendaChart", "ResumenRegion"].includes(name)).map((name) => [name, `<${name} />`])),
+    ...Object.fromEntries(
+      SECTION_COMPONENT_NAMES.filter(
+        (name) =>
+          ![
+            "ClosingCta",
+            "PaginaRelacionada",
+            "IpcViviendaChart",
+            "ResumenRegion",
+          ].includes(name),
+      ).map((name) => [name, `<${name} />`]),
+    ),
   };
 
   it("has a sample for every registered component", () => {
@@ -85,7 +99,14 @@ describe("allowed components", () => {
 
   for (const [name, source] of Object.entries(samples)) {
     it(`accepts <${name}> as guides write it`, () => {
-      const result = check(`${source}\n`, ([...SECTION_COMPONENT_NAMES, "Fuentes", "Subpaginas"] as string[]).includes(name) ? "estadisticas" : "guias");
+      const result = check(
+        `${source}\n`,
+        (
+          [...SECTION_COMPONENT_NAMES, "Fuentes", "Subpaginas"] as string[]
+        ).includes(name)
+          ? "estadisticas"
+          : "guias",
+      );
       expect(result.diagnostics).toEqual([]);
     });
   }

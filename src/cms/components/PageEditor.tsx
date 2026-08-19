@@ -26,6 +26,7 @@ import { MarkdownEditor } from "./MarkdownEditor";
 import { StatusChip, statusLabel } from "./StatusChip";
 import { MetadataField, type ParentOption } from "./fields/MetadataField";
 import { ValidationPanel } from "./ValidationPanel";
+import Link from "next/link";
 
 // The editor. One client component holding the whole page's draft state, so
 // "are there unsaved changes" has a single answer and Save sends one patch.
@@ -244,9 +245,21 @@ export function PageEditor({
         <h1 className="font-display font-semibold text-[28px] tracking-[-0.025em] leading-[1.15] m-0">
           {(values.title as string) || "Sin título"}
         </h1>
-        <p className="font-mono text-[12px] text-muted mt-2 mb-0">
-          {section.publicPath}/{(values.slug as string) ?? page.slug}
-        </p>
+        {status === "draft" && (
+          <p className="font-mono text-[12px] text-muted mt-2 mb-0">
+            {section.publicPath}/{(values.slug as string) ?? page.slug}
+          </p>
+        )}
+        {status !== "draft" && (
+          <Link
+            className="font-mono text-[12px] text-muted mt-2 mb-0 underline hover:text-accent"
+            target="_blank"
+            rel="noreferrer"
+            href={`${section.publicPath}/${(values.slug as string) ?? page.slug}`}
+          >
+            {section.publicPath}/{(values.slug as string) ?? page.slug}
+          </Link>
+        )}
       </header>
 
       {notice && (

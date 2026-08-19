@@ -200,7 +200,9 @@ export function createSection(config: SectionConfig): ContentSection {
   const entryFor = (slug: string[]): SectionEntry | undefined =>
     entries.find((e) => slugPath(e.slug) === slugPath(slug));
 
-  const metaFromDatabase = (document: import("@/content-system/types").ContentDocument): SectionMeta => ({
+  const metaFromDatabase = (
+    document: import("@/content-system/types").ContentSummary,
+  ): SectionMeta => ({
     title: document.title,
     ...(document.titleTag ? { titleTag: document.titleTag } : {}),
     description: document.description,
@@ -210,11 +212,23 @@ export function createSection(config: SectionConfig): ContentSection {
     published: document.publishedAt ?? document.contentUpdatedAt,
     updated: document.contentUpdatedAt,
     sources: document.metadata.sources ?? [],
-    dataset: document.metadata.dataset ?? { name: document.title, description: document.description, temporalCoverage: document.contentUpdatedAt.slice(0, 7), spatialCoverage: "Argentina", variableMeasured: [] },
-    ...(document.metadata.ogTitle ? { ogTitle: document.metadata.ogTitle } : {}),
-    ...(document.metadata.ogDescription ? { ogDescription: document.metadata.ogDescription } : {}),
+    dataset: document.metadata.dataset ?? {
+      name: document.title,
+      description: document.description,
+      temporalCoverage: document.contentUpdatedAt.slice(0, 7),
+      spatialCoverage: "Argentina",
+      variableMeasured: [],
+    },
+    ...(document.metadata.ogTitle
+      ? { ogTitle: document.metadata.ogTitle }
+      : {}),
+    ...(document.metadata.ogDescription
+      ? { ogDescription: document.metadata.ogDescription }
+      : {}),
     ...(document.metadata.ogStat ? { ogStat: document.metadata.ogStat } : {}),
-    ...(document.metadata.previewImage ? { preview: document.metadata.previewImage } : {}),
+    ...(document.metadata.previewImage
+      ? { preview: document.metadata.previewImage }
+      : {}),
     ...(document.metadata.faq ? { faq: document.metadata.faq } : {}),
     ...(document.status !== "published" ? { noindex: true } : {}),
   });
@@ -241,6 +255,23 @@ export function createSection(config: SectionConfig): ContentSection {
   };
 
   async function readAll(): Promise<SectionPage[]> {
+    // Once a section has CMS rows, listings, breadcrumbs and every discovery
+    // consumer read the same public repository as the article route.  The
+    // registry remains only as an import/rollback fixture until Phase 12's
+    // parity gate is complete.
+    const { postgresContentRepository } =
+      await import("@/content-system/repository/postgres");
+    const stored = await postgresContentRepository.listPubliclyRenderable(
+      id as import("@/content-system/types").ContentSection,
+    );
+    if (stored.length > 0) {
+      return stored.map((document) => ({
+        slug: document.slug.split("/"),
+        crumb: document.crumb ?? document.title,
+        meta: metaFromDatabase(document),
+        readingMinutes: 1,
+      }));
+    }
     return Promise.all(
       entries.map(async ({ slug, crumb, load }) => {
         const { meta } = await load();
@@ -255,12 +286,9 @@ export function createSection(config: SectionConfig): ContentSection {
     );
   }
 
-  // Memoized for the lifetime of the process, like the guides': the content is
-  // baked in at build time and can't change under us, and every listing (the
-  // index, a hub's child list, the sitemap, llms.txt) would otherwise re-import
-  // every compiled MDX module just to reach `meta`.
-  let pagesPromise: Promise<SectionPage[]> | undefined;
-  const allPages = (): Promise<SectionPage[]> => (pagesPromise ??= readAll());
+  // CMS content is mutable, so this intentionally has no process-lifetime
+  // memo. The public repository owns visibility and its caller owns caching.
+  const allPages = (): Promise<SectionPage[]> => readAll();
 
   /** Words of real prose and the reading time. The FAQ counts — it renders on
    * the page even though it lives in the stripped `meta` block. */
@@ -294,7 +322,10 @@ export function createSection(config: SectionConfig): ContentSection {
         import("@/content-system/adapters/database"),
         import("@/content-system/render/renderContent"),
       ]);
-      const stored = await documentFromDatabase(id as import("@/content-system/types").ContentSection, slugPath(slug));
+      const stored = await documentFromDatabase(
+        id as import("@/content-system/types").ContentSection,
+        slugPath(slug),
+      );
       if (stored) {
         return {
           Content: await compileContent(stored.body, stored.section),

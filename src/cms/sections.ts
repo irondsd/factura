@@ -56,7 +56,7 @@ export const CMS_SECTIONS: readonly CmsSection[] = [
     description:
       "Páginas de datos: precios, alquileres, inflación y costos de construcción.",
     publicPath: "/estadisticas",
-    status: "planned",
+    status: "live",
   },
   {
     id: "investigacion",
@@ -66,7 +66,7 @@ export const CMS_SECTIONS: readonly CmsSection[] = [
     label: "Investigación",
     description: "Análisis propios a partir de los datos publicados.",
     publicPath: "/investigaciones",
-    status: "planned",
+    status: "live",
   },
 ];
 

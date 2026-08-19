@@ -76,6 +76,81 @@ describe("a well-formed guide", () => {
   });
 });
 
+describe("statistics and research documents", () => {
+  const dataPage = (): ContentDocument => ({
+    ...base,
+    id: "data-1",
+    section: "estadisticas",
+    slug: "alquiler-caba/barrios",
+    title: "Alquileres por barrio en CABA",
+    titleTag: null,
+    description:
+      "Precios de alquiler por barrio y comuna en la Ciudad de Buenos Aires.",
+    summary: "Datos de alquileres por barrio.",
+    cta: "Compará tus gastos.",
+    metadata: {
+      keywords: ["alquileres caba"],
+      categories: [],
+      sources: [
+        {
+          label: "IDECBA",
+          href: "https://www.estadisticaciudad.gob.ar/",
+        },
+      ],
+      dataset: {
+        name: "Alquileres por barrio",
+        description: "Precio de publicación mensual por barrio.",
+        temporalCoverage: "2024-01/2026-06",
+        spatialCoverage: "Ciudad Autónoma de Buenos Aires",
+        variableMeasured: ["precio de alquiler"],
+      },
+    },
+    body: "## Los datos\n\n<Fuentes />\n",
+  });
+
+  it("accepts provenance and a dataset for a publishable data page", () => {
+    expect(validateDocument(dataPage()).diagnostics).toEqual([]);
+  });
+
+  it("requires provenance and a dataset", () => {
+    const document = dataPage();
+    document.metadata = { keywords: [], categories: [] };
+    const result = validateDocument(document);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message)).toEqual(
+      expect.arrayContaining([
+        "meta.sources must name at least one source",
+        "meta.dataset is required for statistics and research pages",
+      ]),
+    );
+  });
+
+  it("does not call valid Fuentes missing when only the dataset is incomplete", () => {
+    const document = dataPage();
+    document.metadata = {
+      ...document.metadata,
+      dataset: {},
+    } as ContentDocument["metadata"];
+    const diagnostics = validateDocument(document).diagnostics;
+    expect(diagnostics.map((diagnostic) => diagnostic.message)).not.toContain(
+      "meta.sources must name at least one source",
+    );
+    expect(
+      diagnostics.some((diagnostic) => diagnostic.field === "dataset.name"),
+    ).toBe(true);
+  });
+
+  it("keeps FAQ metadata and its visible placement in sync", () => {
+    const document = dataPage();
+    document.metadata = {
+      ...document.metadata,
+      faq: [{ q: "¿Cuándo se actualiza?", a: "Cada trimestre." }],
+    };
+    expect(validateDocument(document).diagnostics.map((d) => d.code)).toContain(
+      DOCUMENT_CODES.faqNotPlaced,
+    );
+  });
+});
+
 describe("slug", () => {
   it("rejects accents and spaces", () => {
     expect(codes({ slug: "cómo leer" })).toContain(DOCUMENT_CODES.slugShape);

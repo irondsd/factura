@@ -13,6 +13,8 @@ import type { ContentSection } from "@/content/section";
 import { faqPageLd, sectionPageLd } from "@/i18n/structuredData";
 import { formatContentDateTime } from "@/lib/content-date";
 import { contentComponents } from "@/content-system/render/renderContent";
+import { documentHeadings, documentStats } from "@/content-system/document";
+import { documentFromDatabase } from "@/content-system/adapters/database";
 
 // One page of a registry section, at any depth: /estadisticas/delitos-caba,
 // /investigacion/barrios-seguros-baratos-caba, and
@@ -39,12 +41,23 @@ export async function SectionArticle({
   if (!page) notFound();
 
   const { Content, meta } = page;
-  const [crumbs, children] = await Promise.all([
+  const [crumbs, children, stored] = await Promise.all([
     section.crumbs(slug),
     section.children(slug),
+    documentFromDatabase(
+      section.id as import("@/content-system/types").ContentSection,
+      section.slugPath(slug),
+    ),
   ]);
-  const { words, minutes } = section.readingStats(slug, meta.faq);
-  const headings = section.headings(slug, meta.faq);
+  // The registry is retained as a rollback fixture during the migration, but a
+  // newly authored CMS page has no source file. Its reading time and table of
+  // contents must therefore come from the same stored document as its body.
+  const { words, minutes } = stored
+    ? documentStats(stored)
+    : section.readingStats(slug, meta.faq);
+  const headings = stored
+    ? documentHeadings(stored)
+    : section.headings(slug, meta.faq);
 
   return (
     <>

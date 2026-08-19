@@ -70,7 +70,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Category hubs sit between the index and the articles: they're listing
     // pages, so `lastModified` tracks the newest guide they contain.
     ...categories.map((c) => {
-      const inCategory = guides.filter((g) => g.metadata.categories.includes(c.id));
+      const inCategory = guides.filter((g) =>
+        g.metadata.categories.includes(c.id),
+      );
       // Compare instants: `updated` carries a timezone offset, so two
       // timestamps don't necessarily order the same way as their text.
       const newest = Math.max(

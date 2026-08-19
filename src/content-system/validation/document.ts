@@ -1,5 +1,11 @@
 import { CATEGORY_IDS, isCategoryId } from "@/content/guias/categories";
+import { z } from "zod";
 import { guideMetadataSchema } from "../metadata/guias";
+import {
+  dataSourceSchema,
+  datasetMetadataSchema,
+  sectionMetadataSchema,
+} from "../metadata/sections";
 import type { ContentDocument, Diagnostic, ValidationResult } from "../types";
 import { validationResult } from "../types";
 import { missingKeywordWords } from "./text";
@@ -140,6 +146,9 @@ export function validateDocument(
   index: ContentIndex = EMPTY_INDEX,
   context: DocumentValidationContext = {},
 ): ValidationResult {
+  if (document.section !== "guias") {
+    return validateDataSectionDocument(document);
+  }
   const out: Diagnostic[] = [];
   const { slug, body } = document;
 
@@ -501,6 +510,106 @@ export function validateDocument(
   // ── body ──────────────────────────────────────────────────────────────────
   out.push(...validateBody(document, index));
 
+  return validationResult(out);
+}
+
+/** Statistics/research replace guide categories with dataset provenance while
+ * retaining the same lifecycle, date, heading and FAQ placement safeguards. */
+function validateDataSectionDocument(
+  document: ContentDocument,
+): ValidationResult {
+  const out: Diagnostic[] = [];
+  if (!document.slug.split("/").every((segment) => SLUG_RE.test(segment))) {
+    out.push(
+      error(
+        DOCUMENT_CODES.slugShape,
+        `slug "${document.slug}" must contain lowercase, hyphen-separated path segments`,
+        "slug",
+      ),
+    );
+  }
+  const parsed = sectionMetadataSchema.safeParse(document.metadata);
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      out.push(
+        error(
+          DOCUMENT_CODES.metadataShape,
+          `meta.${issue.path.join(".") || "<root>"} ${issue.message}`,
+          issue.path.join(".") || undefined,
+        ),
+      );
+    }
+  }
+  const metadata = parsed.success ? parsed.data : null;
+  // Check required composite fields independently. A partial dataset must not
+  // make a valid Fuentes list look absent (or vice versa) in the editor.
+  const raw =
+    document.metadata && typeof document.metadata === "object"
+      ? (document.metadata as Record<string, unknown>)
+      : {};
+  const sources = z.array(dataSourceSchema).safeParse(raw.sources);
+  if (
+    !sources.success &&
+    (raw.sources === undefined ||
+      (Array.isArray(raw.sources) && raw.sources.length === 0))
+  ) {
+    out.push(
+      error(
+        DOCUMENT_CODES.metadataShape,
+        "meta.sources must name at least one source",
+        "sources",
+      ),
+    );
+  }
+  const dataset = datasetMetadataSchema.safeParse(raw.dataset);
+  if (!dataset.success && raw.dataset === undefined) {
+    out.push(
+      error(
+        DOCUMENT_CODES.metadataShape,
+        "meta.dataset is required for statistics and research pages",
+        "dataset",
+      ),
+    );
+  }
+  if (document.publishedAt && !isValidDateTime(document.publishedAt))
+    out.push(
+      error(
+        DOCUMENT_CODES.dateFormat,
+        `meta.published must be a ${DATETIME_FORMAT}`,
+        "publishedAt",
+      ),
+    );
+  if (!isValidDateTime(document.contentUpdatedAt))
+    out.push(
+      error(
+        DOCUMENT_CODES.dateFormat,
+        `meta.updated must be a ${DATETIME_FORMAT}`,
+        "contentUpdatedAt",
+      ),
+    );
+  if (/^#\s/m.test(document.body))
+    out.push(
+      error(
+        DOCUMENT_CODES.bodyH1,
+        "body contains an H1; the page title renders the only H1",
+      ),
+    );
+  if (metadata?.faq?.length && !/<Faq\b/.test(document.body))
+    out.push(
+      error(
+        DOCUMENT_CODES.faqNotPlaced,
+        "meta.faq is set but the body never places <Faq />",
+        "faq",
+      ),
+    );
+  if (/<Faq\b/.test(document.body) && !metadata?.faq?.length)
+    out.push(
+      error(
+        DOCUMENT_CODES.faqPlacedWithoutData,
+        "body places <Faq /> but meta.faq is missing",
+        "faq",
+      ),
+    );
   return validationResult(out);
 }
 

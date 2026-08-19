@@ -68,7 +68,11 @@ describe("parity with the filesystem MDX map", () => {
 });
 
 describe("manifest bindings render what the site renders", () => {
-  const render = async (body: string, overrides = {}, section: "guias" | "estadisticas" = "guias") => {
+  const render = async (
+    body: string,
+    overrides = {},
+    section: "guias" | "estadisticas" = "guias",
+  ) => {
     const Content = await compileContent(body, section);
     return renderToHtml(
       createElement(Content, { components: contentComponents(overrides) }),
@@ -122,17 +126,36 @@ describe("manifest bindings render what the site renders", () => {
       RelatedGuides: "<RelatedGuides />",
       Fuentes: "<Fuentes />",
       Subpaginas: "<Subpaginas />",
-      PaginaRelacionada: '<PaginaRelacionada href="/estadisticas/alquiler-caba">Copia.</PaginaRelacionada>',
+      PaginaRelacionada:
+        '<PaginaRelacionada href="/estadisticas/alquiler-caba">Copia.</PaginaRelacionada>',
       IpcViviendaChart: '<IpcViviendaChart region="gba" variacion="mensual" />',
       ResumenRegion: '<ResumenRegion region="gba" />',
-      ...Object.fromEntries(SECTION_COMPONENT_NAMES.filter((name) => !["ClosingCta", "PaginaRelacionada", "IpcViviendaChart", "ResumenRegion"].includes(name)).map((name) => [name, `<${name} />`])),
+      ...Object.fromEntries(
+        SECTION_COMPONENT_NAMES.filter(
+          (name) =>
+            ![
+              "ClosingCta",
+              "PaginaRelacionada",
+              "IpcViviendaChart",
+              "ResumenRegion",
+            ].includes(name),
+        ).map((name) => [name, `<${name} />`]),
+      ),
     };
     expect(Object.keys(samples).sort()).toEqual(
       [...CONTENT_COMPONENT_NAMES].sort(),
     );
     for (const [name, source] of Object.entries(samples)) {
       await expect(
-        render(`${source}\n`, name === "PaginaRelacionada" ? { PaginaRelacionada: () => null } : {}, ([...SECTION_COMPONENT_NAMES, "Fuentes", "Subpaginas"] as string[]).includes(name) ? "estadisticas" : "guias"),
+        render(
+          `${source}\n`,
+          name === "PaginaRelacionada" ? { PaginaRelacionada: () => null } : {},
+          (
+            [...SECTION_COMPONENT_NAMES, "Fuentes", "Subpaginas"] as string[]
+          ).includes(name)
+            ? "estadisticas"
+            : "guias",
+        ),
         `<${name}> should render`,
       ).resolves.toBeTypeOf("string");
     }

@@ -137,9 +137,7 @@ export async function GET() {
       "",
       `### ${category.label}`,
       "",
-      ...guides.map(
-        (g) => `- [${g.title}](${guideUrl(g.slug)}): ${g.summary}`,
-      ),
+      ...guides.map((g) => `- [${g.title}](${guideUrl(g.slug)}): ${g.summary}`),
     ]),
   ].join("\n");
 
