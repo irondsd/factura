@@ -1571,26 +1571,26 @@ validate:content: pass — 63 files · 0 errors · 0 warnings
 
 ### Phase 7 — Migrate guides and cut over public reads
 
-- [ ] Write a repeatable, idempotent import script for guide MDX files.
-- [ ] Make the importer default to the local database and refuse a production
+- [x] Write a repeatable, idempotent import script for guide MDX files.
+- [x] Make the importer default to the local database and refuse a production
       target unless an explicit production option and environment are supplied.
-- [ ] Parse metadata into typed fields/JSONB.
-- [ ] Remove allowed import declarations during migration only after verifying
+- [x] Parse metadata into typed fields/JSONB.
+- [x] Remove allowed import declarations during migration only after verifying
       they correspond to a registered component; reject any unexpected import.
-- [ ] Preserve slug, status/noindex mapping, timestamps, canonicals, categories,
+- [x] Preserve slug, status/noindex mapping, timestamps, canonicals, categories,
       FAQ, OG data, preview image, and body exactly.
-- [ ] Assign imported rows to a named CMS member and record migration provenance.
-- [ ] Add a dry-run mode that reports changes without writing.
+- [x] Assign imported rows to a named CMS member and record migration provenance.
+- [x] Add a dry-run mode that reports changes without writing.
 - [ ] Run dry-run, initial import, repeat import, and rollback/re-import tests
       against the local database.
 - [ ] Add parity checks for document counts, slugs, metadata, headings, word
       counts, links, and validation diagnostics.
-- [ ] Implement the cached PostgreSQL guide repository with one-hour TTL.
-- [ ] Change the public guide article route to use the repository.
-- [ ] Allow on-demand rendering for slugs not returned at build time.
-- [ ] Change guide index, category pages, related guides, metadata, JSON-LD,
+- [x] Implement the cached PostgreSQL guide repository with one-hour TTL.
+- [x] Change the public guide article route to use the repository.
+- [x] Allow on-demand rendering for slugs not returned at build time.
+- [x] Change guide index, category pages, related guides, metadata, JSON-LD,
       sitemap, RSS, `llms.txt`, and OG routes to use published database guides.
-- [ ] Ensure public-preview routes never emit indexable metadata or discovery
+- [x] Ensure public-preview routes never emit indexable metadata or discovery
       links.
 - [ ] Run old-filesystem versus database HTML comparisons on representative
       guides: plain prose, FAQ, chart, trust block, preview image, canonical, and
@@ -1605,19 +1605,32 @@ validate:content: pass — 63 files · 0 errors · 0 warnings
 **Gate:** Every previously public guide renders the same user-visible content,
 metadata, structured data, and discovery behavior from PostgreSQL.
 
+#### Phase 7 implementation note
+
+Recorded 2026-08-18. `scripts/import-guides.ts` imports the 43 source guides
+into local PostgreSQL only by default, requires `CMS_IMPORT_ACTOR_EMAIL` to
+name an active CMS member, and refuses non-local targets unless both
+`--production` and `CMS_IMPORT_PRODUCTION_CONFIRM=IMPORT_GUIDES` are supplied.
+It validates allowed imports before stripping them, does a no-write dry run, and
+skips byte-equivalent rows. Local dry-run, import, and repeat dry-run were run:
+43 changes on the first pass and 0 on the repeat. The importer validates the
+resulting collection. Explicit rollback/re-import and comprehensive
+filesystem-vs-database parity/HTML comparisons remain open, as does the
+repository rollback switch.
+
 ### Phase 8 — Add CMS MCP
 
-- [ ] Add `cms_api_tokens` and token hashing/verification helpers.
+- [x] Add `cms_api_tokens` and token hashing/verification helpers.
 - [ ] Add an admin-only `/cms/tokens` screen for create, list, and revoke.
 - [ ] Show plaintext tokens once and never persist or log them.
-- [ ] Add `/api/cms/mcp` with separate protected-resource identity, scopes, CORS,
+- [x] Add `/api/cms/mcp` with separate protected-resource identity, scopes, CORS,
       rate limiting, instructions, and tool registry.
-- [ ] Implement `list_content` and `get_content` through the CMS service.
-- [ ] Implement `create_content` with default `draft` status.
-- [ ] Implement `update_content` with optimistic concurrency.
-- [ ] Implement `validate_content` with structured diagnostics.
-- [ ] Implement `set_content_status` through the shared transition service.
-- [ ] Re-check membership, role, scope, expiry, and revocation on every call.
+- [x] Implement `list_content` and `get_content` through the CMS service.
+- [x] Implement `create_content` with default `draft` status.
+- [x] Implement `update_content` with optimistic concurrency.
+- [x] Implement `validate_content` with structured diagnostics.
+- [x] Implement `set_content_status` through the shared transition service.
+- [x] Re-check membership, role, scope, expiry, and revocation on every call.
 - [ ] Add mutation audit logs that exclude token values and content bodies.
 - [ ] Add protocol, auth, scope, role, validation, conflict, rate-limit, and
       mutation tests.

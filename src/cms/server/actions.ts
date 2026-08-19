@@ -8,11 +8,7 @@ import type {
 } from "@/content-system/types";
 import { requireCmsMember } from "../auth/requireCmsMember";
 import { cmsSectionPath } from "../sections";
-import {
-  CmsContentService,
-  type CreateContentInput,
-  type UpdateContentInput,
-} from "./contentService";
+import type { CreateContentInput, UpdateContentInput } from "./contentService";
 import {
   CmsConflictError,
   CmsForbiddenError,
@@ -20,14 +16,12 @@ import {
   CmsSlugTakenError,
   CmsValidationError,
 } from "./errors";
-import { createCmsValidator } from "./validation";
+import { cmsContentService as service } from "./service";
 
 // The browser's way into the CMS service. Thin on purpose (§2.1): these
 // resolve the actor, call the service, and translate its exceptions into
 // something a form can render. Every rule lives below them, which is what makes
 // the MCP in Phase 8 a second caller rather than a second implementation.
-
-const service = new CmsContentService(createCmsValidator());
 
 /** What every action returns. A discriminated result rather than a thrown
  * error, because a conflict and a validation failure are both things the editor

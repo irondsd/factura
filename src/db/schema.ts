@@ -1057,3 +1057,48 @@ export const cmsPages = pgTable(
     index("cms_page_parent_idx").on(t.parentId),
   ],
 );
+
+/** A CMS-scoped bearer token for an agent. Unlike ordinary Factura API tokens,
+ * this can never read bills and is invalid the instant its owner loses CMS
+ * membership. The cleartext value exists only at creation time. */
+export const cmsApiTokens = pgTable(
+  "cms_api_token",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    scopes: text("scopes").array().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("cms_api_token_user_idx").on(t.userId)],
+);
+
+/** Metadata-only audit trail for CMS MCP mutations. Bodies, metadata and bearer
+ * values are intentionally absent: this is accountability, not a second copy
+ * of editorial content or credentials. */
+export const cmsAuditLogs = pgTable(
+  "cms_audit_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorId: uuid("actor_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    pageId: uuid("page_id").references(() => cmsPages.id, {
+      onDelete: "set null",
+    }),
+    operation: text("operation").notNull(),
+    result: text("result").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("cms_audit_log_created_idx").on(t.createdAt)],
+);
