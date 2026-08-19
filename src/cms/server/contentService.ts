@@ -27,6 +27,10 @@ import {
   type ValidationLevel,
 } from "./lifecycle";
 import {
+  CmsPageHistoryStore,
+  cmsPageHistoryStore as defaultHistoryStore,
+} from "./historyStore";
+import {
   type CmsListFilter,
   CmsPageStore,
   cmsPageStore as defaultStore,
@@ -95,6 +99,9 @@ export class CmsContentService {
   constructor(
     private readonly validate: ContentValidator,
     private readonly store: CmsPageStore = defaultStore,
+    /** Where the «Historia» tab's rows come from. Injected like the store so a
+     * test can watch what a mutation records without a database. */
+    private readonly history: CmsPageHistoryStore = defaultHistoryStore,
     /** Injected so tests can pin timestamps. */
     private readonly clock: () => Date = () => new Date(),
   ) {}
@@ -155,6 +162,8 @@ export class CmsContentService {
       actorId: actor.userId,
       now,
     });
+
+    await this.record(actor, { pageId: draft.id, action: "created", now });
 
     // Validated after the insert, not before: a draft is allowed to be
     // incomplete (§5.3), and the diagnostics are for the editor to see, not a
@@ -224,6 +233,8 @@ export class CmsContentService {
       },
     });
     if (!saved) await this.reportConflict(input.id, input.expectedLockVersion);
+
+    await this.record(actor, { pageId: input.id, action: "saved", now });
     return saved as ContentDocument;
   }
 
@@ -278,6 +289,14 @@ export class CmsContentService {
       },
     });
     if (!saved) await this.reportConflict(input.id, input.expectedLockVersion);
+
+    await this.record(actor, {
+      pageId: input.id,
+      action: "status",
+      fromStatus: current.status,
+      toStatus: input.status,
+      now,
+    });
     return saved as ContentDocument;
   }
 
@@ -353,6 +372,37 @@ export class CmsContentService {
       document,
       level: input.level ?? levelForSave(current.status),
     });
+  }
+
+  /** Write one history row for a mutation that already succeeded.
+   *
+   * Best-effort, and deliberately so: the write it describes is committed by
+   * the time this runs, so a failure here cannot be reported as a failed save
+   * without lying to the editor about what is in the database. A missing line
+   * in «Historia» is the smaller loss, and the console says when it happens.
+   *
+   * Called after every accepted mutation rather than from the browser actions,
+   * so the CMS MCP records the same trail without a second implementation
+   * (§2.2). Deletes record nothing: the row's events go with it. */
+  private async record(
+    actor: CmsActor,
+    input: {
+      pageId: string;
+      action: "created" | "saved" | "status";
+      fromStatus?: ContentStatus;
+      toStatus?: ContentStatus;
+      now: Date;
+    },
+  ): Promise<void> {
+    try {
+      await this.history.record({
+        ...input,
+        actorId: actor.userId,
+        source: actor.source ?? "browser",
+      });
+    } catch (cause) {
+      console.error("[cms] history insert failed:", cause);
+    }
   }
 
   /** Enforce the one invariant that keeps `slug` and `parentId` in agreement,

@@ -1058,6 +1058,57 @@ export const cmsPages = pgTable(
   ],
 );
 
+/** Who changed a page, and when — the history the editor's «Historia» tab
+ * renders.
+ *
+ * One row per accepted mutation, written by `CmsContentService` so the browser
+ * and the CMS MCP produce the same trail rather than two half-trails. It is
+ * deliberately *not* `cms_audit_log`: that table records attempts (including
+ * failures) by agents for accountability, while this one records the accepted
+ * edits to one page for the person editing it. Different question, different
+ * audience, different retention.
+ *
+ * No content is stored yet. cms.md Task 2 wants one previous body kept for
+ * "restore"; when it lands it belongs here, as a nullable snapshot column on
+ * the row that already knows who wrote it.
+ *
+ * `page_id` cascades: a deleted draft's history is history of nothing, and the
+ * page is hard-deleted precisely because nothing is kept. `actor_id` degrades
+ * to null for the same reason `cms_page.created_by` does — content outlives its
+ * author's account, and the timeline says «cuenta eliminada» rather than
+ * blocking the deletion. */
+export const cmsPageEvents = pgTable(
+  "cms_page_event",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pageId: uuid("page_id")
+      .notNull()
+      .references(() => cmsPages.id, { onDelete: "cascade" }),
+    actorId: uuid("actor_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    /** What happened: `created`, `saved`, or `status` for a lifecycle move.
+     * Text rather than an enum for the same reason `section` is — a fourth kind
+     * of event should not need a migration. The union is in
+     * `src/cms/history.ts`. */
+    action: text("action").notNull(),
+    /** Only on a `status` event, and both sides are kept: "volvió a borrador"
+     * and "se despublicó" are the same target state from different places, and
+     * the timeline should be able to say which. */
+    fromStatus: cmsPageStatus("from_status"),
+    toStatus: cmsPageStatus("to_status"),
+    /** `browser` or `mcp` — whether a person or an agent holding a token made
+     * the change. Same user id either way, so without this the trail cannot
+     * tell them apart. */
+    source: text("source").notNull().default("browser"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  // The only query: one page's history, newest first.
+  (t) => [index("cms_page_event_page_idx").on(t.pageId, t.createdAt)],
+);
+
 /** A CMS-scoped bearer token for an agent. Unlike ordinary Factura API tokens,
  * this can never read bills and is invalid the instant its owner loses CMS
  * membership. The cleartext value exists only at creation time. */

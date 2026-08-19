@@ -643,8 +643,11 @@ a §10 migration step.
   `content/guias/guides` any more. Rollback for guides is redeploying the
   previous build.
 - **Browser mutations are not audited.** `cms_audit_log` records MCP writes
-  only, so the trail answers "what did the agent do" and not "who changed this
-  page". Task 3.
+  only, so the trail answers "what did the agent do" and not "who did what,
+  including the failed attempts". The narrower question — who changed this page
+  and when — is answered by `cms_page_event` and the editor's «Historia» tab,
+  written for browser and MCP writes alike. Token mints, revocations and
+  refused mutations are still unrecorded from the browser. Task 3.
 - **The repository MDX and the section registries are still present**, by
   design, until the observation window closes. §10 removes them.
 
@@ -652,7 +655,9 @@ a §10 migration step.
 
 Accepted, and the reasons are in the sections above:
 
-- One mutable copy per page. No revision history, no diffs, no restore.
+- One mutable copy per page. No revision history, no diffs, no restore — the
+  «Historia» tab records who changed a page and when, never the text they
+  replaced.
 - Publication and unpublication are visible within roughly an hour, not
   immediately, and the hour runs from when the cache entry was written rather
   than from a deploy.
@@ -892,7 +897,9 @@ The CMS stores one mutable copy per page, which is why saving a published
 page has to pass full publish validation: there is no previous revision to keep
 serving.
 
-- Preserve every save, or every explicit checkpoint.
+- Preserve every save, or every explicit checkpoint. `cms_page_event` already
+  has the row per save, with its author and timestamp; the body snapshot hangs
+  off it.
 - Edit a draft while the previous published revision stays public.
 - Show history with author and timestamp; diff two revisions; restore one.
 - Publish a chosen revision transactionally.
@@ -901,7 +908,9 @@ serving.
 ### Task 3 — Complete the audit trail
 
 `cms_audit_log` exists and records MCP mutations only. Browser mutations write
-nothing, so the trail cannot answer "who changed this page".
+to `cms_page_event` instead, which covers accepted content changes from either
+caller but not token operations or refused attempts, and is scoped to one page
+rather than filterable across the CMS.
 
 - Record browser mutations through the same path.
 - Cover create, update, status transition, token mint and token revoke.
@@ -1025,3 +1034,12 @@ Do not silently change architecture while leaving the original text in place.
   foreign key and a stale id is the ordinary agent mistake; recording it used to
   violate the constraint inside the error handler and turn a handled tool
   failure into an HTML 500. The reference is dropped rather than the record.
+- 2026-08-19: Page history (`cms_page_event`) is written by the content service,
+  not by the browser actions, so an agent's edit lands in the same trail as a
+  person's without a second implementation — and the row carries `source` for
+  the same reason, since a token's edits share their holder's user id. The
+  insert is best-effort: the mutation it describes is already committed, so
+  failing the save over a missing history line would report a loss that did not
+  happen. Entries the record does not reach back far enough to cover are
+  reconstructed from the page's own `created_at`/`updated_at` and labelled as
+  such on screen.

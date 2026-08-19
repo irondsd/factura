@@ -123,6 +123,8 @@ export async function resolveCmsToken(
     userId: row.userId,
     email: null,
     role: row.role,
+    // Everything this caller writes is recorded as an agent's edit.
+    source: "mcp",
     tokenId: row.tokenId,
     scopes,
   };

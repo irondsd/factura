@@ -14,6 +14,8 @@ import {
   CmsSlugTakenError,
   CmsValidationError,
 } from "./errors";
+import { CmsPageHistoryStore } from "./historyStore";
+import { loadPageHistory } from "./pageHistory";
 import { CmsPageStore } from "./store";
 import { createTestDb, hasTestDatabase } from "./testDb";
 
@@ -58,6 +60,9 @@ if (!hasTestDatabase()) {
   describe("CMS content service against PostgreSQL", () => {
     const { db, client } = createTestDb();
     const store = new CmsPageStore(db);
+    // The test connection, not the app singleton: these rows are written by
+    // every mutation below and go with the page when it is cleaned up.
+    const history = new CmsPageHistoryStore(db);
     const repository = new PostgresContentRepository(db);
 
     const actor: CmsActor = {
@@ -71,7 +76,7 @@ if (!hasTestDatabase()) {
      * refusal install their own. */
     const permissive = (): ValidationResult => ({ ok: true, diagnostics: [] });
 
-    const service = new CmsContentService(permissive, store);
+    const service = new CmsContentService(permissive, store, history);
 
     const cmsSchema = db._.fullSchema;
 
@@ -369,7 +374,7 @@ if (!hasTestDatabase()) {
 
       it("refuses to publish content that does not validate", async () => {
         const page = await service.create(actor, draftInput("invalid-publish"));
-        const strict = new CmsContentService(failsPublishOnly, store);
+        const strict = new CmsContentService(failsPublishOnly, store, history);
 
         await expect(
           strict.setStatus(actor, {
@@ -392,7 +397,7 @@ if (!hasTestDatabase()) {
 
         // The page is live and no longer passes publish validation. Unpublishing
         // is the recovery action: it drops to draft level and goes through.
-        const strict = new CmsContentService(failsPublishOnly, store);
+        const strict = new CmsContentService(failsPublishOnly, store, history);
         const down = await strict.setStatus(actor, {
           id: live.id,
           status: "draft",
@@ -413,7 +418,7 @@ if (!hasTestDatabase()) {
             { code: "test.forbidden", severity: "error", message: "no JS" },
           ],
         });
-        const strict = new CmsContentService(always, store);
+        const strict = new CmsContentService(always, store, history);
 
         await expect(
           strict.update(actor, {
@@ -746,6 +751,52 @@ if (!hasTestDatabase()) {
           }),
         ).rejects.toBeInstanceOf(CmsConflictError);
         expect(await service.get(actor, page.id)).toBeTruthy();
+      });
+    });
+
+    describe("page history", () => {
+      it("records the whole life of a page, newest first", async () => {
+        const page = await service.create(actor, draftInput("history"));
+        const saved = await service.update(actor, {
+          id: page.id,
+          expectedLockVersion: page.lockVersion,
+          patch: { title: "Otro título" },
+        });
+        await service.setStatus(actor, {
+          id: saved.id,
+          status: "published",
+          expectedLockVersion: saved.lockVersion,
+        });
+
+        const entries = await loadPageHistory(
+          (await store.findById(page.id))!,
+          history,
+        );
+
+        expect(
+          entries.map((entry) => [entry.action, entry.did, entry.inferred]),
+        ).toEqual([
+          ["status", "publicó la página", false],
+          ["saved", "guardó cambios", false],
+          ["created", "creó la página", false],
+        ]);
+        // Every row is attributed, and the fallback never fires for a page
+        // whose creation is on the record.
+        expect(new Set(entries.map((entry) => entry.who)).size).toBe(1);
+      });
+
+      it("goes with the page when the page is deleted", async () => {
+        // `page_id` cascades. A draft is removed for good, and history of a row
+        // that no longer exists would be unreachable rows accumulating forever.
+        const page = await service.create(actor, draftInput("history-gone"));
+        expect(await history.listForPage(page.id)).toHaveLength(1);
+
+        await service.delete(actor, {
+          id: page.id,
+          expectedLockVersion: page.lockVersion,
+        });
+
+        expect(await history.listForPage(page.id)).toEqual([]);
       });
     });
 

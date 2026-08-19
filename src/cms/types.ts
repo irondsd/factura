@@ -13,6 +13,13 @@ export type CmsActor = {
   userId: string;
   email: string | null;
   role: CmsRole;
+  /** How this actor reached the CMS. Absent means the browser — a person
+   * signed in — and `mcp` means an agent holding one of their tokens. The user
+   * id is the same either way, so the page history has no other way to tell a
+   * person's edit from their agent's. Optional rather than required because
+   * every authority decision above ignores it: an agent may do exactly what its
+   * holder may, and only the record of what happened cares which it was. */
+  source?: "browser" | "mcp";
 };
 
 /** The outcome of resolving CMS access for a request. A closed union rather

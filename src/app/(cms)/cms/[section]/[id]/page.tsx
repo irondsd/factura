@@ -7,6 +7,7 @@ import { PageEditor } from "@/cms/components/PageEditor";
 import { sectionFields } from "@/cms/forms/fields";
 import { cmsPageMetadata } from "@/cms/metadata";
 import { cmsSectionPath, findEditableSection } from "@/cms/sections";
+import { loadPageHistory } from "@/cms/server/pageHistory";
 import { cmsPageStore } from "@/cms/server/store";
 
 // The editor for one page.
@@ -47,7 +48,10 @@ export default async function CmsEditPage({ params }: Props) {
   // Any other page in the section can be this one's parent — except itself and
   // its own descendants, which `checkHierarchy` refuses on save. Offering them
   // here and rejecting on save would be worse than not offering them.
-  const siblings = await cmsPageStore.list({ section: section.id });
+  const [siblings, history] = await Promise.all([
+    cmsPageStore.list({ section: section.id }),
+    loadPageHistory(page),
+  ]);
   const parentOptions = siblings
     .filter((candidate) => candidate.id !== page.id)
     .filter((candidate) => !candidate.slug.startsWith(`${page.slug}/`))
@@ -70,6 +74,7 @@ export default async function CmsEditPage({ params }: Props) {
         page={page}
         fields={sectionFields(section.id)}
         parentOptions={parentOptions}
+        history={history}
       />
     </CmsShell>
   );

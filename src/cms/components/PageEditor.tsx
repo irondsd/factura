@@ -23,7 +23,9 @@ import type {
   Diagnostic,
 } from "@/content-system/types";
 import type { ValidationLevel } from "./ValidationPanel";
+import type { HistoryEntry } from "@/cms/history";
 import { cn } from "@/lib/cn";
+import { HistoryPanel } from "./HistoryPanel";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { StatusChip, statusLabel } from "./StatusChip";
 import { MetadataField, type ParentOption } from "./fields/MetadataField";
@@ -37,7 +39,7 @@ import Link from "next/link";
 // page edits the live copy, and a save that happened because someone paused
 // typing is not a decision anyone made.
 
-type Tab = "markdown" | "preview" | "validation";
+type Tab = "markdown" | "preview" | "validation" | "history";
 
 /** What to say when an action fails in a way it does not model — the database
  * is down, a deploy landed mid-request. Better than a button that spins
@@ -50,11 +52,15 @@ export function PageEditor({
   page,
   fields,
   parentOptions,
+  history,
 }: {
   section: CmsSection;
   page: ContentDocument;
   fields: readonly FieldDescriptor[];
   parentOptions: readonly ParentOption[];
+  /** Rendered on the server and refreshed by `router.refresh()` after every
+   * mutation, so a save shows up in the tab without a reload. */
+  history: readonly HistoryEntry[];
 }) {
   const router = useRouter();
 
@@ -361,6 +367,8 @@ export function PageEditor({
           {tab === "validation" && (
             <ValidationPanel diagnostics={diagnostics} level={checkedLevel} />
           )}
+
+          {tab === "history" && <HistoryPanel entries={history} />}
         </section>
 
         <aside className="min-w-0">
@@ -425,6 +433,7 @@ function Tabs({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
     { id: "markdown", label: "Markdown" },
     { id: "preview", label: "Vista previa" },
     { id: "validation", label: "Revisión" },
+    { id: "history", label: "Historia" },
   ];
   return (
     <div role="tablist" className="flex gap-1 border-b border-line mb-5">
