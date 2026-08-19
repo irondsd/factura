@@ -1,19 +1,31 @@
 #!/usr/bin/env bun
-/**
- * Validates every published content section — `/guias`, `/estadisticas` and
- * `/investigacion` — in one run. The form CI uses.
- *
- * Run: `bun scripts/validate-content.ts`  (or `npm run validate:content`)
- * Exit code is 1 if any ERROR is found (warnings don't fail the run).
- *
- * Not just a shell script running the others: the title/description collision
- * check is cross-file by nature, and two pages competing for one search result
- * are most likely to be a guide and a data page about the same subject — which
- * neither section's own run can see. `finish` runs that pass over everything at
- * once, so this is the only invocation that catches it.
- */
-import { collectGuides } from "./validate-guides";
-import { collectSections } from "./validate-sections";
-import { finish } from "./lib/content";
+/** Validates the committed export of the published CMS corpus. */
+import snapshot from "../src/content-system/content-snapshot.json";
+import { parseSnapshot } from "../src/content-system/snapshot";
+import { validateContentCollection } from "../src/content-system/validation";
 
-finish([{ name: "Guías", reports: collectGuides() }, ...collectSections()]);
+const documents = parseSnapshot(JSON.stringify(snapshot));
+const diagnostics = validateContentCollection(documents);
+let errors = 0;
+let warnings = 0;
+
+for (const document of documents) {
+  const findings =
+    diagnostics.get(`${document.section}/${document.slug}`) ?? [];
+  for (const finding of findings) {
+    const location =
+      finding.line === undefined
+        ? ""
+        : `:${finding.line}${finding.column === undefined ? "" : `:${finding.column}`}`;
+    console.log(
+      `${finding.severity} ${document.section}/${document.slug}${location} ${finding.message}`,
+    );
+    if (finding.severity === "error") errors++;
+    else warnings++;
+  }
+}
+
+console.log(
+  `${documents.length} documents · ${errors} errors · ${warnings} warnings`,
+);
+process.exitCode = errors === 0 ? 0 : 1;

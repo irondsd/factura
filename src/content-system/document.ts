@@ -4,8 +4,23 @@ import {
   type Heading,
   SOURCES_SECTION,
 } from "@/content/headings";
-import { readingStats } from "@/content/mdx";
 import type { ContentDocument, ContentSummary } from "./types";
+
+const WORDS_PER_MINUTE = 200;
+
+function countWords(body: string): number {
+  const prose = body
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/^#{1,6}[ \t]+/gm, " ")
+    .replace(/^[ \t]*[-*>][ \t]+/gm, " ")
+    .replace(/^[ \t]*\|.*\|[ \t]*$/gm, (row) => row.replace(/[|-]/g, " "))
+    .replace(/[*_~]/g, " ");
+  return prose.split(/\s+/).filter((word) => /[\p{L}\p{N}]/u.test(word)).length;
+}
 
 // The derived facts a rendered page needs that are not columns: its table of
 // contents and its reading time.
@@ -64,10 +79,13 @@ export function documentHeadings(
 export function documentStats(
   document: Pick<ContentDocument, "body" | "metadata">,
 ): { words: number; minutes: number } {
-  return readingStats(
-    document.body,
-    (document.metadata?.faq ?? []).map(({ q, a }) => `${q} ${a}`),
-  );
+  const words =
+    countWords(document.body) +
+    (document.metadata?.faq ?? []).reduce(
+      (total, { q, a }) => total + countWords(`${q} ${a}`),
+      0,
+    );
+  return { words, minutes: Math.max(1, Math.round(words / WORDS_PER_MINUTE)) };
 }
 
 /** Pages to suggest at the foot of `document`, best match first.

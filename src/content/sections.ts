@@ -1,7 +1,5 @@
 import "server-only";
-import { estadisticas } from "./estadisticas/pages";
-import { investigacion } from "./investigacion/pages";
-import type { ContentSection } from "./section";
+import { createSection, type ContentSection } from "./section";
 
 // Every registry content section, in the order the site presents them. The one
 // list the site-wide surfaces walk — the sitemap, the RSS feed and llms.txt all
@@ -11,6 +9,21 @@ import type { ContentSection } from "./section";
 // Statistics first, and everywhere: it is the older section, it carries more
 // pages, and research pages are read *against* it — every one of them joins
 // series that live over there.
+export const estadisticas = createSection({
+  id: "estadisticas",
+  label: "Estadísticas",
+  backLabel: "← Todas las estadísticas",
+  relatedLabel: "Estadística relacionada",
+});
+
+export const investigacion = createSection({
+  id: "investigacion",
+  base: "investigaciones",
+  label: "Investigación",
+  backLabel: "← Todas las investigaciones",
+  relatedLabel: "Investigación relacionada",
+});
+
 export const SECTIONS: readonly ContentSection[] = [
   estadisticas,
   investigacion,

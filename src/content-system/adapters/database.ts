@@ -4,6 +4,7 @@ import { db as defaultDb, type Database } from "@/db";
 import { cmsPages } from "@/db/schema";
 import type { ContentDocument, ContentSection } from "../types";
 import { rowToDocument } from "../repository/mapping";
+export { parseSnapshot, serializeSnapshot } from "../snapshot";
 
 // `documentsFromDatabase()` (cms.md §5.2), the counterpart to the filesystem
 // adapter: the whole of a section as `ContentDocument`s, in every state.
@@ -47,16 +48,3 @@ export async function documentFromDatabase(
  * can be exported once and validated as a fixture. JSON rather than SQL because
  * the validators take `ContentDocument`s, and a snapshot that needed a database
  * to read would defeat the purpose. */
-export function serializeSnapshot(
-  documents: readonly ContentDocument[],
-): string {
-  return `${JSON.stringify(documents, null, 2)}\n`;
-}
-
-export function parseSnapshot(json: string): ContentDocument[] {
-  const parsed: unknown = JSON.parse(json);
-  if (!Array.isArray(parsed)) {
-    throw new Error("content snapshot must be an array of documents");
-  }
-  return parsed as ContentDocument[];
-}

@@ -1,5 +1,5 @@
 import { ContentChrome } from "@/components/article/ContentChrome";
-import { investigacion } from "@/content/investigacion/pages";
+import { investigacion } from "@/content/sections";
 
 export default async function InvestigacionLayout({
   children,

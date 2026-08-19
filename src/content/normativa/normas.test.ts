@@ -1,15 +1,5 @@
-import fs from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { GRUPOS, NORMAS, normasDeGrupo } from "@/content/normativa/normas";
-
-// Guide slugs are read off disk rather than taken from `guideSlugs()`: that
-// module is `server-only`, which vitest can't import. Same one-liner it runs.
-const guideSlugs = () =>
-  fs
-    .readdirSync(path.join(process.cwd(), "src/content/guias"))
-    .filter((f) => f.endsWith(".mdx"))
-    .map((f) => f.replace(/\.mdx$/, ""));
 
 // The registry is hand-edited prose with structure around it, and the two ways
 // it can go wrong are both silent in the browser: a broken cross-reference
@@ -55,17 +45,6 @@ describe("normativa registry", () => {
         n.fuente.href,
         `${n.id} uses the dead www2.cedom host`,
       ).not.toMatch(/www2\.cedom/);
-    }
-  });
-
-  it("points `guia` at guides that exist", () => {
-    const slugs = new Set(guideSlugs());
-    for (const n of NORMAS) {
-      if (!n.guia) continue;
-      expect(
-        slugs.has(n.guia),
-        `${n.id} points at missing guide ${n.guia}`,
-      ).toBe(true);
     }
   });
 

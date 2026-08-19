@@ -44,17 +44,10 @@ export async function SectionArticle({
     section.crumbs(slug),
     section.children(slug),
   ]);
-  // The registry is retained as a rollback fixture during the migration, but a
-  // newly authored CMS page has no source file. Its reading time and table of
-  // contents therefore come from the same stored document `load()` already
-  // resolved the body from — asking the database a second time here would be
-  // both a duplicate query and a chance for the two to disagree.
-  const { words, minutes } = document
-    ? documentStats(document)
-    : section.readingStats(slug, meta.faq);
-  const headings = document
-    ? documentHeadings(document)
-    : section.headings(slug, meta.faq);
+  // Section content is database-backed. The stored document is the single
+  // source for both rendering and derived article data.
+  const { words, minutes } = documentStats(document!);
+  const headings = documentHeadings(document!);
 
   return (
     <>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SectionIndex } from "@/components/section/SectionIndex";
-import { estadisticas } from "@/content/estadisticas/pages";
+import { estadisticas } from "@/content/sections";
 import { sectionIndexMetadata } from "@/i18n/metadata";
 
 // The /estadisticas index. Everything structural — the breadcrumb, the row

@@ -1,5 +1,5 @@
 import { cardParams, sectionCard } from "@/components/section/card";
-import { investigacion } from "@/content/investigacion/pages";
+import { investigacion } from "@/content/sections";
 
 // /og/investigacion/<path>/card.png — the social card. The picture and the
 // reasoning behind the route's shape live in `components/section/card.tsx`,
