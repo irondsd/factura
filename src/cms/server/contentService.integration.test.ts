@@ -644,7 +644,6 @@ if (!hasTestDatabase()) {
           (await repository.listPublished("guias")).map((s) => s.slug),
         ).not.toContain(draft.slug);
       });
-
     });
 
     describe("stored rows", () => {

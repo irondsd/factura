@@ -1,8 +1,4 @@
-import type {
-  ContentDocument,
-  ContentSection,
-  ContentSummary,
-} from "../types";
+import type { ContentDocument, ContentSection, ContentSummary } from "../types";
 import { type ContentRepository, pathToSlug } from "./contract";
 
 // A tiny, deterministic corpus for CI production builds. This is deliberately
@@ -87,7 +83,8 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
     titleTag: null,
     description:
       "Página mínima de prueba que verifica el renderizado de una investigación del CMS durante el build de integración continua.",
-    summary: "Una investigación mínima usada exclusivamente por el build de CI.",
+    summary:
+      "Una investigación mínima usada exclusivamente por el build de CI.",
     cta: "Convertí tus facturas en información útil.",
     canonicalSlug: null,
     parentId: null,
@@ -148,8 +145,7 @@ export class CiFixtureContentRepository implements ContentRepository {
     section: ContentSection,
   ): Promise<ContentSummary[]> {
     return CI_CONTENT_FIXTURES.filter(
-      (document) =>
-        document.section === section && document.status !== "draft",
+      (document) => document.section === section && document.status !== "draft",
     ).map(withoutBody);
   }
 }

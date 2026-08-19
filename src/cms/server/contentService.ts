@@ -331,7 +331,8 @@ export class CmsContentService {
     }
 
     const deleted = await this.store.deleteWithLock(input);
-    if (!deleted) await this.reportConflict(input.id, input.expectedLockVersion);
+    if (!deleted)
+      await this.reportConflict(input.id, input.expectedLockVersion);
   }
 
   /** Validate without writing — the Validation tab, and the MCP's
