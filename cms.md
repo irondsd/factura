@@ -208,12 +208,12 @@ Create one typed manifest that controls rendering and authoring:
 
 ```ts
 type ContentComponentDefinition = {
-  component: React.ComponentType<unknown>;
-  sections: readonly ContentSection[];
-  kind: "leaf" | "container";
-  props: z.ZodType;
-  description: string;
-};
+  component: React.ComponentType<unknown>
+  sections: readonly ContentSection[]
+  kind: 'leaf' | 'container'
+  props: z.ZodType
+  description: string
+}
 ```
 
 The manifest is the source of truth for:
@@ -386,16 +386,16 @@ Refactor existing validation into pure functions without losing the CLI checks.
 Expose pure entry points similar to:
 
 ```ts
-validateContentDocument(document, index, level);
-validateContentCollection(documents);
-buildContentIndex(documents);
+validateContentDocument(document, index, level)
+validateContentCollection(documents)
+buildContentIndex(documents)
 ```
 
 Keep adapters for:
 
 ```ts
-documentsFromFilesystem(); // CI and migration comparison
-documentsFromDatabase(); // CMS and public site
+documentsFromFilesystem() // CI and migration comparison
+documentsFromDatabase() // CMS and public site
 ```
 
 The existing `bun run validate:content` command must continue to work during
@@ -426,12 +426,9 @@ Introduce a repository contract before changing routes:
 
 ```ts
 interface ContentRepository {
-  getByPath(
-    section: ContentSection,
-    slug: string[],
-  ): Promise<ContentDocument | null>;
-  listPublished(section: ContentSection): Promise<ContentSummary[]>;
-  listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>;
+  getByPath(section: ContentSection, slug: string[]): Promise<ContentDocument | null>
+  listPublished(section: ContentSection): Promise<ContentSummary[]>
+  listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>
 }
 ```
 
@@ -680,19 +677,19 @@ fallback. So the database is populated first and the merge happens last.
 
 ### 10.1 Before touching production
 
-- [ ] Capture what production renders today, while it still serves from `.mdx`.
+- [x] Capture what production renders today, while it still serves from `.mdx`.
       This window closes at the merge and cannot be reopened.
 
       ```bash
       bun run parity:capture --origin https://factura.uno --out .parity/before
       ```
 
-- [ ] Confirm the capture covers what it should — 72 pages today: 43 guides,
+- [x] Confirm the capture covers what it should — 72 pages today: 43 guides,
       15 statistics, 3 research, 8 category hubs and the 3 section indexes.
       A smaller number means the sitemap is missing something, and the parity
       check can only compare what it captured.
-- [ ] Decide which production account is the first CMS `admin`.
-- [ ] Confirm the deployment platform has `DATABASE_URL` available **at build
+- [x] Decide which production account is the first CMS `admin`.
+- [x] Confirm the deployment platform has `DATABASE_URL` available **at build
       time**. This is new: the build queries the database for
       `generateStaticParams`, and without it the build fails rather than
       shipping an empty site.
@@ -702,27 +699,28 @@ fallback. So the database is populated first and the merge happens last.
 Safe while `main` is deployed: every object is new and the running code reads
 none of them.
 
-- [ ] Take a Neon branch (name it, e.g. `pre-cms-<date>`) and a logical dump.
+- [x] Take a Neon branch (name it, e.g. `pre-cms-<date>`) and a logical dump.
       Record the branch, the dump path, the source commit, the operator and the
       timestamp.
 
       ```bash
-      pg_dump "$PROD_DIRECT_URL" -Fc -f ~/factura-prod-$(date +%Y%m%d-%H%M).dump
+      pg_dump "$(grep -E '^DATABASE_URL=' .env.prod | cut -d= -f2- | tr -d '\"')" \
+        -Fc -f ~/factura-prod-$(date +%Y%m%d-%H%M).dump
       ```
 
-- [ ] Push the schema over the **direct** Neon endpoint, not the pooler — the
-      configured `DATABASE_URL` is `…-pooler….neon.tech`, which is
-      transaction-pooled and a poor place for DDL. Do not pass `--force`; read
-      the statements first.
+- [x] Push the schema. `.env.prod` already points at the **direct** Neon
+      endpoint — the pooler URL beside it is commented out — which is what DDL
+      wants, so the existing script is right as it stands. Do not pass
+      `--force`: read the statements it prints first.
 
       ```bash
-      DATABASE_URL="$PROD_DIRECT_URL" npx drizzle-kit push
+      bun run db:push:prod
       ```
 
-- [ ] Confirm the statements were only: `cms_role`, `cms_page_status`,
+- [x] Confirm the statements were only: `cms_role`, `cms_page_status`,
       `cms_member`, `cms_page`, `cms_api_token`, `cms_audit_log`. Anything
       touching an existing table means the schema has drifted — stop.
-- [ ] Grant the first membership.
+- [x] Grant the first membership.
 
       ```sql
       insert into cms_member (user_id, role)
@@ -730,23 +728,34 @@ none of them.
       on conflict (user_id) do update set role = excluded.role;
       ```
 
-- [ ] Dry-run both importers and read the counts. Expect 43 guides and 18
-      statistics/research pages, all inserts. Note the two confirmation tokens
-      differ.
+- [x] Dry-run both importers and read the counts. Expect 43 guides and 18
+      statistics/research pages, all inserts.
+
+      Use the `:prod` scripts. They load `.env.prod` and pass `--production`;
+      the plain ones do neither, and **bun auto-loads `.env.local`** — so
+      `bun run content:import:guides --production` reaches the *local* database
+      and the importer refuses it with "`--production` cannot target a local
+      database". That refusal is the guard working, not a bug.
+
+      The two confirmation variables differ, and they stay out of the scripts on
+      purpose: naming the environment is a convenience, confirming the write is
+      a decision.
 
       ```bash
-      export CMS_IMPORT_ACTOR_EMAIL=you@example.com
+      export CMS_IMPORT_ACTOR_EMAIL=
+
       CMS_IMPORT_PRODUCTION_CONFIRM=IMPORT_GUIDES \
-      bun run content:import:guides --production --dry-run --explain
+        bun run content:import:guides:prod --dry-run --explain
+
       CMS_IMPORT_PRODUCTION_CONFIRM=IMPORT_CONTENT \
-      bun run content:import:sections --production --dry-run --explain
+        bun run content:import:sections:prod --dry-run --explain
       ```
 
-- [ ] Import both.
-- [ ] Re-run both dry-runs. Each must report `0 insert/update`; anything else
+- [x] Import both — the same two commands without `--dry-run --explain`.
+- [x] Re-run both dry-runs. Each must report `0 insert/update`; anything else
       means the round trip changed something and is worth understanding before
       it becomes the live site.
-- [ ] Sanity-check the rows.
+- [x] Sanity-check the rows.
 
       ```sql
       select section, status, count(*) from cms_page group by 1,2 order by 1;
@@ -755,12 +764,12 @@ none of them.
       select count(*) from cms_page where body_mdx like ';%';  -- must be 0
       ```
 
-- [ ] Confirm the live site is still healthy. It should be: nothing reads these
+- [x] Confirm the live site is still healthy. It should be: nothing reads these
       tables yet.
 
 ### 10.3 Verify the merged build against production data
 
-- [ ] Restore the dump into local PostgreSQL rather than pointing a dev server
+- [x] Restore the dump into local PostgreSQL rather than pointing a dev server
       at production. The CMS is a write surface, and a stray save would edit
       live content before it is even live.
 
@@ -769,7 +778,7 @@ none of them.
       pg_restore -h localhost -p 5433 -U factura -d factura_prodcopy ~/factura-prod-*.dump
       ```
 
-- [ ] Build and serve against it — a real build, not `dev`: prerendering and ISR
+- [x] Build and serve against it — a real build, not `dev`: prerendering and ISR
       are where the differences live.
 
       ```bash
@@ -777,32 +786,32 @@ none of them.
       rm -rf .next && bun run build && PORT=4100 npx next start
       ```
 
-- [ ] Run the parity comparison. It exits non-zero if anything differs.
+- [x] Run the parity comparison. It exits non-zero if anything differs.
 
       ```bash
       bun run parity:compare --before .parity/before --after http://localhost:4100
       ```
 
-- [ ] Read every diff it reports. Timestamps are already compared as instants
+- [x] Read every diff it reports. Timestamps are already compared as instants
       and social-card `?v=` stamps are ignored, so a reported difference is a
       real difference.
-- [ ] Walk the surfaces by hand: `/guias` lists 43; a category hub resolves;
+- [x] Walk the surfaces by hand: `/guias` lists 43; a category hub resolves;
       sitemap, `feed.xml` and `llms.txt` carry the same URLs as production; a
       guide OG card renders; `/cms` opens for the admin and 404s otherwise.
-- [ ] If parity fails: fix on `cms`, re-import into production, and repeat.
+- [x] If parity fails: fix on `cms`, re-import into production, and repeat.
       Production is still untouched, so this loop is free.
 
 ### 10.4 Merge and deploy
 
-- [ ] Merge `main` into `cms`, resolve any drift, and re-run the floor:
+- [x] Merge `main` into `cms`, resolve any drift, and re-run the floor:
       `build`, `lint`, `typecheck`, `test`, `test:db`, `validate:content`.
-- [ ] Merge `cms` into `main`.
-- [ ] Watch the deployment build. It reads production content now, so a failure
+- [x] Merge `cms` into `main`.
+- [x] Watch the deployment build. It reads production content now, so a failure
       here is the guardrail working — investigate rather than retry.
-- [ ] Smoke the live site: a guide, a category hub, a statistics page with a
+- [x] Smoke the live site: a guide, a category hub, a statistics page with a
       chart, a nested research page, the home page's guide block,
       `/normativa`, the sitemap's guide count, one OG card.
-- [ ] Open `/cms` in production, press _Revisar para publicar_ on one guide,
+- [x] Open `/cms` in production, press _Revisar para publicar_ on one guide,
       confirm it reports clean, and close without saving.
 
 Rollback, if needed: redeploy the previous build. The schema change is additive
@@ -810,20 +819,20 @@ and inert to the old code, so nothing about the database needs undoing.
 
 ### 10.5 Observation window
 
-- [ ] Keep the `.mdx` sources and section registries in place for the window.
+- [x] Keep the `.mdx` sources and section registries in place for the window.
       They are the importers' only input; if a content defect appears, the
       repair is to fix the extractor and re-import.
-- [ ] Publish one small edit and confirm it reaches the public site within the
+- [x] Publish one small edit and confirm it reaches the public site within the
       hour. That is the first real test of the TTL in production.
-- [ ] Request the OG card for a guide created _in the CMS_ (not one of the
+- [x] Request the OG card for a guide created _in the CMS_ (not one of the
       imported 43). Its fonts are read at request time now, and this is the
       first path that exercises it.
-- [ ] Watch Search Console for a coverage drop on `/guias/*`.
-- [ ] Let a week pass with no content regression.
+- [x] Watch Search Console for a coverage drop on `/guias/*`.
+- [x] Let a week pass with no content regression.
 
 ### 10.6 Cleanup
 
-- [ ] Do Task 1 (snapshot validation) **before** deleting anything, so
+- [x] Do Task 1 (snapshot validation) **before** deleting anything, so
       `validate:content` keeps working.
 - [ ] Delete the guide `.mdx` files, the statistics and research `.mdx` and
       their `pages.ts` registries, `src/content/guias/guides.ts`, and both
@@ -844,8 +853,12 @@ and inert to the old code, so nothing about the database needs undoing.
   `src/cms/server/testDb.ts` refuses a non-local host, and both importers refuse
   one without an explicit flag and a confirmation variable.
 - Both importers are idempotent and safe to rerun. They validate before writing.
-- Back up before any production schema change, and use the direct Neon endpoint
-  for DDL rather than the pooler.
+- Back up before any production schema change. `.env.prod` points at the direct
+  Neon endpoint rather than the pooler, which is what DDL wants.
+- Anything that must reach production names it explicitly, through a `:prod`
+  script that loads `.env.prod`. Bun auto-loads `.env.local`, so a script run
+  without one silently targets the local database — which is the safe default,
+  and why the importers refuse `--production` against a local host.
 - CMS membership is granted by hand, in SQL. Removing the row removes authority
   on the next request, including for any API token that account minted.
 - CMS API tokens are shown once, stored as a SHA-256 hash, and are write-capable
