@@ -12,6 +12,7 @@ import type { CreateContentInput, UpdateContentInput } from "./contentService";
 import {
   CmsConflictError,
   CmsForbiddenError,
+  CmsNotDeletableError,
   CmsNotFoundError,
   CmsSlugTakenError,
   CmsValidationError,
@@ -30,7 +31,13 @@ export type CmsActionResult<T> =
   | { ok: true; data: T }
   | {
       ok: false;
-      kind: "conflict" | "invalid" | "forbidden" | "not_found" | "slug_taken";
+      kind:
+        | "conflict"
+        | "invalid"
+        | "forbidden"
+        | "not_found"
+        | "slug_taken"
+        | "not_deletable";
       message: string;
       diagnostics?: Diagnostic[];
       /** On a conflict: the version actually in the database. */
@@ -56,6 +63,9 @@ function toResult(error: unknown): CmsActionResult<never> {
   }
   if (error instanceof CmsSlugTakenError) {
     return { ok: false, kind: "slug_taken", message: error.message };
+  }
+  if (error instanceof CmsNotDeletableError) {
+    return { ok: false, kind: "not_deletable", message: error.message };
   }
   if (error instanceof CmsForbiddenError) {
     return { ok: false, kind: "forbidden", message: error.message };
@@ -119,6 +129,25 @@ export async function setContentStatusAction(
       ok: true,
       data: { status: page.status, lockVersion: page.lockVersion },
     };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/** Delete a page for good. The service refuses anything that is not an
+ * unpublished, childless draft at the version the editor is holding, so this
+ * stays the same thin adapter as the rest — including the revalidation, which
+ * matters here because the section list must stop listing a page that no longer
+ * exists. */
+export async function deleteContentAction(
+  section: ContentSection,
+  input: { id: string; expectedLockVersion: number },
+): Promise<CmsActionResult<{ id: string }>> {
+  const actor = await requireCmsMember();
+  try {
+    await service.delete(actor, input);
+    refreshCms(section, input.id);
+    return { ok: true, data: { id: input.id } };
   } catch (error) {
     return toResult(error);
   }

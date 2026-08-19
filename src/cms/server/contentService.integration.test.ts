@@ -9,6 +9,8 @@ import type { CmsActor } from "../types";
 import { CmsContentService } from "./contentService";
 import {
   CmsConflictError,
+  CmsNotDeletableError,
+  CmsNotFoundError,
   CmsSlugTakenError,
   CmsValidationError,
 } from "./errors";
@@ -642,7 +644,6 @@ if (!hasTestDatabase()) {
           (await repository.listPublished("guias")).map((s) => s.slug),
         ).not.toContain(draft.slug);
       });
-
     });
 
     describe("stored rows", () => {
@@ -669,6 +670,82 @@ if (!hasTestDatabase()) {
           .from(cmsSchema.cmsPages)
           .where(eq(cmsSchema.cmsPages.slug, page.slug));
         expect(rows).toHaveLength(1);
+      });
+    });
+
+    describe("deletion", () => {
+      it("removes a draft from the database for good", async () => {
+        const page = await service.create(actor, draftInput("borrable"));
+
+        await service.delete(actor, {
+          id: page.id,
+          expectedLockVersion: page.lockVersion,
+        });
+
+        // Gone from the table, not merely hidden from a listing: this is the
+        // one operation in the CMS with no archived copy behind it.
+        expect(
+          await db.query.cmsPages.findFirst({
+            where: eq(cmsSchema.cmsPages.id, page.id),
+          }),
+        ).toBeUndefined();
+        await expect(service.get(actor, page.id)).rejects.toBeInstanceOf(
+          CmsNotFoundError,
+        );
+      });
+
+      it("refuses to delete a published page", async () => {
+        const page = await service.create(actor, draftInput("publicada"));
+        const live = await service.setStatus(actor, {
+          id: page.id,
+          status: "published",
+          expectedLockVersion: page.lockVersion,
+        });
+
+        await expect(
+          service.delete(actor, {
+            id: live.id,
+            expectedLockVersion: live.lockVersion,
+          }),
+        ).rejects.toBeInstanceOf(CmsNotDeletableError);
+        expect(await service.get(actor, live.id)).toBeTruthy();
+      });
+
+      it("refuses to delete a page that others hang off", async () => {
+        // The foreign key is `restrict`, so the database would refuse this
+        // anyway — the service refuses first so the answer names the children
+        // instead of a constraint.
+        const hub = await service.create(actor, draftInput("hub-borrable"));
+        await service.create(actor, {
+          ...draftInput("hub-borrable/hija"),
+          slug: `${hub.slug}/hija`,
+          parentId: hub.id,
+        });
+
+        await expect(
+          service.delete(actor, {
+            id: hub.id,
+            expectedLockVersion: hub.lockVersion,
+          }),
+        ).rejects.toBeInstanceOf(CmsNotDeletableError);
+        expect(await service.get(actor, hub.id)).toBeTruthy();
+      });
+
+      it("refuses to delete a page that moved since it was read", async () => {
+        const page = await service.create(actor, draftInput("movida"));
+        await service.update(actor, {
+          id: page.id,
+          expectedLockVersion: page.lockVersion,
+          patch: { title: "Otro título" },
+        });
+
+        await expect(
+          service.delete(actor, {
+            id: page.id,
+            expectedLockVersion: page.lockVersion,
+          }),
+        ).rejects.toBeInstanceOf(CmsConflictError);
+        expect(await service.get(actor, page.id)).toBeTruthy();
       });
     });
 

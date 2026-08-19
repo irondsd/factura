@@ -1,9 +1,5 @@
 import "server-only";
-import type {
-  ContentDocument,
-  ContentSection,
-  ContentSummary,
-} from "../types";
+import type { ContentDocument, ContentSection, ContentSummary } from "../types";
 import type { ContentRepository } from "./contract";
 import { ciFixtureContentRepository } from "./ci-fixtures";
 

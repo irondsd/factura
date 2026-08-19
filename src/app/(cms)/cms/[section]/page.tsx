@@ -61,10 +61,14 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
         <h1 className="font-display font-semibold text-[30px] tracking-[-0.025em] leading-[1.1] m-0">
           {section.label}
         </h1>
+        {/* Filled, not outlined: the only control on this screen, and it sits a
+            column away from the status labels. An outlined accent box was the
+            same shape and the same hue as the «Publicada» chip. */}
         <Link
           href={cmsNewPath(section.id)}
-          className="border border-accent px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-accent no-underline transition-colors hover:bg-accent hover:text-paper"
+          className="inline-flex items-center gap-2 border border-ink bg-ink px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper no-underline transition-colors hover:border-accent hover:bg-accent"
         >
+          <span aria-hidden="true">+</span>
           Nueva página
         </Link>
       </div>

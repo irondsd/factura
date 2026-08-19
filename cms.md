@@ -208,12 +208,12 @@ Create one typed manifest that controls rendering and authoring:
 
 ```ts
 type ContentComponentDefinition = {
-  component: React.ComponentType<unknown>
-  sections: readonly ContentSection[]
-  kind: 'leaf' | 'container'
-  props: z.ZodType
-  description: string
-}
+  component: React.ComponentType<unknown>;
+  sections: readonly ContentSection[];
+  kind: "leaf" | "container";
+  props: z.ZodType;
+  description: string;
+};
 ```
 
 The manifest is the source of truth for:
@@ -386,15 +386,15 @@ Refactor existing validation into pure functions without losing the CLI checks.
 Expose pure entry points similar to:
 
 ```ts
-validateContentDocument(document, index, level)
-validateContentCollection(documents)
-buildContentIndex(documents)
+validateContentDocument(document, index, level);
+validateContentCollection(documents);
+buildContentIndex(documents);
 ```
 
 Keep an adapter for:
 
 ```ts
-documentsFromDatabase() // CMS and public site
+documentsFromDatabase(); // CMS and public site
 ```
 
 After cutover, content validation belongs to the CMS publication workflow. CI
@@ -425,9 +425,12 @@ Introduce a repository contract before changing routes:
 
 ```ts
 interface ContentRepository {
-  getByPath(section: ContentSection, slug: string[]): Promise<ContentDocument | null>
-  listPublished(section: ContentSection): Promise<ContentSummary[]>
-  listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>
+  getByPath(
+    section: ContentSection,
+    slug: string[],
+  ): Promise<ContentDocument | null>;
+  listPublished(section: ContentSection): Promise<ContentSummary[]>;
+  listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>;
 }
 ```
 
@@ -608,8 +611,8 @@ commit log:
 | Authorization      | `src/cms/auth` — one gate (`requireCmsMember`), pure rules beside it (`policy.ts`), membership as an explicit allowlist with no self-service path.                        |
 | Content service    | `src/cms/server/contentService.ts` — the single writer. Authority, validation level, optimistic concurrency and timestamps all decided here; the store only runs SQL.     |
 | Restricted MDX     | Allowlist grammar validation (`validation/grammar.ts`) with compilation gated on it. No bypass flag.                                                                      |
-| Component manifest | `content-system/components` — rules split from bindings so validation tools need no React. 67 components: 10 available to guides, 59 to statistics, 57 to research.     |
-| Validation         | Four pure layers (grammar, document, collection, render) with per-level policy, shared by the CMS and the MCP.                                                   |
+| Component manifest | `content-system/components` — rules split from bindings so validation tools need no React. 67 components: 10 available to guides, 59 to statistics, 57 to research.       |
+| Validation         | Four pure layers (grammar, document, collection, render) with per-level policy, shared by the CMS and the MCP.                                                            |
 | Repository         | `ContentRepository` with the lifecycle rules in one module (`repository/visibility.ts`); cached public read models for guides and for the registry sections.              |
 | CMS surface        | `/cms`, `/cms/[section]`, `/cms/[section]/new`, `/cms/[section]/[id]`, `/cms/[section]/preview/[id]`, `/cms/tokens` — one dynamic route set driven by a section registry. |
 | Editor             | CodeMirror 6 source editing, section-driven metadata form, Markdown/preview/validation tabs, explicit save, conflict recovery that preserves the losing text.             |

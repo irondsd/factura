@@ -42,11 +42,7 @@ const PRIVATE_PATHS = ["/login", "/app", "/delete-account"];
 /** The index at each prefix is repository-owned; its descendants are authored
  * in the CMS. `/guias/categoria/*` is also content-derived: the category exists
  * in the sitemap only when CMS content uses it. */
-const CMS_CONTENT_PREFIXES = [
-  "/guias/",
-  "/estadisticas/",
-  "/investigaciones/",
-];
+const CMS_CONTENT_PREFIXES = ["/guias/", "/estadisticas/", "/investigaciones/"];
 
 function isRepositoryOwned(url: string): boolean {
   const pathname = new URL(url).pathname;
@@ -66,9 +62,7 @@ async function auditFixtureDiscovery(
     fetch(`${base}/feed.xml`).then((response) => response.text()),
     fetch(`${base}/llms.txt`).then((response) => response.text()),
   ]);
-  const sitemapPaths = new Set(
-    sitemapUrls.map((url) => new URL(url).pathname),
-  );
+  const sitemapPaths = new Set(sitemapUrls.map((url) => new URL(url).pathname));
   const errors: string[] = [];
 
   for (const pathname of CI_CONTENT_FIXTURE_PATHS) {

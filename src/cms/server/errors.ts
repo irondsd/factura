@@ -55,6 +55,22 @@ export class CmsForbiddenError extends Error {
   }
 }
 
+/** The page exists and the actor may edit it, but it is not in a state where
+ * deleting it is allowed: it is not a draft, or other pages hang off it.
+ *
+ * Its own class rather than a forbidden or a validation error, because neither
+ * fits — no role would change the answer, and nothing about the page's *content*
+ * is wrong. The fix is to move the page (unpublish it, re-parent its children)
+ * and try again, which is what the message says. */
+export class CmsNotDeletableError extends Error {
+  readonly code = "not_deletable" as const;
+  /** Spanish: these messages reach an editor. */
+  constructor(why: string) {
+    super(why);
+    this.name = "CmsNotDeletableError";
+  }
+}
+
 /** A slug collision. Separate from a validation error because the fix is
  * different: pick another slug, rather than edit the content. */
 export class CmsSlugTakenError extends Error {

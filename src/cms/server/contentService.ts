@@ -13,6 +13,7 @@ import type { CmsActor } from "../types";
 import {
   CmsConflictError,
   CmsForbiddenError,
+  CmsNotDeletableError,
   CmsNotFoundError,
   CmsSlugTakenError,
   CmsValidationError,
@@ -278,6 +279,60 @@ export class CmsContentService {
     });
     if (!saved) await this.reportConflict(input.id, input.expectedLockVersion);
     return saved as ContentDocument;
+  }
+
+  /** Delete a page for good.
+   *
+   * The only destructive operation in the CMS, and the guards are what keep the
+   * reasoning behind "archive by status" intact rather than discarding it
+   * (cms.md §4.2, §13):
+   *
+   * - **Drafts only.** A published or previewed page has a public URL and, for
+   *   up to an hour, a cached copy that outlives the row. Unpublishing first is
+   *   one extra click and it makes "this is live" and "this is gone" two
+   *   separate decisions.
+   * - **No children.** The foreign key is `restrict`, so the database would
+   *   refuse anyway; this is the version that can say how many pages hang off
+   *   this one instead of surfacing a constraint name.
+   * - **The lock version, like any other write.** A page someone else has been
+   *   editing is not deleted out from under them.
+   *
+   * There is no undo — no revision history exists to restore from — so the
+   * browser asks the editor to type the word before this is ever called, and
+   * the CMS MCP does not expose it at all. */
+  async delete(
+    actor: CmsActor,
+    input: { id: string; expectedLockVersion: number },
+  ): Promise<void> {
+    this.assertMayAuthor(actor);
+
+    const current = await this.store.findById(input.id);
+    if (!current) throw new CmsNotFoundError(`Page ${input.id}`);
+    if (current.lockVersion !== input.expectedLockVersion) {
+      await this.reportConflict(input.id, input.expectedLockVersion);
+    }
+
+    if (current.status !== "draft") {
+      throw new CmsNotDeletableError(
+        "Solo se pueden eliminar borradores. Vuelve la página a borrador antes de eliminarla.",
+      );
+    }
+
+    const siblings = await this.store.list({
+      section: current.section as ContentSection,
+    });
+    const children = siblings.filter((page) => page.parentId === current.id);
+    if (children.length > 0) {
+      throw new CmsNotDeletableError(
+        children.length === 1
+          ? "Otra página cuelga de esta. Muévela o elimínala antes."
+          : `Hay ${children.length} páginas que cuelgan de esta. Muévelas o elimínalas antes.`,
+      );
+    }
+
+    const deleted = await this.store.deleteWithLock(input);
+    if (!deleted)
+      await this.reportConflict(input.id, input.expectedLockVersion);
   }
 
   /** Validate without writing — the Validation tab, and the MCP's
