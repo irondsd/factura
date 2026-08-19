@@ -1,4 +1,9 @@
-import { extractHeadings, FAQ_SECTION, type Heading } from "@/content/headings";
+import {
+  extractHeadings,
+  FAQ_SECTION,
+  type Heading,
+  SOURCES_SECTION,
+} from "@/content/headings";
 import { readingStats } from "@/content/mdx";
 import type { ContentDocument, ContentSummary } from "./types";
 
@@ -12,22 +17,44 @@ import type { ContentDocument, ContentSummary } from "./types";
 // content without a second source of truth.
 
 /** The sections of a page, for its contents column: every `##` in the body, in
- * order, with the id `rehype-slug` gives the rendered heading.
+ * order, with the id `rehype-slug` gives the rendered heading, plus the two
+ * blocks whose heading lives in metadata rather than in the body.
  *
- * The FAQ is appended when the page has questions *and* places `<Faq />`,
- * because it reads as a section like any other even though its heading is not
- * in the body. Dropped if a real heading already claimed that id, which would
- * otherwise mean a contents entry pointing at the wrong section. Same rule as
- * `guideHeadings`, restated against a document rather than a file. */
+ * The same rule the filesystem registry applies (`ContentSection.headings`),
+ * restated against a document rather than a file — and it has to stay the same,
+ * because these two are what a page's contents column is built from on either
+ * side of the migration. */
 export function documentHeadings(
   document: Pick<ContentDocument, "body" | "metadata">,
 ): Heading[] {
   const headings = extractHeadings(document.body);
-  const faq = document.metadata?.faq ?? [];
-  const placesFaq = faq.length > 0 && /<Faq[\s/>]/.test(document.body);
-  if (placesFaq && !headings.some((h) => h.id === FAQ_SECTION.id)) {
-    headings.push({ ...FAQ_SECTION });
+
+  // Two blocks whose heading is not in the body: the author drops in a bare tag
+  // and the route feeds it from metadata. Each is listed only when the page
+  // both *places* the tag and *has* the content — `<Faq />` and `<Fuentes />`
+  // each render nothing when their list is empty, and a contents entry linking
+  // to a section that isn't there is worse than no entry.
+  const appended: [boolean, Heading][] = [
+    [
+      (document.metadata?.faq?.length ?? 0) > 0 &&
+        /<Faq[\s/>]/.test(document.body),
+      FAQ_SECTION,
+    ],
+    [
+      (document.metadata?.sources?.length ?? 0) > 0 &&
+        /<Fuentes[\s/>]/.test(document.body),
+      SOURCES_SECTION,
+    ],
+  ];
+
+  for (const [present, section] of appended) {
+    // Skipped if a real heading already claimed the id, which would otherwise
+    // mean a contents entry pointing at the wrong section.
+    if (present && !headings.some((h) => h.id === section.id)) {
+      headings.push({ ...section });
+    }
   }
+
   return headings;
 }
 

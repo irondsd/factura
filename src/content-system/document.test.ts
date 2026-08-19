@@ -70,6 +70,54 @@ describe("documentHeadings", () => {
       documentHeadings(doc({ body: "## Uno\n\n<Faq />\n" })).map((h) => h.id),
     ).toEqual(["uno"]);
   });
+
+  it("appends the sources section when the body places it", () => {
+    // Statistics and research pages end on `<Fuentes />`, whose heading lives
+    // in metadata like the FAQ's. Missing here, it rendered on the page but
+    // vanished from the contents column of every migrated section page.
+    const headings = documentHeadings(
+      doc({
+        section: "estadisticas",
+        body: "## Uno\n\n<Fuentes />\n",
+        metadata: {
+          keywords: [],
+          categories: [],
+          sources: [{ label: "INDEC", href: "https://indec.gob.ar" }],
+        },
+      }),
+    );
+    expect(headings.at(-1)).toEqual({ id: "fuentes", text: "Fuentes" });
+  });
+
+  it("does not append the sources section when there are no sources", () => {
+    // `<Fuentes />` renders nothing for an empty list, so the entry would link
+    // to a section that is not on the page.
+    expect(
+      documentHeadings(
+        doc({ section: "estadisticas", body: "## Uno\n\n<Fuentes />\n" }),
+      ).map((h) => h.id),
+    ).toEqual(["uno"]);
+  });
+
+  it("lists both blocks in the order the page renders them", () => {
+    const headings = documentHeadings(
+      doc({
+        section: "estadisticas",
+        body: "## Uno\n\n<Faq />\n\n<Fuentes />\n",
+        metadata: {
+          keywords: [],
+          categories: [],
+          faq: [{ q: "¿?", a: "." }],
+          sources: [{ label: "INDEC", href: "https://indec.gob.ar" }],
+        },
+      }),
+    );
+    expect(headings.map((h) => h.id)).toEqual([
+      "uno",
+      "preguntas-frecuentes",
+      "fuentes",
+    ]);
+  });
 });
 
 describe("documentStats", () => {

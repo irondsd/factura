@@ -19,6 +19,8 @@
     "validate:content": "bun scripts/validate-content.ts",
     "content:import:guides": "bun scripts/import-guides.ts",
     "content:import:sections": "bun scripts/import-sections.ts",
+    "content:import:guides:prod": "dotenv -e .env.prod -- bun scripts/import-guides.ts --production",
+    "content:import:sections:prod": "dotenv -e .env.prod -- bun scripts/import-sections.ts --production",
     "validate:guides": "bun scripts/validate-guides.ts",
     "validate:sections": "bun scripts/validate-sections.ts",
     "validate:stats": "bun scripts/validate-stats.ts",
