@@ -1633,7 +1633,7 @@ repository rollback switch.
       mutation tests.
 - [x] Verify a real MCP client can create, edit, validate, preview, and explicitly
       publish a test guide locally.
-- [ ] Verify an ordinary Factura MCP token cannot discover or call CMS tools.
+- [x] Verify an ordinary Factura MCP token cannot discover or call CMS tools.
 
 **Gate:** Browser and MCP mutations have identical authorization, validation,
 and lifecycle semantics.
@@ -1720,18 +1720,27 @@ This checkpoint finishes the guides implementation but does not touch
 production and does not merge to `main`. Continue on the same `cms` branch with
 the statistics/research work in section 12.
 
-- [ ] Confirm Phases 0–9 are complete on local PostgreSQL.
-- [ ] Rebase or merge the current `main` into `cms` as appropriate and resolve
+- [x] Confirm Phases 0–9 are complete on local PostgreSQL.
+- [x] Rebase or merge the current `main` into `cms` as appropriate and resolve
       integration drift on `cms`.
 - [ ] Re-run build, lint, typecheck, tests, content validation, import parity,
       browser verification, and MCP verification after synchronization.
-- [ ] Confirm the current `main` branch remains unchanged by the CMS program.
-- [ ] Confirm no production database command has been run.
-- [ ] Tag or record the reviewed guide milestone commit in this document.
-- [ ] Continue directly to section 12 on `cms`; do not open a guide-only merge.
+- [x] Confirm the current `main` branch remains unchanged by the CMS program.
+- [x] Confirm no production database command has been run.
+- [x] Tag or record the reviewed guide milestone commit in this document.
+- [x] Continue directly to section 12 on `cms`; do not open a guide-only merge.
 
 **The guides milestone is complete when this checkpoint passes, but the `cms`
 branch is not mergeable until section 12 and its branch-wide rollout pass.**
+
+#### Phase 10 checkpoint note
+
+Recorded 2026-08-19. `main` was merged into `cms` at `e5a6187` without
+conflicts; the merge changed only `TrustBlock.tsx` on `cms` and did not alter
+`main`. Phases 0–9 were completed locally, including the no-production-data
+guard. The full post-synchronization verification floor remains part of the
+open Phase 12 completion work because the statistics/research migration is now
+changing the shared content path.
 
 ## 10. Testing strategy
 
@@ -1799,11 +1808,11 @@ It must follow the same local-first rule: implement, import, validate, and
 visually verify against local PostgreSQL before the single branch-wide
 production migration.
 
-- [ ] Inventory and register the complete statistics/research chart, map, table,
+- [x] Inventory and register the complete statistics/research chart, map, table,
       data, source, related-page, FAQ, subpage, and CTA component surface.
-- [ ] Define component property schemas and section restrictions in the shared
+- [x] Define component property schemas and section restrictions in the shared
       manifest.
-- [ ] Replace per-MDX imports with manifest entries while preserving bundle and
+- [x] Replace per-MDX imports with manifest entries while preserving bundle and
       client-component behavior.
 - [ ] Extend CMS metadata schemas/forms for hierarchy, crumbs, hubs, datasets,
       sources, OG statistics, and subpages.
@@ -1821,7 +1830,7 @@ production migration.
       section-specific fields.
 - [ ] Promote `estadisticas` and `investigacion` from `planned` to `live` in the
       section registry, and confirm no new route files were needed to do it.
-- [ ] Write repeatable, idempotent, local-first importers with dry-run and target
+- [x] Write repeatable, idempotent, local-first importers with dry-run and target
       environment safeguards.
 - [ ] Migrate both sections locally and compare document counts, metadata,
       headings, sources, datasets, links, hierarchy, validation, rendered HTML,
@@ -1838,6 +1847,20 @@ production migration.
       build/lint/typecheck/test/content-validation floor.
 - [ ] Re-run all guide/statistics/research imports from an empty local CMS and
       prove idempotence and complete rendering/discovery parity.
+
+#### Phase 12 progress note
+
+Recorded 2026-08-19, against local PostgreSQL only. The new
+`content:import:sections` importer loaded all existing non-guide MDX content:
+15 statistics pages and 3 research pages, including their parent/child paths,
+editorial ordering, crumbs, FAQs, sources, dataset metadata, preview data, and
+the existing chart/map/table component calls. The restricted-MDX manifest now
+registers that component surface with section restrictions and property schemas;
+the public statistics/research article routes prefer CMS rows and retain the
+filesystem files as migration fixtures. Local requests to representative
+statistics and research URLs returned `200`, and focused manifest/grammar tests
+passed (175 tests). Index, discovery, editor metadata, complete parity, and the
+full final verification floor remain intentionally unchecked.
 
 ### Branch-wide production migration and merge gate
 

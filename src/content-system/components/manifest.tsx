@@ -9,6 +9,7 @@ import {
 } from "@/components/guides/cta";
 import { InflacionChart } from "@/components/guides/InflacionChart";
 import { TrustBlock } from "@/components/landing/TrustBlock";
+import { SECTION_COMPONENT_BINDINGS } from "./sectionBindings";
 import {
   CONTENT_COMPONENT_DEFINITIONS,
   type ContentComponentDefinition,
@@ -38,8 +39,10 @@ const ArticleTrustBlock = () => <TrustBlock className="my-10" />;
  * `mdx-components.tsx` registers, and for the same reason: with no article
  * context there is nothing to show. */
 const Unbound = () => null;
+const { ClosingCta: _sectionClosingCta, ...DATA_BINDINGS } =
+  SECTION_COMPONENT_BINDINGS;
 
-const BINDINGS = {
+const BINDINGS: Record<string, ComponentType<never>> = {
   ClosingCta,
   ProbarCta,
   CtaButton,
@@ -50,7 +53,10 @@ const BINDINGS = {
   TrustBlock: ArticleTrustBlock,
   Faq: Unbound,
   RelatedGuides: Unbound,
-} as const satisfies Record<ContentComponentName, ComponentType<never>>;
+  Fuentes: Unbound,
+  Subpaginas: Unbound,
+  ...DATA_BINDINGS,
+};
 
 export type ContentComponentEntry = ContentComponentDefinition & {
   component: ComponentType<never>;

@@ -200,6 +200,25 @@ export function createSection(config: SectionConfig): ContentSection {
   const entryFor = (slug: string[]): SectionEntry | undefined =>
     entries.find((e) => slugPath(e.slug) === slugPath(slug));
 
+  const metaFromDatabase = (document: import("@/content-system/types").ContentDocument): SectionMeta => ({
+    title: document.title,
+    ...(document.titleTag ? { titleTag: document.titleTag } : {}),
+    description: document.description,
+    summary: document.summary,
+    cta: document.cta,
+    keywords: document.metadata.keywords,
+    published: document.publishedAt ?? document.contentUpdatedAt,
+    updated: document.contentUpdatedAt,
+    sources: document.metadata.sources ?? [],
+    dataset: document.metadata.dataset ?? { name: document.title, description: document.description, temporalCoverage: document.contentUpdatedAt.slice(0, 7), spatialCoverage: "Argentina", variableMeasured: [] },
+    ...(document.metadata.ogTitle ? { ogTitle: document.metadata.ogTitle } : {}),
+    ...(document.metadata.ogDescription ? { ogDescription: document.metadata.ogDescription } : {}),
+    ...(document.metadata.ogStat ? { ogStat: document.metadata.ogStat } : {}),
+    ...(document.metadata.previewImage ? { preview: document.metadata.previewImage } : {}),
+    ...(document.metadata.faq ? { faq: document.metadata.faq } : {}),
+    ...(document.status !== "published" ? { noindex: true } : {}),
+  });
+
   // Fails the build when a nested page has no parent page — see the note at the
   // top. Cheap, and the alternative is a breadcrumb that 404s.
   const known = new Set(entries.map((e) => slugPath(e.slug)));
@@ -269,6 +288,20 @@ export function createSection(config: SectionConfig): ContentSection {
     slugs: () => entries.map((e) => e.slug),
 
     async load(slug) {
+      // Lazy imports avoid making the CMS compiler (and its React component
+      // bindings) part of the registry module's initialization cycle.
+      const [{ documentFromDatabase }, { compileContent }] = await Promise.all([
+        import("@/content-system/adapters/database"),
+        import("@/content-system/render/renderContent"),
+      ]);
+      const stored = await documentFromDatabase(id as import("@/content-system/types").ContentSection, slugPath(slug));
+      if (stored) {
+        return {
+          Content: await compileContent(stored.body, stored.section),
+          meta: metaFromDatabase(stored),
+          crumb: stored.crumb ?? stored.title,
+        };
+      }
       const entry = entryFor(slug);
       if (!entry) return null;
       const mod = await entry.load();

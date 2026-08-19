@@ -47,7 +47,28 @@ export type GuideMetadata = {
   previewImage?: string;
 };
 
-export type ContentMetadata = GuideMetadata;
+/** Metadata shared by the statistics and research sections.  Their original
+ * MDX modules used the same title/description columns as guides, plus this
+ * JSONB payload for dataset provenance and the section-specific article
+ * furniture. */
+export type DataSource = { label: string; href: string; note?: string };
+export type DatasetMetadata = {
+  name: string;
+  description: string;
+  temporalCoverage: string;
+  spatialCoverage: string;
+  variableMeasured: string[];
+};
+
+export type SectionMetadata = Omit<GuideMetadata, "ogImage"> & {
+  ogImage?: { eyebrow?: string; stat?: string };
+  ogStat?: string;
+  sources?: DataSource[];
+  dataset?: DatasetMetadata;
+};
+
+/** The JSONB payload for every CMS-backed content section. */
+export type ContentMetadata = SectionMetadata;
 
 /** A complete page: everything needed to render it and everything needed to
  * edit it. The CMS and the public renderer read the same object — a preview

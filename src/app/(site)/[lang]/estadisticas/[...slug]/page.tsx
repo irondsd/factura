@@ -9,7 +9,7 @@ import { sectionMetadata } from "@/i18n/metadata";
 // with `dynamicParams = false` 404s anything else.
 //
 // The body is `<SectionArticle />`, shared with /investigacion.
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 export function generateStaticParams() {
   return estadisticas.slugs().map((slug) => ({ slug }));

@@ -12,6 +12,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import type { ContentSection } from "@/content/section";
 import { faqPageLd, sectionPageLd } from "@/i18n/structuredData";
 import { formatContentDateTime } from "@/lib/content-date";
+import { contentComponents } from "@/content-system/render/renderContent";
 
 // One page of a registry section, at any depth: /estadisticas/delitos-caba,
 // /investigacion/barrios-seguros-baratos-caba, and
@@ -121,7 +122,7 @@ export async function SectionArticle({
                   resolved content and the MDX just places a bare tag where the
                   author wants it. */}
               <Content
-                components={{
+                components={contentComponents({
                   Faq: () => <Faq items={meta.faq ?? []} />,
                   Fuentes: () => <Fuentes items={meta.sources} />,
                   // A hub page places its own children where its prose wants
@@ -137,7 +138,7 @@ export async function SectionArticle({
                         titleAs="h3"
                       />
                     ) : null,
-                }}
+                })}
               />
             </div>
 

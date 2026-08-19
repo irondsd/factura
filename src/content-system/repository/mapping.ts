@@ -1,5 +1,6 @@
 import type { cmsPages } from "@/db/schema";
 import { guideMetadataSchema } from "../metadata/guias";
+import { sectionMetadataSchema } from "../metadata/sections";
 import {
   type ContentDocument,
   type ContentMetadata,
@@ -43,7 +44,7 @@ export function rowToSummary(row: CmsPageSummaryRow): ContentSummary {
       `cms_page ${row.id} has unknown section "${row.section}" — the row is unreadable by this build`,
     );
   }
-  const metadata = guideMetadataSchema.safeParse(row.metadata);
+  const metadata = (row.section === "guias" ? guideMetadataSchema : sectionMetadataSchema).safeParse(row.metadata);
   if (!metadata.success) {
     throw new Error(
       `cms_page ${row.id} (${row.section}/${row.slug}) has invalid metadata: ${metadata.error.issues
