@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db as defaultDb, type Database } from "@/db";
 import { cmsPages } from "@/db/schema";
 import type { ContentDocument, ContentSection, ContentSummary } from "../types";
@@ -94,10 +94,24 @@ export class PostgresContentRepository implements ContentRepository {
       // uniform across sections. Publication date breaks ties, which is what a
       // flat section like guides falls back to since every row shares
       // `sortOrder` 0.
+      //
+      // `coalesce` rather than a second date key: a page that has never been
+      // published has no `published_at`, and the editorial timestamp is the
+      // only date it has — but using that as a *tiebreak* between two published
+      // pages made the order move whenever anyone edited one of them. Fifteen
+      // guides share two publication instants, so that is not hypothetical: an
+      // edit to one reshuffled the related-guides block on the others.
+      //
+      // Slug last, so the order is total and deterministic. It is also what the
+      // filesystem registry did — it sorted on publication alone, and a stable
+      // `Array.sort` left ties in `readdir` order, which is filename order,
+      // which is slug order.
       orderBy: [
         asc(cmsPages.sortOrder),
-        desc(cmsPages.publishedAt),
-        desc(cmsPages.contentUpdatedAt),
+        desc(
+          sql`coalesce(${cmsPages.publishedAt}, ${cmsPages.contentUpdatedAt})`,
+        ),
+        asc(cmsPages.slug),
       ],
     });
     return rows.map(rowToSummary);
