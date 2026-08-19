@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Audits the SEO markup of every page the site actually submits to Google.
+ * Audits the SEO markup of repository-owned pages submitted to Google.
  *
  * `validate:guides` checks the *source* of a guide. This checks the *output* of
  * a build, over the real serving path — proxy, rewrites and all — which is the
@@ -10,7 +10,10 @@
  * two pages sharing a description.
  *
  * It starts `next start` against the existing production build, walks
- * `sitemap.xml`, and fails the run on any error.
+ * `sitemap.xml`, and fails the run on repository-owned page errors. Normal runs
+ * exclude CMS descendants; CI includes three code-owned fixture articles and
+ * verifies they reach the sitemap, feed and llms.txt. Production content
+ * validation and content-level SEO belong to the CMS.
  *
  * Run: `bun scripts/audit-seo.ts`  (or `npm run audit:seo`)
  * Set `AUDIT_BASE_URL` to audit a server that is already running (a preview
@@ -20,6 +23,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CI_CONTENT_FIXTURE_PATHS } from "../src/content-system/repository/ci-fixtures";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(here, "..");
@@ -28,11 +32,59 @@ const ROOT = path.join(here, "..");
  * absolute URL is rewritten onto the local server before being fetched. */
 const PROD_ORIGIN = "https://factura.uno";
 const PORT = Number(process.env.AUDIT_PORT ?? 4173);
+const usingCiFixtures = process.env.CI_CONTENT_FIXTURES === "1";
 
 /** Pages that must NOT be indexable, checked explicitly because — by design —
  * they never appear in the sitemap. This is the phase-1 invariant: the signed-in
  * app says `noindex` and claims no canonical of its own. */
 const PRIVATE_PATHS = ["/login", "/app", "/delete-account"];
+
+/** The index at each prefix is repository-owned; its descendants are authored
+ * in the CMS. `/guias/categoria/*` is also content-derived: the category exists
+ * in the sitemap only when CMS content uses it. */
+const CMS_CONTENT_PREFIXES = [
+  "/guias/",
+  "/estadisticas/",
+  "/investigaciones/",
+];
+
+function isRepositoryOwned(url: string): boolean {
+  const pathname = new URL(url).pathname;
+  return !CMS_CONTENT_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+/** In fixture mode, prove the same article is discoverable through every
+ * generated surface. This catches a build that renders a route successfully
+ * but silently drops CMS content from search/crawler outputs. */
+async function auditFixtureDiscovery(
+  base: string,
+  sitemapUrls: string[],
+): Promise<string[]> {
+  if (!usingCiFixtures) return [];
+
+  const [feed, llms] = await Promise.all([
+    fetch(`${base}/feed.xml`).then((response) => response.text()),
+    fetch(`${base}/llms.txt`).then((response) => response.text()),
+  ]);
+  const sitemapPaths = new Set(
+    sitemapUrls.map((url) => new URL(url).pathname),
+  );
+  const errors: string[] = [];
+
+  for (const pathname of CI_CONTENT_FIXTURE_PATHS) {
+    if (!sitemapPaths.has(pathname)) {
+      errors.push(`${pathname} is missing from sitemap.xml`);
+    }
+    const absolute = `${PROD_ORIGIN}${pathname}`;
+    if (!feed.includes(absolute)) {
+      errors.push(`${pathname} is missing from feed.xml`);
+    }
+    if (!llms.includes(absolute)) {
+      errors.push(`${pathname} is missing from llms.txt`);
+    }
+  }
+  return errors;
+}
 
 // Search results are cut off around here. Both are the rendered lengths, after
 // any "— Factura" the title template appends.
@@ -299,10 +351,23 @@ async function main() {
     await waitForServer(base);
 
     const sitemap = await (await fetch(`${base}/sitemap.xml`)).text();
-    const urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    const sitemapUrls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
+      (match) => match[1],
+    );
+    const urls = usingCiFixtures
+      ? sitemapUrls
+      : sitemapUrls.filter(isRepositoryOwned);
     if (urls.length === 0) throw new Error("sitemap.xml listed no URLs");
+    const discoveryErrors = await auditFixtureDiscovery(base, sitemapUrls);
 
-    console.log(dim(`Auditing ${urls.length} sitemap URLs on ${base}\n`));
+    console.log(
+      dim(
+        `Auditing ${urls.length} sitemap URLs on ${base} ` +
+          (usingCiFixtures
+            ? "(CI content fixtures included)\n"
+            : `(${sitemapUrls.length - urls.length} CMS URLs excluded)\n`),
+      ),
+    );
 
     const reports: Report[] = [];
     // Eight at a time: enough to keep a local server busy, few enough that the
@@ -356,7 +421,7 @@ async function main() {
     const imageErrors = await auditImages(base, images);
 
     // ── report ─────────────────────────────────────────────────────────────
-    let totalErrors = imageErrors.length;
+    let totalErrors = imageErrors.length + discoveryErrors.length;
     let totalWarnings = 0;
     for (const r of reports) {
       totalErrors += r.errors.length;
@@ -373,6 +438,9 @@ async function main() {
       for (const w of r.warnings) console.log(`    ${yellow("warn")}   ${w}`);
     }
     for (const e of imageErrors) console.log(`${red("✗")} ${e}`);
+    for (const e of discoveryErrors) {
+      console.log(`${red("✗")} fixture discovery: ${e}`);
+    }
 
     console.log(
       dim("─".repeat(40)) +

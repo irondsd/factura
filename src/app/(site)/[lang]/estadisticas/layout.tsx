@@ -1,5 +1,5 @@
 import { ContentChrome } from "@/components/article/ContentChrome";
-import { estadisticas } from "@/content/estadisticas/pages";
+import { estadisticas } from "@/content/sections";
 
 export default async function EstadisticasLayout({
   children,

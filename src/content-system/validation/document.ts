@@ -1,0 +1,741 @@
+import { CATEGORY_IDS, isCategoryId } from "@/content/guias/categories";
+import { z } from "zod";
+import { guideMetadataSchema } from "../metadata/guias";
+import {
+  dataSourceSchema,
+  datasetMetadataSchema,
+  sectionMetadataSchema,
+} from "../metadata/sections";
+import type { ContentDocument, Diagnostic, ValidationResult } from "../types";
+import { validationResult } from "../types";
+import { missingKeywordWords } from "./text";
+
+// Layer 2 of cms.md §5: document validation. Everything that can be decided
+// about one page — its metadata, its dates, its headings, its links, its
+// components' placement — given an index of the other pages for the few rules
+// that need to resolve a slug.
+//
+// Pure: no filesystem, no database, no compilation. That is what lets the same
+// function serve the CMS Validation tab, the MCP's `validate_content`, and the
+// publish gate — instead of the three of them slowly disagreeing.
+//
+// Messages are carried over from `scripts/validate-guides.ts` close to verbatim
+// (cms.md Phase 4: "Preserve existing validator messages where practical"), so
+// a migration diff is readable and an author who knows the old output still
+// recognises the new. They are prefixed `meta.` where the old script used that
+// prefix, even though the CMS calls them fields, because that is the wording
+// the authoring guide uses.
+
+/** Path segments under /guias that are real routes, not guides. */
+const RESERVED_SLUGS = new Set(["categoria"]);
+
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** Metadata fields the checks below report themselves, in the wording
+ * `scripts/validate-guides.ts` used. Zod's generic issue for these is skipped so
+ * nothing is reported twice. */
+const EXPLICITLY_REPORTED = new Set(["keywords", "categories"]);
+
+// Fractional seconds are optional: hand-authored MDX writes
+// "2026-07-12T09:00:00-03:00", and a value that has been through a `timestamptz`
+// column comes back as "2026-07-12T12:00:00.000Z". Both name the same instant
+// and both carry an explicit offset, which is the only thing this rule is
+// actually about.
+const DATETIME_RE =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/;
+
+const DATETIME_FORMAT =
+  'full ISO 8601 with offset, e.g. "2026-06-29T09:00:00-03:00"';
+
+export const DOCUMENT_CODES = {
+  slugShape: "doc.slug-shape",
+  slugReserved: "doc.slug-reserved",
+  metadataShape: "doc.metadata-shape",
+  titleTooLong: "doc.title-too-long",
+  titleTagNotShorter: "doc.title-tag-not-shorter",
+  ogTitleLong: "doc.og-title-long",
+  ogDescriptionLong: "doc.og-description-long",
+  canonicalSelf: "doc.canonical-self",
+  canonicalUnknown: "doc.canonical-unknown",
+  keywordCount: "doc.keyword-count",
+  keywordMissing: "doc.keyword-missing-from-copy",
+  categoryUnknown: "doc.category-unknown",
+  categoryCount: "doc.category-count",
+  faqMarkup: "doc.faq-markup",
+  faqCount: "doc.faq-count",
+  faqNotPlaced: "doc.faq-not-placed",
+  faqPlacedWithoutData: "doc.faq-placed-without-data",
+  dateFormat: "doc.date-format",
+  dateOrder: "doc.date-order",
+  descriptionLength: "doc.description-length",
+  ctaLength: "doc.cta-length",
+  bodyH1: "doc.body-h1",
+  bodyFrontmatter: "doc.body-frontmatter",
+  bodyMetaExport: "doc.body-meta-export",
+  linkBroken: "doc.link-broken",
+  linkSelf: "doc.link-self",
+  linkUnpublished: "doc.link-unpublished",
+  noHeadings: "doc.no-headings",
+  noClosingCta: "doc.no-closing-cta",
+  closingCtaBare: "doc.closing-cta-bare",
+  closingCtaNoTitle: "doc.closing-cta-no-title",
+  closingCtaNoCopy: "doc.closing-cta-no-copy",
+  noRelatedGuides: "doc.no-related-guides",
+  noInterlinks: "doc.no-interlinks",
+  previewMissingAsset: "doc.preview-missing-asset",
+} as const;
+
+/** What a document needs to know about the rest of the collection. Built once
+ * by `buildContentIndex` and passed in, so the validator itself stays pure and
+ * a caller can validate against a hypothetical collection. */
+export type ContentIndex = {
+  /** Every slug in the section, whatever its status. */
+  slugs: ReadonlySet<string>;
+  /** The publicly listed subset. A link into anything else is a link to a page
+   * no listing shows. */
+  publishedSlugs: ReadonlySet<string>;
+};
+
+export const EMPTY_INDEX: ContentIndex = {
+  slugs: new Set(),
+  publishedSlugs: new Set(),
+};
+
+/** Optional capabilities a caller can supply. Absent means the check is
+ * skipped, and the skip is deliberate: a preview image is a file under
+ * `public/`, which the CLI can stat and a database validator cannot assume. */
+export type DocumentValidationContext = {
+  assetExists?: (publicPath: string) => boolean;
+};
+
+const error = (code: string, message: string, field?: string): Diagnostic => ({
+  code,
+  severity: "error",
+  message,
+  ...(field ? { field } : {}),
+});
+
+const warn = (code: string, message: string, field?: string): Diagnostic => ({
+  code,
+  severity: "warning",
+  message,
+  ...(field ? { field } : {}),
+});
+
+function isValidDateTime(value: string): boolean {
+  const m = DATETIME_RE.exec(value);
+  if (!m) return false;
+  const [, y, mo, d, h, mi, sec] = m.map(Number);
+  const utc = new Date(Date.UTC(y, mo - 1, d));
+  return (
+    utc.getUTCFullYear() === y &&
+    utc.getUTCMonth() === mo - 1 &&
+    utc.getUTCDate() === d &&
+    h < 24 &&
+    mi < 60 &&
+    sec < 60
+  );
+}
+
+/** Validate one document. `index` resolves the cross-page references a single
+ * document still has to be right about — its canonical target and its internal
+ * links. */
+export function validateDocument(
+  document: ContentDocument,
+  index: ContentIndex = EMPTY_INDEX,
+  context: DocumentValidationContext = {},
+): ValidationResult {
+  if (document.section !== "guias") {
+    return validateDataSectionDocument(document);
+  }
+  const out: Diagnostic[] = [];
+  const { slug, body } = document;
+
+  // ── slug ──────────────────────────────────────────────────────────────────
+  if (!SLUG_RE.test(slug)) {
+    out.push(
+      error(
+        DOCUMENT_CODES.slugShape,
+        `slug "${slug}" must be lowercase, hyphen-separated, no accents/spaces`,
+        "slug",
+      ),
+    );
+  }
+  if (RESERVED_SLUGS.has(slug)) {
+    out.push(
+      error(
+        DOCUMENT_CODES.slugReserved,
+        `slug "${slug}" is a reserved /guias route — rename it`,
+        "slug",
+      ),
+    );
+  }
+
+  // ── metadata shape ────────────────────────────────────────────────────────
+  // The Zod schema is the same one the form, the mutations and the importer
+  // use, so "valid metadata" has one definition. It is *stricter* than the old
+  // script on one point: an unknown key was a warning there and is an error
+  // here, because a database column cannot hold a key nothing reads.
+  const parsed = guideMetadataSchema.safeParse(document.metadata);
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      // `keywords` and `categories` are reported below in the old script's
+      // wording, which names the offending id and lists the valid ones. Letting
+      // Zod's generic message through as well would report each one twice.
+      if (EXPLICITLY_REPORTED.has(String(issue.path[0]))) continue;
+
+      // An unknown key keeps the old script's wording so a migration diff reads
+      // the same. Its *severity* is the one deliberate change: a warning there,
+      // an error here, because a column cannot hold a key nothing reads and the
+      // importer must not quietly drop it.
+      if (issue.code === "unrecognized_keys") {
+        for (const key of issue.keys) {
+          out.push(
+            error(
+              DOCUMENT_CODES.metadataShape,
+              `meta has unexpected key "${key}"`,
+              key,
+            ),
+          );
+        }
+        continue;
+      }
+
+      const path = issue.path.join(".");
+      out.push(
+        error(
+          DOCUMENT_CODES.metadataShape,
+          `meta.${path || "<root>"} ${issue.message}`,
+          path || undefined,
+        ),
+      );
+    }
+  }
+  const metadata = parsed.success ? parsed.data : undefined;
+  // Read straight off the raw object for the checks below, so a document whose
+  // metadata failed the schema for *one* reason still gets every other finding
+  // rather than a single error and silence.
+  const raw = (document.metadata ?? {}) as Record<string, unknown>;
+
+  // ── title / titleTag ──────────────────────────────────────────────────────
+  const rendered = document.titleTag ?? document.title;
+  if (rendered && rendered.length > 60) {
+    out.push(
+      error(
+        DOCUMENT_CODES.titleTooLong,
+        document.titleTag
+          ? `meta.titleTag is ${rendered.length} chars — must be ≤60`
+          : `meta.title is ${rendered.length} chars and would be cut off in search results — shorten it, or add a meta.titleTag ≤60 and keep this as the headline`,
+        document.titleTag ? "titleTag" : "title",
+      ),
+    );
+  }
+  if (
+    document.titleTag &&
+    document.title &&
+    document.titleTag.length >= document.title.length
+  ) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.titleTagNotShorter,
+        "meta.titleTag isn't shorter than meta.title — drop it and let the title stand",
+        "titleTag",
+      ),
+    );
+  }
+
+  const ogTitle = metadata?.ogTitle;
+  if (ogTitle && ogTitle.length > 70) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.ogTitleLong,
+        `meta.ogTitle is ${ogTitle.length} chars (aim ≤70)`,
+        "ogTitle",
+      ),
+    );
+  }
+  const ogDescription = metadata?.ogDescription;
+  if (ogDescription && ogDescription.length > 200) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.ogDescriptionLong,
+        `meta.ogDescription is ${ogDescription.length} chars (aim ≤200)`,
+        "ogDescription",
+      ),
+    );
+  }
+
+  // ── canonical ─────────────────────────────────────────────────────────────
+  const canonical = document.canonicalSlug;
+  if (canonical !== null && canonical !== undefined) {
+    if (canonical === slug) {
+      out.push(
+        error(
+          DOCUMENT_CODES.canonicalSelf,
+          "meta.canonical points at this guide — omit it (a guide is its own canonical by default)",
+          "canonicalSlug",
+        ),
+      );
+    } else if (index.slugs.size > 0 && !index.slugs.has(canonical)) {
+      out.push(
+        error(
+          DOCUMENT_CODES.canonicalUnknown,
+          `meta.canonical is "${canonical}", which is not a guide slug`,
+          "canonicalSlug",
+        ),
+      );
+    }
+  }
+
+  // ── keywords ──────────────────────────────────────────────────────────────
+  const rawKeywords = raw.keywords;
+  if (
+    !Array.isArray(rawKeywords) ||
+    rawKeywords.length === 0 ||
+    !rawKeywords.every((k) => typeof k === "string")
+  ) {
+    out.push(
+      error(
+        DOCUMENT_CODES.metadataShape,
+        "meta.keywords must be a non-empty array of strings",
+        "keywords",
+      ),
+    );
+  }
+  const keywords: string[] = Array.isArray(rawKeywords)
+    ? rawKeywords.filter((k): k is string => typeof k === "string")
+    : [];
+  if (keywords.length > 0 && (keywords.length < 3 || keywords.length > 6)) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.keywordCount,
+        `meta.keywords has ${keywords.length} (aim for 3–6)`,
+        "keywords",
+      ),
+    );
+  }
+  if (keywords[0] && rendered && document.description) {
+    const missing = missingKeywordWords(
+      keywords[0],
+      rendered,
+      document.description,
+    );
+    if (missing.length > 0) {
+      out.push(
+        warn(
+          DOCUMENT_CODES.keywordMissing,
+          `primary keyword "${keywords[0]}" — ${missing.map((w) => `"${w}"`).join(", ")} appears in neither the title nor the description`,
+          "keywords",
+        ),
+      );
+    }
+  }
+
+  // ── categories ────────────────────────────────────────────────────────────
+  // The schema already rejects unknown ids; this repeats the old script's
+  // message for the case where the schema failed for another reason and
+  // `metadata` is undefined, so the author still learns which id is wrong.
+  const rawCategories = raw.categories;
+  if (
+    !Array.isArray(rawCategories) ||
+    rawCategories.length === 0 ||
+    !rawCategories.every((c) => typeof c === "string")
+  ) {
+    out.push(
+      error(
+        DOCUMENT_CODES.metadataShape,
+        `meta.categories must be a non-empty array of ids (${CATEGORY_IDS.join(", ")})`,
+        "categories",
+      ),
+    );
+  } else {
+    for (const category of rawCategories) {
+      if (typeof category === "string" && !isCategoryId(category)) {
+        out.push(
+          error(
+            DOCUMENT_CODES.categoryUnknown,
+            `meta.categories has unknown id "${category}" — valid ids: ${CATEGORY_IDS.join(", ")}`,
+            "categories",
+          ),
+        );
+      }
+    }
+    if (new Set(rawCategories).size !== rawCategories.length) {
+      out.push(
+        error(
+          DOCUMENT_CODES.categoryUnknown,
+          "meta.categories has duplicate ids",
+          "categories",
+        ),
+      );
+    }
+    if (rawCategories.length > 3) {
+      out.push(
+        warn(
+          DOCUMENT_CODES.categoryCount,
+          `meta.categories has ${rawCategories.length} (aim for 1–3; the first is the primary)`,
+          "categories",
+        ),
+      );
+    }
+  }
+
+  // ── faq ───────────────────────────────────────────────────────────────────
+  const rawFaq = raw.faq;
+  const faq: { q: string; a: string }[] = Array.isArray(rawFaq)
+    ? (rawFaq.filter(
+        (item) =>
+          item !== null &&
+          typeof item === "object" &&
+          "a" in item &&
+          "q" in item,
+      ) as { q: string; a: string }[])
+    : [];
+  const placesFaq = /<Faq\b/.test(body);
+  if (rawFaq !== undefined && faq.length > 0) {
+    faq.forEach((item, i) => {
+      // Answers are plain text on purpose: one list feeds the visible block and
+      // the FAQPage JSON-LD, so the two strings have to be identical, and a
+      // markdown link would render as literal brackets in the <dd>.
+      if (/\[[^\]]*\]\([^)]*\)|<[a-zA-Z]/.test(item.a)) {
+        out.push(
+          error(
+            DOCUMENT_CODES.faqMarkup,
+            `meta.faq[${i}].a contains markup — answers are plain text; put links in the prose`,
+            `faq.${i}.a`,
+          ),
+        );
+      }
+    });
+    if (faq.length < 3) {
+      out.push(
+        warn(
+          DOCUMENT_CODES.faqCount,
+          `meta.faq has ${faq.length} (aim for 4–6 real search questions)`,
+          "faq",
+        ),
+      );
+    }
+    if (!placesFaq) {
+      out.push(
+        error(
+          DOCUMENT_CODES.faqNotPlaced,
+          "meta.faq is set but the body never places <Faq /> — the markup would describe questions the page doesn't show",
+          "faq",
+        ),
+      );
+    }
+  } else if (placesFaq && rawFaq === undefined) {
+    out.push(
+      error(
+        DOCUMENT_CODES.faqPlacedWithoutData,
+        "body places <Faq /> but meta.faq is missing",
+        "faq",
+      ),
+    );
+  }
+
+  // ── dates ─────────────────────────────────────────────────────────────────
+  // `publishedAt` is null until a page is first published, which is a normal
+  // state for a draft rather than a missing date.
+  const published = document.publishedAt;
+  const updated = document.contentUpdatedAt;
+  if (published !== null && !isValidDateTime(published)) {
+    out.push(
+      error(
+        DOCUMENT_CODES.dateFormat,
+        `meta.published must be a ${DATETIME_FORMAT}`,
+        "publishedAt",
+      ),
+    );
+  }
+  if (!isValidDateTime(updated)) {
+    out.push(
+      error(
+        DOCUMENT_CODES.dateFormat,
+        `meta.updated must be a ${DATETIME_FORMAT}`,
+        "contentUpdatedAt",
+      ),
+    );
+  }
+  if (
+    published !== null &&
+    isValidDateTime(published) &&
+    isValidDateTime(updated) &&
+    Date.parse(updated) < Date.parse(published)
+  ) {
+    out.push(
+      error(
+        DOCUMENT_CODES.dateOrder,
+        `meta.updated (${updated}) is before meta.published (${published})`,
+        "contentUpdatedAt",
+      ),
+    );
+  }
+
+  // ── length advisories ─────────────────────────────────────────────────────
+  const description = document.description;
+  if (description && (description.length < 120 || description.length > 170)) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.descriptionLength,
+        `meta.description is ${description.length} chars (aim ~150–160)`,
+        "description",
+      ),
+    );
+  }
+  if (document.cta && document.cta.length > 54) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.ctaLength,
+        `meta.cta is ${document.cta.length} chars — over ~54 it wraps to a second line beside the button`,
+        "cta",
+      ),
+    );
+  }
+
+  // ── preview image ─────────────────────────────────────────────────────────
+  const preview = metadata?.previewImage;
+  if (preview && context.assetExists && !context.assetExists(preview)) {
+    out.push(
+      error(
+        DOCUMENT_CODES.previewMissingAsset,
+        `meta.preview "${preview}" is not a file under public/`,
+        "previewImage",
+      ),
+    );
+  }
+
+  // ── body ──────────────────────────────────────────────────────────────────
+  out.push(...validateBody(document, index));
+
+  return validationResult(out);
+}
+
+/** Statistics/research replace guide categories with dataset provenance while
+ * retaining the same lifecycle, date, heading and FAQ placement safeguards. */
+function validateDataSectionDocument(
+  document: ContentDocument,
+): ValidationResult {
+  const out: Diagnostic[] = [];
+  if (!document.slug.split("/").every((segment) => SLUG_RE.test(segment))) {
+    out.push(
+      error(
+        DOCUMENT_CODES.slugShape,
+        `slug "${document.slug}" must contain lowercase, hyphen-separated path segments`,
+        "slug",
+      ),
+    );
+  }
+  const parsed = sectionMetadataSchema.safeParse(document.metadata);
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      out.push(
+        error(
+          DOCUMENT_CODES.metadataShape,
+          `meta.${issue.path.join(".") || "<root>"} ${issue.message}`,
+          issue.path.join(".") || undefined,
+        ),
+      );
+    }
+  }
+  const metadata = parsed.success ? parsed.data : null;
+  // Check required composite fields independently. A partial dataset must not
+  // make a valid Fuentes list look absent (or vice versa) in the editor.
+  const raw =
+    document.metadata && typeof document.metadata === "object"
+      ? (document.metadata as Record<string, unknown>)
+      : {};
+  const sources = z.array(dataSourceSchema).safeParse(raw.sources);
+  if (
+    !sources.success &&
+    (raw.sources === undefined ||
+      (Array.isArray(raw.sources) && raw.sources.length === 0))
+  ) {
+    out.push(
+      error(
+        DOCUMENT_CODES.metadataShape,
+        "meta.sources must name at least one source",
+        "sources",
+      ),
+    );
+  }
+  const dataset = datasetMetadataSchema.safeParse(raw.dataset);
+  if (!dataset.success && raw.dataset === undefined) {
+    out.push(
+      error(
+        DOCUMENT_CODES.metadataShape,
+        "meta.dataset is required for statistics and research pages",
+        "dataset",
+      ),
+    );
+  }
+  if (document.publishedAt && !isValidDateTime(document.publishedAt))
+    out.push(
+      error(
+        DOCUMENT_CODES.dateFormat,
+        `meta.published must be a ${DATETIME_FORMAT}`,
+        "publishedAt",
+      ),
+    );
+  if (!isValidDateTime(document.contentUpdatedAt))
+    out.push(
+      error(
+        DOCUMENT_CODES.dateFormat,
+        `meta.updated must be a ${DATETIME_FORMAT}`,
+        "contentUpdatedAt",
+      ),
+    );
+  if (/^#\s/m.test(document.body))
+    out.push(
+      error(
+        DOCUMENT_CODES.bodyH1,
+        "body contains an H1; the page title renders the only H1",
+      ),
+    );
+  if (metadata?.faq?.length && !/<Faq\b/.test(document.body))
+    out.push(
+      error(
+        DOCUMENT_CODES.faqNotPlaced,
+        "meta.faq is set but the body never places <Faq />",
+        "faq",
+      ),
+    );
+  if (/<Faq\b/.test(document.body) && !metadata?.faq?.length)
+    out.push(
+      error(
+        DOCUMENT_CODES.faqPlacedWithoutData,
+        "body places <Faq /> but meta.faq is missing",
+        "faq",
+      ),
+    );
+  return validationResult(out);
+}
+
+function validateBody(
+  document: ContentDocument,
+  index: ContentIndex,
+): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  const { body, slug } = document;
+
+  if (body.trimStart().startsWith("---")) {
+    out.push(
+      error(
+        DOCUMENT_CODES.bodyFrontmatter,
+        "body starts with `---` frontmatter; metadata belongs in the page's fields",
+      ),
+    );
+  }
+  // The database body must never carry a meta block: §3.7 puts metadata in
+  // columns and JSONB, and a stray export would also be rejected by the
+  // grammar layer. Named separately so the message says which mistake it is.
+  if (/export\s+const\s+meta\s*=/.test(body)) {
+    out.push(
+      error(
+        DOCUMENT_CODES.bodyMetaExport,
+        "body contains an `export const meta` block; metadata belongs in the page's fields, not the body",
+      ),
+    );
+  }
+  if (/^#[ \t]/m.test(body)) {
+    out.push(
+      error(
+        DOCUMENT_CODES.bodyH1,
+        "body contains an H1 (`# …`); start sections at `##` (the page adds the H1)",
+      ),
+    );
+  }
+
+  // ── internal links ────────────────────────────────────────────────────────
+  const interlinks = new Set<string>();
+  for (const match of body.matchAll(/\]\((\/guias\/[^)\s#]+)/g)) {
+    const target = match[1].replace(/\/$/, "");
+    const targetSlug = target.slice("/guias/".length);
+    if (targetSlug === "") continue; // the index page
+    if (index.slugs.size > 0 && !index.slugs.has(targetSlug)) {
+      out.push(
+        error(
+          DOCUMENT_CODES.linkBroken,
+          `broken internal link → ${target} (no such guide)`,
+        ),
+      );
+    } else if (targetSlug === slug) {
+      out.push(warn(DOCUMENT_CODES.linkSelf, "links to itself"));
+    } else {
+      interlinks.add(targetSlug);
+      // The old script's "links to a noindex guide" check, restated in
+      // lifecycle terms: a link into anything not published is a link to a page
+      // no listing shows and search engines are told to skip.
+      if (
+        index.publishedSlugs.size > 0 &&
+        index.slugs.has(targetSlug) &&
+        !index.publishedSlugs.has(targetSlug)
+      ) {
+        out.push(
+          warn(
+            DOCUMENT_CODES.linkUnpublished,
+            `links to /guias/${targetSlug}, which is not published`,
+          ),
+        );
+      }
+    }
+  }
+
+  // ── advisories ────────────────────────────────────────────────────────────
+  if (!/^##[ \t]/m.test(body)) {
+    out.push(warn(DOCUMENT_CODES.noHeadings, "no `##` section headings found"));
+  }
+
+  const closing = /<ClosingCta\b([^>]*)>([\s\S]*?)<\/ClosingCta>/.exec(body);
+  if (!closing) {
+    if (!/<(CtaRow|DemoCta|SignupCta|CtaButton)\b/.test(body)) {
+      out.push(
+        warn(
+          DOCUMENT_CODES.noClosingCta,
+          "no CTA component — guides should end with a <ClosingCta>",
+        ),
+      );
+    } else {
+      out.push(
+        warn(
+          DOCUMENT_CODES.closingCtaBare,
+          'closing CTA is a bare button row — use <ClosingCta title="…"> so the buttons come with a reason',
+        ),
+      );
+    }
+  } else if (!/\btitle\s*=/.test(closing[1])) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.closingCtaNoTitle,
+        '<ClosingCta> without a title="…" — it falls back to generic copy',
+      ),
+    );
+  } else if (closing[2].trim() === "") {
+    out.push(
+      warn(
+        DOCUMENT_CODES.closingCtaNoCopy,
+        "<ClosingCta> has no body copy — write the two guide-specific sentences",
+      ),
+    );
+  }
+
+  if (!/<RelatedGuides\b/.test(body)) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.noRelatedGuides,
+        "no <RelatedGuides /> — add it just above the closing CTA",
+      ),
+    );
+  }
+  if (interlinks.size === 0) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.noInterlinks,
+        "no links to other guides (interlink for SEO)",
+      ),
+    );
+  }
+
+  return out;
+}

@@ -12,6 +12,8 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import type { ContentSection } from "@/content/section";
 import { faqPageLd, sectionPageLd } from "@/i18n/structuredData";
 import { formatContentDateTime } from "@/lib/content-date";
+import { contentComponents } from "@/content-system/render/renderContent";
+import { documentHeadings, documentStats } from "@/content-system/document";
 
 // One page of a registry section, at any depth: /estadisticas/delitos-caba,
 // /investigacion/barrios-seguros-baratos-caba, and
@@ -37,13 +39,15 @@ export async function SectionArticle({
   // route's types don't know that and neither would a stale prerender.
   if (!page) notFound();
 
-  const { Content, meta } = page;
+  const { Content, meta, document } = page;
   const [crumbs, children] = await Promise.all([
     section.crumbs(slug),
     section.children(slug),
   ]);
-  const { words, minutes } = section.readingStats(slug, meta.faq);
-  const headings = section.headings(slug, meta.faq);
+  // Section content is database-backed. The stored document is the single
+  // source for both rendering and derived article data.
+  const { words, minutes } = documentStats(document!);
+  const headings = documentHeadings(document!);
 
   return (
     <>
@@ -121,7 +125,7 @@ export async function SectionArticle({
                   resolved content and the MDX just places a bare tag where the
                   author wants it. */}
               <Content
-                components={{
+                components={contentComponents({
                   Faq: () => <Faq items={meta.faq ?? []} />,
                   Fuentes: () => <Fuentes items={meta.sources} />,
                   // A hub page places its own children where its prose wants
@@ -137,7 +141,7 @@ export async function SectionArticle({
                         titleAs="h3"
                       />
                     ) : null,
-                }}
+                })}
               />
             </div>
 

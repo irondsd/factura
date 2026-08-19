@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   date,
   index,
@@ -52,6 +53,28 @@ export const parserTier = pgEnum("parser_tier", [
 
 // Keep in sync with `locales` in src/i18n/config.ts. Spanish is the default.
 export const userLocale = pgEnum("user_locale", ["es", "en"]);
+
+// ── CMS ─────────────────────────────────────────────────────────────────────
+// Everything CMS carries a `cms_` prefix so the whole publishing schema can be
+// identified and lifted into its own database later (see cms.md §2.2/§13.8).
+// It is deliberately additive: nothing in the bill app reads these tables, and
+// a deployment that has them but never writes to them behaves exactly as it did
+// before.
+
+/** CMS membership role. `editor` and `admin` may both author; only `admin` may
+ * manage CMS API tokens. Whether publishing is admin-only is a policy decision
+ * that lives in `src/cms/auth`, not in this enum — see `canPublish`. */
+export const cmsRole = pgEnum("cms_role", ["admin", "editor"]);
+
+/** Publication state of one CMS page. `draft` is CMS-only and 404s publicly;
+ * `preview` renders at its public URL with `noindex, nofollow` but is excluded
+ * from every listing; `published` is fully public. The existing guides'
+ * `meta.noindex` maps onto `preview` at migration time. */
+export const cmsPageStatus = pgEnum("cms_page_status", [
+  "draft",
+  "preview",
+  "published",
+]);
 
 // ── Auth.js (NextAuth) tables ───────────────────────────────────────────────
 // Column *property* names (id, emailVerified, userId, …) must match what the
@@ -890,4 +913,192 @@ export const apiTokens = pgTable(
       .defaultNow(),
   },
   (t) => [index("api_token_user_idx").on(t.userId)],
+);
+
+// ── CMS tables ──────────────────────────────────────────────────────────────
+
+/** Who may use the CMS. An explicit allowlist, deliberately separate from
+ * `property_members` and from anything on `users`: being a Factura account
+ * holder says nothing about being an editor of the public site, and the two
+ * must not be able to grant each other by accident.
+ *
+ * Rows are inserted by hand (locally, and once in production at the rollout
+ * gate) — there is no self-service path into this table, which is the point.
+ * Deleting a row removes authority immediately, including for any CMS API
+ * token the user minted, because every token check re-reads this table.
+ *
+ * `user_id` is the primary key: one membership per account, so there is no
+ * "which row wins" question when resolving a role. */
+export const cmsMembers = pgTable("cms_member", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  role: cmsRole("role").notNull(),
+  /** Who granted the membership. Null for the rows inserted by hand to
+   * bootstrap an environment, since at that point nobody is a member yet. */
+  createdBy: uuid("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/** One editable content page. Iteration 1 stores exactly one mutable copy per
+ * page — no revisions, no draft/published pair (cms.md §3.2, §13.1). Editing a
+ * published page edits the copy that is live, which is why a published save has
+ * to pass the full publish validation suite: there is no previous revision to
+ * fall back to.
+ *
+ * `section` is text rather than an enum on purpose: `estadisticas` and
+ * `investigacion` arrive in the same table (cms.md §12) and adding a section
+ * should not need an enum migration. The allowed values are a TypeScript union
+ * in `src/content-system/types.ts`, checked on the way in.
+ *
+ * Metadata is split the way cms.md §3.7 specifies: identity, lifecycle and
+ * anything queried or sorted gets a column; the structured and optional rest
+ * lives in validated `metadata` JSONB. Editors never see the JSON — one Zod
+ * schema covers the form, the mutations, the MCP tools and the importer. */
+export const cmsPages = pgTable(
+  "cms_page",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    section: text("section").notNull(),
+    slug: text("slug").notNull(),
+    status: cmsPageStatus("status").notNull().default("draft"),
+    bodyMdx: text("body_mdx").notNull(),
+
+    title: text("title").notNull(),
+    /** Overrides `title` in `<title>` only. See `GuideMeta.titleTag`. */
+    titleTag: text("title_tag"),
+    description: text("description").notNull(),
+    summary: text("summary").notNull(),
+    cta: text("cta").notNull(),
+    /** Slug of the page this one's canonical should point at, when two pages
+     * compete for the same query. A column rather than JSONB because the
+     * collection validator resolves it across pages. */
+    canonicalSlug: text("canonical_slug"),
+    metadata: jsonb("metadata").notNull(),
+
+    /** The editorial tree, uniform across every section. Null is a top-level
+     * page.
+     *
+     * Statistics needed a second level first, but the capability is not a
+     * statistics feature — a guides hub with children is a matter of when, not
+     * whether, and building it per section is how `if (section === "…")` gets
+     * into the list, the editor, the breadcrumb and the sitemap. Every section
+     * has it; guides simply all sit at the top level today.
+     *
+     * `slug` still holds the *full* path, so a public read is one indexed
+     * equality lookup rather than a recursive walk. The invariant tying the two
+     * together — a child's slug is its parent's slug plus one segment — is
+     * enforced in `src/content-system/hierarchy.ts` on every write.
+     *
+     * `restrict` rather than cascade or set null: deleting a page that others
+     * hang off must be refused, not silently orphan or delete them. Iteration 1
+     * has no hard delete at all (archive-by-status), so this is a guard against
+     * a later one. */
+    parentId: uuid("parent_id").references((): AnyPgColumn => cmsPages.id, {
+      onDelete: "restrict",
+    }),
+    /** Explicit editorial order among siblings — the order the index lists
+     * them, which is the author's call and not alphabetical. Ties break on
+     * slug so the order is total and a listing never reshuffles between
+     * requests. */
+    sortOrder: integer("sort_order").notNull().default(0),
+    /** Short label for breadcrumbs and index rows, where the full title is too
+     * long — "GBA" for "Inflación de vivienda en el Gran Buenos Aires". Null
+     * falls back to the title, which is what every guide uses today. */
+    crumb: text("crumb"),
+
+    /** Optimistic concurrency, *not* a revision counter. Every update carries
+     * the version the editor last read and bumps it; the UPDATE matches on it,
+     * so a stale save changes zero rows and is reported as a conflict instead
+     * of silently overwriting whatever landed in between. */
+    lockVersion: integer("lock_version").notNull().default(1),
+
+    /** Authorship is informational and deliberately nullable: accounts are hard
+     * deleted (`deleteUserRecord`), and neither answer a non-null column can
+     * give is acceptable — cascade would delete the public site's content along
+     * with an author's account, and restrict would make deleting that account
+     * fail forever. Content outlives its author; provenance degrades to
+     * unknown. cms.md §13.8 replaces these with external subject ids. */
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: uuid("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    /** When the page first became public. Null until the first publish, and
+     * kept across an unpublish/republish so the visible dateline and the
+     * JSON-LD don't jump when a page is briefly taken down. */
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    /** The editorial "last updated" shown on the page — moved by content
+     * edits, not by a status flip. Distinct from `updated_at`, which is a row
+     * timestamp and moves on every write. */
+    contentUpdatedAt: timestamp("content_updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    // The public URL is (section, slug); the database is what makes that unique
+    // rather than a validator that can only see one page at a time.
+    uniqueIndex("cms_page_section_slug_idx").on(t.section, t.slug),
+    // Every listing is "this section, these statuses", newest first.
+    index("cms_page_section_status_idx").on(t.section, t.status),
+    // Children of a page, for the tree the CMS list and the breadcrumbs build.
+    index("cms_page_parent_idx").on(t.parentId),
+  ],
+);
+
+/** A CMS-scoped bearer token for an agent. Unlike ordinary Factura API tokens,
+ * this can never read bills and is invalid the instant its owner loses CMS
+ * membership. The cleartext value exists only at creation time. */
+export const cmsApiTokens = pgTable(
+  "cms_api_token",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    scopes: text("scopes").array().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("cms_api_token_user_idx").on(t.userId)],
+);
+
+/** Metadata-only audit trail for CMS MCP mutations. Bodies, metadata and bearer
+ * values are intentionally absent: this is accountability, not a second copy
+ * of editorial content or credentials. */
+export const cmsAuditLogs = pgTable(
+  "cms_audit_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorId: uuid("actor_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    pageId: uuid("page_id").references(() => cmsPages.id, {
+      onDelete: "set null",
+    }),
+    operation: text("operation").notNull(),
+    result: text("result").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("cms_audit_log_created_idx").on(t.createdAt)],
 );

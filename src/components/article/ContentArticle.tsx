@@ -1,0 +1,183 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { ArticlePreview } from "@/components/article/ArticlePreview";
+import { Breadcrumbs } from "@/components/article/Breadcrumbs";
+import { CategoryChips } from "@/components/guides/CategoryChips";
+import { TopCta } from "@/components/guides/cta";
+import { TocInline, TocSidebar } from "@/components/article/Toc";
+import { Eyebrow, SHELL } from "@/components/landing/parts";
+import type { Category } from "@/content/guias/categories";
+import type { Heading } from "@/content/headings";
+import { formatContentDateTime } from "@/lib/content-date";
+
+// The guide article shell: everything around the prose.
+//
+// Extracted from the public route so the CMS preview and the public page are
+// the *same* component rather than two arrangements that agree today (cms.md
+// Phase 6 gate). Breadcrumbs, the header and its dateline, the contents column,
+// the top CTA, the illustration and the closing navigation are defined once
+// here; only the compiled body differs between the two callers, and it arrives
+// as children.
+//
+// Body compilation is what still differs: the public route renders the MDX
+// module Next compiled at build time, the preview renders one compiled from the
+// database string. Phase 7 makes both the second. The shell does not care —
+// which is the point of taking it as children.
+
+export type ContentArticleProps = {
+  title: string;
+  /** Canonical path of this page, for the last breadcrumb. */
+  href: string;
+  /** ISO timestamps. `published` may be null for a page that has never been
+   * published, in which case the dateline shows only the update. */
+  published: string | null;
+  updated: string;
+  /** Copy for the `<TopCta />` banner between the header and the prose. */
+  cta: string;
+  /** Optional 16:9 illustration under `/img/...`. */
+  previewImage?: string | null;
+  categories: readonly Category[];
+  headings: readonly Heading[];
+  minutes: number;
+  /** The compiled prose. */
+  children: ReactNode;
+  /** Emitted above the article. The preview passes the same JSON-LD the public
+   * page does, so structured data can be checked before publication. */
+  structuredData?: ReactNode;
+  /** Shown above the breadcrumbs. The preview uses it to say what is being
+   * looked at; the public page has nothing to say and passes nothing. */
+  banner?: ReactNode;
+};
+
+export function ContentArticle({
+  title,
+  href,
+  published,
+  updated,
+  cta,
+  previewImage,
+  categories,
+  headings,
+  minutes,
+  children,
+  structuredData,
+  banner,
+}: ContentArticleProps) {
+  // Categories in the order the page declares them: primary first, which is
+  // also the one that earns the breadcrumb crumb.
+  const primary = categories[0];
+
+  return (
+    <>
+      {structuredData}
+
+      <main className={SHELL}>
+        {banner}
+        {/* Two columns from `lg` up, where the shell is wide enough for the
+            680px article, a 40px gutter and the 220px contents. Below that the
+            aside renders nothing and this is the single column it always was. */}
+        <div className="flex gap-10">
+          <article className="w-full min-w-0 max-w-[680px] pt-10 pb-16">
+            <Breadcrumbs
+              className="mb-7"
+              items={[
+                { name: "Inicio", href: "/" },
+                { name: "Guías", href: "/guias" },
+                ...(primary
+                  ? [
+                      {
+                        name: primary.label,
+                        href: `/guias/categoria/${primary.id}`,
+                      },
+                    ]
+                  : []),
+                { name: title, href },
+              ]}
+            />
+
+            {/* The phone's copy of the illustration: full width at the top of
+                the page, under the breadcrumbs and above the headline. From
+                `lg` up it's the sidebar's copy that shows instead, so this one
+                is hidden rather than duplicated on screen. */}
+            {previewImage && (
+              <ArticlePreview src={previewImage} className="mb-7 lg:hidden" />
+            )}
+
+            <header className="pb-2">
+              <Eyebrow tone="accent">Guía</Eyebrow>
+              <h1 className="font-display font-semibold text-[34px] sm:text-[44px] tracking-[-0.025em] leading-[1.06] mt-[18px] mb-0">
+                {title}
+              </h1>
+              {/* Wraps onto separate lines on a phone rather than truncating —
+                  three timestamped items don't fit one narrow line. Separators
+                  trail their item so a wrapped line never *starts* with a "·".
+                  There's always a following item (the reading time), so the
+                  trailing dots are never left dangling. */}
+              <p className="flex flex-wrap gap-x-2 gap-y-1 font-mono text-micro uppercase tracking-label-wide text-muted mt-5">
+                {published && (
+                  <span>
+                    Publicado el{" "}
+                    <time dateTime={published}>
+                      {formatContentDateTime(published)}
+                    </time>
+                    <span aria-hidden="true"> ·</span>
+                  </span>
+                )}
+                {updated !== published && (
+                  <span>
+                    Actualizado el{" "}
+                    <time dateTime={updated}>
+                      {formatContentDateTime(updated)}
+                    </time>
+                    <span aria-hidden="true"> ·</span>
+                  </span>
+                )}
+                <span>{minutes} min de lectura</span>
+              </p>
+              <CategoryChips
+                categories={categories as Category[]}
+                label="Temas de esta guía"
+                className="mt-5"
+              />
+            </header>
+
+            {/* Above the article, not in it: the reader who bounces after the
+                intro never reaches the closing <ClosingCta />, and this is the
+                only offer they'll see. Copy comes from the page's `cta` so
+                placement stays the site's call and the wording stays the
+                page's. */}
+            <TopCta>{cta}</TopCta>
+
+            {/* The phone's copy of the contents. Above the prose, where a reader
+                deciding whether this guide answers their question can see the
+                sections without scrolling the whole article first. */}
+            <TocInline headings={headings as Heading[]} label="En esta guía" />
+
+            <div className="mt-8 border-t border-line pt-2">{children}</div>
+
+            <nav className="mt-14 border-t border-line pt-6">
+              <Link
+                href="/guias"
+                className="font-mono text-micro uppercase tracking-label-wide text-muted no-underline transition-colors hover:text-accent"
+              >
+                ← Todas las guías
+              </Link>
+            </nav>
+          </article>
+
+          {/* The illustration heads the gutter, above the contents. It's the
+              one place on the article where it costs the prose nothing: beside
+              the 680px column rather than in front of it. A guide with an image
+              but too few sections to list keeps the column for it. */}
+          <TocSidebar
+            headings={headings as Heading[]}
+            label="En esta guía"
+            above={
+              previewImage ? <ArticlePreview src={previewImage} /> : undefined
+            }
+          />
+        </div>
+      </main>
+    </>
+  );
+}

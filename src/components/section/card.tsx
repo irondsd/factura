@@ -25,8 +25,11 @@ export const CARD = "card.png";
 
 /** The slugs the `/og/<section>/[...slug]` route prerenders: every page's path
  * with "card.png" appended. */
-export const cardParams = (section: ContentSection): { slug: string[] }[] =>
-  section.slugs().map((slug) => ({ slug: [...slug, CARD] }));
+export async function cardParams(
+  section: ContentSection,
+): Promise<{ slug: string[] }[]> {
+  return (await section.slugs()).map((slug) => ({ slug: [...slug, CARD] }));
+}
 
 const SIZE = { width: 1200, height: 630 };
 

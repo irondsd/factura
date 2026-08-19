@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
 import { SectionArticle } from "@/components/section/SectionArticle";
-import { estadisticas } from "@/content/estadisticas/pages";
+import { estadisticas } from "@/content/sections";
 import { sectionMetadata } from "@/i18n/metadata";
 
 // One statistics page, at any depth: /estadisticas/delitos-caba today,
 // /estadisticas/alquiler/caba the day a statistic gets per-district pages. The
-// registry in `content/estadisticas/pages.ts` is the whole set, so a catch-all
-// with `dynamicParams = false` 404s anything else.
+// CMS pages render on demand, so newly published content does not need a
+// deployment before its URL becomes available.
 //
 // The body is `<SectionArticle />`, shared with /investigacion.
-export const dynamicParams = false;
+export const dynamicParams = true;
 
-export function generateStaticParams() {
-  return estadisticas.slugs().map((slug) => ({ slug }));
+export async function generateStaticParams() {
+  return (await estadisticas.slugs()).map((slug) => ({ slug }));
 }
 
 type Props = { params: Promise<{ slug: string[] }> };

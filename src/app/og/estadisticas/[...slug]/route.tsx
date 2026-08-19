@@ -1,5 +1,5 @@
 import { cardParams, sectionCard } from "@/components/section/card";
-import { estadisticas } from "@/content/estadisticas/pages";
+import { estadisticas } from "@/content/sections";
 
 // /og/estadisticas/<path>/card.png — the social card. The picture and the
 // reasoning behind the route's shape live in `components/section/card.tsx`,
@@ -8,7 +8,7 @@ import { estadisticas } from "@/content/estadisticas/pages";
 export const dynamic = "force-static";
 export const dynamicParams = false;
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
   return cardParams(estadisticas);
 }
 

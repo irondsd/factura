@@ -71,15 +71,16 @@ export function proxy(request: NextRequest): NextResponse {
 
 export const config = {
   // Run on landing paths only — exclude the app, auth, account deletion, API,
-  // the OAuth consent screen (cookie-driven locale like the rest of the app, and
-  // rewriting it into /es/* would 404 the one page an MCP client sends people
-  // to), the share-target endpoint (a PWA share POST, which has no business
-  // being rewritten into the localized landing tree), the PostHog reverse proxy
-  // (/ingest/*, rewritten in next.config), Next internals, and any file with an
-  // extension (favicon, sitemap.xml, robots.txt, og images…). The OAuth
-  // discovery documents live under /.well-known/, which the extension rule
-  // already excludes.
+  // the CMS (its own root layout, Spanish-only, no `[lang]` segment to rewrite
+  // into — /cms/* would 404 as /es/cms/*), the OAuth consent screen
+  // (cookie-driven locale like the rest of the app, and rewriting it into /es/*
+  // would 404 the one page an MCP client sends people to), the share-target
+  // endpoint (a PWA share POST, which has no business being rewritten into the
+  // localized landing tree), the PostHog reverse proxy (/ingest/*, rewritten in
+  // next.config), Next internals, and any file with an extension (favicon,
+  // sitemap.xml, robots.txt, og images…). The OAuth discovery documents live
+  // under /.well-known/, which the extension rule already excludes.
   matcher: [
-    "/((?!api|ingest|_next/static|_next/image|app|login|oauth|delete-account|share-target|.*\\..*).*)",
+    "/((?!api|ingest|_next/static|_next/image|app|cms|login|oauth|delete-account|share-target|.*\\..*).*)",
   ],
 };

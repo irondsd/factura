@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SectionIndex } from "@/components/section/SectionIndex";
-import { investigacion } from "@/content/investigacion/pages";
+import { investigacion } from "@/content/sections";
 import { sectionIndexMetadata } from "@/i18n/metadata";
 
 // The /investigacion index. Everything structural is `<SectionIndex />`, shared

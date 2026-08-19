@@ -20,10 +20,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    # One deterministic document per CMS section exercises prerendering and all
+    # discovery surfaces. Production omits this flag and reads the real CMS DB.
+    env:
+      CI_CONTENT_FIXTURES: "1"
+
     steps:
       - uses: actions/checkout@v4
 
-      # Bun is the package manager (bun.lock) and `validate:content` shebangs bun.
+      # Bun is the package manager and bun.lock pins the installed versions.
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
@@ -54,13 +59,6 @@ jobs:
         if: ${{ !cancelled() }}
         run: bun run typecheck
 
-      # Both content sections — /guias and /estadisticas. Run together rather
-      # than as two steps: the title/description collision check is the one
-      # thing neither section can check alone.
-      - name: Validate content
-        if: ${{ !cancelled() }}
-        run: bun run validate:content
-
       - name: Test
         if: ${{ !cancelled() }}
         run: bun run test
@@ -75,20 +73,16 @@ jobs:
             next-${{ runner.os }}-${{ hashFiles('bun.lock') }}-
             next-${{ runner.os }}-
 
-      # The build catches what typecheck can't: MDX compilation, static
-      # generation of the 70+ prerendered guide/category routes, route config
-      # errors. It needs no env vars — the DB client is only constructed at
-      # request time on dynamic routes.
+      # The build catches what typecheck can't: route config, server/client
+      # boundaries, prerendering and production bundling. CMS-backed routes use
+      # the three deterministic fixtures above, so CI needs no database.
       - name: Build
         if: ${{ !cancelled() }}
         run: bun run build
 
-      # Audits the built output over the real serving path: starts `next start`
-      # against the build above and walks every URL in sitemap.xml, checking the
-      # things only the rendered page can answer — one self-referential
-      # canonical, a complete Open Graph block, no noindex or redirect on a URL
-      # we submit to Google, no two pages sharing a title or description, and
-      # every social card reachable. Needs the build, so it runs after it.
+      # Audits repository-owned pages plus the three fixture articles over the
+      # real serving path, and proves each fixture reaches every discovery file.
+      # The production CMS corpus itself remains the CMS's responsibility.
       - name: Audit SEO
         if: ${{ !cancelled() }}
         run: bun run audit:seo
