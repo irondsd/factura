@@ -88,6 +88,10 @@ const permissive = () => ({ ok: true as const, diagnostics: [] });
  * would go looking for a database. `history.test.ts` pins what gets written. */
 const noHistory = { record: async () => {} } as unknown as CmsPageHistoryStore;
 
+/** Nor is cache invalidation, and the real one needs a Next.js request context.
+ * `invalidation.test.ts` pins when it is reached. */
+const noInvalidation = () => {};
+
 const createInput = {
   section: "guias" as const,
   slug: "una-guia",
@@ -109,7 +113,13 @@ describe("authoring", () => {
   it("refuses a create when the actor may not author", async () => {
     canAuthor.mockReturnValue(false);
     const { store, writes } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(permissive, store, noHistory);
+    const service = new CmsContentService(
+      permissive,
+      store,
+      noHistory,
+      undefined,
+      noInvalidation,
+    );
 
     await expect(service.create(actor, createInput)).rejects.toBeInstanceOf(
       CmsForbiddenError,
@@ -120,7 +130,13 @@ describe("authoring", () => {
   it("refuses a save when the actor may not author", async () => {
     canAuthor.mockReturnValue(false);
     const { store, writes } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(permissive, store, noHistory);
+    const service = new CmsContentService(
+      permissive,
+      store,
+      noHistory,
+      undefined,
+      noInvalidation,
+    );
 
     await expect(
       service.update(actor, {
@@ -138,7 +154,13 @@ describe("authoring", () => {
     // not edit a draft has no business removing it either.
     canAuthor.mockReturnValue(false);
     const { store, writes } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(permissive, store, noHistory);
+    const service = new CmsContentService(
+      permissive,
+      store,
+      noHistory,
+      undefined,
+      noInvalidation,
+    );
 
     await expect(
       service.delete(actor, {
@@ -151,7 +173,13 @@ describe("authoring", () => {
 
   it("lets an authorised actor through", async () => {
     const { store, writes } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(permissive, store, noHistory);
+    const service = new CmsContentService(
+      permissive,
+      store,
+      noHistory,
+      undefined,
+      noInvalidation,
+    );
 
     await service.create(actor, createInput);
     expect(canAuthor).toHaveBeenCalledWith(actor);
@@ -163,7 +191,13 @@ describe("publishing", () => {
   it("refuses to publish when the actor may not", async () => {
     canPublish.mockReturnValue(false);
     const { store, writes } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(permissive, store, noHistory);
+    const service = new CmsContentService(
+      permissive,
+      store,
+      noHistory,
+      undefined,
+      noInvalidation,
+    );
 
     await expect(
       service.setStatus(actor, {
@@ -181,7 +215,13 @@ describe("publishing", () => {
     // how the role was configured.
     canPublish.mockReturnValue(false);
     const { store, writes } = fakeStore(documentAt("published"));
-    const service = new CmsContentService(permissive, store, noHistory);
+    const service = new CmsContentService(
+      permissive,
+      store,
+      noHistory,
+      undefined,
+      noInvalidation,
+    );
 
     await expect(
       service.setStatus(actor, {
@@ -199,7 +239,13 @@ describe("publishing", () => {
     // toggle mean more than it says.
     canPublish.mockReturnValue(false);
     const { store, writes } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(permissive, store, noHistory);
+    const service = new CmsContentService(
+      permissive,
+      store,
+      noHistory,
+      undefined,
+      noInvalidation,
+    );
 
     await service.setStatus(actor, {
       id: documentAt("draft").id,

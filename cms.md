@@ -21,8 +21,8 @@ perform the same operations through a separate MCP endpoint.
 
 This is an internal publishing tool for two people, not a general-purpose CMS.
 It deliberately keeps one mutable copy of each page and has no revision history
-— see Task 2. A published edit becomes eligible for the public cache on save and
-normally appears within the hour.
+— see Task 2. A published edit is the live page: saving it expires the public
+cache for that section, so the next visitor sees it.
 
 ## 2. Architectural direction
 
@@ -132,8 +132,8 @@ Rules:
   validation suite.
 - Saving an existing `published` page is allowed only if the resulting page
   passes publish-level validation.
-- Unpublishing changes `published` to `draft`; delayed disappearance within the
-  one-hour cache window is accepted — see Task 4.
+- Unpublishing changes `published` to `draft` and expires the section's public
+  cache tag, so the page stops being served on the next request — see §3.3.
 - A private `/cms/preview/[id]` route always renders the latest saved version
   immediately and is never cached. This is the reliable editing preview.
 - A public `preview` URL is intentionally shareable by direct URL but is not a
@@ -150,9 +150,24 @@ Rules:
   created database slug can render on demand instead of returning a permanent
   build-time 404.
 - CMS pages and private CMS previews are dynamic and uncached.
-- There is no publish-time path or tag invalidation. Task 4.
-- Document in the UI that public changes may take approximately one hour plus
-  the next request to appear. TTL is not an exact scheduled rebuild.
+- Every cached public read carries its section's tag, `content:<section>`
+  (`src/content-system/repository/tags.ts`). A route inherits the tags of the
+  cached reads it ran, so one tag reaches the article, the section index, the
+  category hubs, the related rail, the sitemap, the feed, `llms.txt` — and the
+  cached 404 of a path that had no page until now.
+- The CMS expires that tag when, and only when, a write changes something a
+  public visitor can see: a save of a `published` or `preview` page, and any
+  transition with `published` or `preview` on either side. A draft is a 404 at
+  its public URL and appears in no listing, so saving one expires nothing.
+- Invalidation is `revalidateTag(tag, { expire: 0 })`, from the content service
+  rather than from either transport — `updateTag` is Server-Action-only and the
+  CMS MCP is a Route Handler. Immediate expiry rather than the `"max"` profile:
+  with one mutable copy per page, stale-while-revalidate would serve a
+  withdrawn page to the visitor whose request triggered the refresh.
+- The TTL stays as the floor, for the case where invalidation does not run.
+  A failed invalidation is logged and never fails the write it follows: the row
+  is already committed, and the fallback is the hour that used to be the only
+  mechanism.
 
 ### 3.4 Editor
 
@@ -655,9 +670,10 @@ Accepted, and the reasons are in the sections above:
 - One mutable copy per page. No revision history, no diffs, no restore — the
   «Historia» tab records who changed a page and when, never the text they
   replaced.
-- Publication and unpublication are visible within roughly an hour, not
-  immediately, and the hour runs from when the cache entry was written rather
-  than from a deploy.
+- Publication, unpublication and edits to publicly visible pages expire the
+  section's cache tag as they happen, so the next visit sees them. The
+  one-hour TTL remains only as the fallback for an invalidation that did not
+  run. IndexNow is still submitted by hand, after deploying — Task 4.
 - A page's slug cannot change after creation; there are no redirects.
 - A public `preview` URL is a discoverability control, not an access control.
 - Images live in the repository; there is no media library.
@@ -700,11 +716,15 @@ fallback. So the database is populated first and the merge happens last.
 ### Cache behaviour worth knowing
 
 `unstable_cache` entries live in `.next/cache`, which deployment platforms
-restore between builds — so **a deploy does not flush them**. After repairing
-content in the database, a rebuilt server can still serve the old copy until the
-entry expires. The one-hour TTL runs from when the entry was written, not from
-the deploy. Plan content fixes around the TTL, and clear `.next/cache` when
-verifying locally.
+restore between builds — so **a deploy does not flush them**. The CMS expires
+them itself on every publicly visible write, which is what makes a publish
+appear immediately; the one-hour TTL is the fallback underneath.
+
+What that does _not_ cover is a change the CMS did not make. Repairing content
+with SQL, or restoring a row by hand, leaves a rebuilt server serving the old
+copy until the entry expires, because nothing called `revalidateTag`. Fix
+content through `/cms` or the CMS MCP where possible; otherwise plan around the
+TTL. Clear `.next/cache` when verifying locally.
 
 ## 12. Tasks
 
@@ -747,13 +767,11 @@ rather than filterable across the CMS.
 
 ### Task 4 — On-demand cache invalidation
 
-Publication and unpublication currently wait for the TTL.
-
-- Add content-specific cache tags.
-- Revalidate the article, the indexes, the categories, related content, the
-  sitemap, the feed and `llms.txt` on publish and unpublish.
-- Invalidate cached 404s so a new slug appears immediately.
-- Trigger IndexNow only after a successful publish transaction.
+Done. Publication, unpublication and edits to publicly
+visible pages expire the section's cache tag inside the content service, so the
+next visit sees them instead of waiting out the hour. §3.3 has the rules and the
+reasoning; `src/cms/server/invalidation.ts` and `invalidation.test.ts` are the
+implementation and the decision matrix.
 
 ### Task 5 — Slug changes and redirects
 

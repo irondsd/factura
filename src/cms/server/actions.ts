@@ -76,9 +76,12 @@ function toResult(error: unknown): CmsActionResult<never> {
   throw error;
 }
 
-/** Refresh the CMS's own views after a write. Public pages are *not*
- * revalidated: iteration 1 deliberately leaves them on the one-hour TTL
- * (§3.3), and the editor says so. */
+/** Refresh the CMS's own views after a write.
+ *
+ * Only the CMS's. The public cache is expired by the content service, not from
+ * here: whether a write is publicly visible at all is a rule, the MCP performs
+ * the same writes through a Route Handler, and §2.2 puts rules below both
+ * transports rather than in each of them. See `./invalidation`. */
 function refreshCms(section: ContentSection, id?: string): void {
   revalidatePath(cmsSectionPath(section));
   if (id) revalidatePath(`${cmsSectionPath(section)}/${id}`);

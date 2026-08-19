@@ -338,9 +338,8 @@ export function PageEditor({
 
       {status === "published" && (
         <p className="border border-line bg-card px-4 py-3 font-mono text-[12px] leading-[1.6] text-muted mb-6">
-          Esta página está publicada. Al guardar, el sitio público puede tardar
-          hasta una hora en mostrar los cambios: no es una espera exacta, sino
-          el tiempo que vive la copia en caché más la siguiente visita.
+          Esta página está publicada: lo que guardas acá es la copia que está en
+          línea. El sitio público la muestra actualizada en la siguiente visita.
         </p>
       )}
 
@@ -721,7 +720,7 @@ function confirmText(next: ContentStatus, from: ContentStatus): string {
     return "Poner en vista previa. La página se verá en su dirección para quien tenga el enlace, pero no aparecerá en listados ni en buscadores. ¿Continuar?";
   }
   return from === "published"
-    ? "Volver a borrador. La página dejará de estar publicada, aunque puede seguir viéndose hasta una hora por la caché. ¿Continuar?"
+    ? "Volver a borrador. La página dejará de estar publicada y su dirección pública pasará a responder 404. ¿Continuar?"
     : "Volver a borrador. ¿Continuar?";
 }
 

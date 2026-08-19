@@ -20,11 +20,18 @@ import { guideCategoryLd } from "@/i18n/structuredData";
 // `categoria` is a static segment, so it takes precedence over the sibling
 // `[slug]` route and can never be shadowed by a guide. (`validate-guides.ts`
 // reserves the slug so nobody creates the collision from the other side.)
-export const dynamicParams = false;
+//
+// `dynamicParams = true`, like the guide route, for the reason in cms.md §3.3:
+// which categories have guides is a fact about the database, not about the
+// build. Publishing the first guide in a category used to leave its hub a
+// permanent 404 until the next deploy — no amount of cache invalidation could
+// produce a path the prerender manifest had closed. The emptiness rule is kept
+// below, where it can be re-evaluated per request instead of once at build.
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  // Categories with no guides at all are skipped: an empty hub is a thin page
-  // for Google and a dead end for readers.
+  // Only a warm-up list now: categories with guides at build time are
+  // prerendered, and the rest render on demand.
   return (await nonEmptyCategories()).map((c) => ({ categoria: c.id }));
 }
 
@@ -47,6 +54,12 @@ export default async function GuideCategoryPage({ params }: Props) {
   if (!category) notFound();
 
   const guides = await guidesInCategory(category.id);
+  // An empty hub is a thin page for Google and a dead end for readers, so it
+  // 404s rather than rendering — the rule `generateStaticParams` used to
+  // enforce by omission. Asked after the repository read on purpose: that read
+  // carries the section's cache tag, so this 404 is expired by the publish that
+  // makes the category non-empty.
+  if (guides.length === 0) notFound();
 
   return (
     <>

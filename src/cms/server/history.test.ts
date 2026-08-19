@@ -78,6 +78,10 @@ function fakeHistory(options: { fails?: boolean } = {}) {
 
 const permissive = () => ({ ok: true as const, diagnostics: [] });
 
+/** The real invalidator needs a Next.js request context these tests have not
+ * got. `invalidation.test.ts` is where its decisions are pinned. */
+const noInvalidation = () => {};
+
 const createInput = {
   section: "guias" as const,
   slug: "una-guia",
@@ -134,6 +138,8 @@ describe("recording page history", () => {
       permissive,
       fakeStore(documentAt("published")),
       history,
+      undefined,
+      noInvalidation,
     );
 
     await service.setStatus(actor, {

@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import type { ContentDocument, ContentSection, ContentSummary } from "../types";
 import { slugToPath } from "./contract";
 import { publicContentRepository } from "./public";
+import { contentTag } from "./tags";
 
 // The public read model for the registry sections — `/estadisticas` and
 // `/investigaciones` — and the exact counterpart of `./guias.ts`.
@@ -19,7 +20,9 @@ import { publicContentRepository } from "./public";
 //  2. **The cache.** cms.md §3.3 puts the one-hour TTL at the call site, where
 //     `revalidate` is a literal Next can see. Without it these routes prerender
 //     with no revalidation at all, and a published edit never reaches the site
-//     until the next deployment.
+//     until the next deployment. The TTL is the floor; the section's cache tag
+//     is what the CMS expires on publish so the wait is not an hour
+//     (`@/cms/server/invalidation`). Every read below has to carry it.
 //
 // One cached triple per section, built once at module load. The section is in
 // the cache key, and `unstable_cache` adds the function's own arguments, so a
@@ -32,22 +35,23 @@ type CachedSection = {
 };
 
 function cachedSection(section: ContentSection): CachedSection {
+  const tags = [contentTag(section)];
   return {
     listPublished: unstable_cache(
       () => publicContentRepository.listPublished(section),
       ["content", section, "published"],
-      { revalidate: 3600 },
+      { revalidate: 3600, tags },
     ),
     listPubliclyRenderable: unstable_cache(
       () => publicContentRepository.listPubliclyRenderable(section),
       ["content", section, "renderable"],
-      { revalidate: 3600 },
+      { revalidate: 3600, tags },
     ),
     getByPath: unstable_cache(
       (slug: string) =>
         publicContentRepository.getByPath(section, slugToPath(slug)),
       ["content", section, "path"],
-      { revalidate: 3600 },
+      { revalidate: 3600, tags },
     ),
   };
 }

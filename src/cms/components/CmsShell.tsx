@@ -78,8 +78,8 @@ export function CmsShell({
           filtered nav above as the security boundary. */}
       <footer className="border-t border-line">
         <div className="mx-auto w-full max-w-[1100px] px-5 py-4 font-mono text-micro text-muted">
-          Herramienta interna. Los cambios publicados tardan hasta una hora en
-          verse en el sitio público.
+          Herramienta interna. Los cambios en páginas publicadas se ven en el
+          sitio público en la siguiente visita.
         </div>
       </footer>
     </div>

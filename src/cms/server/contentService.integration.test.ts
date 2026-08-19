@@ -76,7 +76,18 @@ if (!hasTestDatabase()) {
      * refusal install their own. */
     const permissive = (): ValidationResult => ({ ok: true, diagnostics: [] });
 
-    const service = new CmsContentService(permissive, store, history);
+    /** These publish real rows, and the public cache is not what they measure
+     * — the real invalidator would go looking for a Next.js request context.
+     * `invalidation.test.ts` pins which writes reach it. */
+    const noInvalidation = () => {};
+
+    const service = new CmsContentService(
+      permissive,
+      store,
+      history,
+      undefined,
+      noInvalidation,
+    );
 
     const cmsSchema = db._.fullSchema;
 
@@ -374,7 +385,13 @@ if (!hasTestDatabase()) {
 
       it("refuses to publish content that does not validate", async () => {
         const page = await service.create(actor, draftInput("invalid-publish"));
-        const strict = new CmsContentService(failsPublishOnly, store, history);
+        const strict = new CmsContentService(
+          failsPublishOnly,
+          store,
+          history,
+          undefined,
+          noInvalidation,
+        );
 
         await expect(
           strict.setStatus(actor, {
@@ -397,7 +414,13 @@ if (!hasTestDatabase()) {
 
         // The page is live and no longer passes publish validation. Unpublishing
         // is the recovery action: it drops to draft level and goes through.
-        const strict = new CmsContentService(failsPublishOnly, store, history);
+        const strict = new CmsContentService(
+          failsPublishOnly,
+          store,
+          history,
+          undefined,
+          noInvalidation,
+        );
         const down = await strict.setStatus(actor, {
           id: live.id,
           status: "draft",
@@ -418,7 +441,13 @@ if (!hasTestDatabase()) {
             { code: "test.forbidden", severity: "error", message: "no JS" },
           ],
         });
-        const strict = new CmsContentService(always, store, history);
+        const strict = new CmsContentService(
+          always,
+          store,
+          history,
+          undefined,
+          noInvalidation,
+        );
 
         await expect(
           strict.update(actor, {

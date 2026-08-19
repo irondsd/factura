@@ -6,6 +6,7 @@ import {
   type CategoryId,
 } from "@/content/guias/categories";
 import { relatedDocuments } from "../document";
+import { contentTag } from "./tags";
 import type { ContentDocument, ContentSummary } from "../types";
 import { publicContentRepository } from "./public";
 
@@ -13,22 +14,30 @@ import { publicContentRepository } from "./public";
 // than inside PostgresContentRepository) lets the CMS use the same repository
 // uncached while making the public one-hour TTL explicit and testable.
 // `revalidate` must remain a literal for Next's static analysis.
+//
+// The TTL is the floor, not the mechanism: the tag is what the CMS expires the
+// moment a publicly visible page changes, so an editor does not wait an hour
+// (see `@/cms/server/invalidation`). Every cached read below carries it, and a
+// read that forgets it is a surface that keeps serving the old copy after a
+// publish — with no symptom until an hour later.
+const TAGS = [contentTag("guias")];
+
 const listPublishedGuides = unstable_cache(
   () => publicContentRepository.listPublished("guias"),
   ["content", "guias", "published"],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: TAGS },
 );
 
 const listRenderableGuides = unstable_cache(
   () => publicContentRepository.listPubliclyRenderable("guias"),
   ["content", "guias", "renderable"],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: TAGS },
 );
 
 const getGuideBySlug = unstable_cache(
   (slug: string) => publicContentRepository.getByPath("guias", [slug]),
   ["content", "guias", "path"],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: TAGS },
 );
 
 /** Published guides only: safe for every discovery surface. */

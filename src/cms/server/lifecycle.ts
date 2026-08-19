@@ -1,3 +1,4 @@
+import { canRender } from "@/content-system/repository/visibility";
 import type { ContentStatus } from "@/content-system/types";
 
 // The save/transition policy from cms.md §5.3, as pure functions. What
@@ -93,4 +94,32 @@ export function isContentEdit(patch: {
   metadata?: unknown;
 }): boolean {
   return Object.keys(patch).length > 0;
+}
+
+/** Whether saving a page in this state changes something a public visitor can
+ * already see, and therefore has to expire the public cache (Task 4).
+ *
+ * The question is *visibility*, not publication, and `canRender` is the one
+ * place that rule is written down. A draft is a 404 at its public URL and is in
+ * no listing, so nothing cached is now wrong and there is nothing to invalidate
+ * — which is the whole reason most saves cost nothing. A `preview` page is not
+ * published, but its URL is deliberately shareable and its rendered copy is
+ * cached for an hour like any other; someone holding that link is looking at
+ * the saved page, so a save has to reach them too. */
+export function saveAffectsPublicCache(status: ContentStatus): boolean {
+  return canRender(status, "public");
+}
+
+/** Whether a status transition changes what the public can see.
+ *
+ * Either side counts, which is what makes it symmetric: publishing has to put
+ * the page up, and unpublishing has to take it down. The one that is easy to
+ * forget is `draft → preview`/`published`, where the invalidation is not about
+ * a stale *page* but a stale **absence** — the path 404'd until a moment ago,
+ * and that 404 is cached under the same tag. */
+export function statusChangeAffectsPublicCache(
+  from: ContentStatus,
+  to: ContentStatus,
+): boolean {
+  return canRender(from, "public") || canRender(to, "public");
 }

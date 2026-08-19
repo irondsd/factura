@@ -23,9 +23,15 @@ import {
   levelForSave,
   levelForTransition,
   nextPublishedAt,
+  saveAffectsPublicCache,
   stampsContentUpdatedAt,
+  statusChangeAffectsPublicCache,
   type ValidationLevel,
 } from "./lifecycle";
+import {
+  type PublicCacheInvalidator,
+  revalidatePublicContent,
+} from "./invalidation";
 import {
   CmsPageHistoryStore,
   cmsPageHistoryStore as defaultHistoryStore,
@@ -104,6 +110,10 @@ export class CmsContentService {
     private readonly history: CmsPageHistoryStore = defaultHistoryStore,
     /** Injected so tests can pin timestamps. */
     private readonly clock: () => Date = () => new Date(),
+    /** How the public cache is expired after a write the public can see.
+     * Injected like the rest so a unit test can observe the decision without a
+     * Next.js request context. */
+    private readonly invalidate: PublicCacheInvalidator = revalidatePublicContent,
   ) {}
 
   /** The CMS list — every status. Membership is the read grant; there is no
@@ -235,6 +245,11 @@ export class CmsContentService {
     if (!saved) await this.reportConflict(input.id, input.expectedLockVersion);
 
     await this.record(actor, { pageId: input.id, action: "saved", now });
+    // The status the page was *in* is what decides this, not the patch: a save
+    // never moves a page between states, and a draft's save is invisible.
+    if (saveAffectsPublicCache(current.status) && isContentEdit(input.patch)) {
+      this.expirePublicCache(current.section);
+    }
     return saved as ContentDocument;
   }
 
@@ -297,6 +312,9 @@ export class CmsContentService {
       toStatus: input.status,
       now,
     });
+    if (statusChangeAffectsPublicCache(current.status, input.status)) {
+      this.expirePublicCache(current.section);
+    }
     return saved as ContentDocument;
   }
 
@@ -402,6 +420,22 @@ export class CmsContentService {
       });
     } catch (cause) {
       console.error("[cms] history insert failed:", cause);
+    }
+  }
+
+  /** Expire the public cache for a section after a write the public can see.
+   *
+   * Best-effort for the same reason `record` is: the write it follows is
+   * already committed, and telling an editor their save failed because a cache
+   * tag could not be expired would be a lie about what is in the database. The
+   * cost of a failure here is the behaviour that existed before Task 4 — the
+   * change appears within the hour instead of on the next request — which is
+   * not worth failing a save over, but is worth a line in the log. */
+  private expirePublicCache(section: ContentSection): void {
+    try {
+      this.invalidate(section);
+    } catch (cause) {
+      console.error("[cms] public cache invalidation failed:", cause);
     }
   }
 
