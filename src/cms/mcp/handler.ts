@@ -94,13 +94,39 @@ function pageId(input: unknown): string | null {
     ? input.id
     : null;
 }
+/** Record who did what, without ever being the reason a request fails.
+ *
+ * `page_id` is a real foreign key, and the id in a failed mutation is very
+ * often one that does not exist — a stale id, or a typo from an agent, which is
+ * the ordinary case this endpoint has to survive. That insert then violates the
+ * constraint, and an exception thrown while *reporting* an error replaced a
+ * handled tool failure with an unhandled one: the route's `Promise.all`
+ * rejected and the client got an HTML 500 in place of a JSON-RPC response.
+ *
+ * So the reference is dropped rather than the record: a second attempt with no
+ * `page_id` still says who tried what and how it ended, which is what the trail
+ * is for. If even that fails the audit is lost and logged — accountability for
+ * an internal tool is not worth failing the operation over. */
 async function audit(
   actorId: string,
   pageId: string | null,
   operation: string,
   result: string,
 ) {
-  await db.insert(cmsAuditLogs).values({ actorId, pageId, operation, result });
+  const row = { actorId, operation, result };
+  try {
+    await db.insert(cmsAuditLogs).values({ ...row, pageId });
+  } catch (cause) {
+    console.error(
+      "[cms-mcp] audit insert failed, retrying unattributed:",
+      cause,
+    );
+    try {
+      await db.insert(cmsAuditLogs).values({ ...row, pageId: null });
+    } catch (retry) {
+      console.error("[cms-mcp] audit insert failed:", retry);
+    }
+  }
 }
 
 function toolError(message: string, details?: unknown) {

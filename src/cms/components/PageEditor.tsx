@@ -21,6 +21,7 @@ import type {
   ContentStatus,
   Diagnostic,
 } from "@/content-system/types";
+import type { ValidationLevel } from "./ValidationPanel";
 import { cn } from "@/lib/cn";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { StatusChip, statusLabel } from "./StatusChip";
@@ -65,7 +66,13 @@ export function PageEditor({
 
   const [tab, setTab] = useState<Tab>("markdown");
   const [diagnostics, setDiagnostics] = useState<readonly Diagnostic[]>([]);
-  const [checked, setChecked] = useState(false);
+  /** Which gate the diagnostics on screen were produced by. A save reports
+   * against the level its own status demands; «Revisar» always asks the
+   * publish question. Tracked so the panel can say which one it is showing
+   * rather than assuming. */
+  const [checkedLevel, setCheckedLevel] = useState<ValidationLevel | null>(
+    null,
+  );
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{
     kind: "ok" | "error";
@@ -107,7 +114,7 @@ export function PageEditor({
     if (result.ok) {
       setConflict(false);
       setDiagnostics([]);
-      setChecked(true);
+      setCheckedLevel(levelForStatus(status));
       onOk(result.data);
       setNotice({ kind: "ok", text: okText });
       return;
@@ -124,7 +131,7 @@ export function PageEditor({
       const diagnostics = result.diagnostics ?? [];
       const errors = diagnostics.filter((d) => d.severity === "error").length;
       setDiagnostics(diagnostics);
-      setChecked(true);
+      setCheckedLevel(levelForStatus(status));
       setTab("validation");
       // The service's own message is developer-facing English; the console is
       // Spanish, and the detail is in the panel below anyway.
@@ -167,13 +174,19 @@ export function PageEditor({
     setBusy(true);
     setNotice(null);
     try {
+      // Always the publish gate, whatever state the page is in. A draft is
+      // checked for grammar alone when it is *saved*, which is right — but
+      // «Revisar» is the button someone presses to find out whether the page is
+      // ready, and answering the easier question would report a draft as clean
+      // right up until publishing refused it.
       const result = await validateContentAction({
         id: page.id,
         patch: patch(),
+        level: "publish",
       });
       if (result.ok) {
         setDiagnostics(result.data.diagnostics);
-        setChecked(true);
+        setCheckedLevel("publish");
         setTab("validation");
       } else {
         setNotice({ kind: "error", text: result.message });
@@ -279,6 +292,10 @@ export function PageEditor({
 
       {conflict && <ConflictNotice body={body} />}
 
+      {page.metadataError && (
+        <MetadataDamageNotice detail={page.metadataError} />
+      )}
+
       {status === "published" && (
         <p className="border border-line bg-card px-4 py-3 font-mono text-[12px] leading-[1.6] text-muted mb-6">
           Esta página está publicada. Al guardar, el sitio público puede tardar
@@ -308,11 +325,7 @@ export function PageEditor({
           )}
 
           {tab === "validation" && (
-            <ValidationPanel
-              diagnostics={diagnostics}
-              checked={checked}
-              level={levelWord(status)}
-            />
+            <ValidationPanel diagnostics={diagnostics} level={checkedLevel} />
           )}
         </section>
 
@@ -330,9 +343,10 @@ export function PageEditor({
               type="button"
               onClick={check}
               disabled={busy}
+              title="Comprueba la página contra todo lo que hace falta para publicarla"
               className="border border-line px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent disabled:opacity-50"
             >
-              Revisar
+              Revisar para publicar
             </button>
           </div>
 
@@ -471,6 +485,28 @@ function StatusControls({
   );
 }
 
+/** The stored metadata could not be read back, so the fields on the right are
+ * showing empty rather than showing what is in the database.
+ *
+ * Said plainly and up front, because the failure is silent otherwise: the form
+ * looks like a page whose metadata was never filled in, and the first save
+ * would replace the unreadable values without anyone knowing there had been
+ * any. Saving *is* the repair — it just has to be a decision. */
+function MetadataDamageNotice({ detail }: { detail: string }) {
+  return (
+    <div className="border border-[var(--vendor-ochre)] px-4 py-4 mb-6">
+      <p className="font-mono text-[13px] leading-[1.6] text-ink mt-0 mb-2">
+        Los metadatos guardados de esta página no se pueden leer, así que los
+        campos de la derecha aparecen vacíos. Complétalos y guarda: eso
+        reemplaza lo que había.
+      </p>
+      <pre className="font-mono text-[12px] leading-[1.6] text-muted whitespace-pre-wrap m-0">
+        {detail}
+      </pre>
+    </div>
+  );
+}
+
 /** A conflict is recoverable, but only if the editor's work survives the
  * recovery — so the losing text is offered for copying before anything
  * reloads. */
@@ -517,9 +553,12 @@ function confirmText(next: ContentStatus, from: ContentStatus): string {
     : "Volver a borrador. ¿Continuar?";
 }
 
-const levelWord = (status: ContentStatus): string =>
+/** Which gate a save of a page in this state has to pass. Mirrors
+ * `levelForSave` on the server; duplicated rather than imported because that
+ * module is server-only, and the two are one line each. */
+const levelForStatus = (status: ContentStatus): ValidationLevel =>
   status === "published"
-    ? "publicar"
+    ? "publish"
     : status === "preview"
-      ? "una vista previa"
-      : "guardar un borrador";
+      ? "preview"
+      : "draft";

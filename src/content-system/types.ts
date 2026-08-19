@@ -97,6 +97,14 @@ export type ContentDocument = {
   /** Short breadcrumb/index label; falls back to `title` when null. */
   crumb: string | null;
   metadata: ContentMetadata;
+  /** Set only on a CMS read of a row whose stored metadata does not match its
+   * section's schema — a hand-edited row, or a schema change without a
+   * backfill. `metadata` is then empty, and this says what was wrong with what
+   * was there.
+   *
+   * Never set on a public read: those refuse the row outright rather than
+   * render it with its metadata missing. See `MetadataFailureMode`. */
+  metadataError?: string;
   /** Null until the page has been published once. */
   publishedAt: string | null;
   /** The editorial "last updated", which is what the page displays. */

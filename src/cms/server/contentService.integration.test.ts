@@ -682,6 +682,116 @@ if (!hasTestDatabase()) {
         expect(rows).toHaveLength(1);
       });
     });
+
+    describe("metadata is checked before it is written", () => {
+      // The failure this closes: draft-level validation is grammar-only, so a
+      // metadata blob the mapper cannot read back used to be written and only
+      // then rejected — leaving a row that broke the section list, the editor
+      // and the public repository for everyone, with no screen left to fix it
+      // from.
+      const bad = { keywords: [], categories: [], previewImage: "portada.jpg" };
+
+      it("refuses a create whose metadata does not match the schema", async () => {
+        await expect(
+          service.create(actor, {
+            ...draftInput("bad-create"),
+            metadata: bad,
+          }),
+        ).rejects.toBeInstanceOf(CmsValidationError);
+      });
+
+      it("writes no row when it refuses a create", async () => {
+        await service
+          .create(actor, { ...draftInput("bad-create-row"), metadata: bad })
+          .catch(() => {});
+        const rows = await db
+          .select()
+          .from(cmsSchema.cmsPages)
+          .where(eq(cmsSchema.cmsPages.slug, `${TEST_PREFIX}bad-create-row`));
+        expect(rows).toEqual([]);
+      });
+
+      it("refuses a draft save whose metadata does not match the schema", async () => {
+        const page = await service.create(actor, draftInput("bad-save"));
+        await expect(
+          service.update(actor, {
+            id: page.id,
+            expectedLockVersion: page.lockVersion,
+            patch: { metadata: bad },
+          }),
+        ).rejects.toBeInstanceOf(CmsValidationError);
+      });
+
+      it("leaves the stored metadata untouched when it refuses", async () => {
+        const page = await service.create(actor, draftInput("bad-save-keeps"));
+        await service
+          .update(actor, {
+            id: page.id,
+            expectedLockVersion: page.lockVersion,
+            patch: { metadata: bad },
+          })
+          .catch(() => {});
+        const read = await service.get(actor, page.id);
+        expect(read.metadata).toEqual(metadata);
+        expect(read.lockVersion).toBe(page.lockVersion);
+      });
+
+      it("names the offending field, so the editor can point at it", async () => {
+        const page = await service.create(actor, draftInput("bad-field"));
+        const error = await service
+          .update(actor, {
+            id: page.id,
+            expectedLockVersion: page.lockVersion,
+            patch: { metadata: bad },
+          })
+          .catch((cause: unknown) => cause);
+        expect(error).toBeInstanceOf(CmsValidationError);
+        expect(
+          (error as CmsValidationError).diagnostics.map((d) => d.field),
+        ).toContain("previewImage");
+      });
+
+      it("keeps the CMS list readable when a row is damaged anyway", async () => {
+        // A hand-edited row or a schema change without a backfill still gets
+        // past the gate above. The console has to survive it, because the
+        // console is where it gets repaired.
+        const page = await service.create(actor, draftInput("damaged"));
+        await db
+          .update(cmsSchema.cmsPages)
+          .set({ metadata: { keywords: "not an array" } })
+          .where(eq(cmsSchema.cmsPages.id, page.id));
+
+        const listed = await service.list(actor, { section: "guias" });
+        const damaged = listed.find((row) => row.id === page.id);
+        expect(damaged?.metadataError).toBeTruthy();
+        expect(damaged?.title).toBe(page.title);
+
+        // And it still opens, which is the whole point.
+        const opened = await service.get(actor, page.id);
+        expect(opened.metadataError).toBeTruthy();
+        expect(opened.metadata).toEqual({});
+      });
+
+      it("refuses to serve a damaged row publicly", async () => {
+        // The other half of the same decision: lenient for the editor, strict
+        // for a reader, who would otherwise get a page with its metadata
+        // silently missing.
+        const page = await service.create(actor, draftInput("damaged-public"));
+        await service.setStatus(actor, {
+          id: page.id,
+          status: "published",
+          expectedLockVersion: page.lockVersion,
+        });
+        await db
+          .update(cmsSchema.cmsPages)
+          .set({ metadata: { keywords: "not an array" } })
+          .where(eq(cmsSchema.cmsPages.id, page.id));
+
+        await expect(
+          repository.getByPath("guias", [page.slug]),
+        ).rejects.toThrow(/invalid metadata/);
+      });
+    });
   });
 }
 

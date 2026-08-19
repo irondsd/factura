@@ -14,7 +14,6 @@ import { faqPageLd, sectionPageLd } from "@/i18n/structuredData";
 import { formatContentDateTime } from "@/lib/content-date";
 import { contentComponents } from "@/content-system/render/renderContent";
 import { documentHeadings, documentStats } from "@/content-system/document";
-import { documentFromDatabase } from "@/content-system/adapters/database";
 
 // One page of a registry section, at any depth: /estadisticas/delitos-caba,
 // /investigacion/barrios-seguros-baratos-caba, and
@@ -40,23 +39,21 @@ export async function SectionArticle({
   // route's types don't know that and neither would a stale prerender.
   if (!page) notFound();
 
-  const { Content, meta } = page;
-  const [crumbs, children, stored] = await Promise.all([
+  const { Content, meta, document } = page;
+  const [crumbs, children] = await Promise.all([
     section.crumbs(slug),
     section.children(slug),
-    documentFromDatabase(
-      section.id as import("@/content-system/types").ContentSection,
-      section.slugPath(slug),
-    ),
   ]);
   // The registry is retained as a rollback fixture during the migration, but a
   // newly authored CMS page has no source file. Its reading time and table of
-  // contents must therefore come from the same stored document as its body.
-  const { words, minutes } = stored
-    ? documentStats(stored)
+  // contents therefore come from the same stored document `load()` already
+  // resolved the body from — asking the database a second time here would be
+  // both a duplicate query and a chance for the two to disagree.
+  const { words, minutes } = document
+    ? documentStats(document)
     : section.readingStats(slug, meta.faq);
-  const headings = stored
-    ? documentHeadings(stored)
+  const headings = document
+    ? documentHeadings(document)
     : section.headings(slug, meta.faq);
 
   return (

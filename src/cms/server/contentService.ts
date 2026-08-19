@@ -7,7 +7,8 @@ import {
   type ValidationResult,
 } from "@/content-system/types";
 import { checkHierarchy, type HierarchyNode } from "@/content-system/hierarchy";
-import { canPublish } from "../auth/policy";
+import { parseMetadata } from "@/content-system/metadata/schema";
+import { canAuthor, canPublish } from "../auth/policy";
 import type { CmsActor } from "../types";
 import {
   CmsConflictError,
@@ -119,8 +120,12 @@ export class CmsContentService {
     actor: CmsActor,
     input: CreateContentInput,
   ): Promise<ContentDocument> {
+    this.assertMayAuthor(actor);
+
     const existing = await this.store.findBySlug(input.section, input.slug);
     if (existing) throw new CmsSlugTakenError(input.section, input.slug);
+
+    const metadata = this.checkedMetadata(input.section, input.metadata);
 
     await this.assertHierarchy({
       id: PENDING_ID,
@@ -142,7 +147,7 @@ export class CmsContentService {
       summary: input.summary,
       cta: input.cta,
       canonicalSlug: input.canonicalSlug ?? null,
-      metadata: input.metadata,
+      metadata,
       parentId: input.parentId ?? null,
       sortOrder: input.sortOrder ?? 0,
       crumb: input.crumb ?? null,
@@ -163,6 +168,8 @@ export class CmsContentService {
     actor: CmsActor,
     input: UpdateContentInput,
   ): Promise<ContentDocument> {
+    this.assertMayAuthor(actor);
+
     const current = await this.store.findById(input.id);
     if (!current) throw new CmsNotFoundError(`Page ${input.id}`);
     // Reported from the row already in hand, before validation: a stale save is
@@ -172,6 +179,16 @@ export class CmsContentService {
     if (current.lockVersion !== input.expectedLockVersion) {
       await this.reportConflict(input.id, input.expectedLockVersion);
     }
+
+    // Before anything else that could write: a metadata blob the row → document
+    // mapper cannot read back is not a validation failure the editor can see
+    // later, it is a row that exists and cannot be loaded — by the list, by
+    // this editor, or by the public repository. Checked here, on the way in,
+    // where refusing is still cheap.
+    const metadata =
+      input.patch.metadata !== undefined
+        ? this.checkedMetadata(current.section, input.patch.metadata)
+        : undefined;
 
     const next = { ...current, ...input.patch } as ContentDocument;
 
@@ -197,6 +214,9 @@ export class CmsContentService {
       now,
       patch: {
         ...input.patch,
+        // The parsed value, not the caller's: Zod strips and defaults, and what
+        // is stored has to be exactly what was validated.
+        ...(metadata !== undefined ? { metadata } : {}),
         // A content edit moves the editorial timestamp the reader sees; a
         // status flip does not (see `setStatus`).
         ...(isContentEdit(input.patch) ? { contentUpdatedAt: now } : {}),
@@ -218,8 +238,19 @@ export class CmsContentService {
       await this.reportConflict(input.id, input.expectedLockVersion);
     }
 
-    if (input.status === "published" && !canPublish(actor)) {
-      throw new CmsForbiddenError("publicar contenido");
+    // Both directions across the published boundary, not just into it.
+    // `canPublish` is documented as covering publish *and* unpublish, and
+    // taking a live page down is the more consequential of the two — gating
+    // only the way in would mean narrowing the role later silently left
+    // unpublishing open to everyone.
+    if (input.status === "published" || current.status === "published") {
+      if (!canPublish(actor)) {
+        throw new CmsForbiddenError(
+          input.status === "published"
+            ? "publicar contenido"
+            : "despublicar contenido",
+        );
+      }
     }
 
     const level = levelForTransition(current.status, input.status);
@@ -299,6 +330,37 @@ export class CmsContentService {
         })),
       );
     }
+  }
+
+  /** Refuse a write by an actor whose role may not author.
+   *
+   * Every role may today, so this never fires — which is exactly why it has to
+   * exist. `canAuthor` is presented as a one-line policy toggle, and a toggle
+   * with no call site is one that will be narrowed later and silently change
+   * nothing. */
+  private assertMayAuthor(actor: CmsActor): void {
+    if (!canAuthor(actor)) throw new CmsForbiddenError("editar contenido");
+  }
+
+  /** Parse a metadata blob against its section's schema, or refuse the write.
+   *
+   * Deliberately *not* part of the validation levels: a draft is allowed to be
+   * incomplete (§5.3), so its metadata is not held to the editorial rules — but
+   * it still has to be the right shape to store, because the mapper that reads
+   * a row back applies this same schema and throws when it fails. Everything
+   * downstream of a write assumes a row can be read; this is what makes that
+   * true. Returns the parsed value, which is what gets stored. */
+  private checkedMetadata(section: ContentSection, value: unknown): unknown {
+    const parsed = parseMetadata(section, value);
+    if (parsed.ok) return parsed.data;
+    throw new CmsValidationError(
+      parsed.problems.map((problem) => ({
+        code: "metadata.shape",
+        severity: "error" as const,
+        message: `${problem.field || "metadata"}: ${problem.message}`,
+        field: problem.field || undefined,
+      })),
+    );
   }
 
   private async assertValid(

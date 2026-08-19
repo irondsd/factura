@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { guideMetadata } from "@/i18n/metadata";
-import { shouldNoindex } from "../repository/visibility";
+import { shouldNoindex, UNPUBLISHED_ROBOTS } from "../repository/visibility";
 import type { ContentDocument, ContentSummary } from "../types";
 
 // Page metadata built from a `ContentDocument`, for the public routes after the
@@ -54,21 +54,11 @@ export function contentPageMetadata(
   if (!noindex) return base;
 
   // `buildMetadata`'s own `noindex` keeps `follow: true` on purpose — a page
-  // there is "unlisted, not disowned", and its links should still carry
-  // crawlers onward. cms.md §3.2 asks for `noindex, nofollow` on a preview
-  // specifically, and that is the stricter reading: a preview URL is a working
-  // copy, and nothing on it should be treated as an endorsement of what it
-  // links to. Overridden here rather than in `buildMetadata`, which every other
-  // page on the site shares.
-  return {
-    ...base,
-    robots: {
-      index: false,
-      follow: false,
-      nocache: true,
-      googleBot: { index: false, follow: false },
-    },
-  };
+  // there is "unlisted, not disowned". The stricter pair cms.md §3.2 asks for
+  // is applied here rather than in `buildMetadata`, which every other page on
+  // the site shares, and comes from `UNPUBLISHED_ROBOTS` so the registry
+  // sections emit exactly the same thing.
+  return { ...base, robots: { ...UNPUBLISHED_ROBOTS } };
 }
 
 /** Whether this page belongs in the sitemap, the feed, `llms.txt` and IndexNow.

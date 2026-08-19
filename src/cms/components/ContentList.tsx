@@ -62,6 +62,17 @@ export function ContentList({
                 <span className="block text-muted text-[12px] mt-0.5">
                   {section.publicPath}/{page.slug}
                 </span>
+                {/* A row whose stored metadata no longer matches its schema.
+                    It still lists and still opens — that is the whole point of
+                    the CMS's lenient read — but it says so, because its fields
+                    will look empty in the editor and that would otherwise read
+                    as data loss rather than as a page needing repair. */}
+                {page.metadataError && (
+                  <span className="block text-[var(--vendor-ochre)] text-[12px] mt-0.5">
+                    Metadatos ilegibles — abre la página para volver a
+                    completarlos.
+                  </span>
+                )}
               </span>
             </td>
             <td className="py-3 pr-4 align-top">

@@ -32,11 +32,18 @@ export function MetadataField({
   const id = useId();
   const describedBy = field.help ? `${id}-help` : undefined;
 
+  // A read-only field renders as text, and there is no form control for a
+  // `<label for>` to point at — so the label becomes a plain heading the value
+  // names with `aria-labelledby` instead.
+  const Label = field.readOnly ? "span" : "label";
+  const labelClass =
+    "block font-mono text-micro uppercase tracking-label-wide text-muted mb-1.5";
+
   return (
     <div className="mb-6">
-      <label
-        htmlFor={id}
-        className="block font-mono text-micro uppercase tracking-label-wide text-muted mb-1.5"
+      <Label
+        {...(field.readOnly ? { id: `${id}-label` } : { htmlFor: id })}
+        className={labelClass}
       >
         {field.label}
         {field.required && (
@@ -45,7 +52,7 @@ export function MetadataField({
           </span>
         )}
         {field.required && <span className="sr-only"> (obligatorio)</span>}
-      </label>
+      </Label>
 
       <Control
         id={id}
@@ -95,6 +102,21 @@ function Control({
     "aria-invalid": invalid || undefined,
     className: cn(inputClass, invalid && "border-[var(--vendor-ochre)]"),
   };
+
+  // Displayed, not editable. Rendered as text on a paper-inset rather than as a
+  // disabled input: a greyed-out box invites a click and then does nothing,
+  // while this reads as a fact about the page, which is what it is.
+  if (field.readOnly) {
+    return (
+      <p
+        aria-labelledby={`${id}-label`}
+        aria-describedby={describedBy}
+        className="m-0 border border-line bg-paper px-3 py-2 font-mono text-[13.5px] text-muted"
+      >
+        {(value as string) || "—"}
+      </p>
+    );
+  }
 
   switch (field.kind) {
     case "textarea":

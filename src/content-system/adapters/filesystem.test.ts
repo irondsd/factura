@@ -23,6 +23,25 @@ describe("documentsFromFilesystem", () => {
     expect(documents.length).toBeGreaterThanOrEqual(43);
   });
 
+  it("leaves nothing of the meta block in the body", () => {
+    // The `;` that terminates `export const meta = { … };` used to survive into
+    // the stored body. On the filesystem path that was invisible — the export
+    // was real ESM and MDX consumed it — but a database body is prose, so every
+    // migrated page rendered a paragraph containing a single semicolon above
+    // its first line. All three sections were affected.
+    for (const section of ["guias", "estadisticas", "investigacion"] as const) {
+      for (const document of documentsFromFilesystem(section)) {
+        expect(
+          document.body.trimStart()[0],
+          `${section}/${document.slug}`,
+        ).not.toBe(";");
+        expect(document.body, `${section}/${document.slug}`).not.toContain(
+          "export const meta",
+        );
+      }
+    }
+  });
+
   it("gives every guide the fields the database needs", () => {
     for (const document of documents) {
       expect(document.slug, document.id).toMatch(/^[a-z0-9-]+$/);

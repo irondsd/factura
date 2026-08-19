@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireCmsMember } from "@/cms/auth/requireCmsMember";
+import { getCmsAccess, requireCmsMember } from "@/cms/auth/requireCmsMember";
 import { CmsShell } from "@/cms/components/CmsShell";
 import { PageEditor } from "@/cms/components/PageEditor";
 import { sectionFields } from "@/cms/forms/fields";
@@ -15,6 +15,17 @@ export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ section: string; id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  // Membership first, and a generic title for everyone else.
+  //
+  // `generateMetadata` runs alongside the page, not after it, so the page
+  // component's `requireCmsMember` does not gate this: the title was already
+  // rendered into the response body by the time the 404 or the redirect was
+  // decided, and it reached both an anonymous caller and a signed-in
+  // non-member. §7 asks for a response that reveals nothing. Checking here also
+  // keeps an unauthenticated request from reaching the database at all.
+  const access = await getCmsAccess();
+  if (access.kind !== "member") return cmsPageMetadata("Editar");
+
   const { id } = await params;
   const page = await cmsPageStore.findById(id);
   return cmsPageMetadata(page?.title || "Editar");

@@ -97,8 +97,10 @@ export function validateContentDocument(
     const collection = validateCollection([...others, document]);
     diagnostics.push(
       ...collection.diagnostics
-        .filter((d) => d.slug === document.slug)
-        .map(withoutSlug),
+        .filter(
+          (d) => d.section === document.section && d.slug === document.slug,
+        )
+        .map(withoutSource),
     );
   }
 
@@ -129,17 +131,20 @@ export function validateContentCollection(
   }
 
   for (const finding of validateCollection(documents).diagnostics) {
-    const document = documents.find((d) => d.slug === finding.slug);
-    if (!document) continue;
-    byKey.get(keyOf(document))?.push(withoutSlug(finding));
+    // By section *and* slug: this function is called with a mixed-section
+    // collection by `scripts/import-sections.ts`, where matching on slug alone
+    // would file a finding against the wrong section's page.
+    byKey
+      .get(`${finding.section}/${finding.slug}`)
+      ?.push(withoutSource(finding));
   }
 
   return byKey;
 }
 
-/** Collection findings carry the slug they belong to so a caller can route
- * them; once routed, the slug is redundant on the diagnostic itself. */
-function withoutSlug(finding: CollectionDiagnostic): Diagnostic {
+/** Collection findings carry the section and slug they belong to so a caller
+ * can route them; once routed, both are redundant on the diagnostic itself. */
+function withoutSource(finding: CollectionDiagnostic): Diagnostic {
   const { code, severity, message, line, column, field } = finding;
   return {
     code,

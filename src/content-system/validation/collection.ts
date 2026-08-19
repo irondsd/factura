@@ -22,8 +22,17 @@ export const COLLECTION_CODES = {
 /** One finding, attributed to the document it belongs to. Collection findings
  * are inherently about more than one page, so each is reported against every
  * page involved — the same way the old script pushed the collision onto both
- * reports. */
-export type CollectionDiagnostic = Diagnostic & { slug: string };
+ * reports.
+ *
+ * Attributed by section *and* slug, because a collection can span sections —
+ * `bun scripts/import-sections.ts` validates statistics and research together,
+ * and the whole reason it does is to catch a guide and a data page competing
+ * for the same query. Slug alone would then route a finding to whichever page
+ * happened to match first. */
+export type CollectionDiagnostic = Diagnostic & {
+  section: string;
+  slug: string;
+};
 
 /** Build the index the document validator needs. The one place "which pages
  * exist and which are public" is derived, so a caller cannot accidentally
@@ -67,6 +76,7 @@ export function validateCollection(
     if (group.length < 2) continue;
     for (const document of group) {
       out.push({
+        section: document.section,
         slug: document.slug,
         code: COLLECTION_CODES.duplicateSlug,
         severity: "error",
@@ -106,6 +116,7 @@ export function validateCollection(
       !published.has(target)
     ) {
       out.push({
+        section: document.section,
         slug: document.slug,
         code: COLLECTION_CODES.canonicalUnpublished,
         severity: "error",
@@ -119,6 +130,7 @@ export function validateCollection(
     const next = canonicalOf.get(target);
     if (next && next !== target) {
       out.push({
+        section: document.section,
         slug: document.slug,
         code: COLLECTION_CODES.canonicalChain,
         severity: "error",
@@ -150,6 +162,7 @@ function collide(
         .filter((o) => o !== document)
         .map((o) => `${o.section}/${o.slug}`);
       out.push({
+        section: document.section,
         slug: document.slug,
         code:
           field === "title"

@@ -4,19 +4,29 @@ import { cn } from "@/lib/cn";
 // The Validation tab. Warnings never disappear silently (§5.3): they are listed
 // beside the errors, marked as advisory, and they do not block publication.
 
+/** The gate a set of diagnostics was produced by. Named here because the panel
+ * is what tells the editor which question was asked — a draft that "has no
+ * problems" has only been checked for grammar unless it says otherwise. */
+export type ValidationLevel = "draft" | "preview" | "publish";
+
+const REQUIREMENT: Record<ValidationLevel, string> = {
+  draft: "guardar un borrador",
+  preview: "una vista previa",
+  publish: "publicar",
+};
+
 export function ValidationPanel({
   diagnostics,
-  checked,
   level,
 }: {
   diagnostics: readonly Diagnostic[];
-  checked: boolean;
-  level: string;
+  /** Null until something has actually been checked. */
+  level: ValidationLevel | null;
 }) {
   const errors = diagnostics.filter((d) => d.severity === "error");
   const warnings = diagnostics.filter((d) => d.severity === "warning");
 
-  if (!checked) {
+  if (!level) {
     return (
       <Empty>
         Guarda o pulsa «Revisar» para ver el resultado de la revisión.
@@ -27,7 +37,8 @@ export function ValidationPanel({
   if (diagnostics.length === 0) {
     return (
       <Empty>
-        Sin problemas. La página cumple lo que hace falta para {level}.
+        Sin problemas. La página cumple lo que hace falta para{" "}
+        {REQUIREMENT[level]}.
       </Empty>
     );
   }
@@ -36,8 +47,8 @@ export function ValidationPanel({
     <div>
       <p className="font-mono text-[13px] text-muted mb-4">
         {errors.length} {errors.length === 1 ? "error" : "errores"} ·{" "}
-        {warnings.length} {warnings.length === 1 ? "aviso" : "avisos"}. Los
-        avisos no impiden publicar.
+        {warnings.length} {warnings.length === 1 ? "aviso" : "avisos"} para{" "}
+        {REQUIREMENT[level]}. Los avisos no impiden publicar.
       </p>
       <ul className="list-none p-0 m-0">
         {[...errors, ...warnings].map((diagnostic, index) => (

@@ -19,7 +19,16 @@ export function mdxBody(source: string): string {
   let depth = 0;
   for (let i = open; i < source.length; i++) {
     if (source[i] === "{") depth++;
-    else if (source[i] === "}" && --depth === 0) return source.slice(i + 1);
+    else if (source[i] === "}" && --depth === 0) {
+      // Past the statement's own semicolon, not just its closing brace.
+      // `export const meta = { … };` ends with one, and leaving it behind
+      // makes the body start with a stray `;` — which the filesystem path
+      // never rendered (the export was real ESM there) but the database path
+      // does, as a paragraph at the top of the article.
+      const rest = source.slice(i + 1);
+      const terminator = /^[ \t]*;/.exec(rest);
+      return terminator ? rest.slice(terminator[0].length) : rest;
+    }
   }
   return source;
 }

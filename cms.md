@@ -1632,8 +1632,14 @@ repository rollback switch.
 - [x] Implement `set_content_status` through the shared transition service.
 - [x] Re-check membership, role, scope, expiry, and revocation on every call.
 - [x] Add mutation audit logs that exclude token values and content bodies.
-- [ ] Add protocol, auth, scope, role, validation, conflict, rate-limit, and
+- [x] Add protocol, auth, scope, role, validation, conflict, rate-limit, and
       mutation tests.
+      Added in `src/cms/mcp/mcp.test.ts` during the pre-merge review: 22 in CI
+      (token shape, tool listing, scope refusals, argument rejection, protocol
+      methods, bucket separation) and 17 more under `bun run test:db` (token
+      resolution, expiry, revocation, membership re-check, unknown-scope
+      dropping, `last_used_at`, and the create/update/validate/publish
+      mutations with their conflict, diagnostic and audit assertions).
 - [x] Verify a real MCP client can create, edit, validate, preview, and explicitly
       publish a test guide locally.
 - [x] Verify an ordinary Factura MCP token cannot discover or call CMS tools.
@@ -1652,7 +1658,8 @@ record actor, page, operation, result, and timestamp only — never a token valu
 or content body. A disposable ordinary `fct_pat_` Factura token was rejected
 with `401` by `/api/cms/mcp`; that endpoint accepts only the distinct
 `fct_cms_` credential family. Dedicated protocol/auth/scope/role/validation/
-conflict/rate-limit test coverage remains open.
+conflict/rate-limit test coverage was added in the pre-merge review — see the
+note in section 15.
 
 ### Phase 9 — Final verification and handoff
 
@@ -2169,6 +2176,120 @@ original checkbox complete.
 - 2026-08-18: A preview page is `noindex, nofollow`, stricter than the site's
   existing `noindex` (which keeps `follow: true` deliberately). A page that is
   not published also emits no canonical target.
+
+### Pre-merge review fixes
+
+Recorded 2026-08-19, on `cms`, against local PostgreSQL only. A full review of
+the branch before the merge gate found nine defects; all are fixed and covered
+by tests. Two of them changed decisions recorded above, so they are logged here
+rather than only in the phase notes.
+
+**Blocking, now fixed**
+
+1. **Drafts in `estadisticas`/`investigacion` rendered publicly.**
+   `src/content/section.ts` and `SectionArticle` read through
+   `documentFromDatabase`, which returns any status and says in its own comment
+   that it is not for rendering. A `draft` served 200 with its full body at its
+   real URL, against §3.2 and §6 — and CMS MCP `create_content` always creates
+   drafts, so anything an agent wrote was immediately public. Both paths now go
+   through `PostgresContentRepository`, via the new
+   `src/content-system/repository/sections.ts`.
+
+2. **Published edits to those sections never reached the public site.** Those
+   routes had no `unstable_cache` and so prerendered with
+   `initialRevalidateSeconds: false` — static forever, no revalidation, edits
+   invisible until the next deployment. They now carry the same one-hour TTL
+   §3.3 specifies and guides already had. Confirmed in
+   `.next/prerender-manifest.json`.
+
+3. **A bad metadata value on a draft locked its whole section out of the CMS.**
+   Draft-level validation is grammar-only, so `metadata` was never schema-checked
+   before the write; the row landed and `rowToSummary` then threw on the way
+   back out, taking down the section list, that page's editor and the public
+   listing, with no screen left to repair it from. The service now parses
+   metadata against its section's schema before any write
+   (`CmsContentService.checkedMetadata`).
+
+   **Decision change:** the row → document mapper is no longer strict for every
+   caller. `cmsRowToSummary`/`cmsRowToDocument` return an unreadable row with
+   empty metadata and a `metadataError`, and only the CMS uses them; public
+   reads still throw. A hand-edited row or a schema change without a backfill
+   has to leave the console usable, because the console is where it gets fixed.
+   The list marks such a row and the editor explains that saving replaces what
+   was there.
+
+**Also fixed**
+
+4. The editor's slug field was a silent no-op — rendered as a plain input while
+   `updateWithLock`'s column whitelist dropped it, so a rename reported success
+   and changed nothing, and `assertHierarchy` validated a slug that was never
+   going to be written. Fields can now be declared `readOnly`; slug is, in every
+   section, and read-only fields are never put in a patch. Renaming stays
+   deferred to §13.4, where the redirects live.
+5. `generateMetadata` on `/cms/[section]/[id]` queried the page before any
+   authorization, and the title reached both an anonymous caller (in the 307
+   body) and a signed-in non-member (in the 404's RSC payload). It now resolves
+   membership first.
+6. `src/cms/mcp/**` had no tests at all — see Phase 8 above.
+7. `canAuthor` had no call site, and `canPublish` guarded only the transition
+   *into* `published`, leaving unpublishing ungated. Both are now consulted, and
+   `src/cms/server/authorization.test.ts` pins the call sites by mocking the
+   policy — no fixture can observe a refusal while every role may do everything.
+8. Preview pages in the data sections emitted `noindex, follow` rather than the
+   `noindex, nofollow` §3.2 requires and `contentPageMetadata` already applied
+   for guides. Both now read `UNPUBLISHED_ROBOTS` from the lifecycle module.
+9. An MCP mutation naming a page id that does not exist made the audit insert
+   violate its foreign key *inside the error handler*, turning a handled tool
+   failure into an unhandled one — the route answered with an HTML 500 the MCP
+   client cannot parse. The audit now drops the dangling reference rather than
+   the record, and `/api/cms/mcp` gained the dispatch-level `try/catch` its
+   sibling `/api/mcp` always had.
+
+**Found while verifying the above**
+
+10. **Every migrated page rendered a stray `;` paragraph.** The `;` terminating
+    `export const meta = { … };` survived into the stored body: invisible on the
+    filesystem path, where the export was real ESM, and a visible paragraph at
+    the top of the article on the database path. All 61 imported pages were
+    affected. `mdxBody` and `extractMeta` now consume the statement's
+    terminator, `filesystem.test.ts` asserts it for all three sections, and both
+    importers were re-run locally to repair the rows.
+
+    This is exactly what Phase 7's unchecked "old-filesystem versus database
+    HTML comparison" would have caught. That item, the import parity checks and
+    the rollback switch remain open, and the cutover has already happened —
+    worth closing before the production rollout rather than after.
+
+    **Worth knowing for the rollout:** `unstable_cache` entries live in
+    `.next/cache` and survive a rebuild, so a deployment does *not* flush them.
+    After repairing the rows above, a rebuilt production server still served the
+    old bodies until the cache directory was cleared. §3.3's "approximately one
+    hour" is therefore one hour from when the entry was written, across deploys
+    — not one hour from the deploy. Anyone fixing content in production should
+    expect the TTL, not the deploy, to be what publishes it.
+
+11. `scripts/import-guides.ts` validated only *after* writing, and `--dry-run`
+    returned before the validation block, so a dry run could not answer the
+    question it exists to answer. It now validates first, like
+    `import-sections.ts` already did.
+12. Collection findings were attributed by slug alone while documents are keyed
+    by `section/slug`, so a mixed-section collection — which
+    `import-sections.ts` passes — could file a finding against the wrong
+    section's page.
+13. «Revisar» validated at the level of the page's *current* status, so a draft
+    reported clean having been checked for grammar only. It now always asks the
+    publish question, and the panel says which gate it is reporting.
+
+Floor after these changes, all against local PostgreSQL:
+
+```text
+build:            pass — section routes now 1h ISR, like guides
+lint:             pass — 0 errors, 0 warnings
+typecheck:        pass
+test:             pass — 1056 tests (baseline 1026; +30 runnable in CI)
+test:db:          pass — 1117 tests (baseline 1059; +58)
+validate:content: pass — 63 files · 0 errors · 0 warnings
+```
 
 ### Baseline results
 

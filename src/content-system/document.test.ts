@@ -99,12 +99,14 @@ describe("relatedDocuments", () => {
     categories: string[],
     published: string,
   ): ContentSummary => {
-    const { body: _body, ...rest } = doc({
+    // `relatedDocuments` ranks summaries, which are documents without a body.
+    const { body, ...rest } = doc({
       id: slug,
       slug,
       metadata: { keywords: [], categories },
       publishedAt: published,
     });
+    void body;
     return rest;
   };
 

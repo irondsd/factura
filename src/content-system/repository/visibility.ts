@@ -58,6 +58,26 @@ export const canList = (status: ContentStatus, audience: Audience): boolean =>
 export const shouldNoindex = (status: ContentStatus): boolean =>
   status !== "published";
 
+/** What the `<meta name="robots">` of an unpublished page says.
+ *
+ * `nofollow`, not the site's usual `noindex, follow`. Elsewhere on the site a
+ * `noindex` page is "unlisted, not disowned" and its links should still carry a
+ * crawler onward; cms.md §3.2 asks for the stricter pair here, because a
+ * preview URL is a working copy and nothing on it is an endorsement of what it
+ * links to yet.
+ *
+ * Lives beside the lifecycle rather than in either metadata builder because
+ * guides and the registry sections have separate ones, and this is the rule
+ * both of them have to reach the same answer on. Structurally typed rather than
+ * importing Next's `Metadata`, so nothing in the lifecycle layer depends on the
+ * framework. */
+export const UNPUBLISHED_ROBOTS = {
+  index: false,
+  follow: false,
+  nocache: true,
+  googleBot: { index: false, follow: false },
+} as const;
+
 /** Does this page belong in the sitemap, the feed and `llms.txt`? Identical to
  * public listability today, and named separately because it is a different
  * question that happens to have the same answer — a future `unlisted` status

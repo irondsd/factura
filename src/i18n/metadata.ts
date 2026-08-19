@@ -1,6 +1,7 @@
 import "server-only";
 import type { Metadata } from "next";
 import { siteUrl } from "@/config/urls";
+import { UNPUBLISHED_ROBOTS } from "@/content-system/repository/visibility";
 import { buildMetadata } from "@/lib/seo";
 import type { Locale } from "./config";
 
@@ -199,7 +200,7 @@ export function sectionMetadata({
   updated: string;
   noindex?: boolean;
 }): Metadata {
-  return buildMetadata({
+  const base = buildMetadata({
     url: sectionUrl(id, slug),
     locale: "es",
     title: titleTag ?? title,
@@ -221,6 +222,13 @@ export function sectionMetadata({
     modifiedTime: updated,
     noindex,
   });
+
+  // `noindex` on one of these pages means exactly one thing — it is not
+  // published — so it gets the lifecycle's stricter directive rather than
+  // `buildMetadata`'s site-wide `noindex, follow`. The same constant the guide
+  // route reaches through `contentPageMetadata`, so a preview says the same
+  // thing in both sections.
+  return noindex ? { ...base, robots: { ...UNPUBLISHED_ROBOTS } } : base;
 }
 
 /** A guide article. Takes the guide's `meta` verbatim (`{ slug, ...meta }`), so

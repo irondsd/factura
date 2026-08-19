@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentType } from "react";
+import { sectionRepository } from "@/content-system/repository/sections";
+import type { ContentDocument, ContentSummary } from "@/content-system/types";
 import {
   extractHeadings,
   FAQ_SECTION,
@@ -156,7 +158,6 @@ export type SectionPage = {
   slug: string[];
   crumb: string;
   meta: SectionMeta;
-  readingMinutes: number;
 };
 
 export type ContentSection = SectionConfig & {
@@ -169,11 +170,19 @@ export type ContentSection = SectionConfig & {
   /** Every page's slug, for `generateStaticParams`. Drafts included: a
    * `noindex` page still has to render at its URL. */
   slugs(): string[][];
-  /** Load one page's rendered component + metadata, or `null` if unregistered. */
+  /** Load one page's rendered component + metadata, or `null` when there is no
+   * page a *public* reader may see there — unregistered, or a CMS row that is
+   * still a draft. The lifecycle rule belongs to the repository, so this is the
+   * one place it is applied and no route re-derives it.
+   *
+   * `document` is the stored row when the page came from the CMS, so a caller
+   * that needs the body — reading time, table of contents — does not query for
+   * it a second time. Absent for a page still served from the registry. */
   load(slug: string[]): Promise<{
     Content: ComponentType<{ components?: MDXComponents }>;
     meta: SectionMeta;
     crumb: string;
+    document?: ContentDocument;
   } | null>;
   /** Words of real prose and the reading time in whole minutes. */
   readingStats(
@@ -200,9 +209,7 @@ export function createSection(config: SectionConfig): ContentSection {
   const entryFor = (slug: string[]): SectionEntry | undefined =>
     entries.find((e) => slugPath(e.slug) === slugPath(slug));
 
-  const metaFromDatabase = (
-    document: import("@/content-system/types").ContentSummary,
-  ): SectionMeta => ({
+  const metaFromDatabase = (document: ContentSummary): SectionMeta => ({
     title: document.title,
     ...(document.titleTag ? { titleTag: document.titleTag } : {}),
     description: document.description,
@@ -254,34 +261,43 @@ export function createSection(config: SectionConfig): ContentSection {
     return fs.readFileSync(path.join(dir, entry.file), "utf8");
   };
 
+  /** The cached, lifecycle-aware public reads for this section. */
+  const repository = sectionRepository(id);
+
+  /** Whether the CMS is this section's source of truth yet.
+   *
+   * The registry is kept through the migration as a rollback fixture (cms.md
+   * §3.1), so both sources exist at once and something has to decide between
+   * them. The rule is all-or-nothing per section: once a section has been
+   * imported, the database answers every question about it, including "no". A
+   * per-page fallback would mean unpublishing an imported page silently served
+   * the `.mdx` still sitting on disk — the lifecycle would stop meaning
+   * anything for exactly the pages that had been migrated. */
+  const migrated = async (): Promise<boolean> =>
+    (await repository?.hasContent()) ?? false;
+
   async function readAll(): Promise<SectionPage[]> {
     // Once a section has CMS rows, listings, breadcrumbs and every discovery
     // consumer read the same public repository as the article route.  The
     // registry remains only as an import/rollback fixture until Phase 12's
     // parity gate is complete.
-    const { postgresContentRepository } =
-      await import("@/content-system/repository/postgres");
-    const stored = await postgresContentRepository.listPubliclyRenderable(
-      id as import("@/content-system/types").ContentSection,
-    );
-    if (stored.length > 0) {
+    //
+    // `listPubliclyRenderable` rather than `listPublished` because `crumbs()`
+    // has to resolve the trail above a `preview` page too, and a preview URL is
+    // meant to render completely. `listed()` below is what every *listing* goes
+    // through, and it drops everything that is not published.
+    if (await migrated()) {
+      const stored = (await repository?.listPubliclyRenderable()) ?? [];
       return stored.map((document) => ({
         slug: document.slug.split("/"),
         crumb: document.crumb ?? document.title,
         meta: metaFromDatabase(document),
-        readingMinutes: 1,
       }));
     }
     return Promise.all(
       entries.map(async ({ slug, crumb, load }) => {
         const { meta } = await load();
-        return {
-          slug,
-          crumb,
-          meta: meta as SectionMeta,
-          readingMinutes: pageReadingStats(slug, (meta as SectionMeta).faq)
-            .minutes,
-        };
+        return { slug, crumb, meta: meta as SectionMeta };
       }),
     );
   }
@@ -316,23 +332,25 @@ export function createSection(config: SectionConfig): ContentSection {
     slugs: () => entries.map((e) => e.slug),
 
     async load(slug) {
-      // Lazy imports avoid making the CMS compiler (and its React component
-      // bindings) part of the registry module's initialization cycle.
-      const [{ documentFromDatabase }, { compileContent }] = await Promise.all([
-        import("@/content-system/adapters/database"),
-        import("@/content-system/render/renderContent"),
-      ]);
-      const stored = await documentFromDatabase(
-        id as import("@/content-system/types").ContentSection,
-        slugPath(slug),
-      );
-      if (stored) {
+      // Through the repository, never `documentFromDatabase`: that one answers
+      // "whatever is stored", drafts included, and this is a public read. A
+      // draft returns null here and the route turns it into the 404 cms.md §3.2
+      // requires.
+      if (await migrated()) {
+        const stored = await repository?.getByPath(slugPath(slug));
+        if (!stored) return null;
+        // Lazy import so the component bindings the compiler pulls in are not
+        // part of this module's initialization cycle.
+        const { compileContent } =
+          await import("@/content-system/render/renderContent");
         return {
           Content: await compileContent(stored.body, stored.section),
           meta: metaFromDatabase(stored),
           crumb: stored.crumb ?? stored.title,
+          document: stored,
         };
       }
+
       const entry = entryFor(slug);
       if (!entry) return null;
       const mod = await entry.load();

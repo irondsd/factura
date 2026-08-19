@@ -3,8 +3,9 @@ import { and, asc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db as defaultDb, type Database } from "@/db";
 import { cmsPages } from "@/db/schema";
 import {
+  cmsRowToDocument,
+  cmsRowToSummary,
   rowToDocument,
-  rowToSummary,
 } from "@/content-system/repository/mapping";
 import type {
   ContentDocument,
@@ -82,7 +83,7 @@ export class CmsPageStore {
     const row = await this.db.query.cmsPages.findFirst({
       where: eq(cmsPages.id, id),
     });
-    return row ? rowToDocument(row) : null;
+    return row ? cmsRowToDocument(row) : null;
   }
 
   async findBySlug(
@@ -92,7 +93,7 @@ export class CmsPageStore {
     const row = await this.db.query.cmsPages.findFirst({
       where: and(eq(cmsPages.section, section), eq(cmsPages.slug, slug)),
     });
-    return row ? rowToDocument(row) : null;
+    return row ? cmsRowToDocument(row) : null;
   }
 
   /** The CMS list. Every status, newest edit first — an editor's list is
@@ -122,7 +123,7 @@ export class CmsPageStore {
       // `buildContentTree` re-sorts anyway; this makes the query deterministic.
       orderBy: [asc(cmsPages.sortOrder), asc(cmsPages.slug)],
     });
-    return rows.map(rowToSummary);
+    return rows.map(cmsRowToSummary);
   }
 
   async insert(input: CmsPageInsert): Promise<ContentDocument> {
@@ -152,6 +153,9 @@ export class CmsPageStore {
         contentUpdatedAt: input.now,
       })
       .returning();
+    // Strict on the way back out, unlike the reads above: the service parses
+    // metadata before calling this, so a row that cannot be read here is a bug
+    // in that check rather than pre-existing damage, and should say so loudly.
     return rowToDocument(row);
   }
 

@@ -48,6 +48,15 @@ export type FieldDescriptor = {
    * SEO jargon — see the Phase 5 gate. */
   help?: string;
   required?: boolean;
+  /** Shown, but not editable and never sent in a patch.
+   *
+   * For a value that is set at creation and cannot be changed afterwards. The
+   * slug is the only one today: changing it moves the page's public URL, and
+   * every inbound link to the old one 404s until the redirects deferred in
+   * cms.md §13.4 exist. Rendering it as a plain input while the store silently
+   * dropped it was worse than either — the save reported success and nothing
+   * changed. */
+  readOnly?: boolean;
   /** Shown as a live counter, and the length the guidance is written around.
    * Not enforced here: the validator owns the rules, and this is the hint. */
   softMax?: number;
@@ -72,8 +81,9 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     label: "Dirección",
     kind: "slug",
     required: true,
+    readOnly: true,
     group: "identidad",
-    help: "La última parte de la URL. Minúsculas, sin acentos ni espacios. No se puede cambiar una vez publicada la página.",
+    help: "La última parte de la URL. Se elige al crear la página y no se puede cambiar: los enlaces que ya apuntan aquí dejarían de funcionar.",
   },
   {
     path: "crumb",
@@ -222,8 +232,9 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
     label: "Dirección",
     kind: "slug",
     required: true,
+    readOnly: true,
     group: "identidad",
-    help: "La última parte de la URL. Minúsculas, sin acentos ni espacios. No se puede cambiar una vez publicada.",
+    help: "La última parte de la URL. Se elige al crear la página y no se puede cambiar: los enlaces que ya apuntan aquí dejarían de funcionar.",
   },
   {
     path: "crumb",
@@ -394,6 +405,10 @@ export function toPatch(
   const columns: Record<string, unknown> = {};
   const metadata: Record<string, unknown> = {};
   for (const field of fields) {
+    // A read-only field is displayed, never submitted. The store's update
+    // whitelist would drop it anyway; leaving it in the patch meant the
+    // hierarchy check ran against a slug that was never going to be written.
+    if (field.readOnly) continue;
     const value = values[field.path];
     if (field.path.startsWith("metadata.")) {
       const key = field.path.slice("metadata.".length);

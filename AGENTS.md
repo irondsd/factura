@@ -77,3 +77,8 @@ Anything the steps above can't reach on a local, single-user account: Google
 sign-in, real transactional email, shared apartments and invites (needs a second
 real account), R2/production storage behaviour, and anything depending on their
 actual bill history. Say plainly which parts you verified and which you didn't.
+
+## Language
+
+Even though the content of the website is largely in Spanish, respond in the language user talked to you.
+Don't let Spanish content to confuse you to respond in Spanish to a question asked in English.

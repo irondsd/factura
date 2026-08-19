@@ -104,6 +104,18 @@ function sameSource(source: ContentDocument, stored: ContentDocument): boolean {
   );
 }
 
+/** Refuse the import unless every document validates. Errors and warnings both
+ * count: `bun run validate:content` reports zero of each today, so anything new
+ * is a regression the migration would otherwise bake in. */
+function assertValid(documents: ContentDocument[]): void {
+  const problems = [...validateContentCollection(documents).values()].flat();
+  if (problems.length === 0) return;
+  for (const problem of problems.slice(0, 20)) {
+    console.error(`  ${problem.severity}: ${problem.code} ${problem.message}`);
+  }
+  throw new Error(`Guides have ${problems.length} validation diagnostics`);
+}
+
 async function main() {
   const target = databaseTarget();
   if (!target.local) {
@@ -213,7 +225,22 @@ async function main() {
       }
     }
   }
-  if (dryRun) return;
+  // Validated before the write, and before the dry-run returns.
+  //
+  // A dry run exists to answer "is this import safe to perform" — which it
+  // cannot do if the only validation happens afterwards. Running it here also
+  // means a failing import refuses instead of writing first and reporting
+  // second. The set validated is what the table *would* hold: the source
+  // documents plus any stored row this run does not touch.
+  const untouched = stored.filter(
+    (row) => !source.some((document) => document.slug === row.slug),
+  );
+  assertValid([...untouched, ...source]);
+
+  if (dryRun) {
+    console.log("Dry run: nothing written; validation clean.");
+    return;
+  }
 
   for (const document of changed) {
     const publishedAt = document.publishedAt
@@ -274,18 +301,15 @@ async function main() {
       });
   }
 
+  // Re-checked against what was actually stored, which is a different claim
+  // from the pre-flight above: it catches anything the round trip through
+  // PostgreSQL changed.
   const imported = (
     await db.query.cmsPages.findMany({
       where: eq(cmsPages.section, "guias"),
     })
-  ).map(rowToDocument);
-  const diagnostics = validateContentCollection(imported);
-  const problems = [...diagnostics.values()].flat();
-  if (problems.length) {
-    throw new Error(
-      `Imported guides have ${problems.length} validation diagnostics`,
-    );
-  }
+  ).map((row) => rowToDocument(row));
+  assertValid(imported);
   console.log(`Imported ${changed.length} guides; validation clean.`);
 }
 

@@ -65,9 +65,21 @@ export async function POST(request: Request) {
   const responses = await Promise.all(
     raw.map(async (value) => {
       const parsed = parseMessage(value);
-      return parsed.ok
-        ? handleCmsMessage(parsed.message, caller)
-        : rpcError(0, RPC.INVALID_REQUEST, parsed.reason);
+      if (!parsed.ok) return rpcError(0, RPC.INVALID_REQUEST, parsed.reason);
+      try {
+        return await handleCmsMessage(parsed.message, caller);
+      } catch (cause) {
+        // The handler catches tool failures itself, so reaching here means
+        // dispatch broke. Answer in band: an unhandled rejection here becomes a
+        // 500 with an HTML body, which is the one thing an MCP client cannot
+        // parse. Same guard `/api/mcp` has.
+        console.error("[cms-mcp] dispatch failed:", cause);
+        return rpcError(
+          parsed.message.id ?? 0,
+          RPC.INTERNAL_ERROR,
+          "The server could not handle this request.",
+        );
+      }
     }),
   );
   const answered = responses.filter((response) => response !== null);
