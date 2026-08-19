@@ -208,12 +208,12 @@ Create one typed manifest that controls rendering and authoring:
 
 ```ts
 type ContentComponentDefinition = {
-  component: React.ComponentType<unknown>;
-  sections: readonly ContentSection[];
-  kind: "leaf" | "container";
-  props: z.ZodType;
-  description: string;
-};
+  component: React.ComponentType<unknown>
+  sections: readonly ContentSection[]
+  kind: 'leaf' | 'container'
+  props: z.ZodType
+  description: string
+}
 ```
 
 The manifest is the source of truth for:
@@ -386,15 +386,15 @@ Refactor existing validation into pure functions without losing the CLI checks.
 Expose pure entry points similar to:
 
 ```ts
-validateContentDocument(document, index, level);
-validateContentCollection(documents);
-buildContentIndex(documents);
+validateContentDocument(document, index, level)
+validateContentCollection(documents)
+buildContentIndex(documents)
 ```
 
 Keep an adapter for:
 
 ```ts
-documentsFromDatabase(); // CMS and public site
+documentsFromDatabase() // CMS and public site
 ```
 
 After cutover, content validation belongs to the CMS publication workflow. CI
@@ -425,12 +425,9 @@ Introduce a repository contract before changing routes:
 
 ```ts
 interface ContentRepository {
-  getByPath(
-    section: ContentSection,
-    slug: string[],
-  ): Promise<ContentDocument | null>;
-  listPublished(section: ContentSection): Promise<ContentSummary[]>;
-  listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>;
+  getByPath(section: ContentSection, slug: string[]): Promise<ContentDocument | null>
+  listPublished(section: ContentSection): Promise<ContentSummary[]>
+  listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>
 }
 ```
 
@@ -678,175 +675,6 @@ tables but no rows serves **404 for every guide**, an empty `/guias`, 404 for
 every category hub and zero guide entries in the sitemap — because guides read
 only from the database now. Statistics and research survive on their registry
 fallback. So the database is populated first and the merge happens last.
-
-### 10.1 Before touching production
-
-- [x] Capture what production renders today, while it still serves from `.mdx`.
-      This window closes at the merge and cannot be reopened.
-
-      ```bash
-      bun run parity:capture --origin https://factura.uno --out .parity/before
-      ```
-
-- [x] Confirm the capture covers what it should — 72 pages today: 43 guides,
-      15 statistics, 3 research, 8 category hubs and the 3 section indexes.
-      A smaller number means the sitemap is missing something, and the parity
-      check can only compare what it captured.
-- [x] Decide which production account is the first CMS `admin`.
-- [x] Confirm the deployment platform has `DATABASE_URL` available **at build
-      time**. This is new: the build queries the database for
-      `generateStaticParams`, and without it the build fails rather than
-      shipping an empty site.
-
-### 10.2 Production database
-
-Safe while `main` is deployed: every object is new and the running code reads
-none of them.
-
-- [x] Take a Neon branch (name it, e.g. `pre-cms-<date>`) and a logical dump.
-      Record the branch, the dump path, the source commit, the operator and the
-      timestamp.
-
-      ```bash
-      pg_dump "$(grep -E '^DATABASE_URL=' .env.prod | cut -d= -f2- | tr -d '\"')" \
-        -Fc -f ~/factura-prod-$(date +%Y%m%d-%H%M).dump
-      ```
-
-- [x] Push the schema. `.env.prod` already points at the **direct** Neon
-      endpoint — the pooler URL beside it is commented out — which is what DDL
-      wants, so the existing script is right as it stands. Do not pass
-      `--force`: read the statements it prints first.
-
-      ```bash
-      bun run db:push:prod
-      ```
-
-- [x] Confirm the statements were only: `cms_role`, `cms_page_status`,
-      `cms_member`, `cms_page`, `cms_api_token`, `cms_audit_log`. Anything
-      touching an existing table means the schema has drifted — stop.
-- [x] Grant the first membership.
-
-      ```sql
-      insert into cms_member (user_id, role)
-      select id, 'admin' from users where email = 'you@example.com'
-      on conflict (user_id) do update set role = excluded.role;
-      ```
-
-- [x] Dry-run both importers and read the counts. Expect 43 guides and 18
-      statistics/research pages, all inserts.
-
-      Use the `:prod` scripts. They load `.env.prod` and pass `--production`;
-      the plain ones do neither, and **bun auto-loads `.env.local`** — so
-      `bun run content:import:guides --production` reaches the *local* database
-      and the importer refuses it with "`--production` cannot target a local
-      database". That refusal is the guard working, not a bug.
-
-      The two confirmation variables differ, and they stay out of the scripts on
-      purpose: naming the environment is a convenience, confirming the write is
-      a decision.
-
-      ```bash
-      export CMS_IMPORT_ACTOR_EMAIL=
-
-      CMS_IMPORT_PRODUCTION_CONFIRM=IMPORT_GUIDES \
-        bun run content:import:guides:prod --dry-run --explain
-
-      CMS_IMPORT_PRODUCTION_CONFIRM=IMPORT_CONTENT \
-        bun run content:import:sections:prod --dry-run --explain
-      ```
-
-- [x] Import both — the same two commands without `--dry-run --explain`.
-- [x] Re-run both dry-runs. Each must report `0 insert/update`; anything else
-      means the round trip changed something and is worth understanding before
-      it becomes the live site.
-- [x] Sanity-check the rows.
-
-      ```sql
-      select section, status, count(*) from cms_page group by 1,2 order by 1;
-      -- expect estadisticas|published|15, guias|published|43,
-      --        investigacion|published|3 — no drafts, no previews
-      select count(*) from cms_page where body_mdx like ';%';  -- must be 0
-      ```
-
-- [x] Confirm the live site is still healthy. It should be: nothing reads these
-      tables yet.
-
-### 10.3 Verify the merged build against production data
-
-- [x] Restore the dump into local PostgreSQL rather than pointing a dev server
-      at production. The CMS is a write surface, and a stray save would edit
-      live content before it is even live.
-
-      ```bash
-      createdb -h localhost -p 5433 -U factura factura_prodcopy
-      pg_restore -h localhost -p 5433 -U factura -d factura_prodcopy ~/factura-prod-*.dump
-      ```
-
-- [x] Build and serve against it — a real build, not `dev`: prerendering and ISR
-      are where the differences live.
-
-      ```bash
-      export DATABASE_URL=postgres://factura:factura@localhost:5433/factura_prodcopy
-      rm -rf .next && bun run build && PORT=4100 npx next start
-      ```
-
-- [x] Run the parity comparison. It exits non-zero if anything differs.
-
-      ```bash
-      bun run parity:compare --before .parity/before --after http://localhost:4100
-      ```
-
-- [x] Read every diff it reports. Timestamps are already compared as instants
-      and social-card `?v=` stamps are ignored, so a reported difference is a
-      real difference.
-- [x] Walk the surfaces by hand: `/guias` lists 43; a category hub resolves;
-      sitemap, `feed.xml` and `llms.txt` carry the same URLs as production; a
-      guide OG card renders; `/cms` opens for the admin and 404s otherwise.
-- [x] If parity fails: fix on `cms`, re-import into production, and repeat.
-      Production is still untouched, so this loop is free.
-
-### 10.4 Merge and deploy
-
-- [x] Merge `main` into `cms`, resolve any drift, and re-run the floor:
-      `build`, `lint`, `typecheck`, `test`, `test:db`.
-- [x] Merge `cms` into `main`.
-- [x] Watch the deployment build. It reads production content now, so a failure
-      here is the guardrail working — investigate rather than retry.
-- [x] Smoke the live site: a guide, a category hub, a statistics page with a
-      chart, a nested research page, the home page's guide block,
-      `/normativa`, the sitemap's guide count, one OG card.
-- [x] Open `/cms` in production, press _Revisar para publicar_ on one guide,
-      confirm it reports clean, and close without saving.
-
-Rollback, if needed: redeploy the previous build. The schema change is additive
-and inert to the old code, so nothing about the database needs undoing.
-
-### 10.5 Observation window
-
-- [x] Keep the `.mdx` sources and section registries in place for the window.
-      They are the importers' only input; if a content defect appears, the
-      repair is to fix the extractor and re-import.
-- [x] Publish one small edit and confirm it reaches the public site within the
-      hour. That is the first real test of the TTL in production.
-- [x] Request the OG card for a guide created _in the CMS_ (not one of the
-      imported 43). Its fonts are read at request time now, and this is the
-      first path that exercises it.
-- [x] Watch Search Console for a coverage drop on `/guias/*`.
-- [x] Let a week pass with no content regression.
-
-### 10.6 Cleanup
-
-- [x] Add the database-free CI fixture corpus before deleting the filesystem
-      content, so builds still exercise every public content path.
-- [ ] Delete the guide `.mdx` files, the statistics and research `.mdx` and
-      their `pages.ts` registries, `src/content/guias/guides.ts`, and both
-      importers.
-- [ ] Note that emptying a section's `entries` also removes its
-      `generateStaticParams` and the build-time hub assertion — pages then
-      render on demand. Verify that deliberately.
-- [ ] Delete `scripts/parity-content.ts` and the `.parity` capture, or keep the
-      script if a future migration will want it.
-- [ ] Delete this section.
 
 ## 11. Operations
 
