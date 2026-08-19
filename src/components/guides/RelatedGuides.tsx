@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Eyebrow } from "@/components/landing/parts";
-import type { Guide } from "@/content/guias/guides";
 
 // The "Guías relacionadas" block that guides drop into their body with a bare
 // <RelatedGuides /> (see AUTHORING.md §5). The tag carries no props: the article
@@ -10,7 +9,12 @@ import type { Guide } from "@/content/guias/guides";
 // Deliberately compact — it sits between the article's closing section and its
 // CTAs, where full summary cards would bury the call to action.
 
-export function RelatedGuides({ guides }: { guides: Guide[] }) {
+/** A page this block links to. Deliberately just a slug and a title: the
+ * filesystem registry and the database repository describe a guide very
+ * differently, and this component needs neither description. */
+export type RelatedLink = { slug: string; title: string };
+
+export function RelatedGuides({ guides }: { guides: readonly RelatedLink[] }) {
   if (guides.length === 0) return null;
 
   return (
@@ -25,7 +29,7 @@ export function RelatedGuides({ guides }: { guides: Guide[] }) {
               className="group flex items-baseline justify-between gap-4 py-[10px] no-underline"
             >
               <span className="font-mono text-[13.5px] leading-[1.5] text-ink transition-colors group-hover:text-accent">
-                {g.meta.title}
+                {g.title}
               </span>
               <span
                 aria-hidden="true"

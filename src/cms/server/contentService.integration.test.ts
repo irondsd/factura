@@ -6,6 +6,7 @@ import {
   serializeSnapshot,
 } from "@/content-system/adapters/database";
 import { PostgresContentRepository } from "@/content-system/repository/postgres";
+import { relatedDocuments } from "@/content-system/document";
 import { buildContentTree, ownSegment } from "@/content-system/hierarchy";
 import type { ContentStatus, ValidationResult } from "@/content-system/types";
 import type { CmsActor } from "../types";
@@ -563,6 +564,74 @@ if (!hasTestDatabase()) {
           child.slug.split("/"),
         );
         expect(found?.id).toBe(child.id);
+      });
+    });
+
+    describe("preview is absent from every discovery surface", () => {
+      // cms.md Phase 6: "Prove preview content is absent from all list/discovery
+      // repository calls." Enumerated one call at a time rather than asserted in
+      // aggregate — a discovery surface added later that forgets the rule is
+      // exactly what this is for.
+      it("is renderable at its URL but in no published listing", async () => {
+        const draft = await service.create(actor, draftInput("discovery"));
+        const page = await service.setStatus(actor, {
+          id: draft.id,
+          status: "preview",
+          expectedLockVersion: draft.lockVersion,
+        });
+
+        // Renders: the URL is shareable on purpose.
+        expect(
+          await repository.getByPath("guias", page.slug.split("/")),
+        ).not.toBeNull();
+
+        // Every listing the public site builds from — the index, the category
+        // hubs, related guides, the sitemap, the feed, llms.txt, the OG routes
+        // and IndexNow all read `listPublished`.
+        const published = await repository.listPublished("guias");
+        expect(published.map((s) => s.slug)).not.toContain(page.slug);
+
+        // And it is absent from the related-guides ranking, because that is fed
+        // from the published set.
+        expect(
+          relatedDocuments(page, published).map((s) => s.slug),
+        ).not.toContain(page.slug);
+      });
+
+      it("appears in listPubliclyRenderable, which is not a listing", async () => {
+        // The one call that includes it: "does this path resolve", for
+        // generateStaticParams. Never feed it to a listing.
+        const draft = await service.create(actor, draftInput("renderable"));
+        const page = await service.setStatus(actor, {
+          id: draft.id,
+          status: "preview",
+          expectedLockVersion: draft.lockVersion,
+        });
+        expect(
+          (await repository.listPubliclyRenderable("guias")).map((s) => s.slug),
+        ).toContain(page.slug);
+      });
+
+      it("keeps a draft out of even that", async () => {
+        const draft = await service.create(actor, draftInput("draft-hidden"));
+        expect(
+          (await repository.listPubliclyRenderable("guias")).map((s) => s.slug),
+        ).not.toContain(draft.slug);
+        expect(
+          await repository.getByPath("guias", draft.slug.split("/")),
+        ).toBeNull();
+      });
+
+      it("never lists a page it would not render", async () => {
+        // A listed page is a link a crawler follows; a listable-but-unrenderable
+        // status would be a guaranteed 404 in the sitemap.
+        await service.create(actor, draftInput("consistency"));
+        const listed = await repository.listPublished("guias");
+        const renderable = await repository.listPubliclyRenderable("guias");
+        const renderableSlugs = new Set(renderable.map((s) => s.slug));
+        for (const page of listed) {
+          expect(renderableSlugs.has(page.slug)).toBe(true);
+        }
       });
     });
 

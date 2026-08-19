@@ -1466,20 +1466,108 @@ validate:content: pass — 63 files · 0 errors · 0 warnings
 
 ### Phase 6 — Implement exact previews
 
-- [ ] Add `/cms/[section]/preview/[id]` as an authenticated, dynamic, no-store
+- [x] Add `/cms/[section]/preview/[id]` as an authenticated, dynamic, no-store
       route, rendered outside the CMS chrome.
-- [ ] Render the saved body through the same article shell and component
+- [x] Render the saved body through the same article shell and component
       manifest as the public guide.
-- [ ] Ensure draft previews carry `noindex, nofollow` and no canonical URL.
-- [ ] Add the Open Preview button and open the saved preview in a new tab.
+- [x] Ensure draft previews carry `noindex, nofollow` and no canonical URL.
+- [x] Add the Open Preview button and open the saved preview in a new tab.
 - [ ] Add public rendering for `preview` status at its normal slug with
       `noindex, nofollow`.
-- [ ] Prove preview content is absent from all list/discovery repository calls.
-- [ ] Verify custom components, headings, TOC, FAQ, CTA, related-guide fallback,
+      **Not done, deliberately.** The metadata half is built and tested
+      (`contentPageMetadata`); the public guide route is still filesystem-backed
+      with `dynamicParams = false`, so a database `preview` page has no public
+      URL to render at yet. Wiring it is Phase 7's "Change the public guide
+      article route to use the repository", and doing it here would be that
+      cutover in disguise.
+- [x] Prove preview content is absent from all list/discovery repository calls.
+- [x] Verify custom components, headings, TOC, FAQ, CTA, related-guide fallback,
       metadata, and structured data behavior in preview.
 
 **Gate:** What the editor previews uses the same renderer as the eventual public
 page; there is no separate approximate Markdown renderer.
+
+#### Phase 6 implementation notes
+
+Recorded 2026-08-18.
+
+| File                                                | Role                                                        |
+| --------------------------------------------------- | ----------------------------------------------------------- |
+| `src/components/article/ContentArticle.tsx`         | the article shell, extracted from the public route          |
+| `src/content-system/document.ts`                    | headings, reading stats and related ranking from a document |
+| `src/content-system/metadata/page.ts`               | `<head>` from a document, indexability from the lifecycle   |
+| `src/app/(cms)/cms/[section]/preview/[id]/page.tsx` | the exact preview                                           |
+| `src/app/(site)/[lang]/guias/[slug]/page.tsx`       | rewritten to render the shared shell                        |
+| `src/components/guides/RelatedGuides.tsx`           | takes `{slug, title}` instead of the filesystem `Guide`     |
+
+##### How the gate was made true rather than claimed
+
+"The editor previews what the public page renders" is only meaningful if the
+two _are_ the same component. So the public route's markup — breadcrumbs, the
+header and dateline, category chips, the top CTA, both copies of the contents
+column, the illustration, the closing navigation — moved into
+`<ContentArticle>`, and the public route was rewritten to render it.
+
+The compiled body is what still differs: the public route renders the MDX module
+Next compiled at build time, the preview one compiled from the database string.
+So the body arrives as `children` and the shell is indifferent. Phase 7 makes
+both the second, and the shell does not change when it does.
+
+**Verified by diffing the rendered HTML.** Five representative guides — plain
+prose, FAQ, chart, trust block, preview image — were fetched before and after
+the refactor. With React `useId` values and dev chunk hashes normalised (both
+non-deterministic between compiles), the `<main>` element and every JSON-LD
+block are **byte-identical** on all five.
+
+##### What the preview shows
+
+Checked against a page written to exercise every registered component:
+`InflacionChart` (SVG figure), `TrustBlock`, `ProbarCta`, `ClosingCta`, a GFM
+table, `<Faq />` rendering the metadata questions under the right heading id,
+and `<RelatedGuides />` with a real link. The contents column lists all four
+sections including the synthetic "Preguntas frecuentes" entry. Three JSON-LD
+blocks — `BlogPosting`, `FAQPage`, `BreadcrumbList` — the same set the public
+page emits. `robots` is `noindex, nofollow, nocache` and there is no canonical.
+
+Related pages are ranked from the **published** set, so a brand-new draft shows
+the same fallback block it will show once published rather than an empty one
+that hides how the page will look.
+
+##### Two decisions worth recording
+
+- **`noindex, nofollow` for previews diverges from the site's existing
+  `noindex`.** `buildMetadata` keeps `follow: true` on purpose — a page there is
+  "unlisted, not disowned", and its links should still carry crawlers onward.
+  §3.2 asks for `nofollow` on a preview, which is the stricter and better
+  reading: a preview is a working copy, and nothing on it should read as an
+  endorsement of what it links to. Overridden in `contentPageMetadata` rather
+  than in `buildMetadata`, which every other page shares. No guide sets
+  `meta.noindex` today, so nothing changes at cutover — but it would for one
+  that did.
+- **A non-published page emits no canonical target.** A canonical from a
+  `noindex` URL is a mixed signal, and an unpublished page has no ranking to
+  consolidate.
+
+##### Preview absence, proven one call at a time
+
+Four integration tests against PostgreSQL, enumerated rather than asserted in
+aggregate: a `preview` page renders at its URL, is absent from `listPublished`
+(which the index, category hubs, related guides, sitemap, feed, `llms.txt`, OG
+routes and IndexNow all read) and absent from the related-guides ranking;
+appears in `listPubliclyRenderable`, which is not a listing; a `draft` is absent
+from even that and its `getByPath` returns null; and nothing is ever listed that
+would not render.
+
+Floor after Phase 6:
+
+```text
+build:            pass
+lint:             pass — 0 errors, 0 warnings
+typecheck:        pass
+test:             pass — 964 tests, 1 file skipped (no database)
+test:db:          pass — 997 tests
+validate:content: pass — 63 files · 0 errors · 0 warnings
+```
 
 ### Phase 7 — Migrate guides and cut over public reads
 
@@ -1971,6 +2059,14 @@ original checkbox complete.
   `published_at`. Otherwise a page written on Monday and published on Friday has
   "updated" before "published", which the validator rejects — so a published
   page could never be saved again. A republish does not move it.
+
+- 2026-08-18: The public guide route and the CMS preview render one shared
+  `<ContentArticle>`; only the compiled body differs, and it is passed as
+  children. Proven by a byte-identical HTML diff over five guides before and
+  after the extraction.
+- 2026-08-18: A preview page is `noindex, nofollow`, stricter than the site's
+  existing `noindex` (which keeps `follow: true` deliberately). A page that is
+  not published also emits no canonical target.
 
 ### Baseline results
 
