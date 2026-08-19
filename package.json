@@ -23,6 +23,8 @@
     "validate:sections": "bun scripts/validate-sections.ts",
     "validate:stats": "bun scripts/validate-stats.ts",
     "validate:investigacion": "bun scripts/validate-investigacion.ts",
+    "parity:capture": "bun scripts/parity-content.ts capture",
+    "parity:compare": "bun scripts/parity-content.ts compare",
     "audit:seo": "bun scripts/audit-seo.ts",
     "data:caba": "bun scripts/fetch-caba-inmobiliario.ts",
     "data:pba": "bun scripts/fetch-pba-inmobiliario.ts",

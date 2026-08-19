@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull, like } from "drizzle-orm";
+import { and, eq, isNull, like } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { parseMessage } from "@/server/mcp/protocol";
 import { limitKey, MCP_CALL, take } from "@/server/rateLimit";
@@ -421,11 +421,15 @@ if (!hasTestDatabase()) {
     const SLUG = "zz-cms-mcp-";
 
     let agent: CmsTokenCaller;
-    /** Everything before this instant is somebody else's audit trail. The local
-     * database holds real rows from earlier manual verification, and a suite
-     * that deleted them to get a clean slate would be eating data it did not
-     * create — so the assertions below filter by time instead. */
-    let since: Date;
+    /** Audit rows that already existed when this test started.
+     *
+     * Identified by id rather than by timestamp. The local database holds real
+     * rows from earlier manual verification, so a suite that cleared the table
+     * to get a clean slate would be eating data it did not create — and a
+     * timestamp watermark taken from the host clock is not comparable with
+     * `now()` from the database's, which are milliseconds apart in either
+     * direction and made these assertions flaky. */
+    let baseline: Set<string>;
 
     const call = (name: string, args: Record<string, unknown>) =>
       handleCmsMessage(request("tools/call", { name, arguments: args }), agent);
@@ -433,22 +437,17 @@ if (!hasTestDatabase()) {
     const cleanup = () =>
       db.delete(schema.cmsPages).where(like(schema.cmsPages.slug, `${SLUG}%`));
 
-    /** Audit rows this run produced, newest first. Scoped by actor and by the
-     * watermark rather than cleared: the local database holds real rows from
-     * earlier manual verification, and a suite that deleted them to get a clean
-     * slate would be eating data it did not create. Individual assertions
-     * narrow further by page, since a count over the whole run would depend on
-     * what every other test in the file had done first. */
-    const auditTrail = () =>
+    const auditRows = () =>
       db
         .select()
         .from(schema.cmsAuditLogs)
-        .where(
-          and(
-            eq(schema.cmsAuditLogs.actorId, agent.userId),
-            gt(schema.cmsAuditLogs.createdAt, since),
-          ),
-        );
+        .where(eq(schema.cmsAuditLogs.actorId, agent.userId));
+
+    /** Only the rows this test produced. Individual assertions narrow further
+     * by page, since a count over the whole run would depend on what every
+     * other test in the file had done first. */
+    const auditTrail = async () =>
+      (await auditRows()).filter((row) => !baseline.has(row.id));
 
     beforeEach(async () => {
       await cleanup();
@@ -463,7 +462,7 @@ if (!hasTestDatabase()) {
         tokenId: "22222222-2222-2222-2222-222222222222",
         scopes: [...CMS_SCOPES],
       };
-      since = new Date();
+      baseline = new Set((await auditRows()).map((row) => row.id));
     });
 
     afterAll(async () => {
@@ -643,7 +642,6 @@ if (!hasTestDatabase()) {
       // that constraint *inside the error handler*, which turned a handled tool
       // failure into an unhandled one and the response into an HTML 500.
       const absent = "33333333-3333-4333-8333-333333333333";
-      const before = await auditTrail();
       const response = await call("update_content", {
         id: absent,
         expectedLockVersion: 1,
@@ -653,13 +651,11 @@ if (!hasTestDatabase()) {
       expect(resultOf(response).isError).toBe(true);
       expect(resultOf(response).content[0].text).toMatch(/not found/i);
 
-      // Still audited, just not attributed to a page that never existed. A
-      // delta rather than a filter: `cleanup()` hard-deletes this suite's pages
-      // between tests, and `page_id` is `on delete set null`, so earlier rows
-      // become unattributed too.
-      const added = (await auditTrail()).filter(
-        (row) => !before.some((seen) => seen.id === row.id),
-      );
+      // Still audited, just not attributed to a page that never existed —
+      // which is also why this cannot filter on `pageId === null`:
+      // `cleanup()` hard-deletes this suite's pages between tests and
+      // `page_id` is `on delete set null`, so earlier rows go null too.
+      const added = await auditTrail();
       expect(added).toHaveLength(1);
       expect(added[0]).toMatchObject({
         operation: "update_content",
