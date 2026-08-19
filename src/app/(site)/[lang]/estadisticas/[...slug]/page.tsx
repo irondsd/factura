@@ -11,8 +11,8 @@ import { sectionMetadata } from "@/i18n/metadata";
 // The body is `<SectionArticle />`, shared with /investigacion.
 export const dynamicParams = true;
 
-export function generateStaticParams() {
-  return estadisticas.slugs().map((slug) => ({ slug }));
+export async function generateStaticParams() {
+  return (await estadisticas.slugs()).map((slug) => ({ slug }));
 }
 
 type Props = { params: Promise<{ slug: string[] }> };

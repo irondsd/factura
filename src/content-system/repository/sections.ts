@@ -2,7 +2,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import type { ContentDocument, ContentSection, ContentSummary } from "../types";
 import { slugToPath } from "./contract";
-import { postgresContentRepository } from "./postgres";
+import { publicContentRepository } from "./public";
 
 // The public read model for the registry sections — `/estadisticas` and
 // `/investigaciones` — and the exact counterpart of `./guias.ts`.
@@ -26,7 +26,6 @@ import { postgresContentRepository } from "./postgres";
 // path lookup is keyed by section *and* slug.
 
 type CachedSection = {
-  hasContent: () => Promise<boolean>;
   listPublished: () => Promise<ContentSummary[]>;
   listPubliclyRenderable: () => Promise<ContentSummary[]>;
   getByPath: (slug: string) => Promise<ContentDocument | null>;
@@ -34,24 +33,19 @@ type CachedSection = {
 
 function cachedSection(section: ContentSection): CachedSection {
   return {
-    hasContent: unstable_cache(
-      () => postgresContentRepository.hasContent(section),
-      ["content", section, "migrated"],
-      { revalidate: 3600 },
-    ),
     listPublished: unstable_cache(
-      () => postgresContentRepository.listPublished(section),
+      () => publicContentRepository.listPublished(section),
       ["content", section, "published"],
       { revalidate: 3600 },
     ),
     listPubliclyRenderable: unstable_cache(
-      () => postgresContentRepository.listPubliclyRenderable(section),
+      () => publicContentRepository.listPubliclyRenderable(section),
       ["content", section, "renderable"],
       { revalidate: 3600 },
     ),
     getByPath: unstable_cache(
       (slug: string) =>
-        postgresContentRepository.getByPath(section, slugToPath(slug)),
+        publicContentRepository.getByPath(section, slugToPath(slug)),
       ["content", section, "path"],
       { revalidate: 3600 },
     ),

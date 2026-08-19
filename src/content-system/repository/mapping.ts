@@ -20,8 +20,8 @@ export type CmsPageRow = typeof cmsPages.$inferSelect;
 export type CmsPageSummaryRow = Omit<CmsPageRow, "bodyMdx">;
 
 /** Timestamps cross this boundary as ISO strings, not `Date`s, so every
- * consumer downstream — the renderer, the validator, the MCP, a JSON snapshot —
- * sees one representation and cannot format a `Date` in the server's local zone
+ * consumer downstream — the renderer, the validator and the MCP — sees one
+ * representation and cannot format a `Date` in the server's local zone
  * by accident.
  *
  * The authored offset is not preserved, and cannot be: `timestamptz` stores an

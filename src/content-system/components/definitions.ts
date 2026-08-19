@@ -7,9 +7,8 @@ import { SECTION_COMPONENT_NAMES } from "./sectionDefinitions";
 //
 // Split from `./manifest.tsx` deliberately. Grammar validation needs the names,
 // the sections, the children rule and the property schemas — and it runs in
-// three places that must not import React: `bun run validate:content` (a CLI,
-// where importing the component tree drags in `server-only` and fails), the CMS
-// MCP, and the importer. Rendering needs the bindings, and gets them from
+// places that must not import React: the CMS validator, the CMS MCP, and the
+// importer. Rendering needs the bindings, and gets them from
 // `./manifest.tsx`, which merges the two halves back together.
 //
 // Adding a component means adding it here and to the bindings there; the

@@ -1,10 +1,6 @@
 import { eq, like } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import {
-  documentsFromDatabase,
-  parseSnapshot,
-  serializeSnapshot,
-} from "@/content-system/adapters/database";
+import { documentsFromDatabase } from "@/content-system/adapters/database";
 import { PostgresContentRepository } from "@/content-system/repository/postgres";
 import { relatedDocuments } from "@/content-system/document";
 import { buildContentTree, ownSegment } from "@/content-system/hierarchy";
@@ -647,13 +643,6 @@ if (!hasTestDatabase()) {
         ).not.toContain(draft.slug);
       });
 
-      it("round-trips a snapshot", async () => {
-        // CI has no database, so `validate:content` after cutover validates an
-        // exported snapshot. It has to survive JSON.
-        await service.create(actor, draftInput("adapter-snapshot"));
-        const documents = await documentsFromDatabase("guias", db);
-        expect(parseSnapshot(serializeSnapshot(documents))).toEqual(documents);
-      });
     });
 
     describe("stored rows", () => {

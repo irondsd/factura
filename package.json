@@ -16,8 +16,6 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "build:worker": "node scripts/build-suggest-worker.mjs",
-    "validate:content": "bun scripts/validate-content.ts",
-    "content:snapshot": "bun scripts/export-content-snapshot.ts",
     "audit:seo": "bun scripts/audit-seo.ts",
     "data:caba": "bun scripts/fetch-caba-inmobiliario.ts",
     "data:pba": "bun scripts/fetch-pba-inmobiliario.ts",

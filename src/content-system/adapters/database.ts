@@ -4,7 +4,6 @@ import { db as defaultDb, type Database } from "@/db";
 import { cmsPages } from "@/db/schema";
 import type { ContentDocument, ContentSection } from "../types";
 import { rowToDocument } from "../repository/mapping";
-export { parseSnapshot, serializeSnapshot } from "../snapshot";
 
 // `documentsFromDatabase()` (cms.md §5.2), the counterpart to the filesystem
 // adapter: the whole of a section as `ContentDocument`s, in every state.
@@ -42,9 +41,3 @@ export async function documentFromDatabase(
   });
   return row ? rowToDocument(row) : null;
 }
-
-/** A deterministic snapshot of a section, for the CI story in cms.md §5.2:
- * `validate:content` must not need production database access, so a snapshot
- * can be exported once and validated as a fixture. JSON rather than SQL because
- * the validators take `ContentDocument`s, and a snapshot that needed a database
- * to read would defeat the purpose. */

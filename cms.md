@@ -391,17 +391,16 @@ validateContentCollection(documents)
 buildContentIndex(documents)
 ```
 
-Keep adapters for:
+Keep an adapter for:
 
 ```ts
-documentsFromFilesystem() // CI and migration comparison
 documentsFromDatabase() // CMS and public site
 ```
 
-The existing `bun run validate:content` command must continue to work during
-the migration. At cutover it should validate database-export fixtures or a
-database snapshot in a deterministic manner; CI must not require production
-database access.
+After cutover, content validation belongs to the CMS publication workflow. CI
+must not validate or snapshot the production corpus. Its production build uses
+one deterministic in-memory fixture per section so rendering and discovery are
+still exercised without database access or editorial coupling.
 
 ### 5.3 Save/transition policy
 
@@ -609,8 +608,8 @@ commit log:
 | Authorization      | `src/cms/auth` — one gate (`requireCmsMember`), pure rules beside it (`policy.ts`), membership as an explicit allowlist with no self-service path.                        |
 | Content service    | `src/cms/server/contentService.ts` — the single writer. Authority, validation level, optimistic concurrency and timestamps all decided here; the store only runs SQL.     |
 | Restricted MDX     | Allowlist grammar validation (`validation/grammar.ts`) with compilation gated on it. No bypass flag.                                                                      |
-| Component manifest | `content-system/components` — rules split from bindings so the CLI validator needs no React. 67 components: 10 available to guides, 59 to statistics, 57 to research.     |
-| Validation         | Four pure layers (grammar, document, collection, render) with per-level policy, shared by the CMS, the MCP and `bun run validate:content`.                                |
+| Component manifest | `content-system/components` — rules split from bindings so validation tools need no React. 67 components: 10 available to guides, 59 to statistics, 57 to research.     |
+| Validation         | Four pure layers (grammar, document, collection, render) with per-level policy, shared by the CMS and the MCP.                                                   |
 | Repository         | `ContentRepository` with the lifecycle rules in one module (`repository/visibility.ts`); cached public read models for guides and for the registry sections.              |
 | CMS surface        | `/cms`, `/cms/[section]`, `/cms/[section]/new`, `/cms/[section]/[id]`, `/cms/[section]/preview/[id]`, `/cms/tokens` — one dynamic route set driven by a section registry. |
 | Editor             | CodeMirror 6 source editing, section-driven metadata form, Markdown/preview/validation tabs, explicit save, conflict recovery that preserves the losing text.             |
@@ -623,8 +622,9 @@ rather than a statistics feature, and the section registry drives routes,
 navigation and forms — so adding a section is a registry entry plus a metadata
 schema, not another editor.
 
-Test coverage as of the merge gate: 1056 tests in CI, 1117 with a local
-database, `validate:content` clean at 63 files.
+CI also builds one deterministic fixture per content section and checks those
+pages across the sitemap, feed and `llms.txt`; editorial content is validated
+by the CMS rather than this repository.
 
 ### 9.2 What was not done
 
@@ -639,10 +639,6 @@ a §10 migration step.
   `src/content/section.ts`); guides do not — nothing imports
   `content/guias/guides` any more. Rollback for guides is redeploying the
   previous build.
-- **`validate:content` still reads the filesystem**, which after the cutover is
-  no longer what the site serves. §5.2 specified validating a database export;
-  `serializeSnapshot`/`parseSnapshot` exist in `adapters/database.ts` and
-  nothing calls them. Task 1.
 - **Browser mutations are not audited.** `cms_audit_log` records MCP writes
   only, so the trail answers "what did the agent do" and not "who changed this
   page". Task 3.
@@ -804,7 +800,7 @@ none of them.
 ### 10.4 Merge and deploy
 
 - [x] Merge `main` into `cms`, resolve any drift, and re-run the floor:
-      `build`, `lint`, `typecheck`, `test`, `test:db`, `validate:content`.
+      `build`, `lint`, `typecheck`, `test`, `test:db`.
 - [x] Merge `cms` into `main`.
 - [x] Watch the deployment build. It reads production content now, so a failure
       here is the guardrail working — investigate rather than retry.
@@ -832,8 +828,8 @@ and inert to the old code, so nothing about the database needs undoing.
 
 ### 10.6 Cleanup
 
-- [x] Do Task 1 (snapshot validation) **before** deleting anything, so
-      `validate:content` keeps working.
+- [x] Add the database-free CI fixture corpus before deleting the filesystem
+      content, so builds still exercise every public content path.
 - [ ] Delete the guide `.mdx` files, the statistics and research `.mdx` and
       their `pages.ts` registries, `src/content/guias/guides.ts`, and both
       importers.
@@ -879,18 +875,13 @@ verifying locally.
 Ordered roughly by how much they are missed, not by size. Nothing here is
 required for the migration in §10.
 
-### Task 1 — Validate the published corpus, not the filesystem
+### Task 1 — CI content boundary
 
-`validate:content` reads the `.mdx` sources, which after the cutover are not
-what the site serves, and CMS validation only runs on write — so nothing checks
-that the _published_ corpus is still valid after a validator changes, a category
-id is retired or a schema tightens. §5.2 specified validating a database export
-and the machinery exists (`serializeSnapshot` / `parseSnapshot`) with no caller.
-
-- Add a command that exports a deterministic snapshot of every section.
-- Commit the snapshot, and point `validate:content` at it so CI keeps its
-  content check without needing database access.
-- Blocks the `.mdx` removal in §10.6.
+Resolved with one deterministic in-memory fixture per CMS section. CI builds
+and prerenders those pages and verifies they appear in `sitemap.xml`,
+`feed.xml`, and `llms.txt`. Production builds use PostgreSQL and the real CMS
+corpus. No editorial snapshot is committed, and publishing never requires a
+repository change.
 
 ### Task 2 — Revisions and change history
 

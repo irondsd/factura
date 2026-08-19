@@ -7,26 +7,26 @@ import {
 } from "@/content/guias/categories";
 import { relatedDocuments } from "../document";
 import type { ContentDocument, ContentSummary } from "../types";
-import { postgresContentRepository } from "./postgres";
+import { publicContentRepository } from "./public";
 
 // The public guides read model. Keeping the cache at this call site (rather
 // than inside PostgresContentRepository) lets the CMS use the same repository
 // uncached while making the public one-hour TTL explicit and testable.
 // `revalidate` must remain a literal for Next's static analysis.
 const listPublishedGuides = unstable_cache(
-  () => postgresContentRepository.listPublished("guias"),
+  () => publicContentRepository.listPublished("guias"),
   ["content", "guias", "published"],
   { revalidate: 3600 },
 );
 
 const listRenderableGuides = unstable_cache(
-  () => postgresContentRepository.listPubliclyRenderable("guias"),
+  () => publicContentRepository.listPubliclyRenderable("guias"),
   ["content", "guias", "renderable"],
   { revalidate: 3600 },
 );
 
 const getGuideBySlug = unstable_cache(
-  (slug: string) => postgresContentRepository.getByPath("guias", [slug]),
+  (slug: string) => publicContentRepository.getByPath("guias", [slug]),
   ["content", "guias", "path"],
   { revalidate: 3600 },
 );

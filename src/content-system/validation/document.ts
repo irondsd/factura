@@ -16,9 +16,8 @@ import { missingKeywordWords } from "./text";
 // that need to resolve a slug.
 //
 // Pure: no filesystem, no database, no compilation. That is what lets the same
-// function serve `bun run validate:content`, the CMS Validation tab, the MCP's
-// `validate_content`, and the publish gate — instead of the four of them
-// slowly disagreeing about what a valid guide is.
+// function serve the CMS Validation tab, the MCP's `validate_content`, and the
+// publish gate — instead of the three of them slowly disagreeing.
 //
 // Messages are carried over from `scripts/validate-guides.ts` close to verbatim
 // (cms.md Phase 4: "Preserve existing validator messages where practical"), so

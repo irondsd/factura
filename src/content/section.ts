@@ -48,8 +48,9 @@ export type ContentSection = SectionConfig & {
   base: string;
   slugPath(slug: string[]): string;
   href(slug: string[]): string;
-  /** No filesystem registry remains, so CMS routes render on demand. */
-  slugs(): string[][];
+  /** Known CMS paths to warm at build time. Unknown paths still render on
+   * demand because the page routes keep `dynamicParams = true`. */
+  slugs(): Promise<string[][]>;
   load(slug: string[]): Promise<{
     Content: ComponentType<{ components?: MDXComponents }>;
     meta: SectionMeta;
@@ -113,7 +114,11 @@ export function createSection(config: SectionConfig): ContentSection {
     base,
     slugPath,
     href,
-    slugs: () => [],
+    async slugs() {
+      return (await repository.listPubliclyRenderable()).map((document) =>
+        document.slug.split("/"),
+      );
+    },
     async load(slug) {
       const document = await repository.getByPath(slugPath(slug));
       if (!document) return null;

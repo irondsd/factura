@@ -8,8 +8,8 @@ import { fold } from "./text";
 // Two pages sharing a <title> or a description are two pages competing for one
 // search result with the same words, which is how a growing section starts
 // cannibalizing itself. That is invisible to a per-document pass by
-// construction, which is why it lives here and why `bun run validate:content`
-// runs every section in one invocation rather than shelling out per section.
+// construction, which is why the CMS publication gate validates the whole
+// collection rather than checking the edited document in isolation.
 
 export const COLLECTION_CODES = {
   duplicateSlug: "collection.duplicate-slug",
