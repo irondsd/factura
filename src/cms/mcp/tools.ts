@@ -1,8 +1,8 @@
 import "server-only";
-import { z } from "zod";
+import { toJSONSchema, z } from "zod";
 import { isContentSection, isContentStatus } from "@/content-system/types";
 import { cmsContentService } from "@/cms/server/service";
-import type { CmsTokenCaller, CmsScope } from "./tokens";
+import { hasScope, type CmsTokenCaller, type CmsScope } from "./tokens";
 
 const section = z.string().refine(isContentSection, "Unknown content section.");
 const status = z.string().refine(isContentStatus, "Unknown content status.");
@@ -130,3 +130,10 @@ export const CMS_TOOLS: Tool[] = [
 
 export const findCmsTool = (name: string): Tool | undefined =>
   CMS_TOOLS.find((tool) => tool.name === name);
+
+export const cmsToolListing = (scopes: readonly CmsScope[]) =>
+  CMS_TOOLS.filter((tool) => hasScope(scopes, tool.scope)).map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    inputSchema: toJSONSchema(tool.schema),
+  }));

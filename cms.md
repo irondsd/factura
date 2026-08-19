@@ -277,12 +277,12 @@ Create one typed manifest that controls rendering and authoring:
 
 ```ts
 type ContentComponentDefinition = {
-  component: React.ComponentType<unknown>;
-  sections: readonly ContentSection[];
-  kind: "leaf" | "container";
-  props: z.ZodType;
-  description: string;
-};
+  component: React.ComponentType<unknown>
+  sections: readonly ContentSection[]
+  kind: 'leaf' | 'container'
+  props: z.ZodType
+  description: string
+}
 ```
 
 The manifest is the source of truth for:
@@ -455,16 +455,16 @@ Refactor existing validation into pure functions without losing the CLI checks.
 Expose pure entry points similar to:
 
 ```ts
-validateContentDocument(document, index, level);
-validateContentCollection(documents);
-buildContentIndex(documents);
+validateContentDocument(document, index, level)
+validateContentCollection(documents)
+buildContentIndex(documents)
 ```
 
 Keep adapters for:
 
 ```ts
-documentsFromFilesystem(); // CI and migration comparison
-documentsFromDatabase(); // CMS and public site
+documentsFromFilesystem() // CI and migration comparison
+documentsFromDatabase() // CMS and public site
 ```
 
 The existing `bun run validate:content` command must continue to work during
@@ -495,12 +495,9 @@ Introduce a repository contract before changing routes:
 
 ```ts
 interface ContentRepository {
-  getByPath(
-    section: ContentSection,
-    slug: string[],
-  ): Promise<ContentDocument | null>;
-  listPublished(section: ContentSection): Promise<ContentSummary[]>;
-  listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>;
+  getByPath(section: ContentSection, slug: string[]): Promise<ContentDocument | null>
+  listPublished(section: ContentSection): Promise<ContentSummary[]>
+  listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>
 }
 ```
 
@@ -1621,8 +1618,8 @@ repository rollback switch.
 ### Phase 8 — Add CMS MCP
 
 - [x] Add `cms_api_tokens` and token hashing/verification helpers.
-- [ ] Add an admin-only `/cms/tokens` screen for create, list, and revoke.
-- [ ] Show plaintext tokens once and never persist or log them.
+- [x] Add an admin-only `/cms/tokens` screen for create, list, and revoke.
+- [x] Show plaintext tokens once and never persist or log them.
 - [x] Add `/api/cms/mcp` with separate protected-resource identity, scopes, CORS,
       rate limiting, instructions, and tool registry.
 - [x] Implement `list_content` and `get_content` through the CMS service.
@@ -1631,40 +1628,91 @@ repository rollback switch.
 - [x] Implement `validate_content` with structured diagnostics.
 - [x] Implement `set_content_status` through the shared transition service.
 - [x] Re-check membership, role, scope, expiry, and revocation on every call.
-- [ ] Add mutation audit logs that exclude token values and content bodies.
+- [x] Add mutation audit logs that exclude token values and content bodies.
 - [ ] Add protocol, auth, scope, role, validation, conflict, rate-limit, and
       mutation tests.
-- [ ] Verify a real MCP client can create, edit, validate, preview, and explicitly
+- [x] Verify a real MCP client can create, edit, validate, preview, and explicitly
       publish a test guide locally.
 - [ ] Verify an ordinary Factura MCP token cannot discover or call CMS tools.
 
 **Gate:** Browser and MCP mutations have identical authorization, validation,
 and lifecycle semantics.
 
+#### Phase 8 implementation note
+
+Recorded 2026-08-18, against local PostgreSQL only. The admin token screen
+creates, lists, one-time reveals, and revokes `cms_api_token` credentials.
+The CMS MCP reuses `CmsContentService`; its tool schemas are emitted as JSON
+Schema. A disposable local token completed the full lifecycle through MCP:
+create, preview, publish, then unpublish back to draft. Mutation audit rows
+record actor, page, operation, result, and timestamp only — never a token value
+or content body. A disposable ordinary `fct_pat_` Factura token was rejected
+with `401` by `/api/cms/mcp`; that endpoint accepts only the distinct
+`fct_cms_` credential family. Dedicated protocol/auth/scope/role/validation/
+conflict/rate-limit test coverage remains open.
+
 ### Phase 9 — Final verification and handoff
 
-- [ ] Run `bun run build` first.
-- [ ] Run `bun run lint`.
-- [ ] Run `bun run typecheck`.
-- [ ] Run `bun run test`.
-- [ ] Run `bun run validate:content` against the post-cutover source.
-- [ ] Start PostgreSQL and the local dev server on port 4000.
-- [ ] Sign in through the documented OTP flow as a manually authorized CMS
+- [x] Run `bun run build` first.
+- [x] Run `bun run lint`.
+- [x] Run `bun run typecheck`.
+- [x] Run `bun run test`.
+- [x] Run `bun run validate:content` against the post-cutover source.
+- [x] Start PostgreSQL and the local dev server on port 4000.
+- [x] Sign in through the documented OTP flow as a manually authorized CMS
       member.
-- [ ] Exercise draft, preview, publish, published edit, unpublish, conflict, and
+- [x] Exercise draft, preview, publish, published edit, unpublish, conflict, and
       forbidden-user paths in the browser.
-- [ ] Inspect desktop and tablet CMS layouts visually.
-- [ ] Inspect representative public guides and their HTML metadata.
-- [ ] Check sitemap, feed, `llms.txt`, categories, related guides, and OG routes.
-- [ ] Confirm a new slug renders without a deployment.
-- [ ] Confirm a draft returns 404 publicly and a preview emits `noindex`.
-- [ ] Confirm every browser, migration, validation, and MCP verification above
+- [x] Inspect desktop and tablet CMS layouts visually.
+- [x] Inspect representative public guides and their HTML metadata.
+- [x] Check sitemap, feed, `llms.txt`, categories, related guides, and OG routes.
+- [x] Confirm a new slug renders without a deployment.
+- [x] Confirm a draft returns 404 publicly and a preview emits `noindex`.
+- [x] Confirm every browser, migration, validation, and MCP verification above
       used the local database and no production credentials.
-- [ ] Document production migration, backup, rollback, and manual CMS membership
+- [x] Document production migration, backup, rollback, and manual CMS membership
       commands.
-- [ ] Record intentionally deferred work in the long-term section below.
+- [x] Record intentionally deferred work in the long-term section below.
 
 **Local implementation is complete only when every Phase 9 check passes.**
+
+#### Phase 9 verification and operations note
+
+Recorded 2026-08-18 against local PostgreSQL and `http://localhost:4000`
+only. The browser session for a local, manually granted admin completed draft
+→ preview → published → published edit → draft. A deliberately stale editor
+save showed the optimistic-concurrency message without overwriting the row.
+Temporarily removing that same local account's `cms_member` row returned `404`
+for its existing authenticated session; its original `admin` membership was
+restored immediately afterwards. Desktop (1440×900) and tablet (768×1024)
+CMS layouts were visually inspected.
+
+The representative guide, sitemap, feed, `llms.txt`, category page, related
+guides section, and guide OG image all returned `200`. The guide HTML included
+JSON-LD, its expected canonical URL, and `index, follow` robots metadata. A
+new guide slug created locally rendered without a deployment. A separate,
+never-requested local draft returned `404` from its public URL; a preview
+returned `200` with `noindex, nofollow, nocache`.
+
+Production remains deliberately untouched. When the branch-wide rollout is
+explicitly authorized, take and verify a database backup before the reviewed
+`bun run db:push`; record its immutable backup reference, source commit,
+operator, and timestamp. Then run every importer in dry-run mode, review
+counts, perform imports, compare parity, and grant membership manually:
+
+```sql
+insert into cms_member (user_id, role)
+select id, 'admin' from users where email = 'operator@example.com'
+on conflict (user_id) do update set role = excluded.role;
+```
+
+If migration or parity fails, stop before merging or cutting public reads over;
+restore the verified backup if needed and keep repository MDX available. The
+database schema is additive, so content rollback is a repository-read switch,
+not a destructive schema rollback. That switch and the importer rollback/
+re-import test are intentionally deferred Phase 7 work; revision history,
+immediate public invalidation, media management, statistics, and research
+migration remain deferred as listed in sections 12–14.
 
 ### Phase 10 — Guide milestone checkpoint on `cms`
 

@@ -7,7 +7,7 @@ import {
   rpcError,
   rpcResult,
 } from "@/server/mcp/protocol";
-import { CMS_TOOLS, findCmsTool } from "./tools";
+import { cmsToolListing, findCmsTool } from "./tools";
 import { hasScope, type CmsTokenCaller } from "./tokens";
 import { CmsValidationError } from "@/cms/server/errors";
 import { db } from "@/db";
@@ -33,15 +33,7 @@ export async function handleCmsMessage(
     });
   if (message.method === "ping") return rpcResult(id, {});
   if (message.method === "tools/list")
-    return rpcResult(id, {
-      tools: CMS_TOOLS.filter((t) => hasScope(caller.scopes, t.scope)).map(
-        (t) => ({
-          name: t.name,
-          description: t.description,
-          inputSchema: t.schema,
-        }),
-      ),
-    });
+    return rpcResult(id, { tools: cmsToolListing(caller.scopes) });
   if (message.method !== "tools/call")
     return rpcError(
       id,
