@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  deleteContentAction,
   saveContentAction,
   setContentStatusAction,
   validateContentAction,
@@ -15,7 +16,7 @@ import {
   toPatch,
 } from "@/cms/forms/fields";
 import type { CmsSection } from "@/cms/sections";
-import { cmsPreviewPath } from "@/cms/sections";
+import { cmsPreviewPath, cmsSectionPath } from "@/cms/sections";
 import type {
   ContentDocument,
   ContentStatus,
@@ -230,6 +231,39 @@ export function PageEditor({
     setBusy(false);
   };
 
+  /** Delete the page. Confirmed in `DeletePanel` by typing the word rather
+   * than by a dialog: `window.confirm` is the right weight for a status flip
+   * that can be flipped back, and the wrong weight for the one action in the
+   * CMS with nothing behind it to restore from. */
+  const remove = async () => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const result = await deleteContentAction(section.id, {
+        id: page.id,
+        expectedLockVersion: lockVersion,
+      });
+      if (result.ok) {
+        // Leave first, and stay busy while doing it: this editor is bound to a
+        // row that no longer exists, and anything it re-renders from here is
+        // showing a page that is gone.
+        router.push(cmsSectionPath(section.id));
+        router.refresh();
+        return;
+      }
+      setNotice({
+        kind: "error",
+        text:
+          result.kind === "conflict"
+            ? "Alguien más guardó esta página mientras la tenías abierta. Recarga y vuelve a mirarla antes de eliminarla."
+            : result.message,
+      });
+    } catch {
+      setNotice({ kind: "error", text: UNEXPECTED });
+    }
+    setBusy(false);
+  };
+
   const grouped = useMemo(
     () =>
       FIELD_GROUPS.map((group) => ({
@@ -335,7 +369,7 @@ export function PageEditor({
               type="button"
               onClick={save}
               disabled={busy}
-              className="border border-accent bg-accent px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper disabled:opacity-50"
+              className="border border-ink bg-ink px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper transition-colors hover:border-accent hover:bg-accent disabled:opacity-50"
             >
               {busy ? "…" : "Guardar"}
             </button>
@@ -378,6 +412,8 @@ export function PageEditor({
               ))}
             </section>
           ))}
+
+          <DeletePanel status={status} busy={busy} onDelete={remove} />
         </aside>
       </div>
     </div>
@@ -443,6 +479,37 @@ function PreviewPane({ src, dirty }: { src: string; dirty: boolean }) {
   );
 }
 
+/** The three destinations, each with its own weight.
+ *
+ * They used to be three identical bordered rows in 12px sentence case, which
+ * put «Publicar» and the title field one line apart in the same shape — the
+ * most consequential control on the page and a text input, told apart only by
+ * reading them. So: uppercase mono, which nothing in this sidebar's forms uses;
+ * the same mark the status chip carries, so the button and the state it leads
+ * to are recognisably the same thing; and a fill that tracks how public the
+ * destination is — dashed and quiet on the way back to a draft, outlined in
+ * ochre for a preview, solid for the one that puts a page in front of readers. */
+const TRANSITIONS: Record<
+  ContentStatus,
+  { mark: string; label: string; tone: string }
+> = {
+  draft: {
+    mark: "○",
+    label: "Volver a borrador",
+    tone: "border-dashed border-line text-muted hover:border-ink hover:text-ink",
+  },
+  preview: {
+    mark: "◐",
+    label: "Poner en vista previa",
+    tone: "border-[var(--vendor-ochre)] text-[var(--vendor-ochre)] hover:bg-[var(--vendor-ochre)] hover:text-paper",
+  },
+  published: {
+    mark: "●",
+    label: "Publicar",
+    tone: "border-ok bg-ok text-paper hover:border-ink hover:bg-ink",
+  },
+};
+
 function StatusControls({
   status,
   busy,
@@ -470,9 +537,13 @@ function StatusControls({
             type="button"
             onClick={() => onTransition(target)}
             disabled={busy || dirty}
-            className="border border-line px-3 py-2 text-left font-mono text-[12px] text-ink hover:border-accent disabled:opacity-45"
+            className={cn(
+              "inline-flex items-center gap-2 border px-3 py-2 text-left font-mono text-micro uppercase tracking-label-wide transition-colors disabled:opacity-45",
+              TRANSITIONS[target].tone,
+            )}
           >
-            {actionLabel(target)}
+            <span aria-hidden="true">{TRANSITIONS[target].mark}</span>
+            {TRANSITIONS[target].label}
           </button>
         ))}
       </div>
@@ -480,6 +551,105 @@ function StatusControls({
         <p className="font-mono text-[11px] text-muted mt-2 mb-0">
           Guarda los cambios para poder cambiar el estado.
         </p>
+      )}
+    </section>
+  );
+}
+
+/** Deleting a page, at the bottom of the sidebar and behind two steps.
+ *
+ * Only a draft can go, and the panel says so rather than hiding: "why is there
+ * no delete here" is a worse question than a sentence explaining that a live
+ * page is unpublished first. The confirmation is a typed word, not a dialog —
+ * every other control here is reversible, this one has no revision history
+ * behind it, and a `window.confirm` dismissed by reflex is the same click as
+ * the button that opened it. */
+function DeletePanel({
+  status,
+  busy,
+  onDelete,
+}: {
+  status: ContentStatus;
+  busy: boolean;
+  onDelete: () => void;
+}) {
+  const [armed, setArmed] = useState(false);
+  const [typed, setTyped] = useState("");
+
+  const deletable = status === "draft";
+  const confirmed = typed.trim().toUpperCase() === "ELIMINAR";
+
+  return (
+    <section className="border-t border-line pt-6 mb-8">
+      <h2 className="font-mono text-micro uppercase tracking-label-wide text-muted mb-3">
+        Eliminar
+      </h2>
+
+      {!deletable && (
+        <p className="font-mono text-[12px] leading-[1.6] text-muted m-0">
+          Solo se eliminan borradores. Vuelve la página a borrador si quieres
+          eliminarla.
+        </p>
+      )}
+
+      {deletable && !armed && (
+        <>
+          <p className="font-mono text-[12px] leading-[1.6] text-muted mt-0 mb-3">
+            Se borra de la base de datos para siempre. No hay historial ni copia
+            de la que recuperarla.
+          </p>
+          <button
+            type="button"
+            onClick={() => setArmed(true)}
+            disabled={busy}
+            className="inline-flex items-center gap-2 border border-accent px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-accent transition-colors hover:bg-accent hover:text-paper disabled:opacity-45"
+          >
+            <span aria-hidden="true">✕</span>
+            Eliminar esta página
+          </button>
+        </>
+      )}
+
+      {deletable && armed && (
+        <div className="border border-accent px-4 py-4">
+          <label
+            htmlFor="cms-delete-confirm"
+            className="block font-mono text-[12px] leading-[1.6] text-ink mb-3"
+          >
+            Escribe <strong className="font-semibold">ELIMINAR</strong> para
+            confirmar que esta página desaparece para siempre.
+          </label>
+          <input
+            id="cms-delete-confirm"
+            autoFocus
+            value={typed}
+            onChange={(event) => setTyped(event.target.value)}
+            autoComplete="off"
+            className="w-full border border-line bg-paper px-3 py-2 font-mono text-[13px] text-ink focus:border-accent focus:outline-none"
+          />
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={busy || !confirmed}
+              className="inline-flex items-center gap-2 border border-accent bg-accent px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-paper transition-colors hover:border-ink hover:bg-ink disabled:opacity-45"
+            >
+              <span aria-hidden="true">✕</span>
+              {busy ? "…" : "Eliminar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setArmed(false);
+                setTyped("");
+              }}
+              disabled={busy}
+              className="px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-muted transition-colors hover:text-accent disabled:opacity-45"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
       )}
     </section>
   );
@@ -533,13 +703,6 @@ function ConflictNotice({ body }: { body: string }) {
     </div>
   );
 }
-
-const actionLabel = (target: ContentStatus): string =>
-  target === "published"
-    ? "Publicar"
-    : target === "preview"
-      ? "Poner en vista previa"
-      : "Volver a borrador";
 
 function confirmText(next: ContentStatus, from: ContentStatus): string {
   if (next === "published") {

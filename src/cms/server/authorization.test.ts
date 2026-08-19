@@ -73,6 +73,10 @@ function fakeStore(current: ContentDocument) {
         writes.push("update");
         return current;
       },
+      deleteWithLock: async () => {
+        writes.push("delete");
+        return true;
+      },
     } as unknown as CmsPageStore,
   };
 }
@@ -118,6 +122,23 @@ describe("authoring", () => {
         id: documentAt("draft").id,
         expectedLockVersion: 1,
         patch: { title: "Otro título" },
+      }),
+    ).rejects.toBeInstanceOf(CmsForbiddenError);
+    expect(writes).toEqual([]);
+  });
+
+  it("refuses a delete when the actor may not author", async () => {
+    // Deleting is gated on authoring rather than on publishing because only a
+    // draft can be deleted — nothing public is at stake, and an actor who may
+    // not edit a draft has no business removing it either.
+    canAuthor.mockReturnValue(false);
+    const { store, writes } = fakeStore(documentAt("draft"));
+    const service = new CmsContentService(permissive, store);
+
+    await expect(
+      service.delete(actor, {
+        id: documentAt("draft").id,
+        expectedLockVersion: 1,
       }),
     ).rejects.toBeInstanceOf(CmsForbiddenError);
     expect(writes).toEqual([]);

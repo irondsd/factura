@@ -212,6 +212,33 @@ export class CmsPageStore {
     return row ? rowToDocument(row) : null;
   }
 
+  /** Remove a row if and only if it is still at `expectedLockVersion`.
+   *
+   * The same bargain as `updateWithLock`, for the same reason: the version
+   * belongs in the WHERE clause rather than in a JavaScript check before it, or
+   * there is a window in which somebody else's save lands and is then deleted
+   * without ever being seen. `false` means the version moved or the page was
+   * already gone; the caller turns that into a conflict.
+   *
+   * Nothing here decides *whether* a page may be deleted — `contentService`
+   * does, and it refuses anything that is not an unpublished, childless
+   * draft. */
+  async deleteWithLock(input: {
+    id: string;
+    expectedLockVersion: number;
+  }): Promise<boolean> {
+    const rows = await this.db
+      .delete(cmsPages)
+      .where(
+        and(
+          eq(cmsPages.id, input.id),
+          eq(cmsPages.lockVersion, input.expectedLockVersion),
+        ),
+      )
+      .returning({ id: cmsPages.id });
+    return rows.length > 0;
+  }
+
   /** The current version of a page, for reporting a conflict accurately. Null
    * when the page does not exist at all. */
   async lockVersionOf(id: string): Promise<number | null> {
