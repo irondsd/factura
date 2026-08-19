@@ -364,12 +364,12 @@ export function PageEditor({
         </section>
 
         <aside className="min-w-0">
-          <div className="flex flex-wrap gap-2 mb-7">
+          <div className="flex gap-2 mb-7">
             <button
               type="button"
               onClick={save}
               disabled={busy}
-              className="border border-ink bg-ink px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper transition-colors hover:border-accent hover:bg-accent disabled:opacity-50"
+              className="border w-1/2 cursor-pointer border-accent bg-accent px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper transition-colors hover:border-ink hover:bg-ink disabled:opacity-50"
             >
               {busy ? "…" : "Guardar"}
             </button>
@@ -378,9 +378,9 @@ export function PageEditor({
               onClick={check}
               disabled={busy}
               title="Comprueba la página contra todo lo que hace falta para publicarla"
-              className="border border-line px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent disabled:opacity-50"
+              className="border w-1/2 cursor-pointer border-line px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent disabled:opacity-50"
             >
-              Revisar para publicar
+              Revisar
             </button>
           </div>
 
@@ -538,7 +538,7 @@ function StatusControls({
             onClick={() => onTransition(target)}
             disabled={busy || dirty}
             className={cn(
-              "inline-flex items-center gap-2 border px-3 py-2 text-left font-mono text-micro uppercase tracking-label-wide transition-colors disabled:opacity-45",
+              "inline-flex cursor-pointer items-center gap-2 border px-3 py-2 text-left font-mono text-micro uppercase tracking-label-wide transition-colors disabled:opacity-45",
               TRANSITIONS[target].tone,
             )}
           >
