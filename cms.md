@@ -223,12 +223,12 @@ Create one typed manifest that controls rendering and authoring:
 
 ```ts
 type ContentComponentDefinition = {
-  component: React.ComponentType<unknown>
-  sections: readonly ContentSection[]
-  kind: 'leaf' | 'container'
-  props: z.ZodType
-  description: string
-}
+  component: React.ComponentType<unknown>;
+  sections: readonly ContentSection[];
+  kind: "leaf" | "container";
+  props: z.ZodType;
+  description: string;
+};
 ```
 
 The manifest is the source of truth for:
@@ -401,15 +401,15 @@ Refactor existing validation into pure functions without losing the CLI checks.
 Expose pure entry points similar to:
 
 ```ts
-validateContentDocument(document, index, level)
-validateContentCollection(documents)
-buildContentIndex(documents)
+validateContentDocument(document, index, level);
+validateContentCollection(documents);
+buildContentIndex(documents);
 ```
 
 Keep an adapter for:
 
 ```ts
-documentsFromDatabase() // CMS and public site
+documentsFromDatabase(); // CMS and public site
 ```
 
 After cutover, content validation belongs to the CMS publication workflow. CI
@@ -440,9 +440,12 @@ Introduce a repository contract before changing routes:
 
 ```ts
 interface ContentRepository {
-  getByPath(section: ContentSection, slug: string[]): Promise<ContentDocument | null>
-  listPublished(section: ContentSection): Promise<ContentSummary[]>
-  listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>
+  getByPath(
+    section: ContentSection,
+    slug: string[],
+  ): Promise<ContentDocument | null>;
+  listPublished(section: ContentSection): Promise<ContentSummary[]>;
+  listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>;
 }
 ```
 

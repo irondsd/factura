@@ -113,47 +113,50 @@ export function PageEditor({
     return { ...columns, metadata, body };
   }, [fields, values, body]);
 
-  const handle = <T,>(
-    result: CmsActionResult<T>,
-    onOk: (data: T) => void,
-    okText: string,
-  ) => {
-    if (result.ok) {
-      setConflict(false);
-      setDiagnostics([]);
-      setCheckedLevel(levelForStatus(status));
-      onOk(result.data);
-      setNotice({ kind: "ok", text: okText });
-      return;
-    }
-    if (result.kind === "conflict") {
-      // No notice: `ConflictNotice` below is the message, in Spanish and with
-      // the recovery path attached. The service's own wording is
-      // developer-facing and names a UUID.
-      setConflict(true);
-      setNotice(null);
-      return;
-    }
-    if (result.kind === "invalid") {
-      const diagnostics = result.diagnostics ?? [];
-      const errors = diagnostics.filter((d) => d.severity === "error").length;
-      setDiagnostics(diagnostics);
-      setCheckedLevel(levelForStatus(status));
-      setTab("validation");
-      // The service's own message is developer-facing English; the console is
-      // Spanish, and the detail is in the panel below anyway.
-      setNotice({
-        kind: "error",
-        text: `No se guardó: ${errors} ${errors === 1 ? "problema" : "problemas"} que hay que resolver primero. Están abajo, en Revisión.`,
-      });
-      return;
-    }
-    // `slug_taken`, `forbidden` and `not_found` do carry a message worth
-    // showing: they name the slug, the permission or the page.
-    setNotice({ kind: "error", text: result.message });
-  };
+  const handle = useCallback(
+    <T,>(
+      result: CmsActionResult<T>,
+      onOk: (data: T) => void,
+      okText: string,
+    ) => {
+      if (result.ok) {
+        setConflict(false);
+        setDiagnostics([]);
+        setCheckedLevel(levelForStatus(status));
+        onOk(result.data);
+        setNotice({ kind: "ok", text: okText });
+        return;
+      }
+      if (result.kind === "conflict") {
+        // No notice: `ConflictNotice` below is the message, in Spanish and with
+        // the recovery path attached. The service's own wording is
+        // developer-facing and names a UUID.
+        setConflict(true);
+        setNotice(null);
+        return;
+      }
+      if (result.kind === "invalid") {
+        const diagnostics = result.diagnostics ?? [];
+        const errors = diagnostics.filter((d) => d.severity === "error").length;
+        setDiagnostics(diagnostics);
+        setCheckedLevel(levelForStatus(status));
+        setTab("validation");
+        // The service's own message is developer-facing English; the console is
+        // Spanish, and the detail is in the panel below anyway.
+        setNotice({
+          kind: "error",
+          text: `No se guardó: ${errors} ${errors === 1 ? "problema" : "problemas"} que hay que resolver primero. Están abajo, en Revisión.`,
+        });
+        return;
+      }
+      // `slug_taken`, `forbidden` and `not_found` do carry a message worth
+      // showing: they name the slug, the permission or the page.
+      setNotice({ kind: "error", text: result.message });
+    },
+    [status],
+  );
 
-  const save = async () => {
+  const save = useCallback(async () => {
     setBusy(true);
     setNotice(null);
     try {
@@ -175,7 +178,29 @@ export function PageEditor({
       setNotice({ kind: "error", text: UNEXPECTED });
     }
     setBusy(false);
-  };
+  }, [handle, lockVersion, page.id, patch, router, section.id, values, body]);
+
+  // Keep the browser's familiar save shortcut inside the CMS. Capture it at
+  // window level so it also works while the CodeMirror editor has focus, and
+  // use the same save path as the visible button so metadata and Markdown are
+  // committed together.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.isComposing ||
+        !event.metaKey ||
+        event.key.toLowerCase() !== "s"
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      if (!busy) void save();
+    };
+
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [busy, save]);
 
   const check = async () => {
     setBusy(true);
