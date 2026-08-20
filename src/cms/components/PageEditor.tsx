@@ -12,6 +12,7 @@ import {
 import {
   FIELD_GROUPS,
   type FieldDescriptor,
+  fieldState,
   readField,
   toPatch,
 } from "@/cms/forms/fields";
@@ -299,13 +300,39 @@ export function PageEditor({
     setBusy(false);
   };
 
+  // The sidebar, resolved against the document as it stands. A field whose
+  // condition the page does not meet is dropped here rather than rendered
+  // disabled, and a group left with nothing loses its heading too — an empty
+  // «Ubicación» would be as much noise as the field was. Depends on `body`, so
+  // typing `<Faq />` into the Markdown brings its questions into the form
+  // without a save.
   const grouped = useMemo(
     () =>
-      FIELD_GROUPS.map((group) => ({
-        ...group,
-        fields: fields.filter((field) => field.group === group.id),
-      })).filter((group) => group.fields.length > 0),
-    [fields],
+      FIELD_GROUPS.map((group) => {
+        const entries = fields
+          .filter((field) => field.group === group.id)
+          .map((field) => ({ field, ...fieldState(field, { body, values }) }));
+        return {
+          ...group,
+          fields: entries.filter((entry) => entry.visible),
+          // A field only a tag in the body can bring back leaves one line
+          // behind saying which tag. Without it "where did the FAQ go" is a
+          // fair question with no answer anywhere on screen — this editor has
+          // no component palette to discover `<Faq />` from.
+          hints: entries.flatMap((entry) =>
+            !entry.visible && entry.field.placedBy
+              ? [
+                  {
+                    path: entry.field.path,
+                    label: entry.field.label,
+                    component: entry.field.placedBy,
+                  },
+                ]
+              : [],
+          ),
+        };
+      }).filter((group) => group.fields.length > 0 || group.hints.length > 0),
+    [fields, body, values],
   );
 
   const invalidFields = useMemo(
@@ -434,10 +461,11 @@ export function PageEditor({
               <h2 className="font-mono text-micro uppercase tracking-label-wide text-accent border-b border-line pb-2 mb-4">
                 {group.label}
               </h2>
-              {group.fields.map((field) => (
+              {group.fields.map(({ field, required }) => (
                 <MetadataField
                   key={field.path}
                   field={field}
+                  required={required}
                   value={values[field.path]}
                   invalid={invalidFields.has(
                     field.path.replace("metadata.", ""),
@@ -447,6 +475,16 @@ export function PageEditor({
                     setValues((current) => ({ ...current, [field.path]: next }))
                   }
                 />
+              ))}
+              {group.hints.map((hint) => (
+                <p
+                  key={hint.path}
+                  className="font-mono text-[12px] leading-[1.6] text-muted mt-0 mb-6"
+                >
+                  Escribe{" "}
+                  <span className="text-ink">{`<${hint.component} />`}</span> en
+                  el cuerpo para completar «{hint.label}».
+                </p>
               ))}
             </section>
           ))}

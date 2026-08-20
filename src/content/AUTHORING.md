@@ -187,7 +187,7 @@ them flat; `update_content` takes the same names inside `patch`.
 | `body`          | The MDX body                                        | See §6. No frontmatter, no `<h1>`.                                   |
 | `metadata`      | The JSONB half — see the two schemas below          | Required.                                                            |
 | `parentId`      | The editorial tree; null is top level               | Optional. A child's slug must be its parent's slug plus a segment.   |
-| `sortOrder`     | Order among siblings in listings                    | Optional integer. Ties break on slug.                                |
+| `sortOrder`     | Order among siblings in the CMS tree                | Optional integer. Ties break on slug. Only meaningful with a parent. |
 | `crumb`         | Short label for breadcrumbs and index rows          | Optional. "GBA" for "Inflación de vivienda en el Gran Buenos Aires". |
 
 **Slugs are set once.** Changing one changes the URL and breaks every inbound
@@ -275,8 +275,11 @@ Two is the usual number: one for the _topic_, one for the _task_.
 Two fields here have no guides equivalent and carry most of the weight:
 
 - **`sources`** — where the numbers came from, one entry per dataset, with a
-  real link. `<Fuentes />` in the body renders them. A statistics page without
-  sources is an opinion piece with charts; write them.
+  real link. `<Fuentes />` in the body renders them, and only there: a page that
+  does not place the tag cannot show its sources however carefully they are
+  filled in. So the rule follows the tag — place `<Fuentes />` and the sources
+  are required; leave it out and the validator advises rather than refuses. A
+  statistics page without sources is an opinion piece with charts; write them.
 - **`dataset`** — provenance for the JSON-LD `Dataset` markup. Fill it when the
   page _is_ a dataset read-out, which most statistics pages are.
 

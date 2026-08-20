@@ -48,6 +48,26 @@ export type FieldDescriptor = {
    * SEO jargon — see the Phase 5 gate. */
   help?: string;
   required?: boolean;
+  /** The body component this field feeds. Such a field is shown while the body
+   * places that component — and required exactly then. `<Faq />` is where the
+   * questions render and `<Fuentes />` is where the sources render, so a body
+   * without the tag has nothing to fill in and nothing worth demanding.
+   *
+   * A field that already holds a value stays on screen whatever the body says:
+   * hiding a control is a way to keep a form short, never a way to strand data
+   * the editor can no longer reach. */
+  placedBy?: string;
+  /** Another field this one depends on, by path. Shown only while that field
+   * has a value — `sortOrder` positions a page among its siblings, and a page
+   * with no mother has none.
+   *
+   * Unlike `placedBy` there is no escape hatch for a value already set, because
+   * there is nothing to strand: the number is submitted unchanged whether or
+   * not the form shows it, and it comes back the moment a mother is chosen.
+   * Most top-level pages carry a leftover order from when section listings
+   * still read it, and honouring those would leave the field on screen almost
+   * everywhere — which is the thing being fixed. */
+  enabledBy?: string;
   /** Shown, but not editable and never sent in a patch.
    *
    * For a value that is set at creation and cannot be changed afterwards. The
@@ -103,8 +123,9 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     path: "sortOrder",
     label: "Orden",
     kind: "number",
+    enabledBy: "parentId",
     group: "estructura",
-    help: "En qué posición aparece entre sus hermanas. Menor va primero; si empatan, se ordenan por dirección.",
+    help: "En qué posición aparece entre las demás hijas de la misma madre. Menor va primero; si empatan, se ordenan por dirección.",
   },
   {
     path: "description",
@@ -171,8 +192,9 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     path: "metadata.faq",
     label: "Preguntas frecuentes",
     kind: "faq",
+    placedBy: "Faq",
     group: "contenido",
-    help: "De 4 a 6 preguntas reales de búsqueda. Se muestran donde el cuerpo escriba <Faq />, y solo ahí. Las respuestas son texto plano: los enlaces van en el cuerpo.",
+    help: "De 4 a 6 preguntas reales de búsqueda. Se muestran donde el cuerpo escribe <Faq />, y solo ahí. Las respuestas son texto plano: los enlaces van en el cuerpo.",
   },
   {
     path: "metadata.vendor",
@@ -254,8 +276,9 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
     path: "sortOrder",
     label: "Orden",
     kind: "number",
+    enabledBy: "parentId",
     group: "estructura",
-    help: "La posición entre páginas hermanas. Menor va primero.",
+    help: "La posición entre las demás hijas de la misma madre. Menor va primero.",
   },
   {
     path: "description",
@@ -310,9 +333,9 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
     path: "metadata.sources",
     label: "Fuentes",
     kind: "sources",
-    required: true,
+    placedBy: "Fuentes",
     group: "contenido",
-    help: "Añade las fuentes primarias que el artículo muestra con <Fuentes />.",
+    help: "Las fuentes primarias del artículo. Se muestran donde el cuerpo escribe <Fuentes />, y solo ahí.",
   },
   {
     path: "metadata.dataset",
@@ -326,8 +349,9 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
     path: "metadata.faq",
     label: "Preguntas frecuentes",
     kind: "faq",
+    placedBy: "Faq",
     group: "contenido",
-    help: "Opcional. Se muestra donde el cuerpo escriba <Faq />.",
+    help: "Las preguntas se muestran donde el cuerpo escribe <Faq />, y solo ahí.",
   },
   {
     path: "metadata.previewImage",
@@ -383,6 +407,47 @@ export const FIELD_GROUPS: readonly {
   { id: "busqueda", label: "Búsqueda" },
   { id: "social", label: "Redes" },
 ];
+
+/** Whether the body places a content component, by the same test the validator
+ * uses. `\b` after the name so `<Faq />` matches and `<FaqLista />` does not. */
+function bodyPlaces(body: string, component: string): boolean {
+  return new RegExp(`<${component}\\b`).test(body);
+}
+
+/** Whether a field is shown at all, and whether it is required once shown.
+ *
+ * The form used to ask for everything every section could ever need, so half of
+ * a data page's sidebar was fields the page had no use for — an FAQ nobody
+ * would see, an order among siblings a top-level page does not have. A field
+ * whose condition is not met is not on screen, and a field that is not on
+ * screen is not required either: the two answers are one decision, made here,
+ * so the asterisk can never ask for something the form is hiding.
+ *
+ * Hiding never strands editorial data: a `placedBy` field holding a value stays
+ * visible whatever the body says, which is how an editor removes an FAQ after
+ * deleting the `<Faq />` tag instead of leaving questions in the database that
+ * no page shows and no form reaches. Values are submitted either way — a hidden
+ * field is left alone, never cleared. */
+export function fieldState(
+  field: FieldDescriptor,
+  context: { body: string; values: Record<string, unknown> },
+): { visible: boolean; required: boolean } {
+  const required = field.required === true;
+
+  if (field.placedBy) {
+    const placed = bodyPlaces(context.body, field.placedBy);
+    return {
+      visible: placed || !isBlank(context.values[field.path]),
+      required: placed,
+    };
+  }
+
+  if (field.enabledBy) {
+    return { visible: !isBlank(context.values[field.enabledBy]), required };
+  }
+
+  return { visible: true, required };
+}
 
 /** Read a field's value out of a document-shaped object, following the
  * `metadata.` prefix. One function so no component parses a path itself. */

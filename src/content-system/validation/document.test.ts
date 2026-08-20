@@ -108,20 +108,60 @@ describe("statistics and research documents", () => {
     body: "## Los datos\n\n<Fuentes />\n",
   });
 
+  const codesOf = (document: ContentDocument) =>
+    validateDocument(document).diagnostics.map((diagnostic) => diagnostic.code);
+
   it("accepts provenance and a dataset for a publishable data page", () => {
     expect(validateDocument(dataPage()).diagnostics).toEqual([]);
   });
 
-  it("requires provenance and a dataset", () => {
+  it("requires provenance from a page that places <Fuentes />, and a dataset always", () => {
     const document = dataPage();
     document.metadata = { keywords: [], categories: [] };
     const result = validateDocument(document);
-    expect(result.diagnostics.map((diagnostic) => diagnostic.message)).toEqual(
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual(
       expect.arrayContaining([
-        "meta.sources must name at least one source",
-        "meta.dataset is required for statistics and research pages",
+        DOCUMENT_CODES.sourcesPlacedWithoutData,
+        DOCUMENT_CODES.metadataShape,
       ]),
     );
+    expect(
+      result.diagnostics.find(
+        (diagnostic) =>
+          diagnostic.code === DOCUMENT_CODES.sourcesPlacedWithoutData,
+      )?.severity,
+    ).toBe("error");
+  });
+
+  it("treats an empty source list as no sources at all", () => {
+    // `sources: []` used to parse cleanly and slip past the check, so a page
+    // could publish an empty <Fuentes /> block.
+    const document = dataPage();
+    document.metadata = { ...document.metadata, sources: [] };
+    expect(codesOf(document)).toContain(
+      DOCUMENT_CODES.sourcesPlacedWithoutData,
+    );
+  });
+
+  it("only advises about missing provenance when the body never places <Fuentes />", () => {
+    const document = dataPage();
+    document.metadata = { ...document.metadata, sources: [] };
+    document.body = "## Los datos\n\nSin bloque de fuentes.\n";
+    const missing = validateDocument(document).diagnostics.find(
+      (diagnostic) => diagnostic.code === DOCUMENT_CODES.sourcesMissing,
+    );
+    expect(missing?.severity).toBe("warning");
+    // An advisory does not stop the page: warnings never block publication.
+    expect(validateDocument(document).ok).toBe(true);
+  });
+
+  it("advises when sources are typed but never placed", () => {
+    const document = dataPage();
+    document.body = "## Los datos\n\nSin bloque de fuentes.\n";
+    const notPlaced = validateDocument(document).diagnostics.find(
+      (diagnostic) => diagnostic.code === DOCUMENT_CODES.sourcesNotPlaced,
+    );
+    expect(notPlaced?.severity).toBe("warning");
   });
 
   it("does not call valid Fuentes missing when only the dataset is incomplete", () => {
@@ -131,12 +171,19 @@ describe("statistics and research documents", () => {
       dataset: {},
     } as ContentDocument["metadata"];
     const diagnostics = validateDocument(document).diagnostics;
-    expect(diagnostics.map((diagnostic) => diagnostic.message)).not.toContain(
-      "meta.sources must name at least one source",
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).not.toContain(
+      DOCUMENT_CODES.sourcesPlacedWithoutData,
     );
     expect(
       diagnostics.some((diagnostic) => diagnostic.field === "dataset.name"),
     ).toBe(true);
+  });
+
+  it("reports an empty FAQ list under a placed <Faq /> the same as no list", () => {
+    const document = dataPage();
+    document.body = `${document.body}\n<Faq />\n`;
+    document.metadata = { ...document.metadata, faq: [] };
+    expect(codesOf(document)).toContain(DOCUMENT_CODES.faqPlacedWithoutData);
   });
 
   it("keeps FAQ metadata and its visible placement in sync", () => {

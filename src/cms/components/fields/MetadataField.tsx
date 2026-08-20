@@ -22,14 +22,20 @@ export function MetadataField({
   onChange,
   parentOptions,
   invalid,
+  required,
 }: {
   field: FieldDescriptor;
   value: unknown;
   onChange: (next: unknown) => void;
   parentOptions?: readonly ParentOption[];
   invalid?: boolean;
+  /** Whether this field is required *on this page* — `fieldState` resolves it,
+   * because a conditional field is only required while its condition holds.
+   * Falls back to the descriptor for a caller that has no document to ask. */
+  required?: boolean;
 }) {
   const id = useId();
+  const isRequired = required ?? field.required === true;
   const describedBy = field.help ? `${id}-help` : undefined;
 
   // A read-only field renders as text, and there is no form control for a
@@ -46,12 +52,12 @@ export function MetadataField({
         className={labelClass}
       >
         {field.label}
-        {field.required && (
+        {isRequired && (
           <span className="text-accent ml-1" aria-hidden="true">
             *
           </span>
         )}
-        {field.required && <span className="sr-only"> (obligatorio)</span>}
+        {isRequired && <span className="sr-only"> (obligatorio)</span>}
       </Label>
 
       <Control

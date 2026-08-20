@@ -65,6 +65,9 @@ export const DOCUMENT_CODES = {
   faqCount: "doc.faq-count",
   faqNotPlaced: "doc.faq-not-placed",
   faqPlacedWithoutData: "doc.faq-placed-without-data",
+  sourcesMissing: "doc.sources-missing",
+  sourcesNotPlaced: "doc.sources-not-placed",
+  sourcesPlacedWithoutData: "doc.sources-placed-without-data",
   dateFormat: "doc.date-format",
   dateOrder: "doc.date-order",
   descriptionLength: "doc.description-length",
@@ -425,7 +428,9 @@ export function validateDocument(
         ),
       );
     }
-  } else if (placesFaq && rawFaq === undefined) {
+  } else if (placesFaq) {
+    // `faq.length === 0` rather than `rawFaq === undefined`: an empty list and
+    // no list at all put the same nothing under the tag.
     out.push(
       error(
         DOCUMENT_CODES.faqPlacedWithoutData,
@@ -540,22 +545,48 @@ function validateDataSectionDocument(
     }
   }
   const metadata = parsed.success ? parsed.data : null;
-  // Check required composite fields independently. A partial dataset must not
-  // make a valid Fuentes list look absent (or vice versa) in the editor.
+  // Sources and dataset are checked independently of the schema pass above, and
+  // of each other: a partial dataset must not make a valid Fuentes list look
+  // absent (or vice versa) in the editor.
   const raw =
     document.metadata && typeof document.metadata === "object"
       ? (document.metadata as Record<string, unknown>)
       : {};
+
+  // Provenance is expected of a data page, but it is `<Fuentes />` that decides
+  // whether it is *demanded*. The sources render there and nowhere else, so a
+  // page without the tag cannot show them however carefully they are filled in,
+  // and refusing to publish over a list nothing would display was asking for
+  // paperwork. Missing provenance is worth saying out loud either way — as an
+  // advisory when the page does not place the tag, as an error when it does —
+  // and the mirror case, sources typed but never placed, is worth saying too.
+  const placesSources = /<Fuentes\b/.test(document.body);
   const sources = z.array(dataSourceSchema).safeParse(raw.sources);
-  if (
-    !sources.success &&
-    (raw.sources === undefined ||
-      (Array.isArray(raw.sources) && raw.sources.length === 0))
-  ) {
+  const namesSource = sources.success && sources.data.length > 0;
+  // A `sources` that is present but malformed is the shape checker's business:
+  // it has already said what is wrong with it, and "there are none" on top of
+  // that would send the editor looking for a second problem.
+  const unreadable = raw.sources !== undefined && !sources.success;
+  if (!unreadable && !namesSource) {
     out.push(
-      error(
-        DOCUMENT_CODES.metadataShape,
-        "meta.sources must name at least one source",
+      placesSources
+        ? error(
+            DOCUMENT_CODES.sourcesPlacedWithoutData,
+            "body places <Fuentes /> but meta.sources names no source",
+            "sources",
+          )
+        : warn(
+            DOCUMENT_CODES.sourcesMissing,
+            "meta.sources names no source — a data page should say where its numbers come from, and place <Fuentes /> where they belong",
+            "sources",
+          ),
+    );
+  }
+  if (namesSource && !placesSources) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.sourcesNotPlaced,
+        "meta.sources is set but the body never places <Fuentes /> — the sources are not shown to readers",
         "sources",
       ),
     );
