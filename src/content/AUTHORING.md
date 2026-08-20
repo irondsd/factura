@@ -244,6 +244,7 @@ for a field to set.
 | `leer-facturas`    | Walkthroughs of an actual bill — what each section means.       |
 | `ahorro-y-control` | Reference values, wrong charges, tracking spend over time.      |
 | `pagos-y-tramites` | Paying, due dates, and paperwork like scanning or filing bills. |
+| `estafas`          | Housing and utility scams: fake rentals, fake agencies, phishing. |
 
 Two is the usual number: one for the _topic_, one for the _task_.
 

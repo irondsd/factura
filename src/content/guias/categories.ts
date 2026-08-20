@@ -83,6 +83,13 @@ export const CATEGORIES = [
     description:
       "Guías prácticas sobre los pagos y trámites de tus facturas: cómo pagar online de forma segura y cómo digitalizar tus comprobantes en papel.",
   },
+  {
+    id: "estafas",
+    label: "Estafas y fraudes",
+    title: "Estafas inmobiliarias y fraudes con los servicios del hogar",
+    description:
+      "Guías para reconocer y evitar las estafas más comunes con la vivienda en Argentina: alquileres falsos, inmobiliarias no registradas y facturas apócrifas.",
+  },
 ] as const satisfies readonly CategoryFields[];
 
 /** Union of the valid `meta.categories` values. */
