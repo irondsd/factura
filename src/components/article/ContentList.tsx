@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ArticlePreview } from "@/components/article/ArticlePreview";
+import { resolveMediaRefs } from "@/content-system/media/repository";
 import { formatContentDate } from "@/lib/content-date";
 
 export type ContentListItem = {
@@ -6,6 +8,9 @@ export type ContentListItem = {
   href: string;
   title: string;
   summary: string;
+  /** Media-library id of the row's illustration. */
+  previewMediaId?: string;
+  /** Legacy `/img/**` path, until the migration finishes. */
   preview?: string;
   date: string;
 };
@@ -13,7 +18,7 @@ export type ContentListItem = {
 /** The row shared by guides, statistics and research. `/guias` is the mobile
  * reference: a preview takes the full row width above the copy until `sm`, then
  * becomes the compact thumbnail beside it. */
-export function ContentList({
+export async function ContentList({
   items,
   datePrefix,
   titleAs: Title = "h2",
@@ -22,6 +27,12 @@ export function ContentList({
   datePrefix?: string;
   titleAs?: "h2" | "h3";
 }) {
+  // One query for the whole list, resolved here rather than per row: a listing
+  // of twenty guides should cost one round trip, not twenty.
+  const media = await resolveMediaRefs(
+    items.map((item) => item.previewMediaId).filter((id): id is string => !!id),
+  );
+
   return (
     <ul className="list-none p-0 m-0">
       {items.map((item) => (
@@ -30,16 +41,11 @@ export function ContentList({
             href={item.href}
             className="group flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-[22px] no-underline py-6"
           >
-            {item.preview && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+            {(media.get(item.previewMediaId ?? "") || item.preview) && (
+              <ArticlePreview
+                media={media.get(item.previewMediaId ?? "")}
                 src={item.preview}
-                alt=""
-                width={960}
-                height={540}
-                loading="lazy"
-                decoding="async"
-                className="flex-none w-full sm:w-40 aspect-video object-cover border border-line bg-card"
+                className="flex-none w-full sm:w-40"
               />
             )}
             <div className="w-full min-w-0 sm:flex-1">

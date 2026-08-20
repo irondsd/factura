@@ -4,6 +4,7 @@ import { isContentSection, isContentStatus } from "@/content-system/types";
 import { guideMetadataSchema } from "@/content-system/metadata/guias";
 import { sectionMetadataSchema } from "@/content-system/metadata/sections";
 import { cmsContentService } from "@/cms/server/service";
+import { cmsMediaService } from "@/cms/media/server/service";
 import { hasScope, type CmsTokenCaller, type CmsScope } from "./tokens";
 
 const section = z.string().refine(isContentSection, "Unknown content section.");
@@ -169,6 +170,95 @@ export const CMS_TOOLS: Tool[] = [
       cmsContentService.setStatus(
         a,
         input as Parameters<typeof cmsContentService.setStatus>[1],
+      ),
+  },
+  // ── media library ───────────────────────────────────────────────────────
+  //
+  // Read, upload and edit. **No destructive tool, deliberately and
+  // permanently** (cms.media.md §2.5/§7): this endpoint already tells its
+  // clients that it cannot delete anything and that removal is a browser-only
+  // action a person performs at /cms, and media follows pages rather than
+  // carving out an exception. An agent that wants an image gone leaves it
+  // unused, where the library's «ya no se usan» view surfaces it for a human.
+  {
+    name: "list_media",
+    scope: "cms:read",
+    description:
+      "List media-library images with their stable permalinks, dimensions and usage state. Filter by usage: 'never-used' and 'no-longer-used' are the two kinds of unused.",
+    annotations: readOnly("Listar medios"),
+    schema: z.object({
+      search: z.string().optional(),
+      usage: z.enum(["all", "used", "never-used", "no-longer-used"]).optional(),
+      collectionId: z.uuid().nullable().optional(),
+      limit: z.number().int().positive().max(200).optional(),
+    }),
+    run: (_a, input) =>
+      cmsMediaService.list(input as Parameters<typeof cmsMediaService.list>[0]),
+  },
+  {
+    name: "get_media",
+    scope: "cms:read",
+    description:
+      "Get one image: metadata, stable permalink, and every CMS page that references it.",
+    annotations: readOnly("Ver un medio"),
+    schema: z.object({ id: z.uuid() }),
+    run: (_a, input) => cmsMediaService.get((input as { id: string }).id),
+  },
+  {
+    name: "create_media_upload",
+    scope: "cms:write",
+    description:
+      "Reserve an upload and return a short-lived presigned PUT URL. Transfer the file to that URL with an ordinary HTTP PUT (Content-Type must match), then call complete_media_upload. The URL is a credential until it expires: never paste it into article content, metadata or logs.",
+    annotations: writes("Reservar una subida"),
+    schema: z.object({
+      filename: z.string(),
+      contentType: z.enum([
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/avif",
+        "image/gif",
+      ]),
+      byteSize: z.number().int().positive(),
+      collectionId: z.uuid().nullable().optional(),
+    }),
+    run: (a, input) =>
+      cmsMediaService.reserveUpload(
+        a,
+        input as Parameters<typeof cmsMediaService.reserveUpload>[1],
+      ),
+  },
+  {
+    name: "complete_media_upload",
+    scope: "cms:write",
+    description:
+      "Validate the uploaded bytes and create the media record. Returns the id and the permalink to use in previewMediaId or in Markdown.",
+    annotations: writes("Terminar una subida"),
+    schema: z.object({ mediaId: z.uuid() }),
+    run: (a, input) =>
+      cmsMediaService.completeUpload(a, input as { mediaId: string }),
+  },
+  {
+    name: "update_media",
+    scope: "cms:write",
+    description:
+      "Edit an image's library title, default alt text, decorative flag, credit or collection. expectedLockVersion must equal get_media's lockVersion.",
+    annotations: writes("Editar un medio"),
+    schema: z.object({
+      id: z.uuid(),
+      expectedLockVersion: z.number().int().positive(),
+      patch: z.object({
+        displayName: z.string().optional(),
+        defaultAlt: z.string().optional(),
+        decorative: z.boolean().optional(),
+        attribution: z.string().nullable().optional(),
+        collectionId: z.uuid().nullable().optional(),
+      }),
+    }),
+    run: (a, input) =>
+      cmsMediaService.update(
+        a,
+        input as Parameters<typeof cmsMediaService.update>[1],
       ),
   },
 ];

@@ -18,6 +18,7 @@ export function GuideList({
         href: `/guias/${guide.slug}`,
         title: guide.title,
         summary: guide.summary,
+        previewMediaId: guide.metadata.previewMediaId,
         preview: guide.metadata.previewImage,
         date: guide.publishedAt ?? guide.contentUpdatedAt,
       }))}

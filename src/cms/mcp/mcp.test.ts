@@ -78,7 +78,13 @@ describe("token shape", () => {
 describe("tool listing", () => {
   it("shows a read-only token only the read tools", () => {
     const names = cmsToolListing(["cms:read"]).map((tool) => tool.name);
-    expect(names).toEqual(["list_content", "get_content", "validate_content"]);
+    expect(names).toEqual([
+      "list_content",
+      "get_content",
+      "validate_content",
+      "list_media",
+      "get_media",
+    ]);
   });
 
   it("shows a write token the mutations as well", () => {
@@ -86,6 +92,20 @@ describe("tool listing", () => {
     expect(names).toContain("create_content");
     expect(names).toContain("update_content");
     expect(names).toContain("set_content_status");
+    expect(names).toContain("create_media_upload");
+    expect(names).toContain("complete_media_upload");
+    expect(names).toContain("update_media");
+  });
+
+  it("offers no way to delete anything, content or media", () => {
+    // The server's real guarantee is the tool list itself: removal is a
+    // browser-only action a person performs at /cms, and an agent that wants an
+    // image gone leaves it unused for a human to review. An annotation is a
+    // hint; an absent tool is a fact.
+    const names = cmsToolListing(CMS_SCOPES).map((tool) => tool.name);
+    expect(
+      names.filter((name) => /delete|remove|trash|purge/.test(name)),
+    ).toEqual([]);
   });
 
   it("gives every tool an input schema", () => {

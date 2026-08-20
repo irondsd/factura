@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
+  bigint,
   boolean,
   date,
   index,
@@ -1152,4 +1153,200 @@ export const cmsAuditLogs = pgTable(
       .defaultNow(),
   },
   (t) => [index("cms_audit_log_created_idx").on(t.createdAt)],
+);
+
+/* ── CMS media library (cms.media.md) ──────────────────────────────────────
+ *
+ * Three tables, all `cms_`-prefixed so they move with the CMS when the
+ * deployments split. The bytes live in a *separate* S3 bucket from the private
+ * bill PDFs — `src/cms/boundaries.test.ts` forbids `@/server/storage` inside
+ * `src/cms`, and this is the data half of that separation.
+ */
+
+/** A flat, named group of media. cms.media.md §2.6: single-parent and
+ * deliberately not nested — at this library's size a tree is furniture, and a
+ * name like «Guías · Edesur» carries the same information.
+ *
+ * The collection never appears in an object key. Re-filing an image has to be
+ * one UPDATE, because moving bytes would break the key immutability the CDN and
+ * the Next.js optimizer both depend on. */
+export const cmsMediaCollections = pgTable(
+  "cms_media_collection",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    /** Stable filter URL, so a link to a collection survives a rename. */
+    slug: text("slug").notNull().unique(),
+    description: text("description"),
+    /** Explicit sidebar order; ties break on name so a listing is total. */
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("cms_media_collection_name_idx").on(sql`lower(${t.name})`),
+  ],
+);
+
+/** One image in the library.
+ *
+ * `status` is the whole lifecycle (cms.media.md §2.5):
+ *
+ *   pending ──finalize──▶ ready ──trash──▶ trashed ──purge──▶ purging ─▶ purged
+ *                            ◀──restore──┘
+ *
+ * `pending` is not bookkeeping, it is the invariant that makes "no stray
+ * objects in the bucket" provable: the row is committed *before* the presigned
+ * PUT is issued, so every key that can possibly exist in the bucket already has
+ * a row here. Without it, a successful upload whose finalize call never arrives
+ * leaves an object nothing in the database knows about.
+ *
+ * Text rather than a pgEnum, for the same reason `cms_page_event.action` is:
+ * the schema arrives through `drizzle-kit push`, and a sixth state should not
+ * need an enum migration. The union is in `src/cms/media/types.ts`. */
+export const cmsMedia = pgTable(
+  "cms_media",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    status: text("status").notNull().default("pending"),
+    collectionId: uuid("collection_id").references(
+      () => cmsMediaCollections.id,
+      { onDelete: "set null" },
+    ),
+
+    /** Where the browser's presigned PUT landed. Set at reservation, cleared
+     * when finalization has copied the processed master out of it. A row that
+     * still has one past its reservation lifetime is what the cleanup sweep
+     * looks for. */
+    stagingKey: text("staging_key"),
+    /** The immutable master key, null until finalization. Never returned to
+     * content authors: articles reference `/media/<id>/<name>`, so moving
+     * providers is a configuration change rather than an edit to every page. */
+    objectKey: text("object_key").unique(),
+
+    originalFilename: text("original_filename").notNull(),
+    /** Editable library title, initialized from the filename. */
+    displayName: text("display_name").notNull(),
+
+    /** Sniffed from the bytes at finalization, never the browser's claim. Null
+     * while pending. */
+    mimeType: text("mime_type"),
+    byteSize: bigint("byte_size", { mode: "number" }),
+    width: integer("width"),
+    height: integer("height"),
+    /** Hash of the *master* — the bytes actually served, after orientation is
+     * normalized and metadata stripped. Integrity and duplicate warning only;
+     * identity is `id`, so uploading the same pixels twice is allowed and
+     * yields two independent objects. */
+    sha256: text("sha256"),
+
+    /** An editable *suggestion*. The alt that reaches a reader lives in the
+     * Markdown at the point of use, because alt describes what an image means
+     * in context and that is not a property of the file. */
+    defaultAlt: text("default_alt").notNull().default(""),
+    /** An explicit accessibility decision. Empty `default_alt` is only valid
+     * with this set; blank alt without it is a validation error. */
+    decorative: boolean("decorative").notNull().default(false),
+    attribution: text("attribution"),
+
+    /** Set once, when this image first appears in a page's usage rows, and
+     * never reset. With `last_referenced_at` it separates "nunca usada" from
+     * "ya no se usa" — an image uploaded five minutes ago and one dropped from
+     * a guide last month both have zero references, and only the second is
+     * obviously safe to remove. */
+    firstUsedAt: timestamp("first_used_at", { withTimezone: true }),
+    /** The last save at which this image was still referenced. A lower bound on
+     * when it stopped being used, not the moment of removal — nothing observes
+     * that moment, because removal is just a save that no longer mentions it. */
+    lastReferencedAt: timestamp("last_referenced_at", { withTimezone: true }),
+
+    /** Optimistic concurrency for metadata edits, exactly like `cms_page`. */
+    lockVersion: integer("lock_version").notNull().default(1),
+
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: uuid("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    trashedBy: uuid("trashed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    purgedBy: uuid("purged_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    trashedAt: timestamp("trashed_at", { withTimezone: true }),
+    purgedAt: timestamp("purged_at", { withTimezone: true }),
+  },
+  (t) => [
+    // The library grid: one status, newest first.
+    index("cms_media_status_created_idx").on(t.status, t.createdAt),
+    // The collection sidebar, and "Sin colección".
+    index("cms_media_collection_idx").on(t.collectionId),
+    // The purge sweep: trashed rows past the grace period.
+    index("cms_media_trashed_idx").on(t.status, t.trashedAt),
+    // Duplicate warning at finalization.
+    index("cms_media_sha256_idx").on(t.sha256),
+    // No index for the search box on purpose: `ILIKE '%…%'` has a leading
+    // wildcard, which no btree can serve, and the table is in the hundreds of
+    // rows. A sequential scan is the honest plan.
+  ],
+);
+
+/** Which page uses which image, and how. Derived from page content — never
+ * hand-authored — and rewritten in the same transaction as the page save that
+ * produced it, so the browser and the MCP cannot disagree about it.
+ *
+ * One row per *placement*, with a count, rather than one row per occurrence.
+ * The question this table answers is boolean ("may this be trashed?") and the
+ * UI only needs the list of pages; an image used twice in one body is one row
+ * with `occurrences = 2`, which is also the only shape a composite primary key
+ * can express without inventing an ordinal.
+ *
+ * `media_id` restricts: nothing should ever hard-delete a media row that is
+ * referenced, and by the time the purge sweep removes bytes the row has been
+ * unreferenced for the whole grace period. It is a backstop under a rule that
+ * is already enforced above it. `page_id` cascades, because usage of a deleted
+ * page is usage of nothing. */
+export const cmsMediaUsage = pgTable(
+  "cms_media_usage",
+  {
+    mediaId: uuid("media_id")
+      .notNull()
+      .references(() => cmsMedia.id, { onDelete: "restrict" }),
+    pageId: uuid("page_id")
+      .notNull()
+      .references(() => cmsPages.id, { onDelete: "cascade" }),
+    /** `preview` (structured metadata) or `body` (a Markdown image). */
+    placement: text("placement").notNull(),
+    occurrences: integer("occurrences").notNull().default(1),
+    /** Where to point the editor: the metadata field name, or the MDX
+     * line/column positions. Rebuilt on every save, so the positions are never
+     * stale. */
+    locators: jsonb("locators")
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.pageId, t.mediaId, t.placement] }),
+    // "Which pages use this image", for the detail view and the trash gate.
+    index("cms_media_usage_media_idx").on(t.mediaId),
+  ],
 );

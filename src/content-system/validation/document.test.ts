@@ -505,3 +505,85 @@ describe("preview image", () => {
     ).toContain(DOCUMENT_CODES.previewMissingAsset);
   });
 });
+
+describe("media references", () => {
+  const ID = "8f2c1b7a-4d3e-4a1f-9c2b-0e5d6a7f8b90";
+  const ready = new Map([[ID, { status: "ready", decorative: false }]]);
+
+  /** The base guide with a different body, checked against a stated view of the
+   * media library. */
+  const withMedia = (
+    body: string,
+    media: Map<string, { status: string; decorative: boolean }> | undefined,
+    patch: Partial<ContentDocument> = {},
+  ) =>
+    validateDocument(
+      { ...base, ...patch, body: `${base.body}\n${body}\n` },
+      index,
+      media ? { media } : {},
+    ).diagnostics.map((d) => d.code);
+
+  it("accepts a library image with alt text", () => {
+    const found = withMedia(`![Un medidor](/media/${ID}/medidor.jpg)`, ready);
+    expect(found).not.toContain(DOCUMENT_CODES.mediaNoAlt);
+    expect(found).not.toContain(DOCUMENT_CODES.mediaUnknown);
+  });
+
+  it("refuses an id the library does not have", () => {
+    expect(
+      withMedia(`![Un medidor](/media/${ID}/medidor.jpg)`, new Map()),
+    ).toContain(DOCUMENT_CODES.mediaUnknown);
+  });
+
+  it("refuses an image that is in the trash", () => {
+    expect(
+      withMedia(
+        `![Un medidor](/media/${ID}/medidor.jpg)`,
+        new Map([[ID, { status: "trashed", decorative: false }]]),
+      ),
+    ).toContain(DOCUMENT_CODES.mediaNotReady);
+  });
+
+  it("refuses blank alt unless the library says the image is decorative", () => {
+    expect(withMedia(`![](/media/${ID}/medidor.jpg)`, ready)).toContain(
+      DOCUMENT_CODES.mediaNoAlt,
+    );
+    expect(
+      withMedia(
+        `![](/media/${ID}/medidor.jpg)`,
+        new Map([[ID, { status: "ready", decorative: true }]]),
+      ),
+    ).not.toContain(DOCUMENT_CODES.mediaNoAlt);
+  });
+
+  it("does not demand alt text from a link that merely points at an image", () => {
+    expect(
+      withMedia(`[ver la factura](/media/${ID}/medidor.jpg)`, ready),
+    ).not.toContain(DOCUMENT_CODES.mediaNoAlt);
+  });
+
+  it("refuses an image hotlinked from another site", () => {
+    expect(withMedia("![Algo](https://example.com/foto.jpg)", ready)).toContain(
+      DOCUMENT_CODES.mediaExternal,
+    );
+  });
+
+  it("checks the preview id too", () => {
+    expect(
+      withMedia(
+        "Sin imágenes en el cuerpo.",
+        new Map([[ID, { status: "purged", decorative: false }]]),
+        meta({ previewMediaId: ID }),
+      ),
+    ).toContain(DOCUMENT_CODES.mediaNotReady);
+  });
+
+  it("skips every media rule when the caller cannot resolve the library", () => {
+    // Same contract as `assetExists`: a validator with no way to ask must not
+    // invent an answer, and refusing every reference would be worse than
+    // checking none.
+    const found = withMedia(`![](/media/${ID}/medidor.jpg)`, undefined);
+    expect(found).not.toContain(DOCUMENT_CODES.mediaNoAlt);
+    expect(found).not.toContain(DOCUMENT_CODES.mediaUnknown);
+  });
+});

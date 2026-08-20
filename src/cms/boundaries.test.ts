@@ -114,6 +114,11 @@ describe("cms_page access", () => {
     path.join("src", "content-system", "repository", "postgres.ts"),
     path.join("src", "content-system", "repository", "mapping.ts"),
     path.join("src", "cms", "server", "store.ts"),
+    // The media library joins `cms_page` to answer "which pages use this
+    // image" and to re-derive usage from page bodies. Reads only, and through
+    // the same store discipline: no route or component queries it directly.
+    path.join("src", "cms", "media", "server", "store.ts"),
+    path.join("src", "cms", "media", "server", "usage.ts"),
     path.join("src", "content-system", "adapters", "database.ts"),
     // The schema defines the table; the seed and test helpers may reference it.
     path.join("src", "db", "schema.ts"),

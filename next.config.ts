@@ -1,6 +1,61 @@
 import type { NextConfig } from "next";
 
+/** The one host remote images may come from: the CMS media bucket's public
+ * origin (cms.media.md §6).
+ *
+ * Narrow on purpose — exact protocol, hostname, port and path prefix. A
+ * wildcard Cloudflare hostname would make every R2 bucket in the account a
+ * valid source for this site's optimizer, which is a way of paying to resize
+ * other people's images. `images.domains` is deprecated and cannot express the
+ * path constraint at all.
+ *
+ * Built from the same environment variable the uploader and the renderer read,
+ * so the three cannot disagree. Absent in a deployment without media
+ * configured: an empty list means no remote source is allowed, which is the
+ * right answer there. */
+function mediaRemotePatterns(): NonNullable<
+  NonNullable<NextConfig["images"]>["remotePatterns"]
+> {
+  const origin = process.env.CMS_MEDIA_PUBLIC_ORIGIN;
+  if (!origin) return [];
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    return [];
+  }
+  return [
+    {
+      protocol: url.protocol.replace(":", "") as "http" | "https",
+      hostname: url.hostname,
+      ...(url.port ? { port: url.port } : {}),
+      pathname: `${url.pathname.replace(/\/+$/, "")}/cms-media/**`,
+    },
+  ];
+}
+
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: mediaRemotePatterns(),
+    // Required from Next 16: without an allowlist, anyone could ask the
+    // optimizer for arbitrary qualities and make it do unbounded work. One
+    // value until a design review asks for another.
+    qualities: [75],
+    // Master keys are immutable — a replaced image is a new id and a new URL —
+    // so an optimized variant can be cached for as long as the CDN will hold
+    // it. This is the payoff for never overwriting bytes at a key.
+    minimumCacheTTL: 31_536_000,
+    // Uploads are capped at 20 MB, so the optimizer never needs to pull more
+    // than that. Lower than the 50 MB default because the limit is really about
+    // how much a request may allocate.
+    maximumResponseBody: 21_000_000,
+    // Development only, and never in production. The optimizer refuses hosts
+    // that resolve to a private IP — an SSRF guard worth keeping — but the
+    // local media bucket *is* MinIO on localhost, so without this every image
+    // in `bun run dev` is a 400 and the whole library is unverifiable locally.
+    // Production serves from a public custom domain and keeps the guard.
+    dangerouslyAllowLocalIP: process.env.NODE_ENV !== "production",
+  },
   experimental: {
     // Turns on `src/app/global-not-found.tsx` — the only way to give an
     // unmatched URL a branded 404 here. See the comment in that file: with two

@@ -59,27 +59,30 @@ function documentAt(status: ContentDocument["status"]): ContentDocument {
  * database: the question is whether the write is reached at all. */
 function fakeStore(current: ContentDocument) {
   const writes: string[] = [];
-  return {
-    writes,
-    store: {
-      findById: async () => current,
-      findBySlug: async () => null,
-      list: async () => [],
-      lockVersionOf: async () => current.lockVersion,
-      insert: async () => {
-        writes.push("insert");
-        return current;
-      },
-      updateWithLock: async () => {
-        writes.push("update");
-        return current;
-      },
-      deleteWithLock: async () => {
-        writes.push("delete");
-        return true;
-      },
-    } as unknown as CmsPageStore,
+  const store: Record<string, unknown> = {
+    findById: async () => current,
+    findBySlug: async () => null,
+    list: async () => [],
+    lockVersionOf: async () => current.lockVersion,
+    insert: async () => {
+      writes.push("insert");
+      return current;
+    },
+    updateWithLock: async () => {
+      writes.push("update");
+      return current;
+    },
+    deleteWithLock: async () => {
+      writes.push("delete");
+      return true;
+    },
+    // The question here is whether the write is reached at all, so the fake
+    // transaction runs its body inline against itself. Atomicity is proven in
+    // `src/cms/media/server/media.integration.test.ts`.
+    transaction: async (body: (s: unknown, tx: unknown) => Promise<unknown>) =>
+      body(store, null),
   };
+  return { writes, store: store as unknown as CmsPageStore };
 }
 
 const permissive = () => ({ ok: true as const, diagnostics: [] });

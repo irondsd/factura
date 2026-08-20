@@ -12,6 +12,8 @@ import {
   publiclyRenderableGuides,
   relatedGuides,
 } from "@/content-system/repository/guias";
+import { mediaComponents } from "@/content-system/media/render";
+import { resolveMediaRef } from "@/content-system/media/repository";
 import {
   compileContent,
   contentComponents,
@@ -42,9 +44,10 @@ export default async function GuidePage({ params }: Props) {
   const guide = await publicGuideBySlug(slug);
   if (!guide) notFound();
 
-  const [Content, related] = await Promise.all([
+  const [Content, related, media] = await Promise.all([
     compileContent(guide.body, guide.section),
     relatedGuides(guide),
+    mediaComponents(guide.body),
   ]);
   const categories = guide.metadata.categories
     .map(getCategory)
@@ -59,6 +62,7 @@ export default async function GuidePage({ params }: Props) {
       published={guide.publishedAt}
       updated={guide.contentUpdatedAt}
       cta={guide.cta}
+      previewMedia={await resolveMediaRef(guide.metadata.previewMediaId)}
       previewImage={guide.metadata.previewImage}
       categories={categories}
       headings={documentHeadings(guide)}
@@ -86,6 +90,10 @@ export default async function GuidePage({ params }: Props) {
     >
       <Content
         components={contentComponents({
+          // Resolved from the body in one query before this renders, so an
+          // article's cost does not scale with how many images it has.
+          ...media,
+
           RelatedGuides: () => (
             <RelatedGuides
               guides={related.map((candidate) => ({

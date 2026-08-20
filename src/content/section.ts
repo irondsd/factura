@@ -13,6 +13,9 @@ export type SectionMeta = {
   ogDescription?: string;
   ogStat?: string;
   summary: string;
+  /** Media-library id of the illustration. */
+  previewMediaId?: string;
+  /** Legacy `/img/**` path, until the migration finishes. */
   preview?: string;
   cta: string;
   keywords: string[];
@@ -86,6 +89,9 @@ function metaFromDatabase(document: ContentSummary): SectionMeta {
       ? { ogDescription: document.metadata.ogDescription }
       : {}),
     ...(document.metadata.ogStat ? { ogStat: document.metadata.ogStat } : {}),
+    ...(document.metadata.previewMediaId
+      ? { previewMediaId: document.metadata.previewMediaId }
+      : {}),
     ...(document.metadata.previewImage
       ? { preview: document.metadata.previewImage }
       : {}),

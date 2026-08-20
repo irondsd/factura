@@ -27,6 +27,15 @@ export const sectionMetadataSchema = z
     ogTitle: text.optional(),
     ogDescription: text.optional(),
     ogStat: text.optional(),
+    /** The page's preview image, as a media-library id (cms.media.md §2.2).
+     *
+     * A uuid rather than a path, so an article survives a change of storage
+     * origin: the CDN hostname lives in configuration and is resolved at render
+     * time. `previewImage` below is the pre-library shape — a file committed
+     * under `public/img/**` — and is accepted only while the migration is in
+     * flight. New writes set the id; step 7 of the rollout removes the string
+     * once no page references one. */
+    previewMediaId: z.uuid().optional(),
     previewImage: z
       .string()
       .regex(

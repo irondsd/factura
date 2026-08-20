@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import type { FieldDescriptor } from "@/cms/forms/fields";
+import { MediaPicker } from "@/cms/media/components/MediaPicker";
 import { cn } from "@/lib/cn";
 
 // One metadata field, rendered from its descriptor. Every section's form is
@@ -187,6 +188,14 @@ function Control({
     case "faq":
       return <FaqInput value={asFaq(value)} onChange={onChange} />;
 
+    case "media":
+      return (
+        <MediaPicker
+          value={(value as string) || null}
+          onChange={(id) => onChange(id ?? undefined)}
+          describedBy={describedBy}
+        />
+      );
     case "ogImage":
       return (
         <OgImageInput value={asOgImage(value)} onChange={onChange} id={id} />

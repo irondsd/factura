@@ -167,14 +167,33 @@ test forbids importing it. Create a portable CMS media-storage adapter under
 needs it) with its own configuration:
 
 ```text
-CMS_MEDIA_S3_BUCKET
-CMS_MEDIA_S3_ENDPOINT
-CMS_MEDIA_S3_REGION
-CMS_MEDIA_S3_ACCESS_KEY_ID
+CMS_MEDIA_S3_BUCKET          # required
+CMS_MEDIA_PUBLIC_ORIGIN      # required
+CMS_MEDIA_S3_ENDPOINT        # falls back to S3_ENDPOINT
+CMS_MEDIA_S3_REGION          # falls back to S3_REGION
+CMS_MEDIA_S3_ACCESS_KEY_ID   # falls back to S3_ACCESS_KEY_ID
 CMS_MEDIA_S3_SECRET_ACCESS_KEY
 CMS_MEDIA_S3_FORCE_PATH_STYLE
-CMS_MEDIA_PUBLIC_ORIGIN
 ```
+
+Only the first two are genuinely media's own. The connection is normally the
+same S3 account as bill storage, so the rest default to the existing `S3_*`
+values rather than making a deployment state its credentials twice and letting
+the two drift.
+
+The _bucket_ is the part with no fallback, and the reason is worth stating
+plainly because "another prefix in the existing bucket" is the obvious guess:
+
+> These objects must be publicly readable, because the Next.js image optimizer
+> fetches a remote source without forwarding credentials. On R2, public access
+> is a **per-bucket** switch — the managed `r2.dev` subdomain or a custom domain,
+> both attached to a whole bucket. There is no per-prefix public setting.
+
+So sharing a bucket with `bills/` and `submissions/` would mean publishing every
+stored utility bill, or putting a Worker in front to gate paths — more moving
+parts than a second bucket, and a new thing that can be misconfigured into the
+same exposure. Bill PDFs are read exclusively through presigned GETs today
+(`src/server/storage.ts`), and that has to keep being true.
 
 Only the application can list, put, or delete. Original/master image objects
 are publicly readable at the configured origin because the Next.js default

@@ -7,6 +7,8 @@ import {
 } from "@/content-system/validation";
 import type { ContentDocument, ValidationResult } from "@/content-system/types";
 import { validationResult } from "@/content-system/types";
+import { mediaIdsIn } from "@/content-system/media/references";
+import { cmsMediaStore } from "../media/server/store";
 import type { ContentValidator } from "./contentService";
 import { CmsPageStore, cmsPageStore as defaultStore } from "./store";
 
@@ -46,6 +48,10 @@ export function createCmsValidator(
     const result = validateContentDocument(document, validationLevel, {
       index,
       collection,
+      // The media rules are pure, so the library is resolved before they run.
+      // One query for whatever this document references — a page with no images
+      // makes none at all.
+      context: { media: await mediaStatusesFor(document) },
     });
 
     // Layer 4: render validation (cms.md §5.1). Compile the body against the
@@ -71,6 +77,30 @@ export function createCmsValidator(
 
     return result;
   };
+}
+
+/** What the media library knows about the images this document references.
+ *
+ * Read here rather than inside the validator because the validator is pure and
+ * has no database — and because resolving it once, up front, keeps the rules
+ * from turning into a query per image. An empty map for a document with no
+ * media references, which is most of them. */
+async function mediaStatusesFor(
+  document: ContentDocument,
+): Promise<ReadonlyMap<string, { status: string; decorative: boolean }>> {
+  const ids = new Set(mediaIdsIn(document.body));
+  const preview = (document.metadata as Record<string, unknown> | undefined)
+    ?.previewMediaId;
+  if (typeof preview === "string" && preview) ids.add(preview.toLowerCase());
+  if (ids.size === 0) return new Map();
+
+  const assets = await cmsMediaStore.findManyByIds([...ids]);
+  return new Map(
+    assets.map((asset) => [
+      asset.id,
+      { status: asset.status, decorative: asset.decorative },
+    ]),
+  );
 }
 
 /** Every other page in this document's section, plus the document itself as the
