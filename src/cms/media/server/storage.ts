@@ -99,6 +99,18 @@ function client(): S3Client {
       endpoint: ENDPOINT,
       forcePathStyle: FORCE_PATH_STYLE,
       credentials: { accessKeyId: ACCESS_KEY!, secretAccessKey: SECRET_KEY! },
+      // Recent versions of the AWS SDK add a CRC32 checksum to every request by
+      // default, and when a `PutObject` is *presigned* that checksum is
+      // computed over the (empty) body the signer has in hand and hoisted into
+      // the signed query string. The browser then uploads real bytes against a
+      // URL that declares the checksum of nothing.
+      //
+      // MinIO ignores it, so this passes locally and would fail on the first
+      // upload against a stricter S3 implementation. Integrity is not lost:
+      // finalization hashes the master with SHA-256, which is what the row
+      // stores and what the reconciliation compares.
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
     });
   }
   return cached;
@@ -121,12 +133,17 @@ export const publicUrl = publicMediaUrl;
 
 /** A short-lived credential for one exact staging key.
  *
- * `ContentType` is signed, so the upload cannot claim to be something else
- * after the fact. The byte size is *not* signed: hoisting `content-length` into
- * a presigned URL is not portable across S3 implementations, and the real
- * enforcement is at finalization, which weighs the object it actually finds.
- * The blast radius of that gap is a CMS member — two trusted people — writing a
- * too-large object into a staging key that the cleanup sweep deletes. */
+ * Scoped to that key and nothing else — this is the only credential that ever
+ * reaches a browser, and it can write one random path under `_incoming/`.
+ *
+ * What it does *not* constrain is what lands there. `ContentType` is passed so
+ * the staged object is labelled, but the SDK does not sign it, and
+ * `content-length` cannot be hoisted into a presigned URL portably. Neither
+ * matters, because nothing downstream trusts them: finalization reads the
+ * object, weighs it, sniffs its actual magic bytes, and re-encodes it into the
+ * master. The blast radius of the gap is a CMS member — two trusted people —
+ * writing a wrong or oversized object into a staging key that finalization
+ * rejects and the sweep deletes. */
 export async function presignUpload(input: {
   key: string;
   contentType: string;
