@@ -164,12 +164,27 @@ export function MediaLibrary({
       }
 
       patch({ state: "finalizing", progress: 1 });
-      const done = await completeUploadAction({
-        mediaId: reserved.data.mediaId,
-      });
-      patch(
-        done.ok ? { state: "done" } : { state: "error", message: done.message },
-      );
+      try {
+        const done = await completeUploadAction({
+          mediaId: reserved.data.mediaId,
+        });
+        patch(
+          done.ok
+            ? { state: "done" }
+            : { state: "error", message: done.message },
+        );
+      } catch (error) {
+        // A *rejected* action — a 500 rather than a returned failure — must
+        // still land on this row. Without it the row sits on «procesando…»
+        // forever and the batch looks stuck rather than failed.
+        patch({
+          state: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "El servidor no pudo procesar la imagen.",
+        });
+      }
     },
     [view],
   );
@@ -192,9 +207,29 @@ export function MediaLibrary({
       }));
       setUploads((items) => [...queued, ...items]);
       // Sequential on purpose: two trusted editors, and a serial queue keeps
-      // the progress list readable and the rate limit far away.
+      // the progress list readable and the rate limit far away. One file
+      // failing must not abandon the rest of the batch, so each is contained.
       void (async () => {
-        for (const item of queued) await uploadOne(item.file, item.key);
+        for (const item of queued) {
+          try {
+            await uploadOne(item.file, item.key);
+          } catch (error) {
+            setUploads((rows) =>
+              rows.map((row) =>
+                row.key === item.key
+                  ? {
+                      ...row,
+                      state: "error" as const,
+                      message:
+                        error instanceof Error
+                          ? error.message
+                          : "Falló la subida.",
+                    }
+                  : row,
+              ),
+            );
+          }
+        }
         refresh();
       })();
     },

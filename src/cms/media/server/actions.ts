@@ -76,7 +76,24 @@ function toResult(error: unknown): MediaActionResult<never> {
   if (error instanceof CmsNotFoundError) {
     return { ok: false, kind: "not_found", message: error.message };
   }
-  throw error;
+
+  // Anything else is a bug or an environment failure, and letting it escape
+  // turns into a 500 whose body is a digest — which tells the editor nothing
+  // and tells whoever is debugging only that *something* threw. Log it where
+  // the platform can show a stack, and hand the editor the actual message.
+  //
+  // Safe to show here in a way it would not be on a public surface: everyone
+  // who reaches these actions is a CMS member, and a two-person team debugging
+  // their own deployment is better served by the message than by a digest.
+  console.error("[cms/media] unexpected failure", error);
+  return {
+    ok: false,
+    kind: "invalid",
+    message:
+      error instanceof Error
+        ? `Fallo inesperado: ${error.message}`
+        : "Fallo inesperado.",
+  };
 }
 
 const refresh = (id?: string) => {

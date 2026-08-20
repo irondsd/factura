@@ -37,6 +37,15 @@ import {
 // pixels and encoded again; nothing of the original container reaches the
 // bucket.
 
+export class MediaUploadError extends Error {
+  readonly code: string;
+  constructor(rejection: UploadRejection) {
+    super(rejection.message);
+    this.code = rejection.code;
+    this.name = "MediaUploadError";
+  }
+}
+
 /** sharp, loaded on first use rather than at module load.
  *
  * `import sharp from "sharp"` resolves a **native binary** the moment anything
@@ -52,7 +61,22 @@ import {
  * `import type` above is erased at compile time and loads nothing. */
 let sharpModule: Promise<typeof import("sharp").default> | null = null;
 function sharp(): Promise<typeof import("sharp").default> {
-  sharpModule ??= import("sharp").then((module) => module.default);
+  sharpModule ??= import("sharp")
+    .then((module) => module.default)
+    .catch((cause) => {
+      // A native module that will not load is an environment problem, not a
+      // problem with the file being uploaded, and it must say so. Left as a
+      // bare module error it surfaces as an opaque 500 with a digest, which
+      // tells whoever is uploading nothing at all.
+      sharpModule = null; // so a later request can retry rather than cache the failure
+      throw new MediaUploadError({
+        code: "media.no-encoder",
+        message:
+          "No se pudo cargar el procesador de imágenes (sharp) en este entorno. " +
+          "Es un problema del despliegue, no del archivo: revisa que el binario " +
+          `nativo de sharp esté instalado para esta plataforma. (${cause instanceof Error ? cause.message : String(cause)})`,
+      });
+    });
   return sharpModule;
 }
 
@@ -70,15 +94,6 @@ export const stagingKeyFor = (reservationId: string): string =>
   incomingKey(reservationId);
 
 export const newReservationId = (): string => randomUUID();
-
-export class MediaUploadError extends Error {
-  readonly code: string;
-  constructor(rejection: UploadRejection) {
-    super(rejection.message);
-    this.code = rejection.code;
-    this.name = "MediaUploadError";
-  }
-}
 
 /** Read the staged object, validate it, and produce the master.
  *
