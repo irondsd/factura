@@ -3,7 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { parseMessage } from "@/server/mcp/protocol";
 import { limitKey, MCP_CALL, take } from "@/server/rateLimit";
 import { createTestDb, hasTestDatabase } from "@/cms/server/testDb";
-import { handleCmsMessage } from "./handler";
+import { handleCmsMessage, toolSuccess } from "./handler";
 import {
   CMS_SCOPES,
   type CmsScope,
@@ -212,6 +212,41 @@ describe("protocol", () => {
       caller(["cms:read"]),
     );
     expect(response).toMatchObject({ error: { code: -32602 } });
+  });
+});
+
+describe("tool result envelope", () => {
+  // `structuredContent` is typed as a JSON object by the spec. `list_content`
+  // returns a bare array, and sending it as `structuredContent` made strict
+  // clients reject the whole response ("expected record, received array") —
+  // the tool was uncallable from them, on every call, regardless of arguments.
+  it("omits structuredContent for an array payload", () => {
+    const result = toolSuccess([{ id: "a" }, { id: "b" }]);
+    expect(result).not.toHaveProperty("structuredContent");
+  });
+
+  it("still carries an array payload as JSON text", () => {
+    // The text half is what every client reads, so dropping the structured
+    // half must not drop the data.
+    const rows = [{ id: "a" }, { id: "b" }];
+    expect(JSON.parse(toolSuccess(rows).content[0].text)).toEqual(rows);
+  });
+
+  it("keeps structuredContent for an object payload", () => {
+    const page = { id: "a", lockVersion: 1 };
+    expect(toolSuccess(page).structuredContent).toEqual(page);
+  });
+
+  it("never sets structuredContent to a non-object", () => {
+    for (const payload of [[], "text", 3, true, null, undefined]) {
+      const result = toolSuccess(payload) as { structuredContent?: unknown };
+      if ("structuredContent" in result) {
+        expect(Array.isArray(result.structuredContent), String(payload)).toBe(
+          false,
+        );
+        expect(typeof result.structuredContent, String(payload)).toBe("object");
+      }
+    }
   });
 });
 
@@ -693,6 +728,22 @@ if (!hasTestDatabase()) {
         result: "error",
         pageId: null,
       });
+    });
+
+    it("answers list_content with an object-shaped structuredContent or none", async () => {
+      // The real path, against real rows: whatever the service returns, the
+      // envelope has to stay something a strict MCP client will accept.
+      await call("create_content", newPage("list-shape"));
+      const result = resultOf(await call("list_content", { section: "guias" }));
+
+      expect(result.isError).toBe(false);
+      expect(Array.isArray(result.structuredContent)).toBe(false);
+      if (result.structuredContent !== undefined)
+        expect(typeof result.structuredContent).toBe("object");
+
+      // And the listing itself still arrives, in the text content.
+      const rows = JSON.parse(result.content[0].text) as { slug: string }[];
+      expect(rows.some((row) => row.slug === `${SLUG}list-shape`)).toBe(true);
     });
 
     it("does not audit a read", async () => {
