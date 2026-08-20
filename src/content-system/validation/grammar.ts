@@ -189,39 +189,110 @@ function checkJsx(
     // Lowercase names are HTML elements to MDX — `<script>`, `<iframe>`,
     // `<div onClick={…}>`. They are rejected by the same rule as an unknown
     // component, which is what makes the allowlist complete.
-    const isHtmlTag = /^[a-z]/.test(name);
-    out.push(
-      error(
-        isHtmlTag ? GRAMMAR_CODES.rawHtml : GRAMMAR_CODES.unknownComponent,
-        isHtmlTag
-          ? `<${name}> is raw HTML, which is not allowed in content. Use markdown, or one of: ${allowed.join(", ")}.`
-          : `<${name}> is not a known component. Available in this section: ${allowed.join(", ")}.`,
+    if (/^[a-z]/.test(name)) {
+      out.push(
+        error(
+          GRAMMAR_CODES.rawHtml,
+          `<${name}> is raw HTML, which is not allowed in content. Use markdown, or one of: ${allowed.join(", ")}.`,
+          at(node),
+        ),
+      );
+      return;
+    }
+
+    out.push({
+      ...error(
+        GRAMMAR_CODES.unknownComponent,
+        `<${name}> is not a known component. Available in this section: ${allowed.join(", ")}.`,
         at(node),
       ),
-    );
+      // Only a plain identifier is named as stubbable. A member expression
+      // (`<Foo.Bar />`) is looked up as a property of an object MDX would still
+      // demand, so a caller could not substitute anything for it — leaving the
+      // name off keeps that one fatal everywhere.
+      ...(/^[A-Z][A-Za-z0-9_]*$/.test(name) ? { component: name } : {}),
+    });
+
+    // Then keep checking the attributes. This is the one rejection a caller is
+    // allowed to tolerate — the CMS preview stubs an unknown component out and
+    // compiles the rest, so a body it renders must still be free of the
+    // expressions and spreads the rules below refuse. Everything else about
+    // the element is unknowable without a definition, so it stops here.
+    checkAttributes(node, name, out);
     return;
   }
 
   if (!isContentComponentName(name) || !definition.sections.includes(section)) {
-    out.push(
-      error(
+    out.push({
+      ...error(
         GRAMMAR_CODES.wrongSection,
         `<${name}> cannot be used in ${section}. Available here: ${allowed.join(", ")}.`,
         at(node),
       ),
-    );
+      component: name,
+    });
     return;
   }
 
-  // ── attributes ────────────────────────────────────────────────────────────
+  const { literals, clean } = checkAttributes(node, name, out);
+
+  // Only check the property schema once the attributes are literal — reporting
+  // "unknown property" about a spread the author already knows is invalid is
+  // noise on top of a real error.
+  if (clean) {
+    const parsed = definition.props.safeParse(coerceBooleans(literals));
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const path = issue.path.join(".");
+        out.push({
+          code: GRAMMAR_CODES.invalidProps,
+          severity: "error",
+          message: `<${name}> ${path ? `${path}: ` : ""}${issue.message}`,
+          field: path || undefined,
+          component: name,
+          ...at(node),
+        });
+      }
+    }
+  }
+
+  // ── children ──────────────────────────────────────────────────────────────
+  const hasContent = (node.children ?? []).some(
+    (child) => child.type !== "text" || (child.value ?? "").trim() !== "",
+  );
+  if (definition.kind === "leaf" && hasContent) {
+    out.push(
+      error(
+        GRAMMAR_CODES.unexpectedChildren,
+        `<${name}> does not take content between its tags — write it as <${name} />.`,
+        at(node),
+      ),
+    );
+  }
+
+  // Children are not walked here: `walk` recurses into every node's children
+  // after the switch, and doing it in both places reported each nested finding
+  // twice.
+}
+
+/** Prove every attribute is a literal value, reporting the ones that are not.
+ *
+ * `clean` is false as soon as one attribute could carry JavaScript, which is
+ * both the security rule (an event handler or a call arrives as an expression)
+ * and the reason to skip the property schema afterwards. */
+function checkAttributes(
+  node: Node,
+  name: string,
+  out: Diagnostic[],
+): { literals: Record<string, unknown>; clean: boolean } {
   const literals: Record<string, unknown> = {};
-  let attributesAreClean = true;
+  let clean = true;
 
   for (const attribute of node.attributes ?? []) {
     // `{...props}` — a spread carries whatever the expression evaluates to,
     // which is exactly what "literal, schema-validated properties" excludes.
     if (attribute.type === "mdxJsxExpressionAttribute") {
-      attributesAreClean = false;
+      clean = false;
       out.push(
         error(
           GRAMMAR_CODES.spreadAttribute,
@@ -238,7 +309,7 @@ function checkJsx(
     // `prop={…}` — any JS-valued attribute, which is how an event handler
     // (`onClick={() => …}`) or a function would arrive.
     if (value !== null && typeof value === "object") {
-      attributesAreClean = false;
+      clean = false;
       out.push(
         error(
           GRAMMAR_CODES.expressionAttribute,
@@ -254,41 +325,7 @@ function checkJsx(
       value === null || value === undefined ? true : value;
   }
 
-  // Only check the property schema once the attributes are literal — reporting
-  // "unknown property" about a spread the author already knows is invalid is
-  // noise on top of a real error.
-  if (attributesAreClean) {
-    const parsed = definition.props.safeParse(coerceBooleans(literals));
-    if (!parsed.success) {
-      for (const issue of parsed.error.issues) {
-        const path = issue.path.join(".");
-        out.push({
-          code: GRAMMAR_CODES.invalidProps,
-          severity: "error",
-          message: `<${name}> ${path ? `${path}: ` : ""}${issue.message}`,
-          field: path || undefined,
-          ...at(node),
-        });
-      }
-    }
-  }
-
-  // ── children ──────────────────────────────────────────────────────────────
-  const children = node.children ?? [];
-  const hasContent = children.some(
-    (child) => child.type !== "text" || (child.value ?? "").trim() !== "",
-  );
-  if (definition.kind === "leaf" && hasContent) {
-    out.push(
-      error(
-        GRAMMAR_CODES.unexpectedChildren,
-        `<${name}> does not take content between its tags — write it as <${name} />.`,
-        at(node),
-      ),
-    );
-  }
-
-  for (const child of children) walk(child, section, allowed, out);
+  return { literals, clean };
 }
 
 /** JSX writes every literal attribute as a string, so `newTab="true"` and the

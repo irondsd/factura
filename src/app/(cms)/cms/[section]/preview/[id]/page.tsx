@@ -14,10 +14,11 @@ import {
   relatedDocuments,
 } from "@/content-system/document";
 import {
-  compileContent,
+  compileContentForPreview,
   ContentGrammarError,
   contentComponents,
 } from "@/content-system/render/renderContent";
+import { MissingComponent } from "@/cms/components/MissingComponent";
 import { StatusChip } from "@/cms/components/StatusChip";
 import { faqPageLd, guideLd } from "@/i18n/structuredData";
 
@@ -55,10 +56,19 @@ export default async function CmsPreviewPage({ params }: Props) {
   const page = await cmsPageStore.findById(id);
   if (!page || page.section !== section.id) notFound();
 
-  let Content: Awaited<ReturnType<typeof compileContent>> | null = null;
+  let Content:
+    | Awaited<ReturnType<typeof compileContentForPreview>>["Content"]
+    | null = null;
+  // Components the body calls that do not exist yet. They render as nothing
+  // rather than taking the whole preview down with them — see
+  // `compileContentForPreview`.
+  let missing: string[] = [];
   let grammarError: string | null = null;
   try {
-    Content = await compileContent(page.body, page.section);
+    ({ Content, missing } = await compileContentForPreview(
+      page.body,
+      page.section,
+    ));
   } catch (cause) {
     // A draft may be unfinished, and its grammar errors belong in the
     // Validation tab — so the preview says what is wrong rather than throwing a
@@ -91,7 +101,7 @@ export default async function CmsPreviewPage({ params }: Props) {
   if (grammarError) {
     return (
       <main className="mx-auto w-full max-w-[680px] px-5 py-10">
-        <Banner status={page.status} />
+        <Banner status={page.status} missing={missing} />
         <div className="border border-[var(--vendor-ochre)] px-4 py-4">
           <p className="font-mono text-[13px] leading-[1.6] text-ink mt-0 mb-2">
             Esta versión no se puede mostrar todavía:
@@ -115,7 +125,7 @@ export default async function CmsPreviewPage({ params }: Props) {
       categories={categories}
       headings={headings}
       minutes={minutes}
-      banner={<Banner status={page.status} />}
+      banner={<Banner status={page.status} missing={missing} />}
       structuredData={
         <>
           {/* The same structured data the public page emits, so it can be read
@@ -152,6 +162,16 @@ export default async function CmsPreviewPage({ params }: Props) {
               />
             ),
             Faq: () => <Faq items={faq} />,
+            // Last, so a name the manifest does not have resolves to a
+            // no-op instead of throwing "Expected component X to be defined"
+            // out of the MDX runtime. Whatever props the author wrote on it
+            // are dropped with it.
+            ...Object.fromEntries(
+              missing.map((name) => [
+                name,
+                () => <MissingComponent name={name} />,
+              ]),
+            ),
           })}
         />
       )}
@@ -163,15 +183,30 @@ export default async function CmsPreviewPage({ params }: Props) {
  * live page — which is the point, and also why it needs a label. */
 function Banner({
   status,
+  missing,
 }: {
   status: Parameters<typeof StatusChip>[0]["status"];
+  missing?: string[];
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 border-b border-line py-3">
-      <span className="font-mono text-micro uppercase tracking-label-wide text-muted">
-        Vista previa · última versión guardada
-      </span>
-      <StatusChip status={status} />
+    <div className="border-b border-line py-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="font-mono text-micro uppercase tracking-label-wide text-muted">
+          Vista previa · última versión guardada
+        </span>
+        <StatusChip status={status} />
+      </div>
+      {/* Named here rather than in the article, because a gap in the page is
+          invisible: this is the preview's own chrome saying why the page below
+          is missing something. */}
+      {missing && missing.length > 0 && (
+        <p className="font-mono text-[12px] leading-[1.6] text-muted mt-2 mb-0">
+          Sin renderizar,{" "}
+          {missing.length === 1 ? "el componente" : "los componentes"}{" "}
+          {missing.map((name) => `<${name}>`).join(", ")}{" "}
+          {missing.length === 1 ? "no existe" : "no existen"} todavía.
+        </p>
+      )}
     </div>
   );
 }

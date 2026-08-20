@@ -133,7 +133,11 @@ export type DiagnosticSeverity = "error" | "warning";
  *
  * `line`/`column` are 1-based and point into the MDX body when the finding is
  * about the body; `field` names the metadata field when it is about metadata.
- * A finding has one or the other, never both. */
+ * A finding has one or the other, never both.
+ *
+ * `component` names the JSX element a finding is about, so a caller can act on
+ * it without parsing the message — the CMS preview uses it to stub out
+ * components that do not exist yet. */
 export type Diagnostic = {
   code: string;
   severity: DiagnosticSeverity;
@@ -141,6 +145,7 @@ export type Diagnostic = {
   line?: number;
   column?: number;
   field?: string;
+  component?: string;
 };
 
 /** The result of validating something. `ok` is "no errors" — warnings never

@@ -242,6 +242,26 @@ describe("forbidden: unknown components", () => {
       GRAMMAR_CODES.wrongSection,
     );
   });
+
+  it("names the component, so a caller can act on it without reading prose", () => {
+    // What the CMS preview stubs out. The message may be reworded; this may
+    // not.
+    const [diagnostic] = check("<Inventado />\n").diagnostics;
+    expect(diagnostic.component).toBe("Inventado");
+  });
+
+  it("checks the attributes of an unknown component too", () => {
+    // Because the preview compiles it: an expression left unreported here
+    // would be evaluated there.
+    const found = codes('<Inventado dato={fetch("/x")} />\n');
+    expect(found).toContain(GRAMMAR_CODES.unknownComponent);
+    expect(found).toContain(GRAMMAR_CODES.expressionAttribute);
+  });
+
+  it("reports a nested finding once, not once per level", () => {
+    const found = codes("<CtaRow>\n\n<script>alert(1)</script>\n\n</CtaRow>\n");
+    expect(found.filter((c) => c === GRAMMAR_CODES.rawHtml)).toHaveLength(1);
+  });
 });
 
 describe("invalid properties", () => {
