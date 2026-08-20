@@ -73,9 +73,11 @@ export class PostgresContentRepository implements ContentRepository {
     return this.list(section, [...renderableStatuses("public")]);
   }
 
-  /** Newest first, by publication. `published_at` is null for a page that has
-   * never been published, so the sort falls back to the editorial timestamp —
-   * which is the only date a `preview` page has. */
+  /** Newest first by the date readers see in each section's listing.
+   *
+   * Guides display their publication date; statistics and research display
+   * their last-updated date because those pages are refreshed as their source
+   * data changes. */
   private async list(
     section: ContentSection,
     statuses: string[],
@@ -89,27 +91,14 @@ export class PostgresContentRepository implements ContentRepository {
         ),
       ),
       columns: SUMMARY_COLUMNS,
-      // Editorial order first: an index that lists a hub's children in the
-      // order their author chose is the whole point of `sort_order`, and it is
-      // uniform across sections. Publication date breaks ties, which is what a
-      // flat section like guides falls back to since every row shares
-      // `sortOrder` 0.
-      //
-      // `coalesce` rather than a second date key: a page that has never been
-      // published has no `published_at`, and the editorial timestamp is the
-      // only date it has — but using that as a *tiebreak* between two published
-      // pages made the order move whenever anyone edited one of them. Fifteen
-      // guides share two publication instants, so that is not hypothetical: an
-      // edit to one reshuffled the related-guides block on the others.
-      //
-      // Slug last, so the order is total and deterministic. It is also what the
-      // filesystem registry did — it sorted on publication alone, and a stable
-      // `Array.sort` left ties in `readdir` order, which is filename order,
-      // which is slug order.
+      // `published_at` is null for a page that has never been published, so a
+      // preview falls back to its editorial timestamp. Slug last makes ties
+      // deterministic without reintroducing editorial ordering.
       orderBy: [
-        asc(cmsPages.sortOrder),
         desc(
-          sql`coalesce(${cmsPages.publishedAt}, ${cmsPages.contentUpdatedAt})`,
+          section === "guias"
+            ? sql`coalesce(${cmsPages.publishedAt}, ${cmsPages.contentUpdatedAt})`
+            : cmsPages.contentUpdatedAt,
         ),
         asc(cmsPages.slug),
       ],
