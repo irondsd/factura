@@ -5,6 +5,7 @@ import { requireCmsMember } from "@/cms/auth/requireCmsMember";
 import { canManageTokens } from "@/cms/auth/policy";
 import {
   createCmsToken,
+  deleteCmsToken,
   listCmsTokens,
   revokeCmsToken,
   type CmsScope,
@@ -42,4 +43,13 @@ export async function revokeCmsTokenAction(id: string) {
   const revoked = await revokeCmsToken({ id, userId: actor.userId });
   revalidatePath("/cms/tokens");
   return revoked;
+}
+
+/** Remove a revoked or expired token from the list. Refuses a live one — see
+ * `deleteCmsToken`. */
+export async function deleteCmsTokenAction(id: string) {
+  const actor = await admin();
+  const deleted = await deleteCmsToken({ id, userId: actor.userId });
+  revalidatePath("/cms/tokens");
+  return deleted;
 }

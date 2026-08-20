@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, lte, or } from "drizzle-orm";
 import { db as defaultDb, type Database } from "@/db";
 import { cmsApiTokens, cmsMembers } from "@/db/schema";
 import type { CmsActor } from "@/cms/types";
@@ -81,6 +81,42 @@ export async function revokeCmsToken(
         eq(cmsApiTokens.id, input.id),
         eq(cmsApiTokens.userId, input.userId),
         isNull(cmsApiTokens.revokedAt),
+      ),
+    )
+    .returning({ id: cmsApiTokens.id });
+  return rows.length === 1;
+}
+
+/** Drop a dead token's row for good.
+ *
+ * Nothing expires these rows on its own — there is no cleanup job — so without
+ * this the token list only ever grows, and a console whose whole job is showing
+ * you what can write to the public site becomes less readable every time a
+ * token is rotated.
+ *
+ * Deletable means **already unusable**: revoked, or past `expiresAt`. A live
+ * token has to be revoked first, exactly like a published page has to be
+ * unpublished before it can be deleted (`contentService.delete`) — it keeps
+ * "this can still write" and "this is gone" two separate decisions, and it
+ * means this call can never be the thing that takes access away.
+ *
+ * Deleting the row costs no accountability: `cms_audit_log` records the *user*
+ * behind a mutation, never the token, so the trail of what this token did
+ * outlives it. */
+export async function deleteCmsToken(
+  input: { id: string; userId: string },
+  database: Database = defaultDb,
+): Promise<boolean> {
+  const rows = await database
+    .delete(cmsApiTokens)
+    .where(
+      and(
+        eq(cmsApiTokens.id, input.id),
+        eq(cmsApiTokens.userId, input.userId),
+        or(
+          isNotNull(cmsApiTokens.revokedAt),
+          lte(cmsApiTokens.expiresAt, new Date()),
+        ),
       ),
     )
     .returning({ id: cmsApiTokens.id });

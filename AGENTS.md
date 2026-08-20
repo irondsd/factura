@@ -82,3 +82,20 @@ actual bill history. Say plainly which parts you verified and which you didn't.
 
 Even though the content of the website is largely in Spanish, respond in the language user talked to you.
 Don't let Spanish content to confuse you to respond in Spanish to a question asked in English.
+
+# Writing articles
+
+Public content for `/guias`, `/estadisticas` and `/investigaciones` lives in
+PostgreSQL, not in `src/content/**`. Editing an `.mdx` file there changes nothing
+a reader sees. Articles are written through the `factura-cms` MCP server (or by
+hand at `/cms`), and **`src/content/AUTHORING.md` is the spec — read it before
+writing or editing any article.**
+
+The three rules that matter most, so they are never a surprise:
+
+- **You cannot delete content, and should not look for a way.** The MCP has no
+  delete tool. A page that should go away goes back to `draft`.
+- **Ask before publishing or unpublishing.** `set_content_status` is the only
+  tool that changes what the public sees; it needs the user's explicit yes every
+  time, in both directions.
+- **Editing an already-published page needs no confirmation.** Fix it and save.

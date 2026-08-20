@@ -3,14 +3,19 @@ import { useState, useTransition } from "react";
 import {
   cmsTokensAction,
   createCmsTokenAction,
+  deleteCmsTokenAction,
   revokeCmsTokenAction,
 } from "@/cms/server/tokenActions";
 import type { CmsApiTokenSummary, CmsScope } from "@/cms/mcp/tokens";
+
+const expired = (expiresAt: Date | null) =>
+  expiresAt !== null && new Date(expiresAt) <= new Date();
 
 export function TokenManager({ initial }: { initial: CmsApiTokenSummary[] }) {
   const [tokens, setTokens] = useState(initial);
   const [name, setName] = useState("");
   const [fresh, setFresh] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const create = () =>
     start(async () => {
@@ -31,6 +36,12 @@ export function TokenManager({ initial }: { initial: CmsApiTokenSummary[] }) {
           item.id === id ? { ...item, revokedAt: new Date() } : item,
         ),
       );
+    });
+  const remove = (id: string) =>
+    start(async () => {
+      await deleteCmsTokenAction(id);
+      setConfirming(null);
+      setTokens((items) => items.filter((item) => item.id !== id));
     });
   return (
     <>
@@ -74,32 +85,70 @@ export function TokenManager({ initial }: { initial: CmsApiTokenSummary[] }) {
         </button>
       </form>
       <ul className="list-none p-0 m-0 flex flex-col gap-3">
-        {tokens.map((token) => (
-          <li key={token.id} className="border border-line bg-card p-4">
-            <div className="flex gap-3">
-              <strong className="font-display">{token.name}</strong>
-              {token.revokedAt ? (
-                <span className="font-mono text-micro text-muted">
-                  Revocado
-                </span>
-              ) : (
-                <button
-                  className="ml-auto font-mono text-micro text-accent underline"
-                  disabled={pending}
-                  onClick={() => revoke(token.id)}
-                >
-                  Revocar
-                </button>
-              )}
-            </div>
-            <p className="mt-2 mb-0 font-mono text-micro text-muted">
-              {token.scopes.join(", ")} ·{" "}
-              {token.lastUsedAt
-                ? `usado ${new Date(token.lastUsedAt).toLocaleDateString("es-AR")}`
-                : "sin uso"}
-            </p>
-          </li>
-        ))}
+        {tokens.map((token) => {
+          // A token is removable once it can no longer write: revoked by hand,
+          // or past the 90-day expiry. A live one has to be revoked first.
+          const state = token.revokedAt
+            ? "Revocado"
+            : expired(token.expiresAt)
+              ? "Vencido"
+              : null;
+          return (
+            <li key={token.id} className="border border-line bg-card p-4">
+              <div className="flex items-center gap-3">
+                <strong className="font-display">{token.name}</strong>
+                {state ? (
+                  <>
+                    <span className="font-mono text-micro text-muted">
+                      {state}
+                    </span>
+                    {confirming === token.id ? (
+                      <span className="ml-auto flex items-center gap-3 font-mono text-micro">
+                        <span className="text-muted">¿Eliminarlo?</span>
+                        <button
+                          className="text-accent underline"
+                          disabled={pending}
+                          onClick={() => remove(token.id)}
+                        >
+                          Sí, eliminar
+                        </button>
+                        <button
+                          className="text-muted underline"
+                          disabled={pending}
+                          onClick={() => setConfirming(null)}
+                        >
+                          Cancelar
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        className="ml-auto font-mono text-micro text-muted underline"
+                        disabled={pending}
+                        onClick={() => setConfirming(token.id)}
+                      >
+                        Eliminar
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    className="ml-auto font-mono text-micro text-accent underline"
+                    disabled={pending}
+                    onClick={() => revoke(token.id)}
+                  >
+                    Revocar
+                  </button>
+                )}
+              </div>
+              <p className="mt-2 mb-0 font-mono text-micro text-muted">
+                {token.scopes.join(", ")} ·{" "}
+                {token.lastUsedAt
+                  ? `usado ${new Date(token.lastUsedAt).toLocaleDateString("es-AR")}`
+                  : "sin uso"}
+              </p>
+            </li>
+          );
+        })}
       </ul>
     </>
   );

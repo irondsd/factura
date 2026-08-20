@@ -28,8 +28,11 @@ export async function handleCmsMessage(
         title: "Factura CMS",
         version: "1.0.0",
       },
-      instructions:
-        "Use get_content before update_content. Every mutation requires the current lockVersion. New content is draft; publishing always requires an explicit set_content_status call.",
+      instructions: [
+        "Use get_content before update_content. Every mutation requires the current lockVersion.",
+        "This endpoint cannot delete anything: there is no delete tool, and pages are retired by status, not removed. Deletion is a browser-only action a human performs at /cms.",
+        "New content is always created as a draft. Publishing is never implicit — it takes a separate set_content_status call, and that call needs the human's explicit go-ahead each time, both to publish a page and to take a published one down. Editing a page that is already published needs no such confirmation: save it normally.",
+      ].join(" "),
     });
   if (message.method === "ping") return rpcResult(id, {});
   if (message.method === "tools/list")

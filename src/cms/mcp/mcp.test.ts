@@ -94,6 +94,37 @@ describe("tool listing", () => {
     }
   });
 
+  it("exposes no tool that deletes content", () => {
+    // Deletion is a browser-only action (`contentService.delete`). An agent
+    // holding a full-scope token must not be able to reach it, so the listing
+    // is the assertion: a future tool named for removal fails here first.
+    for (const tool of cmsToolListing(CMS_SCOPES)) {
+      expect(tool.name).not.toMatch(/delete|remove|destroy|archive/);
+    }
+    for (const name of ["delete_content", "remove_content"]) {
+      expect(findCmsTool(name)).toBeUndefined();
+    }
+  });
+
+  it("marks only the publication switch destructive", () => {
+    // The annotation is what tells a client which call needs a human first.
+    // Editing a live page is not destructive — the URL renders either way —
+    // so flagging `update_content` too would train the editor to click
+    // through the prompt that actually matters.
+    const destructive = cmsToolListing(CMS_SCOPES)
+      .filter((tool) => tool.annotations.destructiveHint)
+      .map((tool) => tool.name);
+    expect(destructive).toEqual(["set_content_status"]);
+  });
+
+  it("marks every read tool read-only and every mutation not", () => {
+    for (const tool of cmsToolListing(CMS_SCOPES)) {
+      expect(tool.annotations.readOnlyHint).toBe(
+        findCmsTool(tool.name)?.scope === "cms:read",
+      );
+    }
+  });
+
   it("declares every mutation under cms:write", () => {
     // The scope is what the handler checks, so a mutation mislabelled `cms:read`
     // would be callable by a read-only token.
