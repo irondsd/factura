@@ -173,6 +173,7 @@ async function main(): Promise<void> {
       p25: number;
       p75: number;
       supMedian: number;
+      priceMedian: number | null;
       from: string;
       to: string;
     }
@@ -198,6 +199,13 @@ async function main(): Promise<void> {
       p25: quantile(v, 0.25),
       p75: quantile(v, 0.75),
       supMedian: median(rows.map((r) => r.sup_m2)),
+      // The whole lot, not the metre — the number somebody asking "what does a
+      // plot in Tandil cost" actually wants. Taken as its own median of
+      // `prec_sd` rather than as `usdM2 × supMedian`, which is a product of two
+      // medians and is nobody's asking price: in San Pedro they are half
+      // apart. Withheld on the same threshold as `usdM2`, for the same reason.
+      priceMedian:
+        rows.length >= MIN_N ? median(rows.map((r) => r.prec_sd)) : null,
       from: months[0],
       to: months[months.length - 1],
     };
@@ -214,6 +222,8 @@ async function main(): Promise<void> {
   if (thin.length) console.log(`too few samples: ${thin.join(" ")}`);
 
   const provincial = median(urban.map((r) => r.usd_m2));
+  const provincialLot = median(urban.map((r) => r.prec_sd));
+  const provincialSup = median(urban.map((r) => r.sup_m2));
 
   const out = {
     id: "suelo-pba",
@@ -241,11 +251,15 @@ async function main(): Promise<void> {
       to: fechas[fechas.length - 1],
     },
     provincial,
+    provincialLot,
+    provincialSup,
     partidos,
   };
 
   const text = `${JSON.stringify(out, null, 2)}\n`;
-  console.log(`provincial median ${provincial} USD/m²`);
+  console.log(
+    `provincial median ${provincial} USD/m² · lote ${provincialLot} USD de ${provincialSup} m²`,
+  );
   if (dryRun) {
     console.log(
       `--dry-run: not writing (${(text.length / 1024).toFixed(0)} KB)`,

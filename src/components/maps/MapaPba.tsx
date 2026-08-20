@@ -19,12 +19,11 @@ import ambaGeo from "@/content/shared/amba-geo.json";
 // `--choro-backdrop`, it is legible as "not part of this" at a glance and is
 // not hoverable, so it can never be mistaken for a region with a value.
 //
-// ── Why the province map is not here yet ──────────────────────────────────
+// ── Why the province map is a separate module ─────────────────────────────
 // `pba-geo.json` (all 135 partidos) is built by the same script and is four
-// times the size. A wrapper for it belongs beside this one the day a page
-// shades the whole province — see `.claude/terreno-m2.md`. Importing it here
-// would put those 180 KB in the chunk this page loads, for a map it never
-// draws.
+// times the size. `MapaProvincia.tsx` draws it, for the land-price page.
+// Exporting both from here would put those 180 KB in the chunk this page loads,
+// for a map it never draws.
 
 export type { MapDimension, MapRegion, MapView };
 
