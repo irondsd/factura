@@ -7,6 +7,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import posthog from "posthog-js";
 import { Button, Input } from "@/components/ui";
 import { useI18n } from "@/i18n/I18nProvider";
+import { localizedHref } from "@/i18n/routing";
 
 // Sign-in flow, all on /login:
 //   choose → "Continue with Google" or "Sign in with email"
@@ -32,13 +33,14 @@ export function LoginForm({
 }) {
   const router = useRouter();
   const { status, data: session } = useSession();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const tl = t.login;
 
   const [step, setStep] = useState<Step>("choose");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [legalConsent, setLegalConsent] = useState(true);
   // Auth.js bounces failures back here with a ?error=<type> code. Map the ones
   // we can hit to a fitting message rather than always blaming the OTP code:
   //   Verification          → wrong/expired OTP code
@@ -152,7 +154,32 @@ export function LoginForm({
             >
               {tl.emailButton}
             </Button>
-            <p className="font-mono text-[10.5px] text-muted leading-[1.6] mt-5">
+            <label className="mt-5 flex items-start gap-2 text-left font-mono text-[10.5px] leading-[1.6] text-muted">
+              <input
+                type="checkbox"
+                checked={legalConsent}
+                onChange={(event) => setLegalConsent(event.target.checked)}
+                className="mt-[3px] h-[14px] w-[14px] flex-none accent-[var(--accent)]"
+              />
+              <span>
+                {tl.consentPrefix}{" "}
+                <Link
+                  href={localizedHref("/privacy", locale)}
+                  className="text-accent underline decoration-dotted underline-offset-[3px] hover:text-ink"
+                >
+                  {tl.privacyPolicy}
+                </Link>{" "}
+                {tl.consentAnd}{" "}
+                <Link
+                  href={localizedHref("/terms", locale)}
+                  className="text-accent underline decoration-dotted underline-offset-[3px] hover:text-ink"
+                >
+                  {tl.termsOfUse}
+                </Link>
+                .
+              </span>
+            </label>
+            <p className="border-t border-line font-mono text-[10.5px] text-muted leading-[1.6] mt-5 pt-4">
               {tl.privacyNote}
             </p>
           </>
