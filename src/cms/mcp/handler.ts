@@ -67,11 +67,7 @@ export async function handleCmsMessage(
         tool.name,
         "ok",
       );
-    return rpcResult(id, {
-      content: [{ type: "text", text: JSON.stringify(output, null, 2) }],
-      structuredContent: output,
-      isError: false,
-    });
+    return rpcResult(id, toolSuccess(output));
   } catch (error) {
     if (tool.scope === "cms:write")
       await audit(caller.userId, pageId(parsed.data), tool.name, "error");
@@ -135,7 +131,37 @@ async function audit(
 function toolError(message: string, details?: unknown) {
   return {
     content: [{ type: "text" as const, text: message }],
-    ...(details ? { structuredContent: details } : {}),
+    ...structured(details),
     isError: true,
   };
+}
+
+/** A successful tool result: the payload as JSON text, plus `structuredContent`
+ * only when the payload is something `structuredContent` is allowed to be.
+ *
+ * Exported for the test that pins this — the array case cannot be reached from
+ * `handleCmsMessage` without a database, and it is the case that broke.
+ *
+ * MCP (`2025-06-18`) types `structuredContent` as a JSON *object*. `list_content`
+ * returns a bare array, and setting it unconditionally produced a response that
+ * strict clients rejected outright ("expected record, received array") — the
+ * whole tool was unusable from them. No tool here advertises an `outputSchema`,
+ * so `structuredContent` is a convenience, never the contract: dropping it for
+ * a non-object leaves `content[0].text` carrying the same JSON it always did,
+ * rather than inventing a wrapper key that the text half would not agree with. */
+export function toolSuccess(output: unknown) {
+  return {
+    content: [
+      { type: "text" as const, text: JSON.stringify(output, null, 2) },
+    ],
+    ...structured(output),
+    isError: false,
+  };
+}
+
+/** `structuredContent` if `value` is a plain JSON object, nothing otherwise. */
+function structured(value: unknown) {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? { structuredContent: value }
+    : {};
 }
