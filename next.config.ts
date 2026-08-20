@@ -34,7 +34,35 @@ function mediaRemotePatterns(): NonNullable<
   ];
 }
 
+/** Files the media routes need at runtime that Next's tracer cannot discover.
+ *
+ * sharp loads libvips through `dlopen`, not through `require`, so the file
+ * tracer — which follows JavaScript — copies libvips' `index.js` and
+ * `package.json` into the serverless bundle and leaves the actual shared
+ * library behind. Locally that is invisible, because the whole `node_modules`
+ * tree is on disk; on Vercel each function is built *from the trace*, so the
+ * binding loads and then dies with:
+ *
+ *   ERR_DLOPEN_FAILED: libvips-cpp.so.8.18.3: cannot open shared object file
+ *
+ * Only the routes that actually process bytes need it. `/cms/media` and
+ * `/cms/media/[id]` are where the browser's Server Actions land, and
+ * `/api/cms/mcp` is where an agent's `complete_media_upload` does. Every other
+ * route — including all the public ones — stays free of a ~10 MB codec.
+ *
+ * Keys are route globs; `**` is what matches `/cms/media/[id]`, whose brackets
+ * would otherwise be read as a character class. */
+const SHARP_RUNTIME_FILES = [
+  "./node_modules/sharp/**/*",
+  "./node_modules/@img/**/*",
+];
+
 const nextConfig: NextConfig = {
+  outputFileTracingIncludes: {
+    "/cms/media": SHARP_RUNTIME_FILES,
+    "/cms/media/**": SHARP_RUNTIME_FILES,
+    "/api/cms/mcp": SHARP_RUNTIME_FILES,
+  },
   images: {
     remotePatterns: mediaRemotePatterns(),
     // Required from Next 16: without an allowlist, anyone could ask the
