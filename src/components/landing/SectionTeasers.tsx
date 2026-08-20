@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { ArticlePreview } from "@/components/article/ArticlePreview";
 import { Eyebrow } from "@/components/landing/parts";
+import { resolveMediaRefs } from "@/content-system/media/repository";
+import type { MediaRef } from "@/content-system/media/repository";
 import { formatContentDateShort } from "@/lib/content-date";
 
 // The homepage's window onto the editorial sections — Estadísticas,
@@ -21,9 +24,11 @@ export type TeaserCard = {
   href: string;
   title: string;
   summary: string;
+  /** Media-library id of the card's illustration. */
+  previewMediaId?: string;
   /** 16:9 illustration under `/img/<section>/previews/`. Decorative — the title
-   * beside it names the page — so it renders `alt=""`. Pages without one get
-   * the blank paper panel, which keeps the cards in a row the same height. */
+   * beside it names the page — so it renders `alt=""`. The legacy path remains
+   * as a fallback while older records finish migrating. */
   preview?: string;
   /** Full ISO 8601 publication timestamp. Publication and not the update date:
    * this block is "what's new", and the badge and the dateline should agree
@@ -42,7 +47,17 @@ export type TeaserBlock = {
   allLabel: string;
 };
 
-export function SectionTeasers({ blocks }: { blocks: TeaserBlock[] }) {
+export async function SectionTeasers({ blocks }: { blocks: TeaserBlock[] }) {
+  // Resolve the whole homepage window in one query, just like `/guias` does
+  // for its listing rows. Migrated cards no longer have a repository image
+  // path, so rendering only `card.preview` would leave them blank.
+  const media = await resolveMediaRefs(
+    blocks
+      .flatMap((block) => block.cards)
+      .map((card) => card.previewMediaId)
+      .filter((id): id is string => !!id),
+  );
+
   return (
     <div className="flex flex-col gap-14">
       {blocks.map((block) => (
@@ -61,7 +76,12 @@ export function SectionTeasers({ blocks }: { blocks: TeaserBlock[] }) {
               its own row. */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {block.cards.map((card, i) => (
-              <TeaserLink key={card.key} card={card} isNew={i === 0} />
+              <TeaserLink
+                key={card.key}
+                card={card}
+                media={media.get(card.previewMediaId ?? "")}
+                isNew={i === 0}
+              />
             ))}
           </div>
 
@@ -79,22 +99,25 @@ export function SectionTeasers({ blocks }: { blocks: TeaserBlock[] }) {
   );
 }
 
-function TeaserLink({ card, isNew }: { card: TeaserCard; isNew: boolean }) {
+function TeaserLink({
+  card,
+  media,
+  isNew,
+}: {
+  card: TeaserCard;
+  media?: MediaRef;
+  isNew: boolean;
+}) {
   return (
     <Link
       href={card.href}
       className="group flex flex-col border border-line bg-card no-underline transition-colors hover:border-accent"
     >
-      {card.preview ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+      {media || card.preview ? (
+        <ArticlePreview
+          media={media}
           src={card.preview}
-          alt=""
-          width={960}
-          height={540}
-          loading="lazy"
-          decoding="async"
-          className="w-full aspect-video object-cover border-b border-line bg-paper"
+          className="border-x-0 border-t-0 border-b border-line bg-paper"
         />
       ) : (
         <div
