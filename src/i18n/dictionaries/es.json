@@ -19,6 +19,10 @@
       "title": "Privacidad",
       "description": "Cómo Factura trata tus datos: qué recopila, dónde se guarda, los terceros involucrados y cómo eliminarlos."
     },
+    "terms": {
+      "title": "Términos de uso",
+      "description": "Las condiciones para usar Factura y mantener tu registro de facturas."
+    },
     "security": {
       "title": "Seguridad",
       "description": "Cómo Factura mantiene seguras tus facturas: inicio de sesión sin contraseña, aislamiento por cuenta, almacenamiento cifrado con acceso firmado y cómo reportar una vulnerabilidad."
@@ -882,6 +886,10 @@
     "tagline": "Soltá una factura y obtené tu registro. Tus servicios, contabilizados en silencio y solo para vos.",
     "google": "Continuar con Google",
     "emailButton": "Ingresar con correo",
+    "consentPrefix": "Acepto la",
+    "privacyPolicy": "política de privacidad",
+    "consentAnd": "y los",
+    "termsOfUse": "términos de uso",
     "privacyNote": "Las facturas están acotadas a tu cuenta. El texto analizado y los PDF son privados.",
     "emailPrompt": "Ingresá tu correo y te enviaremos un código de 6 dígitos para ingresar.",
     "emailPlaceholder": "tu@ejemplo.com",
@@ -957,6 +965,34 @@
           "id": "changes",
           "heading": "Cambios y contacto",
           "body": "<p>Si esta política cambia de forma sustancial, la fecha de «última actualización» de arriba cambiará y las actualizaciones importantes se anotarán en el historial del proyecto. El uso continuado después de un cambio significa que aceptás la política revisada.</p><p>¿Preguntas sobre tus datos? Escribí a <a href=\"mailto:privacy@factura.uno\">privacy@factura.uno</a>, o abrí un issue en <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">GitHub</a>. Para cualquier cosa relacionada con seguridad, mirá la página de <a href=\"/security\">Seguridad</a>.</p>"
+        }
+      ]
+    },
+    "terms": {
+      "eyebrow": "Términos de uso",
+      "title": "Usá Factura con claridad",
+      "intro": "Las reglas sencillas para usar el registro de facturas de forma responsable.",
+      "updated": "junio de 2026",
+      "sections": [
+        {
+          "id": "service",
+          "heading": "El servicio",
+          "body": "<p>Factura te ofrece una herramienta para guardar, analizar y consultar tus facturas de servicios. La usás bajo tu responsabilidad y debés mantener el acceso a tu correo o cuenta de Google.</p>"
+        },
+        {
+          "id": "your-content",
+          "heading": "Tu contenido",
+          "body": "<p>Seguís siendo dueño de las facturas y demás información que subís. Solo subas archivos que tengas derecho a usar. No uses Factura para almacenar información ilegal, dañina o que pertenezca a otra persona sin autorización.</p>"
+        },
+        {
+          "id": "accuracy",
+          "heading": "Análisis y exactitud",
+          "body": "<p>El análisis automático es una ayuda y puede equivocarse. Revisá los importes, períodos y demás datos antes de usarlos para pagar, reclamar o tomar una decisión. Factura no reemplaza la factura original ni el asesoramiento profesional.</p>"
+        },
+        {
+          "id": "changes",
+          "heading": "Cambios y contacto",
+          "body": "<p>Podemos actualizar estas condiciones cuando sea necesario para reflejar cambios en el producto o en la ley. La fecha de arriba indica la versión vigente. Si tenés preguntas, escribinos a <a href=\"mailto:support@factura.uno\">support@factura.uno</a>.</p>"
         }
       ]
     },
