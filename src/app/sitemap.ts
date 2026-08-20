@@ -33,6 +33,7 @@ const LANDING: {
   { path: "/glosario", changeFrequency: "monthly", priority: 0.7 },
   { path: "/contacto", changeFrequency: "monthly", priority: 0.5 },
   { path: "/privacy", changeFrequency: "monthly", priority: 0.5 },
+  { path: "/terms", changeFrequency: "monthly", priority: 0.5 },
   { path: "/security", changeFrequency: "monthly", priority: 0.5 },
 ];
 

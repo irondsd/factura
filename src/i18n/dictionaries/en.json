@@ -19,6 +19,10 @@
       "title": "Privacy",
       "description": "How Factura handles your data — what it collects, where it's stored, the third parties involved, and how to delete your data."
     },
+    "terms": {
+      "title": "Terms of use",
+      "description": "The conditions for using Factura and keeping your bill ledger."
+    },
     "security": {
       "title": "Security",
       "description": "How Factura keeps your bills safe — passwordless authentication, per-account data isolation, encrypted storage with signed access, and how to report a vulnerability."
@@ -882,6 +886,10 @@
     "tagline": "Drop a bill, get a ledger. Your utilities — quietly accounted for, and yours alone.",
     "google": "Continue with Google",
     "emailButton": "Sign in with email",
+    "consentPrefix": "I accept the",
+    "privacyPolicy": "privacy policy",
+    "consentAnd": "and",
+    "termsOfUse": "terms of use",
     "privacyNote": "Bills are scoped to your account. Parsed text and PDFs are private to you.",
     "emailPrompt": "Enter your email and we'll send you a 6-digit code to sign in.",
     "emailPlaceholder": "you@example.com",
@@ -957,6 +965,34 @@
           "id": "changes",
           "heading": "Changes & contact",
           "body": "<p>If this policy changes materially, the “last updated” date above will change and significant updates will be noted in the project history. Continued use after a change means you accept the revised policy.</p><p>Questions about your data? Email <a href=\"mailto:privacy@factura.uno\">privacy@factura.uno</a>, or open an issue on <a href=\"https://github.com/irondsd/factura\" target=\"_blank\" rel=\"noreferrer\">GitHub</a>. For anything security-related, see the <a href=\"/en/security\">Security</a> page.</p>"
+        }
+      ]
+    },
+    "terms": {
+      "eyebrow": "Terms of use",
+      "title": "Use Factura with clarity",
+      "intro": "The simple rules for using your bill ledger responsibly.",
+      "updated": "June 2026",
+      "sections": [
+        {
+          "id": "service",
+          "heading": "The service",
+          "body": "<p>Factura provides a tool for storing, parsing and reviewing your utility bills. You use it at your own responsibility and should keep access to your email or Google account secure.</p>"
+        },
+        {
+          "id": "your-content",
+          "heading": "Your content",
+          "body": "<p>You remain the owner of the bills and other information you upload. Only upload files you have the right to use. Do not use Factura to store illegal or harmful material, or someone else's information without permission.</p>"
+        },
+        {
+          "id": "accuracy",
+          "heading": "Parsing and accuracy",
+          "body": "<p>Automatic parsing is an aid and can be wrong. Check amounts, periods and other data before using them to pay, make a claim or make a decision. Factura does not replace the original bill or professional advice.</p>"
+        },
+        {
+          "id": "changes",
+          "heading": "Changes and contact",
+          "body": "<p>We may update these terms when needed to reflect product or legal changes. The date above identifies the current version. If you have questions, email <a href=\"mailto:support@factura.uno\">support@factura.uno</a>.</p>"
         }
       ]
     },
