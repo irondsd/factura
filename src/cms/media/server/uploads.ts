@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
-import sharp, { type Metadata, type Sharp } from "sharp";
+import type { Metadata, Sharp } from "sharp";
 import {
   checkDecoded,
   EXTENSION_FOR,
@@ -36,6 +36,25 @@ import {
 // a valid image and something executable does not survive being decoded to
 // pixels and encoded again; nothing of the original container reaches the
 // bucket.
+
+/** sharp, loaded on first use rather than at module load.
+ *
+ * `import sharp from "sharp"` resolves a **native binary** the moment anything
+ * in this module's import graph is touched — and that graph reaches every media
+ * server action, including the read-only ones, through `./service`. A
+ * deployment where the platform binary is missing or mismatched would therefore
+ * fail to *list* images, with an error that says nothing about uploads.
+ *
+ * A codec is needed only to process bytes. Listing, editing metadata, trashing
+ * and rendering never touch one, and now never load one. The promise is cached,
+ * so repeated uploads pay the resolution once.
+ *
+ * `import type` above is erased at compile time and loads nothing. */
+let sharpModule: Promise<typeof import("sharp").default> | null = null;
+function sharp(): Promise<typeof import("sharp").default> {
+  sharpModule ??= import("sharp").then((module) => module.default);
+  return sharpModule;
+}
 
 export type ProcessedImage = {
   bytes: Buffer;
@@ -101,10 +120,11 @@ export async function processImageBytes(raw: Buffer): Promise<ProcessedImage> {
     });
   }
 
+  const decode = await sharp();
   let source: Sharp;
   let probe: Metadata;
   try {
-    source = sharp(raw, { animated: true, failOn: "error" });
+    source = decode(raw, { animated: true, failOn: "error" });
     probe = await source.metadata();
   } catch {
     throw new MediaUploadError({
@@ -119,7 +139,7 @@ export async function processImageBytes(raw: Buffer): Promise<ProcessedImage> {
   // Dimensions are read from the *output*, because applying EXIF orientation
   // can swap width and height, and the stored numbers are what `next/image`
   // uses to reserve space before the image arrives.
-  const final = await sharp(bytes, { animated: true }).metadata();
+  const final = await decode(bytes, { animated: true }).metadata();
   const width = final.width ?? 0;
   // sharp reports an animated image's height as every frame stacked; one frame
   // is what a reader sees.
@@ -158,7 +178,7 @@ async function reencode(
 ): Promise<Buffer> {
   // `.rotate()` with no argument means "apply the EXIF orientation tag", which
   // is what makes the stored pixels match what the photographer saw.
-  const pipeline = sharp(raw, { failOn: "error" }).rotate();
+  const pipeline = (await sharp())(raw, { failOn: "error" }).rotate();
   switch (mimeType) {
     case "image/jpeg":
       return pipeline.jpeg({ quality: 92, mozjpeg: true }).toBuffer();
