@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireCmsMember } from "@/cms/auth/requireCmsMember";
-import { findEditableSection } from "@/cms/sections";
+import { findEditableSection, publicSectionPath } from "@/cms/sections";
 import { cmsPageStore } from "@/cms/server/store";
 import { ContentArticle } from "@/components/article/ContentArticle";
 import { Faq } from "@/components/article/Faq";
@@ -107,7 +107,7 @@ export default async function CmsPreviewPage({ params }: Props) {
   return (
     <ContentArticle
       title={page.title}
-      href={`${section.publicPath}/${page.slug}`}
+      href={`${publicSectionPath(section.id)}/${page.slug}`}
       published={page.publishedAt}
       updated={page.contentUpdatedAt}
       cta={page.cta}

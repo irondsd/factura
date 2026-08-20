@@ -13,7 +13,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { Button } from "@/components/ui";
 import { estadisticas } from "@/content/sections";
 import { publishedGuides } from "@/content-system/repository/guias";
-import { investigacion } from "@/content/sections";
+import { investigaciones } from "@/content/sections";
 import type { ContentSection, SectionPage } from "@/content/section";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
@@ -240,7 +240,7 @@ async function teaserBlocks(): Promise<TeaserBlock[]> {
   // Research has no hierarchy yet, so its own `listed()` is already that.
   const [stats, research, guides] = await Promise.all([
     estadisticas.children([]),
-    investigacion.listed(),
+    investigaciones.listed(),
     publishedGuides(),
   ]);
 
@@ -257,7 +257,7 @@ async function teaserBlocks(): Promise<TeaserBlock[]> {
       label: "Investigaciones",
       blurb:
         "Informes propios a partir de datos públicos y de facturas reales.",
-      cards: sectionCards(investigacion, newest(research)),
+      cards: sectionCards(investigaciones, newest(research)),
       allHref: "/investigaciones",
       allLabel: "Ver todas las investigaciones",
     },

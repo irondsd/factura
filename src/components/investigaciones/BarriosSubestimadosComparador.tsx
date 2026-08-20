@@ -6,7 +6,7 @@ import {
   PREFERENCES,
   preferenceScore,
   type PreferenceId,
-} from "@/content/investigacion/data/barrios-subestimados";
+} from "@/content/investigaciones/data/barrios-subestimados";
 
 const metrics = [
   ["cheap", "Precio"],

@@ -3,14 +3,15 @@
 This document tells you (or an AI assistant) how to write and publish an article
 on Factura. It covers all three authored sections:
 
-| Section         | Public URL         | CMS console            | `section` id    |
-| --------------- | ------------------ | ---------------------- | --------------- |
-| Guías           | `/guias`           | `/cms/guias`           | `guias`         |
-| Estadísticas    | `/estadisticas`    | `/cms/estadisticas`    | `estadisticas`  |
-| Investigaciones | `/investigaciones` | `/cms/investigaciones` | `investigacion` |
+| Section         | Public URL         | CMS console            | `section` id      |
+| --------------- | ------------------ | ---------------------- | ----------------- |
+| Guías           | `/guias`           | `/cms/guias`           | `guias`           |
+| Estadísticas    | `/estadisticas`    | `/cms/estadisticas`    | `estadisticas`    |
+| Investigaciones | `/investigaciones` | `/cms/investigaciones` | `investigaciones` |
 
-Note the last row: the section **id** is singular (`investigacion`) and the
-**URL** is plural (`/investigaciones`). Tools take the id.
+The id, the public URL and the CMS URL are one name — always plural. Tools take
+the id, and it is the last segment of both URLs, so there is nothing to
+translate. A future section is named in the plural for the same reason.
 
 **Content lives in PostgreSQL, not in this repository.** Writing an article no
 longer means adding an `.mdx` file and rebuilding — it means calling the CMS
@@ -175,7 +176,7 @@ them flat; `update_content` takes the same names inside `patch`.
 
 | Field           | Used for                                            | Rules                                                                |
 | --------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
-| `section`       | Which section this belongs to                       | `guias`, `estadisticas` or `investigacion`. Set at create only.      |
+| `section`       | Which section this belongs to                       | `guias`, `estadisticas` or `investigaciones`. Set at create only.    |
 | `slug`          | **The URL.** `/guias/<slug>`                        | lowercase, hyphens, **no accents or ñ**. Set at create only.         |
 | `title`         | `<h1>`, `<title>`, OG/Twitter, JSON-LD              | **≤60 chars**, or add `titleTag` — see below.                        |
 | `titleTag`      | `<title>` only, when `title` is too long to be one  | ≤60, keyword first. Optional.                                        |
@@ -246,7 +247,7 @@ for a field to set.
 
 Two is the usual number: one for the _topic_, one for the _task_.
 
-### `metadata` for `estadisticas` and `investigacion`
+### `metadata` for `estadisticas` and `investigaciones`
 
 ```json
 {
@@ -422,14 +423,13 @@ over the headline, and it does not change the social card.
 **Export 16:9 at 960×540, JPEG quality ~80.** That covers the 160px thumbnail at
 well over 2× in about 70 KB. The path is validated, so it must match:
 
-| Section         | Path                                | Extensions     |
-| --------------- | ----------------------------------- | -------------- |
-| `guias`         | `/img/guias/previews/<slug>.jpg`    | jpg, png, webp |
-| `estadisticas`  | `/img/estadisticas/previews/….jpg`  | jpg, png, webp |
-| `investigacion` | `/img/investigacion/previews/….jpg` | jpg, png, webp |
+| Section           | Path                                  | Extensions     |
+| ----------------- | ------------------------------------- | -------------- |
+| `guias`           | `/img/guias/previews/<slug>.jpg`      | jpg, png, webp |
+| `estadisticas`    | `/img/estadisticas/previews/….jpg`    | jpg, png, webp |
+| `investigaciones` | `/img/investigaciones/previews/….jpg` | jpg, png, webp |
 
-Note the research path uses the **singular** `investigacion`, matching the
-section id rather than the URL.
+The folder is the section id, so it is the same name as the URL.
 
 **Guides: optional, and genuinely optional.** Most have none, and a guide
 without one renders exactly the row and header it always has. Guides with and
@@ -439,7 +439,7 @@ to make a section look uniform.
 **Statistics and research: include one.** These pages are long, chart-heavy and
 visually similar to one another in the listings, and the thumbnail is what makes
 one distinguishable from the next. Treat a missing `previewImage` on a new
-`estadisticas` or `investigacion` page as unfinished work: either produce the
+`estadisticas` or `investigaciones` page as unfinished work: either produce the
 image or tell the person it still needs one before publishing.
 
 The image files live in `public/img/…` **in this repository**, not in the

@@ -3,7 +3,7 @@ import * as delitos from "../../estadisticas/data/delitos-caba";
 import { linearFit, median, percentileRanks } from "@/lib/statistics";
 
 // Rent against recorded crime, barrio by barrio and comuna by comuna — the
-// dataset behind /investigacion/barrios-seguros-baratos-caba.
+// dataset behind /investigaciones/barrios-seguros-baratos-caba.
 //
 // Like `rentabilidad-caba.ts`, this module publishes no source figures at all.
 // It is a *join*: two official series that already live under

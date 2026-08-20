@@ -141,7 +141,7 @@ const components: MDXComponents = {
   // The one component in this map that takes a prop: which page to point at.
   // See the note in the component for why it's an href and not the copy — and
   // why it is the one figure-adjacent component that is not per-section: the
-  // card works in both directions between /estadisticas and /investigacion.
+  // card works in both directions between /estadisticas and /investigaciones.
   PaginaRelacionada,
   ProbarCta,
   SignupCta,

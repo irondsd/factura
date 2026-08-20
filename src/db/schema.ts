@@ -951,7 +951,7 @@ export const cmsMembers = pgTable("cms_member", {
  * fall back to.
  *
  * `section` is text rather than an enum on purpose: `estadisticas` and
- * `investigacion` arrive in the same table (cms.md §12) and adding a section
+ * `investigaciones` arrive in the same table (cms.md §12) and adding a section
  * should not need an enum migration. The allowed values are a TypeScript union
  * in `src/content-system/types.ts`, checked on the way in.
  *

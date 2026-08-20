@@ -4,7 +4,7 @@ import {
   DEFAULT_SIZE,
   formatRate,
   SIZES,
-} from "@/content/investigacion/data/alquiler-seguridad";
+} from "@/content/investigaciones/data/alquiler-seguridad";
 
 // What the ranking cannot see, named one by one.
 //

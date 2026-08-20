@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { SectionIndex } from "@/components/section/SectionIndex";
-import { investigacion } from "@/content/sections";
+import { investigaciones } from "@/content/sections";
 import { sectionIndexMetadata } from "@/i18n/metadata";
 
-// The /investigacion index. Everything structural is `<SectionIndex />`, shared
+// The /investigaciones index. Everything structural is `<SectionIndex />`, shared
 // with /estadisticas; what is here is the copy.
 //
 // The intro has one job beyond describing the section: telling a reader who
@@ -19,7 +19,7 @@ const INTRO =
 
 export function generateMetadata(): Metadata {
   return sectionIndexMetadata({
-    id: investigacion.id,
+    id: investigaciones.id,
     title: TITLE,
     description: DESCRIPTION,
   });
@@ -28,7 +28,7 @@ export function generateMetadata(): Metadata {
 export default function InvestigacionIndexPage() {
   return (
     <SectionIndex
-      section={investigacion}
+      section={investigaciones}
       title={TITLE}
       description={DESCRIPTION}
       intro={INTRO}

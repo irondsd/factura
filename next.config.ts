@@ -28,9 +28,11 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      // The research section is plural for consistency with /guias and
-      // /estadisticas. Keep the former singular URLs working for readers and
-      // search engines that already know them.
+      // The research section is plural, for consistency with /guias and
+      // /estadisticas and now all the way down to its `cms_page.section` id.
+      // These two rules are the last trace of the singular name it shipped
+      // with: keep the old URLs working for readers and search engines that
+      // already know them. Nothing else in the codebase spells it that way.
       {
         source: "/investigacion",
         destination: "/investigaciones",

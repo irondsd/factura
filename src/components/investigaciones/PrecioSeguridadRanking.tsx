@@ -12,7 +12,7 @@ import {
   RENT_PERIOD_LABEL,
   SIZES,
   weightOf,
-} from "@/content/investigacion/data/alquiler-seguridad";
+} from "@/content/investigaciones/data/alquiler-seguridad";
 
 // The two ends of the ranking with their working shown: the price position, the
 // safety position and the two levels behind them, so a reader can see *why* a

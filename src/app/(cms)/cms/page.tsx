@@ -3,7 +3,11 @@ import Link from "next/link";
 import { requireCmsMember } from "@/cms/auth/requireCmsMember";
 import { CmsShell } from "@/cms/components/CmsShell";
 import { cmsPageMetadata } from "@/cms/metadata";
-import { CMS_SECTIONS, cmsSectionPath } from "@/cms/sections";
+import {
+  CMS_SECTIONS,
+  cmsSectionPath,
+  publicSectionPath,
+} from "@/cms/sections";
 
 // The CMS home: which section do you want to edit?
 //
@@ -61,7 +65,7 @@ function SectionCard({
           {section.label}
         </span>
         <span className="font-mono text-micro uppercase tracking-label-wide text-muted">
-          {disabled ? "Próximamente" : section.publicPath}
+          {disabled ? "Próximamente" : publicSectionPath(section.id)}
         </span>
       </span>
       <span className="block font-mono text-[13px] leading-[1.6] text-muted mt-2">

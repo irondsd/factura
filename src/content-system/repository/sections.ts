@@ -58,7 +58,7 @@ function cachedSection(section: ContentSection): CachedSection {
 
 const CACHED: Record<string, CachedSection> = {
   estadisticas: cachedSection("estadisticas"),
-  investigacion: cachedSection("investigacion"),
+  investigaciones: cachedSection("investigaciones"),
 };
 
 /** The cached reads for one registry section, or `undefined` for a section that

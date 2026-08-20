@@ -16,9 +16,8 @@ export const estadisticas = createSection({
   relatedLabel: "Estadística relacionada",
 });
 
-export const investigacion = createSection({
-  id: "investigacion",
-  base: "investigaciones",
+export const investigaciones = createSection({
+  id: "investigaciones",
   label: "Investigación",
   backLabel: "← Todas las investigaciones",
   relatedLabel: "Investigación relacionada",
@@ -26,7 +25,7 @@ export const investigacion = createSection({
 
 export const SECTIONS: readonly ContentSection[] = [
   estadisticas,
-  investigacion,
+  investigaciones,
 ];
 
 /** Resolve a section by its id, for the shared routes and the MDX components

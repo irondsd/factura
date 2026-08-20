@@ -5,7 +5,7 @@ import { sectionIndexMetadata } from "@/i18n/metadata";
 
 // The /estadisticas index. Everything structural — the breadcrumb, the row
 // list, the CollectionPage markup — is `<SectionIndex />`, shared with
-// /investigacion. What is here is the copy, which is the only part of an index
+// /investigaciones. What is here is the copy, which is the only part of an index
 // that is the section's own.
 
 const TITLE = "Estadísticas de precios y servicios en Argentina";

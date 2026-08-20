@@ -8,7 +8,7 @@ import { sectionMetadata } from "@/i18n/metadata";
 // CMS pages render on demand, so newly published content does not need a
 // deployment before its URL becomes available.
 //
-// The body is `<SectionArticle />`, shared with /investigacion.
+// The body is `<SectionArticle />`, shared with /investigaciones.
 export const dynamicParams = true;
 
 export async function generateStaticParams() {

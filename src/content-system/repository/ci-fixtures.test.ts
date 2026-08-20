@@ -22,7 +22,7 @@ describe("CI content fixtures", () => {
     const sectionForPath = {
       guias: "guias",
       estadisticas: "estadisticas",
-      investigaciones: "investigacion",
+      investigaciones: "investigaciones",
     } as const;
 
     for (const pathname of CI_CONTENT_FIXTURE_PATHS) {

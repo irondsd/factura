@@ -16,7 +16,11 @@ import {
   toPatch,
 } from "@/cms/forms/fields";
 import type { CmsSection } from "@/cms/sections";
-import { cmsPreviewPath, cmsSectionPath } from "@/cms/sections";
+import {
+  cmsPreviewPath,
+  cmsSectionPath,
+  publicSectionPath,
+} from "@/cms/sections";
 import type {
   ContentDocument,
   ContentStatus,
@@ -325,7 +329,8 @@ export function PageEditor({
         </h1>
         {status === "draft" && (
           <p className="font-mono text-[12px] text-muted mt-2 mb-0">
-            {section.publicPath}/{(values.slug as string) ?? page.slug}
+            {publicSectionPath(section.id)}/
+            {(values.slug as string) ?? page.slug}
           </p>
         )}
         {status !== "draft" && (
@@ -333,9 +338,10 @@ export function PageEditor({
             className="font-mono text-[12px] text-muted mt-2 mb-0 underline hover:text-accent"
             target="_blank"
             rel="noreferrer"
-            href={`${section.publicPath}/${(values.slug as string) ?? page.slug}`}
+            href={`${publicSectionPath(section.id)}/${(values.slug as string) ?? page.slug}`}
           >
-            {section.publicPath}/{(values.slug as string) ?? page.slug}
+            {publicSectionPath(section.id)}/
+            {(values.slug as string) ?? page.slug}
           </Link>
         )}
       </header>

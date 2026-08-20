@@ -6,7 +6,7 @@ import {
   formatRate,
   PRICE_SAFETY_COVERAGE,
   RENT_PERIOD_LABEL,
-} from "@/content/investigacion/data/barrios-subestimados";
+} from "@/content/investigaciones/data/barrios-subestimados";
 
 const rounded = (value: number) => Math.round(value).toLocaleString("es-AR");
 

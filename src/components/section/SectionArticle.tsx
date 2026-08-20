@@ -16,7 +16,7 @@ import { contentComponents } from "@/content-system/render/renderContent";
 import { documentHeadings, documentStats } from "@/content-system/document";
 
 // One page of a registry section, at any depth: /estadisticas/delitos-caba,
-// /investigacion/barrios-seguros-baratos-caba, and
+// /investigaciones/barrios-seguros-baratos-caba, and
 // /estadisticas/alquiler/caba the day a subject grows per-district pages.
 //
 // The whole body of the article route, so the two sections' `page.tsx` files are

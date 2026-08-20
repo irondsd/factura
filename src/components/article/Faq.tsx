@@ -6,7 +6,7 @@ import { FAQ_SECTION } from "@/content/headings";
 import { cn } from "@/lib/cn";
 
 // The "Preguntas frecuentes" block an article drops in with a bare <Faq />.
-// Shared by /guias, /estadisticas and /investigacion. The route injects
+// Shared by /guias, /estadisticas and /investigaciones. The route injects
 // `meta.faq`, so the MDX author owns the placement and the meta block owns the
 // content. Every answer stays in the HTML; the accordion only changes how much
 // of a long FAQ is visible at once.

@@ -45,18 +45,18 @@ import { SueloPbaInterior } from "@/components/estadisticas/SueloPbaInterior";
 import { VentaCabaMapa } from "@/components/estadisticas/VentaCabaMapa";
 import { VentaPbaHistoria } from "@/components/estadisticas/VentaPbaHistoria";
 import { VentaPbaMapa } from "@/components/estadisticas/VentaPbaMapa";
-import { BarriosSubestimadosComparador } from "@/components/investigacion/BarriosSubestimadosComparador";
-import { BarriosSubestimadosContraste } from "@/components/investigacion/BarriosSubestimadosContraste";
-import { BarriosSubestimadosPerfiles } from "@/components/investigacion/BarriosSubestimadosPerfiles";
-import { BarriosSubestimadosResumen } from "@/components/investigacion/BarriosSubestimadosResumen";
-import { PrecioSeguridadCobertura } from "@/components/investigacion/PrecioSeguridadCobertura";
-import { PrecioSeguridadDispersion } from "@/components/investigacion/PrecioSeguridadDispersion";
-import { PrecioSeguridadMapa } from "@/components/investigacion/PrecioSeguridadMapa";
-import { PrecioSeguridadRanking } from "@/components/investigacion/PrecioSeguridadRanking";
-import { PrecioSeguridadResumen } from "@/components/investigacion/PrecioSeguridadResumen";
-import { PrecioSeguridadSensibilidad } from "@/components/investigacion/PrecioSeguridadSensibilidad";
-import { SeguridadPorDelitoComparacion } from "@/components/investigacion/SeguridadPorDelitoComparacion";
-import { SeguridadPorDelitoGanadores } from "@/components/investigacion/SeguridadPorDelitoGanadores";
+import { BarriosSubestimadosComparador } from "@/components/investigaciones/BarriosSubestimadosComparador";
+import { BarriosSubestimadosContraste } from "@/components/investigaciones/BarriosSubestimadosContraste";
+import { BarriosSubestimadosPerfiles } from "@/components/investigaciones/BarriosSubestimadosPerfiles";
+import { BarriosSubestimadosResumen } from "@/components/investigaciones/BarriosSubestimadosResumen";
+import { PrecioSeguridadCobertura } from "@/components/investigaciones/PrecioSeguridadCobertura";
+import { PrecioSeguridadDispersion } from "@/components/investigaciones/PrecioSeguridadDispersion";
+import { PrecioSeguridadMapa } from "@/components/investigaciones/PrecioSeguridadMapa";
+import { PrecioSeguridadRanking } from "@/components/investigaciones/PrecioSeguridadRanking";
+import { PrecioSeguridadResumen } from "@/components/investigaciones/PrecioSeguridadResumen";
+import { PrecioSeguridadSensibilidad } from "@/components/investigaciones/PrecioSeguridadSensibilidad";
+import { SeguridadPorDelitoComparacion } from "@/components/investigaciones/SeguridadPorDelitoComparacion";
+import { SeguridadPorDelitoGanadores } from "@/components/investigaciones/SeguridadPorDelitoGanadores";
 
 /** Runtime bindings for every chart, map, table and card already authored in
  * statistics/research MDX.  These are imported centrally so database MDX has

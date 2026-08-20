@@ -3,7 +3,7 @@ import path from "node:path";
 import { ImageResponse } from "next/og";
 import type { ContentSection } from "@/content/section";
 
-// The social card for a page of /estadisticas or /investigacion — the same
+// The social card for a page of /estadisticas or /investigaciones — the same
 // picture, and the same reasoning, as the guides' card at
 // /og/guias/[slug]/card.png: an explicit route rather than the
 // `opengraph-image` file convention, because the URL has to be knowable

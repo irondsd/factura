@@ -39,7 +39,7 @@ const CONTEXT_BOUND = noProps;
 
 const DATA_SECTIONS = [
   "estadisticas",
-  "investigacion",
+  "investigaciones",
 ] as const satisfies readonly ContentSection[];
 const DATA_LEAF_COMPONENTS = Object.fromEntries(
   SECTION_COMPONENT_NAMES.filter(
@@ -65,7 +65,7 @@ const DATA_LEAF_COMPONENTS = Object.fromEntries(
 export const CONTENT_COMPONENT_DEFINITIONS = {
   // ── guides ────────────────────────────────────────────────────────────────
   ClosingCta: {
-    sections: ["guias", "estadisticas", "investigacion"],
+    sections: ["guias", "estadisticas", "investigaciones"],
     kind: "container",
     props: z
       .object({
@@ -142,7 +142,7 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
       "The site's trust strip. Sizes itself off its container, so an article column gets the ledger-row form.",
   },
   Faq: {
-    sections: ["guias", "estadisticas", "investigacion"],
+    sections: ["guias", "estadisticas", "investigaciones"],
     kind: "leaf",
     props: CONTEXT_BOUND,
     description:

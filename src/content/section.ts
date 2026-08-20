@@ -32,7 +32,6 @@ export type SectionMeta = {
 
 export type SectionConfig = {
   id: string;
-  base?: string;
   label: string;
   backLabel: string;
   relatedLabel: string;
@@ -97,7 +96,7 @@ function metaFromDatabase(document: ContentSummary): SectionMeta {
 
 /** Database-backed section model used by public routes and CMS previews. */
 export function createSection(config: SectionConfig): ContentSection {
-  const base = `/${config.base ?? config.id}`;
+  const base = `/${config.id}`;
   const repository = sectionRepository(config.id)!;
   const slugPath = (slug: string[]): string => slug.join("/");
   const href = (slug: string[]): string => `${base}/${slugPath(slug)}`;

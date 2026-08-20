@@ -9,7 +9,7 @@ import {
   formatRate,
   RENT_PERIOD_LABEL,
   SIZES,
-} from "@/content/investigacion/data/alquiler-seguridad";
+} from "@/content/investigaciones/data/alquiler-seguridad";
 import { type Point, PrecioSeguridadScatter } from "./PrecioSeguridadChartBody";
 
 // The page's own finding, and the answer to the question it can't dodge: how do

@@ -17,7 +17,7 @@ import {
   RENT_PERIOD_LABEL,
   rows,
   SIZES,
-} from "@/content/investigacion/data/alquiler-seguridad";
+} from "@/content/investigaciones/data/alquiler-seguridad";
 
 // The page's main figure: the city shaded by how well each region does on both
 // counts at once, with the weighting between them in the reader's hands.

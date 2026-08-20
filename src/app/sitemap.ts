@@ -99,7 +99,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })),
   ];
 
-  // The registry sections — /estadisticas and /investigacion — Spanish-only like
+  // The registry sections — /estadisticas and /investigaciones — Spanish-only like
   // the guides. `lastModified` is `meta.updated` and that's load-bearing here:
   // these pages gain a data point every month, and the date is how a crawler
   // learns to come back.

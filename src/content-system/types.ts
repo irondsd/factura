@@ -8,7 +8,7 @@
 export const CONTENT_SECTIONS = [
   "guias",
   "estadisticas",
-  "investigacion",
+  "investigaciones",
 ] as const;
 
 export type ContentSection = (typeof CONTENT_SECTIONS)[number];
@@ -34,7 +34,7 @@ export function isContentStatus(value: string): value is ContentStatus {
 }
 
 /** Structured metadata for one page, already parsed and validated. The union
- * gains `estadisticas`/`investigacion` members in section 12; the discriminant
+ * gains `estadisticas`/`investigaciones` members in section 12; the discriminant
  * is the document's `section`, not a field inside the metadata. */
 export type GuideMetadata = {
   keywords: string[];

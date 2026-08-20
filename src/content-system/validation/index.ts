@@ -161,5 +161,5 @@ function withoutSource(finding: CollectionDiagnostic): Diagnostic {
 export const VALIDATED_SECTIONS: readonly ContentSection[] = [
   "guias",
   "estadisticas",
-  "investigacion",
+  "investigaciones",
 ];

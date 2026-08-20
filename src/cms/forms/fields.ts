@@ -364,7 +364,7 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
 const FIELDS: Partial<Record<ContentSection, readonly FieldDescriptor[]>> = {
   guias: GUIDE_FIELDS,
   estadisticas: DATA_FIELDS,
-  investigacion: DATA_FIELDS,
+  investigaciones: DATA_FIELDS,
 };
 
 export function sectionFields(

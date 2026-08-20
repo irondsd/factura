@@ -265,7 +265,7 @@ export function guideListLd(
   };
 }
 
-// ── Registry sections: /estadisticas, /investigacion (Spanish-only) ────────
+// ── Registry sections: /estadisticas, /investigaciones (Spanish-only) ────────
 
 /** An `Article` describing the page plus the `Dataset` it publishes.
  *

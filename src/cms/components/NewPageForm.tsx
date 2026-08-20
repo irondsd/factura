@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createContentAction } from "@/cms/server/actions";
 import type { CmsSection } from "@/cms/sections";
-import { cmsEditPath } from "@/cms/sections";
+import { cmsEditPath, publicSectionPath } from "@/cms/sections";
 import type { ParentOption } from "./fields/MetadataField";
 
 // Creating a page. Deliberately the smallest form that produces a *valid*
@@ -139,7 +139,7 @@ export function NewPageForm({
           className={inputClass}
         />
         <p className="font-mono text-[12px] text-muted mt-1.5 mb-0">
-          {section.publicPath}/{fullSlug || "…"}
+          {publicSectionPath(section.id)}/{fullSlug || "…"}
         </p>
       </Field>
 

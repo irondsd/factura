@@ -2,7 +2,7 @@ import {
   CANDIDATES,
   formatArsPerMetre,
   formatRate,
-} from "@/content/investigacion/data/barrios-subestimados";
+} from "@/content/investigaciones/data/barrios-subestimados";
 
 export function BarriosSubestimadosPerfiles() {
   return (

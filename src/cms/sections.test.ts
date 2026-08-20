@@ -6,8 +6,8 @@ import {
   cmsPreviewPath,
   cmsSectionPath,
   findCmsSection,
-  findCmsSectionBySegment,
   findEditableSection,
+  publicSectionPath,
 } from "./sections";
 
 describe("the section registry", () => {
@@ -18,61 +18,65 @@ describe("the section registry", () => {
     );
   });
 
-  it("uses unique segments", () => {
-    const segments = CMS_SECTIONS.map((s) => s.segment);
-    expect(new Set(segments).size).toBe(segments.length);
+  it("uses unique ids", () => {
+    const ids = CMS_SECTIONS.map((s) => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("names every section in the plural", () => {
+    // The id is the reader-facing URL segment, and the site's sections are
+    // plural: /guias, /estadisticas, /investigaciones. Research shipped
+    // singular once, which put one name in the URLs and another in the data
+    // until it was renamed. A new section is named in the plural from the
+    // start so that never has to happen twice.
+    for (const section of CMS_SECTIONS) {
+      expect(section.id).toMatch(/s$/);
+    }
   });
 
   it("never collides with a reserved CMS segment", () => {
     // `/cms/tokens` is top-level, and `new`/`preview` sit inside a section.
     for (const reserved of ["tokens", "new", "preview"]) {
-      expect(CMS_SECTIONS.map((s) => s.segment)).not.toContain(reserved);
+      expect(CMS_SECTIONS.map((s) => s.id)).not.toContain(reserved);
     }
   });
 
   it("mirrors the public path in the CMS URL", () => {
-    // The whole point of the segment: an editor should not hold two names for
-    // one section in their head.
+    // An editor should not hold two names for one section in their head.
     for (const section of CMS_SECTIONS) {
-      expect(cmsSectionPath(section.id)).toBe(`/cms${section.publicPath}`);
+      expect(cmsSectionPath(section.id)).toBe(
+        `/cms${publicSectionPath(section.id)}`,
+      );
     }
   });
 
-  it("keeps the one place where the segment is not the id", () => {
-    // Research is plural publicly and singular in the data. This is the only
-    // crossing, and it is written down here rather than in a route file.
-    expect(findCmsSection("investigacion")?.segment).toBe("investigaciones");
-    expect(findCmsSectionBySegment("investigaciones")?.id).toBe(
-      "investigacion",
-    );
-    expect(findCmsSectionBySegment("investigacion")).toBeUndefined();
+  it("resolves a section by id", () => {
+    expect(findCmsSection("investigaciones")?.label).toBe("Investigación");
+    expect(findCmsSection("investigacion")).toBeUndefined();
   });
 });
 
 describe("editable sections", () => {
   it("opens a live section", () => {
     expect(findEditableSection("guias")?.id).toBe("guias");
-  });
-
-  it("refuses a planned one", () => {
-    // Shown on /cms so editors see what is coming, but not openable — a
-    // half-built editor is worse than a 404.
     expect(findEditableSection("estadisticas")?.id).toBe("estadisticas");
-    expect(findEditableSection("investigaciones")?.id).toBe("investigacion");
+    expect(findEditableSection("investigaciones")?.id).toBe("investigaciones");
   });
 
   it("refuses an unknown segment", () => {
     expect(findEditableSection("inventada")).toBeUndefined();
+    // The section's retired singular name is not a way in.
+    expect(findEditableSection("investigacion")).toBeUndefined();
   });
 });
 
 describe("route helpers", () => {
-  it("take a section id and emit its segment", () => {
-    // Callers hold a `cms_page.section` value, never a URL segment.
-    expect(cmsEditPath("investigacion", "abc")).toBe(
+  it("build a CMS URL from a section id", () => {
+    // Callers hold a `cms_page.section` value, which is the segment too.
+    expect(cmsEditPath("investigaciones", "abc")).toBe(
       "/cms/investigaciones/abc",
     );
-    expect(cmsPreviewPath("investigacion", "abc")).toBe(
+    expect(cmsPreviewPath("investigaciones", "abc")).toBe(
       "/cms/investigaciones/preview/abc",
     );
     expect(cmsEditPath("guias", "abc")).toBe("/cms/guias/abc");

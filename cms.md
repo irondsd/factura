@@ -313,7 +313,7 @@ created_by    uuid nullable, FK users.id
 
 ```text
 id                    uuid primary key
-section               text not null              # guias | estadisticas | investigacion
+section               text not null              # guias | estadisticas | investigaciones
 slug                  text not null
 status                cms_page_status not null   # draft | preview | published
 body_mdx              text not null
@@ -479,15 +479,15 @@ Routes, scoped by section:
 /cms/tokens                     CMS MCP token management (admin only)
 ```
 
-`[section]` mirrors the **public** path, so `/cms/investigaciones` edits what
-readers see at `/investigaciones`. An editor should never have to hold two names
-for one section in their head.
+`[section]` is the `cms_page.section` value, and it mirrors the **public** path:
+`/cms/investigaciones` edits what readers see at `/investigaciones`. An editor
+never has to hold two names for one section in their head, and no route file
+translates between them, because there is only one name.
 
-That segment is not always the `cms_page.section` value — research is
-`investigaciones` publicly and `investigacion` in the column, a plural the
-public URLs adopted and the data never did. `src/cms/sections.ts` is the single
-place that mapping is written down, and `findCmsSectionBySegment` is the only
-way to cross it, so no route file knows about the exception.
+Research once shipped as `investigacion` in the column while its URLs were
+already plural, and `src/cms/sections.ts` carried a segment↔id mapping to bridge
+the two. Both the column value and the mapping are gone: a section id is plural,
+which makes it the URL segment as well.
 
 Why sections get their own URLs rather than one filtered list: one combined list
 would need a section filter on every query, a form that changes shape per row,

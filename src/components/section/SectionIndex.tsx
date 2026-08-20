@@ -6,7 +6,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import type { ContentSection } from "@/content/section";
 import { sectionIndexLd } from "@/i18n/structuredData";
 
-// A section index — /estadisticas and /investigacion. Spanish-only, so the copy
+// A section index — /estadisticas and /investigaciones. Spanish-only, so the copy
 // each route passes in is written in Spanish rather than looked up: the sections
 // never render in English (see their layouts).
 //

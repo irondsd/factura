@@ -28,7 +28,7 @@ const SECTION_LLMS: Record<
       "Spanish-only statistics pages: official Argentine price data about the cost of running a home, republished as charts with the methodology and the sources spelled out. Each page states the series it publishes, the region breakdown, and the month of the last data point, and is refreshed when the statistical office publishes.",
     index: "Every dataset Factura publishes.",
   },
-  investigacion: {
+  investigaciones: {
     heading: "Investigación",
     blurb:
       "Spanish-only research pages: analyses that join several of the official series above to answer a question none of them answers alone — which barrio to rent in, what the market charges for safety. Each page publishes the derived dataset, states the arithmetic that produced it, and names what the join cannot see.",

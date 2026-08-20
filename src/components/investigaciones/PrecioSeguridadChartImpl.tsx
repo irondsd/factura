@@ -15,7 +15,7 @@ import {
 import { niceTicks } from "@/lib/svg-chart";
 
 // The interactive half of the scatter on
-// /investigacion/barrios-seguros-baratos-caba. The <figure> shell — caption,
+// /investigaciones/barrios-seguros-baratos-caba. The <figure> shell — caption,
 // source note, every quoted statistic — stays in the server component that
 // renders this.
 //

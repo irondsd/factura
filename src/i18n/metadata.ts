@@ -139,13 +139,9 @@ export function normativaMetadata({
 // two differ in a URL segment and nothing else here, and a second copy of these
 // five functions is a second place for a `?v=` stamp to go missing.
 
-const SECTION_BASES: Record<string, string> = {
-  investigacion: "investigaciones",
-};
-
-/** Absolute canonical URL for a section index. */
-export const sectionIndexUrl = (id: string): string =>
-  `${siteUrl}/${SECTION_BASES[id] ?? id}`;
+/** Absolute canonical URL for a section index. A section's id is its URL
+ * segment, so there is nothing to translate here. */
+export const sectionIndexUrl = (id: string): string => `${siteUrl}/${id}`;
 
 /** Absolute canonical URL for one page of a section. */
 export const sectionUrl = (id: string, slug: string[]): string =>
@@ -158,7 +154,7 @@ export const sectionCardUrl = (
   slug: string[],
   updated: string,
 ): string =>
-  `${siteUrl}/og/${SECTION_BASES[id] ?? id}/${slug.join("/")}/card.png?v=${updated.slice(0, 10).replace(/-/g, "")}`;
+  `${siteUrl}/og/${id}/${slug.join("/")}/card.png?v=${updated.slice(0, 10).replace(/-/g, "")}`;
 
 export function sectionIndexMetadata({
   id,

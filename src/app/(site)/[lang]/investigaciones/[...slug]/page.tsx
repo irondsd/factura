@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SectionArticle } from "@/components/section/SectionArticle";
-import { investigacion } from "@/content/sections";
+import { investigaciones } from "@/content/sections";
 import { sectionMetadata } from "@/i18n/metadata";
 
 // One research page, at any depth. The registry in
@@ -11,19 +11,19 @@ import { sectionMetadata } from "@/i18n/metadata";
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  return (await investigacion.slugs()).map((slug) => ({ slug }));
+  return (await investigaciones.slugs()).map((slug) => ({ slug }));
 }
 
 type Props = { params: Promise<{ slug: string[] }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const page = await investigacion.load(slug);
+  const page = await investigaciones.load(slug);
   if (!page) return {};
-  return sectionMetadata({ id: investigacion.id, slug, ...page.meta });
+  return sectionMetadata({ id: investigaciones.id, slug, ...page.meta });
 }
 
 export default async function InvestigacionPage({ params }: Props) {
   const { slug } = await params;
-  return <SectionArticle section={investigacion} slug={slug} />;
+  return <SectionArticle section={investigaciones} slug={slug} />;
 }

@@ -3,7 +3,7 @@ import type { ContentSummary } from "@/content-system/types";
 import { buildContentTree, depthOf } from "@/content-system/hierarchy";
 import { formatContentDateTime } from "@/lib/content-date";
 import type { CmsSection } from "../sections";
-import { cmsEditPath } from "../sections";
+import { cmsEditPath, publicSectionPath } from "../sections";
 import { StatusChip } from "./StatusChip";
 
 // A section's pages, as the tree rather than a flat list.
@@ -60,7 +60,7 @@ export function ContentList({
                   {page.title || <em className="text-muted">Sin título</em>}
                 </Link>
                 <span className="block text-muted text-[12px] mt-0.5">
-                  {section.publicPath}/{page.slug}
+                  {publicSectionPath(section.id)}/{page.slug}
                 </span>
                 {/* A row whose stored metadata no longer matches its schema.
                     It still lists and still opens — that is the whole point of

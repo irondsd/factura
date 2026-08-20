@@ -30,7 +30,7 @@ export const sectionMetadataSchema = z
     previewImage: z
       .string()
       .regex(
-        /^\/img\/(estadisticas|investigacion)\/previews\/.+\.(jpg|png|webp)$/,
+        /^\/img\/(estadisticas|investigaciones)\/previews\/.+\.(jpg|png|webp)$/,
       )
       .optional(),
     sources: z.array(dataSourceSchema).optional(),

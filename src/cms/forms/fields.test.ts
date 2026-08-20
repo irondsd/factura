@@ -3,7 +3,7 @@ import { sectionFields, toPatch } from "./fields";
 
 describe("toPatch", () => {
   it("keeps unfinished required draft copy as strings, not SQL nulls", () => {
-    const fields = sectionFields("investigacion");
+    const fields = sectionFields("investigaciones");
     const values = Object.fromEntries(
       fields.map((field) => [field.path, field.path === "sortOrder" ? 0 : ""]),
     );
@@ -21,7 +21,7 @@ describe("toPatch", () => {
     // The store's update whitelist drops `slug` regardless, so a slug in the
     // patch could only ever be a save that silently did nothing — and, worse,
     // one the hierarchy check still validated against.
-    for (const section of ["guias", "estadisticas", "investigacion"] as const) {
+    for (const section of ["guias", "estadisticas", "investigaciones"] as const) {
       const fields = sectionFields(section);
       const values = Object.fromEntries(
         fields.map((field) => [field.path, "cambiado"]),
@@ -36,7 +36,7 @@ describe("toPatch", () => {
   it("marks the slug read-only in every section", () => {
     // Guards the guard: dropping `readOnly` from a descriptor would make the
     // test above pass by having nothing to skip.
-    for (const section of ["guias", "estadisticas", "investigacion"] as const) {
+    for (const section of ["guias", "estadisticas", "investigaciones"] as const) {
       const slug = sectionFields(section).find(
         (field) => field.path === "slug",
       );

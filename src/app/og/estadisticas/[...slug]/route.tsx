@@ -3,7 +3,7 @@ import { estadisticas } from "@/content/sections";
 
 // /og/estadisticas/<path>/card.png — the social card. The picture and the
 // reasoning behind the route's shape live in `components/section/card.tsx`,
-// shared with /investigacion.
+// shared with /investigaciones.
 
 export const dynamic = "force-static";
 export const dynamicParams = false;

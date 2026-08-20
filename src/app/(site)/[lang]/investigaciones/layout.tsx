@@ -1,5 +1,5 @@
 import { ContentChrome } from "@/components/article/ContentChrome";
-import { investigacion } from "@/content/sections";
+import { investigaciones } from "@/content/sections";
 
 export default async function InvestigacionLayout({
   children,
@@ -10,7 +10,7 @@ export default async function InvestigacionLayout({
 }) {
   const { lang } = await params;
   return (
-    <ContentChrome active={investigacion.base} lang={lang}>
+    <ContentChrome active={investigaciones.base} lang={lang}>
       {children}
     </ContentChrome>
   );

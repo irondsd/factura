@@ -10,6 +10,7 @@ import {
   cmsNewPath,
   cmsSectionPath,
   findEditableSection,
+  publicSectionPath,
 } from "@/cms/sections";
 import { cmsPageStore } from "@/cms/server/store";
 import {
@@ -73,7 +74,8 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
         </Link>
       </div>
       <p className="font-mono text-[13px] text-muted mb-8">
-        Se publican en <code className="font-mono">{section.publicPath}</code>.
+        Se publican en{" "}
+        <code className="font-mono">{publicSectionPath(section.id)}</code>.
       </p>
 
       <ListFilters

@@ -4,7 +4,7 @@ import {
   PRIORITIES,
   sensitivity,
   SIZES,
-} from "@/content/investigacion/data/alquiler-seguridad";
+} from "@/content/investigaciones/data/alquiler-seguridad";
 
 // The figure that decides whether the rest of the page is worth anything.
 //

@@ -75,8 +75,8 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
   },
   {
     id: "00000000-0000-4000-8000-000000000003",
-    section: "investigacion",
-    slug: "ci-investigacion",
+    section: "investigaciones",
+    slug: "ci-investigaciones",
     status: "published",
     body: "## Una investigación de CI\n\nEsta página mínima comprueba que una investigación del CMS compila y se renderiza durante el build.\n",
     title: "Investigación de prueba para CI",
@@ -155,5 +155,5 @@ export const ciFixtureContentRepository = new CiFixtureContentRepository();
 export const CI_CONTENT_FIXTURE_PATHS = [
   "/guias/ci-guia",
   "/estadisticas/ci-estadistica",
-  "/investigaciones/ci-investigacion",
+  "/investigaciones/ci-investigaciones",
 ] as const;

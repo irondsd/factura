@@ -2,7 +2,7 @@ import {
   CRIME_YEAR,
   formatRate,
   safestByType,
-} from "@/content/investigacion/data/seguridad-por-delito";
+} from "@/content/investigaciones/data/seguridad-por-delito";
 
 export function SeguridadPorDelitoGanadores() {
   const groups = safestByType();

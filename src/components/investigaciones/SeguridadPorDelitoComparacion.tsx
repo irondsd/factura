@@ -4,7 +4,7 @@ import {
   formatArs,
   formatRate,
   RENT_PERIOD_LABEL,
-} from "@/content/investigacion/data/seguridad-por-delito";
+} from "@/content/investigaciones/data/seguridad-por-delito";
 
 export function SeguridadPorDelitoComparacion() {
   const rows = comparison();

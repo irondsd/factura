@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Eyebrow } from "@/components/landing/parts";
 import { SECTIONS } from "@/content/sections";
 
-// A card pointing at another page of /estadisticas or /investigacion, dropped
+// A card pointing at another page of /estadisticas or /investigaciones, dropped
 // into a body wherever the author wants it:
 //
 //   <PaginaRelacionada href="/estadisticas/alquiler-caba" />

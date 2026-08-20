@@ -9,7 +9,7 @@ import {
   ranked,
   RENT_PERIOD_LABEL,
   SIZES,
-} from "@/content/investigacion/data/alquiler-seguridad";
+} from "@/content/investigaciones/data/alquiler-seguridad";
 
 // The two quantities the page joins, side by side, before any of the arithmetic
 // that joins them.
