@@ -13,6 +13,8 @@ import type { ContentSection } from "@/content/section";
 import { faqPageLd, sectionPageLd } from "@/i18n/structuredData";
 import { formatContentDateTime } from "@/lib/content-date";
 import { contentComponents } from "@/content-system/render/renderContent";
+import { mediaComponents } from "@/content-system/media/render";
+import { resolveMediaRef } from "@/content-system/media/repository";
 import { documentHeadings, documentStats } from "@/content-system/document";
 
 // One page of a registry section, at any depth: /estadisticas/delitos-caba,
@@ -40,10 +42,14 @@ export async function SectionArticle({
   if (!page) notFound();
 
   const { Content, meta, document } = page;
-  const [crumbs, children] = await Promise.all([
+  const [crumbs, children, media] = await Promise.all([
     section.crumbs(slug),
     section.children(slug),
+    // Resolved from the body in one query before this renders, so an article's
+    // cost does not scale with how many images it has.
+    mediaComponents(document!.body),
   ]);
+  const previewMedia = await resolveMediaRef(meta.previewMediaId);
   // Section content is database-backed. The stored document is the single
   // source for both rendering and derived article data.
   const { words, minutes } = documentStats(document!);
@@ -81,8 +87,12 @@ export async function SectionArticle({
             {/* The phone's copy of the illustration: full width above the
                 headline. From `lg` up the sidebar's copy shows instead, so this
                 one is hidden rather than duplicated on screen. */}
-            {meta.preview && (
-              <ArticlePreview src={meta.preview} className="mb-7 lg:hidden" />
+            {(previewMedia || meta.preview) && (
+              <ArticlePreview
+                media={previewMedia}
+                src={meta.preview}
+                className="mb-7 lg:hidden"
+              />
             )}
 
             <header className="pb-2">
@@ -126,6 +136,7 @@ export async function SectionArticle({
                   author wants it. */}
               <Content
                 components={contentComponents({
+                  ...media,
                   Faq: () => <Faq items={meta.faq ?? []} />,
                   Fuentes: () => <Fuentes items={meta.sources} />,
                   // A hub page places its own children where its prose wants
@@ -161,7 +172,11 @@ export async function SectionArticle({
           <TocSidebar
             headings={headings}
             label="En esta página"
-            above={meta.preview && <ArticlePreview src={meta.preview} />}
+            above={
+              (previewMedia || meta.preview) && (
+                <ArticlePreview media={previewMedia} src={meta.preview} />
+              )
+            }
             below={<AsideCta />}
           />
         </div>

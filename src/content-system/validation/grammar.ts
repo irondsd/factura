@@ -1,5 +1,3 @@
-import { createProcessor } from "@mdx-js/mdx";
-import remarkGfm from "remark-gfm";
 import {
   componentDefinition,
   componentsForSection,
@@ -7,6 +5,7 @@ import {
 } from "../components/definitions";
 import type { ContentSection, Diagnostic, ValidationResult } from "../types";
 import { validationResult } from "../types";
+import { parseContentBody } from "./parse";
 
 // Layer 1 of cms.md §5: security/grammar validation.
 //
@@ -58,12 +57,8 @@ const error = (
   point: Point = {},
 ): Diagnostic => ({ code, severity: "error", message, ...point });
 
-// The parse-only processor. `remark-gfm` is here because the tables, strike-
-// through and autolinks in existing guides are GFM, and a validator that did
-// not understand them would report their syntax as errors. It matches
-// `next.config.ts`, which is what `renderContent` also uses — one dialect, not
-// two.
-const processor = createProcessor({ remarkPlugins: [remarkGfm] });
+// The parse-only processor is shared with reference extraction — one dialect,
+// not two. See `./parse`.
 
 type Node = {
   type: string;
@@ -89,7 +84,7 @@ export function validateGrammar(
 ): ValidationResult {
   let tree: Node;
   try {
-    tree = processor.parse(body) as Node;
+    tree = parseContentBody(body) as Node;
   } catch (cause) {
     // An unclosed tag, a stray `<`, malformed JSX. The parser's message names
     // the position; keep it, it is better than anything restated here.

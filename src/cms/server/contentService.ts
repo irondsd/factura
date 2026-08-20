@@ -1,4 +1,5 @@
 import "server-only";
+import type { Database } from "@/db";
 import {
   type ContentDocument,
   type ContentSection,
@@ -60,6 +61,27 @@ export type ContentValidator = (input: {
   level: ValidationLevel;
 }) => Promise<ValidationResult> | ValidationResult;
 
+/** How a saved page's media usage is recorded (cms.media.md §3).
+ *
+ * Injected rather than imported so the service does not depend on the media
+ * library — the CMS still works with no media storage configured, and the
+ * lifecycle tests do not need a media schema. It is handed the *transaction*
+ * that is saving the page, because usage rows must land with the save that
+ * produced them: a page that committed while its usage rows did not would leave
+ * an image looking unused while a live page points at it.
+ *
+ * It records; it never deletes. Removing an image from a page rewrites that
+ * page's rows and does nothing else. */
+export type MediaUsageRecorder = (input: {
+  page: { id: string; bodyMdx: string; metadata: unknown };
+  now: Date;
+  tx: Database;
+}) => Promise<void>;
+
+/** The default: record nothing. A CMS without the media library behaves exactly
+ * as it did before, rather than failing to save. */
+const noMediaUsage: MediaUsageRecorder = async () => {};
+
 export type CreateContentInput = {
   section: ContentSection;
   slug: string;
@@ -114,6 +136,8 @@ export class CmsContentService {
      * Injected like the rest so a unit test can observe the decision without a
      * Next.js request context. */
     private readonly invalidate: PublicCacheInvalidator = revalidatePublicContent,
+    /** See `MediaUsageRecorder`. */
+    private readonly recordMediaUsage: MediaUsageRecorder = noMediaUsage,
   ) {}
 
   /** The CMS list — every status. Membership is the read grant; there is no
@@ -154,23 +178,31 @@ export class CmsContentService {
     });
 
     const now = this.clock();
-    const draft = await this.store.insert({
-      section: input.section,
-      slug: input.slug,
-      status: "draft",
-      body: input.body,
-      title: input.title,
-      titleTag: input.titleTag ?? null,
-      description: input.description,
-      summary: input.summary,
-      cta: input.cta,
-      canonicalSlug: input.canonicalSlug ?? null,
-      metadata,
-      parentId: input.parentId ?? null,
-      sortOrder: input.sortOrder ?? 0,
-      crumb: input.crumb ?? null,
-      actorId: actor.userId,
-      now,
+    const draft = await this.store.transaction(async (store, tx) => {
+      const page = await store.insert({
+        section: input.section,
+        slug: input.slug,
+        status: "draft",
+        body: input.body,
+        title: input.title,
+        titleTag: input.titleTag ?? null,
+        description: input.description,
+        summary: input.summary,
+        cta: input.cta,
+        canonicalSlug: input.canonicalSlug ?? null,
+        metadata,
+        parentId: input.parentId ?? null,
+        sortOrder: input.sortOrder ?? 0,
+        crumb: input.crumb ?? null,
+        actorId: actor.userId,
+        now,
+      });
+      await this.recordMediaUsage({
+        page: { id: page.id, bodyMdx: page.body, metadata: page.metadata },
+        now,
+        tx,
+      });
+      return page;
     });
 
     await this.record(actor, { pageId: draft.id, action: "created", now });
@@ -227,20 +259,33 @@ export class CmsContentService {
     await this.assertValid(next, level);
 
     const now = this.clock();
-    const saved = await this.store.updateWithLock({
-      id: input.id,
-      expectedLockVersion: input.expectedLockVersion,
-      actorId: actor.userId,
-      now,
-      patch: {
-        ...input.patch,
-        // The parsed value, not the caller's: Zod strips and defaults, and what
-        // is stored has to be exactly what was validated.
-        ...(metadata !== undefined ? { metadata } : {}),
-        // A content edit moves the editorial timestamp the reader sees; a
-        // status flip does not (see `setStatus`).
-        ...(isContentEdit(input.patch) ? { contentUpdatedAt: now } : {}),
-      },
+    // One transaction: the page and the media usage it implies land together or
+    // not at all. A committed save whose usage rows were lost would leave an
+    // image looking unused while this very page points at it — the one thing
+    // the media library must never believe.
+    const saved = await this.store.transaction(async (store, tx) => {
+      const page = await store.updateWithLock({
+        id: input.id,
+        expectedLockVersion: input.expectedLockVersion,
+        actorId: actor.userId,
+        now,
+        patch: {
+          ...input.patch,
+          // The parsed value, not the caller's: Zod strips and defaults, and
+          // what is stored has to be exactly what was validated.
+          ...(metadata !== undefined ? { metadata } : {}),
+          // A content edit moves the editorial timestamp the reader sees; a
+          // status flip does not (see `setStatus`).
+          ...(isContentEdit(input.patch) ? { contentUpdatedAt: now } : {}),
+        },
+      });
+      if (!page) return null;
+      await this.recordMediaUsage({
+        page: { id: page.id, bodyMdx: page.body, metadata: page.metadata },
+        now,
+        tx,
+      });
+      return page;
     });
     if (!saved) await this.reportConflict(input.id, input.expectedLockVersion);
 

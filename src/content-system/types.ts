@@ -44,6 +44,9 @@ export type GuideMetadata = {
   ogDescription?: string;
   ogImage?: { eyebrow?: string; stat?: string };
   vendor?: string;
+  /** Media-library id of the preview image. The successor to `previewImage`;
+   * both are readable while the migration runs. */
+  previewMediaId?: string;
   previewImage?: string;
 };
 

@@ -21,6 +21,7 @@ export function SectionList({
         href: section.href(page.slug),
         title: page.meta.title,
         summary: page.meta.summary,
+        previewMediaId: page.meta.previewMediaId,
         preview: page.meta.preview,
         date: page.meta.updated,
       }))}

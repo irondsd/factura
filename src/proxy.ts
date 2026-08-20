@@ -77,10 +77,13 @@ export const config = {
   // would 404 the one page an MCP client sends people to), the share-target
   // endpoint (a PWA share POST, which has no business being rewritten into the
   // localized landing tree), the PostHog reverse proxy (/ingest/*, rewritten in
-  // next.config), Next internals, and any file with an extension (favicon,
+  // next.config), the media permalink route (/media/<id>/<name>.jpg — the
+  // extension rule below already excludes it, and naming it here means the
+  // route does not silently depend on a filename convention), Next internals,
+  // and any file with an extension (favicon,
   // sitemap.xml, robots.txt, og images…). The OAuth discovery documents live
   // under /.well-known/, which the extension rule already excludes.
   matcher: [
-    "/((?!api|ingest|_next/static|_next/image|app|cms|login|oauth|delete-account|share-target|.*\\..*).*)",
+    "/((?!api|ingest|_next/static|_next/image|app|cms|login|oauth|delete-account|share-target|media|.*\\..*).*)",
   ],
 };

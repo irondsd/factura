@@ -26,7 +26,14 @@ services:
     volumes:
       - factura_minio:/data
 
-  # One-shot: create the bucket on startup so uploads have somewhere to land.
+  # One-shot: create the buckets on startup so uploads have somewhere to land.
+  #
+  # Two of them, and never one bucket with two prefixes: `factura` holds private
+  # bill PDFs and is readable only through signed URLs, while `factura-media`
+  # holds public CMS images and is anonymously readable — the Next.js image
+  # optimizer fetches remote sources without forwarding credentials, so its
+  # source has to be public. Mixing them would make one of those two facts
+  # wrong.
   minio-init:
     image: minio/mc:latest
     depends_on:
@@ -35,6 +42,8 @@ services:
       /bin/sh -c "
       until mc alias set local http://minio:9000 factura facturasecret; do sleep 1; done;
       mc mb --ignore-existing local/factura;
+      mc mb --ignore-existing local/factura-media;
+      mc anonymous set download local/factura-media;
       "
 
 volumes:

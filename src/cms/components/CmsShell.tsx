@@ -27,6 +27,9 @@ const NAV: readonly NavLink[] = [
       label: section.label,
     }),
   ),
+  // After the authored sections and before the admin-only link: media is a
+  // thing every editor touches, tokens are not.
+  { href: "/cms/media", label: "Medios" },
   { href: "/cms/tokens", label: "Tokens", adminOnly: true },
 ];
 

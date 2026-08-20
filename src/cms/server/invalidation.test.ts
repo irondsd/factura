@@ -60,7 +60,7 @@ function documentAt(
 }
 
 function fakeStore(current: ContentDocument) {
-  return {
+  const store = {
     findById: async () => current,
     findBySlug: async () => null,
     list: async () => [],
@@ -68,7 +68,14 @@ function fakeStore(current: ContentDocument) {
     insert: async () => documentAt("draft"),
     updateWithLock: async () => current,
     deleteWithLock: async () => true,
-  } as unknown as CmsPageStore;
+    // These suites are about *decisions* — who may write, what gets recorded,
+    // what expires — not about atomicity, so the fake runs the body inline
+    // against itself. The real transaction is proven in
+    // `src/cms/media/server/media.integration.test.ts`.
+    transaction: async (body: (s: unknown, tx: unknown) => Promise<unknown>) =>
+      body(store, null),
+  };
+  return store as unknown as CmsPageStore;
 }
 
 const permissive = () => ({ ok: true as const, diagnostics: [] });

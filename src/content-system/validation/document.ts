@@ -8,6 +8,7 @@ import {
 } from "../metadata/sections";
 import type { ContentDocument, Diagnostic, ValidationResult } from "../types";
 import { validationResult } from "../types";
+import { extractBodyReferences } from "../media/references";
 import { missingKeywordWords } from "./text";
 
 // Layer 2 of cms.md §5: document validation. Everything that can be decided
@@ -86,6 +87,10 @@ export const DOCUMENT_CODES = {
   noRelatedGuides: "doc.no-related-guides",
   noInterlinks: "doc.no-interlinks",
   previewMissingAsset: "doc.preview-missing-asset",
+  mediaUnknown: "doc.media-unknown",
+  mediaNotReady: "doc.media-not-ready",
+  mediaNoAlt: "doc.media-no-alt",
+  mediaExternal: "doc.media-external",
 } as const;
 
 /** What a document needs to know about the rest of the collection. Built once
@@ -109,6 +114,14 @@ export const EMPTY_INDEX: ContentIndex = {
  * `public/`, which the CLI can stat and a database validator cannot assume. */
 export type DocumentValidationContext = {
   assetExists?: (publicPath: string) => boolean;
+  /** What the media library knows about the ids this document references,
+   * resolved by the caller *before* validation because these rules are pure and
+   * the library lives in a database.
+   *
+   * Absent means the check is skipped, like `assetExists`: a validator with no
+   * way to ask cannot invent an answer, and refusing every reference would be
+   * worse than checking none. `src/cms/server/validation.ts` supplies it. */
+  media?: ReadonlyMap<string, { status: string; decorative: boolean }>;
 };
 
 const error = (code: string, message: string, field?: string): Diagnostic => ({
@@ -511,10 +524,109 @@ export function validateDocument(
     );
   }
 
+  // ── media ─────────────────────────────────────────────────────────────────
+  out.push(...validateMedia(document, metadata, context));
+
   // ── body ──────────────────────────────────────────────────────────────────
   out.push(...validateBody(document, index));
 
   return validationResult(out);
+}
+
+/** The media rules (cms.media.md §3).
+ *
+ * Three things can go wrong, and they fail differently:
+ *
+ *   - an id nothing knows about — a hand-edited body, or a typo;
+ *   - an id whose asset is in the trash or already purged — the page would
+ *     render a gap, and after the grace period the bytes are gone;
+ *   - an image with no alt text that was never declared decorative.
+ *
+ * All three are errors rather than warnings, because each one reaches a reader.
+ * The remedy differs, so the messages say which is which rather than sharing a
+ * generic "bad image" code. */
+function validateMedia(
+  document: ContentDocument,
+  metadata: Record<string, unknown> | undefined,
+  context: DocumentValidationContext,
+): Diagnostic[] {
+  const known = context.media;
+  if (!known) return [];
+
+  const out: Diagnostic[] = [];
+  const check = (
+    id: string,
+    where: { field?: string; line?: number; column?: number },
+  ) => {
+    const asset = known.get(id);
+    if (!asset) {
+      out.push({
+        code: DOCUMENT_CODES.mediaUnknown,
+        severity: "error",
+        message: `No hay ninguna imagen con el id ${id} en la biblioteca de medios.`,
+        ...where,
+      });
+      return null;
+    }
+    if (asset.status !== "ready") {
+      out.push({
+        code: DOCUMENT_CODES.mediaNotReady,
+        severity: "error",
+        message:
+          asset.status === "trashed" || asset.status === "purging"
+            ? `La imagen ${id} está en la papelera. Restáurala desde /cms/media o elige otra.`
+            : `La imagen ${id} ya no existe. Elige otra.`,
+        ...where,
+      });
+      return null;
+    }
+    return asset;
+  };
+
+  const previewId = metadata?.previewMediaId;
+  if (typeof previewId === "string" && previewId) {
+    check(previewId, { field: "previewMediaId" });
+  }
+
+  const { media, external } = extractBodyReferences(document.body);
+  for (const reference of media) {
+    const where = {
+      ...(reference.line !== undefined ? { line: reference.line } : {}),
+      ...(reference.column !== undefined ? { column: reference.column } : {}),
+    };
+    const asset = check(reference.mediaId, where);
+    if (!asset) continue;
+
+    // Alt applies to an embedded image, not to a link that happens to point at
+    // one: a link's text is what a reader hears.
+    if (
+      reference.kind === "image" &&
+      !reference.alt?.trim() &&
+      !asset.decorative
+    ) {
+      out.push({
+        code: DOCUMENT_CODES.mediaNoAlt,
+        severity: "error",
+        message:
+          "Esta imagen no tiene texto alternativo. Descríbela, o márcala como decorativa en la biblioteca si no aporta información.",
+        ...where,
+      });
+    }
+  }
+
+  // A remote image in a body is refused outright: it can change without notice,
+  // it can carry a tracking pixel, and it breaks when the other site
+  // reorganizes. Import it into the library first.
+  for (const image of external) {
+    out.push({
+      code: DOCUMENT_CODES.mediaExternal,
+      severity: "error",
+      message: `No enlaces imágenes externas (${image.url}). Súbela a la biblioteca de medios y usa su enlace.`,
+      ...(image.line !== undefined ? { line: image.line } : {}),
+    });
+  }
+
+  return out;
 }
 
 /** Statistics/research replace guide categories with dataset provenance while

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArticlePreview } from "@/components/article/ArticlePreview";
+import type { MediaRef } from "@/content-system/media/repository";
 import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { CategoryChips } from "@/components/guides/CategoryChips";
 import { TopCta } from "@/components/guides/cta";
@@ -34,7 +35,9 @@ export type ContentArticleProps = {
   updated: string;
   /** Copy for the `<TopCta />` banner between the header and the prose. */
   cta: string;
-  /** Optional 16:9 illustration under `/img/...`. */
+  /** Optional 16:9 illustration from the media library. */
+  previewMedia?: MediaRef | null;
+  /** Legacy `/img/**` path, until the migration finishes. */
   previewImage?: string | null;
   categories: readonly Category[];
   headings: readonly Heading[];
@@ -55,6 +58,7 @@ export function ContentArticle({
   published,
   updated,
   cta,
+  previewMedia,
   previewImage,
   categories,
   headings,
@@ -99,8 +103,12 @@ export function ContentArticle({
                 the page, under the breadcrumbs and above the headline. From
                 `lg` up it's the sidebar's copy that shows instead, so this one
                 is hidden rather than duplicated on screen. */}
-            {previewImage && (
-              <ArticlePreview src={previewImage} className="mb-7 lg:hidden" />
+            {(previewMedia || previewImage) && (
+              <ArticlePreview
+                media={previewMedia}
+                src={previewImage}
+                className="mb-7 lg:hidden"
+              />
             )}
 
             <header className="pb-2">
@@ -173,7 +181,9 @@ export function ContentArticle({
             headings={headings as Heading[]}
             label="En esta guía"
             above={
-              previewImage ? <ArticlePreview src={previewImage} /> : undefined
+              previewMedia || previewImage ? (
+                <ArticlePreview media={previewMedia} src={previewImage} />
+              ) : undefined
             }
           />
         </div>

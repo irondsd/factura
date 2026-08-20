@@ -33,6 +33,8 @@ export type FieldKind =
   | "dataset"
   /** Another page in this section, or none. */
   | "parent"
+  /** An image chosen from the media library. Stores its id, never a URL. */
+  | "media"
   /** A whole number. */
   | "number";
 
@@ -204,12 +206,19 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     help: "La empresa de la que trata la guía — «Edesur», «AySA». Déjalo vacío si la guía trata un tema y no una factura concreta.",
   },
   {
-    path: "metadata.previewImage",
+    path: "metadata.previewMediaId",
     label: "Imagen de portada",
+    kind: "media",
+    group: "social",
+    help: "Opcional. Una imagen 16:9 de la biblioteca de medios. Se ve en los listados y junto al artículo.",
+  },
+  {
+    path: "metadata.previewImage",
+    label: "Imagen de portada (ruta antigua)",
     kind: "text",
     group: "social",
     placeholder: "/img/guias/previews/nombre.jpg",
-    help: "Opcional. Una imagen 16:9 en /img/guias/previews/. Se ve en los listados y junto al artículo.",
+    help: "Heredado de antes de la biblioteca de medios. Si arriba eliges una imagen, esto sobra: vacíalo.",
   },
   {
     path: "metadata.ogTitle",
@@ -354,12 +363,19 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
     help: "Las preguntas se muestran donde el cuerpo escribe <Faq />, y solo ahí.",
   },
   {
-    path: "metadata.previewImage",
+    path: "metadata.previewMediaId",
     label: "Imagen de portada",
+    kind: "media",
+    group: "social",
+    help: "Opcional. Una imagen 16:9 de la biblioteca de medios.",
+  },
+  {
+    path: "metadata.previewImage",
+    label: "Imagen de portada (ruta antigua)",
     kind: "text",
     group: "social",
     placeholder: "/img/estadisticas/previews/nombre.jpg",
-    help: "Opcional. Una imagen 16:9 en la carpeta previews de la sección.",
+    help: "Heredado de antes de la biblioteca de medios. Si arriba eliges una imagen, esto sobra: vacíalo.",
   },
   {
     path: "metadata.ogTitle",

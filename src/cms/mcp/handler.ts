@@ -151,9 +151,7 @@ function toolError(message: string, details?: unknown) {
  * rather than inventing a wrapper key that the text half would not agree with. */
 export function toolSuccess(output: unknown) {
   return {
-    content: [
-      { type: "text" as const, text: JSON.stringify(output, null, 2) },
-    ],
+    content: [{ type: "text" as const, text: JSON.stringify(output, null, 2) }],
     ...structured(output),
     isError: false,
   };

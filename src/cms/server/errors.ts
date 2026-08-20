@@ -80,3 +80,33 @@ export class CmsSlugTakenError extends Error {
     this.name = "CmsSlugTakenError";
   }
 }
+
+/** A media asset cannot be trashed because pages still point at it.
+ *
+ * Its own class, like `CmsNotDeletableError`: no role changes the answer and
+ * nothing about the asset is invalid — the fix is to edit the pages listed in
+ * `usage`, which is why they travel with the error rather than being fetched
+ * again by whoever displays it. */
+export class CmsMediaInUseError extends Error {
+  readonly code = "media_in_use" as const;
+  constructor(
+    readonly usage: { section: string; slug: string; title: string }[],
+  ) {
+    super(
+      `Esta imagen se usa en ${usage.length} página${usage.length === 1 ? "" : "s"}. Quítala de ahí antes de moverla a la papelera.`,
+    );
+    this.name = "CmsMediaInUseError";
+  }
+}
+
+/** The media library has no storage configured. Distinct from every other
+ * failure because nothing an editor does will fix it — it is a deployment
+ * setting — so the message names the missing variables instead of suggesting a
+ * retry. */
+export class CmsMediaUnavailableError extends Error {
+  readonly code = "media_unavailable" as const;
+  constructor(why: string) {
+    super(why);
+    this.name = "CmsMediaUnavailableError";
+  }
+}

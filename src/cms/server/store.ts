@@ -79,6 +79,21 @@ export type CmsPageUpdate = {
 export class CmsPageStore {
   constructor(private readonly db: Database = defaultDb) {}
 
+  /** Run `body` inside one transaction, with a store bound to it.
+   *
+   * The media library's usage rows are derived from a page's content, so they
+   * have to land with the save that produced them or not at all — a save that
+   * committed while its usage rows did not would leave an image looking unused
+   * while a live page points at it. That is the one thing the library must
+   * never believe. */
+  async transaction<T>(
+    body: (store: CmsPageStore, tx: Database) => Promise<T>,
+  ): Promise<T> {
+    return (this.db as typeof defaultDb).transaction((tx) =>
+      body(new CmsPageStore(tx), tx),
+    );
+  }
+
   async findById(id: string): Promise<ContentDocument | null> {
     const row = await this.db.query.cmsPages.findFirst({
       where: eq(cmsPages.id, id),

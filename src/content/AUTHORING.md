@@ -216,7 +216,7 @@ for a field to set.
   "ogDescription": "…",
   "ogImage": { "eyebrow": "Inflación · Luz", "stat": "+318% en dos años" },
   "vendor": "Edesur",
-  "previewImage": "/img/guias/previews/<slug>.jpg"
+  "previewMediaId": "<id de la biblioteca de medios>"
 }
 ```
 
@@ -234,16 +234,16 @@ for a field to set.
 **The category ids** (the canonical list is
 [`categories.ts`](./guias/categories.ts) — don't invent one):
 
-| id                 | Use it for                                                      |
-| ------------------ | --------------------------------------------------------------- |
-| `expensas`         | Expensas, consorcios and gastos comunes.                        |
-| `servicios`        | A specific utility: luz, gas, agua, internet, telefonía.        |
-| `impuestos`        | Taxes and levies on the home: Inmobiliario/ABL, Patentes.       |
-| `subsidios`        | Energy subsidies (SEF/ReSEF) and AySA's tarifa social.          |
-| `inflacion`        | Inflation, and how it moves the price of a household service.   |
-| `leer-facturas`    | Walkthroughs of an actual bill — what each section means.       |
-| `ahorro-y-control` | Reference values, wrong charges, tracking spend over time.      |
-| `pagos-y-tramites` | Paying, due dates, and paperwork like scanning or filing bills. |
+| id                 | Use it for                                                        |
+| ------------------ | ----------------------------------------------------------------- |
+| `expensas`         | Expensas, consorcios and gastos comunes.                          |
+| `servicios`        | A specific utility: luz, gas, agua, internet, telefonía.          |
+| `impuestos`        | Taxes and levies on the home: Inmobiliario/ABL, Patentes.         |
+| `subsidios`        | Energy subsidies (SEF/ReSEF) and AySA's tarifa social.            |
+| `inflacion`        | Inflation, and how it moves the price of a household service.     |
+| `leer-facturas`    | Walkthroughs of an actual bill — what each section means.         |
+| `ahorro-y-control` | Reference values, wrong charges, tracking spend over time.        |
+| `pagos-y-tramites` | Paying, due dates, and paperwork like scanning or filing bills.   |
 | `estafas`          | Housing and utility scams: fake rentals, fake agencies, phishing. |
 
 Two is the usual number: one for the _topic_, one for the _task_.
@@ -258,7 +258,7 @@ Two is the usual number: one for the _topic_, one for the _task_.
   "ogTitle": "…",
   "ogDescription": "…",
   "ogStat": "+42% interanual",
-  "previewImage": "/img/estadisticas/previews/<slug>.jpg",
+  "previewMediaId": "<id de la biblioteca de medios>",
   "sources": [
     { "label": "IDECBA — Precios de oferta", "href": "https://…", "note": "…" }
   ],
@@ -417,23 +417,48 @@ the body, or the reverse.
 
 ---
 
-## 7. Preview images
+## 7. Images and the media library
 
-A `previewImage` is the page's one decorative illustration: a 16:9 thumbnail
+Images live in the **media library**, not in the repository. Upload once at
+`/cms/media` (or through the MCP tools below); everything after that refers to
+an image by its id.
+
+### 7.1 In the body
+
+Ordinary Markdown, with a permalink the library gives you:
+
+```md
+![Un medidor digital marcando 184 kWh](/media/8f2c…/medidor-de-luz.jpg)
+```
+
+Three rules:
+
+- **Copy the link from the library.** The «Copiar Markdown» button on an image's
+  page gives you exactly this. The link resolves by id, so renaming the image
+  later never breaks your article.
+- **Never paste a storage URL.** Anything starting with an R2, S3 or CDN
+  hostname is rejected by validation, and so is an external image URL — import
+  it into the library first.
+- **Always write alt text**, describing what the image _means here_. The library
+  offers a default, but the same photo means different things in different
+  articles. An image that genuinely carries no information is marked
+  «decorativa» in the library and inserted as `![](…)` — an empty alt is a
+  claim, and it has to be made on purpose.
+
+### 7.2 The preview image
+
+`previewMediaId` is the page's one decorative illustration: a 16:9 thumbnail
 beside its row in the listings, and on the article itself at the top of the
 contents column — or full width above the headline on a phone. It never sits
 over the headline, and it does not change the social card.
 
-**Export 16:9 at 960×540, JPEG quality ~80.** That covers the 160px thumbnail at
-well over 2× in about 70 KB. The path is validated, so it must match:
+In the editor it is a picker, not a text field: choose from the library. The
+stored value is the image's id. **Export 16:9 at 960×540** before uploading;
+that covers the 160px thumbnail at well over 2×.
 
-| Section           | Path                                  | Extensions     |
-| ----------------- | ------------------------------------- | -------------- |
-| `guias`           | `/img/guias/previews/<slug>.jpg`      | jpg, png, webp |
-| `estadisticas`    | `/img/estadisticas/previews/….jpg`    | jpg, png, webp |
-| `investigaciones` | `/img/investigaciones/previews/….jpg` | jpg, png, webp |
-
-The folder is the section id, so it is the same name as the URL.
+`previewImage` — a `/img/…` path — is the shape this used to take, and pages
+written before the library still carry it. It still renders, and the field is
+still on the form so nothing is stranded, but do not put a new value in it.
 
 **Guides: optional, and genuinely optional.** Most have none, and a guide
 without one renders exactly the row and header it always has. Guides with and
@@ -442,18 +467,39 @@ to make a section look uniform.
 
 **Statistics and research: include one.** These pages are long, chart-heavy and
 visually similar to one another in the listings, and the thumbnail is what makes
-one distinguishable from the next. Treat a missing `previewImage` on a new
+one distinguishable from the next. Treat a missing `previewMediaId` on a new
 `estadisticas` or `investigaciones` page as unfinished work: either produce the
 image or tell the person it still needs one before publishing.
 
-The image files live in `public/img/…` **in this repository**, not in the
-database. Adding one is a commit, and a `previewImage` path pointing at a file
-that has not shipped yet will fail validation. If you are working through MCP
-alone and cannot commit, say so and let the person add the file.
+A preview is not the same thing as an image _in_ the body. An illustration the
+prose refers to belongs in the body as normal markdown. A preview is decorative
+— it renders with `alt=""`, because the title sits right beside it.
 
-This is not the same thing as an image _in_ the body. An illustration the prose
-refers to belongs in the body as normal markdown. A `previewImage` is
-decorative — it renders with `alt=""`, because the title sits right beside it.
+### 7.3 Uploading through MCP
+
+There is no way to send a file inside a tool call, so an upload is two calls
+with an ordinary HTTP `PUT` in between:
+
+1. `create_media_upload` with the filename, MIME type and byte size. It returns
+   a `mediaId` and a short-lived `uploadUrl`.
+2. `PUT` the file to that URL with a matching `Content-Type` header.
+3. `complete_media_upload` with the `mediaId`. It validates the bytes, stores
+   the image and returns the permalink to use.
+
+The upload URL is a credential until it expires. Never put it in article
+content, in metadata, or in anything you log.
+
+`list_media` and `get_media` read the catalog — including which pages use an
+image, and whether it is unused. `update_media` edits the title, default alt,
+decorative flag, credit or collection.
+
+### 7.4 You cannot delete an image
+
+Same rule as pages, for the same reason. There is no delete tool and you should
+not look for a way around it. Removing an image from an article deletes nothing:
+it stops being referenced, appears in the library under **«ya no se usan»**, and
+a person decides from there. If you think an image should go, say so and leave
+it unused.
 
 ---
 
@@ -470,7 +516,7 @@ decorative — it renders with `alt=""`, because the title sits right beside it.
 - [ ] `<ClosingCta />` present with its own `title` and copy; `<RelatedGuides />`
       just above it in guides.
 - [ ] Statistics and research: `sources` filled, `<Fuentes />` in the body, and a
-      `previewImage`.
+      `previewMediaId`.
 - [ ] Every figure quoted in prose matches the page's own data.
 - [ ] `validate_content` at `level: "publish"` returns no errors, and you have
       read the warnings.

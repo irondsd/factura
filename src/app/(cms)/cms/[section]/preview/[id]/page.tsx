@@ -13,6 +13,8 @@ import {
   documentStats,
   relatedDocuments,
 } from "@/content-system/document";
+import { mediaComponents } from "@/content-system/media/render";
+import { resolveMediaRef } from "@/content-system/media/repository";
 import {
   compileContentForPreview,
   ContentGrammarError,
@@ -121,6 +123,7 @@ export default async function CmsPreviewPage({ params }: Props) {
       published={page.publishedAt}
       updated={page.contentUpdatedAt}
       cta={page.cta}
+      previewMedia={await resolveMediaRef(page.metadata.previewMediaId)}
       previewImage={page.metadata.previewImage}
       categories={categories}
       headings={headings}
@@ -153,6 +156,9 @@ export default async function CmsPreviewPage({ params }: Props) {
       {Content && (
         <Content
           components={contentComponents({
+            // The preview resolves media exactly as the public page does, or
+            // it would be a preview of a different document.
+            ...(await mediaComponents(page.body)),
             RelatedGuides: () => (
               <RelatedGuides
                 guides={related.map((candidate) => ({
