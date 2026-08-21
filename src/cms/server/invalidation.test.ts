@@ -26,6 +26,7 @@ const PAGE_ID = "22222222-2222-2222-2222-222222222222";
 const actor: CmsActor = {
   userId: "11111111-1111-1111-1111-111111111111",
   email: "editor@example.com",
+  name: "Editor",
   role: "editor",
 };
 

@@ -30,6 +30,7 @@ import { cmsToolListing, findCmsTool } from "./tools";
 const caller = (scopes: readonly CmsScope[]): CmsTokenCaller => ({
   userId: "11111111-1111-1111-1111-111111111111",
   email: null,
+  name: null,
   role: "editor",
   tokenId: "22222222-2222-2222-2222-222222222222",
   scopes: [...scopes],
@@ -544,6 +545,7 @@ if (!hasTestDatabase()) {
       agent = {
         userId: member.userId,
         email: null,
+        name: null,
         role: member.role,
         tokenId: "22222222-2222-2222-2222-222222222222",
         scopes: [...CMS_SCOPES],
