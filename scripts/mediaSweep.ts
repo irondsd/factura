@@ -38,11 +38,11 @@ async function main() {
 
   const usage = await reconcileMediaUsage();
   console.log(
-    `usage: ${usage.pagesScanned} pages, ${usage.referencesFound} references, ${usage.unresolved.length} unresolved`,
+    `usage: ${usage.revisionsScanned} revisions, ${usage.referencesFound} references, ${usage.unresolved.length} unresolved`,
   );
   for (const orphan of usage.unresolved) {
     console.warn(
-      `  ! page ${orphan.pageId} references unknown media ${orphan.mediaId}`,
+      `  ! revision ${orphan.revisionId} references unknown media ${orphan.mediaId}`,
     );
   }
 

@@ -30,8 +30,10 @@ export async function handleCmsMessage(
       },
       instructions: [
         "Use get_content before update_content. Every mutation requires the current lockVersion.",
+        "Editing is always safe: update_content saves a shared working copy that no reader can see, so a page that is already published keeps serving its last publication while you work. Save it normally, without asking.",
+        "set_content_status is the only tool that changes what the public sees, and it needs the human's explicit go-ahead each time, in both directions. 'published' publishes the working copy as a new immutable publication; 'draft' takes the page down.",
+        "A page keeps its working copy, a temporary checkpoint, the public preview snapshot, and the current publication plus three previous ones — list_content_versions shows exactly those. restore_content_version copies one back into the working copy without publishing anything.",
         "This endpoint cannot delete anything: there is no delete tool, and pages are retired by status, not removed. Deletion is a browser-only action a human performs at /cms.",
-        "New content is always created as a draft. Publishing is never implicit — it takes a separate set_content_status call, and that call needs the human's explicit go-ahead each time, both to publish a page and to take a published one down. Editing a page that is already published needs no such confirmation: save it normally.",
       ].join(" "),
     });
   if (message.method === "ping") return rpcResult(id, {});

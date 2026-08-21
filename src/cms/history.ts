@@ -1,18 +1,33 @@
 import type { ContentStatus } from "@/content-system/types";
 
-// What the «Historia» tab shows: who changed a page and when.
+// What the «Historial» tab's activity strip shows: who changed a page, and when.
 //
 // Pure, and shared by the server loader and the client tab — the wording of an
 // entry is the same question wherever it is asked, and it is the part worth
 // testing. Marks and colour stay in the component; this module decides *what
 // happened*, not what it looks like.
 //
-// One page's history is a list of accepted mutations, newest first. It is not a
-// revision history: no body is kept yet, so nothing here can be restored from.
-// cms.md Task 2 adds one previous version, and it hangs off these same rows.
+// One page's activity, newest first. It is deliberately *not* the version
+// history: the copies you can open and restore are `cms_page_revision`, shown
+// alongside these in the «Historial» tab (cms.md §14.7). This list answers "who
+// has been working on this", it is bounded to ten rows, and a run of saves is
+// folded into one line — so it can be read at a glance rather than scrolled.
 
-/** The kinds of change recorded. Mirrors `cms_page_event.action`. */
-export const HISTORY_ACTIONS = ["created", "saved", "status"] as const;
+/** The kinds of change recorded. Mirrors `cms_page_event.action`.
+ *
+ * `restored`, `discarded` and `preview_promoted` arrived with revisions
+ * (cms.md §14.7): each is a decision about *which copy* a page holds, which the
+ * three original actions cannot express — a restore is not a save, and
+ * promoting a public preview is not the same as the status flip that
+ * accompanies it. */
+export const HISTORY_ACTIONS = [
+  "created",
+  "saved",
+  "status",
+  "restored",
+  "discarded",
+  "preview_promoted",
+] as const;
 
 export type HistoryAction = (typeof HISTORY_ACTIONS)[number];
 
@@ -39,6 +54,11 @@ export type CmsPageEvent = {
   fromStatus: ContentStatus | null;
   toStatus: ContentStatus | null;
   source: HistorySource;
+  /** How many saves this row stands for — see `cms_page_event.save_count`. */
+  saveCount: number;
+  /** When the run this row coalesced began. Null on a single event and on rows
+   * written before coalescing existed. */
+  firstAt: string | null;
   /** ISO 8601, like every other timestamp crossing the server/client line. */
   at: string;
   actor: HistoryActor | null;
@@ -55,6 +75,8 @@ export type HistoryEntry = {
   /** What they did, in the words to put on screen. */
   did: string;
   at: string;
+  /** More than one when a run of saves was folded into this line. */
+  saveCount: number;
   /** Null on an inferred entry: the page columns say when a change happened
    * and who wrote it, never through what. */
   source: HistorySource | null;
@@ -91,6 +113,10 @@ export function describeEvent(event: {
 }): string {
   if (event.action === "created") return "creó la página";
   if (event.action === "saved") return "guardó cambios";
+  if (event.action === "restored") return "restauró una versión anterior";
+  if (event.action === "discarded") return "descartó el borrador";
+  if (event.action === "preview_promoted")
+    return "actualizó la vista previa pública";
   if (event.toStatus === "published") return "publicó la página";
   if (event.toStatus === "preview") return "puso la página en vista previa";
   if (event.toStatus === "draft") {
@@ -130,6 +156,7 @@ export function buildHistory(input: {
     who: actorLabel(event.actor),
     did: describeEvent(event),
     at: event.at,
+    saveCount: event.saveCount,
     source: event.source,
     inferred: false,
   }));
@@ -144,6 +171,7 @@ export function buildHistory(input: {
       // written, and a status flip writes it too.
       did: "hizo la última edición",
       at: fallback.updatedAt,
+      saveCount: 1,
       source: null,
       inferred: true,
     });
@@ -157,6 +185,7 @@ export function buildHistory(input: {
       who: actorLabel(fallback.createdBy),
       did: "creó la página",
       at: fallback.createdAt,
+      saveCount: 1,
       source: null,
       inferred: true,
     });

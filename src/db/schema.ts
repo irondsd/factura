@@ -3,6 +3,7 @@ import {
   type AnyPgColumn,
   bigint,
   boolean,
+  check,
   date,
   index,
   integer,
@@ -945,11 +946,14 @@ export const cmsMembers = pgTable("cms_member", {
     .defaultNow(),
 });
 
-/** One editable content page. Iteration 1 stores exactly one mutable copy per
- * page — no revisions, no draft/published pair (cms.md §3.2, §12 Task 2). Editing a
- * published page edits the copy that is live, which is why a published save has
- * to pass the full publish validation suite: there is no previous revision to
- * fall back to.
+/** One content page: stable identity, lifecycle, and pointers at the revisions
+ * that hold the actual document (cms.md §14).
+ *
+ * The row itself is no longer editable prose. Saving edits a `wip` revision;
+ * publishing promotes that WIP into an immutable `published` revision and
+ * repoints `published_revision_id` at it. Which is why editing a published page
+ * no longer has to survive the publish gate: the live revision keeps serving
+ * readers untouched while the WIP is as unfinished as it needs to be.
  *
  * `section` is text rather than an enum on purpose: `estadisticas` and
  * `investigaciones` arrive in the same table (cms.md §12) and adding a section
@@ -967,19 +971,51 @@ export const cmsPages = pgTable(
     section: text("section").notNull(),
     slug: text("slug").notNull(),
     status: cmsPageStatus("status").notNull().default("draft"),
-    bodyMdx: text("body_mdx").notNull(),
 
-    title: text("title").notNull(),
-    /** Overrides `title` in `<title>` only. See `GuideMeta.titleTag`. */
+    /** The four revision pointers. Which one a reader follows is decided by
+     * `status` plus who is asking, and that rule lives in
+     * `src/content-system/repository/visibility.ts` and the revision selector
+     * beside it — never in a `where` clause written at a call site.
+     *
+     * `restrict` in every direction: a pointer is how a document is found, and
+     * a revision deleted out from under one would turn a published page into a
+     * page with no body. `CmsRevisionStore` moves or clears the pointer first,
+     * inside the same transaction that prunes the revision.
+     *
+     * Typed through `AnyPgColumn` for the same reason `parentId` below is: the
+     * two tables reference each other, so one of the two has to be lazy. */
+    publishedRevisionId: uuid("published_revision_id").references(
+      (): AnyPgColumn => cmsPageRevisions.id,
+      { onDelete: "restrict" },
+    ),
+    previewRevisionId: uuid("preview_revision_id").references(
+      (): AnyPgColumn => cmsPageRevisions.id,
+      { onDelete: "restrict" },
+    ),
+    wipRevisionId: uuid("wip_revision_id").references(
+      (): AnyPgColumn => cmsPageRevisions.id,
+      { onDelete: "restrict" },
+    ),
+    checkpointRevisionId: uuid("checkpoint_revision_id").references(
+      (): AnyPgColumn => cmsPageRevisions.id,
+      { onDelete: "restrict" },
+    ),
+
+    /* ── legacy authored columns ────────────────────────────────────────
+     *
+     * The authored document moved to `cms_page_revision` (cms.md §14.4).
+     * Nothing reads or writes these any more; they are kept nullable for one
+     * release as the backfill's rollback path, and dropped in a later schema
+     * step once the revision reads have been verified in production. Do not
+     * add a reader. */
+    bodyMdx: text("body_mdx"),
+    title: text("title"),
     titleTag: text("title_tag"),
-    description: text("description").notNull(),
-    summary: text("summary").notNull(),
-    cta: text("cta").notNull(),
-    /** Slug of the page this one's canonical should point at, when two pages
-     * compete for the same query. A column rather than JSONB because the
-     * collection validator resolves it across pages. */
+    description: text("description"),
+    summary: text("summary"),
+    cta: text("cta"),
     canonicalSlug: text("canonical_slug"),
-    metadata: jsonb("metadata").notNull(),
+    metadata: jsonb("metadata"),
 
     /** The editorial tree, uniform across every section. Null is a top-level
      * page.
@@ -1002,14 +1038,7 @@ export const cmsPages = pgTable(
     parentId: uuid("parent_id").references((): AnyPgColumn => cmsPages.id, {
       onDelete: "restrict",
     }),
-    /** Explicit editorial order among siblings — the order the index lists
-     * them, which is the author's call and not alphabetical. Ties break on
-     * slug so the order is total and a listing never reshuffles between
-     * requests. */
-    sortOrder: integer("sort_order").notNull().default(0),
-    /** Short label for breadcrumbs and index rows, where the full title is too
-     * long — "GBA" for "Inflación de vivienda en el Gran Buenos Aires". Null
-     * falls back to the title, which is what every guide uses today. */
+    sortOrder: integer("sort_order").default(0),
     crumb: text("crumb"),
 
     /** Optimistic concurrency, *not* a revision counter. Every update carries
@@ -1042,12 +1071,7 @@ export const cmsPages = pgTable(
      * kept across an unpublish/republish so the visible dateline and the
      * JSON-LD don't jump when a page is briefly taken down. */
     publishedAt: timestamp("published_at", { withTimezone: true }),
-    /** The editorial "last updated" shown on the page — moved by content
-     * edits, not by a status flip. Distinct from `updated_at`, which is a row
-     * timestamp and moves on every write. */
-    contentUpdatedAt: timestamp("content_updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    contentUpdatedAt: timestamp("content_updated_at", { withTimezone: true }),
   },
   (t) => [
     // The public URL is (section, slug); the database is what makes that unique
@@ -1057,11 +1081,158 @@ export const cmsPages = pgTable(
     index("cms_page_section_status_idx").on(t.section, t.status),
     // Children of a page, for the tree the CMS list and the breadcrumbs build.
     index("cms_page_parent_idx").on(t.parentId),
+    // The four pointer joins every read performs.
+    index("cms_page_published_revision_idx").on(t.publishedRevisionId),
+    index("cms_page_preview_revision_idx").on(t.previewRevisionId),
+    index("cms_page_wip_revision_idx").on(t.wipRevisionId),
   ],
 );
 
-/** Who changed a page, and when — the history the editor's «Historia» tab
- * renders.
+/** One stored copy of a page's authored document.
+ *
+ * Four kinds, and the difference between them is entirely about who may see the
+ * copy and how long it lives (cms.md §14.2):
+ *
+ * - `wip` — the single shared working copy. The only kind that is ever updated
+ *   in place, and the only kind that is never public.
+ * - `checkpoint` — one immutable copy of the WIP from before the current
+ *   24-hour editing window, so a batch of rapid saves can be undone without
+ *   keeping a row per keystroke.
+ * - `preview` — one immutable copy promoted explicitly, served at the page's
+ *   public URL with `noindex, nofollow` while the page is in `preview`.
+ * - `published` — an immutable publication. A page keeps the current one plus
+ *   at most three superseded ones; publishing prunes the rest.
+ *
+ * `kind` is text rather than an enum for the same reason `cms_page.section` is:
+ * a fifth kind should not need a migration. The union is in
+ * `src/cms/revisions.ts`, and the service is what enforces it.
+ *
+ * Nothing here is authorization: a revision is reachable only through a page
+ * pointer or the CMS's own history read, and both go through
+ * `CmsRevisionStore`. */
+export const cmsPageRevisions = pgTable(
+  "cms_page_revision",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pageId: uuid("page_id")
+      .notNull()
+      .references((): AnyPgColumn => cmsPages.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    /** The publication or preview this WIP was started from. Informational —
+     * with one shared WIP there is nothing to merge — but it is what lets the
+     * history say «basada en la publicación 3» and what the diff uses as a
+     * default when the page has never been published. */
+    basedOnRevisionId: uuid("based_on_revision_id").references(
+      (): AnyPgColumn => cmsPageRevisions.id,
+      { onDelete: "set null" },
+    ),
+    /** 1, 2, 3 … per page, non-null only for `published`. Never accepted from
+     * a browser or MCP caller: the store reads the current maximum inside the
+     * publication transaction. */
+    publicationNumber: integer("publication_number"),
+
+    bodyMdx: text("body_mdx").notNull(),
+    title: text("title").notNull(),
+    /** Overrides `title` in `<title>` only. See `GuideMeta.titleTag`. */
+    titleTag: text("title_tag"),
+    description: text("description").notNull(),
+    summary: text("summary").notNull(),
+    cta: text("cta").notNull(),
+    /** Slug of the page this one's canonical should point at, when two pages
+     * compete for the same query. A column rather than JSONB because the
+     * collection validator resolves it across pages. */
+    canonicalSlug: text("canonical_slug"),
+    metadata: jsonb("metadata").notNull(),
+
+    /** The editorial tree. Authored, so it lives with the document rather than
+     * with the page: restoring an old publication restores where that version
+     * sat, and a WIP can be re-parented without moving the live page.
+     *
+     * `slug` still holds the *full* path and still lives on `cms_page`, because
+     * it is identity rather than content — see `cms_page.slug`. The invariant
+     * tying the two together is enforced in `src/content-system/hierarchy.ts`
+     * on every write. */
+    parentId: uuid("parent_id").references((): AnyPgColumn => cmsPages.id, {
+      onDelete: "restrict",
+    }),
+    /** Explicit editorial order among siblings — the author's call, not
+     * alphabetical. Ties break on slug so the order is total. */
+    sortOrder: integer("sort_order").notNull().default(0),
+    /** Short label for breadcrumbs and index rows, where the full title is too
+     * long. Null falls back to the title. */
+    crumb: text("crumb"),
+    /** The editorial "last updated" the reader sees, carried by the document
+     * rather than the row: a publication shows when its content was written,
+     * not when the snapshot was taken. */
+    contentUpdatedAt: timestamp("content_updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+
+    /** Authorship degrades to null exactly as `cms_page`'s does, and for the
+     * same reason: content outlives its author's account. */
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: uuid("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    /** When this snapshot was published. Non-null only for `published`, and
+     * distinct from `cms_page.published_at`, which is the page's *first*
+     * publication and never moves. */
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+  },
+  (t) => [
+    // At most one of each singleton kind per page. Partial unique indexes
+    // rather than service-side checks, because "one WIP per page" is the
+    // invariant two concurrent saves race on, and only the database can
+    // settle that race.
+    uniqueIndex("cms_page_revision_wip_idx")
+      .on(t.pageId)
+      .where(sql`kind = 'wip'`),
+    uniqueIndex("cms_page_revision_checkpoint_idx")
+      .on(t.pageId)
+      .where(sql`kind = 'checkpoint'`),
+    uniqueIndex("cms_page_revision_preview_idx")
+      .on(t.pageId)
+      .where(sql`kind = 'preview'`),
+    uniqueIndex("cms_page_revision_publication_idx")
+      .on(t.pageId, t.publicationNumber)
+      .where(sql`publication_number is not null`),
+    // "This page's publications, newest first" — the history list and the
+    // retention sweep.
+    index("cms_page_revision_page_kind_idx").on(
+      t.pageId,
+      t.kind,
+      t.publishedAt,
+    ),
+    index("cms_page_revision_parent_idx").on(t.parentId),
+    // A publication number and a publication date belong to a publication, and
+    // to nothing else. Expressed here because it is the one kind-specific fact
+    // the service could get wrong silently: a `wip` carrying a publication
+    // number would be counted by the retention sweep.
+    check(
+      "cms_page_revision_publication_number_ck",
+      sql`(kind = 'published') = (publication_number is not null)`,
+    ),
+    check(
+      "cms_page_revision_published_at_ck",
+      sql`(kind = 'published') = (published_at is not null)`,
+    ),
+    check(
+      "cms_page_revision_kind_ck",
+      sql`kind in ('wip', 'checkpoint', 'preview', 'published')`,
+    ),
+  ],
+);
+
+/** Who changed a page, and when — the activity strip the editor's «Historial»
+ * tab renders beside the stored versions.
  *
  * One row per accepted mutation, written by `CmsContentService` so the browser
  * and the CMS MCP produce the same trail rather than two half-trails. It is
@@ -1070,9 +1241,11 @@ export const cmsPages = pgTable(
  * edits to one page for the person editing it. Different question, different
  * audience, different retention.
  *
- * No content is stored yet. cms.md Task 2 wants one previous body kept for
- * "restore"; when it lands it belongs here, as a nullable snapshot column on
- * the row that already knows who wrote it.
+ * No content is stored here, and none ever will be: recoverable history is
+ * `cms_page_revision`, which holds the bodies and is bounded by retention.
+ * This table is the activity strip beside it — at most ten rows per page,
+ * coalesced (cms.md §14.7) — so version history never depends on an unbounded
+ * event stream.
  *
  * `page_id` cascades: a deleted draft's history is history of nothing, and the
  * page is hard-deleted precisely because nothing is kept. `actor_id` degrades
@@ -1103,6 +1276,19 @@ export const cmsPageEvents = pgTable(
      * the change. Same user id either way, so without this the trail cannot
      * tell them apart. */
     source: text("source").notNull().default("browser"),
+    /** How many saves this row stands for, and when the first of them was
+     * (cms.md §14.7).
+     *
+     * Saving ten times in an hour is one editing session, not ten events, and
+     * a timeline that renders it as ten is a timeline nobody scrolls. So a
+     * `saved` row by the same actor from the same source inside a rolling
+     * 24-hour window is updated rather than inserted: `first_at` stays put,
+     * `created_at` moves to the latest save, and the count says how many.
+     *
+     * Null `first_at` on rows written before this existed — they are a count
+     * of one at the instant they record. */
+    saveCount: integer("save_count").notNull().default(1),
+    firstAt: timestamp("first_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -1321,17 +1507,26 @@ export const cmsMedia = pgTable(
  * `media_id` restricts: nothing should ever hard-delete a media row that is
  * referenced, and by the time the purge sweep removes bytes the row has been
  * unreferenced for the whole grace period. It is a backstop under a rule that
- * is already enforced above it. `page_id` cascades, because usage of a deleted
- * page is usage of nothing. */
+ * is already enforced above it. `revision_id` cascades, because usage recorded
+ * by a revision that no longer exists is usage of nothing. */
 export const cmsMediaUsage = pgTable(
   "cms_media_usage",
   {
     mediaId: uuid("media_id")
       .notNull()
       .references(() => cmsMedia.id, { onDelete: "restrict" }),
-    pageId: uuid("page_id")
+    /** Usage belongs to a *revision*, not to a page (cms.md §14.5).
+     *
+     * That is what makes "a retained version keeps its images" true rather
+     * than aspirational: the third-oldest publication still references the
+     * chart it was published with, so trashing that chart is refused for as
+     * long as the publication is retained — and the moment retention prunes
+     * it, the cascade below releases the reference in the same transaction.
+     *
+     * The page is recovered by joining `cms_page_revision`. */
+    revisionId: uuid("revision_id")
       .notNull()
-      .references(() => cmsPages.id, { onDelete: "cascade" }),
+      .references(() => cmsPageRevisions.id, { onDelete: "cascade" }),
     /** `preview` (structured metadata) or `body` (a Markdown image). */
     placement: text("placement").notNull(),
     occurrences: integer("occurrences").notNull().default(1),
@@ -1346,7 +1541,7 @@ export const cmsMediaUsage = pgTable(
       .defaultNow(),
   },
   (t) => [
-    primaryKey({ columns: [t.pageId, t.mediaId, t.placement] }),
+    primaryKey({ columns: [t.revisionId, t.mediaId, t.placement] }),
     // "Which pages use this image", for the detail view and the trash gate.
     index("cms_media_usage_media_idx").on(t.mediaId),
   ],

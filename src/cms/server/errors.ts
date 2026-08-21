@@ -110,3 +110,29 @@ export class CmsMediaUnavailableError extends Error {
     this.name = "CmsMediaUnavailableError";
   }
 }
+
+/** There is no saved working copy to act on: publish, promote or discard was
+ * asked for on a page whose last save has already been consumed.
+ *
+ * Its own class rather than a validation error because nothing is wrong with
+ * the content — there is none. The browser never sends it (the buttons are
+ * disabled), so the case that reaches here is an agent acting on a stale read,
+ * and the message says what to do about that. */
+export class CmsNoWorkingCopyError extends Error {
+  readonly code = "no_working_copy" as const;
+  constructor(what: string) {
+    super(`No hay borrador guardado para ${what}. Guarda un cambio primero.`);
+    this.name = "CmsNoWorkingCopyError";
+  }
+}
+
+/** A revision id that does not belong to the page it was asked for, or is not
+ * a kind that may be restored or shown. Deliberately indistinguishable from
+ * "no such revision": an id from another page must not be confirmed as real. */
+export class CmsRevisionNotFoundError extends Error {
+  readonly code = "not_found" as const;
+  constructor() {
+    super("Esa versión no existe para esta página.");
+    this.name = "CmsRevisionNotFoundError";
+  }
+}

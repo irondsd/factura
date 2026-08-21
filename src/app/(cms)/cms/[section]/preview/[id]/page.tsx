@@ -24,9 +24,14 @@ import { MissingComponent } from "@/cms/components/MissingComponent";
 import { StatusChip } from "@/cms/components/StatusChip";
 import { faqPageLd, guideLd } from "@/i18n/structuredData";
 
-// The exact private preview (cms.md §3.2, Phase 6): the last *saved* value,
-// rendered through the same `<ContentArticle>` shell, the same component
-// manifest and the same structured data as the public page.
+// The exact private preview (cms.md §3.2, §14.5.3): the last *saved* working
+// copy — or one named stored version — rendered through the same
+// `<ContentArticle>` shell, the same component manifest and the same structured
+// data as the public page.
+//
+// This is not the shareable preview. That one is a promoted, immutable snapshot
+// served at the page's real public URL; this is behind CMS authentication and
+// shows whatever was last saved, which is the whole point of having both.
 //
 // Deliberately outside `CmsShell` — this is what the page looks like, not what
 // the editor looks like around it. It is also why the route is a sibling of the
@@ -46,16 +51,27 @@ export const metadata: Metadata = {
   alternates: {},
 };
 
-type Props = { params: Promise<{ section: string; id: string }> };
+type Props = {
+  params: Promise<{ section: string; id: string }>;
+  /** `?revision=` opens one stored version instead of the working copy — how
+   * «Vista previa» in the «Historial» tab shows what a publication actually
+   * looked like. Any other value is a 404 rather than a silent fallback: an
+   * editor asked to see a specific version, and showing them a different one
+   * would be worse than showing them nothing. */
+  searchParams: Promise<{ revision?: string }>;
+};
 
-export default async function CmsPreviewPage({ params }: Props) {
+export default async function CmsPreviewPage({ params, searchParams }: Props) {
   const { section: segment, id } = await params;
+  const { revision } = await searchParams;
   await requireCmsMember(`/cms/${segment}/preview/${id}`);
 
   const section = findEditableSection(segment);
   if (!section) notFound();
 
-  const page = await cmsPageStore.findById(id);
+  const page = revision
+    ? await cmsPageStore.findAtRevision(id, revision)
+    : await cmsPageStore.findById(id);
   if (!page || page.section !== section.id) notFound();
 
   let Content:
@@ -103,7 +119,11 @@ export default async function CmsPreviewPage({ params }: Props) {
   if (grammarError) {
     return (
       <main className="mx-auto w-full max-w-[680px] px-5 py-10">
-        <Banner status={page.status} missing={missing} />
+        <Banner
+          status={page.status}
+          missing={missing}
+          pinned={Boolean(revision)}
+        />
         <div className="border border-[var(--vendor-ochre)] px-4 py-4">
           <p className="font-mono text-[13px] leading-[1.6] text-ink mt-0 mb-2">
             Esta versión no se puede mostrar todavía:
@@ -127,7 +147,13 @@ export default async function CmsPreviewPage({ params }: Props) {
       categories={categories}
       headings={headings}
       minutes={minutes}
-      banner={<Banner status={page.status} missing={missing} />}
+      banner={
+        <Banner
+          status={page.status}
+          missing={missing}
+          pinned={Boolean(revision)}
+        />
+      }
       structuredData={
         <>
           {/* The same structured data the public page emits, so it can be read
@@ -189,15 +215,21 @@ export default async function CmsPreviewPage({ params }: Props) {
 function Banner({
   status,
   missing,
+  pinned,
 }: {
   status: Parameters<typeof StatusChip>[0]["status"];
   missing?: string[];
+  /** True when a specific stored version was asked for, rather than whatever
+   * the working copy currently holds. */
+  pinned?: boolean;
 }) {
   return (
     <div className="border-b border-line py-3">
       <div className="flex flex-wrap items-center gap-3">
         <span className="font-mono text-micro uppercase tracking-label-wide text-muted">
-          Vista previa · última versión guardada
+          {pinned
+            ? "Vista previa · versión guardada del historial"
+            : "Vista previa · borrador guardado"}
         </span>
         <StatusChip status={status} />
       </div>

@@ -4,11 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteContentAction,
+  discardWipAction,
+  promotePreviewAction,
+  publishContentAction,
+  restoreVersionAction,
   saveContentAction,
   setContentStatusAction,
   validateContentAction,
   type CmsActionResult,
 } from "@/cms/server/actions";
+import type { CmsPageState } from "@/cms/server/contentService";
+import type { PageVersions, VersionEntry } from "@/cms/revisions";
 import {
   FIELD_GROUPS,
   type FieldDescriptor,
@@ -40,9 +46,14 @@ import Link from "next/link";
 // The editor. One client component holding the whole page's draft state, so
 // "are there unsaved changes" has a single answer and Save sends one patch.
 //
-// Explicit Save only (§3.4): no autosave in iteration 1. Editing a published
-// page edits the live copy, and a save that happened because someone paused
-// typing is not a decision anyone made.
+// Explicit Save only (§3.4): no autosave. A save is a decision, and one that
+// happened because somebody paused typing is not one anybody made.
+//
+// Since revisions (cms.md §14) «Guardar» writes the shared working copy and
+// nothing else — the live article keeps serving its last publication until
+// «Publicar». Which means there are now three different things on screen that
+// could be called "the page", and the header's whole job is to keep them apart:
+// what is public, what is saved, and what is in this browser tab.
 
 type Tab = "markdown" | "preview" | "validation" | "history";
 
@@ -55,17 +66,24 @@ const UNEXPECTED =
 export function PageEditor({
   section,
   page,
+  state,
   fields,
   parentOptions,
   history,
+  versions,
 }: {
   section: CmsSection;
+  /** The working copy if one is saved, otherwise the baseline an editor starts
+   * from — the same document `state.document` carries, passed separately so the
+   * form's initial values are obvious at the call site. */
   page: ContentDocument;
+  state: CmsPageState;
   fields: readonly FieldDescriptor[];
   parentOptions: readonly ParentOption[];
   /** Rendered on the server and refreshed by `router.refresh()` after every
    * mutation, so a save shows up in the tab without a reload. */
   history: readonly HistoryEntry[];
+  versions: PageVersions;
 }) {
   const router = useRouter();
 
@@ -75,6 +93,10 @@ export function PageEditor({
   const [body, setBody] = useState(page.body);
   const [lockVersion, setLockVersion] = useState(page.lockVersion);
   const [status, setStatus] = useState(page.status);
+  /** Whether a working copy is saved. Tracked separately from `dirty`, which is
+   * about this browser tab: «sin guardar» and «borrador guardado» are different
+   * claims and the header makes both. */
+  const [hasWip, setHasWip] = useState(state.hasWip);
 
   const [tab, setTab] = useState<Tab>("markdown");
   const [diagnostics, setDiagnostics] = useState<readonly Diagnostic[]>([]);
@@ -150,7 +172,7 @@ export function PageEditor({
         // Spanish, and the detail is in the panel below anyway.
         setNotice({
           kind: "error",
-          text: `No se guardó: ${errors} ${errors === 1 ? "problema" : "problemas"} que hay que resolver primero. Están abajo, en Revisión.`,
+          text: `No se guardó: ${errors} ${errors === 1 ? "problema" : "problemas"} que hay que resolver primero. Están abajo, en Validación.`,
         });
         return;
       }
@@ -175,15 +197,28 @@ export function PageEditor({
         (data) => {
           setLockVersion(data.lockVersion);
           setSaved({ values, body });
+          setHasWip(true);
           router.refresh();
         },
-        "Guardado.",
+        status === "published"
+          ? "Guardado en el borrador. La página publicada no cambió."
+          : "Guardado.",
       );
     } catch {
       setNotice({ kind: "error", text: UNEXPECTED });
     }
     setBusy(false);
-  }, [handle, lockVersion, page.id, patch, router, section.id, values, body]);
+  }, [
+    handle,
+    lockVersion,
+    page.id,
+    patch,
+    router,
+    section.id,
+    status,
+    values,
+    body,
+  ]);
 
   // Keep the browser's familiar save shortcut inside the CMS. Capture it at
   // window level so it also works while the CodeMirror editor has focus, and
@@ -211,11 +246,11 @@ export function PageEditor({
     setBusy(true);
     setNotice(null);
     try {
-      // Always the publish gate, whatever state the page is in. A draft is
-      // checked for grammar alone when it is *saved*, which is right — but
-      // «Revisar» is the button someone presses to find out whether the page is
-      // ready, and answering the easier question would report a draft as clean
-      // right up until publishing refused it.
+      // Always the publish gate, whatever state the page is in. A working copy
+      // is checked for grammar alone when it is *saved*, which is right — it is
+      // private — but «Validar» is the button someone presses to find out
+      // whether the page is ready, and answering the easier question would
+      // report a draft as clean right up until publishing refused it.
       const result = await validateContentAction({
         id: page.id,
         patch: patch(),
@@ -234,38 +269,168 @@ export function PageEditor({
     setBusy(false);
   };
 
-  const transition = async (next: ContentStatus) => {
-    if (dirty) {
+  /** Everything that changes what the public sees, plus discard and restore.
+   *
+   * They share this wrapper rather than each rolling their own because every
+   * one of them has the same three obligations: refuse while there are unsaved
+   * changes in the tab (the server would publish the *saved* copy, which is not
+   * what the button appears to promise), confirm in words that name the
+   * affected state, and hand the result to `handle` so a conflict reaches
+   * `ConflictNotice` instead of a toast. */
+  const act = async <T,>(
+    input: {
+      confirm: string;
+      okText: string;
+      /** Publishing and promoting act on what is saved, so unsaved edits in the
+       * tab would be silently left out. Discard and restore replace the working
+       * copy outright, and refusing them over unsaved changes would mean the
+       * only way out of a bad edit is to save it first. */
+      requiresSaved?: boolean;
+    },
+    run: () => Promise<CmsActionResult<T>>,
+    onOk: (data: T) => void,
+  ) => {
+    if (input.requiresSaved !== false && dirty) {
       setNotice({
         kind: "error",
-        text: "Guarda los cambios antes de cambiar el estado.",
+        text: "Guarda los cambios primero: esta acción trabaja sobre lo guardado, no sobre lo que ves en pantalla.",
       });
       return;
     }
-    if (!window.confirm(confirmText(next, status))) return;
+    if (!window.confirm(input.confirm)) return;
 
     setBusy(true);
     setNotice(null);
     try {
-      const result = await setContentStatusAction(section.id, {
-        id: page.id,
-        status: next,
-        expectedLockVersion: lockVersion,
-      });
-      handle(
-        result,
-        (data) => {
-          setStatus(data.status);
-          setLockVersion(data.lockVersion);
-          router.refresh();
-        },
-        next === "published" ? "Publicada." : `Estado: ${statusLabel(next)}.`,
-      );
+      handle(await run(), onOk, input.okText);
     } catch {
       setNotice({ kind: "error", text: UNEXPECTED });
     }
     setBusy(false);
   };
+
+  const publish = () =>
+    act(
+      {
+        confirm: PUBLISH_CONFIRM,
+        okText: "Publicada.",
+      },
+      () =>
+        publishContentAction(section.id, {
+          id: page.id,
+          expectedLockVersion: lockVersion,
+        }),
+      (data) => {
+        setStatus(data.status);
+        setLockVersion(data.lockVersion);
+        // The publication consumed the working copy — the next edit starts from
+        // what is now live.
+        setHasWip(false);
+        setNotice(
+          data.noChange
+            ? {
+                kind: "ok",
+                text: "El borrador era idéntico a lo publicado, así que no se creó una versión nueva.",
+              }
+            : {
+                kind: "ok",
+                text: `Publicada (versión ${data.publicationNumber}).`,
+              },
+        );
+        router.refresh();
+      },
+    );
+
+  const promotePreview = () =>
+    act(
+      {
+        confirm:
+          state.previewRevisionId && status === "preview"
+            ? "Actualizar la vista previa pública con el borrador guardado. Quien tenga el enlace verá esta versión. ¿Continuar?"
+            : PREVIEW_CONFIRM(status),
+        okText: "Vista previa pública actualizada.",
+      },
+      () =>
+        promotePreviewAction(section.id, {
+          id: page.id,
+          expectedLockVersion: lockVersion,
+        }),
+      (data) => {
+        setStatus(data.status);
+        setLockVersion(data.lockVersion);
+        router.refresh();
+      },
+    );
+
+  const unpublish = () =>
+    act(
+      {
+        confirm: UNPUBLISH_CONFIRM(status),
+        okText: `Estado: ${statusLabel("draft")}.`,
+        // Taking a page down is the recovery lever. Making it wait for a clean
+        // save would mean the pages most in need of it are the ones that
+        // cannot be taken down.
+        requiresSaved: false,
+      },
+      () =>
+        setContentStatusAction(section.id, {
+          id: page.id,
+          status: "draft",
+          expectedLockVersion: lockVersion,
+        }),
+      (data) => {
+        setStatus(data.status);
+        setLockVersion(data.lockVersion);
+        router.refresh();
+      },
+    );
+
+  const discard = () =>
+    act(
+      {
+        confirm:
+          "Descartar el borrador guardado y su copia de seguridad. Se pierde todo lo escrito desde la última publicación y no hay forma de recuperarlo. La página publicada no cambia. ¿Continuar?",
+        okText: "Borrador descartado.",
+        requiresSaved: false,
+      },
+      () =>
+        discardWipAction(section.id, {
+          id: page.id,
+          expectedLockVersion: lockVersion,
+        }),
+      (data) => {
+        setLockVersion(data.lockVersion);
+        setHasWip(false);
+        // The form is now showing a document that no longer exists. Reloading
+        // is the only honest option: re-deriving the fields here would need the
+        // baseline this component was never given.
+        window.location.reload();
+      },
+    );
+
+  const restore = (version: VersionEntry) =>
+    act(
+      {
+        confirm: hasWip
+          ? `Restaurar «${version.title}» como borrador. Reemplaza el borrador guardado actual, que queda como copia de seguridad. La página publicada no cambia. ¿Continuar?`
+          : `Restaurar «${version.title}» como borrador. La página publicada no cambia. ¿Continuar?`,
+        okText: "Versión restaurada en el borrador.",
+        requiresSaved: false,
+      },
+      () =>
+        restoreVersionAction(section.id, {
+          id: page.id,
+          revisionId: version.revisionId,
+          expectedLockVersion: lockVersion,
+        }),
+      (data) => {
+        setLockVersion(data.lockVersion);
+        setHasWip(true);
+        // Same reason as discard: the editor is holding fields the server has
+        // just replaced.
+        window.location.reload();
+      },
+    );
 
   /** Delete the page. Confirmed in `DeletePanel` by typing the word rather
    * than by a dialog: `window.confirm` is the right weight for a status flip
@@ -345,6 +510,9 @@ export function PageEditor({
       <header className="mb-7">
         <div className="flex flex-wrap items-center gap-3 mb-2">
           <StatusChip status={status} />
+          <span className="font-mono text-micro uppercase tracking-label-wide text-muted">
+            {copyState(status, hasWip, state.previewIsStale)}
+          </span>
           {dirty && (
             <span className="font-mono text-micro uppercase tracking-label-wide text-[var(--vendor-ochre)]">
               Sin guardar
@@ -396,8 +564,17 @@ export function PageEditor({
 
       {status === "published" && (
         <p className="border border-line bg-card px-4 py-3 font-mono text-[12px] leading-[1.6] text-muted mb-6">
-          Esta página está publicada: lo que guardas acá es la copia que está en
-          línea. El sitio público la muestra actualizada en la siguiente visita.
+          Esta página está publicada. Lo que guardas acá es un borrador privado:
+          el sitio público sigue mostrando la última versión publicada hasta que
+          pulses «Publicar».
+        </p>
+      )}
+
+      {status === "preview" && state.previewIsStale && (
+        <p className="border border-[var(--vendor-ochre)] px-4 py-3 font-mono text-[12px] leading-[1.6] text-ink mb-6">
+          La vista previa pública quedó congelada antes de tu último guardado.
+          Quien tenga el enlace ve la copia anterior hasta que pulses
+          «Actualizar vista previa pública».
         </p>
       )}
 
@@ -425,7 +602,16 @@ export function PageEditor({
             <ValidationPanel diagnostics={diagnostics} level={checkedLevel} />
           )}
 
-          {tab === "history" && <HistoryPanel entries={history} />}
+          {tab === "history" && (
+            <HistoryPanel
+              section={section.id}
+              pageId={page.id}
+              versions={versions}
+              entries={history}
+              busy={busy}
+              onRestore={restore}
+            />
+          )}
         </section>
 
         <aside className="min-w-0">
@@ -445,15 +631,22 @@ export function PageEditor({
               title="Comprueba la página contra todo lo que hace falta para publicarla"
               className="border w-1/2 cursor-pointer border-line px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent disabled:opacity-50"
             >
-              Revisar
+              Validar
             </button>
           </div>
 
           <StatusControls
             status={status}
+            hasWip={hasWip}
+            hasPublication={state.publishedRevisionId !== null}
+            hasPublicPreview={state.previewRevisionId !== null}
+            previewIsStale={state.previewIsStale}
             busy={busy}
             dirty={dirty}
-            onTransition={transition}
+            onPublish={publish}
+            onPromotePreview={promotePreview}
+            onUnpublish={unpublish}
+            onDiscard={discard}
           />
 
           {grouped.map((group) => (
@@ -500,11 +693,17 @@ function Tabs({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
   const items: { id: Tab; label: string }[] = [
     { id: "markdown", label: "Markdown" },
     { id: "preview", label: "Vista previa" },
-    { id: "validation", label: "Revisión" },
-    { id: "history", label: "Historia" },
+    { id: "validation", label: "Validación" },
+    { id: "history", label: "Historial" },
   ];
   return (
-    <div role="tablist" className="flex gap-1 border-b border-line mb-5">
+    // Scrolls inside itself rather than pushing the page: four labels in one
+    // row do not fit a phone, and a tab strip that widened the document made
+    // every screen below it scroll sideways.
+    <div
+      role="tablist"
+      className="flex gap-1 border-b border-line mb-5 overflow-x-auto"
+    >
       {items.map((item) => (
         <button
           key={item.id}
@@ -513,7 +712,7 @@ function Tabs({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
           aria-selected={tab === item.id}
           onClick={() => onChange(item.id)}
           className={cn(
-            "px-4 py-2 font-mono text-micro uppercase tracking-label-wide border-b-2 -mb-px transition-colors",
+            "shrink-0 px-4 py-2 font-mono text-micro uppercase tracking-label-wide border-b-2 -mb-px transition-colors",
             tab === item.id
               ? "border-accent text-accent"
               : "border-transparent text-muted hover:text-accent",
@@ -556,80 +755,133 @@ function PreviewPane({ src, dirty }: { src: string; dirty: boolean }) {
   );
 }
 
-/** The three destinations, each with its own weight.
- *
- * They used to be three identical bordered rows in 12px sentence case, which
- * put «Publicar» and the title field one line apart in the same shape — the
- * most consequential control on the page and a text input, told apart only by
- * reading them. So: uppercase mono, which nothing in this sidebar's forms uses;
- * the same mark the status chip carries, so the button and the state it leads
- * to are recognisably the same thing; and a fill that tracks how public the
- * destination is — dashed and quiet on the way back to a draft, outlined in
- * ochre for a preview, solid for the one that puts a page in front of readers. */
-const TRANSITIONS: Record<
-  ContentStatus,
-  { mark: string; label: string; tone: string }
-> = {
-  draft: {
-    mark: "○",
-    label: "Volver a borrador",
-    tone: "border-dashed border-line text-muted hover:border-ink hover:text-ink",
-  },
-  preview: {
-    mark: "◐",
-    label: "Poner en vista previa",
-    tone: "border-[var(--vendor-ochre)] text-[var(--vendor-ochre)] hover:bg-[var(--vendor-ochre)] hover:text-paper",
-  },
-  published: {
-    mark: "●",
-    label: "Publicar",
-    tone: "border-ok bg-ok text-paper hover:border-ink hover:bg-ink",
-  },
-};
-
 function StatusControls({
   status,
+  hasWip,
+  hasPublication,
+  hasPublicPreview,
+  previewIsStale,
   busy,
   dirty,
-  onTransition,
+  onPublish,
+  onPromotePreview,
+  onUnpublish,
+  onDiscard,
 }: {
   status: ContentStatus;
+  hasWip: boolean;
+  hasPublication: boolean;
+  hasPublicPreview: boolean;
+  previewIsStale: boolean;
   busy: boolean;
   dirty: boolean;
-  onTransition: (next: ContentStatus) => void;
+  onPublish: () => void;
+  onPromotePreview: () => void;
+  onUnpublish: () => void;
+  onDiscard: () => void;
 }) {
-  const targets = (["draft", "preview", "published"] as const).filter(
-    (target) => target !== status,
-  );
+  // Publishing needs something to publish: a saved working copy, or — for a
+  // page that was taken down — the publication it still holds.
+  const canPublish = hasWip || (hasPublication && status !== "published");
+  const canPreview = hasWip || hasPublication || hasPublicPreview;
 
   return (
     <section className="mb-8">
       <h2 className="font-mono text-micro uppercase tracking-label-wide text-accent border-b border-line pb-2 mb-4">
-        Estado
+        Publicación
       </h2>
       <div className="flex flex-col gap-2">
-        {targets.map((target) => (
-          <button
-            key={target}
-            type="button"
-            onClick={() => onTransition(target)}
-            disabled={busy || dirty}
-            className={cn(
-              "inline-flex cursor-pointer items-center gap-2 border px-3 py-2 text-left font-mono text-micro uppercase tracking-label-wide transition-colors disabled:opacity-45",
-              TRANSITIONS[target].tone,
-            )}
+        <Action
+          mark="●"
+          tone="border-ok bg-ok text-paper hover:border-ink hover:bg-ink"
+          disabled={busy || dirty || !canPublish}
+          onClick={onPublish}
+        >
+          {status === "published" ? "Publicar cambios" : "Publicar"}
+        </Action>
+
+        {(status !== "preview" || previewIsStale || !hasPublicPreview) && (
+          <Action
+            mark="◐"
+            tone="border-[var(--vendor-ochre)] text-[var(--vendor-ochre)] hover:bg-[var(--vendor-ochre)] hover:text-paper"
+            disabled={busy || dirty || !canPreview}
+            onClick={onPromotePreview}
           >
-            <span aria-hidden="true">{TRANSITIONS[target].mark}</span>
-            {TRANSITIONS[target].label}
-          </button>
-        ))}
+            {hasPublicPreview && status === "preview"
+              ? "Actualizar vista previa pública"
+              : "Poner en vista previa pública"}
+          </Action>
+        )}
+
+        {status !== "draft" && (
+          <Action
+            mark="○"
+            tone="border-dashed border-line text-muted hover:border-ink hover:text-ink"
+            disabled={busy}
+            onClick={onUnpublish}
+          >
+            {status === "published" ? "Despublicar" : "Volver a borrador"}
+          </Action>
+        )}
+
+        {hasWip && (
+          <Action
+            mark="✕"
+            tone="border-dashed border-line text-muted hover:border-accent hover:text-accent"
+            disabled={busy}
+            onClick={onDiscard}
+          >
+            Descartar borrador
+          </Action>
+        )}
       </div>
+
       {dirty && (
-        <p className="font-mono text-[11px] text-muted mt-2 mb-0">
-          Guarda los cambios para poder cambiar el estado.
+        <p className="font-mono text-[11px] leading-[1.6] text-muted mt-2 mb-0">
+          Guarda los cambios: publicar y la vista previa pública trabajan sobre
+          lo guardado.
+        </p>
+      )}
+      {!dirty && !canPublish && (
+        <p className="font-mono text-[11px] leading-[1.6] text-muted mt-2 mb-0">
+          No hay nada nuevo que publicar: guarda un cambio primero.
         </p>
       )}
     </section>
+  );
+}
+
+/** One lifecycle button. The fill tracks how public the destination is —
+ * dashed and quiet for the ones that take a page back, ochre for the shareable
+ * preview, solid for the one that puts a page in front of readers — and every
+ * one carries the same mark its state does elsewhere, so the button and the
+ * chip are recognisably the same vocabulary. */
+function Action({
+  mark,
+  tone,
+  disabled,
+  onClick,
+  children,
+}: {
+  mark: string;
+  tone: string;
+  disabled: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "inline-flex cursor-pointer items-center gap-2 border px-3 py-2 text-left font-mono text-micro uppercase tracking-label-wide transition-colors disabled:cursor-default disabled:opacity-45",
+        tone,
+      )}
+    >
+      <span aria-hidden="true">{mark}</span>
+      {children}
+    </button>
   );
 }
 
@@ -781,16 +1033,43 @@ function ConflictNotice({ body }: { body: string }) {
   );
 }
 
-function confirmText(next: ContentStatus, from: ContentStatus): string {
-  if (next === "published") {
-    return "Publicar esta página. Quedará visible en el sitio público y aparecerá en los listados. ¿Continuar?";
+/** The confirmations. Each one names the state it affects rather than asking
+ * «¿continuar?» about an unnamed thing (cms.md §14.8) — the whole risk of a
+ * four-copy model is that the button you pressed and the copy it moved are not
+ * obviously the same. */
+const PUBLISH_CONFIRM =
+  "Publicar el borrador guardado. Reemplaza lo que el sitio público muestra ahora, y la versión publicada más antigua deja de guardarse. ¿Continuar?";
+
+const PREVIEW_CONFIRM = (from: ContentStatus): string =>
+  from === "published"
+    ? "Poner en vista previa pública. La página deja de estar publicada: sale de los listados y de los buscadores, y su dirección pasa a servir esta copia con «noindex». La última versión publicada se conserva. ¿Continuar?"
+    : "Poner en vista previa pública. La página se verá en su dirección para quien tenga el enlace, pero no aparecerá en listados ni en buscadores. ¿Continuar?";
+
+const UNPUBLISH_CONFIRM = (from: ContentStatus): string =>
+  from === "published"
+    ? "Despublicar. La página dejará de estar en línea y su dirección pública pasará a responder 404. La última versión publicada se conserva para volver a publicarla. ¿Continuar?"
+    : "Volver a borrador. La vista previa pública deja de servirse en la dirección de la página. El borrador guardado no se toca. ¿Continuar?";
+
+/** What the header says about which copies exist, in the words §14.8 asks for.
+ * Deliberately about *copies* rather than about status: the chip beside it
+ * already says the status, and repeating it would leave the interesting half —
+ * "is there work that readers cannot see" — unsaid. */
+function copyState(
+  status: ContentStatus,
+  hasWip: boolean,
+  previewIsStale: boolean,
+): string {
+  if (status === "published") {
+    return hasWip
+      ? "Publicada · borrador guardado"
+      : "Publicada · sin borrador";
   }
-  if (next === "preview") {
-    return "Poner en vista previa. La página se verá en su dirección para quien tenga el enlace, pero no aparecerá en listados ni en buscadores. ¿Continuar?";
+  if (status === "preview") {
+    return previewIsStale
+      ? "Vista previa pública · borrador más reciente disponible"
+      : "Vista previa pública";
   }
-  return from === "published"
-    ? "Volver a borrador. La página dejará de estar publicada y su dirección pública pasará a responder 404. ¿Continuar?"
-    : "Volver a borrador. ¿Continuar?";
+  return hasWip ? "Borrador · nunca publicada" : "Borrador";
 }
 
 /** Which gate a save of a page in this state has to pass. Mirrors

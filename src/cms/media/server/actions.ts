@@ -261,7 +261,7 @@ export async function deleteCollectionAction(input: {
 export async function reconcileAction(): Promise<
   MediaActionResult<{
     usage: {
-      pagesScanned: number;
+      revisionsScanned: number;
       referencesFound: number;
       unresolved: number;
     };
@@ -277,7 +277,7 @@ export async function reconcileAction(): Promise<
       ok: true,
       data: {
         usage: {
-          pagesScanned: usage.pagesScanned,
+          revisionsScanned: usage.revisionsScanned,
           referencesFound: usage.referencesFound,
           unresolved: usage.unresolved.length,
         },

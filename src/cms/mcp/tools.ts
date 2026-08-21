@@ -89,10 +89,11 @@ export const CMS_TOOLS: Tool[] = [
     name: "get_content",
     scope: "cms:read",
     description:
-      "Get one CMS page including metadata, MDX body, lifecycle status, and lock version.",
+      "Get one CMS page: the working copy if one is saved (otherwise the live publication), plus lifecycle status, whether a working copy exists, the revision it was started from, the live publication id, whether the public preview has fallen behind, and the lock version.",
     annotations: readOnly("Ver una página"),
     schema: z.object({ id: z.string().uuid() }),
-    run: (a, input) => cmsContentService.get(a, (input as { id: string }).id),
+    run: (a, input) =>
+      cmsContentService.getState(a, (input as { id: string }).id),
   },
   {
     name: "create_content",
@@ -125,8 +126,8 @@ export const CMS_TOOLS: Tool[] = [
     name: "update_content",
     scope: "cms:write",
     description:
-      "Update content with optimistic concurrency. expectedLockVersion must equal get_content's lockVersion.",
-    annotations: writes("Editar una página"),
+      "Save the page's shared working copy. This never changes what the public sees: the live article keeps serving its last publication until set_content_status publishes the working copy. expectedLockVersion must equal get_content's lockVersion.",
+    annotations: writes("Guardar el borrador"),
     schema: z.object({
       id: z.string().uuid(),
       expectedLockVersion: z.number().int().positive(),
@@ -159,7 +160,7 @@ export const CMS_TOOLS: Tool[] = [
     name: "set_content_status",
     scope: "cms:write",
     description:
-      "Explicitly transition a page to draft, preview, or published after the same validation gate as the browser.",
+      "Change what the public sees. 'published' publishes the saved working copy as a new immutable publication and clears the working copy; 'preview' freezes it into the shareable, noindexed public preview; 'draft' takes the page off the public site and keeps the last publication for restoring. Ask the human before every call, in both directions.",
     annotations: writes("Cambiar el estado de publicación", true),
     schema: z.object({
       id: z.string().uuid(),
@@ -170,6 +171,83 @@ export const CMS_TOOLS: Tool[] = [
       cmsContentService.setStatus(
         a,
         input as Parameters<typeof cmsContentService.setStatus>[1],
+      ),
+  },
+  // ── versions (cms.md §14.9) ─────────────────────────────────────────────
+  //
+  // Read the bounded set of stored copies, compare one against the live
+  // publication, restore one into the working copy, or throw the working copy
+  // away. **None of these changes what the public sees** — that stays the sole
+  // job of `set_content_status`, which is the one tool that still needs the
+  // human's go-ahead. The annotations say so: a restore is a write, and a
+  // discard is destructive, but neither is a publication.
+  {
+    name: "list_content_versions",
+    scope: "cms:read",
+    description:
+      "List the stored versions of one page: the working copy, the temporary checkpoint, the public preview snapshot, and the current publication plus up to three previous ones. Bounded — this is every version that exists, not a page of a longer list.",
+    annotations: readOnly("Listar versiones"),
+    schema: z.object({ id: z.uuid() }),
+    run: (a, input) =>
+      cmsContentService.listVersions(a, (input as { id: string }).id),
+  },
+  {
+    name: "get_content_version",
+    scope: "cms:read",
+    description:
+      "Get one stored version of a page as a complete document. revisionId comes from list_content_versions and must belong to that page.",
+    annotations: readOnly("Ver una versión"),
+    schema: z.object({ id: z.uuid(), revisionId: z.uuid() }),
+    run: (a, input) =>
+      cmsContentService.getVersion(
+        a,
+        input as { id: string; revisionId: string },
+      ),
+  },
+  {
+    name: "compare_content_version",
+    scope: "cms:read",
+    description:
+      "Compare a version against the page's live publication — or its last publication when the page is not currently published. Omit revisionId to compare the working copy, which is the usual question. There is no second baseline: two arbitrary versions cannot be compared.",
+    annotations: readOnly("Comparar versiones"),
+    schema: z.object({ id: z.uuid(), revisionId: z.uuid().optional() }),
+    run: (a, input) =>
+      cmsContentService.compareVersion(
+        a,
+        input as { id: string; revisionId?: string },
+      ),
+  },
+  {
+    name: "restore_content_version",
+    scope: "cms:write",
+    description:
+      "Copy a stored version back into the page's working copy. Does not publish, does not change the page's status, and does not touch the public preview — publishing the restored text is a separate set_content_status call. Overwrites whatever was in the working copy; the previous contents are kept as the checkpoint.",
+    annotations: writes("Restaurar una versión"),
+    schema: z.object({
+      id: z.uuid(),
+      revisionId: z.uuid(),
+      expectedLockVersion: z.number().int().positive(),
+    }),
+    run: (a, input) =>
+      cmsContentService.restoreVersion(
+        a,
+        input as Parameters<typeof cmsContentService.restoreVersion>[1],
+      ),
+  },
+  {
+    name: "discard_content_wip",
+    scope: "cms:write",
+    description:
+      "Throw away the page's working copy and its checkpoint. Unsaved editorial work is lost and there is no undo. Nothing public changes: the page keeps serving exactly what it was serving.",
+    annotations: writes("Descartar el borrador", true),
+    schema: z.object({
+      id: z.uuid(),
+      expectedLockVersion: z.number().int().positive(),
+    }),
+    run: (a, input) =>
+      cmsContentService.discardWip(
+        a,
+        input as { id: string; expectedLockVersion: number },
       ),
   },
   // ── media library ───────────────────────────────────────────────────────

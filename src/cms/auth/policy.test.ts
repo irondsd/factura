@@ -7,10 +7,16 @@ import {
   resolveCmsAccess,
 } from "./policy";
 
-const admin: CmsActor = { userId: "u1", email: "a@example.com", role: "admin" };
+const admin: CmsActor = {
+  userId: "u1",
+  email: "a@example.com",
+  name: null,
+  role: "admin",
+};
 const editor: CmsActor = {
   userId: "u2",
   email: "e@example.com",
+  name: null,
   role: "editor",
 };
 
@@ -70,7 +76,7 @@ describe("resolveCmsAccess", () => {
     const access = resolveCmsAccess({ id: "u3" }, { role: "editor" });
     expect(access).toEqual({
       kind: "member",
-      actor: { userId: "u3", email: null, role: "editor" },
+      actor: { userId: "u3", email: null, name: null, role: "editor" },
     });
   });
 });

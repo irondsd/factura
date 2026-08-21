@@ -16,12 +16,22 @@ export const VALIDATION_LEVELS = ["draft", "preview", "publish"] as const;
 
 export type ValidationLevel = (typeof VALIDATION_LEVELS)[number];
 
-/** The level a plain save must meet, given where the page currently is.
+/** The level a **working copy** save must meet: `draft`, always.
  *
- * The rule that surprises people is the last one: saving an already-published
- * page requires full publish validation. Iteration 1 stores one mutable copy
- * (cms.md §3.2), so there is no previous published revision to keep serving
- * while a broken save sits in a draft — the save *is* the live page. */
+ * This used to depend on the page's status, and had to: iteration 1 stored one
+ * mutable copy, so saving a published page rewrote the live one and had to
+ * survive the publish gate. Revisions (cms.md §14) removed the reason — a WIP
+ * save cannot reach a reader, whatever state the page is in, so holding it to
+ * the rules a *public* page must meet would only mean an editor cannot save
+ * half-finished work on an article that happens to be live. Which is the whole
+ * thing the working copy exists to allow.
+ *
+ * A constant rather than a function of status, because "it does not depend on
+ * the status" is the property worth making unmistakable. */
+export const WIP_VALIDATION_LEVEL: ValidationLevel = "draft";
+
+/** The level a *publicly visible* copy of a page in this state must meet — the
+ * gate a promotion to that state has to pass. */
 export function levelForSave(status: ContentStatus): ValidationLevel {
   switch (status) {
     case "draft":
@@ -80,9 +90,9 @@ export function stampsContentUpdatedAt(
 
 /** Whether a write changed the content itself, as opposed to only its status.
  *
- * Drives `content_updated_at`, which is the "Actualizado el …" the reader sees.
- * A status flip is not an edit: unpublishing and republishing a page must not
- * tell every reader the article was rewritten today. */
+ * Drives the revision's `content_updated_at`, which is the "Actualizado el …"
+ * the reader sees. A status flip is not an edit: unpublishing and republishing
+ * a page must not tell every reader the article was rewritten today. */
 export function isContentEdit(patch: {
   body?: string;
   title?: string;
@@ -96,18 +106,18 @@ export function isContentEdit(patch: {
   return Object.keys(patch).length > 0;
 }
 
-/** Whether saving a page in this state changes something a public visitor can
- * already see, and therefore has to expire the public cache (Task 4).
+/** Whether saving a working copy changes something a public visitor can already
+ * see. **Never** — that is the point of the working copy (cms.md §14.6), and
+ * this is a function rather than a comment so the claim has a call site and a
+ * test.
  *
- * The question is *visibility*, not publication, and `canRender` is the one
- * place that rule is written down. A draft is a 404 at its public URL and is in
- * no listing, so nothing cached is now wrong and there is nothing to invalidate
- * — which is the whole reason most saves cost nothing. A `preview` page is not
- * published, but its URL is deliberately shareable and its rendered copy is
- * cached for an hour like any other; someone holding that link is looking at
- * the saved page, so a save has to reach them too. */
-export function saveAffectsPublicCache(status: ContentStatus): boolean {
-  return canRender(status, "public");
+ * Before revisions this asked `canRender(status)`, because a save on a live
+ * page *was* a change to the live page. Now a save writes a `wip` revision no
+ * public pointer can reach, so there is nothing cached that is now wrong, for
+ * any status. Expiring the section's tag anyway would throw away the whole
+ * public cache on every keystroke-batch an editor commits. */
+export function saveAffectsPublicCache(): boolean {
+  return false;
 }
 
 /** Whether a status transition changes what the public can see.

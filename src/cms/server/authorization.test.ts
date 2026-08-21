@@ -1,10 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ContentDocument } from "@/content-system/types";
 import type { CmsActor } from "../types";
-import { CmsContentService } from "./contentService";
 import { CmsForbiddenError } from "./errors";
-import type { CmsPageHistoryStore } from "./historyStore";
-import type { CmsPageStore } from "./store";
+import { createFakeCms, seedPage, type FakeCms } from "./testFakes";
 
 // That the content service *asks* the policy, for every operation the policy
 // claims to cover.
@@ -14,6 +11,9 @@ import type { CmsPageStore } from "./store";
 // no call site at all and `canPublish` ended up guarding only half of what its
 // own comment describes. The policy is mocked instead, so these tests pin the
 // call sites; `auth/policy.test.ts` pins what the rules say.
+//
+// The assertion after every refusal is that nothing was written. A guard that
+// throws after the insert is not a guard.
 
 const { canAuthor, canPublish } = vi.hoisted(() => ({
   canAuthor: vi.fn(() => true),
@@ -25,86 +25,21 @@ vi.mock("../auth/policy", () => ({ canAuthor, canPublish }));
 const actor: CmsActor = {
   userId: "11111111-1111-1111-1111-111111111111",
   email: "editor@example.com",
+  name: null,
   role: "editor",
 };
 
-function documentAt(status: ContentDocument["status"]): ContentDocument {
-  return {
-    id: "22222222-2222-2222-2222-222222222222",
-    section: "guias",
-    slug: "una-guia",
-    status,
-    body: "Cuerpo.\n",
-    title: "Una guía",
-    titleTag: null,
-    description: "Descripción.",
-    summary: "Resumen.",
-    cta: "Probá Factura.",
-    canonicalSlug: null,
-    parentId: null,
-    sortOrder: 0,
-    crumb: null,
-    metadata: { keywords: [], categories: [] },
-    publishedAt: status === "published" ? "2026-01-01T12:00:00.000Z" : null,
-    contentUpdatedAt: "2026-01-01T12:00:00.000Z",
-    createdAt: "2026-01-01T12:00:00.000Z",
-    updatedAt: "2026-01-01T12:00:00.000Z",
-    createdBy: actor.userId,
-    updatedBy: actor.userId,
-    lockVersion: 1,
-  };
+const lockOf = async (fake: FakeCms, id: string): Promise<number> =>
+  (await fake.service.getState(actor, id)).lockVersion;
+
+/** A page and the exact state of its stored copies, so a refusal can be shown
+ * to have changed nothing. */
+async function snapshot(fake: FakeCms, id: string) {
+  return JSON.stringify({
+    page: fake.pageRow(id),
+    revisions: fake.revisionRows(id),
+  });
 }
-
-/** A store that answers reads and records writes. Nothing here needs a
- * database: the question is whether the write is reached at all. */
-function fakeStore(current: ContentDocument) {
-  const writes: string[] = [];
-  const store: Record<string, unknown> = {
-    findById: async () => current,
-    findBySlug: async () => null,
-    list: async () => [],
-    lockVersionOf: async () => current.lockVersion,
-    insert: async () => {
-      writes.push("insert");
-      return current;
-    },
-    updateWithLock: async () => {
-      writes.push("update");
-      return current;
-    },
-    deleteWithLock: async () => {
-      writes.push("delete");
-      return true;
-    },
-    // The question here is whether the write is reached at all, so the fake
-    // transaction runs its body inline against itself. Atomicity is proven in
-    // `src/cms/media/server/media.integration.test.ts`.
-    transaction: async (body: (s: unknown, tx: unknown) => Promise<unknown>) =>
-      body(store, null),
-  };
-  return { writes, store: store as unknown as CmsPageStore };
-}
-
-const permissive = () => ({ ok: true as const, diagnostics: [] });
-
-/** History recording is not what these tests are about, and the real store
- * would go looking for a database. `history.test.ts` pins what gets written. */
-const noHistory = { record: async () => {} } as unknown as CmsPageHistoryStore;
-
-/** Nor is cache invalidation, and the real one needs a Next.js request context.
- * `invalidation.test.ts` pins when it is reached. */
-const noInvalidation = () => {};
-
-const createInput = {
-  section: "guias" as const,
-  slug: "una-guia",
-  title: "Una guía",
-  description: "Descripción.",
-  summary: "Resumen.",
-  cta: "Probá Factura.",
-  body: "Cuerpo.\n",
-  metadata: { keywords: [], categories: [] },
-};
 
 beforeEach(() => {
   canAuthor.mockReturnValue(true);
@@ -114,147 +49,168 @@ beforeEach(() => {
 
 describe("authoring", () => {
   it("refuses a create when the actor may not author", async () => {
+    const fake = createFakeCms();
     canAuthor.mockReturnValue(false);
-    const { store, writes } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(
-      permissive,
-      store,
-      noHistory,
-      undefined,
-      noInvalidation,
-    );
-
-    await expect(service.create(actor, createInput)).rejects.toBeInstanceOf(
+    await expect(seedPage(fake, actor)).rejects.toBeInstanceOf(
       CmsForbiddenError,
     );
-    expect(writes).toEqual([]);
+    expect(fake.revisionRows("")).toEqual([]);
   });
 
   it("refuses a save when the actor may not author", async () => {
-    canAuthor.mockReturnValue(false);
-    const { store, writes } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(
-      permissive,
-      store,
-      noHistory,
-      undefined,
-      noInvalidation,
-    );
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
+    const before = await snapshot(fake, page.id);
 
+    canAuthor.mockReturnValue(false);
     await expect(
-      service.update(actor, {
-        id: documentAt("draft").id,
-        expectedLockVersion: 1,
+      fake.service.update(actor, {
+        id: page.id,
+        expectedLockVersion: await lockOf(fake, page.id).catch(() => 1),
         patch: { title: "Otro título" },
       }),
     ).rejects.toBeInstanceOf(CmsForbiddenError);
-    expect(writes).toEqual([]);
+    expect(await snapshot(fake, page.id)).toEqual(before);
+  });
+
+  it("refuses a restore when the actor may not author", async () => {
+    // Restoring writes the working copy, so it is an authoring decision — not
+    // a publishing one, because nothing public moves.
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
+    await fake.service.publish(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+    const versions = await fake.service.listVersions(actor, page.id);
+    const publication = versions.versions[0];
+    const before = await snapshot(fake, page.id);
+
+    canAuthor.mockReturnValue(false);
+    await expect(
+      fake.service.restoreVersion(actor, {
+        id: page.id,
+        revisionId: publication.revisionId,
+        expectedLockVersion: await lockOf(fake, page.id),
+      }),
+    ).rejects.toBeInstanceOf(CmsForbiddenError);
+    expect(await snapshot(fake, page.id)).toEqual(before);
+  });
+
+  it("refuses a discard when the actor may not author", async () => {
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
+    const before = await snapshot(fake, page.id);
+
+    canAuthor.mockReturnValue(false);
+    await expect(
+      fake.service.discardWip(actor, {
+        id: page.id,
+        expectedLockVersion: await lockOf(fake, page.id),
+      }),
+    ).rejects.toBeInstanceOf(CmsForbiddenError);
+    expect(await snapshot(fake, page.id)).toEqual(before);
   });
 
   it("refuses a delete when the actor may not author", async () => {
     // Deleting is gated on authoring rather than on publishing because only a
     // draft can be deleted — nothing public is at stake, and an actor who may
     // not edit a draft has no business removing it either.
-    canAuthor.mockReturnValue(false);
-    const { store, writes } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(
-      permissive,
-      store,
-      noHistory,
-      undefined,
-      noInvalidation,
-    );
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
 
+    canAuthor.mockReturnValue(false);
     await expect(
-      service.delete(actor, {
-        id: documentAt("draft").id,
-        expectedLockVersion: 1,
+      fake.service.delete(actor, {
+        id: page.id,
+        expectedLockVersion: await lockOf(fake, page.id),
       }),
     ).rejects.toBeInstanceOf(CmsForbiddenError);
-    expect(writes).toEqual([]);
+    expect(fake.pageRow(page.id)).toBeDefined();
   });
 
   it("lets an authorised actor through", async () => {
-    const { store, writes } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(
-      permissive,
-      store,
-      noHistory,
-      undefined,
-      noInvalidation,
-    );
-
-    await service.create(actor, createInput);
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
     expect(canAuthor).toHaveBeenCalledWith(actor);
-    expect(writes).toEqual(["insert"]);
+    expect(fake.revisionRows(page.id)).toHaveLength(1);
   });
 });
 
 describe("publishing", () => {
   it("refuses to publish when the actor may not", async () => {
-    canPublish.mockReturnValue(false);
-    const { store, writes } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(
-      permissive,
-      store,
-      noHistory,
-      undefined,
-      noInvalidation,
-    );
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
+    const before = await snapshot(fake, page.id);
 
+    canPublish.mockReturnValue(false);
     await expect(
-      service.setStatus(actor, {
-        id: documentAt("draft").id,
+      fake.service.setStatus(actor, {
+        id: page.id,
         status: "published",
-        expectedLockVersion: 1,
+        expectedLockVersion: await lockOf(fake, page.id),
       }),
     ).rejects.toBeInstanceOf(CmsForbiddenError);
-    expect(writes).toEqual([]);
+    expect(await snapshot(fake, page.id)).toEqual(before);
   });
 
   it("refuses to UNpublish when the actor may not publish", async () => {
-    // The half that was missing: only the transition *into* published consulted
-    // the policy, so taking a live page down was open to everyone regardless of
-    // how the role was configured.
-    canPublish.mockReturnValue(false);
-    const { store, writes } = fakeStore(documentAt("published"));
-    const service = new CmsContentService(
-      permissive,
-      store,
-      noHistory,
-      undefined,
-      noInvalidation,
-    );
+    // The half that was missing once: only the transition *into* published
+    // consulted the policy, so taking a live page down was open to everyone
+    // regardless of how the role was configured.
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
+    await fake.service.publish(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+    const before = await snapshot(fake, page.id);
 
+    canPublish.mockReturnValue(false);
     await expect(
-      service.setStatus(actor, {
-        id: documentAt("published").id,
+      fake.service.setStatus(actor, {
+        id: page.id,
         status: "draft",
-        expectedLockVersion: 1,
+        expectedLockVersion: await lockOf(fake, page.id),
       }),
     ).rejects.toBeInstanceOf(CmsForbiddenError);
-    expect(writes).toEqual([]);
+    expect(await snapshot(fake, page.id)).toEqual(before);
   });
 
-  it("does not ask the publish policy about draft → preview", async () => {
+  it("does not ask the publish policy about draft → public preview", async () => {
     // A preview is not publication: it is excluded from every listing and
     // carries `noindex, nofollow`. Gating it on `canPublish` would make the
     // toggle mean more than it says.
-    canPublish.mockReturnValue(false);
-    const { store, writes } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(
-      permissive,
-      store,
-      noHistory,
-      undefined,
-      noInvalidation,
-    );
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
 
-    await service.setStatus(actor, {
-      id: documentAt("draft").id,
+    canPublish.mockReturnValue(false);
+    await fake.service.setStatus(actor, {
+      id: page.id,
       status: "preview",
-      expectedLockVersion: 1,
+      expectedLockVersion: await lockOf(fake, page.id),
     });
-    expect(writes).toEqual(["update"]);
+    expect(fake.pageRow(page.id)?.status).toBe("preview");
+    expect(fake.pageRow(page.id)?.previewRevisionId).toBeTruthy();
+  });
+
+  it("does not ask the publish policy about an ordinary save on a live page", async () => {
+    // The whole point of the working copy: editing a published article is an
+    // authoring decision, because nothing a reader can see moves.
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
+    await fake.service.publish(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+
+    canPublish.mockReturnValue(false);
+    await expect(
+      fake.service.update(actor, {
+        id: page.id,
+        expectedLockVersion: await lockOf(fake, page.id),
+        patch: { body: "Cuerpo nuevo.\n" },
+      }),
+    ).resolves.toMatchObject({ created: true });
   });
 });

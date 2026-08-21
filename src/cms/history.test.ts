@@ -7,7 +7,7 @@ import {
   type HistoryFallback,
 } from "./history";
 
-// What the «Historia» tab claims about a page.
+// What the «Historial» tab's activity strip claims about a page.
 //
 // The wording carries real distinctions — unpublishing a live page and walking
 // a preview back are the same target state and not the same event — and the
@@ -23,6 +23,8 @@ const event = (over: Partial<CmsPageEvent> = {}): CmsPageEvent => ({
   fromStatus: null,
   toStatus: null,
   source: "browser",
+  saveCount: 1,
+  firstAt: null,
   at: "2026-08-02T10:00:00.000Z",
   actor: ANA,
   ...over,
@@ -155,5 +157,33 @@ describe("buildHistory", () => {
     });
     expect(entries).toHaveLength(1);
     expect(entries[0].inferred).toBe(false);
+  });
+});
+
+describe("the new actions", () => {
+  // Three actions that arrived with revisions (cms.md §14.7.3). Each would be
+  // «guardó cambios» without its own name, and each means something different
+  // to whoever reads the timeline next: a restore replaced the working copy, a
+  // discard threw it away, and a promotion changed what a shared link shows.
+  it("describes restoring, discarding and promoting distinctly", () => {
+    const said = (["restored", "discarded", "preview_promoted"] as const).map(
+      (action) => describeEvent({ action, fromStatus: null, toStatus: null }),
+    );
+    expect(said).toEqual([
+      "restauró una versión anterior",
+      "descartó el borrador",
+      "actualizó la vista previa pública",
+    ]);
+    expect(new Set(said).size).toBe(3);
+  });
+
+  it("carries a coalesced save's count through to the entry", () => {
+    // Ten saves in an hour are one row and one line, and the line says how
+    // many — otherwise the timeline claims a single edit where there were ten.
+    const [entry] = buildHistory({
+      events: [event({ action: "saved", saveCount: 7 })],
+      fallback: fallback(),
+    });
+    expect(entry.saveCount).toBe(7);
   });
 });

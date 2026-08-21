@@ -1,10 +1,14 @@
-import { eq, like } from "drizzle-orm";
+import { eq, inArray, like } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { documentsFromDatabase } from "@/content-system/adapters/database";
 import { PostgresContentRepository } from "@/content-system/repository/postgres";
 import { relatedDocuments } from "@/content-system/document";
 import { buildContentTree, ownSegment } from "@/content-system/hierarchy";
-import type { ContentStatus, ValidationResult } from "@/content-system/types";
+import type {
+  ContentDocument,
+  ContentStatus,
+  ValidationResult,
+} from "@/content-system/types";
 import type { CmsActor } from "../types";
 import { CmsContentService } from "./contentService";
 import {
@@ -16,6 +20,7 @@ import {
 } from "./errors";
 import { CmsPageHistoryStore } from "./historyStore";
 import { loadPageHistory } from "./pageHistory";
+import { CmsRevisionStore } from "./revisionStore";
 import { CmsPageStore } from "./store";
 import { createTestDb, hasTestDatabase } from "./testDb";
 
@@ -60,6 +65,7 @@ if (!hasTestDatabase()) {
   describe("CMS content service against PostgreSQL", () => {
     const { db, client } = createTestDb();
     const store = new CmsPageStore(db);
+    const revisions = new CmsRevisionStore(db);
     // The test connection, not the app singleton: these rows are written by
     // every mutation below and go with the page when it is cleaned up.
     const history = new CmsPageHistoryStore(db);
@@ -68,6 +74,7 @@ if (!hasTestDatabase()) {
     const actor: CmsActor = {
       userId: "",
       email: "cms-test@example.com",
+      name: null,
       role: "admin",
     };
 
@@ -84,6 +91,7 @@ if (!hasTestDatabase()) {
     const service = new CmsContentService(
       permissive,
       store,
+      revisions,
       history,
       undefined,
       noInvalidation,
@@ -91,10 +99,66 @@ if (!hasTestDatabase()) {
 
     const cmsSchema = db._.fullSchema;
 
+    /** The version the page is at right now. Every mutation bumps it — a save
+     * included — so a suite that held one from three calls ago would be
+     * testing the conflict path by accident. */
+    const lockOf = async (id: string): Promise<number> =>
+      (await service.getState(actor, id)).lockVersion;
+
+    /** Save the working copy and answer with the document, which is what most
+     * of the assertions below are about. */
+    const save = async (
+      id: string,
+      patch: Parameters<typeof service.update>[1]["patch"],
+    ) =>
+      (
+        await service.update(actor, {
+          id,
+          expectedLockVersion: await lockOf(id),
+          patch,
+        })
+      ).document;
+
+    /** Publish whatever is saved. */
+    const publish = async (id: string) =>
+      (
+        await service.publish(actor, {
+          id,
+          expectedLockVersion: await lockOf(id),
+        })
+      ).document;
+
+    /** Remove this suite's rows, in the order the foreign keys allow.
+     *
+     * Three steps rather than one delete, and each is a constraint doing its
+     * job: the page's four pointers are `restrict`, so they are cleared before
+     * anything is removed; `cms_page_revision.parent_id` is `restrict` too, so
+     * every revision goes before the pages they hang off; and only then can the
+     * pages themselves be deleted. A single `delete from cms_page` fails on the
+     * second of those, which is exactly the protection production relies on. */
     async function cleanup() {
+      const mine = like(cmsSchema.cmsPages.slug, `${TEST_PREFIX}%`);
       await db
-        .delete(cmsSchema.cmsPages)
-        .where(like(cmsSchema.cmsPages.slug, `${TEST_PREFIX}%`));
+        .update(cmsSchema.cmsPages)
+        .set({
+          publishedRevisionId: null,
+          previewRevisionId: null,
+          wipRevisionId: null,
+          checkpointRevisionId: null,
+        })
+        .where(mine);
+      await db
+        .delete(cmsSchema.cmsPageRevisions)
+        .where(
+          inArray(
+            cmsSchema.cmsPageRevisions.pageId,
+            db
+              .select({ id: cmsSchema.cmsPages.id })
+              .from(cmsSchema.cmsPages)
+              .where(mine),
+          ),
+        );
+      await db.delete(cmsSchema.cmsPages).where(mine);
     }
 
     beforeEach(async () => {
@@ -258,18 +322,10 @@ if (!hasTestDatabase()) {
         const page = await service.create(actor, draftInput("versions"));
         expect(page.lockVersion).toBe(1);
 
-        const first = await service.update(actor, {
-          id: page.id,
-          expectedLockVersion: page.lockVersion,
-          patch: { title: "Uno" },
-        });
+        const first = await save(page.id, { title: "Uno" });
         expect(first.lockVersion).toBe(2);
 
-        const second = await service.update(actor, {
-          id: page.id,
-          expectedLockVersion: first.lockVersion,
-          patch: { title: "Dos" },
-        });
+        const second = await save(page.id, { title: "Dos" });
         expect(second.lockVersion).toBe(3);
       });
 
@@ -297,11 +353,7 @@ if (!hasTestDatabase()) {
     describe("timestamps", () => {
       it("moves the editorial timestamp on a content edit", async () => {
         const page = await service.create(actor, draftInput("edited"));
-        const edited = await service.update(actor, {
-          id: page.id,
-          expectedLockVersion: page.lockVersion,
-          patch: { body: "Cuerpo corregido." },
-        });
+        const edited = await save(page.id, { body: "Cuerpo corregido." });
         expect(Date.parse(edited.contentUpdatedAt)).toBeGreaterThanOrEqual(
           Date.parse(page.contentUpdatedAt),
         );
@@ -355,10 +407,8 @@ if (!hasTestDatabase()) {
           status: "published",
           expectedLockVersion: page.lockVersion,
         });
-        const edited = await service.update(actor, {
-          id: live.id,
-          expectedLockVersion: live.lockVersion,
-          patch: { body: "Cuerpo corregido tras publicar." },
+        const edited = await save(live.id, {
+          body: "Cuerpo corregido tras publicar.",
         });
         expect(edited.body).toBe("Cuerpo corregido tras publicar.");
       });
@@ -388,6 +438,7 @@ if (!hasTestDatabase()) {
         const strict = new CmsContentService(
           failsPublishOnly,
           store,
+          revisions,
           history,
           undefined,
           noInvalidation,
@@ -417,6 +468,7 @@ if (!hasTestDatabase()) {
         const strict = new CmsContentService(
           failsPublishOnly,
           store,
+          revisions,
           history,
           undefined,
           noInvalidation,
@@ -444,6 +496,7 @@ if (!hasTestDatabase()) {
         const strict = new CmsContentService(
           always,
           store,
+          revisions,
           history,
           undefined,
           noInvalidation,
@@ -786,16 +839,8 @@ if (!hasTestDatabase()) {
     describe("page history", () => {
       it("records the whole life of a page, newest first", async () => {
         const page = await service.create(actor, draftInput("history"));
-        const saved = await service.update(actor, {
-          id: page.id,
-          expectedLockVersion: page.lockVersion,
-          patch: { title: "Otro título" },
-        });
-        await service.setStatus(actor, {
-          id: saved.id,
-          status: "published",
-          expectedLockVersion: saved.lockVersion,
-        });
+        await save(page.id, { title: "Otro título" });
+        await publish(page.id);
 
         const entries = await loadPageHistory(
           (await store.findById(page.id))!,
@@ -826,6 +871,218 @@ if (!hasTestDatabase()) {
         });
 
         expect(await history.listForPage(page.id)).toEqual([]);
+      });
+    });
+
+    describe("revisions in the database", () => {
+      // The half of §14 that only a real PostgreSQL can prove: the partial
+      // unique indexes, the `restrict` foreign keys, the check constraints, and
+      // the fact that a public read resolves a pointer rather than a row.
+      // `workingCopy.test.ts` covers the decisions; this covers the schema that
+      // makes them enforceable.
+
+      /** A public document with the page's optimistic-concurrency counter
+       * dropped.
+       *
+       * `lockVersion` lives on `cms_page` and moves on every accepted write —
+       * a working-copy save included, because it is the CMS's single
+       * concurrency token. So it is the one field of a public read that
+       * legitimately changes while the published *document* does not, and
+       * comparing it would make "the live page did not change" impossible to
+       * state. Everything a reader can see is still compared. */
+      const published = (document: ContentDocument | null) =>
+        document && { ...document, lockVersion: 0 };
+
+      const revisionsOf = (pageId: string) =>
+        db
+          .select()
+          .from(cmsSchema.cmsPageRevisions)
+          .where(eq(cmsSchema.cmsPageRevisions.pageId, pageId));
+
+      it("keeps the published revision byte-for-byte while the draft changes", async () => {
+        const page = await service.create(actor, draftInput("rev-stable"));
+        await publish(page.id);
+        const before = published(
+          await repository.getByPath("guias", [page.slug]),
+        );
+
+        await save(page.id, { body: "Un borrador a medio escribir.\n" });
+        await save(page.id, { title: "Título provisional" });
+
+        expect(
+          published(await repository.getByPath("guias", [page.slug])),
+        ).toEqual(before);
+      });
+
+      it("refuses a second working copy for the same page", async () => {
+        // The partial unique index. This is the invariant two concurrent saves
+        // race on, and only the database can settle that race.
+        const page = await service.create(actor, draftInput("rev-one-wip"));
+        const [wip] = await revisionsOf(page.id);
+
+        await expect(
+          db.insert(cmsSchema.cmsPageRevisions).values({
+            pageId: page.id,
+            kind: "wip",
+            bodyMdx: wip.bodyMdx,
+            title: wip.title,
+            description: wip.description,
+            summary: wip.summary,
+            cta: wip.cta,
+            metadata: wip.metadata,
+          }),
+        ).rejects.toThrow();
+      });
+
+      it("refuses a working copy carrying a publication number", async () => {
+        // The check constraint. A `wip` with a number would be counted by the
+        // retention sweep, and pruned or kept for the wrong reasons.
+        const page = await service.create(actor, draftInput("rev-number"));
+        const [wip] = await revisionsOf(page.id);
+
+        await expect(
+          db
+            .update(cmsSchema.cmsPageRevisions)
+            .set({ publicationNumber: 9 })
+            .where(eq(cmsSchema.cmsPageRevisions.id, wip.id)),
+        ).rejects.toThrow();
+      });
+
+      it("refuses to delete a revision the page still points at", async () => {
+        // `restrict`, in the direction that matters: a live publication deleted
+        // out from under its pointer would leave a published page with no body.
+        const page = await service.create(actor, draftInput("rev-restrict"));
+        await publish(page.id);
+        const [publication] = await revisionsOf(page.id);
+
+        await expect(
+          db
+            .delete(cmsSchema.cmsPageRevisions)
+            .where(eq(cmsSchema.cmsPageRevisions.id, publication.id)),
+        ).rejects.toThrow();
+      });
+
+      it("numbers publications monotonically and keeps only four", async () => {
+        const page = await service.create(actor, draftInput("rev-retention"));
+        await publish(page.id);
+        for (let i = 2; i <= 6; i++) {
+          await save(page.id, { body: `Versión ${i}.\n` });
+          await publish(page.id);
+        }
+
+        const publications = (await revisionsOf(page.id))
+          .filter((revision) => revision.kind === "published")
+          .map((revision) => revision.publicationNumber)
+          .sort((a, b) => (a ?? 0) - (b ?? 0));
+        expect(publications).toEqual([3, 4, 5, 6]);
+
+        // And the page is still serving the newest one.
+        const live = await repository.getByPath("guias", [page.slug]);
+        expect(live?.body).toBe("Versión 6.\n");
+      });
+
+      it("leaves one working copy and one checkpoint after a run of saves", async () => {
+        const page = await service.create(actor, draftInput("rev-compress"));
+        await publish(page.id);
+        for (let i = 0; i < 6; i++) {
+          await save(page.id, { body: `Guardado ${i}.\n` });
+        }
+
+        const kinds = (await revisionsOf(page.id))
+          .map((revision) => revision.kind)
+          .sort();
+        expect(kinds).toEqual(["checkpoint", "published", "wip"]);
+      });
+
+      it("clears the working copy and the checkpoint when publishing", async () => {
+        const page = await service.create(actor, draftInput("rev-publish"));
+        await publish(page.id);
+        await save(page.id, { body: "Uno.\n" });
+        await save(page.id, { body: "Dos.\n" });
+        await publish(page.id);
+
+        const row = await db.query.cmsPages.findFirst({
+          where: eq(cmsSchema.cmsPages.id, page.id),
+        });
+        expect(row?.wipRevisionId).toBeNull();
+        expect(row?.checkpointRevisionId).toBeNull();
+        expect(row?.publishedRevisionId).not.toBeNull();
+      });
+
+      it("serves the promoted snapshot, not the latest save, while in preview", async () => {
+        const page = await service.create(actor, draftInput("rev-preview"));
+        await service.promotePreview(actor, {
+          id: page.id,
+          expectedLockVersion: await lockOf(page.id),
+        });
+        const promoted = published(
+          await repository.getByPath("guias", [page.slug]),
+        );
+
+        await save(page.id, { body: "Algo que nadie debería ver todavía.\n" });
+
+        expect(
+          published(await repository.getByPath("guias", [page.slug])),
+        ).toEqual(promoted);
+        expect((await service.getState(actor, page.id)).previewIsStale).toBe(
+          true,
+        );
+      });
+
+      it("restores an old publication into the working copy without moving the live page", async () => {
+        const page = await service.create(actor, draftInput("rev-restore"));
+        await publish(page.id);
+        const original = (await revisionsOf(page.id))[0];
+
+        await save(page.id, { body: "Reescrito.\n" });
+        await publish(page.id);
+        const liveBefore = published(
+          await repository.getByPath("guias", [page.slug]),
+        );
+
+        await service.restoreVersion(actor, {
+          id: page.id,
+          revisionId: original.id,
+          expectedLockVersion: await lockOf(page.id),
+        });
+
+        expect(
+          published(await repository.getByPath("guias", [page.slug])),
+        ).toEqual(liveBefore);
+        expect((await service.get(actor, page.id)).body).toBe(original.bodyMdx);
+      });
+
+      it("takes every revision with the page when it is deleted", async () => {
+        const page = await service.create(actor, draftInput("rev-delete"));
+        await publish(page.id);
+        await save(page.id, { body: "Uno.\n" });
+        await service.unpublish(actor, {
+          id: page.id,
+          expectedLockVersion: await lockOf(page.id),
+        });
+        expect((await revisionsOf(page.id)).length).toBeGreaterThan(1);
+
+        await service.delete(actor, {
+          id: page.id,
+          expectedLockVersion: await lockOf(page.id),
+        });
+        expect(await revisionsOf(page.id)).toEqual([]);
+      });
+
+      it("validates a publication candidate against the other pages' public versions", async () => {
+        // Collection validation has to see the candidate as the page's
+        // prospective public document while everything else contributes what it
+        // is actually serving — and the page's own live version must not
+        // collide with its own candidate.
+        const page = await service.create(actor, draftInput("rev-collection"));
+        await publish(page.id);
+        await save(page.id, { title: "Un título distinto" });
+
+        const result = await service.validateOnly(actor, {
+          id: page.id,
+          level: "publish",
+        });
+        expect(result.ok).toBe(true);
       });
     });
 
@@ -907,9 +1164,9 @@ if (!hasTestDatabase()) {
         // console is where it gets repaired.
         const page = await service.create(actor, draftInput("damaged"));
         await db
-          .update(cmsSchema.cmsPages)
+          .update(cmsSchema.cmsPageRevisions)
           .set({ metadata: { keywords: "not an array" } })
-          .where(eq(cmsSchema.cmsPages.id, page.id));
+          .where(eq(cmsSchema.cmsPageRevisions.pageId, page.id));
 
         const listed = await service.list(actor, { section: "guias" });
         const damaged = listed.find((row) => row.id === page.id);
@@ -927,15 +1184,11 @@ if (!hasTestDatabase()) {
         // for a reader, who would otherwise get a page with its metadata
         // silently missing.
         const page = await service.create(actor, draftInput("damaged-public"));
-        await service.setStatus(actor, {
-          id: page.id,
-          status: "published",
-          expectedLockVersion: page.lockVersion,
-        });
+        await publish(page.id);
         await db
-          .update(cmsSchema.cmsPages)
+          .update(cmsSchema.cmsPageRevisions)
           .set({ metadata: { keywords: "not an array" } })
-          .where(eq(cmsSchema.cmsPages.id, page.id));
+          .where(eq(cmsSchema.cmsPageRevisions.pageId, page.id));
 
         await expect(
           repository.getByPath("guias", [page.slug]),

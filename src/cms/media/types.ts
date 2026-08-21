@@ -2,6 +2,8 @@
 // no S3, no React — so the validators, the store, the service, the MCP adapter
 // and the browser components all agree on one vocabulary.
 
+import type { RevisionKind } from "../revisions";
+
 /** The media lifecycle, mirroring `cms_media.status`.
  *
  *   pending ──finalize──▶ ready ──trash──▶ trashed ──purge──▶ purging ─▶ purged
@@ -89,13 +91,27 @@ export type MediaCollection = {
   sortOrder: number;
 };
 
-/** One page's reference to one image, for the detail view's usage list. */
+/** One stored *version*'s reference to one image, for the detail view's usage
+ * list (cms.md §14.5).
+ *
+ * A page can appear more than once — its live publication and the working copy
+ * that is about to replace it may both use the same chart — which is why the
+ * detail view groups by page and names the version, rather than pretending
+ * there is one reference per page. */
 export type MediaUsageRef = {
   pageId: string;
+  revisionId: string;
+  kind: RevisionKind;
+  /** Non-null only for a publication. */
+  publicationNumber: number | null;
   section: string;
   slug: string;
+  /** The title *that version* carries, which need not be the page's current
+   * one. */
   title: string;
   status: string;
+  /** True only for the publication the page is currently serving. */
+  isLive: boolean;
   placement: MediaPlacement;
   occurrences: number;
 };

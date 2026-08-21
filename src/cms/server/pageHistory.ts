@@ -6,9 +6,9 @@ import {
   cmsPageHistoryStore as defaultStore,
 } from "./historyStore";
 
-/** The «Historia» tab's data: recorded events for this page, plus the entries
- * reconstructed from its own columns when the record does not reach back far
- * enough (`buildHistory` decides which).
+/** The «Historial» tab's activity strip: recorded events for this page, plus
+ * the entries reconstructed from its own columns when the record does not reach
+ * back far enough (`buildHistory` decides which).
  *
  * The extra `users` lookup only happens when it is needed — a page created
  * since the event table exists has a real creation event and never asks. */

@@ -158,6 +158,9 @@ export async function resolveCmsToken(
   return {
     userId: row.userId,
     email: null,
+    // A token has no display name of its own; the trail names the account it
+    // belongs to, which `actorId` already carries.
+    name: null,
     role: row.role,
     // Everything this caller writes is recorded as an agent's edit.
     source: "mcp",

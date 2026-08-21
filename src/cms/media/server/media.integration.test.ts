@@ -55,6 +55,7 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
     const actor: CmsActor = {
       userId: "",
       email: "cms-test@example.com",
+      name: null,
       role: "admin",
     };
 
@@ -112,9 +113,31 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
       await db
         .delete(schema.cmsMediaCollections)
         .where(like(schema.cmsMediaCollections.name, `${TEST_PREFIX}%`));
+      // Pointers first, then revisions, then pages: every foreign key between
+      // the three is `restrict` or `cascade` in a direction that refuses the
+      // shortcut, which is the protection production relies on.
+      const mine = like(schema.cmsPages.slug, `${TEST_PREFIX}%`);
       await db
-        .delete(schema.cmsPages)
-        .where(like(schema.cmsPages.slug, `${TEST_PREFIX}%`));
+        .update(schema.cmsPages)
+        .set({
+          publishedRevisionId: null,
+          previewRevisionId: null,
+          wipRevisionId: null,
+          checkpointRevisionId: null,
+        })
+        .where(mine);
+      await db
+        .delete(schema.cmsPageRevisions)
+        .where(
+          inArray(
+            schema.cmsPageRevisions.pageId,
+            db
+              .select({ id: schema.cmsPages.id })
+              .from(schema.cmsPages)
+              .where(mine),
+          ),
+        );
+      await db.delete(schema.cmsPages).where(mine);
     }
 
     beforeEach(async () => {
@@ -256,6 +279,14 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
 
     describe("usage", () => {
       /** A real page, because usage rows have a foreign key to one. */
+      /** A page and its working copy, inserted directly.
+       *
+       * Directly rather than through `CmsContentService` on purpose: these
+       * tests are about the media library's view of stored revisions, and going
+       * through the content service would drag its validator, its history and
+       * its cache invalidation into a suite that measures none of them. What
+       * they do need is a real `cms_page_revision` row, because usage is keyed
+       * by revision now — a page with no revision references nothing. */
       async function page(slug: string, body: string, metadata: unknown = {}) {
         const [row] = await db
           .insert(schema.cmsPages)
@@ -263,6 +294,13 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
             section: "guias",
             slug: `${TEST_PREFIX}${slug}`,
             status: "draft",
+          })
+          .returning();
+        const [revision] = await db
+          .insert(schema.cmsPageRevisions)
+          .values({
+            pageId: row.id,
+            kind: "wip",
             bodyMdx: body,
             title: "Página de prueba",
             description: "Descripción.",
@@ -271,7 +309,11 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
             metadata: { keywords: [], categories: [], ...(metadata as object) },
           })
           .returning();
-        return row;
+        await db
+          .update(schema.cmsPages)
+          .set({ wipRevisionId: revision.id })
+          .where(eq(schema.cmsPages.id, row.id));
+        return revision;
       }
 
       it("derives usage from a body and blocks the trash while it stands", async () => {
@@ -312,8 +354,8 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
           bodyMdx: row.bodyMdx,
           metadata: row.metadata,
         });
-        await store.replacePageUsage({
-          pageId: row.id,
+        await store.replaceRevisionUsage({
+          revisionId: row.id,
           entries: expected,
           now: new Date(),
         });
@@ -336,9 +378,9 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
 
         // The editor removes it from the page. Nothing is deleted.
         await db
-          .update(schema.cmsPages)
+          .update(schema.cmsPageRevisions)
           .set({ bodyMdx: "Ya no hay imagen." })
-          .where(eq(schema.cmsPages.id, row.id));
+          .where(eq(schema.cmsPageRevisions.id, row.id));
         await reconcileMediaUsage(db);
 
         const after = await store.findById(asset.id);
@@ -359,12 +401,129 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
         const first = (await store.findById(asset.id))?.firstUsedAt;
 
         await db
-          .update(schema.cmsPages)
+          .update(schema.cmsPageRevisions)
           .set({ bodyMdx: "sin imagen" })
-          .where(eq(schema.cmsPages.id, row.id));
+          .where(eq(schema.cmsPageRevisions.id, row.id));
         await reconcileMediaUsage(db);
 
         expect((await store.findById(asset.id))?.firstUsedAt).toBe(first);
+      });
+    });
+
+    describe("retained versions pin their media", () => {
+      // The property cms.md §14.2.8 promises: a version you can still restore
+      // is a version whose images still exist. It is not a sweep that has to
+      // remember to run — usage is keyed by revision, so it follows the copy,
+      // and the moment retention prunes that copy the cascade releases it in
+      // the same transaction.
+
+      /** A page whose *published* revision references an image, plus a working
+       * copy that does not. The shape that made the old page-keyed table wrong:
+       * the page no longer mentions the image, and the live article still
+       * does. */
+      async function publishedThenDropped(permalink: string) {
+        const [pageRow] = await db
+          .insert(schema.cmsPages)
+          .values({
+            section: "guias",
+            slug: `${TEST_PREFIX}pinned`,
+            status: "published",
+          })
+          .returning();
+        const common = {
+          pageId: pageRow.id,
+          title: "Página de prueba",
+          description: "Descripción.",
+          summary: "Resumen.",
+          cta: "Probá Factura.",
+          metadata: { keywords: [], categories: [] },
+        };
+        const [publication] = await db
+          .insert(schema.cmsPageRevisions)
+          .values({
+            ...common,
+            kind: "published",
+            publicationNumber: 1,
+            publishedAt: new Date(),
+            bodyMdx: `![A](${permalink})`,
+          })
+          .returning();
+        const [wip] = await db
+          .insert(schema.cmsPageRevisions)
+          .values({ ...common, kind: "wip", bodyMdx: "Ya no hay imagen." })
+          .returning();
+        await db
+          .update(schema.cmsPages)
+          .set({ publishedRevisionId: publication.id, wipRevisionId: wip.id })
+          .where(eq(schema.cmsPages.id, pageRow.id));
+        return { pageRow, publication, wip };
+      }
+
+      it("refuses the trash while a published version still references it", async () => {
+        const asset = await upload(`${TEST_PREFIX}pinned.png`);
+        created.add(asset.id);
+        const { publication } = await publishedThenDropped(asset.permalink);
+        await reconcileMediaUsage(db);
+
+        expect(await store.isReferenced(asset.id)).toBe(true);
+        await expect(service.trash(actor, { id: asset.id })).rejects.toThrow(
+          CmsMediaInUseError,
+        );
+
+        // And the screen can say *which* copy is holding it — "the live
+        // article uses this" and "a version nobody is reading uses this" are
+        // very different answers.
+        const usage = await store.usageOf(asset.id);
+        expect(usage.map((reference) => reference.revisionId)).toEqual([
+          publication.id,
+        ]);
+        expect(usage[0]).toMatchObject({ kind: "published", isLive: true });
+      });
+
+      it("releases it the moment the last retaining version is pruned", async () => {
+        const asset = await upload(`${TEST_PREFIX}released.png`);
+        created.add(asset.id);
+        const { pageRow, publication } = await publishedThenDropped(
+          asset.permalink,
+        );
+        await reconcileMediaUsage(db);
+        expect(await store.isReferenced(asset.id)).toBe(true);
+
+        // Retention deleting that publication: the pointer is cleared first,
+        // exactly as `CmsContentService.publish` does it, and the usage row
+        // goes with the revision through the cascade.
+        await db
+          .update(schema.cmsPages)
+          .set({ publishedRevisionId: null, status: "draft" })
+          .where(eq(schema.cmsPages.id, pageRow.id));
+        await db
+          .delete(schema.cmsPageRevisions)
+          .where(eq(schema.cmsPageRevisions.id, publication.id));
+
+        expect(await store.isReferenced(asset.id)).toBe(false);
+        await expect(
+          service.trash(actor, { id: asset.id }),
+        ).resolves.toMatchObject({ status: "trashed" });
+      });
+
+      it("counts one page even when two of its versions use the image", async () => {
+        // The library's number is "places a reader could meet this", so the
+        // live article and the draft about to replace it are one page.
+        const asset = await upload(`${TEST_PREFIX}twice.png`);
+        created.add(asset.id);
+        const { pageRow } = await publishedThenDropped(asset.permalink);
+        await db
+          .update(schema.cmsPageRevisions)
+          .set({ bodyMdx: `![A](${asset.permalink})` })
+          .where(eq(schema.cmsPageRevisions.kind, "wip"));
+        await reconcileMediaUsage(db);
+
+        const listed = await store.list({ search: TEST_PREFIX });
+        expect(listed.find((row) => row.id === asset.id)?.usageCount).toBe(1);
+        expect((await store.usageOf(asset.id)).map((r) => r.pageId)).toEqual([
+          pageRow.id,
+          pageRow.id,
+        ]);
       });
     });
 
@@ -423,6 +582,13 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
             section: "guias",
             slug: `${TEST_PREFIX}${slug}`,
             status: "draft",
+          })
+          .returning();
+        const [revision] = await db
+          .insert(schema.cmsPageRevisions)
+          .values({
+            pageId: row.id,
+            kind: "wip",
             bodyMdx: body,
             title: "Página de prueba",
             description: "Descripción.",
@@ -431,7 +597,11 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
             metadata: { keywords: [], categories: [] },
           })
           .returning();
-        return row;
+        await db
+          .update(schema.cmsPages)
+          .set({ wipRevisionId: revision.id })
+          .where(eq(schema.cmsPages.id, row.id));
+        return revision;
       }
     });
 
