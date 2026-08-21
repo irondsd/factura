@@ -23,6 +23,7 @@
     "data:suelo": "bun scripts/fetch-pba-suelo.ts",
     "data:construccion": "bun scripts/fetch-caba-construccion.ts",
     "data:delitos": "bun scripts/fetch-caba-delitos.ts",
+    "data:escrituras": "bun scripts/fetch-pba-escrituras.ts",
     "data:dolar": "bun scripts/fetch-dolar.ts",
     "data:caba-geo": "bun scripts/build-caba-geo.ts",
     "data:pba-geo": "bun scripts/build-pba-geo.ts",
