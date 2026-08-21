@@ -18,8 +18,19 @@ import type { ContentSection } from "@/content/section";
 // `generateStaticParams` and popped back off below. `sectionCardUrl` in
 // i18n/metadata.ts builds the matching URL.
 //
-// Both sections' routes are `force-static` + `generateStaticParams`, so no image
-// is ever rendered at runtime and the font files are only read by the build.
+// Every route that uses this is `force-static` + `generateStaticParams`, so the
+// pages that exist at build time get their card prerendered and the fonts below
+// are read by the build.
+//
+// `dynamicParams` must stay TRUE on all of them, though, and that is not a
+// detail. Publishing through the CMS has no build step (AUTHORING.md §3), so a
+// page published after the last deploy is never in `generateStaticParams` —
+// and with `dynamicParams = false` its card 404s until someone happens to
+// redeploy, which is how the first /noticias article shipped with a broken
+// og:image. True means that card is rendered on demand the first time it is
+// requested and then cached. Nothing unbounded gets through: `sectionCard`
+// below 404s for a path that does not end in card.png, and again for a slug the
+// section cannot load, so only real published pages ever reach the renderer.
 
 export const CARD = "card.png";
 

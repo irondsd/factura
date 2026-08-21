@@ -6,7 +6,7 @@ import { estadisticas } from "@/content/sections";
 // shared with /investigaciones.
 
 export const dynamic = "force-static";
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   return cardParams(estadisticas);
