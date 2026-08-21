@@ -1,5 +1,5 @@
 // The editorial permalink: the only shape of media reference that may appear in
-// authored content (cms.media.md §2.1).
+// authored content (cms.md §9.1).
 //
 //     /media/8f2c…/medidor-de-luz.jpg
 //

@@ -27,7 +27,7 @@ export const sectionMetadataSchema = z
     ogTitle: text.optional(),
     ogDescription: text.optional(),
     ogStat: text.optional(),
-    /** The page's preview image, as a media-library id (cms.media.md §2.2).
+    /** The page's preview image, as a media-library id (cms.md §9.2).
      *
      * A uuid rather than a path, so an article survives a change of storage
      * origin: the CDN hostname lives in configuration and is resolved at render

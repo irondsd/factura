@@ -61,7 +61,7 @@ export type ContentValidator = (input: {
   level: ValidationLevel;
 }) => Promise<ValidationResult> | ValidationResult;
 
-/** How a saved page's media usage is recorded (cms.media.md §3).
+/** How a saved page's media usage is recorded (cms.md §9.7).
  *
  * Injected rather than imported so the service does not depend on the media
  * library — the CMS still works with no media storage configured, and the

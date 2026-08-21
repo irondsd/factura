@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 // `src/cms` is meant to be lifted into the public-site deployment as one unit
-// (cms.md §2.2/§13.8), which only stays true if nothing in it reaches into the
+// (cms.md §2.2, §12 Task 9), which only stays true if nothing in it reaches into the
 // bill app. That is a rule no reviewer will reliably catch by eye once the
 // module has thirty files, so it is a test.
 //

@@ -175,7 +175,7 @@ export const CMS_TOOLS: Tool[] = [
   // ── media library ───────────────────────────────────────────────────────
   //
   // Read, upload and edit. **No destructive tool, deliberately and
-  // permanently** (cms.media.md §2.5/§7): this endpoint already tells its
+  // permanently** (cms.md §9.9/§9.13): this endpoint already tells its
   // clients that it cannot delete anything and that removal is a browser-only
   // action a person performs at /cms, and media follows pages rather than
   // carving out an exception. An agent that wants an image gone leaves it

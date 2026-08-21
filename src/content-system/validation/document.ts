@@ -518,7 +518,7 @@ export function validateDocument(
   return validationResult(out);
 }
 
-/** The media rules (cms.media.md §3).
+/** The media rules (cms.md §9.7).
  *
  * Three things can go wrong, and they fail differently:
  *

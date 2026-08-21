@@ -22,7 +22,7 @@ import {
 // Turning uploaded bytes into a stored master.
 //
 // The shape here is the resolution of what would otherwise be a contradiction
-// (cms.media.md §2.4/§4.1): an upload that goes straight from the browser to
+// (cms.md §9.4/§9.5): an upload that goes straight from the browser to
 // object storage cannot also have its EXIF stripped, because stripping changes
 // the bytes and the key was already written. Two namespaces fix it —
 //

@@ -45,7 +45,7 @@ import { purgeAsset } from "./purge";
 // and the trash gate. The store below only executes SQL and the storage adapter
 // only moves bytes.
 //
-// One rule has no exception (cms.media.md §2.5): **nothing is deleted
+// One rule has no exception (cms.md §9.9): **nothing is deleted
 // automatically.** Removing an image from a page rewrites that page's usage
 // rows and does nothing else. The asset stays, surfaces under «ya no se usa»,
 // and a person decides. There is no code path from a content edit to a deleted

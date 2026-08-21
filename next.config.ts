@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 /** The one host remote images may come from: the CMS media bucket's public
- * origin (cms.media.md §6).
+ * origin (cms.md §9.11).
  *
  * Narrow on purpose — exact protocol, hostname, port and path prefix. A
  * wildcard Cloudflare hostname would make every R2 bucket in the account a

@@ -4,7 +4,7 @@ import { parseMediaPermalink, type ParsedPermalink } from "./permalink";
 // Which media a page refers to, derived from the page itself.
 //
 // This is the definition the media library's `cms_media_usage` table caches
-// (cms.media.md §3). It has one safety property that shapes everything below:
+// (cms.md §9.7). It has one safety property that shapes everything below:
 // **a missed reference is the dangerous direction.** An image whose use is not
 // found looks unused, is offered for cleanup, and eventually loses its bytes
 // while a live page still points at it. A false positive merely keeps a file

@@ -1,5 +1,5 @@
 /**
- * The media library's housekeeping (cms.media.md §2.5, §5.1). Safe to run
+ * The media library's housekeeping (cms.md §9.9, §9.10). Safe to run
  * repeatedly; safe to run never, in the sense that nothing breaks — it just
  * means the trash keeps its bytes and abandoned uploads keep their staged
  * objects.

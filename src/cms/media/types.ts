@@ -1,4 +1,4 @@
-// Types shared across the CMS media library (cms.media.md). Pure: no database,
+// Types shared across the CMS media library (cms.md §9). Pure: no database,
 // no S3, no React — so the validators, the store, the service, the MCP adapter
 // and the browser components all agree on one vocabulary.
 
@@ -100,7 +100,7 @@ export type MediaUsageRef = {
   occurrences: number;
 };
 
-/** The library's virtual views (cms.media.md §5.1). Splitting "unused" in two
+/** The library's virtual views (cms.md §9.10). Splitting "unused" in two
  * is the point of the feature: an image uploaded five minutes ago and one
  * dropped from a guide last month both have zero references, and only the
  * second is obviously safe to remove. */

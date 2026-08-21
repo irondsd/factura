@@ -13,7 +13,7 @@ import {
 } from "@/content-system/media/origin";
 
 // S3-compatible storage for CMS media, with its own bucket and its own
-// credentials (cms.media.md §2.4).
+// credentials (cms.md §9.4).
 //
 // Not a prefix inside the bill-PDF bucket, and not a shared client:
 // `@/server/storage` is private bill storage, and `src/cms/boundaries.test.ts`

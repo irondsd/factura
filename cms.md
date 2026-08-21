@@ -1,16 +1,16 @@
 # Factura CMS
 
-> **Status:** built and reviewed on the `cms` branch. The production migration
-> has not run and the branch has not been merged.
+> **Status:** in production. `/guias`, `/estadisticas` and `/investigaciones`
+> are served from PostgreSQL on `factura.uno`, edited at `/cms`, and illustrated
+> from the media library. The migration is done and the branch is merged.
 >
-> A private, database-backed publishing console for `/guias`,
-> `/estadisticas` and `/investigaciones`, with agent access through a separate
-> CMS MCP endpoint.
+> A private, database-backed publishing console, with agent access through a
+> separate CMS MCP endpoint.
 >
-> Sections 1–8 are the design reference: what the system is and why it is shaped
-> that way. Section 9 says what exists and what does not. **Section 10 is a
-> temporary migration checklist and should be deleted once it is done.** Section
-> 12 is the forward work.
+> Sections 1–9 are the design reference: what the system is and why it is shaped
+> that way. Section 10 says what exists and what does not, section 11 is how to
+> operate it, and section 12 is the forward work. None of that is a blocker —
+> the system runs today; §12 is what would make it better.
 
 ## 1. Objective
 
@@ -109,9 +109,8 @@ All three MDX sections live in the database: `/guias`, `/estadisticas` and
 `/investigaciones`. `/normativa` is a hand-built registry page rather than
 authored content and is not part of this.
 
-The repository `.mdx` sources and the section registries are still present as
-migration input and rollback material. They are removed in §10.6, after the
-observation window.
+The repository `.mdx` sources are gone. The database is the only source of
+editorial content, and there is no filesystem fallback behind it.
 
 ### 3.2 Lifecycle
 
@@ -282,7 +281,7 @@ Use validated JSONB for structured or optional guide metadata:
 - `og_description`
 - `og_image`
 - `vendor`
-- `preview_image`
+- `preview_media_id` (§9.2)
 
 The CMS presents normal fields and controls; editors never edit raw metadata
 JSON. Define one Zod schema shared by forms, mutations, MCP tools, migration,
@@ -612,9 +611,380 @@ Tool rules:
 - Do not add automatic publication. Agents must explicitly request a status
   transition, and publication must pass the publish gate.
 
-## 9. State of the build
+## 9. Media library
 
-### 9.1 What was built
+Images are rows in PostgreSQL and objects in a bucket, not files in the
+repository. The library lives at `/cms/media`, is written only through
+`CmsMediaService`, and is read by the public site through a small contract in
+`src/content-system/media`.
+
+The rule underneath everything here: **nothing deletes bytes automatically, and
+nothing trusts the browser.** Every subsection below is one of those two
+sentences applied to a specific mechanism.
+
+### 9.1 Three values, never collapsed
+
+Every image gets an opaque UUID in `cms_media.id`, generated once and derived
+from nothing. A hash is useful for spotting duplicates but it is not identity:
+uploading the same pixels twice may be deliberate, and editing alt text must not
+change an image's address.
+
+| Value               | Example                                       | Stored where                 | Purpose                                     |
+| ------------------- | --------------------------------------------- | ---------------------------- | ------------------------------------------- |
+| Media id            | `8f…c2`                                       | PostgreSQL and page metadata | Stable relational identity                  |
+| Editorial permalink | `/media/8f…c2/medidor-de-luz.jpg`             | MDX body                     | Portable, human-readable reference          |
+| Object origin       | `https://media.factura.uno/cms-media/8f…c2/…` | Derived from configuration   | Where `next/image` fetches the source bytes |
+
+Resolution is by UUID; the filename in a permalink is descriptive only, so
+renaming an image's library title never breaks an article. Moving from R2 to S3
+or another CDN changes `CMS_MEDIA_PUBLIC_ORIGIN`, not every page.
+
+The permalink's trailing extension is mandatory rather than cosmetic.
+`src/proxy.ts` rewrites everything it matches into the `/es` tree and excludes
+anything containing a dot, so an extensionless permalink would become
+`/es/media/…` and 404. The route is excluded by name too, but content that
+always carries an extension keeps this working even if that list changes.
+
+Storage URLs never appear in content: not `r2.cloudflarestorage.com`, not
+`pub-….r2.dev`, not presigned URLs with credentials in the query string, not
+bucket names or object keys.
+
+### 9.2 Where media is referenced
+
+Two authoring cases with two data shapes:
+
+**Preview image** is structured page metadata: `previewMediaId`, a uuid, in the
+section's JSONB. The editor renders it as a picker, not a text field, and
+listing reads batch-resolve the selected records so a page of twenty guides
+costs one query rather than twenty. Both metadata schemas
+(`content-system/metadata/guias.ts` and `sections.ts`) validate it, and it
+reaches the UI as a typed `MediaRef` through `SectionMeta.previewMediaId`.
+
+**In-text image** stays ordinary Markdown:
+
+```md
+![Medidor digital con una lectura de 184 kWh](/media/8f…c2/medidor-de-luz.jpg)
+```
+
+That keeps bodies readable and lets the grammar validator keep treating images
+as Markdown rather than components. The custom `img` renderer recognizes only
+Factura permalinks, resolves the UUID, and renders the shared `MediaImage`.
+
+External image URLs in a body are a validation error. An editor imports the
+image into the library first — remote content changes without notice, can carry
+a tracking pixel, and breaks when the other site reorganizes.
+
+### 9.3 Alt text belongs to a use, with a library default
+
+Alt describes what an image means _here_; it is not a property of the file. The
+row stores `default_alt` as an editable suggestion, and the real alt lives in
+the Markdown. Insertion pre-fills from the default and lets the editor change it.
+
+An image can be marked decorative in the library, which empties the default and
+inserts `![](…)`. **Blank alt without the decorative flag is a validation
+error** — a screen reader cannot tell an intentional decoration from a
+forgotten description, so the claim has to be made on purpose.
+
+Preview thumbnails always render `alt=""`: the title sits right beside them, and
+repeating it is worse accessibility, not better.
+
+### 9.4 Storage: a separate bucket, immutable masters
+
+CMS media has its own bucket and its own credentials, not another prefix in the
+bill-PDF bucket. `CMS_MEDIA_S3_BUCKET` and `CMS_MEDIA_PUBLIC_ORIGIN` are
+required; endpoint, region, keys and path-style fall back to the existing `S3_*`
+values, because the connection is normally the same account and making a
+deployment state it twice only lets the two drift.
+
+The bucket is the part with no fallback, and the reason is worth stating because
+"another prefix" is the obvious guess:
+
+> These objects must be publicly readable, because the Next.js image optimizer
+> fetches a remote source without forwarding credentials. On R2, public access
+> is a **per-bucket** switch. There is no per-prefix public setting.
+
+Sharing a bucket with `bills/` would therefore mean publishing every stored
+utility bill. Bill PDFs are read exclusively through presigned GETs
+(`src/server/storage.ts`), and that has to keep being true — which is why the
+CMS boundary test forbids importing that module.
+
+Two key namespaces, and the split is what lets immutability and EXIF stripping
+both hold:
+
+```text
+cms-media/_incoming/<reservation-id>                    # staging, disposable
+cms-media/<media-id>/<sha256-prefix>.<canonical-ext>    # master, immutable
+```
+
+A browser that uploaded straight to the final key could not also have its EXIF
+stripped, because stripping changes the bytes and the key was already written —
+and the stored hash would then describe bytes nobody serves. So the browser
+writes staging, and the server writes the master from bytes it has inspected.
+
+**Bytes at a master key are never replaced.** There is no "replace file"
+operation: upload a new asset and move the references. Immutability is what
+makes a long optimizer cache free, makes a hash mismatch meaningful, and means
+two rows with identical bytes are two objects — deleting one can never orphan
+the other. `sha256` is a duplicate _warning_ at upload time and nothing more.
+
+### 9.5 Upload contract
+
+Direct-to-storage, so image size is not capped by a Route Handler body limit:
+
+1. The browser asks a same-origin CMS route for a reservation — name, claimed
+   type, byte size, target collection.
+2. The service authorizes the member, applies the limits below, **commits a
+   `pending` `cms_media` row**, and only then returns a presigned `PUT`. The row
+   exists before the URL does, so the bucket can never hold a key PostgreSQL has
+   not recorded.
+3. The browser uploads to the staging key and reports progress. A bad file fails
+   its own row without cancelling the batch.
+4. The browser calls finalize. The service reads the staged object, sniffs the
+   file signature, decodes dimensions, normalizes orientation, strips GPS and
+   other metadata, writes the master, hashes **the master**, deletes staging,
+   and flips the row to `ready`.
+5. Rows still `pending` past the reservation lifetime are swept by
+   `scripts/mediaSweep.ts`; the bucket's `_incoming/` expiry rule is the backstop
+   if that sweep never runs.
+
+Validation trusts magic bytes and a successful decode, never the extension or
+the browser's `Content-Type` — those are hints used to fail early and cheaply.
+It rejects polyglots, truncated files, dimension bombs and zero-sized images.
+Guardrails are configuration-backed, defaulting to 20 MB per image, 20 images
+per batch, 40 megapixels after orientation, and a 15-minute reservation.
+
+Supported formats are JPEG, PNG, WebP, AVIF and GIF. **SVG is deliberately
+absent**: it can carry scripts and external references, and a vector file gains
+nothing from raster optimization. It becomes possible later with a real
+sanitizer, a restrictive CSP, `unoptimized` and its own tests — not by adding a
+line to the list. TIFF/BMP/HEIC are import formats, not delivery formats.
+
+### 9.6 Data model
+
+Three `cms_`-prefixed tables, so they move with the CMS when the deployments
+split:
+
+| Table                  | Holds                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------- |
+| `cms_media`            | One row per image: status, collection, filenames, MIME, bytes, dimensions, sha256, alt |
+| `cms_media_collection` | A flat named group; `cms_media.collection_id` is nullable and `set null` on delete     |
+| `cms_media_usage`      | Which page uses which image, in which placement, how many times                        |
+
+`cms_media.status` is the whole lifecycle:
+
+```text
+pending ──finalize──▶ ready ──trash──▶ trashed ──purge──▶ purging ─▶ purged
+                         ◀──restore──┘
+```
+
+`cms_media_usage` is keyed `(page_id, media_id, placement)` — one row per
+placement carrying a count, not one row per occurrence. The question it answers
+is boolean ("may this be trashed?"), and an image used twice in one body is one
+row with `occurrences = 2`, which is also the only shape a composite unique
+constraint can express without inventing an ordinal.
+
+### 9.7 Usage is a cache of a pure function
+
+The incremental write on every page save is an optimization. **The definition is
+that usage is a pure function of the current `cms_page` rows**, and two things
+follow:
+
+- a table maintained only incrementally can never be fully trusted, because a
+  bug in the maintenance path leaves permanent, invisible drift; and
+- pages that existed before the library did have no usage rows at all until
+  something re-derives them.
+
+So `reconcileMediaUsage()` is a first-class operation, not a recovery script,
+and it runs the _same_ extractor as the incremental path — one implementation,
+so the two cannot disagree about what a reference is. It is available from the
+library's «Recalcular» button and runs as the first step of every purge sweep.
+
+Extraction is deliberately generous, because **a missed reference is the
+dangerous direction**: an image whose use is not found looks unused, is offered
+for cleanup, and eventually loses its bytes while a live page still points at
+it. A false positive merely keeps a file alive slightly too long. So it reads
+the parsed tree rather than running a regex over the source, and counts every
+construct that can carry a URL — Markdown images, reference-style images, links
+_to_ an image, and JSX string attributes.
+
+Publish-level validation rejects unknown, trashed and purged ids, and in-text
+images with no alt that were not declared decorative. All are errors rather than
+warnings, because each one reaches a reader.
+
+This model depends on page history being events rather than body snapshots
+(`cms_page_event`), so current bodies really are the complete set of references.
+If history ever grows snapshots, an old revision would hold references nothing
+counts, and this needs revisiting.
+
+### 9.8 Collections are flat and never touch the object key
+
+Editors want folders; collections are that, as pure database metadata.
+
+- **Never encode a collection in the object key.** Moving an image between
+  collections would otherwise move bytes, breaking the immutability §9.4 and
+  §9.11 both depend on.
+- **Single-parent, not many-to-many.** One nullable column: "which collection is
+  this in" has one answer, the UI is a select, and every listing stays a plain
+  join. Promoting it to a join table later is a backfill, not a trap.
+- **Flat, not nested.** At this size a tree is furniture; «Guías · Edesur»
+  carries the same information as two levels of clicking.
+- **Deleting a collection never deletes media.** It nulls the column and the
+  images reappear under «Sin colección».
+
+### 9.9 The trash is the only path out
+
+Three rules, and they are why this subsection is short:
+
+1. **Removing an image from a page never deletes anything.** The save rewrites
+   that page's usage rows and does nothing else. The asset stays and surfaces
+   under «Ya no se usan», where a human decides.
+2. **Only a person, in the browser, can trash or purge.** There is no MCP tool
+   that destroys media — the same contract the CMS MCP already states for pages.
+3. **Trashing requires zero references.** The dialog lists the pages and
+   placements and links to each editor.
+
+Trashing is one `UPDATE`; no bytes move, and «Restaurar» works at any time
+before the purge. Purging happens when the 30-day grace period elapses or an
+editor explicitly chooses «Eliminar definitivamente», and either way it runs the
+same sequence: re-check usage **in the same transaction that claims the row** —
+restoring the asset if a reference appeared while it sat in the trash — then
+mark `purging`, delete the object idempotently, and mark `purged` with a
+tombstone. A row stuck in `purging` because storage was unavailable is retried
+by the next run. The permalink returns `410 Gone` from `trashed` onward.
+
+That re-check is what makes concurrent edits safe without row locking. The
+dangerous interleaving — one editor trashes an unused image while another
+inserts it into a page — resolves thirty days later in favour of the page. There
+is no window in which a live page points at bytes that are already gone.
+
+The grace period also replaces something this design quietly took away. While
+these images lived in git, a mistaken deletion was a `git revert`; once the
+bytes are only in a bucket, the trash _is_ that safety net.
+
+Purging removes the source object and future rendering. Previously generated
+optimizer and CDN variants can survive until their TTL expires — media is public
+editorial content, so that window is documented rather than coupling the
+portable storage layer to one provider's purge API.
+
+### 9.10 Library views
+
+`/cms/media` is dynamic and uncached: a thumbnail grid with name, dimensions,
+format, size, alt status, collection, usage count and upload date, plus a
+sidebar of collections and virtual views that need no schema of their own.
+
+| View              | Query                                         |
+| ----------------- | --------------------------------------------- |
+| Todas             | `status = 'ready'`                            |
+| Sin colección     | `collection_id is null`                       |
+| **Nunca usadas**  | no usage rows and `first_used_at is null`     |
+| **Ya no se usan** | no usage rows and `first_used_at is not null` |
+| Papelera          | `status = 'trashed'`, with days remaining     |
+
+Splitting "unused" in two is the point of the feature. An image uploaded five
+minutes ago and one dropped from a guide last month both have zero references,
+but only the second is obviously safe to remove — and it is the case that
+motivates the library, since a replaced image is exactly what would otherwise
+sit in the bucket forever.
+
+Draft and preview pages count as usage, and the row says so, so a blocked trash
+action is never mysterious.
+
+**Never list the bucket to build this screen.** PostgreSQL is the catalog; the
+bucket is bytes. That rule is about rendering, not auditing: a separate
+reconciliation does exactly what the grid must not — one `ListObjectsV2` diffed
+against `cms_media`, reported as orphaned objects and rows without objects. It
+is the only check that can catch a bug in the purge path rather than assuming it
+worked, and it is paired with the usage rebuild from §9.7 in
+`scripts/mediaSweep.ts`.
+
+### 9.11 Rendering
+
+`MediaImage` is the one component that renders a library image, on the public
+site and in the CMS preview alike, so the things easy to get wrong per call site
+are decided once: resolved origin, intrinsic dimensions from the database (which
+is what lets `next/image` reserve the aspect ratio), decorative behaviour,
+per-placement `sizes`, and lazy loading by default.
+
+`next.config.ts` carries one narrow `images.remotePatterns` entry built from
+`CMS_MEDIA_PUBLIC_ORIGIN` — exact protocol, hostname, port and `/cms-media/**`
+path. A wildcard Cloudflare hostname would make every bucket in the account a
+valid source for this site's optimizer, which is a way of paying to resize other
+people's images. Because masters are immutable, `minimumCacheTTL` is set high:
+the bytes behind a URL can never change, and a replaced image is a new id and a
+new URL.
+
+Animated GIFs, and any asset approaching the megapixel ceiling, are served
+`unoptimized`. That is not author-controlled: optimizing a GIF's first frame
+would change the asset, and a 40 MP master should be served as-is rather than
+making every cold cache pay for a slow transform.
+
+An id that does not resolve is a validation failure that reached the database —
+a purged asset, or a hand-edited body. The public page shows a quiet gap rather
+than crashing, and says enough for whoever opens the CMS to find it.
+
+Alt-text edits need no image-cache invalidation: alt lives in page HTML, so
+saving a published page uses the existing section tag expiry.
+
+`default_alt` is Spanish, like the rest of the content. When English routes
+arrive, alt becomes per-locale — a second column and an override at the point of
+use, not a redesign.
+
+### 9.12 Boundaries and the public read contract
+
+```text
+src/cms/media/
+  components/          # drop zone, grid, detail, picker
+  server/
+    service.ts         # transport-independent rules and authorization
+    store.ts           # cms_media, cms_media_collection, cms_media_usage
+    storage.ts         # S3-compatible adapter
+    uploads.ts         # reservation, finalization, image processing
+    usage.ts           # extraction + reconcileMediaUsage()
+    purge.ts           # trash sweep, bucket reconciliation
+  validation/
+  types.ts
+```
+
+Routes under `src/app/(cms)/cms/media/**` and `src/app/api/cms/media/**` stay
+thin. The public site never imports any of it: it reads media through
+`src/content-system/media`, which returns a typed `MediaRef` and resolves ids in
+one batch per document rather than one query per image.
+
+The content service records usage through an **injected** port rather than
+importing the media store, so the page half of the CMS does not depend on the
+media half — and a test can write pages without a media library at all.
+
+### 9.13 MCP surface
+
+The media tools use the same reservation flow as the browser, because MCP has no
+portable way to attach a file to a tool call:
+
+```text
+list_media               cms:read     catalog records and stable permalinks
+get_media                cms:read     metadata and usage for one asset
+create_media_upload      cms:write    reserve an upload, return a presigned PUT
+complete_media_upload    cms:write    validate the bytes, finish the record
+update_media             cms:write    alt, decorative, name, collection, attribution
+```
+
+An agent calls `create_media_upload`, `PUT`s its local file to the returned URL,
+then calls `complete_media_upload` — which works for capable agents without
+pushing binary through the model context. Upload URLs are secrets until they
+expire and must never reach article content, logs or media metadata.
+
+**No destructive media tool exists, deliberately and permanently.** Media
+follows pages rather than carving out an exception: an agent that wants an image
+gone leaves it unused, where §9.10's «Ya no se usan» view surfaces it for a
+person to trash.
+
+Media mutations call the same `CmsMediaService` as browser actions, with the
+same membership adapter, token scopes, rate-limit bucket, optimistic concurrency
+and audit conventions. Trash, restore and purge live on that service too, but
+are reachable only from the browser transport.
+
+## 10. State of the build
+
+### 10.1 What was built
 
 All of it, across phases 0–12 on the `cms` branch, then reviewed and fixed
 before the merge gate. In one place, so nobody has to reconstruct it from the
@@ -633,7 +1003,7 @@ commit log:
 | Editor             | CodeMirror 6 source editing, section-driven metadata form, Markdown/preview/validation tabs, explicit save, conflict recovery that preserves the losing text.             |
 | CMS MCP            | `/api/cms/mcp` with six tools over the same service, scoped tokens, membership re-checked per call, its own rate-limit bucket, metadata-only audit rows.                  |
 | Importers          | Idempotent, local-first, refuse production without an explicit flag and a confirmation variable, validate before writing.                                                 |
-| Parity             | `scripts/parity-content.ts` — rendered-HTML comparison between two deployments (§10 uses it).                                                                             |
+| Media library      | `cms_media`, `cms_media_collection`, `cms_media_usage`, a separate public bucket, `/cms/media`, five MCP tools and a housekeeping sweep. Design reference in §9.          |
 
 Hierarchy (`parent_id`, `sort_order`, `crumb`) is universal across sections
 rather than a statistics feature, and the section registry drives routes,
@@ -644,29 +1014,22 @@ CI also builds one deterministic fixture per content section and checks those
 pages across the sitemap, feed and `llms.txt`; editorial content is validated
 by the CMS rather than this repository.
 
-### 9.2 What was not done
+### 10.2 What was not done
 
-Honest gaps, not oversights that were papered over. Each is either a §12 task or
-a §10 migration step.
+Honest gaps, not oversights that were papered over. Each is a §12 task.
 
-- **Rendered parity has never been run.** The script exists; the comparison
-  itself happens in §10, and it is the step that matters most, because guides
-  have no filesystem fallback left.
-- **No rollback switch for guides.** Statistics and research fall back to their
-  registry when the section has no CMS rows (`migrated()` in
-  `src/content/section.ts`); guides do not — nothing imports
-  `content/guias/guides` any more. Rollback for guides is redeploying the
-  previous build.
+- **There is no rollback switch.** No section falls back to the filesystem any
+  more; the `.mdx` sources are gone. Rollback is restoring rows, or redeploying
+  the previous build if the schema itself is what broke — which is why §11 says
+  to back up before any production schema change.
 - **Browser mutations are not audited.** `cms_audit_log` records MCP writes
   only, so the trail answers "what did the agent do" and not "who did what,
   including the failed attempts". The narrower question — who changed this page
   and when — is answered by `cms_page_event` and the editor's «Historia» tab,
   written for browser and MCP writes alike. Token mints, revocations and
   refused mutations are still unrecorded from the browser. Task 3.
-- **The repository MDX and the section registries are still present**, by
-  design, until the observation window closes. §10 removes them.
 
-### 9.3 Known limitations
+### 10.3 Known limitations
 
 Accepted, and the reasons are in the sections above:
 
@@ -679,21 +1042,8 @@ Accepted, and the reasons are in the sections above:
   run. IndexNow is still submitted by hand, after deploying — Task 4.
 - A page's slug cannot change after creation; there are no redirects.
 - A public `preview` URL is a discoverability control, not an access control.
-- Images live in the repository; there is no media library.
 - The CMS and the bill app share Auth.js identity and one physical database.
 - Initial CMS membership is granted by hand, in SQL. There is no path in.
-
-## 10. Production migration — temporary
-
-**Delete this section once every box is ticked.** It describes a one-time
-operation, and leaving it here afterwards would make a finished migration look
-pending.
-
-The ordering is not a preference. A build against a database that has the CMS
-tables but no rows serves **404 for every guide**, an empty `/guias`, 404 for
-every category hub and zero guide entries in the sitemap — because guides read
-only from the database now. Statistics and research survive on their registry
-fallback. So the database is populated first and the merge happens last.
 
 ## 11. Operations
 
@@ -731,8 +1081,8 @@ TTL. Clear `.next/cache` when verifying locally.
 
 ## 12. Tasks
 
-Ordered roughly by how much they are missed, not by size. Nothing here is
-required for the migration in §10.
+Ordered roughly by how much they are missed, not by size. Nothing here blocks
+anything: the CMS runs in production without all of it.
 
 ### Task 1 — CI content boundary
 
@@ -787,15 +1137,10 @@ rename without redirects would 404 every inbound link.
 - Update internal links and discovery surfaces transactionally.
 - Then make the slug field editable again.
 
-### Task 6 — Media library
+### Task 6 — Media library — done
 
-Images live in the repository and are referenced by path.
-
-- Upload and manage images outside the repository.
-- Alt text, dimensions, attribution, usage references.
-- Prevent deletion of referenced assets.
-- Reuse the existing object storage only after separating public content assets
-  from private bill storage.
+Built and shipped; the design reference is §9. Left in place rather than
+renumbered so the surrounding task numbers keep meaning what they meant.
 
 ### Task 7 — A richer editor
 
@@ -892,3 +1237,19 @@ Do not silently change architecture while leaving the original text in place.
   happen. Entries the record does not reach back far enough to cover are
   reconstructed from the page's own `created_at`/`updated_at` and labelled as
   such on screen.
+- 2026-08-21: The media library's design reference moved into §9 of this file
+  and `cms.media.md` was deleted. One document describes the CMS. The old file
+  was a plan written before the work — it described migration steps that have
+  run and options that were decided — so keeping it beside a §9 that describes
+  what actually shipped would have meant two answers to every question.
+- 2026-08-21: Preview images are `previewMediaId` only. The legacy
+  `previewImage` path, both metadata schemas' regex exceptions, the `/img/**`
+  body-reference channel and the files under `public/img/**` are gone, verified
+  against production first: no page carried a `previewImage`, and no rendered
+  page referenced `/img/`.
+- 2026-08-21: §10, the temporary production-migration checklist, was deleted
+  now that the migration has run and the CMS serves production. It said to
+  delete itself; leaving it would have made a finished migration look pending.
+  The media library moved into the gap it left, as §9, so it sits with the other
+  design-reference sections instead of after the decisions log — and §11, §12
+  and §13 keep the numbers other files already cite.

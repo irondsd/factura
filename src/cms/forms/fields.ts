@@ -75,7 +75,7 @@ export type FieldDescriptor = {
    * For a value that is set at creation and cannot be changed afterwards. The
    * slug is the only one today: changing it moves the page's public URL, and
    * every inbound link to the old one 404s until the redirects deferred in
-   * cms.md §13.4 exist. Rendering it as a plain input while the store silently
+   * cms.md §12, Task 5, exist. Rendering it as a plain input while the store silently
    * dropped it was worse than either — the save reported success and nothing
    * changed. */
   readOnly?: boolean;

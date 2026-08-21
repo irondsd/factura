@@ -57,7 +57,7 @@ export const userLocale = pgEnum("user_locale", ["es", "en"]);
 
 // ── CMS ─────────────────────────────────────────────────────────────────────
 // Everything CMS carries a `cms_` prefix so the whole publishing schema can be
-// identified and lifted into its own database later (see cms.md §2.2/§13.8).
+// identified and lifted into its own database later (see cms.md §2.2, §12 Task 9).
 // It is deliberately additive: nothing in the bill app reads these tables, and
 // a deployment that has them but never writes to them behaves exactly as it did
 // before.
@@ -946,7 +946,7 @@ export const cmsMembers = pgTable("cms_member", {
 });
 
 /** One editable content page. Iteration 1 stores exactly one mutable copy per
- * page — no revisions, no draft/published pair (cms.md §3.2, §13.1). Editing a
+ * page — no revisions, no draft/published pair (cms.md §3.2, §12 Task 2). Editing a
  * published page edits the copy that is live, which is why a published save has
  * to pass the full publish validation suite: there is no previous revision to
  * fall back to.
@@ -1023,7 +1023,8 @@ export const cmsPages = pgTable(
      * give is acceptable — cascade would delete the public site's content along
      * with an author's account, and restrict would make deleting that account
      * fail forever. Content outlives its author; provenance degrades to
-     * unknown. cms.md §13.8 replaces these with external subject ids. */
+     * unknown. cms.md §12, Task 9, replaces these with external
+     * subject ids. */
     createdBy: uuid("created_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -1155,7 +1156,7 @@ export const cmsAuditLogs = pgTable(
   (t) => [index("cms_audit_log_created_idx").on(t.createdAt)],
 );
 
-/* ── CMS media library (cms.media.md) ──────────────────────────────────────
+/* ── CMS media library (cms.md §9) ──────────────────────────────────────
  *
  * Three tables, all `cms_`-prefixed so they move with the CMS when the
  * deployments split. The bytes live in a *separate* S3 bucket from the private
@@ -1163,7 +1164,7 @@ export const cmsAuditLogs = pgTable(
  * `src/cms`, and this is the data half of that separation.
  */
 
-/** A flat, named group of media. cms.media.md §2.6: single-parent and
+/** A flat, named group of media. cms.md §9.8: single-parent and
  * deliberately not nested — at this library's size a tree is furniture, and a
  * name like «Guías · Edesur» carries the same information.
  *
@@ -1197,7 +1198,7 @@ export const cmsMediaCollections = pgTable(
 
 /** One image in the library.
  *
- * `status` is the whole lifecycle (cms.media.md §2.5):
+ * `status` is the whole lifecycle (cms.md §9.9):
  *
  *   pending ──finalize──▶ ready ──trash──▶ trashed ──purge──▶ purging ─▶ purged
  *                            ◀──restore──┘

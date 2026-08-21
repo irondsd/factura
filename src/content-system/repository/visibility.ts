@@ -17,7 +17,7 @@ export type Audience = "public" | "cms";
  *
  * `preview` is public here: a preview URL is deliberately shareable so an
  * editor can send a link to someone without an account. It is a
- * discoverability control, not an access control (cms.md §14) — which is why
+ * discoverability control, not an access control (cms.md §10.3) — which is why
  * `noindex, nofollow` and exclusion from every listing are what make it work,
  * and why nothing secret may go in one. */
 const RENDERABLE: Record<Audience, readonly ContentStatus[]> = {

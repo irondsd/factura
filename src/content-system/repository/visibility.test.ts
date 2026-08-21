@@ -20,7 +20,7 @@ describe("public visibility", () => {
 
   it("renders a preview page at its URL", () => {
     // Deliberately shareable: an editor sends the link to someone without an
-    // account. Discoverability-controlled, not access-controlled (§14).
+    // account. Discoverability-controlled, not access-controlled (cms.md §10.3).
     expect(canRender("preview", "public")).toBe(true);
   });
 
