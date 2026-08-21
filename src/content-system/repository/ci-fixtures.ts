@@ -38,6 +38,30 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
   },
   {
     id: "00000000-0000-4000-8000-000000000002",
+    section: "noticias",
+    slug: "ci-noticia",
+    status: "published",
+    body: "## Una noticia de CI\n\nEsta página mínima comprueba que una noticia del CMS compila y se renderiza durante el build.\n",
+    title: "Noticia de prueba para CI",
+    titleTag: null,
+    description: "Página mínima de prueba que verifica el renderizado de una noticia del CMS durante el build de integración continua.",
+    summary: "Una noticia mínima usada exclusivamente por el build de CI.",
+    cta: "Conocé Factura.",
+    canonicalSlug: null,
+    parentId: null,
+    sortOrder: 0,
+    crumb: "Noticia CI",
+    metadata: { keywords: ["noticias", "prueba", "ci"], categories: [] },
+    publishedAt: DATE,
+    contentUpdatedAt: DATE,
+    createdAt: DATE,
+    updatedAt: DATE,
+    createdBy: null,
+    updatedBy: null,
+    lockVersion: 1,
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000004",
     section: "estadisticas",
     slug: "ci-estadistica",
     status: "published",
@@ -154,6 +178,7 @@ export const ciFixtureContentRepository = new CiFixtureContentRepository();
 
 export const CI_CONTENT_FIXTURE_PATHS = [
   "/guias/ci-guia",
+  "/noticias/ci-noticia",
   "/estadisticas/ci-estadistica",
   "/investigaciones/ci-investigaciones",
 ] as const;

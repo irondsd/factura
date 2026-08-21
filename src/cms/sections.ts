@@ -41,6 +41,12 @@ export const CMS_SECTIONS: readonly CmsSection[] = [
     status: "live",
   },
   {
+    id: "noticias",
+    label: "Noticias",
+    description: "Novedades y actualizaciones sobre Factura, facturas y el costo de vida.",
+    status: "live",
+  },
+  {
     id: "estadisticas",
     label: "Estadísticas",
     description:

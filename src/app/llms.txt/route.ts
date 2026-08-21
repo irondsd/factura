@@ -22,6 +22,12 @@ const SECTION_LLMS: Record<
   string,
   { heading: string; blurb: string; index: string }
 > = {
+  noticias: {
+    heading: "Noticias",
+    blurb:
+      "Spanish-only news about Factura, household bills and changes that affect the cost of living in Argentina. Each post is dated when it is published and explains what changed and why it matters.",
+    index: "Every news post Factura publishes.",
+  },
   estadisticas: {
     heading: "Estadísticas",
     blurb:
@@ -106,7 +112,7 @@ There is one scope, \`mcp:read\`. The tools cover properties, vendors, bills (li
 
 ## Optional
 
-- [Feed](https://factura.uno/feed.xml): RSS 2.0 over the Guías, Estadísticas and Investigación above, newest change first. Items carry both \`pubDate\` (first published) and \`atom:updated\` (last revised) — the statistics pages are republished monthly as new official data lands, so the second is the one that moves.
+- [Feed](https://factura.uno/feed.xml): RSS 2.0 over Noticias, Guías, Estadísticas and Investigación above, newest change first. Items carry both \`pubDate\` (first published) and \`atom:updated\` (last revised) — the statistics pages are republished monthly as new official data lands, so the second is the one that moves.
 - The signed-in application lives under https://factura.uno/app and requires authentication; it is not publicly indexable. The /demo pages above show the same screens on sample data.`;
 
 export async function GET() {

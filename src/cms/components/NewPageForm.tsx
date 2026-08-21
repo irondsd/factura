@@ -67,7 +67,7 @@ export function NewPageForm({
 
   const parent = parentOptions.find((option) => option.value === parentId);
   const fullSlug = parent ? `${parent.slug}/${slug}` : slug;
-  const body = section.id === "guias" ? GUIDE_SKELETON : DATA_SKELETON;
+  const body = section.id === "guias" || section.id === "noticias" ? GUIDE_SKELETON : DATA_SKELETON;
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();

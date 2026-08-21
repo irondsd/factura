@@ -240,6 +240,13 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
 // credibility comes from a named dataset and links to the primary sources.
 // Keep those values as regular form fields: an editor should never have to
 // understand the JSONB representation to publish a data page.
+// Noticias has the same article fields as a guide but no guide taxonomy or
+// vendor-specific structured-data field.
+const NEWS_FIELDS = GUIDE_FIELDS.filter(
+  (field) =>
+    field.path !== "metadata.categories" && field.path !== "metadata.vendor",
+);
+
 const DATA_FIELDS: readonly FieldDescriptor[] = [
   {
     path: "title",
@@ -387,6 +394,7 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
 
 const FIELDS: Partial<Record<ContentSection, readonly FieldDescriptor[]>> = {
   guias: GUIDE_FIELDS,
+  noticias: NEWS_FIELDS,
   estadisticas: DATA_FIELDS,
   investigaciones: DATA_FIELDS,
 };

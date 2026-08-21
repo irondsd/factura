@@ -1,11 +1,12 @@
 # Authoring for Factura — format spec
 
 This document tells you (or an AI assistant) how to write and publish an article
-on Factura. It covers all three authored sections:
+on Factura. It covers all four authored sections:
 
 | Section         | Public URL         | CMS console            | `section` id      |
 | --------------- | ------------------ | ---------------------- | ----------------- |
 | Guías           | `/guias`           | `/cms/guias`           | `guias`           |
+| Noticias        | `/noticias`        | `/cms/noticias`        | `noticias`        |
 | Estadísticas    | `/estadisticas`    | `/cms/estadisticas`    | `estadisticas`    |
 | Investigaciones | `/investigaciones` | `/cms/investigaciones` | `investigaciones` |
 
@@ -176,7 +177,7 @@ them flat; `update_content` takes the same names inside `patch`.
 
 | Field           | Used for                                            | Rules                                                                |
 | --------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
-| `section`       | Which section this belongs to                       | `guias`, `estadisticas` or `investigaciones`. Set at create only.    |
+| `section`       | Which section this belongs to                       | `guias`, `noticias`, `estadisticas` or `investigaciones`. Set at create only.    |
 | `slug`          | **The URL.** `/guias/<slug>`                        | lowercase, hyphens, **no accents or ñ**. Set at create only.         |
 | `title`         | `<h1>`, `<title>`, OG/Twitter, JSON-LD              | **≤60 chars**, or add `titleTag` — see below.                        |
 | `titleTag`      | `<title>` only, when `title` is too long to be one  | ≤60, keyword first. Optional.                                        |
@@ -247,6 +248,15 @@ for a field to set.
 | `estafas`          | Housing and utility scams: fake rentals, fake agencies, phishing. |
 
 Two is the usual number: one for the _topic_, one for the _task_.
+
+### `metadata` for `noticias`
+
+Noticias uses the same editorial metadata as a guide, but without guide
+categories or a vendor field. Use `keywords`, optional `faq`, the social-card
+copy and an optional `previewMediaId`. The index is chronological, newest
+publication first, and each article renders as `NewsArticle` structured data.
+Do not add a category merely to make the form look like Guías: it has no effect
+outside that section.
 
 ### `metadata` for `estadisticas` and `investigaciones`
 

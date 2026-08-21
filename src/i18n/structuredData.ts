@@ -265,6 +265,49 @@ export function guideListLd(
   };
 }
 
+/** Article markup for an editorial registry that shares the guide reading
+ * experience but has its own canonical URL and social card. */
+export function editorialPageLd({
+  id,
+  slug,
+  title,
+  description,
+  keywords,
+  published,
+  updated,
+  words,
+  minutes,
+}: {
+  id: string;
+  slug: string[];
+  title: string;
+  description: string;
+  keywords: string[];
+  published: string;
+  updated: string;
+  words: number;
+  minutes: number;
+}) {
+  const url = sectionUrl(id, slug);
+  return {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "@id": `${url}#article`,
+    headline: title,
+    description,
+    inLanguage: "es",
+    datePublished: published,
+    dateModified: updated,
+    mainEntityOfPage: url,
+    image: sectionCardUrl(id, slug, updated),
+    keywords: keywords.join(", "),
+    wordCount: words,
+    timeRequired: `PT${minutes}M`,
+    author: { "@id": ORG_ID },
+    publisher: { "@id": ORG_ID },
+  };
+}
+
 // ── Registry sections: /estadisticas, /investigaciones (Spanish-only) ────────
 
 /** An `Article` describing the page plus the `Dataset` it publishes.

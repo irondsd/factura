@@ -46,7 +46,9 @@ function readMetadata(
     );
   }
   const parsed = (
-    row.section === "guias" ? guideMetadataSchema : sectionMetadataSchema
+    row.section === "guias" || row.section === "noticias"
+      ? guideMetadataSchema
+      : sectionMetadataSchema
   ).safeParse(row.metadata);
   return parsed.success
     ? { ok: true, data: parsed.data as ContentMetadata }

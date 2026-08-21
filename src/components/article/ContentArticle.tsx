@@ -37,7 +37,9 @@ export type ContentArticleProps = {
   cta: string;
   /** Optional 16:9 illustration from the media library. */
   previewMedia?: MediaRef | null;
-  categories: readonly Category[];
+  categories?: readonly Category[];
+  /** Guides are the default; Noticias reuses this shell without its taxonomy. */
+  section?: { label: string; singular: string; href: string; tocLabel: string; backLabel: string };
   headings: readonly Heading[];
   minutes: number;
   /** The compiled prose. */
@@ -57,7 +59,14 @@ export function ContentArticle({
   updated,
   cta,
   previewMedia,
-  categories,
+  categories = [],
+  section = {
+    label: "Guías",
+    singular: "Guía",
+    href: "/guias",
+    tocLabel: "En esta guía",
+    backLabel: "← Todas las guías",
+  },
   headings,
   minutes,
   children,
@@ -83,7 +92,7 @@ export function ContentArticle({
               className="mb-7"
               items={[
                 { name: "Inicio", href: "/" },
-                { name: "Guías", href: "/guias" },
+                { name: section.label, href: section.href },
                 ...(primary
                   ? [
                       {
@@ -105,7 +114,7 @@ export function ContentArticle({
             )}
 
             <header className="pb-2">
-              <Eyebrow tone="accent">Guía</Eyebrow>
+              <Eyebrow tone="accent">{section.singular}</Eyebrow>
               <h1 className="font-display font-semibold text-[34px] sm:text-[44px] tracking-[-0.025em] leading-[1.06] mt-[18px] mb-0">
                 {title}
               </h1>
@@ -135,11 +144,13 @@ export function ContentArticle({
                 )}
                 <span>{minutes} min de lectura</span>
               </p>
-              <CategoryChips
-                categories={categories as Category[]}
-                label="Temas de esta guía"
-                className="mt-5"
-              />
+              {categories.length > 0 && (
+                <CategoryChips
+                  categories={categories as Category[]}
+                  label="Temas de esta guía"
+                  className="mt-5"
+                />
+              )}
             </header>
 
             {/* Above the article, not in it: the reader who bounces after the
@@ -152,16 +163,16 @@ export function ContentArticle({
             {/* The phone's copy of the contents. Above the prose, where a reader
                 deciding whether this guide answers their question can see the
                 sections without scrolling the whole article first. */}
-            <TocInline headings={headings as Heading[]} label="En esta guía" />
+            <TocInline headings={headings as Heading[]} label={section.tocLabel} />
 
             <div className="mt-8 border-t border-line pt-2">{children}</div>
 
             <nav className="mt-14 border-t border-line pt-6">
               <Link
-                href="/guias"
+                href={section.href}
                 className="font-mono text-micro uppercase tracking-label-wide text-muted no-underline transition-colors hover:text-accent"
               >
-                ← Todas las guías
+                {section.backLabel}
               </Link>
             </nav>
           </article>
@@ -172,7 +183,7 @@ export function ContentArticle({
               but too few sections to list keeps the column for it. */}
           <TocSidebar
             headings={headings as Heading[]}
-            label="En esta guía"
+            label={section.tocLabel}
             above={
               previewMedia ? <ArticlePreview media={previewMedia} /> : undefined
             }

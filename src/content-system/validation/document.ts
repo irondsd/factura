@@ -158,6 +158,9 @@ export function validateDocument(
   index: ContentIndex = EMPTY_INDEX,
   context: DocumentValidationContext = {},
 ): ValidationResult {
+  if (document.section === "noticias") {
+    return validateNewsDocument(document);
+  }
   if (document.section !== "guias") {
     return validateDataSectionDocument(document);
   }
@@ -515,6 +518,38 @@ export function validateDocument(
   // ── body ──────────────────────────────────────────────────────────────────
   out.push(...validateBody(document, index));
 
+  return validationResult(out);
+}
+
+/** News is editorial like a guide, but has no guide-category taxonomy or data
+ * provenance contract. It still gets the lifecycle, heading and FAQ guards. */
+function validateNewsDocument(document: ContentDocument): ValidationResult {
+  const out: Diagnostic[] = [];
+  if (!SLUG_RE.test(document.slug)) {
+    out.push(error(DOCUMENT_CODES.slugShape, `slug "${document.slug}" must be lowercase, hyphen-separated, no accents/spaces`, "slug"));
+  }
+  const parsed = guideMetadataSchema.safeParse(document.metadata);
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      out.push(error(DOCUMENT_CODES.metadataShape, `meta.${issue.path.join(".") || "<root>"} ${issue.message}`, issue.path.join(".") || undefined));
+    }
+  }
+  if (document.publishedAt && !isValidDateTime(document.publishedAt)) {
+    out.push(error(DOCUMENT_CODES.dateFormat, `meta.published must be a ${DATETIME_FORMAT}`, "publishedAt"));
+  }
+  if (!isValidDateTime(document.contentUpdatedAt)) {
+    out.push(error(DOCUMENT_CODES.dateFormat, `meta.updated must be a ${DATETIME_FORMAT}`, "contentUpdatedAt"));
+  }
+  if (/^#\s/m.test(document.body)) {
+    out.push(error(DOCUMENT_CODES.bodyH1, "body contains an H1; the page title renders the only H1"));
+  }
+  const faq = parsed.success ? parsed.data.faq : undefined;
+  if (faq?.length && !/<Faq\b/.test(document.body)) {
+    out.push(error(DOCUMENT_CODES.faqNotPlaced, "meta.faq is set but the body never places <Faq />", "faq"));
+  }
+  if (/<Faq\b/.test(document.body) && !faq?.length) {
+    out.push(error(DOCUMENT_CODES.faqPlacedWithoutData, "body places <Faq /> but meta.faq is missing", "faq"));
+  }
   return validationResult(out);
 }
 

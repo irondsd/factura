@@ -12,7 +12,9 @@ import { sectionMetadataSchema } from "./sections";
 // which is a row that exists and cannot be loaded.
 
 export function metadataSchemaFor(section: ContentSection): z.ZodType {
-  return section === "guias" ? guideMetadataSchema : sectionMetadataSchema;
+  return section === "guias" || section === "noticias"
+    ? guideMetadataSchema
+    : sectionMetadataSchema;
 }
 
 /** Parse a metadata blob for a section, returning either the parsed value or a

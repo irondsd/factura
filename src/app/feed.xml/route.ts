@@ -103,9 +103,9 @@ export async function GET(): Promise<Response> {
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${xml(siteName)} — Guías, Estadísticas e Investigación</title>
+    <title>${xml(siteName)} — Noticias, Guías, Estadísticas e Investigación</title>
     <link>${siteUrl}</link>
-    <description>Guías sobre las facturas del hogar en Argentina, estadísticas de precios, alquileres y servicios, e investigaciones que las cruzan, actualizadas cada mes.</description>
+    <description>Noticias y guías sobre las facturas del hogar en Argentina, estadísticas de precios, alquileres y servicios, e investigaciones que las cruzan.</description>
     <language>es-AR</language>
     <lastBuildDate>${lastBuild}</lastBuildDate>
     <atom:link href="${siteUrl}/feed.xml" rel="self" type="application/rss+xml"/>

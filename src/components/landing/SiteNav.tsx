@@ -86,6 +86,7 @@ export function siteFooterColumns(
               // the section.
               { label: t.nav.research, href: "/investigaciones" },
               { label: t.nav.guides, href: "/guias" },
+              { label: t.nav.noticias, href: "/noticias" },
               // Spanish-only for the same reason as the three above — the page
               // is Argentine law and exists only in Spanish.
               { label: t.nav.regulations, href: "/normativa" },

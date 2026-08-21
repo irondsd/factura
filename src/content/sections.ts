@@ -16,6 +16,13 @@ export const estadisticas = createSection({
   relatedLabel: "Estadística relacionada",
 });
 
+export const noticias = createSection({
+  id: "noticias",
+  label: "Noticias",
+  backLabel: "← Todas las noticias",
+  relatedLabel: "Noticia relacionada",
+});
+
 export const investigaciones = createSection({
   id: "investigaciones",
   label: "Investigación",
@@ -24,6 +31,7 @@ export const investigaciones = createSection({
 });
 
 export const SECTIONS: readonly ContentSection[] = [
+  noticias,
   estadisticas,
   investigaciones,
 ];

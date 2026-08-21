@@ -12,7 +12,7 @@ import { GRAMMAR_CODES, validateGrammar } from "./grammar";
 
 const check = (
   body: string,
-  section: "guias" | "estadisticas" | "investigaciones" = "guias",
+  section: "guias" | "noticias" | "estadisticas" | "investigaciones" = "guias",
 ) => validateGrammar(body, section);
 const codes = (body: string) => check(body).diagnostics.map((d) => d.code);
 

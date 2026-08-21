@@ -81,6 +81,7 @@
     "guides": "Guías",
     "stats": "Estadísticas",
     "research": "Investigaciónes",
+    "noticias": "Noticias",
     "regulations": "Normativa",
     "privacy": "Privacidad",
     "security": "Seguridad",
@@ -138,14 +139,7 @@
     "peekCaption": "Palermo · junio de 2026 hasta ahora · 3 de 4 facturas cargadas, una pendiente.",
     "drivers": {
       "label": "Qué influye en tus gastos",
-      "items": [
-        "Consumo",
-        "Tarifas",
-        "Inflación",
-        "Período",
-        "Proveedor",
-        "Datos del mercado"
-      ]
+      "items": ["Consumo", "Tarifas", "Inflación", "Período", "Proveedor", "Datos del mercado"]
     },
     "promises": [
       "Una propiedad gratis para siempre",

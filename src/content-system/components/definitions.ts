@@ -65,7 +65,7 @@ const DATA_LEAF_COMPONENTS = Object.fromEntries(
 export const CONTENT_COMPONENT_DEFINITIONS = {
   // ── guides ────────────────────────────────────────────────────────────────
   ClosingCta: {
-    sections: ["guias", "estadisticas", "investigaciones"],
+    sections: ["guias", "noticias", "estadisticas", "investigaciones"],
     kind: "container",
     props: z
       .object({
@@ -142,7 +142,7 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
       "The site's trust strip. Sizes itself off its container, so an article column gets the ledger-row form.",
   },
   Faq: {
-    sections: ["guias", "estadisticas", "investigaciones"],
+    sections: ["guias", "noticias", "estadisticas", "investigaciones"],
     kind: "leaf",
     props: CONTEXT_BOUND,
     description:

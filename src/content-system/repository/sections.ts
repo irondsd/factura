@@ -57,6 +57,7 @@ function cachedSection(section: ContentSection): CachedSection {
 }
 
 const CACHED: Record<string, CachedSection> = {
+  noticias: cachedSection("noticias"),
   estadisticas: cachedSection("estadisticas"),
   investigaciones: cachedSection("investigaciones"),
 };

@@ -81,6 +81,7 @@
     "guides": "Guías",
     "stats": "Estadísticas",
     "research": "Investigación",
+    "noticias": "News",
     "regulations": "Normativa",
     "privacy": "Privacy",
     "security": "Security",
@@ -138,14 +139,7 @@
     "peekCaption": "Palermo · June 2026 so far · 3 of 4 bills in, one awaiting.",
     "drivers": {
       "label": "What moves your bills",
-      "items": [
-        "Usage",
-        "Tariffs",
-        "Inflation",
-        "Billing period",
-        "Vendor",
-        "Market data"
-      ]
+      "items": ["Usage", "Tariffs", "Inflation", "Billing period", "Vendor", "Market data"]
     },
     "promises": [
       "One property free forever",

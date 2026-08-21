@@ -78,7 +78,7 @@ export class PostgresContentRepository implements ContentRepository {
       // deterministic without reintroducing editorial ordering.
       orderBy: [
         desc(
-          section === "guias"
+          section === "guias" || section === "noticias"
             ? sql`coalesce(${cmsPages.publishedAt}, ${cmsPages.contentUpdatedAt})`
             : cmsPages.contentUpdatedAt,
         ),

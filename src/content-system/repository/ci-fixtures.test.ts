@@ -21,6 +21,7 @@ describe("CI content fixtures", () => {
   it("resolves every discovery path through the repository", async () => {
     const sectionForPath = {
       guias: "guias",
+      noticias: "noticias",
       estadisticas: "estadisticas",
       investigaciones: "investigaciones",
     } as const;

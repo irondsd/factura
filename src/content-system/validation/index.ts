@@ -160,6 +160,7 @@ function withoutSource(finding: CollectionDiagnostic): Diagnostic {
  * two; today only guides have rules of their own. */
 export const VALIDATED_SECTIONS: readonly ContentSection[] = [
   "guias",
+  "noticias",
   "estadisticas",
   "investigaciones",
 ];

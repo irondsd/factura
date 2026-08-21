@@ -7,6 +7,7 @@
  * hand-built registry page, not authored MDX, and it is not migrating. */
 export const CONTENT_SECTIONS = [
   "guias",
+  "noticias",
   "estadisticas",
   "investigaciones",
 ] as const;
