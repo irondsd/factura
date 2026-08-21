@@ -101,6 +101,7 @@ export function siteFooterColumns(
         { label: t.nav.contact, href: "/contacto" },
         { label: t.nav.privacy, href: "/privacy" },
         { label: t.nav.security, href: "/security" },
+        { label: t.nav.terms, href: "/terms" },
         { label: t.nav.github, href: githubUrl },
       ],
     },
