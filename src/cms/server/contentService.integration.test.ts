@@ -68,6 +68,7 @@ if (!hasTestDatabase()) {
     const actor: CmsActor = {
       userId: "",
       email: "cms-test@example.com",
+      name: "CMS Test",
       role: "admin",
     };
 

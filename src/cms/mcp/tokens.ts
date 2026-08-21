@@ -157,7 +157,11 @@ export async function resolveCmsToken(
     .where(eq(cmsApiTokens.id, row.tokenId));
   return {
     userId: row.userId,
+    // No display identity: this caller is resolved from a token, and nothing
+    // that renders a name reads it from here — the history bylines re-read the
+    // account from the database by user id.
     email: null,
+    name: null,
     role: row.role,
     // Everything this caller writes is recorded as an agent's edit.
     source: "mcp",
