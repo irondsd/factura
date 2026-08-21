@@ -20,6 +20,12 @@ import { DelitosPorZona } from "@/components/estadisticas/DelitosPorZona";
 import { DelitosResidentes } from "@/components/estadisticas/DelitosResidentes";
 import { DelitosResumen } from "@/components/estadisticas/DelitosResumen";
 import { DelitosRobos } from "@/components/estadisticas/DelitosRobos";
+import { EscriturasAnual } from "@/components/estadisticas/EscriturasAnual";
+import { EscriturasEstacionalidad } from "@/components/estadisticas/EscriturasEstacionalidad";
+import { EscriturasHipotecas } from "@/components/estadisticas/EscriturasHipotecas";
+import { EscriturasHistoria } from "@/components/estadisticas/EscriturasHistoria";
+import { EscriturasMonto } from "@/components/estadisticas/EscriturasMonto";
+import { EscriturasResumen } from "@/components/estadisticas/EscriturasResumen";
 import { IpcViviendaChart } from "@/components/estadisticas/IpcViviendaChart";
 import { OfertaAlquilerCabaMapa } from "@/components/estadisticas/OfertaAlquilerCabaMapa";
 import { OfertaCambio } from "@/components/estadisticas/OfertaCambio";
@@ -86,6 +92,12 @@ export const SECTION_COMPONENT_BINDINGS = {
   DelitosResidentes,
   DelitosResumen,
   DelitosRobos,
+  EscriturasAnual,
+  EscriturasEstacionalidad,
+  EscriturasHipotecas,
+  EscriturasHistoria,
+  EscriturasMonto,
+  EscriturasResumen,
   IpcViviendaChart,
   MultiploRegiones,
   OfertaAlquilerCabaMapa,
