@@ -39,7 +39,13 @@ export type ContentArticleProps = {
   previewMedia?: MediaRef | null;
   categories?: readonly Category[];
   /** Guides are the default; Noticias reuses this shell without its taxonomy. */
-  section?: { label: string; singular: string; href: string; tocLabel: string; backLabel: string };
+  section?: {
+    label: string;
+    singular: string;
+    href: string;
+    tocLabel: string;
+    backLabel: string;
+  };
   headings: readonly Heading[];
   minutes: number;
   /** The compiled prose. */
@@ -163,7 +169,10 @@ export function ContentArticle({
             {/* The phone's copy of the contents. Above the prose, where a reader
                 deciding whether this guide answers their question can see the
                 sections without scrolling the whole article first. */}
-            <TocInline headings={headings as Heading[]} label={section.tocLabel} />
+            <TocInline
+              headings={headings as Heading[]}
+              label={section.tocLabel}
+            />
 
             <div className="mt-8 border-t border-line pt-2">{children}</div>
 

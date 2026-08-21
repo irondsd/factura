@@ -44,7 +44,8 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
     body: "## Una noticia de CI\n\nEsta página mínima comprueba que una noticia del CMS compila y se renderiza durante el build.\n",
     title: "Noticia de prueba para CI",
     titleTag: null,
-    description: "Página mínima de prueba que verifica el renderizado de una noticia del CMS durante el build de integración continua.",
+    description:
+      "Página mínima de prueba que verifica el renderizado de una noticia del CMS durante el build de integración continua.",
     summary: "Una noticia mínima usada exclusivamente por el build de CI.",
     cta: "Conocé Factura.",
     canonicalSlug: null,
