@@ -22,11 +22,6 @@ export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
  * slugs would be shadowed by the route and never render. */
 export const RESERVED_GUIDE_SLUGS = ["categoria"] as const;
 
-/** Preview images live in one directory and are named after the guide they
- * illustrate, so a stale file is obvious from `ls` alone. */
-const PREVIEW_PATTERN =
-  /^\/img\/guias\/previews\/[a-z0-9-]+\.(?:jpg|png|webp)$/;
-
 /** Full ISO 8601 with an explicit offset (or Z). Google requires only the date
  * but recommends time and zone, and the article renders the timestamp visibly —
  * requiring the offset keeps the dateline and the JSON-LD identical by
@@ -115,12 +110,8 @@ export const guideMetadataSchema = z
      *
      * A uuid rather than a path, so an article survives a change of storage
      * origin: the CDN hostname lives in configuration and is resolved at render
-     * time. `previewImage` below is the pre-library shape — a file committed
-     * under `public/img/**` — and is accepted only while the migration is in
-     * flight. New writes set the id; step 7 of the rollout removes the string
-     * once no page references one. */
+     * time. */
     previewMediaId: z.uuid().optional(),
-    previewImage: filled.regex(PREVIEW_PATTERN).optional(),
   })
   .strict()
   .refine((m) => new Set(m.categories).size === m.categories.length, {

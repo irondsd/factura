@@ -27,9 +27,9 @@ export async function mediaComponents(
       const url = typeof src === "string" ? src : "";
       const parsed = parseMediaPermalink(url);
 
-      // Not a library image: a `/img/**` path still in a body during the
-      // migration. The plain renderer keeps handling those until step 7 of the
-      // rollout removes the last one.
+      // Not a library permalink. Validation refuses those, so this is a
+      // hand-edited body; hand it to the plain renderer rather than guessing at
+      // an id.
       if (!parsed) {
         const Legacy = markdownComponents.img as React.ComponentType<{
           src?: string;

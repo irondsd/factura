@@ -835,7 +835,11 @@ if (!hasTestDatabase()) {
       // then rejected — leaving a row that broke the section list, the editor
       // and the public repository for everyone, with no screen left to fix it
       // from.
-      const bad = { keywords: [], categories: [], previewImage: "portada.jpg" };
+      const bad = {
+        keywords: [],
+        categories: [],
+        previewMediaId: "portada.jpg",
+      };
 
       it("refuses a create whose metadata does not match the schema", async () => {
         await expect(
@@ -894,7 +898,7 @@ if (!hasTestDatabase()) {
         expect(error).toBeInstanceOf(CmsValidationError);
         expect(
           (error as CmsValidationError).diagnostics.map((d) => d.field),
-        ).toContain("previewImage");
+        ).toContain("previewMediaId");
       });
 
       it("keeps the CMS list readable when a row is damaged anyway", async () => {

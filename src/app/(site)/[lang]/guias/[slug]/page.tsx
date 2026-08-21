@@ -63,7 +63,6 @@ export default async function GuidePage({ params }: Props) {
       updated={guide.contentUpdatedAt}
       cta={guide.cta}
       previewMedia={await resolveMediaRef(guide.metadata.previewMediaId)}
-      previewImage={guide.metadata.previewImage}
       categories={categories}
       headings={documentHeadings(guide)}
       minutes={minutes}

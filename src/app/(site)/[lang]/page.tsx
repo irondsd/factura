@@ -229,7 +229,6 @@ const sectionCards = (
     title: page.meta.title,
     summary: page.meta.summary,
     previewMediaId: page.meta.previewMediaId,
-    preview: page.meta.preview,
     published: page.meta.published,
   }));
 
@@ -273,7 +272,6 @@ async function teaserBlocks(): Promise<TeaserBlock[]> {
         title: guide.title,
         summary: guide.summary,
         previewMediaId: guide.metadata.previewMediaId,
-        preview: guide.metadata.previewImage,
         published: guide.publishedAt ?? guide.contentUpdatedAt,
       })),
       allHref: "/guias",

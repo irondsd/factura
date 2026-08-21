@@ -489,23 +489,6 @@ describe("body", () => {
   });
 });
 
-describe("preview image", () => {
-  it("is only checked when the caller can stat files", () => {
-    // A database validator has no filesystem to check against, so the rule is a
-    // capability the CLI supplies rather than something assumed.
-    const doc = {
-      ...base,
-      ...meta({ previewImage: "/img/guias/previews/x.jpg" }),
-    };
-    expect(validateDocument(doc, index).diagnostics).toEqual([]);
-    expect(
-      validateDocument(doc, index, {
-        assetExists: () => false,
-      }).diagnostics.map((d) => d.code),
-    ).toContain(DOCUMENT_CODES.previewMissingAsset);
-  });
-});
-
 describe("media references", () => {
   const ID = "8f2c1b7a-4d3e-4a1f-9c2b-0e5d6a7f8b90";
   const ready = new Map([[ID, { status: "ready", decorative: false }]]);

@@ -456,10 +456,6 @@ In the editor it is a picker, not a text field: choose from the library. The
 stored value is the image's id. **Export 16:9 at 960×540** before uploading;
 that covers the 160px thumbnail at well over 2×.
 
-`previewImage` — a `/img/…` path — is the shape this used to take, and pages
-written before the library still carry it. It still renders, and the field is
-still on the form so nothing is stranded, but do not put a new value in it.
-
 **Guides: optional, and genuinely optional.** Most have none, and a guide
 without one renders exactly the row and header it always has. Guides with and
 without an image are meant to sit in the same list — do not add a filler image

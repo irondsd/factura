@@ -87,12 +87,8 @@ export async function SectionArticle({
             {/* The phone's copy of the illustration: full width above the
                 headline. From `lg` up the sidebar's copy shows instead, so this
                 one is hidden rather than duplicated on screen. */}
-            {(previewMedia || meta.preview) && (
-              <ArticlePreview
-                media={previewMedia}
-                src={meta.preview}
-                className="mb-7 lg:hidden"
-              />
+            {previewMedia && (
+              <ArticlePreview media={previewMedia} className="mb-7 lg:hidden" />
             )}
 
             <header className="pb-2">
@@ -172,11 +168,7 @@ export async function SectionArticle({
           <TocSidebar
             headings={headings}
             label="En esta página"
-            above={
-              (previewMedia || meta.preview) && (
-                <ArticlePreview media={previewMedia} src={meta.preview} />
-              )
-            }
+            above={previewMedia && <ArticlePreview media={previewMedia} />}
             below={<AsideCta />}
           />
         </div>

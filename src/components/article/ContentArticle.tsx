@@ -37,8 +37,6 @@ export type ContentArticleProps = {
   cta: string;
   /** Optional 16:9 illustration from the media library. */
   previewMedia?: MediaRef | null;
-  /** Legacy `/img/**` path, until the migration finishes. */
-  previewImage?: string | null;
   categories: readonly Category[];
   headings: readonly Heading[];
   minutes: number;
@@ -59,7 +57,6 @@ export function ContentArticle({
   updated,
   cta,
   previewMedia,
-  previewImage,
   categories,
   headings,
   minutes,
@@ -103,12 +100,8 @@ export function ContentArticle({
                 the page, under the breadcrumbs and above the headline. From
                 `lg` up it's the sidebar's copy that shows instead, so this one
                 is hidden rather than duplicated on screen. */}
-            {(previewMedia || previewImage) && (
-              <ArticlePreview
-                media={previewMedia}
-                src={previewImage}
-                className="mb-7 lg:hidden"
-              />
+            {previewMedia && (
+              <ArticlePreview media={previewMedia} className="mb-7 lg:hidden" />
             )}
 
             <header className="pb-2">
@@ -181,9 +174,7 @@ export function ContentArticle({
             headings={headings as Heading[]}
             label="En esta guía"
             above={
-              previewMedia || previewImage ? (
-                <ArticlePreview media={previewMedia} src={previewImage} />
-              ) : undefined
+              previewMedia ? <ArticlePreview media={previewMedia} /> : undefined
             }
           />
         </div>

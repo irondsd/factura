@@ -31,11 +31,6 @@ const PERMALINK_RE = new RegExp(
   `^${MEDIA_PERMALINK_PREFIX}/(${UUID})/([^/?#]+\\.[a-zA-Z0-9]+)$`,
 );
 
-/** The legacy shape: a file committed under `public/img/**`. Accepted while the
- * library migration is in flight (cms.media.md §9 steps 4 and 7) and removed
- * once no database page references one. */
-const LEGACY_RE = /^\/img\/[^?#]+\.(?:jpg|jpeg|png|webp|avif|gif)$/i;
-
 export type ParsedPermalink = { id: string; filename: string };
 
 /** The media id in a permalink, or null when this is not one. Case-insensitive
@@ -49,9 +44,6 @@ export function parseMediaPermalink(url: string): ParsedPermalink | null {
 
 export const isMediaPermalink = (url: string): boolean =>
   parseMediaPermalink(url) !== null;
-
-export const isLegacyImagePath = (url: string): boolean =>
-  LEGACY_RE.test(url.trim());
 
 /** Build the permalink for an asset. The filename is derived from the library
  * title so a reader hovering a link sees something meaningful; nothing resolves

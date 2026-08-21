@@ -1,9 +1,5 @@
 import { parseContentBody } from "../validation/parse";
-import {
-  isLegacyImagePath,
-  parseMediaPermalink,
-  type ParsedPermalink,
-} from "./permalink";
+import { parseMediaPermalink, type ParsedPermalink } from "./permalink";
 
 // Which media a page refers to, derived from the page itself.
 //
@@ -39,9 +35,10 @@ export type MediaReference = {
   column?: number;
 };
 
-/** A `/img/**` path still in a body during the migration window. Reported
- * separately so validation can warn without treating it as media usage. */
-export type LegacyImageReference = {
+/** An image pointing at another site. Refused by validation: remote content
+ * can change without notice, can carry a tracking pixel, and breaks when the
+ * other site reorganizes. */
+export type ExternalImageReference = {
   url: string;
   alt: string | null;
   line?: number;
@@ -50,11 +47,7 @@ export type LegacyImageReference = {
 
 export type ExtractedReferences = {
   media: MediaReference[];
-  legacy: LegacyImageReference[];
-  /** An image pointing at another site. Refused by validation: remote content
-   * can change without notice, can carry a tracking pixel, and breaks when the
-   * other site reorganizes. */
-  external: LegacyImageReference[];
+  external: ExternalImageReference[];
 };
 
 type Node = {
@@ -95,7 +88,7 @@ export function extractBodyReferences(body: string): ExtractedReferences {
   try {
     tree = parseContentBody(body) as Node;
   } catch {
-    return { media: [], legacy: [], external: [] };
+    return { media: [], external: [] };
   }
 
   // Reference-style images (`![alt][key]`) resolve against definitions that may
@@ -108,8 +101,7 @@ export function extractBodyReferences(body: string): ExtractedReferences {
   });
 
   const media: MediaReference[] = [];
-  const legacy: LegacyImageReference[] = [];
-  const external: LegacyImageReference[] = [];
+  const external: ExternalImageReference[] = [];
 
   const record = (
     url: string | undefined,
@@ -124,10 +116,6 @@ export function extractBodyReferences(body: string): ExtractedReferences {
       return;
     }
     if (kind !== "image") return;
-    if (isLegacyImagePath(url)) {
-      legacy.push({ url: url.trim(), alt, ...at(node) });
-      return;
-    }
     if (/^https?:\/\//i.test(url.trim())) {
       external.push({ url: url.trim(), alt, ...at(node) });
     }
@@ -166,7 +154,7 @@ export function extractBodyReferences(body: string): ExtractedReferences {
     }
   });
 
-  return { media, legacy, external };
+  return { media, external };
 }
 
 function walk(node: Node, visit: (node: Node) => void): void {

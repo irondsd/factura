@@ -20,9 +20,7 @@ import { CmsMediaStore, cmsMediaStore, type UsageEntry } from "./store";
 // the *same* extractor as the incremental path. One implementation, so the two
 // cannot disagree about what a reference is.
 
-/** The metadata field holding a page's preview image, once it is an id. Read
- * defensively: during the migration a page may still carry the old
- * `previewImage` path instead. */
+/** The metadata field holding a page's preview image. */
 const PREVIEW_FIELD = "previewMediaId";
 
 type PageContent = {

@@ -10,8 +10,6 @@ export type ContentListItem = {
   summary: string;
   /** Media-library id of the row's illustration. */
   previewMediaId?: string;
-  /** Legacy `/img/**` path, until the migration finishes. */
-  preview?: string;
   date: string;
 };
 
@@ -41,10 +39,9 @@ export async function ContentList({
             href={item.href}
             className="group flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-[22px] no-underline py-6"
           >
-            {(media.get(item.previewMediaId ?? "") || item.preview) && (
+            {media.get(item.previewMediaId ?? "") && (
               <ArticlePreview
                 media={media.get(item.previewMediaId ?? "")}
-                src={item.preview}
                 className="flex-none w-full sm:w-40"
               />
             )}

@@ -86,7 +86,6 @@ export const DOCUMENT_CODES = {
   closingCtaNoCopy: "doc.closing-cta-no-copy",
   noRelatedGuides: "doc.no-related-guides",
   noInterlinks: "doc.no-interlinks",
-  previewMissingAsset: "doc.preview-missing-asset",
   mediaUnknown: "doc.media-unknown",
   mediaNotReady: "doc.media-not-ready",
   mediaNoAlt: "doc.media-no-alt",
@@ -109,18 +108,16 @@ export const EMPTY_INDEX: ContentIndex = {
   publishedSlugs: new Set(),
 };
 
-/** Optional capabilities a caller can supply. Absent means the check is
- * skipped, and the skip is deliberate: a preview image is a file under
- * `public/`, which the CLI can stat and a database validator cannot assume. */
+/** Optional capabilities a caller can supply. */
 export type DocumentValidationContext = {
-  assetExists?: (publicPath: string) => boolean;
   /** What the media library knows about the ids this document references,
    * resolved by the caller *before* validation because these rules are pure and
    * the library lives in a database.
    *
-   * Absent means the check is skipped, like `assetExists`: a validator with no
-   * way to ask cannot invent an answer, and refusing every reference would be
-   * worse than checking none. `src/cms/server/validation.ts` supplies it. */
+   * Absent means the check is skipped, and the skip is deliberate: a validator
+   * with no way to ask cannot invent an answer, and refusing every reference
+   * would be worse than checking none. `src/cms/server/validation.ts` supplies
+   * it. */
   media?: ReadonlyMap<string, { status: string; decorative: boolean }>;
 };
 
@@ -508,18 +505,6 @@ export function validateDocument(
         DOCUMENT_CODES.ctaLength,
         `meta.cta is ${document.cta.length} chars — over ~54 it wraps to a second line beside the button`,
         "cta",
-      ),
-    );
-  }
-
-  // ── preview image ─────────────────────────────────────────────────────────
-  const preview = metadata?.previewImage;
-  if (preview && context.assetExists && !context.assetExists(preview)) {
-    out.push(
-      error(
-        DOCUMENT_CODES.previewMissingAsset,
-        `meta.preview "${preview}" is not a file under public/`,
-        "previewImage",
       ),
     );
   }

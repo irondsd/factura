@@ -126,21 +126,6 @@ describe("guideMetadataSchema", () => {
       false,
     );
   });
-
-  it("constrains the preview image to the guides' own directory", () => {
-    expect(
-      guideMetadataSchema.safeParse({
-        ...valid,
-        previewImage: "/img/guias/previews/como-leer-la-factura-de-edesur.jpg",
-      }).success,
-    ).toBe(true);
-    expect(
-      guideMetadataSchema.safeParse({
-        ...valid,
-        previewImage: "https://example.com/foto.jpg",
-      }).success,
-    ).toBe(false);
-  });
 });
 
 describe("ogImageSchema", () => {

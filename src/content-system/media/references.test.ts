@@ -114,14 +114,12 @@ describe("extractBodyReferences", () => {
     expect(mediaIdsIn(body)).toEqual([ID, OTHER]);
   });
 
-  it("reports legacy /img paths separately from media usage", () => {
-    const { media, legacy } = extractBodyReferences(
+  it("ignores a path that is not a library permalink", () => {
+    const { media, external } = extractBodyReferences(
       `![Factura](/img/guias/factura-edesur-ejemplo.jpg)`,
     );
     expect(media).toEqual([]);
-    expect(legacy).toMatchObject([
-      { url: "/img/guias/factura-edesur-ejemplo.jpg" },
-    ]);
+    expect(external).toEqual([]);
   });
 
   it("returns nothing for a body that cannot be parsed, rather than throwing", () => {

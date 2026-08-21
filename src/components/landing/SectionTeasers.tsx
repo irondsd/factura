@@ -24,12 +24,10 @@ export type TeaserCard = {
   href: string;
   title: string;
   summary: string;
-  /** Media-library id of the card's illustration. */
+  /** Media-library id of the card's 16:9 illustration. Decorative — the title
+   * beside it names the page — so it renders `alt=""`. Pages without one get
+   * the blank paper panel, which keeps the cards in a row the same height. */
   previewMediaId?: string;
-  /** 16:9 illustration under `/img/<section>/previews/`. Decorative — the title
-   * beside it names the page — so it renders `alt=""`. The legacy path remains
-   * as a fallback while older records finish migrating. */
-  preview?: string;
   /** Full ISO 8601 publication timestamp. Publication and not the update date:
    * this block is "what's new", and the badge and the dateline should agree
    * with the order the cards are in. */
@@ -113,10 +111,9 @@ function TeaserLink({
       href={card.href}
       className="group flex flex-col border border-line bg-card no-underline transition-colors hover:border-accent"
     >
-      {media || card.preview ? (
+      {media ? (
         <ArticlePreview
           media={media}
-          src={card.preview}
           className="border-x-0 border-t-0 border-b border-line bg-paper"
         />
       ) : (

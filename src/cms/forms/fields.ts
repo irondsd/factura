@@ -213,14 +213,6 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     help: "Opcional. Una imagen 16:9 de la biblioteca de medios. Se ve en los listados y junto al artículo.",
   },
   {
-    path: "metadata.previewImage",
-    label: "Imagen de portada (ruta antigua)",
-    kind: "text",
-    group: "social",
-    placeholder: "/img/guias/previews/nombre.jpg",
-    help: "Heredado de antes de la biblioteca de medios. Si arriba eliges una imagen, esto sobra: vacíalo.",
-  },
-  {
     path: "metadata.ogTitle",
     label: "Título para redes",
     kind: "text",
@@ -368,14 +360,6 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
     kind: "media",
     group: "social",
     help: "Opcional. Una imagen 16:9 de la biblioteca de medios.",
-  },
-  {
-    path: "metadata.previewImage",
-    label: "Imagen de portada (ruta antigua)",
-    kind: "text",
-    group: "social",
-    placeholder: "/img/estadisticas/previews/nombre.jpg",
-    help: "Heredado de antes de la biblioteca de medios. Si arriba eliges una imagen, esto sobra: vacíalo.",
   },
   {
     path: "metadata.ogTitle",

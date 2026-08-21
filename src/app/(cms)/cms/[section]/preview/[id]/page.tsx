@@ -124,7 +124,6 @@ export default async function CmsPreviewPage({ params }: Props) {
       updated={page.contentUpdatedAt}
       cta={page.cta}
       previewMedia={await resolveMediaRef(page.metadata.previewMediaId)}
-      previewImage={page.metadata.previewImage}
       categories={categories}
       headings={headings}
       minutes={minutes}

@@ -48,9 +48,11 @@ un bloque
   });
 
   it("accepts an image, which guides use for bill screenshots", () => {
-    expect(check("![Factura de ejemplo](/img/guias/ejemplo.jpg)\n").ok).toBe(
-      true,
-    );
+    expect(
+      check(
+        "![Factura de ejemplo](/media/8f2c1b7a-4d3e-4a1f-9c2b-0e5d6a7f8b90/ejemplo.jpg)\n",
+      ).ok,
+    ).toBe(true);
   });
 });
 

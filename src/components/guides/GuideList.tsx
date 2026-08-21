@@ -19,7 +19,6 @@ export function GuideList({
         title: guide.title,
         summary: guide.summary,
         previewMediaId: guide.metadata.previewMediaId,
-        preview: guide.metadata.previewImage,
         date: guide.publishedAt ?? guide.contentUpdatedAt,
       }))}
     />
