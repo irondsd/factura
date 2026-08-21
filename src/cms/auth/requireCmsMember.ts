@@ -33,7 +33,11 @@ async function findMembership(userId: string) {
 export async function getCmsAccess(): Promise<CmsAccess> {
   const session = await auth();
   const user = session?.user?.id
-    ? { id: session.user.id, email: session.user.email }
+    ? {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+      }
     : null;
   if (!user) return resolveCmsAccess(null, null);
   return resolveCmsAccess(user, await findMembership(user.id));

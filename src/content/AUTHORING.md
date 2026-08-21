@@ -175,21 +175,21 @@ them flat; `update_content` takes the same names inside `patch`.
 
 ### Columns — every section
 
-| Field           | Used for                                            | Rules                                                                |
-| --------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
-| `section`       | Which section this belongs to                       | `guias`, `noticias`, `estadisticas` or `investigaciones`. Set at create only.    |
-| `slug`          | **The URL.** `/guias/<slug>`                        | lowercase, hyphens, **no accents or ñ**. Set at create only.         |
-| `title`         | `<h1>`, `<title>`, OG/Twitter, JSON-LD              | **≤60 chars**, or add `titleTag` — see below.                        |
-| `titleTag`      | `<title>` only, when `title` is too long to be one  | ≤60, keyword first. Optional.                                        |
-| `description`   | `<meta name="description">`, OG/Twitter             | ~150–160 chars. One sentence; this is the search snippet.            |
-| `summary`       | Index cards, homepage, `llms.txt`                   | One short sentence (~90–120 chars). May differ from `description`.   |
-| `cta`           | The one-line CTA banner above the article           | **≤54 chars.** A hook, not a summary. See §7.                        |
-| `canonicalSlug` | Points this page's canonical at another page's slug | Optional. The cannibalisation lever — see below.                     |
-| `body`          | The MDX body                                        | See §6. No frontmatter, no `<h1>`.                                   |
-| `metadata`      | The JSONB half — see the two schemas below          | Required.                                                            |
-| `parentId`      | The editorial tree; null is top level               | Optional. A child's slug must be its parent's slug plus a segment.   |
-| `sortOrder`     | Order among siblings in the CMS tree                | Optional integer. Ties break on slug. Only meaningful with a parent. |
-| `crumb`         | Short label for breadcrumbs and index rows          | Optional. "GBA" for "Inflación de vivienda en el Gran Buenos Aires". |
+| Field           | Used for                                            | Rules                                                                         |
+| --------------- | --------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `section`       | Which section this belongs to                       | `guias`, `noticias`, `estadisticas` or `investigaciones`. Set at create only. |
+| `slug`          | **The URL.** `/guias/<slug>`                        | lowercase, hyphens, **no accents or ñ**. Set at create only.                  |
+| `title`         | `<h1>`, `<title>`, OG/Twitter, JSON-LD              | **≤60 chars**, or add `titleTag` — see below.                                 |
+| `titleTag`      | `<title>` only, when `title` is too long to be one  | ≤60, keyword first. Optional.                                                 |
+| `description`   | `<meta name="description">`, OG/Twitter             | ~150–160 chars. One sentence; this is the search snippet.                     |
+| `summary`       | Index cards, homepage, `llms.txt`                   | One short sentence (~90–120 chars). May differ from `description`.            |
+| `cta`           | The one-line CTA banner above the article           | **≤54 chars.** A hook, not a summary. See §7.                                 |
+| `canonicalSlug` | Points this page's canonical at another page's slug | Optional. The cannibalisation lever — see below.                              |
+| `body`          | The MDX body                                        | See §6. No frontmatter, no `<h1>`.                                            |
+| `metadata`      | The JSONB half — see the two schemas below          | Required.                                                                     |
+| `parentId`      | The editorial tree; null is top level               | Optional. A child's slug must be its parent's slug plus a segment.            |
+| `sortOrder`     | Order among siblings in the CMS tree                | Optional integer. Ties break on slug. Only meaningful with a parent.          |
+| `crumb`         | Short label for breadcrumbs and index rows          | Optional. "GBA" for "Inflación de vivienda en el Gran Buenos Aires".          |
 
 **Slugs are set once.** Changing one changes the URL and breaks every inbound
 link; the CMS will let you, and you should not without being asked.

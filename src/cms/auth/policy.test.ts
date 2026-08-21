@@ -7,10 +7,16 @@ import {
   resolveCmsAccess,
 } from "./policy";
 
-const admin: CmsActor = { userId: "u1", email: "a@example.com", role: "admin" };
+const admin: CmsActor = {
+  userId: "u1",
+  email: "a@example.com",
+  name: "Ada",
+  role: "admin",
+};
 const editor: CmsActor = {
   userId: "u2",
   email: "e@example.com",
+  name: "Eve",
   role: "editor",
 };
 
@@ -48,10 +54,10 @@ describe("resolveCmsAccess", () => {
     });
   });
 
-  it("admits an editor with their role and email", () => {
+  it("admits an editor with their role, name and email", () => {
     expect(
       resolveCmsAccess(
-        { id: "u2", email: "e@example.com" },
+        { id: "u2", email: "e@example.com", name: "Eve" },
         { role: "editor" },
       ),
     ).toEqual({ kind: "member", actor: editor });
@@ -59,18 +65,23 @@ describe("resolveCmsAccess", () => {
 
   it("admits an admin", () => {
     expect(
-      resolveCmsAccess({ id: "u1", email: "a@example.com" }, { role: "admin" }),
+      resolveCmsAccess(
+        { id: "u1", email: "a@example.com", name: "Ada" },
+        { role: "admin" },
+      ),
     ).toEqual({ kind: "member", actor: admin });
   });
 
-  it("normalizes a missing session email to null", () => {
-    // A Google account always has one; an account created some other way may
-    // not. `CmsActor.email` is display-only, so absent must not become
-    // `undefined` and leak into a template as "undefined".
+  it("normalizes a missing session email and name to null", () => {
+    // A Google account always has both; an account created some other way may
+    // have neither. `CmsActor.email` and `.name` are display-only, so absent
+    // must not become `undefined` and leak into a template as "undefined" —
+    // the CMS header falls back email-then-user-id on `null`, not on
+    // `undefined`.
     const access = resolveCmsAccess({ id: "u3" }, { role: "editor" });
     expect(access).toEqual({
       kind: "member",
-      actor: { userId: "u3", email: null, role: "editor" },
+      actor: { userId: "u3", email: null, name: null, role: "editor" },
     });
   });
 });

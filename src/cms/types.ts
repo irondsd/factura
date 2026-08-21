@@ -12,6 +12,7 @@ export type CmsRole = "admin" | "editor";
 export type CmsActor = {
   userId: string;
   email: string | null;
+  name: string | null;
   role: CmsRole;
   /** How this actor reached the CMS. Absent means the browser — a person
    * signed in — and `mcp` means an agent holding one of their tokens. The user

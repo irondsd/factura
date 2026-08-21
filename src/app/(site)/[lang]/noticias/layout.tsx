@@ -9,5 +9,9 @@ export default async function NoticiasLayout({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
-  return <ContentChrome active={noticias.base} lang={lang}>{children}</ContentChrome>;
+  return (
+    <ContentChrome active={noticias.base} lang={lang}>
+      {children}
+    </ContentChrome>
+  );
 }

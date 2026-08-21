@@ -66,9 +66,14 @@ export function CmsShell({
               </Link>
             ))}
           </nav>
-          <span className="ml-auto font-mono text-micro uppercase tracking-label-wide text-muted">
-            {actor.email ?? actor.userId} · {actor.role}
-          </span>
+          <div className="ml-auto flex flex-col gap-0">
+            <span className="ml-auto text-micro uppercase tracking-label-wide text-muted">
+              {actor.name || actor.email || actor.userId}
+            </span>
+            <span className="ml-auto text-micro uppercase tracking-label-wide text-accent">
+              {actor.role}
+            </span>
+          </div>
         </div>
       </header>
 

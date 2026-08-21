@@ -13,7 +13,11 @@ import type { CmsAccess, CmsActor, CmsRole } from "../types";
 /** The identity half of a request, as far as the CMS cares. `null` is an
  * anonymous visitor. Shaped so an Auth.js session maps onto it directly but
  * nothing here depends on Auth.js. */
-export type CmsSessionUser = { id: string; email?: string | null } | null;
+export type CmsSessionUser = {
+  id: string;
+  email?: string | null;
+  name?: string | null;
+} | null;
 
 /** The `cms_member` row for that user, or `null` when they have none — which
  * covers both "never was a member" and "was one and the row was deleted".
@@ -39,6 +43,7 @@ export function resolveCmsAccess(
     actor: {
       userId: user.id,
       email: user.email ?? null,
+      name: user.name ?? null,
       role: membership.role,
     },
   };
