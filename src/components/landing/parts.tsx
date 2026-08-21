@@ -28,7 +28,10 @@ export const NEW_TAB = { target: "_blank", rel: "noopener" } as const;
 export const NAV_LINK =
   "font-mono text-micro uppercase tracking-[0.16em] text-muted no-underline whitespace-nowrap transition-colors hover:text-accent";
 
-export function Wordmark({ size = 34 }: { size?: number }) {
+// `size` is a raw CSS font-size, so the landing hero can hand it a `clamp()`
+// that scales the wordmark with the viewport while every other placement keeps
+// passing a fixed pixel number.
+export function Wordmark({ size = 34 }: { size?: number | string }) {
   return (
     <span
       className="font-display font-semibold tracking-tight text-ink leading-none"

@@ -105,12 +105,14 @@ export async function LedgerPeek({
             className="relative w-[124px] h-[124px] rounded-full flex-none"
             style={{ background: donutRing }}
           >
-            <div className="absolute inset-[22px] rounded-full bg-card flex flex-col items-center justify-center">
+            {/* Currency alone in the hole. The app's own donut labels itself
+                "por proveedor" underneath, but this ring is drawn at the
+                landing page's smaller scale, where that line runs into the
+                ring on both sides — and the heading over it already says
+                where the money goes. */}
+            <div className="absolute inset-[22px] rounded-full bg-card flex items-center justify-center">
               <span className="font-display font-semibold text-[19px] tracking-[-0.01em]">
                 AR$
-              </span>
-              <span className="font-mono text-[8.5px] tracking-[0.16em] text-muted uppercase mt-0.5">
-                {t.peek.byVendor}
               </span>
             </div>
           </div>

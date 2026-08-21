@@ -113,55 +113,51 @@
   "landing": {
     "hero": {
       "eyebrow": "A bill ledger for the home",
-      "title": "Drop a bill,\nget a ledger.",
-      "body": "Drag a utility-bill PDF onto the page. Factura reads it, files the amount and period, and keeps a running ledger of every peso — electricity, gas, internet, expensas. Stored securely, and yours alone.",
+      "title": "Do you know what your home really costs you?",
+      "body": "Upload your bills as PDFs and turn what you spend into a history you can actually read.",
       "cta": "Get started",
+      "ctaSecondary": "See how it works",
       "trust": "Stored securely · re-parsed anytime"
     },
     "howItWorks": "How it works",
     "steps": [
       {
-        "title": "Drop the PDF",
-        "body": "Drag any bill onto the page. Factura pulls out the text and keeps the original PDF safe in storage — ready to re-parse later."
+        "title": "Upload your bills",
+        "body": "Drop in your PDFs. There is no form to fill in."
       },
       {
-        "title": "We read it",
-        "body": "Vendor-specific parsers find the amount, the billing period, and the meter reading. A glance to confirm, never a form to fill."
+        "title": "We pull out the data",
+        "body": "Amounts, usage, billing periods and more, read automatically."
       },
       {
-        "title": "Watch it move",
-        "body": "Totals roll up per property and month. Missing bills get flagged, and insights show where the money goes over time."
+        "title": "Track what you spend",
+        "body": "We file your bills by property and by month, so the numbers turn into something you can use."
       }
     ],
     "peekInside": "A peek inside",
     "peekCaption": "Palermo · June 2026 so far · 3 of 4 bills in, one awaiting.",
-    "whatItDoes": "What it does",
-    "features": [
-      {
-        "label": "Per property, per month",
-        "body": "Totals roll up by apartment and by month, with a USD blue-rate estimate alongside the pesos."
-      },
-      {
-        "label": "Missing-bill radar",
-        "body": "Factura knows what usually arrives. When MetroGAS is late for June, you'll see △ awaiting — not a gap."
-      },
-      {
-        "label": "Insights that read plainly",
-        "body": "Stacked spend, vendor share, per-vendor trend, and an inflation lens — pesos vs. the dollar cost, side by side."
-      },
-      {
-        "label": "Stored securely",
-        "body": "Every PDF is kept safe and can be re-parsed straight from storage when a parser gets smarter. The data stays yours."
-      },
-      {
-        "label": "Built for Argentina",
-        "body": "Edesur, MetroGAS, Personal and Expensas come ready out of the box. Add your own accounts in a click."
-      },
-      {
-        "label": "Reads like a receipt",
-        "body": "No dashboards screaming for attention. Just a calm page that totals up like an honest slip of paper."
-      }
+    "drivers": {
+      "label": "What moves your bills",
+      "items": [
+        "Usage",
+        "Tariffs",
+        "Inflation",
+        "Billing period",
+        "Vendor",
+        "Market data"
+      ]
+    },
+    "promises": [
+      "One property free forever",
+      "Unlimited bills",
+      "Instant analysis",
+      "Personal data protected",
+      "Built for Argentina"
     ],
+    "editorial": {
+      "title": "Explore our data and analysis",
+      "body": "Statistics, research and guides to make better sense of your spending and the Argentine market."
+    },
     "closingTitle": "Start your ledger."
   },
   "trustBlock": {
@@ -201,7 +197,6 @@
     "billsIn": "3 of 4 bills in",
     "awaiting": "1 awaiting",
     "whereMoneyGoes": "Where the money goes",
-    "byVendor": "by vendor",
     "totalSpend": "Total spend over time",
     "stackedByVendor": "Stacked by vendor"
   },
@@ -1381,11 +1376,26 @@
     "formIntro": "Tell us what you need. Leave your email and we'll reply there.",
     "topicLabel": "Topic",
     "topics": [
-      { "id": "support", "label": "Support" },
-      { "id": "bill", "label": "A bill that was read wrong" },
-      { "id": "privacy", "label": "Privacy and data" },
-      { "id": "idea", "label": "Idea or suggestion" },
-      { "id": "other", "label": "Something else" }
+      {
+        "id": "support",
+        "label": "Support"
+      },
+      {
+        "id": "bill",
+        "label": "A bill that was read wrong"
+      },
+      {
+        "id": "privacy",
+        "label": "Privacy and data"
+      },
+      {
+        "id": "idea",
+        "label": "Idea or suggestion"
+      },
+      {
+        "id": "other",
+        "label": "Something else"
+      }
     ],
     "nameLabel": "Name (optional)",
     "namePlaceholder": "What to call you",

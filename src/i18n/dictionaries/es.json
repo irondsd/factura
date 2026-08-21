@@ -113,55 +113,51 @@
   "landing": {
     "hero": {
       "eyebrow": "Un registro de facturas para el hogar",
-      "title": "Subí una factura,\nobtené tu registro.",
-      "body": "Arrastrá el PDF de una factura a la página. Factura lo lee, anota el monto y el período, y mantiene un registro al día de cada peso: luz, gas, internet, expensas. Guardado de forma segura, y solo tuyo.",
+      "title": "¿Sabés cuánto te cuesta realmente mantener tu propiedad?",
+      "body": "Subí tus facturas en PDF y convertí tus gastos en un historial que podés entender.",
       "cta": "Comenzar",
+      "ctaSecondary": "Ver cómo funciona",
       "trust": "Guardado de forma segura · reprocesable cuando quieras"
     },
     "howItWorks": "Cómo funciona",
     "steps": [
       {
-        "title": "Soltá el PDF",
-        "body": "Arrastrá cualquier factura a la página. Factura extrae el texto y guarda el PDF original a salvo en el almacenamiento, listo para reprocesar más adelante."
+        "title": "Subí tus facturas",
+        "body": "Cargá tus PDFs. No necesitás completar formularios."
       },
       {
-        "title": "Lo leemos",
-        "body": "Los analizadores propios de cada proveedor encuentran el monto, el período de facturación y la lectura del medidor. Un vistazo para confirmar, nunca un formulario para completar."
+        "title": "Extraemos los datos",
+        "body": "Identificamos automáticamente importes, consumo, períodos y más."
       },
       {
-        "title": "Mirá cómo avanza",
-        "body": "Los totales se agrupan por propiedad y por mes. Las facturas que faltan se marcan, y los análisis muestran a dónde va el dinero con el tiempo."
+        "title": "Analizá tus gastos",
+        "body": "Organizamos tus facturas por propiedad y por mes para convertir tus datos en información útil."
       }
     ],
     "peekInside": "Un vistazo por dentro",
     "peekCaption": "Palermo · junio de 2026 hasta ahora · 3 de 4 facturas cargadas, una pendiente.",
-    "whatItDoes": "Qué hace",
-    "features": [
-      {
-        "label": "Por propiedad, por mes",
-        "body": "Los totales se agrupan por departamento y por mes, con una estimación en dólares al blue junto a los pesos."
-      },
-      {
-        "label": "Radar de facturas faltantes",
-        "body": "Factura sabe lo que suele llegar. Cuando MetroGAS se demora en junio, vas a ver △ pendiente, no un vacío."
-      },
-      {
-        "label": "Análisis fáciles de leer",
-        "body": "Gasto apilado, participación por proveedor, tendencia por proveedor y una mirada a la inflación: los pesos frente al costo en dólares, lado a lado."
-      },
-      {
-        "label": "Guardado de forma segura",
-        "body": "Cada PDF se conserva a salvo y puede reprocesarse directamente desde el almacenamiento cuando un analizador mejora. Los datos siguen siendo tuyos."
-      },
-      {
-        "label": "Hecho para Argentina",
-        "body": "Edesur, MetroGAS, Personal y Expensas vienen listos de fábrica. Agregá tus propias cuentas con un clic."
-      },
-      {
-        "label": "Se lee como un recibo",
-        "body": "Sin tableros que griten por atención. Solo una página tranquila que suma como un honesto recibo de papel."
-      }
+    "drivers": {
+      "label": "Qué influye en tus gastos",
+      "items": [
+        "Consumo",
+        "Tarifas",
+        "Inflación",
+        "Período",
+        "Proveedor",
+        "Datos del mercado"
+      ]
+    },
+    "promises": [
+      "Una propiedad gratis para siempre",
+      "Facturas ilimitadas",
+      "Análisis inmediato",
+      "Datos personales protegidos",
+      "Hecho para Argentina"
     ],
+    "editorial": {
+      "title": "Explorá nuestros datos y análisis",
+      "body": "Estadísticas, investigaciones y guías para entender mejor tus gastos y el mercado argentino."
+    },
     "closingTitle": "Empezá tu registro."
   },
   "trustBlock": {
@@ -201,7 +197,6 @@
     "billsIn": "3 de 4 facturas cargadas",
     "awaiting": "1 pendiente",
     "whereMoneyGoes": "A dónde va el dinero",
-    "byVendor": "por proveedor",
     "totalSpend": "Gasto total en el tiempo",
     "stackedByVendor": "Apilado por proveedor"
   },
@@ -1381,11 +1376,26 @@
     "formIntro": "Contanos qué necesitás. Si dejás tu correo, te respondemos ahí.",
     "topicLabel": "Tema",
     "topics": [
-      { "id": "support", "label": "Soporte" },
-      { "id": "bill", "label": "Una factura que se leyó mal" },
-      { "id": "privacy", "label": "Privacidad y datos" },
-      { "id": "idea", "label": "Idea o sugerencia" },
-      { "id": "other", "label": "Otro" }
+      {
+        "id": "support",
+        "label": "Soporte"
+      },
+      {
+        "id": "bill",
+        "label": "Una factura que se leyó mal"
+      },
+      {
+        "id": "privacy",
+        "label": "Privacidad y datos"
+      },
+      {
+        "id": "idea",
+        "label": "Idea o sugerencia"
+      },
+      {
+        "id": "other",
+        "label": "Otro"
+      }
     ],
     "nameLabel": "Nombre (opcional)",
     "namePlaceholder": "Cómo te llamamos",
