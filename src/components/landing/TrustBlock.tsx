@@ -21,13 +21,23 @@ import { cn } from "@/lib/cn";
 // The three are one layout with two things swapped: the grid template on the
 // list, and the grid template inside each entry.
 
-// One typographic mark per entry, taken from the character set a printed bill
-// already carries: numero, plus-minus, currency, tilde, almost-equal. They read
-// as ledger notation rather than as an icon set, which is also why they live
-// here and not in the dictionaries — they say nothing a translator could
+// One typographic mark per entry, each standing for what that entry does:
+// pilcrow for the text we lift off the bill, guillemet for the jump forward
+// into next month, percent for the market statistics, tilde for the shape of a
+// trend, plus-minus for how far a cost moves once inflation is counted. They
+// read as ledger notation rather than as an icon set, which is also why they
+// live here and not in the dictionaries — they say nothing a translator could
 // change. Indexed by position, so an entry added to the dictionaries simply
 // arrives unmarked until a glyph is picked for it.
-const GLYPHS = ["№", "±", "¤", "~", "≈"];
+//
+// Every glyph must exist in the *latin subset* of IBM Plex Mono, which is all
+// `src/config/fonts.ts` loads — the same constraint the burger menu's markers
+// carry, and the reason the obvious picks are not here. `≈` and `→` are both
+// missing from it (`↓` and `↑` are not), so they render in whatever the system
+// falls back to, at the wrong weight and width. Measure a replacement before
+// using it: in a monospace font a covered glyph has exactly the advance width
+// of `M`, and a fallback almost never does.
+const GLYPHS = ["¶", "»", "%", "~", "±"];
 
 // Divider between entries. The 70%-of-line hairline is the landing page's own
 // rule weight, one step softer than a --line border, so the entries read as
@@ -102,26 +112,29 @@ export async function TrustBlock({
                 i !== last && RULE_AFTER,
               )}
             >
-              {/* Number and mark on one line at opposite ends. In the stacked
-                  and strip tiers that line is the entry's full width; in the
-                  ledger tier it is the number column, and the mark closes it
-                  against the heading like a mark made in a margin. Tops
-                  aligned, not baselines: the mark is set large enough that a
-                  shared baseline would drop the number visibly off the line. */}
-              <div className="flex items-start justify-between gap-3">
-                <span className="font-mono text-micro tracking-label text-accent">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
+              {/* The entry's number, alone on its line. In the stacked and
+                  strip tiers that line is the entry's full width; in the
+                  ledger tier it is the number column, sitting on the
+                  heading's baseline beside it. */}
+              <span className="font-mono text-micro tracking-label text-accent">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <h3 className="font-display font-semibold text-[17px] @lg:text-[19px] leading-[1.2] tracking-tight text-ink text-pretty m-0">
+                {/* The mark opens the heading rather than hanging off the far
+                    end of the number's line, so it is read as belonging to the
+                    words it introduces. It keeps the mono face, the regular
+                    weight and the muted ink while the heading is display,
+                    semibold and full-strength — three differences at once, so
+                    it reads as a mark placed before the title and never as its
+                    first character. */}
                 {GLYPHS[i] && (
                   <span
                     aria-hidden="true"
-                    className="font-mono text-[19px] @4xl:text-[21px] leading-none text-muted"
+                    className="font-mono font-normal text-[0.9em] text-muted mr-[0.5em]"
                   >
                     {GLYPHS[i]}
                   </span>
                 )}
-              </div>
-              <h3 className="font-display font-semibold text-[17px] @lg:text-[19px] leading-[1.2] tracking-tight text-ink text-pretty m-0">
                 {item.title}
               </h3>
               <p className="font-mono text-[12.5px] @lg:text-[13px] @4xl:text-[12.5px] leading-[1.65] text-muted text-pretty m-0">

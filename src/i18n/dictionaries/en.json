@@ -164,16 +164,16 @@
     "title": "What we do with every bill",
     "items": [
       {
-        "title": "We read your bills instantly",
-        "body": "Amounts, consumption, billing periods and more."
+        "title": "We extract and analyse the data on your bills",
+        "body": "Amounts, consumption, billing periods, vendor and more."
       },
       {
         "title": "We project your next expenses",
-        "body": "We forecast what's coming from your own billing history."
+        "body": "We estimate what you'll spend next from your own history."
       },
       {
         "title": "We track the market",
-        "body": "Prices, running costs and liquidity by neighbourhood."
+        "body": "Compare your bills against official statistics, prices and market data."
       },
       {
         "title": "We spot the trends",
@@ -181,7 +181,7 @@
       },
       {
         "title": "We measure the real cost",
-        "body": "In pesos and dollars, so you can see what inflation is doing."
+        "body": "See how much your spending shifts in pesos and dollars once inflation is counted."
       }
     ]
   },

@@ -164,16 +164,16 @@
     "title": "Lo que hacemos con cada factura",
     "items": [
       {
-        "title": "Analizamos tus facturas al instante",
-        "body": "Importes, consumo y períodos y más."
+        "title": "Extraemos y analizamos los datos de tus facturas",
+        "body": "Importes, consumo, períodos, proveedor y más."
       },
       {
         "title": "Proyectamos tus próximos gastos",
-        "body": "Proyectamos tus gastos futuros con tus datos históricos."
+        "body": "Estimamos tus gastos futuros a partir de tu historial."
       },
       {
         "title": "Analizamos el mercado",
-        "body": "Precios, gastos y liquidez por barrio."
+        "body": "Compará tus facturas con estadísticas oficiales, precios y datos del mercado."
       },
       {
         "title": "Detectamos tendencias",
@@ -181,7 +181,7 @@
       },
       {
         "title": "Medimos el costo real",
-        "body": "En pesos y dólares, para entender el efecto de la inflación."
+        "body": "Entendé cuánto cambian tus gastos en pesos y dólares con la inflación."
       }
     ]
   },
