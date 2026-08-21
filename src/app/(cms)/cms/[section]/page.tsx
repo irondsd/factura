@@ -5,6 +5,7 @@ import { requireCmsMember } from "@/cms/auth/requireCmsMember";
 import { ContentList } from "@/cms/components/ContentList";
 import { CmsShell } from "@/cms/components/CmsShell";
 import { ListFilters } from "@/cms/components/ListFilters";
+import { parseCmsListQuery } from "@/cms/listQuery";
 import { cmsPageMetadata } from "@/cms/metadata";
 import {
   cmsNewPath,
@@ -12,12 +13,9 @@ import {
   findEditableSection,
   publicSectionPath,
 } from "@/cms/sections";
+import { cmsPageHistoryStore } from "@/cms/server/historyStore";
 import { cmsPageStore } from "@/cms/server/store";
-import {
-  CONTENT_STATUSES,
-  type ContentStatus,
-  isContentStatus,
-} from "@/content-system/types";
+import { CONTENT_STATUSES, type ContentStatus } from "@/content-system/types";
 
 // One section's content list. A thin route adapter: resolve the actor, resolve
 // the section, read through the store, hand off to `src/cms/components`.
@@ -25,7 +23,12 @@ export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ section: string }>;
-  searchParams: Promise<{ estado?: string; q?: string }>;
+  searchParams: Promise<{
+    estado?: string;
+    q?: string;
+    orden?: string;
+    dir?: string;
+  }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -43,9 +46,8 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
   const section = findEditableSection(segment);
   if (!section) notFound();
 
-  const { estado, q } = await searchParams;
-  const status = estado && isContentStatus(estado) ? estado : undefined;
-  const search = q?.trim() || undefined;
+  const query = parseCmsListQuery(await searchParams);
+  const { status, search } = query;
 
   // Counts come from the unfiltered set so the tabs keep saying how many pages
   // are in each state while you are looking at one of them.
@@ -55,6 +57,14 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
   const counts = Object.fromEntries(
     CONTENT_STATUSES.map((s) => [s, all.filter((p) => p.status === s).length]),
   ) as Record<ContentStatus, number>;
+
+  // One lookup for the whole list: the two author columns across every visible
+  // row usually name a handful of accounts, and `actorsById` de-duplicates.
+  const actors = await cmsPageHistoryStore.actorsById(
+    pages.flatMap((page) =>
+      [page.createdBy, page.updatedBy].filter((id): id is string => !!id),
+    ),
+  );
 
   return (
     <CmsShell actor={actor}>
@@ -80,7 +90,7 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
 
       <ListFilters
         basePath={cmsSectionPath(section.id)}
-        state={{ status, search }}
+        query={query}
         counts={counts}
         total={all.length}
       />
@@ -88,6 +98,9 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
       <ContentList
         section={section}
         pages={pages}
+        actors={actors}
+        basePath={cmsSectionPath(section.id)}
+        query={query}
         emptyMessage={
           search || status
             ? "Ninguna página coincide con este filtro."

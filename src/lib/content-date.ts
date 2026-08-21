@@ -40,3 +40,19 @@ export const formatContentDateShort = (iso: string): string =>
     .filter((part) => part.type !== "literal")
     .map((part) => part.value)
     .join(" ");
+
+const TIME_SHORT = new Intl.DateTimeFormat("es-AR", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "America/Argentina/Buenos_Aires",
+});
+
+/** "29 jun 2026 09:00" — the compact stamp for a table column, where the long
+ * form ("29 de junio de 2026 a las 09:00") wraps to two lines and takes the row
+ * with it. Date and time are formatted separately because the combined es-AR
+ * pattern glues them with " a las ", which is most of the width again. */
+export const formatContentDateTimeShort = (iso: string): string => {
+  const at = new Date(iso);
+  return `${formatContentDateShort(iso)} ${TIME_SHORT.format(at)}`;
+};

@@ -1,7 +1,16 @@
 import Link from "next/link";
 import type { ContentSummary } from "@/content-system/types";
-import { buildContentTree, depthOf } from "@/content-system/hierarchy";
-import { formatContentDateTime } from "@/lib/content-date";
+import { depthOf } from "@/content-system/hierarchy";
+import { cn } from "@/lib/cn";
+import { formatContentDateTimeShort } from "@/lib/content-date";
+import { actorLabel, type HistoryActor } from "../history";
+import {
+  cmsListHref,
+  type CmsListQuery,
+  type CmsSortColumn,
+  sortedContentRows,
+  toggleSort,
+} from "../listQuery";
 import type { CmsSection } from "../sections";
 import { cmsEditPath, publicSectionPath } from "../sections";
 import { StatusChip } from "./StatusChip";
@@ -15,10 +24,17 @@ import { StatusChip } from "./StatusChip";
 export function ContentList({
   section,
   pages,
+  actors,
+  basePath,
+  query,
   emptyMessage,
 }: {
   section: CmsSection;
   pages: readonly ContentSummary[];
+  /** The accounts behind `createdBy`/`updatedBy`, resolved by the route. */
+  actors: ReadonlyMap<string, HistoryActor>;
+  basePath: string;
+  query: CmsListQuery;
   emptyMessage: string;
 }) {
   if (pages.length === 0) {
@@ -29,10 +45,23 @@ export function ContentList({
     );
   }
 
-  // The tree is built from whatever survived the filters. A child whose parent
-  // was filtered out still shows, at its own depth — losing it silently would
-  // be worse than showing it out of context.
-  const ordered = flatten(buildContentTree([...pages]));
+  // The tree is built from whatever survived the filters, then ordered by the
+  // sorted column. A child whose parent was filtered out still shows, at its
+  // own depth — losing it silently would be worse than showing it out of
+  // context.
+  const ordered = sortedContentRows(pages, query.sort);
+
+  const sortHeader = (column: CmsSortColumn, label: string) => (
+    <SortableTh
+      href={cmsListHref(basePath, {
+        ...query,
+        sort: toggleSort(query.sort, column),
+      })}
+      label={label}
+      active={query.sort.column === column}
+      direction={query.sort.direction}
+    />
+  );
 
   return (
     <table className="w-full border-collapse font-mono text-[13px]">
@@ -40,7 +69,8 @@ export function ContentList({
         <tr>
           <Th>Página</Th>
           <Th className="w-[130px]">Estado</Th>
-          <Th className="w-[170px] hidden md:table-cell">Última edición</Th>
+          {sortHeader("creada", "Creada")}
+          {sortHeader("editada", "Última edición")}
         </tr>
       </thead>
       <tbody>
@@ -78,13 +108,49 @@ export function ContentList({
             <td className="py-3 pr-4 align-top">
               <StatusChip status={page.status} />
             </td>
-            <td className="py-3 align-top text-muted hidden md:table-cell">
-              {formatContentDateTime(page.updatedAt)}
-            </td>
+            <Stamp at={page.createdAt} by={page.createdBy} actors={actors} />
+            <Stamp
+              at={page.updatedAt}
+              by={page.updatedBy}
+              actors={actors}
+              last
+            />
           </tr>
         ))}
       </tbody>
     </table>
+  );
+}
+
+/** One timestamp cell: when, on one line, and who underneath it. The short
+ * date is what buys the second line — the long form already filled two. */
+function Stamp({
+  at,
+  by,
+  actors,
+  last,
+}: {
+  at: string;
+  by: string | null;
+  actors: ReadonlyMap<string, HistoryActor>;
+  last?: boolean;
+}) {
+  return (
+    <td
+      className={cn(
+        "py-3 align-top text-muted hidden md:table-cell whitespace-nowrap",
+        !last && "pr-4",
+      )}
+    >
+      {formatContentDateTimeShort(at)}
+      {/* No id means the column was never written — nothing is known about who,
+          which is not the same claim as an account having been deleted. */}
+      {by && (
+        <span className="block text-[12px] mt-0.5 opacity-80">
+          {actorLabel(actors.get(by) ?? null)}
+        </span>
+      )}
+    </td>
   );
 }
 
@@ -104,8 +170,40 @@ function Th({
   );
 }
 
-type TreeNode = { page: ContentSummary; children: TreeNode[] };
-
-function flatten(nodes: TreeNode[]): ContentSummary[] {
-  return nodes.flatMap((node) => [node.page, ...flatten(node.children)]);
+/** A header that is a link, not a button: sorting is URL state, so it works
+ * without JavaScript and the sorted view can be shared. */
+function SortableTh({
+  href,
+  label,
+  active,
+  direction,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+  direction: "asc" | "desc";
+}) {
+  return (
+    <th
+      aria-sort={
+        active ? (direction === "asc" ? "ascending" : "descending") : undefined
+      }
+      className="w-[170px] text-left font-medium uppercase text-micro tracking-label-wide text-muted border-b border-line py-2 pr-4 hidden md:table-cell whitespace-nowrap"
+    >
+      <Link
+        href={href}
+        className={cn(
+          "inline-flex items-center gap-1.5 no-underline transition-colors hover:text-accent",
+          active ? "text-ink" : "text-muted",
+        )}
+      >
+        {label}
+        {/* The inactive arrow is drawn too, at low contrast: a column that only
+            shows it once sorted gives no hint that it can be. */}
+        <span aria-hidden="true" className={cn(!active && "opacity-30")}>
+          {active && direction === "asc" ? "↑" : "↓"}
+        </span>
+      </Link>
+    </th>
+  );
 }

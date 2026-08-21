@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CONTENT_STATUSES, type ContentStatus } from "@/content-system/types";
 import { cn } from "@/lib/cn";
+import { cmsListHref, type CmsListQuery, isDefaultSort } from "../listQuery";
 import { statusLabel } from "./StatusChip";
 
 // Status filter and search, driven by the URL rather than client state.
@@ -9,41 +10,37 @@ import { statusLabel } from "./StatusChip";
 // you"), the server does the filtering in the query it was already running, and
 // there is no state to get out of step with what is on screen.
 
-export type ListFilterState = { status?: ContentStatus; search?: string };
-
 export function ListFilters({
   basePath,
-  state,
+  query,
   counts,
   total,
 }: {
   basePath: string;
-  state: ListFilterState;
+  query: CmsListQuery;
   counts: Record<ContentStatus, number>;
   total: number;
 }) {
-  const href = (next: ListFilterState) => {
-    const params = new URLSearchParams();
-    if (next.status) params.set("estado", next.status);
-    if (next.search) params.set("q", next.search);
-    const query = params.toString();
-    return query ? `${basePath}?${query}` : basePath;
-  };
+  // Changing the filter keeps the column sort — they are two independent
+  // choices about the same list, and clearing one by touching the other is the
+  // kind of thing you only notice after re-sorting for the third time.
+  const href = (status?: ContentStatus) =>
+    cmsListHref(basePath, { ...query, status });
 
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mb-6">
       <nav className="flex flex-wrap items-center gap-1">
         <FilterLink
-          href={href({ search: state.search })}
-          active={!state.status}
+          href={href()}
+          active={!query.status}
           label="Todas"
           count={total}
         />
         {CONTENT_STATUSES.map((status) => (
           <FilterLink
             key={status}
-            href={href({ status, search: state.search })}
-            active={state.status === status}
+            href={href(status)}
+            active={query.status === status}
             label={statusLabel(status)}
             count={counts[status]}
           />
@@ -52,8 +49,16 @@ export function ListFilters({
 
       {/* A plain GET form: no JavaScript, and the result is a URL. */}
       <form action={basePath} method="get" className="flex items-center gap-2">
-        {state.status && (
-          <input type="hidden" name="estado" value={state.status} />
+        {query.status && (
+          <input type="hidden" name="estado" value={query.status} />
+        )}
+        {/* The sort survives a search for the same reason it survives a filter
+            change, and a GET form carries nothing it is not told to. */}
+        {!isDefaultSort(query.sort) && (
+          <>
+            <input type="hidden" name="orden" value={query.sort.column} />
+            <input type="hidden" name="dir" value={query.sort.direction} />
+          </>
         )}
         <label htmlFor="cms-search" className="sr-only">
           Buscar por título o dirección
@@ -62,7 +67,7 @@ export function ListFilters({
           id="cms-search"
           type="search"
           name="q"
-          defaultValue={state.search ?? ""}
+          defaultValue={query.search ?? ""}
           placeholder="Buscar…"
           className="border border-line bg-paper px-3 py-1.5 font-mono text-[13px] text-ink placeholder:text-muted focus:border-accent focus:outline-none"
         />
