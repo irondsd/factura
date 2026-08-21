@@ -37,13 +37,17 @@ const LANDING: {
   { path: "/security", changeFrequency: "monthly", priority: 0.5 },
 ];
 
+// `lastModified` is only ever a real content date here, never the time the
+// sitemap happened to be generated. A file that stamps "modified just now" on
+// every fetch teaches Google that its `lastmod` is noise, and Google then
+// discounts the field for the whole sitemap — including the section pages
+// below, where the date is the entire point of listing them. A page with no
+// content timestamp of its own omits `lastModified` rather than inventing one;
+// an absent date costs nothing, a false one costs the pages that tell the truth.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
-
   const landing: MetadataRoute.Sitemap = LANDING.map(
     ({ path, changeFrequency, priority }) => ({
       url: localeUrl(path, "es"),
-      lastModified: now,
       changeFrequency,
       priority,
       alternates: {
@@ -62,9 +66,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     nonEmptyCategories(),
   ]);
   const guidesEntries: MetadataRoute.Sitemap = [
+    // A listing page's date is the newest thing it lists — same rule as the
+    // category hubs below, applied across every guide instead of one category.
     {
       url: guidesIndexUrl,
-      lastModified: now,
+      lastModified: guides.length
+        ? new Date(
+            Math.max(...guides.map((g) => Date.parse(g.contentUpdatedAt))),
+          )
+        : undefined,
       changeFrequency: "weekly",
       priority: 0.7,
     },
@@ -122,7 +132,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
               ? new Date(
                   Math.max(...pages.map((p) => Date.parse(p.meta.updated))),
                 )
-              : now,
+              : undefined,
             changeFrequency: "monthly" as const,
             priority: 0.8,
           },
@@ -137,13 +147,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     )
   ).flat();
 
-  // Spanish-only like the guides, so no hreflang alternates. `now` rather than
-  // a content date: the registry has no per-norm timestamp, and what changes on
-  // this page is a status flipping, which is a redeploy either way.
+  // Spanish-only like the guides, so no hreflang alternates. No `lastModified`
+  // at all: the registry has no per-norm timestamp, and what changes on this
+  // page is a status flipping, which is a redeploy either way.
   const normativa: MetadataRoute.Sitemap = [
     {
       url: normativaUrl,
-      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.7,
     },
