@@ -49,24 +49,6 @@ export class PostgresContentRepository implements ContentRepository {
     return this.list(section, [...listableStatuses("public")]);
   }
 
-  /** Whether this section has been migrated into the CMS at all — any row, in
-   * any state.
-   *
-   * Not a content read, and deliberately not part of the `ContentRepository`
-   * contract: it answers a question that only exists during the migration
-   * window, namely whether the filesystem registry is still this section's
-   * source of truth. It has to count every state, because "every page in the
-   * section is currently a draft" is a real editorial answer and must not be
-   * mistaken for "not migrated yet" — which would republish all of them from
-   * disk. */
-  async hasContent(section: ContentSection): Promise<boolean> {
-    const row = await this.db.query.cmsPages.findFirst({
-      where: eq(cmsPages.section, section),
-      columns: { id: true },
-    });
-    return row !== undefined;
-  }
-
   async listPubliclyRenderable(
     section: ContentSection,
   ): Promise<ContentSummary[]> {
