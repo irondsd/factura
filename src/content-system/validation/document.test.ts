@@ -164,6 +164,31 @@ describe("statistics and research documents", () => {
     expect(notPlaced?.severity).toBe("warning");
   });
 
+  it("accepts a dataset that names its own licence, and only as a URL", () => {
+    // Absent on nearly every page — the site-wide licence covers them — so the
+    // key has to stay optional, and a typo in the rare page that sets it has to
+    // be caught rather than shipped into the markup.
+    const licensed = dataPage();
+    licensed.metadata = {
+      ...licensed.metadata,
+      dataset: {
+        ...(licensed.metadata as { dataset: object }).dataset,
+        license: "https://creativecommons.org/publicdomain/zero/1.0/",
+      },
+    } as ContentDocument["metadata"];
+    expect(validateDocument(licensed).diagnostics).toEqual([]);
+
+    const broken = dataPage();
+    broken.metadata = {
+      ...broken.metadata,
+      dataset: {
+        ...(broken.metadata as { dataset: object }).dataset,
+        license: "CC BY 4.0",
+      },
+    } as ContentDocument["metadata"];
+    expect(codesOf(broken)).toContain(DOCUMENT_CODES.metadataShape);
+  });
+
   it("does not call valid Fuentes missing when only the dataset is incomplete", () => {
     const document = dataPage();
     document.metadata = {

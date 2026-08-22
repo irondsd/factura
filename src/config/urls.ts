@@ -24,3 +24,17 @@ export const contactEmail = {
   privacy: "privacy@factura.uno",
   security: "security@factura.uno",
 } as const;
+
+/** Terms the compiled tables on /estadisticas and /investigaciones are offered
+ * under, named for both the `Dataset` markup and the sources block that a
+ * reader sees.
+ *
+ * What is licensed here is Factura's work: the series as this site compiles,
+ * converts, joins and ranks them. The underlying official figures are facts and
+ * stay their producers' — `creator` in the markup and `<Fuentes />` on the page
+ * name them, and their own terms are theirs to state. A page whose numbers
+ * travel under different terms overrides this with `dataset.license`. */
+export const dataLicense = {
+  url: "https://creativecommons.org/licenses/by/4.0/",
+  name: "CC BY 4.0",
+} as const;
