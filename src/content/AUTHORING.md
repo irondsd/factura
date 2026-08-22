@@ -409,7 +409,10 @@ registered family of maps, tables and charts built for those pages
 (`VentaCabaMapa`, `RentabilidadHistoria`, `DelitosPorZona`, `CostoPorZona`, and
 several dozen more). These are leaf components bound to their own datasets:
 write the bare tag, pass no props unless `definitions.ts` says the component
-takes them. Both sections share `<ClosingCta>` and `<Faq />` with guides.
+takes them. Guides may also use `<PaginaRelacionada>` when a statistics or
+research page is the relevant next read; its `href` must still start with
+`/estadisticas/` or `/investigaciones/`. Both sections share `<ClosingCta>` and
+`<Faq />` with guides.
 
 ### The closing shape
 

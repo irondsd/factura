@@ -113,6 +113,14 @@ describe("allowed components", () => {
     });
   }
 
+  it("accepts a related statistics card in a guide", () => {
+    const result = check(
+      '<PaginaRelacionada href="/estadisticas/escrituras-provincia-buenos-aires">\n\nLa serie completa.\n\n</PaginaRelacionada>\n',
+      "guias",
+    );
+    expect(result.diagnostics).toEqual([]);
+  });
+
   it("accepts a container with markdown children", () => {
     expect(
       check(

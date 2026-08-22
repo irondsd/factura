@@ -170,7 +170,9 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     description: "Renders direct CMS children of this hub page.",
   },
   PaginaRelacionada: {
-    sections: DATA_SECTIONS,
+    // Guides can point readers to a related statistics or research page too;
+    // the href schema below keeps the card from becoming a generic escape hatch.
+    sections: ["guias", ...DATA_SECTIONS],
     kind: "container",
     props: z
       .object({ href: z.string().regex(/^\/(estadisticas|investigaciones)\//) })

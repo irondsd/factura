@@ -24,7 +24,8 @@ import { SECTION_COMPONENT_NAMES } from "./sectionDefinitions";
 
 /** Names the global MDX map exposes that belong to guides. `Fuentes` and
  * `Subpaginas` are the statistics/research sections' and arrive with section
- * 12; `PaginaRelacionada` is theirs too. */
+ * 12. `PaginaRelacionada` is registered separately because the CMS can now
+ * use its statistics/research card from guides as well. */
 const GUIDE_NAMES_IN_GLOBAL_MAP = [
   "ClosingCta",
   "CtaButton",
@@ -61,9 +62,13 @@ describe("parity with the filesystem MDX map", () => {
   });
 
   it("does not register another section's components for guides", () => {
-    for (const name of ["PaginaRelacionada", "Fuentes", "Subpaginas"]) {
+    for (const name of ["Fuentes", "Subpaginas"]) {
       expect(componentsForSection("guias")).not.toContain(name);
     }
+  });
+
+  it("registers the related statistics card for guides", () => {
+    expect(componentsForSection("guias")).toContain("PaginaRelacionada");
   });
 });
 
