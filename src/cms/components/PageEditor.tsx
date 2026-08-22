@@ -30,6 +30,7 @@ import type {
 import type { ValidationLevel } from "./ValidationPanel";
 import type { HistoryEntry } from "@/cms/history";
 import { cn } from "@/lib/cn";
+import { CmsConfirmDialog, type DialogTone } from "./CmsDialog";
 import { HistoryPanel } from "./HistoryPanel";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { StatusChip, statusLabel } from "./StatusChip";
@@ -91,6 +92,12 @@ export function PageEditor({
     text: string;
   } | null>(null);
   const [conflict, setConflict] = useState(false);
+  /** The status the editor has asked for and not yet confirmed. Holding the
+   * target here (rather than a boolean) is what lets the dialog name both
+   * ends of the move and wear the tone of the one it leads to. */
+  const [pendingStatus, setPendingStatus] = useState<ContentStatus | null>(
+    null,
+  );
 
   // The last saved snapshot, held as state rather than a ref: "are there
   // unsaved changes" is rendered, so it is state by definition. Comparing
@@ -234,7 +241,7 @@ export function PageEditor({
     setBusy(false);
   };
 
-  const transition = async (next: ContentStatus) => {
+  const requestTransition = (next: ContentStatus) => {
     if (dirty) {
       setNotice({
         kind: "error",
@@ -242,8 +249,10 @@ export function PageEditor({
       });
       return;
     }
-    if (!window.confirm(confirmText(next, status))) return;
+    setPendingStatus(next);
+  };
 
+  const transition = async (next: ContentStatus) => {
     setBusy(true);
     setNotice(null);
     try {
@@ -265,12 +274,16 @@ export function PageEditor({
       setNotice({ kind: "error", text: UNEXPECTED });
     }
     setBusy(false);
+    // Closed here rather than on click: the dialog stays up, sealed, for as
+    // long as the write is in flight, so «Publicar» has a visible middle and
+    // not just a before and an after.
+    setPendingStatus(null);
   };
 
   /** Delete the page. Confirmed in `DeletePanel` by typing the word rather
-   * than by a dialog: `window.confirm` is the right weight for a status flip
-   * that can be flipped back, and the wrong weight for the one action in the
-   * CMS with nothing behind it to restore from. */
+   * than by a dialog: a dialog is the right weight for a status flip that can
+   * be flipped back, and the wrong weight for the one action in the CMS with
+   * nothing behind it to restore from. */
   const remove = async () => {
     setBusy(true);
     setNotice(null);
@@ -340,6 +353,12 @@ export function PageEditor({
     [diagnostics],
   );
 
+  // The address the page has (or would have) in public. Read from the *edited*
+  // slug rather than the stored one, which is the same value the header shows —
+  // and status changes are gated on a clean editor, so the two can't disagree
+  // by the time the confirmation quotes it.
+  const publicPath = `${publicSectionPath(section.id)}/${(values.slug as string) ?? page.slug}`;
+
   return (
     <div>
       <header className="mb-7">
@@ -356,8 +375,7 @@ export function PageEditor({
         </h1>
         {status === "draft" && (
           <p className="font-mono text-[12px] text-muted mt-2 mb-0">
-            {publicSectionPath(section.id)}/
-            {(values.slug as string) ?? page.slug}
+            {publicPath}
           </p>
         )}
         {status !== "draft" && (
@@ -365,10 +383,9 @@ export function PageEditor({
             className="font-mono text-[12px] text-muted mt-2 mb-0 underline hover:text-accent"
             target="_blank"
             rel="noreferrer"
-            href={`${publicSectionPath(section.id)}/${(values.slug as string) ?? page.slug}`}
+            href={publicPath}
           >
-            {publicSectionPath(section.id)}/
-            {(values.slug as string) ?? page.slug}
+            {publicPath}
           </Link>
         )}
       </header>
@@ -453,7 +470,7 @@ export function PageEditor({
             status={status}
             busy={busy}
             dirty={dirty}
-            onTransition={transition}
+            onTransition={requestTransition}
           />
 
           {grouped.map((group) => (
@@ -492,7 +509,52 @@ export function PageEditor({
           <DeletePanel status={status} busy={busy} onDelete={remove} />
         </aside>
       </div>
+
+      {pendingStatus && (
+        <StatusConfirmDialog
+          from={status}
+          to={pendingStatus}
+          publicPath={publicPath}
+          busy={busy}
+          onConfirm={() => void transition(pendingStatus)}
+          onCancel={() => setPendingStatus(null)}
+        />
+      )}
     </div>
+  );
+}
+
+/** The question in front of every status change. Its own component only so the
+ * copy table and the dialog stay next to each other. */
+function StatusConfirmDialog({
+  from,
+  to,
+  publicPath,
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  from: ContentStatus;
+  to: ContentStatus;
+  publicPath: string;
+  busy: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const copy = transitionConfirm(to, from, publicPath);
+  return (
+    <CmsConfirmDialog
+      eyebrow={`${statusLabel(from)} → ${statusLabel(to)}`}
+      title={copy.title}
+      description={copy.description}
+      details={copy.details}
+      confirmLabel={copy.confirmLabel}
+      confirmMark={copy.mark}
+      tone={copy.tone}
+      busy={busy}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
   );
 }
 
@@ -639,8 +701,8 @@ function StatusControls({
  * no delete here" is a worse question than a sentence explaining that a live
  * page is unpublished first. The confirmation is a typed word, not a dialog —
  * every other control here is reversible, this one has no revision history
- * behind it, and a `window.confirm` dismissed by reflex is the same click as
- * the button that opened it. */
+ * behind it, and a confirmation dismissed by reflex is the same click as the
+ * button that opened it. */
 function DeletePanel({
   status,
   busy,
@@ -781,16 +843,74 @@ function ConflictNotice({ body }: { body: string }) {
   );
 }
 
-function confirmText(next: ContentStatus, from: ContentStatus): string {
+/** What the confirmation says, per destination.
+ *
+ * It used to be one string handed to `window.confirm`, which meant the most
+ * consequential control in the CMS and a stray tab-close warning arrived in the
+ * same grey box. Split into parts so the dialog can wear the destination: the
+ * status chip's own mark and tone, the page's address spelled out where it
+ * changes, and a title that names the move instead of asking «¿Continuar?».
+ *
+ * `tone` is not decoration. It is the same scale the chip uses — hollow and
+ * quiet on the way back to a draft, ochre for the half-public middle, the ok
+ * green for the one that puts a page in front of readers. */
+function transitionConfirm(
+  next: ContentStatus,
+  from: ContentStatus,
+  publicPath: string,
+): {
+  title: string;
+  description: string;
+  details: string[];
+  confirmLabel: string;
+  tone: DialogTone;
+  mark: string;
+} {
   if (next === "published") {
-    return "Publicar esta página. Quedará visible en el sitio público y aparecerá en los listados. ¿Continuar?";
+    return {
+      title: "Publicar esta página",
+      description:
+        "Queda visible para cualquiera y entra en los listados del sitio.",
+      details: [
+        `Se publica en ${publicPath}`,
+        "Aparece en el listado de su sección y en el sitemap.",
+        "Se puede volver a borrador en cualquier momento.",
+      ],
+      confirmLabel: "Publicar",
+      tone: "ok",
+      mark: TRANSITIONS.published.mark,
+    };
   }
   if (next === "preview") {
-    return "Poner en vista previa. La página se verá en su dirección para quien tenga el enlace, pero no aparecerá en listados ni en buscadores. ¿Continuar?";
+    return {
+      title: "Poner en vista previa",
+      description:
+        "Se ve en su dirección para quien tenga el enlace, y en ningún otro lado.",
+      details: [
+        `Queda accesible en ${publicPath}`,
+        "No aparece en listados, ni en el sitemap, ni en buscadores.",
+      ],
+      confirmLabel: "Poner en vista previa",
+      tone: "ochre",
+      mark: TRANSITIONS.preview.mark,
+    };
   }
-  return from === "published"
-    ? "Volver a borrador. La página dejará de estar publicada y su dirección pública pasará a responder 404. ¿Continuar?"
-    : "Volver a borrador. ¿Continuar?";
+  return {
+    title: "Volver a borrador",
+    description:
+      from === "published"
+        ? "La página deja de estar publicada."
+        : "La página deja de estar accesible por su enlace.",
+    details: [
+      `${publicPath} pasa a responder 404`,
+      from === "published"
+        ? "Sale de los listados y del sitemap. El texto no se toca."
+        : "El texto no se toca: solo cambia quién puede verlo.",
+    ],
+    confirmLabel: "Volver a borrador",
+    tone: "quiet",
+    mark: TRANSITIONS.draft.mark,
+  };
 }
 
 /** Which gate a save of a page in this state has to pass. Mirrors
