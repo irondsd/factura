@@ -9,7 +9,7 @@ import { SectionList } from "@/components/section/SectionList";
 import { AsideCta, TopCta } from "@/components/guides/cta";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { dataLicense } from "@/config/urls";
+import { dataLicense, licenseName } from "@/config/urls";
 import type { ContentSection } from "@/content/section";
 import { faqPageLd, sectionPageLd } from "@/i18n/structuredData";
 import { formatContentDateTime } from "@/lib/content-date";
@@ -142,7 +142,10 @@ export async function SectionArticle({
                       items={meta.sources}
                       license={
                         meta.dataset.license
-                          ? { url: meta.dataset.license }
+                          ? {
+                              url: meta.dataset.license,
+                              name: licenseName(meta.dataset.license),
+                            }
                           : dataLicense
                       }
                     />
