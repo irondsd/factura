@@ -827,13 +827,11 @@ function Tabs({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
     { id: "history", label: "Historial" },
   ];
   return (
-    // Scrolls inside itself rather than pushing the page: four labels in one
-    // row do not fit a phone, and a tab strip that widened the document made
-    // every screen below it scroll sideways.
-    <div
-      role="tablist"
-      className="flex gap-1 border-b border-line mb-5"
-    >
+    // The labels shrink rather than the strip scrolling: four of them do not fit
+    // a phone at full width, and the alternative — an `overflow-x-auto` strip —
+    // put a scrollbar under the tabs on every screen to solve a problem only
+    // the narrowest ones have.
+    <div role="tablist" className="flex gap-1 border-b border-line mb-5">
       {items.map((item) => (
         <button
           key={item.id}
@@ -842,7 +840,7 @@ function Tabs({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
           aria-selected={tab === item.id}
           onClick={() => onChange(item.id)}
           className={cn(
-            "shrink-0 px-4 py-2 font-mono text-micro uppercase tracking-label-wide border-b-2 -mb-px transition-colors",
+            "px-4 py-2 font-mono text-micro uppercase tracking-label-wide border-b-2 -mb-px transition-colors",
             tab === item.id
               ? "border-accent text-accent"
               : "border-transparent text-muted hover:text-accent",

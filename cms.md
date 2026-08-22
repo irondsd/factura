@@ -1070,8 +1070,10 @@ Accepted, and the reasons are in the sections above:
   `src/cms/server/testDb.ts` refuses a non-local host, and both importers refuse
   one without an explicit flag and a confirmation variable.
 - Both importers are idempotent and safe to rerun. They validate before writing.
-- Back up before any production schema change. `.env.prod` points at the direct
-  Neon endpoint rather than the pooler, which is what DDL wants.
+- Back up before any production schema change. `.env.prod` points at the Neon
+  **pooler**, which is right for the app and wrong for DDL: drop `-pooler` from
+  the host to get the direct endpoint, and pass `prepare: false` on any
+  `postgres()` client that goes through the pooled one.
 - Anything that must reach production names it explicitly, through a `:prod`
   script that loads `.env.prod`. Bun auto-loads `.env.local`, so a script run
   without one silently targets the local database — which is the safe default,
@@ -1298,6 +1300,13 @@ Do not silently change architecture while leaving the original text in place.
   difference is that §9 had a gap to fill and this does not: inserting it
   earlier would either renumber sections other files cite, or leave the file
   reading 12, 14, 13. Monotonic numbering won.
+- 2026-08-22: The revision migration ran in production and its scripts were
+  deleted — `cms-revisions.sql`, `backfillCmsRevisions.ts`, and the legacy
+  authored columns on `cms_page` with them. `renameInvestigacionSection.ts` went
+  in the same pass, having been through every environment. A one-shot script
+  that has run is not documentation of the system; it is documentation of a
+  moment, and keeping it invites someone to run it again. §14.10 keeps what
+  survives the scripts: the shape of the data they left behind.
 
 ## 14. Working copies, revisions and version history
 
@@ -1387,8 +1396,9 @@ accepted from browser or MCP input.
 already read-only in the editor, and restoring an old version does not move a
 page's URL.
 
-The authored columns still on `cms_page` are legacy: nullable, unread, kept for
-one release as the backfill's rollback path. A later schema step drops them.
+`cms_page` carries no authored column at all. It held them, nullable and
+unread, for the release after the migration — the backfill's rollback path —
+and they were dropped once the revision reads had been verified in production.
 
 ### 14.5 Operations
 
@@ -1535,43 +1545,36 @@ Added: `list_content_versions`, `get_content_version`,
 work with nothing behind it; `restore_content_version` is not, because the copy
 it overwrites is kept as the checkpoint.
 
-### 14.10 Migration
+### 14.10 How it was migrated
 
-Additive and backfilled, with no interval in which public content has no
-readable source:
+Done, in production, on 2026-08-22. The scripts are deleted; this is what they
+did, kept because the _shape_ of the data they produced is the shape the code
+now assumes.
 
-1. `truncate cms_media_usage` — a derived cache, about to be re-keyed, and
-   emptying it first is what lets the schema add a NOT NULL column to it.
-2. `scripts/sql/cms-revisions.sql` — the revision table, the four pointers, the
-   activity columns, and the NOT NULLs dropped from the legacy authored columns.
-   The running deploy still reads those columns and is unaffected.
-3. `scripts/backfillCmsRevisions.ts --apply` — one revision per page:
-   `published` → a publication numbered 1, `preview` → a preview snapshot,
-   `draft` → a working copy. No older publications are invented; a page that
-   existed before this starts with exactly one version and the history says so.
-4. Deploy the code that reads revisions.
-5. Rebuild media usage: «Recalcular» in `/cms/media`, or `bun run media:sweep`.
-   **Do this immediately after the deploy, and trash nothing in between.** The
-   usage table is empty until it runs, so every image looks unused and the trash
-   gate is open rather than closed — the dangerous direction. Two things keep
-   that survivable rather than destructive: trashing is reversible for the whole
-   grace period, and `purgeAsset` re-checks usage immediately before deleting
-   bytes and restores anything that gained a reference (§9.9). Neither is a
-   reason to leave the window open.
-6. Later, once step 4 is verified in production: drop the legacy authored
-   columns from `cms_page`.
+Every existing page became exactly one revision: `published` → a publication
+numbered 1, `preview` → a preview snapshot, `draft` → a working copy. No older
+publications were invented, so a page that predates revisions has one version
+and its history says so rather than implying there is something to restore.
+`cms_media_usage` was truncated and re-derived from the new revisions rather
+than converted, because it is a cache of a pure function and rebuilding it is
+cheaper than migrating it.
 
-The backfill copies column to column inside the database rather than round-
-tripping through Node, and that is a correctness requirement rather than an
-optimization: `timestamptz` keeps microseconds and a JS `Date` keeps
-milliseconds, so reading a row into JavaScript and writing it back silently
-truncates `content_updated_at`. It verifies inside its own transaction — every
-page pointed at, every public page pointing at a public revision, every
-document identical to the row it came from — and rolls back if any check fails.
-It is idempotent: pages that already have a revision are skipped.
+Two things are worth keeping, because they are properties of the data rather
+than of the migration:
 
-Production follows §11: back up first, use the direct Neon DDL endpoint, and
-never verify a migration against production from local test commands.
+- **Publication numbers start at 1 and mean nothing historically.** A page
+  published forty times before the migration still shows publication 1 as its
+  oldest kept version.
+- **`published_at` on those first revisions is the page's own first-publication
+  date**, or its creation date where the page never had one. It is not the
+  instant the migration ran.
+
+The one implementation note worth remembering, because it will apply to the next
+migration too: the backfill copied column to column inside the database rather
+than reading rows into Node and writing them back. `timestamptz` keeps
+microseconds and a JS `Date` keeps milliseconds, so the round trip silently
+truncates `content_updated_at` — which the verification pass caught by comparing
+every copied document against the row it came from.
 
 ### 14.11 Boundaries
 

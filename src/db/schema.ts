@@ -960,10 +960,10 @@ export const cmsMembers = pgTable("cms_member", {
  * should not need an enum migration. The allowed values are a TypeScript union
  * in `src/content-system/types.ts`, checked on the way in.
  *
- * Metadata is split the way cms.md §3.7 specifies: identity, lifecycle and
- * anything queried or sorted gets a column; the structured and optional rest
- * lives in validated `metadata` JSONB. Editors never see the JSON — one Zod
- * schema covers the form, the mutations, the MCP tools and the importer. */
+ * Every authored field lives on `cms_page_revision` — body, titles, metadata,
+ * and the editorial tree. This row holds only what is true of the page across
+ * all of its versions: where it lives, whether it is public, when it first
+ * became so, and which copies it currently keeps. */
 export const cmsPages = pgTable(
   "cms_page",
   {
@@ -1001,46 +1001,6 @@ export const cmsPages = pgTable(
       { onDelete: "restrict" },
     ),
 
-    /* ── legacy authored columns ────────────────────────────────────────
-     *
-     * The authored document moved to `cms_page_revision` (cms.md §14.4).
-     * Nothing reads or writes these any more; they are kept nullable for one
-     * release as the backfill's rollback path, and dropped in a later schema
-     * step once the revision reads have been verified in production. Do not
-     * add a reader. */
-    bodyMdx: text("body_mdx"),
-    title: text("title"),
-    titleTag: text("title_tag"),
-    description: text("description"),
-    summary: text("summary"),
-    cta: text("cta"),
-    canonicalSlug: text("canonical_slug"),
-    metadata: jsonb("metadata"),
-
-    /** The editorial tree, uniform across every section. Null is a top-level
-     * page.
-     *
-     * Statistics needed a second level first, but the capability is not a
-     * statistics feature — a guides hub with children is a matter of when, not
-     * whether, and building it per section is how `if (section === "…")` gets
-     * into the list, the editor, the breadcrumb and the sitemap. Every section
-     * has it; guides simply all sit at the top level today.
-     *
-     * `slug` still holds the *full* path, so a public read is one indexed
-     * equality lookup rather than a recursive walk. The invariant tying the two
-     * together — a child's slug is its parent's slug plus one segment — is
-     * enforced in `src/content-system/hierarchy.ts` on every write.
-     *
-     * `restrict` rather than cascade or set null: deleting a page that others
-     * hang off must be refused, not silently orphan or delete them. Iteration 1
-     * has no hard delete at all (archive-by-status), so this is a guard against
-     * a later one. */
-    parentId: uuid("parent_id").references((): AnyPgColumn => cmsPages.id, {
-      onDelete: "restrict",
-    }),
-    sortOrder: integer("sort_order").default(0),
-    crumb: text("crumb"),
-
     /** Optimistic concurrency, *not* a revision counter. Every update carries
      * the version the editor last read and bumps it; the UPDATE matches on it,
      * so a stale save changes zero rows and is reported as a conflict instead
@@ -1071,7 +1031,6 @@ export const cmsPages = pgTable(
      * kept across an unpublish/republish so the visible dateline and the
      * JSON-LD don't jump when a page is briefly taken down. */
     publishedAt: timestamp("published_at", { withTimezone: true }),
-    contentUpdatedAt: timestamp("content_updated_at", { withTimezone: true }),
   },
   (t) => [
     // The public URL is (section, slug); the database is what makes that unique
@@ -1079,8 +1038,6 @@ export const cmsPages = pgTable(
     uniqueIndex("cms_page_section_slug_idx").on(t.section, t.slug),
     // Every listing is "this section, these statuses", newest first.
     index("cms_page_section_status_idx").on(t.section, t.status),
-    // Children of a page, for the tree the CMS list and the breadcrumbs build.
-    index("cms_page_parent_idx").on(t.parentId),
     // The four pointer joins every read performs.
     index("cms_page_published_revision_idx").on(t.publishedRevisionId),
     index("cms_page_preview_revision_idx").on(t.previewRevisionId),

@@ -511,11 +511,15 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
         // live article and the draft about to replace it are one page.
         const asset = await upload(`${TEST_PREFIX}twice.png`);
         created.add(asset.id);
-        const { pageRow } = await publishedThenDropped(asset.permalink);
+        const { pageRow, wip } = await publishedThenDropped(asset.permalink);
+        // Scoped to this revision by id. `where kind = 'wip'` would rewrite
+        // every working copy in the database — including any the local
+        // developer happens to have open — and the count this asserts on would
+        // then depend on state the test does not own.
         await db
           .update(schema.cmsPageRevisions)
           .set({ bodyMdx: `![A](${asset.permalink})` })
-          .where(eq(schema.cmsPageRevisions.kind, "wip"));
+          .where(eq(schema.cmsPageRevisions.id, wip.id));
         await reconcileMediaUsage(db);
 
         const listed = await store.list({ search: TEST_PREFIX });
