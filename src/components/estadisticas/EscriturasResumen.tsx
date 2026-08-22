@@ -61,18 +61,18 @@ export function EscriturasResumen() {
         <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
           {last12 !== null && (
             <>
-              <span className="text-ink">
-                {formatCount(last12)} escrituras
-              </span>{" "}
+              <span className="text-ink">{formatCount(last12)} escrituras</span>{" "}
               en los últimos doce meses
               {previous12 !== null && previous12 > 0 && (
-                <> · {formatPct(last12 / previous12 - 1)} contra los doce anteriores</>
+                <>
+                  {" "}
+                  · {formatPct(last12 / previous12 - 1)} contra los doce
+                  anteriores
+                </>
               )}
             </>
           )}
-          {shareNow !== null && (
-            <> · {formatShare(shareNow)} con hipoteca</>
-          )}
+          {shareNow !== null && <> · {formatShare(shareNow)} con hipoteca</>}
         </p>
       </figcaption>
 

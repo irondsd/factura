@@ -136,7 +136,9 @@ function assertShape(): void {
       );
     }
     if (series.some((v) => typeof v !== "number" || v < 0)) {
-      throw new Error(`escrituras-pba.json: "${name}" has a missing or negative value`);
+      throw new Error(
+        `escrituras-pba.json: "${name}" has a missing or negative value`,
+      );
     }
   }
 }
@@ -368,9 +370,11 @@ export type Point = { period: string; value: number };
 
 /** The high, the low and the last of a monthly series. `flagged` months are
  * excluded from the low: December 2007 is a strike, not a market. */
-export function extremes(
-  which: "compraventas" | "hipotecas" | "rolling12",
-): { high: Point; low: Point; last: Point } {
+export function extremes(which: "compraventas" | "hipotecas" | "rolling12"): {
+  high: Point;
+  low: Point;
+  last: Point;
+} {
   const points: Point[] = PERIODS.map((period) => ({
     period,
     value:

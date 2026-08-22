@@ -175,7 +175,9 @@ function parseRows(rows: Item[][]): {
     const flagged = joined.startsWith("**");
     // Labels live left of the first data column; the year (4 digits) and the
     // month (1-2 digits) are the only things printed there.
-    const labels = cells.filter((c) => c.x < 80).map((c) => c.s.replace(/\*/g, "").trim());
+    const labels = cells
+      .filter((c) => c.x < 80)
+      .map((c) => c.s.replace(/\*/g, "").trim());
     const nums = cells.filter((c) => c.x >= 80 && NUMERIC.test(c.s));
 
     let month: number | null = null;
@@ -242,8 +244,10 @@ function assemble(parsed: Parsed[]): {
     // Before 2012 hipotecas are split by amount; the page needs one series, and
     // the two legs are the same act counted under two codes.
     const hip = row.values.hipoteca ?? {
-      actos: (row.values.hipMenor?.actos ?? 0) + (row.values.hipResto?.actos ?? 0),
-      monto: (row.values.hipMenor?.monto ?? 0) + (row.values.hipResto?.monto ?? 0),
+      actos:
+        (row.values.hipMenor?.actos ?? 0) + (row.values.hipResto?.actos ?? 0),
+      monto:
+        (row.values.hipMenor?.monto ?? 0) + (row.values.hipResto?.monto ?? 0),
     };
     periods.push(row.period);
     series.compraventaActos.push(cv.actos);
@@ -261,7 +265,9 @@ function assemble(parsed: Parsed[]): {
 function assertAxis(periods: string[]): void {
   if (periods.length === 0) throw new Error("no rows parsed");
   if (periods[0] !== FIRST_PERIOD) {
-    throw new Error(`expected the series to start at ${FIRST_PERIOD}, got ${periods[0]}`);
+    throw new Error(
+      `expected the series to start at ${FIRST_PERIOD}, got ${periods[0]}`,
+    );
   }
   for (let i = 1; i < periods.length; i++) {
     if (ordinal(periods[i]) !== ordinal(periods[i - 1]) + 1) {
@@ -287,7 +293,8 @@ function assertTotals(
   series: Series,
   totals: Map<number, { actos: number; monto: number }>,
 ): void {
-  if (totals.size === 0) throw new Error("no `Total <year>` lines found to check against");
+  if (totals.size === 0)
+    throw new Error("no `Total <year>` lines found to check against");
   for (const [year, expected] of totals) {
     const idx = periods
       .map((p, i) => (p.startsWith(String(year)) ? i : -1))

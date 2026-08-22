@@ -1194,14 +1194,17 @@ function actionConfirm(
   confirmLabel: string;
 } {
   const { status, hasWip, previewIsStale, publicPath } = context;
-  const move = (to: ContentStatus) => `${statusLabel(status)} → ${statusLabel(to)}`;
+  const move = (to: ContentStatus) =>
+    `${statusLabel(status)} → ${statusLabel(to)}`;
 
   switch (action.kind) {
     case "publish":
       return {
         eyebrow: move("published"),
         title:
-          status === "published" ? "Publicar los cambios" : "Publicar esta página",
+          status === "published"
+            ? "Publicar los cambios"
+            : "Publicar esta página",
         description:
           status === "published"
             ? "El borrador guardado reemplaza lo que el sitio muestra ahora."
@@ -1259,7 +1262,8 @@ function actionConfirm(
             : "El texto no se toca: solo cambia quién puede verlo.",
           "La última versión publicada se conserva, para volver a publicarla en un clic.",
         ],
-        confirmLabel: status === "published" ? "Despublicar" : "Volver a borrador",
+        confirmLabel:
+          status === "published" ? "Despublicar" : "Volver a borrador",
       };
 
     case "discard":

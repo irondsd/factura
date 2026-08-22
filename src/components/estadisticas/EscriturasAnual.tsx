@@ -71,7 +71,8 @@ export function EscriturasAnual() {
             {previous && (
               <>
                 {" "}
-                · {formatPct(
+                ·{" "}
+                {formatPct(
                   LAST_FULL_YEAR.compraventas / previous.compraventas - 1,
                 )}{" "}
                 contra {previous.year}

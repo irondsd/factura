@@ -181,12 +181,7 @@ function HistoriaTooltip({
   if (!row) return null;
   return (
     <TipShell title={row.title} note={row.note}>
-      <Row
-        label="En el mes"
-        value={row.mensualLabel}
-        color={ACCENT}
-        strong
-      />
+      <Row label="En el mes" value={row.mensualLabel} color={ACCENT} strong />
       {row.rollingLabel && (
         <Row label="Últimos 12 meses" value={row.rollingLabel} />
       )}
@@ -360,7 +355,11 @@ export function AnualChart({
             margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
             accessibilityLayer
           >
-            <CartesianGrid stroke={AXIS} strokeDasharray="2 3" vertical={false} />
+            <CartesianGrid
+              stroke={AXIS}
+              strokeDasharray="2 3"
+              vertical={false}
+            />
             <XAxis
               dataKey="year"
               tick={tickStyle}
@@ -466,7 +465,9 @@ export function HipotecasChart({
   const { ticks, lo, hi } = niceTicks(
     0,
     Math.max(
-      ...shown.map((r) => (view === "share" ? (r.share as number) : r.hipotecas)),
+      ...shown.map((r) =>
+        view === "share" ? (r.share as number) : r.hipotecas,
+      ),
     ),
     5,
   );
@@ -560,12 +561,7 @@ function SeasonTooltip({
   if (!row) return null;
   return (
     <TipShell title={row.month} width={210}>
-      <Row
-        label="Del año"
-        value={row.shareLabel}
-        color={ACCENT}
-        strong
-      />
+      <Row label="Del año" value={row.shareLabel} color={ACCENT} strong />
       <Row label="Contra un mes parejo" value={row.vsFlat} />
     </TipShell>
   );
@@ -601,7 +597,11 @@ export function EstacionalidadChart({
             margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
             accessibilityLayer
           >
-            <CartesianGrid stroke={AXIS} strokeDasharray="2 3" vertical={false} />
+            <CartesianGrid
+              stroke={AXIS}
+              strokeDasharray="2 3"
+              vertical={false}
+            />
             <XAxis
               dataKey="short"
               tick={tickStyle}
@@ -670,7 +670,12 @@ function MontoTooltip({
   return (
     <TipShell title={row.title} note={row.note} width={240}>
       {row.usdLabel && (
-        <Row label="Promedio en dólares" value={row.usdLabel} color={ACCENT} strong />
+        <Row
+          label="Promedio en dólares"
+          value={row.usdLabel}
+          color={ACCENT}
+          strong
+        />
       )}
       <Row label="Promedio en pesos" value={row.arsLabel} />
     </TipShell>

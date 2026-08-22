@@ -14,10 +14,7 @@ import {
   SPAN,
   yoy,
 } from "@/content/estadisticas/data/escrituras-pba";
-import {
-  HistoriaChart,
-  type HistoriaRow,
-} from "./EscriturasChartBody";
+import { HistoriaChart, type HistoriaRow } from "./EscriturasChartBody";
 
 // The spine of the page: every deed signed in the province, month by month,
 // for twenty-one years.
@@ -84,8 +81,8 @@ export function EscriturasHistoria() {
             <span className="text-ink">{formatCount(roll.last.value)}</span> en
             los doce meses hasta {periodLabel(roll.last.period)} · Máximo{" "}
             {formatCount(roll.high.value)} ({periodLabel(roll.high.period)}) ·
-            Mínimo {formatCount(roll.low.value)} (
-            {periodLabel(roll.low.period)})
+            Mínimo {formatCount(roll.low.value)} ({periodLabel(roll.low.period)}
+            )
             {recovered && (
               <>
                 {" "}
@@ -119,9 +116,9 @@ export function EscriturasHistoria() {
         Dos meses de la serie no son mercado y están señalados en el gráfico:
         diciembre de 2007, con el Registro de la Propiedad de paro, y abril de
         2020, cuando en toda la provincia se firmó{" "}
-        {escriturasPhrase(compraventas("2020-04"))}. Los actos se cuentan
-        por fecha de escritura, así que los últimos dos meses todavía se
-        corrigen hacia arriba. Fuente: {SOURCE}, datos hasta {LAST_UPDATED}.
+        {escriturasPhrase(compraventas("2020-04"))}. Los actos se cuentan por
+        fecha de escritura, así que los últimos dos meses todavía se corrigen
+        hacia arriba. Fuente: {SOURCE}, datos hasta {LAST_UPDATED}.
       </p>
     </figure>
   );

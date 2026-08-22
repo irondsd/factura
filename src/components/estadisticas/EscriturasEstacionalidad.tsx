@@ -8,10 +8,7 @@ import {
   seasonalitySpan,
   SOURCE,
 } from "@/content/estadisticas/data/escrituras-pba";
-import {
-  EstacionalidadChart,
-  type SeasonRow,
-} from "./EscriturasChartBody";
+import { EstacionalidadChart, type SeasonRow } from "./EscriturasChartBody";
 
 // The figure that licenses every other one on the page.
 //
@@ -74,10 +71,9 @@ export function EscriturasEstacionalidad() {
         stat={
           <>
             <span className="text-ink">{high.label}</span> se lleva el{" "}
-            {formatShare(high.share)} del año y <span className="text-ink">
-              {low.label}
-            </span>{" "}
-            el {formatShare(low.share)}, contra el {formatShare(1 / 12)} que le
+            {formatShare(high.share)} del año y{" "}
+            <span className="text-ink">{low.label}</span> el{" "}
+            {formatShare(low.share)}, contra el {formatShare(1 / 12)} que le
             tocaría a cada mes si el año fuera parejo. Son{" "}
             {(high.share / low.share).toLocaleString("es-AR", {
               maximumFractionDigits: 1,
@@ -104,8 +100,7 @@ export function EscriturasEstacionalidad() {
         en toda la provincia y en diciembre{" "}
         {formatCount(compraventas("2020-12"))}—, así que incluirlo no haría más
         robusto el perfil: pondría una cuarentena en el medio de un gráfico
-        sobre las fiestas.
-        Fuente: {SOURCE}, datos hasta {LAST_UPDATED}.
+        sobre las fiestas. Fuente: {SOURCE}, datos hasta {LAST_UPDATED}.
       </p>
     </figure>
   );

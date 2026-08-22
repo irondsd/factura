@@ -103,13 +103,12 @@ export function EscriturasHipotecas() {
       <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
         La hipoteca es un acto distinto de la compraventa y el Colegio los
         cuenta por separado, así que el cociente es una aproximación: mide
-        cuánto crédito hay por cada operación, no la parte exacta de las
-        compras que se financió. Hasta 2011 la fuente publicaba las hipotecas
-        abiertas en dos tramos por monto y aquí están sumadas, que es lo que
-        permite que la serie sea continua. El cociente se calcula sobre doce
-        meses móviles a propósito: hecho mes a mes, abril de 2020 daría 300 %
-        con tres hipotecas sobre una compraventa. Fuente: {SOURCE}, datos hasta{" "}
-        {LAST_UPDATED}.
+        cuánto crédito hay por cada operación, no la parte exacta de las compras
+        que se financió. Hasta 2011 la fuente publicaba las hipotecas abiertas
+        en dos tramos por monto y aquí están sumadas, que es lo que permite que
+        la serie sea continua. El cociente se calcula sobre doce meses móviles a
+        propósito: hecho mes a mes, abril de 2020 daría 300 % con tres hipotecas
+        sobre una compraventa. Fuente: {SOURCE}, datos hasta {LAST_UPDATED}.
       </p>
     </figure>
   );
