@@ -24,3 +24,45 @@ export const contactEmail = {
   privacy: "privacy@factura.uno",
   security: "security@factura.uno",
 } as const;
+
+/** Terms the compiled tables on /estadisticas and /investigaciones are offered
+ * under, named for both the `Dataset` markup and the sources block that a
+ * reader sees.
+ *
+ * What is licensed here is Factura's work: the series as this site compiles,
+ * converts, joins and ranks them. The underlying official figures are facts and
+ * stay their producers' — `creator` in the markup and `<Fuentes />` on the page
+ * name them, and their own terms are theirs to state. A page whose numbers
+ * travel under different terms overrides this with `dataset.license`. */
+export const dataLicense = {
+  url: "https://creativecommons.org/licenses/by/4.0/",
+  name: "CC BY 4.0",
+} as const;
+
+/** Display names for the licences these pages actually cite.
+ *
+ * A page that overrides `dataLicense` names a URL, and a bare URL is not
+ * something to print in a sentence — so the sources block asks here for a name.
+ * Most pages built on INDEC series land on CC BY-SA 4.0: INDEC publishes under
+ * ShareAlike, and a table derived from its figures inherits that condition.
+ *
+ * A licence absent from this map still works; it simply renders as a link
+ * without a name. Inventing a short label for a licence nobody here has read
+ * would be worse than not naming it. */
+const licenseNames: Record<string, string> = {
+  "https://creativecommons.org/licenses/by/4.0/": "CC BY 4.0",
+  "https://creativecommons.org/licenses/by-sa/4.0/": "CC BY-SA 4.0",
+  "https://creativecommons.org/licenses/by/2.5/ar/": "CC BY 2.5 AR",
+  "https://creativecommons.org/publicdomain/zero/1.0/": "CC0 1.0",
+};
+
+/** The short name for a licence URL, or `undefined` when it is not one this
+ * site knows. Tolerates the two ways a Creative Commons URL is written down:
+ * with or without the trailing slash, and with or without a `deed.*` suffix. */
+export function licenseName(url: string): string | undefined {
+  const canonical = url
+    .trim()
+    .replace(/deed\.[a-z-]+\/?$/i, "")
+    .replace(/\/?$/, "/");
+  return licenseNames[canonical];
+}

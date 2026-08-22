@@ -9,6 +9,7 @@ import { SectionList } from "@/components/section/SectionList";
 import { AsideCta, TopCta } from "@/components/guides/cta";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { dataLicense, licenseName } from "@/config/urls";
 import type { ContentSection } from "@/content/section";
 import { faqPageLd, sectionPageLd } from "@/i18n/structuredData";
 import { formatContentDateTime } from "@/lib/content-date";
@@ -134,7 +135,21 @@ export async function SectionArticle({
                 components={contentComponents({
                   ...media,
                   Faq: () => <Faq items={meta.faq ?? []} />,
-                  Fuentes: () => <Fuentes items={meta.sources} />,
+                  // The same licence the `Dataset` markup declares — a page
+                  // that overrides it says so on screen too.
+                  Fuentes: () => (
+                    <Fuentes
+                      items={meta.sources}
+                      license={
+                        meta.dataset.license
+                          ? {
+                              url: meta.dataset.license,
+                              name: licenseName(meta.dataset.license),
+                            }
+                          : dataLicense
+                      }
+                    />
+                  ),
                   // A hub page places its own children where its prose wants
                   // them, under its own heading — see AUTHORING.md §4. Renders
                   // nothing on a page that has none, so a leaf can carry the tag

@@ -60,6 +60,10 @@ export type DatasetMetadata = {
   temporalCoverage: string;
   spatialCoverage: string;
   variableMeasured: string[];
+  /** Terms this page's compiled table is offered under, as a licence URL.
+   * Optional: pages fall back to the site-wide `dataLicense`, and a page only
+   * sets this when its own numbers travel under different terms. */
+  license?: string;
 };
 
 export type SectionMetadata = Omit<GuideMetadata, "ogImage"> & {

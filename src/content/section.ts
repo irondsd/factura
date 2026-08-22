@@ -26,6 +26,8 @@ export type SectionMeta = {
     temporalCoverage: string;
     spatialCoverage: string;
     variableMeasured: string[];
+    /** Licence URL for this page's table, when it is not the site-wide one. */
+    license?: string;
   };
   faq?: { q: string; a: string }[];
   noindex?: true;
