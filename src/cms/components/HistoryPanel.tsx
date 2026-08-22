@@ -15,6 +15,7 @@ import {
   versionLabel,
 } from "../revisions";
 import { cn } from "@/lib/cn";
+import { CmsModal, DialogCancel } from "./CmsDialog";
 import { VersionDiff } from "./VersionDiff";
 
 // The «Historial» tab: the copies of this page that exist, and who has been
@@ -52,16 +53,10 @@ export function HistoryPanel({
   onRestore: (version: VersionEntry) => void;
 }) {
   const [comparison, setComparison] = useState<VersionComparison | null>(null);
-  const [comparing, setComparing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const compare = (revisionId: string) => {
-    if (comparing === revisionId) {
-      setComparing(null);
-      setComparison(null);
-      return;
-    }
     setError(null);
     startTransition(async () => {
       const result = await compareVersionAction({ id: pageId, revisionId });
@@ -69,10 +64,11 @@ export function HistoryPanel({
         setError(result.message);
         return;
       }
-      setComparing(revisionId);
       setComparison(result.data);
     });
   };
+
+  const closeComparison = () => setComparison(null);
 
   return (
     <div>
@@ -100,7 +96,6 @@ export function HistoryPanel({
               version={version}
               baselineRevisionId={versions.baselineRevisionId}
               baselineIsLive={versions.baselineIsLive}
-              comparing={comparing === version.revisionId}
               busy={pending || busy}
               onCompare={() => compare(version.revisionId)}
               onRestore={() => onRestore(version)}
@@ -115,12 +110,6 @@ export function HistoryPanel({
           >
             {error}
           </p>
-        )}
-
-        {comparison && (
-          <div className="mt-6 border-t border-line pt-5">
-            <VersionDiff comparison={comparison} />
-          </div>
         )}
 
         {/* Said plainly rather than left to be discovered by an editor
@@ -140,6 +129,22 @@ export function HistoryPanel({
         </h2>
         <ActivityList entries={entries} />
       </section>
+
+      {comparison && (
+        <CmsModal
+          eyebrow="Versiones guardadas"
+          title="Comparar versiones"
+          onClose={closeComparison}
+          width="960px"
+        >
+          <div className="mt-5">
+            <VersionDiff comparison={comparison} />
+          </div>
+          <div className="mt-6 flex">
+            <DialogCancel onClick={closeComparison}>Cerrar</DialogCancel>
+          </div>
+        </CmsModal>
+      )}
     </div>
   );
 }
@@ -160,7 +165,6 @@ function VersionRow({
   version,
   baselineRevisionId,
   baselineIsLive,
-  comparing,
   busy,
   onCompare,
   onRestore,
@@ -170,7 +174,6 @@ function VersionRow({
   version: VersionEntry;
   baselineRevisionId: string | null;
   baselineIsLive: boolean;
-  comparing: boolean;
   busy: boolean;
   onCompare: () => void;
   onRestore: () => void;
@@ -231,14 +234,12 @@ function VersionRow({
             type="button"
             onClick={onCompare}
             disabled={busy}
-            aria-expanded={comparing}
+            aria-haspopup="dialog"
             className="cursor-pointer border-0 bg-transparent p-0 font-mono text-micro uppercase tracking-label-wide text-muted hover:text-accent focus-visible:text-accent disabled:opacity-45"
           >
-            {comparing
-              ? "Ocultar comparación"
-              : baselineIsLive
-                ? "Comparar con la versión publicada"
-                : "Comparar con la última publicada"}
+            {baselineIsLive
+              ? "Comparar con la versión publicada"
+              : "Comparar con la última publicada"}
           </button>
         )}
         {version.kind !== "wip" && (

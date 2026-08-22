@@ -118,7 +118,7 @@ export function DialogCancel({
  * Mount it conditionally — there is no `open` prop, so the mount *is* the open,
  * and the state inside a prompt resets by construction each time.
  */
-export function CmsDialog({
+export function CmsModal({
   eyebrow,
   title,
   busy = false,
@@ -222,6 +222,40 @@ export function CmsDialog({
       </div>
     </div>,
     document.body,
+  );
+}
+
+/**
+ * A modal that asks the editor to make a decision. Keeping the modal shell
+ * separate lets informational surfaces — such as the revision diff — use the
+ * same focus and dismissal behavior without pretending they have a confirm
+ * action.
+ */
+export function CmsDialog({
+  eyebrow,
+  title,
+  busy = false,
+  onClose,
+  children,
+  width,
+}: {
+  eyebrow?: string;
+  title: string;
+  busy?: boolean;
+  onClose: () => void;
+  children: ReactNode;
+  width?: string;
+}) {
+  return (
+    <CmsModal
+      eyebrow={eyebrow}
+      title={title}
+      busy={busy}
+      onClose={onClose}
+      width={width}
+    >
+      {children}
+    </CmsModal>
   );
 }
 
