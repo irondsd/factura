@@ -73,45 +73,6 @@ export function SueloNeuquenBarrios() {
         ))}
       </div>
 
-      <div className="mt-4 flex justify-between font-mono text-[11px] text-muted">
-        <span>{formatUsd(NEIGHBORHOOD_MIN_USD_M2)}</span>
-        <span>{formatUsd(NEIGHBORHOOD_MAX_USD_M2)}</span>
-      </div>
-
-      <div className="overflow-x-auto mt-6">
-        <table className="w-full border-collapse">
-          <caption className="sr-only">
-            Tabla exacta de la estimación del precio del suelo por barrio en
-            Neuquén Capital, junio de 2026.
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col" className="fd-th">
-                Barrio
-              </th>
-              <th scope="col" className="fd-th text-right pl-3">
-                Estimación US$/m²
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {NEIGHBORHOODS.map((row) => (
-              <tr key={row.id}>
-                <th
-                  scope="row"
-                  className="fd-td text-left align-top font-normal"
-                >
-                  {row.label}
-                </th>
-                <td className="fd-td text-right pl-3 align-top text-ink tabular-nums whitespace-nowrap">
-                  {formatUsd(row.usdM2)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
       <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
         El color y el largo de cada barra son una escala visual propia; la tabla
         es la representación exacta. La fuente publica estos valores como una
