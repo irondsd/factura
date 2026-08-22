@@ -1,5 +1,5 @@
 import "server-only";
-import { githubUrl, siteUrl } from "@/config/urls";
+import { dataLicense, githubUrl, siteUrl } from "@/config/urls";
 import type { Locale } from "./config";
 import {
   guideCardUrl,
@@ -351,6 +351,8 @@ export function sectionPageLd({
     temporalCoverage: string;
     spatialCoverage: string;
     variableMeasured: string[];
+    /** Overrides the site-wide `dataLicense`. */
+    license?: string;
   };
   words: number;
   minutes: number;
@@ -385,9 +387,12 @@ export function sectionPageLd({
         description: dataset.description,
         url,
         inLanguage: "es",
-        // No `license`: the source's terms are the source's to state, and
-        // asserting a specific licence on someone else's official statistics
-        // would be making one up. `isAccessibleForFree` is about this page.
+        // The licence covers what this node describes: the table Factura
+        // compiles at this URL — converted, joined, ranked — not the official
+        // series it draws on. Those are facts, they stay their producers', and
+        // `creator` below names them. A page whose numbers travel under terms
+        // of their own overrides the default with `dataset.license`.
+        license: dataset.license ?? dataLicense.url,
         isAccessibleForFree: true,
         temporalCoverage: dataset.temporalCoverage,
         spatialCoverage: dataset.spatialCoverage,

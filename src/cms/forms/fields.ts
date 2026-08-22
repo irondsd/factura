@@ -351,7 +351,7 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
     kind: "dataset",
     required: true,
     group: "contenido",
-    help: "Describe la serie que sostiene el análisis. Completa nombre, descripción, cobertura temporal y geográfica, y al menos una variable medida. Esto también genera los datos estructurados de la página.",
+    help: "Describe la serie que sostiene el análisis. Completa nombre, descripción, cobertura temporal y geográfica, y al menos una variable medida. Esto también genera los datos estructurados de la página. La licencia se deja vacía salvo que esta página no se publique bajo la del sitio (CC BY 4.0).",
   },
   {
     path: "metadata.faq",

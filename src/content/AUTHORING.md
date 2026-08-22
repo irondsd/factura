@@ -292,6 +292,14 @@ Two fields here have no guides equivalent and carry most of the weight:
   statistics page without sources is an opinion piece with charts; write them.
 - **`dataset`** — provenance for the JSON-LD `Dataset` markup. Fill it when the
   page _is_ a dataset read-out, which most statistics pages are.
+  - **`dataset.license`** — leave it out. It is the one optional key inside
+    `dataset`, and omitting it is the normal case: the page then declares the
+    site-wide licence (`dataLicense` in `src/config/urls.ts`, today CC BY 4.0),
+    which the `Dataset` markup emits and the `<Fuentes />` block prints. What
+    that licence covers is Factura's compilation — the series as this site
+    converts, joins and ranks them — not the official figures underneath, which
+    stay their producers' and are credited through `sources`. Set the key only
+    for a page whose own table travels under other terms, as a licence URL.
 
 Note `ogStat` here, versus `ogImage.stat` for guides — the shapes differ.
 

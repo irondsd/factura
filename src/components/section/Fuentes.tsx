@@ -1,4 +1,5 @@
 import { Eyebrow } from "@/components/landing/parts";
+import { dataLicense } from "@/config/urls";
 import { SOURCES_SECTION } from "@/content/headings";
 import type { SectionMeta } from "@/content/section";
 
@@ -11,9 +12,23 @@ import type { SectionMeta } from "@/content/section";
 // names the same organisations as the dataset's `creator`. A page that showed a
 // source it didn't declare — or declared one it didn't show — would be exactly
 // the kind of markup/page mismatch the guides' FAQ is careful to avoid.
+//
+// The licence line follows the same rule. `Dataset.license` says these tables
+// may be reused; a reader who has to read the JSON-LD to find that out is being
+// told something the page itself never says, so the line is printed here, from
+// the same value the markup emits.
 
-export function Fuentes({ items }: { items: SectionMeta["sources"] }) {
+export function Fuentes({
+  items,
+  license,
+}: {
+  items: SectionMeta["sources"];
+  /** The page's own licence, or the site-wide default. `name` is absent when a
+   * page overrides the default with a licence this site can't name. */
+  license?: { url: string; name?: string };
+}) {
   if (items.length === 0) return null;
+  const { url, name } = license ?? dataLicense;
 
   return (
     <section
@@ -37,6 +52,19 @@ export function Fuentes({ items }: { items: SectionMeta["sources"] }) {
           </li>
         ))}
       </ul>
+
+      <p className="mt-5 mb-0 font-mono text-[13px] leading-[1.7] text-muted">
+        Las tablas y series derivadas de esta página se publican bajo{" "}
+        <a
+          href={url}
+          target="_blank"
+          rel="license noopener noreferrer"
+          className="text-accent underline decoration-dotted underline-offset-[3px] hover:decoration-solid"
+        >
+          {name ?? "la licencia de los datos"}
+        </a>
+        . Los datos originales conservan los términos de cada fuente.
+      </p>
     </section>
   );
 }

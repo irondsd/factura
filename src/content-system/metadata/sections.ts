@@ -14,6 +14,9 @@ export const datasetMetadataSchema = z
     temporalCoverage: text,
     spatialCoverage: text,
     variableMeasured: z.array(text),
+    /** Licence URL for this page's table. Absent means the site-wide default
+     * in `src/config/urls.ts`, which is what nearly every page wants. */
+    license: z.string().url().optional(),
   })
   .strict();
 

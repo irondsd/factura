@@ -499,6 +499,7 @@ type Dataset = {
   temporalCoverage?: string;
   spatialCoverage?: string;
   variableMeasured?: string[];
+  license?: string;
 };
 
 const asSources = (value: unknown): Source[] =>
@@ -644,6 +645,17 @@ function DatasetInput({
         value={value.variableMeasured ?? []}
         onChange={(variableMeasured) => set({ variableMeasured })}
         id={`${id}-variables`}
+      />
+      {/* Left blank on nearly every page: the site-wide licence
+          (`dataLicense`) is what both the markup and the sources block use.
+          Fill it only when this page's numbers travel under other terms. */}
+      <input
+        type="url"
+        value={value.license ?? ""}
+        onChange={(e) => set({ license: e.target.value.trim() || undefined })}
+        placeholder="Licencia propia, ej. https://creativecommons.org/publicdomain/zero/1.0/"
+        aria-label="Licencia del conjunto de datos"
+        className={inputClass}
       />
     </div>
   );
