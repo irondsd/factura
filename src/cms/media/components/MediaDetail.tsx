@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { CmsConfirmDialog } from "../../components/CmsDialog";
 import { cmsEditPath } from "../../sections";
 import type { ContentSection } from "@/content-system/types";
 import {
@@ -40,6 +41,7 @@ export function MediaDetail({
   const [collectionId, setCollectionId] = useState(initial.collectionId ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [confirmingPurge, setConfirmingPurge] = useState(false);
   const [pending, start] = useTransition();
 
   const markdown = `![${decorative ? "" : defaultAlt}](${asset.permalink})`;
@@ -87,18 +89,15 @@ export function MediaDetail({
 
   const purge = () =>
     start(async () => {
-      if (
-        !window.confirm(
-          "Se borra el archivo del almacenamiento y no se puede deshacer. ¿Eliminar definitivamente?",
-        )
-      ) {
-        return;
-      }
       const result = await purgeMediaAction({ id: asset.id });
       if (!result.ok) {
+        setConfirmingPurge(false);
         setMessage(result.message);
         return;
       }
+      // Stay on the dialog while the router leaves: this component is bound to
+      // a row that no longer exists, and re-rendering it as an ordinary page
+      // would show an image that is gone.
       router.push("/cms/media");
     });
 
@@ -323,7 +322,7 @@ export function MediaDetail({
                 Restaurar
               </button>
               <button
-                onClick={purge}
+                onClick={() => setConfirmingPurge(true)}
                 disabled={pending}
                 className="mt-2 w-full border border-line px-3 py-2 text-micro uppercase tracking-label-wide text-muted hover:border-[var(--vendor-ochre)] hover:text-[var(--vendor-ochre)] disabled:opacity-50"
               >
@@ -343,6 +342,23 @@ export function MediaDetail({
           )}
         </div>
       </aside>
+
+      {confirmingPurge && (
+        <CmsConfirmDialog
+          eyebrow={asset.displayName}
+          title="Eliminar definitivamente"
+          description="La única acción del CMS que borra bytes. No hay papelera detrás de esta."
+          details={[
+            "Se borra el archivo del almacenamiento y no se puede deshacer.",
+            "Antes de borrarlo se vuelve a comprobar que ninguna página lo use.",
+            "El registro queda, para que el enlace responda «410 Gone» en vez de un 404.",
+          ]}
+          confirmLabel="Eliminar"
+          busy={pending}
+          onConfirm={purge}
+          onCancel={() => setConfirmingPurge(false)}
+        />
+      )}
     </div>
   );
 }

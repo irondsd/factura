@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import { CmsConfirmDialog, CmsPromptDialog } from "../../components/CmsDialog";
 import {
   createCollectionAction,
   deleteCollectionAction,
@@ -78,6 +79,14 @@ export function MediaLibrary({
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [dragging, setDragging] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // The two dialogs this screen raises. `naming` is a boolean because there is
+  // only ever one new collection being named; `removing` holds the collection
+  // itself, so the question can say which one it is about.
+  const [naming, setNaming] = useState(false);
+  const [collectionError, setCollectionError] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<
+    (MediaCollection & { count: number }) | null
+  >(null);
   const [pending, start] = useTransition();
   const input = useRef<HTMLInputElement>(null);
 
@@ -236,29 +245,27 @@ export function MediaLibrary({
     [uploadOne, refresh],
   );
 
-  const createCollection = () => {
-    const name = window.prompt("Nombre de la colección");
-    if (!name) return;
+  /** A rejected name — taken, too long — belongs under the field that produced
+   * it, with the typed text still there to fix. That is the whole reason the
+   * naming dialog holds its own error instead of routing through `notice`
+   * like every other failure on this screen. */
+  const createCollection = (name: string) => {
+    setCollectionError(null);
     start(async () => {
       const result = await createCollectionAction({ name });
       if (!result.ok) {
-        setNotice(result.message);
+        setCollectionError(result.message);
         return;
       }
       setCollections((items) => [...items, { ...result.data, count: 0 }]);
+      setNaming(false);
     });
   };
 
   const removeCollection = (collection: MediaCollection) => {
-    if (
-      !window.confirm(
-        `¿Eliminar la colección «${collection.name}»? Las imágenes no se borran: vuelven a «Sin colección».`,
-      )
-    ) {
-      return;
-    }
     start(async () => {
       const result = await deleteCollectionAction({ id: collection.id });
+      setRemoving(null);
       if (!result.ok) {
         setNotice(result.message);
         return;
@@ -367,14 +374,17 @@ export function MediaLibrary({
               key={collection.id}
               active={view.kind === "collection" && view.id === collection.id}
               onClick={() => show({ kind: "collection", id: collection.id })}
-              onRemove={() => removeCollection(collection)}
+              onRemove={() => setRemoving(collection)}
               count={collection.count}
             >
               {collection.name}
             </Item>
           ))}
           <button
-            onClick={createCollection}
+            onClick={() => {
+              setCollectionError(null);
+              setNaming(true);
+            }}
             className="mt-1 block w-full text-left text-micro uppercase tracking-label-wide text-muted hover:text-accent"
           >
             + Nueva colección
@@ -516,6 +526,46 @@ export function MediaLibrary({
           </ul>
         )}
       </section>
+
+      {naming && (
+        <CmsPromptDialog
+          eyebrow="Colecciones"
+          title="Nueva colección"
+          description="Una carpeta para agrupar imágenes. No cambia dónde se usan ni cómo se entregan: solo es otra forma de encontrarlas."
+          label="Nombre"
+          placeholder="Portadas de guías"
+          confirmLabel="Crear"
+          busy={pending}
+          error={collectionError}
+          onSubmit={createCollection}
+          onCancel={() => {
+            setNaming(false);
+            setCollectionError(null);
+          }}
+        />
+      )}
+
+      {removing && (
+        <CmsConfirmDialog
+          eyebrow="Colecciones"
+          title={`Eliminar «${removing.name}»`}
+          description="Se elimina la colección, no las imágenes."
+          details={[
+            // A count of zero gets no line at all: "sus 0 imágenes vuelven a
+            // Sin colección" is a sentence about nothing.
+            removing.count === 0
+              ? null
+              : removing.count === 1
+                ? "La imagen que contiene vuelve a «Sin colección»."
+                : `Sus ${removing.count} imágenes vuelven a «Sin colección».`,
+            "Ninguna página cambia: una colección no interviene en dónde se usa una imagen.",
+          ].filter((line): line is string => line !== null)}
+          confirmLabel="Eliminar"
+          busy={pending}
+          onConfirm={() => removeCollection(removing)}
+          onCancel={() => setRemoving(null)}
+        />
+      )}
     </div>
   );
 }

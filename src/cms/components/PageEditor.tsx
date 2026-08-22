@@ -36,6 +36,7 @@ import type {
 import type { ValidationLevel } from "./ValidationPanel";
 import type { HistoryEntry } from "@/cms/history";
 import { cn } from "@/lib/cn";
+import { CmsConfirmDialog, type DialogTone } from "./CmsDialog";
 import { HistoryPanel } from "./HistoryPanel";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { StatusChip, statusLabel } from "./StatusChip";
@@ -56,6 +57,78 @@ import Link from "next/link";
 // what is public, what is saved, and what is in this browser tab.
 
 type Tab = "markdown" | "preview" | "validation" | "history";
+
+/** An action the editor has asked for and not yet confirmed.
+ *
+ * A union rather than a destination status: «Descartar borrador» and
+ * «Restaurar» change no status at all, and modelling them as one would mean the
+ * dialog could not say the thing that matters most about them — that nothing
+ * public moves. */
+type PendingAction =
+  | { kind: "publish" }
+  | { kind: "preview" }
+  | { kind: "unpublish" }
+  | { kind: "discard" }
+  | { kind: "restore"; version: VersionEntry };
+
+/** Which actions work on what is *saved*, and so refuse to run while the tab
+ * holds unsaved edits.
+ *
+ * Publishing and promoting do: running them with unsaved changes would leave
+ * those changes out of the thing the button appears to promise. The other three
+ * do not — taking a page down is the recovery lever, and discard and restore
+ * replace the working copy outright, so gating them on a clean editor would
+ * mean the only way out of a bad edit is to save it first. */
+const ACTION_NEEDS_SAVE: Record<PendingAction["kind"], boolean> = {
+  publish: true,
+  preview: true,
+  unpublish: false,
+  discard: false,
+  restore: false,
+};
+
+/** How each action looks, in both places it appears.
+ *
+ * One table because the dialog has to match the button that opened it — that is
+ * the whole reason the CMS grew its own dialogs instead of keeping
+ * `window.confirm`, and two tables would drift the first time somebody
+ * restyled one of them. `mark` and `tone` go to the dialog; `fill` is the
+ * sidebar button's own class, carrying the same colour by hand because a
+ * bordered outline button and a solid dialog button are not the same shape.
+ *
+ * The scale is the status chip's: dashed and quiet for the ones that step back,
+ * ochre for the half-public middle, `ok` for the one that puts a page in front
+ * of readers, and the accent for the one that destroys work. */
+const ACTION_STYLE: Record<
+  PendingAction["kind"],
+  { mark: string; tone: DialogTone; fill: string }
+> = {
+  publish: {
+    mark: "●",
+    tone: "ok",
+    fill: "border-ok bg-ok text-paper hover:border-ink hover:bg-ink",
+  },
+  preview: {
+    mark: "◐",
+    tone: "ochre",
+    fill: "border-[var(--vendor-ochre)] text-[var(--vendor-ochre)] hover:bg-[var(--vendor-ochre)] hover:text-paper",
+  },
+  unpublish: {
+    mark: "○",
+    tone: "quiet",
+    fill: "border-dashed border-line text-muted hover:border-ink hover:text-ink",
+  },
+  discard: {
+    mark: "✕",
+    tone: "accent",
+    fill: "border-dashed border-line text-muted hover:border-accent hover:text-accent",
+  },
+  restore: {
+    mark: "↩",
+    tone: "accent",
+    fill: "border-dashed border-line text-muted hover:border-accent hover:text-accent",
+  },
+};
 
 /** What to say when an action fails in a way it does not model — the database
  * is down, a deploy landed mid-request. Better than a button that spins
@@ -113,6 +186,12 @@ export function PageEditor({
     text: string;
   } | null>(null);
   const [conflict, setConflict] = useState(false);
+  /** The action the editor has asked for and not yet confirmed. Holding the
+   * whole action here (rather than a boolean, or the destination status) is
+   * what lets the dialog name what it is about and wear the tone of the button
+   * that opened it — and «Descartar borrador» and «Restaurar» have no
+   * destination status to be named by. */
+  const [pending, setPending] = useState<PendingAction | null>(null);
 
   // The last saved snapshot, held as state rather than a ref: "are there
   // unsaved changes" is rendered, so it is state by definition. Comparing
@@ -269,52 +348,54 @@ export function PageEditor({
     setBusy(false);
   };
 
-  /** Everything that changes what the public sees, plus discard and restore.
+  /** Ask before doing. Every action that changes what the public sees, plus
+   * discard and restore, goes through here.
    *
-   * They share this wrapper rather than each rolling their own because every
-   * one of them has the same three obligations: refuse while there are unsaved
-   * changes in the tab (the server would publish the *saved* copy, which is not
-   * what the button appears to promise), confirm in words that name the
-   * affected state, and hand the result to `handle` so a conflict reaches
-   * `ConflictNotice` instead of a toast. */
-  const act = async <T,>(
-    input: {
-      confirm: string;
-      okText: string;
-      /** Publishing and promoting act on what is saved, so unsaved edits in the
-       * tab would be silently left out. Discard and restore replace the working
-       * copy outright, and refusing them over unsaved changes would mean the
-       * only way out of a bad edit is to save it first. */
-      requiresSaved?: boolean;
-    },
-    run: () => Promise<CmsActionResult<T>>,
-    onOk: (data: T) => void,
-  ) => {
-    if (input.requiresSaved !== false && dirty) {
+   * The half that refuses: publishing and promoting act on what is *saved*, so
+   * running them with unsaved edits in the tab would quietly leave those edits
+   * out of the thing the button appears to promise. Discard and restore replace
+   * the working copy outright, and refusing them over unsaved changes would
+   * mean the only way out of a bad edit is to save it first — so they are
+   * allowed through (`ACTION_NEEDS_SAVE`). */
+  const request = (action: PendingAction) => {
+    if (ACTION_NEEDS_SAVE[action.kind] && dirty) {
       setNotice({
         kind: "error",
         text: "Guarda los cambios primero: esta acción trabaja sobre lo guardado, no sobre lo que ves en pantalla.",
       });
       return;
     }
-    if (!window.confirm(input.confirm)) return;
+    setPending(action);
+  };
 
+  /** Do it, once the dialog has been confirmed.
+   *
+   * Shared by all five because they have the same two obligations after the
+   * question is answered: hand the result to `handle`, so a conflict reaches
+   * `ConflictNotice` rather than a toast, and keep the dialog sealed until the
+   * write lands. */
+  const act = async <T,>(
+    okText: string,
+    run: () => Promise<CmsActionResult<T>>,
+    onOk: (data: T) => void,
+  ) => {
     setBusy(true);
     setNotice(null);
     try {
-      handle(await run(), onOk, input.okText);
+      handle(await run(), onOk, okText);
     } catch {
       setNotice({ kind: "error", text: UNEXPECTED });
     }
     setBusy(false);
+    // Closed here rather than on click: the dialog stays up, sealed, for as
+    // long as the write is in flight, so «Publicar» has a visible middle and
+    // not just a before and an after.
+    setPending(null);
   };
 
   const publish = () =>
     act(
-      {
-        confirm: PUBLISH_CONFIRM,
-        okText: "Publicada.",
-      },
+      "Publicada.",
       () =>
         publishContentAction(section.id, {
           id: page.id,
@@ -343,13 +424,7 @@ export function PageEditor({
 
   const promotePreview = () =>
     act(
-      {
-        confirm:
-          state.previewRevisionId && status === "preview"
-            ? "Actualizar la vista previa pública con el borrador guardado. Quien tenga el enlace verá esta versión. ¿Continuar?"
-            : PREVIEW_CONFIRM(status),
-        okText: "Vista previa pública actualizada.",
-      },
+      "Vista previa pública actualizada.",
       () =>
         promotePreviewAction(section.id, {
           id: page.id,
@@ -364,14 +439,7 @@ export function PageEditor({
 
   const unpublish = () =>
     act(
-      {
-        confirm: UNPUBLISH_CONFIRM(status),
-        okText: `Estado: ${statusLabel("draft")}.`,
-        // Taking a page down is the recovery lever. Making it wait for a clean
-        // save would mean the pages most in need of it are the ones that
-        // cannot be taken down.
-        requiresSaved: false,
-      },
+      `Estado: ${statusLabel("draft")}.`,
       () =>
         setContentStatusAction(section.id, {
           id: page.id,
@@ -387,12 +455,7 @@ export function PageEditor({
 
   const discard = () =>
     act(
-      {
-        confirm:
-          "Descartar el borrador guardado y su copia de seguridad. Se pierde todo lo escrito desde la última publicación y no hay forma de recuperarlo. La página publicada no cambia. ¿Continuar?",
-        okText: "Borrador descartado.",
-        requiresSaved: false,
-      },
+      "Borrador descartado.",
       () =>
         discardWipAction(section.id, {
           id: page.id,
@@ -410,13 +473,7 @@ export function PageEditor({
 
   const restore = (version: VersionEntry) =>
     act(
-      {
-        confirm: hasWip
-          ? `Restaurar «${version.title}» como borrador. Reemplaza el borrador guardado actual, que queda como copia de seguridad. La página publicada no cambia. ¿Continuar?`
-          : `Restaurar «${version.title}» como borrador. La página publicada no cambia. ¿Continuar?`,
-        okText: "Versión restaurada en el borrador.",
-        requiresSaved: false,
-      },
+      "Versión restaurada en el borrador.",
       () =>
         restoreVersionAction(section.id, {
           id: page.id,
@@ -433,9 +490,9 @@ export function PageEditor({
     );
 
   /** Delete the page. Confirmed in `DeletePanel` by typing the word rather
-   * than by a dialog: `window.confirm` is the right weight for a status flip
-   * that can be flipped back, and the wrong weight for the one action in the
-   * CMS with nothing behind it to restore from. */
+   * than by a dialog: a dialog is the right weight for a status flip that can
+   * be flipped back, and the wrong weight for the one action in the CMS with
+   * nothing behind it to restore from. */
   const remove = async () => {
     setBusy(true);
     setNotice(null);
@@ -505,6 +562,12 @@ export function PageEditor({
     [diagnostics],
   );
 
+  // The address the page has (or would have) in public. Read from the *edited*
+  // slug rather than the stored one, which is the same value the header shows —
+  // and status changes are gated on a clean editor, so the two can't disagree
+  // by the time the confirmation quotes it.
+  const publicPath = `${publicSectionPath(section.id)}/${(values.slug as string) ?? page.slug}`;
+
   return (
     <div>
       <header className="mb-7">
@@ -524,8 +587,7 @@ export function PageEditor({
         </h1>
         {status === "draft" && (
           <p className="font-mono text-[12px] text-muted mt-2 mb-0">
-            {publicSectionPath(section.id)}/
-            {(values.slug as string) ?? page.slug}
+            {publicPath}
           </p>
         )}
         {status !== "draft" && (
@@ -533,10 +595,9 @@ export function PageEditor({
             className="font-mono text-[12px] text-muted mt-2 mb-0 underline hover:text-accent"
             target="_blank"
             rel="noreferrer"
-            href={`${publicSectionPath(section.id)}/${(values.slug as string) ?? page.slug}`}
+            href={publicPath}
           >
-            {publicSectionPath(section.id)}/
-            {(values.slug as string) ?? page.slug}
+            {publicPath}
           </Link>
         )}
       </header>
@@ -609,7 +670,7 @@ export function PageEditor({
               versions={versions}
               entries={history}
               busy={busy}
-              onRestore={restore}
+              onRestore={(version) => request({ kind: "restore", version })}
             />
           )}
         </section>
@@ -643,10 +704,10 @@ export function PageEditor({
             previewIsStale={state.previewIsStale}
             busy={busy}
             dirty={dirty}
-            onPublish={publish}
-            onPromotePreview={promotePreview}
-            onUnpublish={unpublish}
-            onDiscard={discard}
+            onPublish={() => request({ kind: "publish" })}
+            onPromotePreview={() => request({ kind: "preview" })}
+            onUnpublish={() => request({ kind: "unpublish" })}
+            onDiscard={() => request({ kind: "discard" })}
           />
 
           {grouped.map((group) => (
@@ -685,7 +746,76 @@ export function PageEditor({
           <DeletePanel status={status} busy={busy} onDelete={remove} />
         </aside>
       </div>
+
+      {pending && (
+        <ActionConfirmDialog
+          action={pending}
+          status={status}
+          hasWip={hasWip}
+          previewIsStale={state.previewIsStale}
+          publicPath={publicPath}
+          busy={busy}
+          onConfirm={() => {
+            switch (pending.kind) {
+              case "publish":
+                return void publish();
+              case "preview":
+                return void promotePreview();
+              case "unpublish":
+                return void unpublish();
+              case "discard":
+                return void discard();
+              case "restore":
+                return void restore(pending.version);
+            }
+          }}
+          onCancel={() => setPending(null)}
+        />
+      )}
     </div>
+  );
+}
+
+/** The question in front of every consequential action. Its own component only
+ * so the copy table and the dialog stay next to each other. */
+function ActionConfirmDialog({
+  action,
+  status,
+  hasWip,
+  previewIsStale,
+  publicPath,
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  action: PendingAction;
+  status: ContentStatus;
+  hasWip: boolean;
+  previewIsStale: boolean;
+  publicPath: string;
+  busy: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const copy = actionConfirm(action, {
+    status,
+    hasWip,
+    previewIsStale,
+    publicPath,
+  });
+  return (
+    <CmsConfirmDialog
+      eyebrow={copy.eyebrow}
+      title={copy.title}
+      description={copy.description}
+      details={copy.details}
+      confirmLabel={copy.confirmLabel}
+      confirmMark={ACTION_STYLE[action.kind].mark}
+      tone={ACTION_STYLE[action.kind].tone}
+      busy={busy}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
   );
 }
 
@@ -792,8 +922,8 @@ function StatusControls({
       </h2>
       <div className="flex flex-col gap-2">
         <Action
-          mark="●"
-          tone="border-ok bg-ok text-paper hover:border-ink hover:bg-ink"
+          mark={ACTION_STYLE.publish.mark}
+          fill={ACTION_STYLE.publish.fill}
           disabled={busy || dirty || !canPublish}
           onClick={onPublish}
         >
@@ -802,8 +932,8 @@ function StatusControls({
 
         {(status !== "preview" || previewIsStale || !hasPublicPreview) && (
           <Action
-            mark="◐"
-            tone="border-[var(--vendor-ochre)] text-[var(--vendor-ochre)] hover:bg-[var(--vendor-ochre)] hover:text-paper"
+            mark={ACTION_STYLE.preview.mark}
+            fill={ACTION_STYLE.preview.fill}
             disabled={busy || dirty || !canPreview}
             onClick={onPromotePreview}
           >
@@ -815,8 +945,8 @@ function StatusControls({
 
         {status !== "draft" && (
           <Action
-            mark="○"
-            tone="border-dashed border-line text-muted hover:border-ink hover:text-ink"
+            mark={ACTION_STYLE.unpublish.mark}
+            fill={ACTION_STYLE.unpublish.fill}
             disabled={busy}
             onClick={onUnpublish}
           >
@@ -826,8 +956,8 @@ function StatusControls({
 
         {hasWip && (
           <Action
-            mark="✕"
-            tone="border-dashed border-line text-muted hover:border-accent hover:text-accent"
+            mark={ACTION_STYLE.discard.mark}
+            fill={ACTION_STYLE.discard.fill}
             disabled={busy}
             onClick={onDiscard}
           >
@@ -858,13 +988,15 @@ function StatusControls({
  * chip are recognisably the same vocabulary. */
 function Action({
   mark,
-  tone,
+  fill,
   disabled,
   onClick,
   children,
 }: {
   mark: string;
-  tone: string;
+  /** The button's own colour, from `ACTION_STYLE`. Named `fill` and not `tone`
+   * so `DialogTone` keeps that word to itself in this file. */
+  fill: string;
   disabled: boolean;
   onClick: () => void;
   children: React.ReactNode;
@@ -876,7 +1008,7 @@ function Action({
       disabled={disabled}
       className={cn(
         "inline-flex cursor-pointer items-center gap-2 border px-3 py-2 text-left font-mono text-micro uppercase tracking-label-wide transition-colors disabled:cursor-default disabled:opacity-45",
-        tone,
+        fill,
       )}
     >
       <span aria-hidden="true">{mark}</span>
@@ -891,8 +1023,8 @@ function Action({
  * no delete here" is a worse question than a sentence explaining that a live
  * page is unpublished first. The confirmation is a typed word, not a dialog —
  * every other control here is reversible, this one has no revision history
- * behind it, and a `window.confirm` dismissed by reflex is the same click as
- * the button that opened it. */
+ * behind it, and a confirmation dismissed by reflex is the same click as the
+ * button that opened it. */
 function DeletePanel({
   status,
   busy,
@@ -1033,22 +1165,136 @@ function ConflictNotice({ body }: { body: string }) {
   );
 }
 
-/** The confirmations. Each one names the state it affects rather than asking
- * «¿continuar?» about an unnamed thing (cms.md §14.8) — the whole risk of a
- * four-copy model is that the button you pressed and the copy it moved are not
- * obviously the same. */
-const PUBLISH_CONFIRM =
-  "Publicar el borrador guardado. Reemplaza lo que el sitio público muestra ahora, y la versión publicada más antigua deja de guardarse. ¿Continuar?";
+/** What the confirmation says, per action.
+ *
+ * It used to be one string handed to `window.confirm`, which meant the most
+ * consequential control in the CMS and a stray tab-close warning arrived in the
+ * same grey box. Split into parts so the dialog can wear what it is about: the
+ * mark and tone of the button that opened it, the page's address spelled out
+ * where it changes, and a title that names the action instead of asking
+ * «¿Continuar?».
+ *
+ * Keyed by action rather than by destination status, because two of the five
+ * have no destination: discarding the working copy and restoring a version both
+ * leave the page exactly as public as it was. That is the thing their dialogs
+ * have to say clearly, and a status-shaped table could not say it at all. */
+function actionConfirm(
+  action: PendingAction,
+  context: {
+    status: ContentStatus;
+    hasWip: boolean;
+    previewIsStale: boolean;
+    publicPath: string;
+  },
+): {
+  eyebrow: string;
+  title: string;
+  description: string;
+  details: string[];
+  confirmLabel: string;
+} {
+  const { status, hasWip, previewIsStale, publicPath } = context;
+  const move = (to: ContentStatus) => `${statusLabel(status)} → ${statusLabel(to)}`;
 
-const PREVIEW_CONFIRM = (from: ContentStatus): string =>
-  from === "published"
-    ? "Poner en vista previa pública. La página deja de estar publicada: sale de los listados y de los buscadores, y su dirección pasa a servir esta copia con «noindex». La última versión publicada se conserva. ¿Continuar?"
-    : "Poner en vista previa pública. La página se verá en su dirección para quien tenga el enlace, pero no aparecerá en listados ni en buscadores. ¿Continuar?";
+  switch (action.kind) {
+    case "publish":
+      return {
+        eyebrow: move("published"),
+        title:
+          status === "published" ? "Publicar los cambios" : "Publicar esta página",
+        description:
+          status === "published"
+            ? "El borrador guardado reemplaza lo que el sitio muestra ahora."
+            : "Queda visible para cualquiera y entra en los listados del sitio.",
+        details: [
+          `Se publica en ${publicPath}`,
+          "Aparece en el listado de su sección y en el sitemap.",
+          // The cost nobody would guess from the button: publishing spends a
+          // retention slot, and the oldest kept version stops being kept.
+          "Se guarda como versión nueva; la publicación más antigua deja de guardarse.",
+          "El borrador de trabajo desaparece: la próxima edición parte de lo publicado.",
+        ],
+        confirmLabel: "Publicar",
+      };
 
-const UNPUBLISH_CONFIRM = (from: ContentStatus): string =>
-  from === "published"
-    ? "Despublicar. La página dejará de estar en línea y su dirección pública pasará a responder 404. La última versión publicada se conserva para volver a publicarla. ¿Continuar?"
-    : "Volver a borrador. La vista previa pública deja de servirse en la dirección de la página. El borrador guardado no se toca. ¿Continuar?";
+    case "preview": {
+      const refreshing = status === "preview" && previewIsStale;
+      return {
+        eyebrow: refreshing ? "Vista previa pública" : move("preview"),
+        title: refreshing
+          ? "Actualizar la vista previa pública"
+          : "Poner en vista previa pública",
+        description: refreshing
+          ? "Quien tenga el enlace pasa a ver el borrador guardado."
+          : "Se ve en su dirección para quien tenga el enlace, y en ningún otro lado.",
+        details: [
+          `Queda accesible en ${publicPath}`,
+          "No aparece en listados, ni en el sitemap, ni en buscadores.",
+          ...(status === "published"
+            ? [
+                // The half of this move that surprises people: it takes a live
+                // page down. The last publication survives, and saying so is
+                // what makes the button clickable without a second thought.
+                "La página deja de estar publicada. La última versión publicada se conserva.",
+              ]
+            : []),
+          "El borrador sigue siendo editable: la copia pública no cambia hasta que la actualices.",
+        ],
+        confirmLabel: refreshing ? "Actualizar" : "Poner en vista previa",
+      };
+    }
+
+    case "unpublish":
+      return {
+        eyebrow: move("draft"),
+        title: status === "published" ? "Despublicar" : "Volver a borrador",
+        description:
+          status === "published"
+            ? "La página deja de estar publicada."
+            : "La página deja de estar accesible por su enlace.",
+        details: [
+          `${publicPath} pasa a responder 404`,
+          status === "published"
+            ? "Sale de los listados y del sitemap. El texto no se toca."
+            : "El texto no se toca: solo cambia quién puede verlo.",
+          "La última versión publicada se conserva, para volver a publicarla en un clic.",
+        ],
+        confirmLabel: status === "published" ? "Despublicar" : "Volver a borrador",
+      };
+
+    case "discard":
+      return {
+        eyebrow: "Borrador de trabajo",
+        title: "Descartar el borrador",
+        description:
+          "Se pierde todo lo escrito desde la última publicación, y no hay forma de recuperarlo.",
+        details: [
+          "Se borran el borrador guardado y su copia de seguridad.",
+          "La página publicada no cambia: el sitio sigue mostrando lo mismo.",
+          "El editor vuelve a partir de la última versión publicada.",
+        ],
+        confirmLabel: "Descartar",
+      };
+
+    case "restore":
+      return {
+        eyebrow: "Restaurar una versión",
+        title: `Restaurar «${action.version.title}»`,
+        description:
+          "Se copia esa versión al borrador de trabajo. No se publica nada.",
+        details: [
+          ...(hasWip
+            ? [
+                "Reemplaza el borrador guardado actual, que queda como copia de seguridad.",
+              ]
+            : ["Crea el borrador de trabajo a partir de esa versión."]),
+          "La página publicada no cambia.",
+          "Para que los lectores la vean, hay que publicarla después.",
+        ],
+        confirmLabel: "Restaurar",
+      };
+  }
+}
 
 /** What the header says about which copies exist, in the words §14.8 asks for.
  * Deliberately about *copies* rather than about status: the chip beside it
