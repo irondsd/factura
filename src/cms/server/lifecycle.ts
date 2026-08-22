@@ -1,7 +1,7 @@
 import { canRender } from "@/content-system/repository/visibility";
 import type { ContentStatus } from "@/content-system/types";
 
-// The save/transition policy from cms.md §5.3, as pure functions. What
+// The save/transition policy from cms.md, as pure functions. What
 // validation a write must survive depends only on where the page is going, and
 // that decision is small enough to state exactly once and test exhaustively.
 
@@ -20,7 +20,7 @@ export type ValidationLevel = (typeof VALIDATION_LEVELS)[number];
  *
  * This used to depend on the page's status, and had to: iteration 1 stored one
  * mutable copy, so saving a published page rewrote the live one and had to
- * survive the publish gate. Revisions (cms.md §14) removed the reason — a WIP
+ * survive the publish gate. Revisions (cms.md) removed the reason — a WIP
  * save cannot reach a reader, whatever state the page is in, so holding it to
  * the rules a *public* page must meet would only mean an editor cannot save
  * half-finished work on an article that happens to be live. Which is the whole
@@ -107,7 +107,7 @@ export function isContentEdit(patch: {
 }
 
 /** Whether saving a working copy changes something a public visitor can already
- * see. **Never** — that is the point of the working copy (cms.md §14.6), and
+ * see. **Never** — that is the point of the working copy (cms.md), and
  * this is a function rather than a comment so the claim has a call site and a
  * test.
  *

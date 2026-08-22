@@ -1,9 +1,9 @@
 import "server-only";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db as defaultDb, type Database } from "@/db";
-import { cmsPageRevisions, cmsPages } from "@/db/schema";
+import { cmsPageRedirects, cmsPageRevisions, cmsPages } from "@/db/schema";
 import type { ContentDocument, ContentSection, ContentSummary } from "../types";
-import { type ContentRepository, pathToSlug } from "./contract";
+import { type ContentRepository, pathToSlug, slugToPath } from "./contract";
 import { type CmsRevisionRow, rowToDocument, rowToSummary } from "./mapping";
 import { listableStatuses, renderableStatuses } from "./visibility";
 
@@ -114,6 +114,40 @@ export class PostgresContentRepository implements ContentRepository {
 
   async listPublished(section: ContentSection): Promise<ContentSummary[]> {
     return this.list(section, [...listableStatuses("public")]);
+  }
+
+  /** The redirect table's only read (cms.md).
+   *
+   * A join to `cms_page` rather than a stored destination path: the row names
+   * the page, so the answer is wherever that page lives *now*. Three renames
+   * later every old address still resolves in one hop, and there is no chain to
+   * walk and no loop to detect.
+   *
+   * The same visibility predicate as `getByPath`, for the same reason — a
+   * redirect must not become a way to discover a draft by watching which paths
+   * bounce. */
+  async redirectFor(
+    section: ContentSection,
+    slug: string[],
+  ): Promise<string[] | null> {
+    const from = pathToSlug(slug);
+    const [row] = await this.db
+      .select({ slug: cmsPages.slug })
+      .from(cmsPageRedirects)
+      .innerJoin(cmsPages, eq(cmsPages.id, cmsPageRedirects.pageId))
+      .where(
+        and(
+          eq(cmsPageRedirects.section, section),
+          eq(cmsPageRedirects.fromSlug, from),
+          statusIn(renderableStatuses("public")),
+        ),
+      )
+      .limit(1);
+    // A redirect to the address that was just asked for would be a loop of
+    // one. The rename path drops such rows; this is the belt to that braces,
+    // because the cost of being wrong is a browser redirect loop.
+    if (!row || row.slug === from) return null;
+    return slugToPath(row.slug);
   }
 
   async listPubliclyRenderable(

@@ -17,7 +17,7 @@ import { StatusChip } from "./StatusChip";
 
 // A section's pages, as the tree rather than a flat list.
 //
-// Uniform across sections (§7.1): guides are all top level today and render as
+// Uniform across sections (cms.md): guides are all top level today and render as
 // a flat list because that is what their tree *is*, not because this component
 // checks which section it is showing.
 

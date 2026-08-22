@@ -23,7 +23,7 @@ import { reconcileMediaUsage } from "./usage";
 //   sweepTrash          trashed assets past the grace period
 //   reconcileBucket     what the bucket holds vs. what the database believes
 //
-// The design property that matters (cms.md §9.9): the final usage
+// The design property that matters (cms.md): the final usage
 // re-check happens *immediately before* the object is deleted, and by then the
 // asset has been unreferenced for the whole grace period. The dangerous
 // interleaving — one editor trashes an unused image while another inserts it

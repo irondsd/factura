@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { ArticlePreview } from "@/components/article/ArticlePreview";
 import { Breadcrumbs } from "@/components/article/Breadcrumbs";
@@ -40,7 +40,16 @@ export async function SectionArticle({
   const page = await section.load(slug);
   // `dynamicParams = false` means this can't be reached in a build, but the
   // route's types don't know that and neither would a stale prerender.
-  if (!page) notFound();
+  //
+  // A page that moved keeps answering from its old address (cms.md). Asked
+  // only after the miss, so a live page always wins, and 308
+  // rather than 302 because the move is the editorial decision, not a
+  // temporary detour.
+  if (!page) {
+    const moved = await section.redirect(slug);
+    if (moved) permanentRedirect(section.href(moved));
+    notFound();
+  }
 
   const { Content, meta, document } = page;
   const [crumbs, children, media] = await Promise.all([

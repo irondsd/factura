@@ -24,7 +24,7 @@ import { MissingComponent } from "@/cms/components/MissingComponent";
 import { StatusChip } from "@/cms/components/StatusChip";
 import { faqPageLd, guideLd } from "@/i18n/structuredData";
 
-// The exact private preview (cms.md §3.2, §14.5.3): the last *saved* working
+// The exact private preview (cms.md): the last *saved* working
 // copy — or one named stored version — rendered through the same
 // `<ContentArticle>` shell, the same component manifest and the same structured
 // data as the public page.

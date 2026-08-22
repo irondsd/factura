@@ -10,7 +10,7 @@ import {
   versionLabel,
 } from "./revisions";
 
-// The vocabulary of stored versions (cms.md §14).
+// The vocabulary of stored versions (cms.md).
 //
 // `checkpointIsStale` is the one with teeth: it decides whether a save costs a
 // durable copy or not, and getting it wrong in either direction is bad in a

@@ -632,7 +632,7 @@ if (!hasTestDatabase()) {
       };
 
     it("creates a draft and never anything else", async () => {
-      // cms.md §8: an agent cannot publish by creating. Publication is always a
+      // cms.md: an agent cannot publish by creating. Publication is always a
       // second, explicit call that passes the publish gate.
       const response = await call("create_content", newPage("create"));
       expect(resultOf(response).isError).toBe(false);
@@ -686,7 +686,7 @@ if (!hasTestDatabase()) {
     });
 
     it("returns validation diagnostics structurally, not as prose", async () => {
-      // cms.md §8: "Tools return structured validation diagnostics, not only
+      // cms.md: "Tools return structured validation diagnostics, not only
       // prose." A model needs the field and the code, not a sentence.
       const page = created(
         await call("create_content", newPage("diagnostics")),
@@ -723,7 +723,7 @@ if (!hasTestDatabase()) {
     it("saves the working copy without touching what the public reads", async () => {
       // The property an agent has to be able to rely on, because the server's
       // instructions now tell it that editing a published page is safe and
-      // needs no permission (cms.md §14.9).
+      // needs no permission (cms.md).
       const page = created(await call("create_content", newPage("wip-safe")));
       await call("set_content_status", {
         id: page.id,
@@ -935,7 +935,7 @@ if (!hasTestDatabase()) {
         operation: "create_content",
         result: "ok",
       });
-      // cms.md §8: log the actor, page, operation, result and timestamp — never
+      // cms.md: log the actor, page, operation, result and timestamp — never
       // a token value or a content body.
       expect(JSON.stringify(rows[0])).not.toContain("Texto.");
       expect(Object.keys(rows[0]).sort()).toEqual([

@@ -1,5 +1,5 @@
 // The vocabulary the public site and the CMS both speak. This module is shared
-// by design (cms.md §2.2): the public renderer reads `ContentDocument`s and the
+// by design (cms.md): the public renderer reads `ContentDocument`s and the
 // CMS writes them, so neither owns the shape. Nothing here may import from
 // `src/cms/**`, and nothing here does I/O.
 
@@ -19,7 +19,7 @@ export function isContentSection(value: string): value is ContentSection {
 }
 
 /** Publication state. Mirrors the `cms_page_status` database enum; the table in
- * cms.md §3.2 is the whole specification:
+ * cms.md is the whole specification:
  *
  * | status      | CMS     | direct public URL   | listings |
  * | ----------- | ------- | ------------------- | -------- |
@@ -78,14 +78,14 @@ export type ContentMetadata = SectionMetadata;
 
 /** A complete page: everything needed to render it and everything needed to
  * edit it. The CMS and the public renderer read the same object — a preview
- * that went through a different shape would not be a preview (cms.md §6). */
+ * that went through a different shape would not be a preview (cms.md). */
 export type ContentDocument = {
   id: string;
   section: ContentSection;
   slug: string;
   status: ContentStatus;
   /** The restricted-MDX source. Never contains `export const meta` — metadata
-   * is columns and JSONB, not part of the body (cms.md §3.7). */
+   * is columns and JSONB, not part of the body (cms.md). */
   body: string;
   title: string;
   titleTag: string | null;
@@ -135,7 +135,7 @@ export type DiagnosticSeverity = "error" | "warning";
 /** One validation finding. Carries a stable machine-readable `code` alongside
  * the human message so the editor can map it to a lint marker, the MCP can
  * return it structurally, and a message can be reworded without breaking either
- * (cms.md §5, §8).
+ * (cms.md).
  *
  * `line`/`column` are 1-based and point into the MDX body when the finding is
  * about the body; `field` names the metadata field when it is about metadata.
@@ -155,7 +155,7 @@ export type Diagnostic = {
 };
 
 /** The result of validating something. `ok` is "no errors" — warnings never
- * block, they are shown and carried (cms.md §5.3). */
+ * block, they are shown and carried (cms.md). */
 export type ValidationResult = {
   ok: boolean;
   diagnostics: Diagnostic[];

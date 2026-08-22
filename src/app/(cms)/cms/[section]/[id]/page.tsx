@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // component's `requireCmsMember` does not gate this: the title was already
   // rendered into the response body by the time the 404 or the redirect was
   // decided, and it reached both an anonymous caller and a signed-in
-  // non-member. §7 asks for a response that reveals nothing. Checking here also
+  // non-member. cms.md asks for a response that reveals nothing. Checking here also
   // keeps an unauthenticated request from reaching the database at all.
   const access = await getCmsAccess();
   if (access.kind !== "member") return cmsPageMetadata("Editar");
@@ -53,13 +53,23 @@ export default async function CmsEditPage({ params }: Props) {
   // `state` and `versions` come from the service rather than from a second
   // store read: which copy exists and what it means is a lifecycle question,
   // and a route that answered it itself would be a second implementation of
-  // the rule (cms.md §2.2).
-  const [siblings, history, state, versions] = await Promise.all([
+  // the rule (cms.md).
+  const [siblings, history, state, versions, redirects] = await Promise.all([
     cmsPageStore.list({ section: section.id }),
     loadPageHistory(page),
     cmsContentService.getState(actor, id),
     cmsContentService.listVersions(actor, id),
+    // Old addresses that still answer for this page. Read here so «Dirección»
+    // can show them without the editor asking for them after every rename.
+    cmsPageStore.redirectsForPage(id),
   ]);
+  // Pages whose path hangs off this one's, and which a rename therefore moves
+  // too. The prefix is the whole rule (`planRename`), asked once here so the
+  // panel can say how many pages a rename is about to touch.
+  const descendants = siblings
+    .filter((candidate) => candidate.slug.startsWith(`${page.slug}/`))
+    .map((candidate) => candidate.slug);
+
   const parentOptions = siblings
     .filter((candidate) => candidate.id !== page.id)
     .filter((candidate) => !candidate.slug.startsWith(`${page.slug}/`))
@@ -83,6 +93,8 @@ export default async function CmsEditPage({ params }: Props) {
         state={state}
         fields={sectionFields(section.id)}
         parentOptions={parentOptions}
+        redirects={redirects}
+        descendants={descendants}
         history={history}
         versions={versions}
       />

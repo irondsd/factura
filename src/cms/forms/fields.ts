@@ -3,12 +3,12 @@ import type { ContentSection } from "@/content-system/types";
 
 // The metadata form, described as data.
 //
-// §7.1: sections differ in data, never in branches. The editor renders whatever
+// cms.md: sections differ in data, never in branches. The editor renders whatever
 // fields a section declares here, so adding statistics in section 12 is a new
 // `FIELDS` entry rather than a second editor with a different form — and the
 // field components below are written once for every section.
 //
-// Editors never see raw JSON (§3.7). A field says where it reads and writes —
+// Editors never see raw JSON (cms.md). A field says where it reads and writes —
 // a column on the document, or a key inside `metadata` — and the form assembles
 // the JSONB object from those.
 
@@ -72,12 +72,12 @@ export type FieldDescriptor = {
   enabledBy?: string;
   /** Shown, but not editable and never sent in a patch.
    *
-   * For a value that is set at creation and cannot be changed afterwards. The
-   * slug is the only one today: changing it moves the page's public URL, and
-   * every inbound link to the old one 404s until the redirects deferred in
-   * cms.md §12, Task 5, exist. Rendering it as a plain input while the store silently
-   * dropped it was worse than either — the save reported success and nothing
-   * changed. */
+   * The slug is the only one today, and it is read-only *here* rather than
+   * unchangeable: it lives on the page row, so moving it changes the live URL
+   * the moment it commits, while everything else in this form waits for a
+   * publish. Two behaviours that different should not share a control, so the
+   * move is «Dirección» in the editor's sidebar — with its own confirmation and
+   * the redirects it leaves behind (cms.md). */
   readOnly?: boolean;
   /** Shown as a live counter, and the length the guidance is written around.
    * Not enforced here: the validator owns the rules, and this is the hint. */
@@ -105,7 +105,7 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     required: true,
     readOnly: true,
     group: "identidad",
-    help: "La última parte de la URL. Se elige al crear la página y no se puede cambiar: los enlaces que ya apuntan aquí dejarían de funcionar.",
+    help: "La última parte de la URL. Para cambiarla, usa «Dirección» al final de esta columna: mover una página deja la dirección anterior redirigiendo a la nueva.",
   },
   {
     path: "crumb",
@@ -264,7 +264,7 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
     required: true,
     readOnly: true,
     group: "identidad",
-    help: "La última parte de la URL. Se elige al crear la página y no se puede cambiar: los enlaces que ya apuntan aquí dejarían de funcionar.",
+    help: "La última parte de la URL. Para cambiarla, usa «Dirección» al final de esta columna: mover una página deja la dirección anterior redirigiendo a la nueva.",
   },
   {
     path: "crumb",

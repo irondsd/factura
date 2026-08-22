@@ -2,7 +2,7 @@ import type { ContentStatus } from "@/content-system/types";
 import type { HistorySource } from "./history";
 
 // The vocabulary of stored versions, shared by the server and the «Historial»
-// tab (cms.md §14). Pure: no I/O, no database types, nothing server-only — the
+// tab (cms.md). Pure: no I/O, no database types, nothing server-only — the
 // client renders these labels and the store writes these kinds, and neither
 // should own the definition.
 
@@ -30,7 +30,7 @@ export function isRevisionKind(value: string): value is RevisionKind {
 export const SINGLETON_KINDS = ["wip", "checkpoint", "preview"] as const;
 
 /** How many *superseded* publications a page keeps, on top of the current one
- * (cms.md §14.2). Four `published` rows in total, then.
+ * (cms.md). Four `published` rows in total, then.
  *
  * Three because it is the number that answers "undo the last thing, and the
  * thing before it" without turning a CMS into an archive: every retained
@@ -38,7 +38,7 @@ export const SINGLETON_KINDS = ["wip", "checkpoint", "preview"] as const;
  * means a media library that can never be cleaned. */
 export const RETAINED_PUBLICATIONS = 3;
 
-/** The rolling window a run of saves is compressed into (cms.md §14.5.2).
+/** The rolling window a run of saves is compressed into (cms.md).
  *
  * Measured in instants, not calendar days: saving at 23:58 and again at 00:02
  * is one editing session, and a window that reset at midnight would

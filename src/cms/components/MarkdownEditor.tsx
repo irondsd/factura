@@ -30,7 +30,7 @@ import { tags } from "@lezer/highlight";
 import { useEffect, useRef } from "react";
 import type { Diagnostic } from "@/content-system/types";
 
-// The Markdown source editor (cms.md §3.4): a GitHub-like source workflow, not
+// The Markdown source editor (cms.md): a GitHub-like source workflow, not
 // WYSIWYG. Custom components stay visible as source — an editor who writes
 // `<TrustBlock />` should see `<TrustBlock />`.
 //

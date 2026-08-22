@@ -4,7 +4,7 @@ import type { CmsAccess, CmsActor, CmsRole } from "../types";
 // been fetched. Every decision the CMS makes about who may do what is decided
 // here and nowhere else, so the rules can be tested exhaustively without a
 // database, a session, or a running Next.js — and so a future deployment can
-// swap the session/database adapters around them (cms.md §2.3) without
+// swap the session/database adapters around them (cms.md) without
 // touching the policy itself.
 //
 // Nothing in this file performs I/O. `requireCmsMember` is the caller that
@@ -57,7 +57,7 @@ export const canManageTokens = (actor: CmsActor): boolean =>
 
 /** Roles allowed to publish and unpublish.
  *
- * Iteration 1 lets both publish (cms.md §4.1): there are two trusted editors
+ * Iteration 1 lets both publish (cms.md): there are two trusted editors
  * and an approval workflow is explicitly deferred. This array is the toggle
  * that decision lives behind — narrowing it to `admin` later is an edit here
  * plus its test, and no call site moves. */

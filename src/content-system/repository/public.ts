@@ -27,6 +27,13 @@ class LazyPostgresContentRepository implements ContentRepository {
   ): Promise<ContentSummary[]> {
     return (await this.repository()).listPubliclyRenderable(section);
   }
+
+  async redirectFor(
+    section: ContentSection,
+    slug: string[],
+  ): Promise<string[] | null> {
+    return (await this.repository()).redirectFor(section, slug);
+  }
 }
 
 /** CI opts into deterministic code-owned fixtures. Every other environment,

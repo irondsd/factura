@@ -11,7 +11,7 @@ import { resolveCmsAccess } from "./policy";
 // `cms_member` table. Route handlers, server components, mutations and the CMS
 // MCP all come through here, so there is exactly one answer to "may this
 // request use the CMS" and exactly one place to change when the deployments
-// split and the session stops being Auth.js (cms.md §2.3).
+// split and the session stops being Auth.js (cms.md).
 //
 // The rules themselves are in `./policy` and are pure; this file only fetches
 // the two facts they need and turns the verdict into a Next.js response.

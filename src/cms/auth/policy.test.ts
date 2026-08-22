@@ -104,7 +104,7 @@ describe("CMS capabilities", () => {
   });
 
   it("lets both roles publish in iteration 1", () => {
-    // cms.md §4.1 records this as a policy toggle, not a fixed rule. If
+    // cms.md records this as a policy toggle, not a fixed rule. If
     // publishing is ever narrowed to admins, this is the test that should fail
     // first and be updated deliberately.
     expect(canPublish(admin)).toBe(true);

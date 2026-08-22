@@ -6,7 +6,7 @@ import {
   revisionIdFor,
 } from "./revisionSelection";
 
-// Which stored copy a reader sees (cms.md §14.6).
+// Which stored copy a reader sees (cms.md).
 //
 // The assertion that matters is the negative one, and it is asserted for every
 // status rather than for the one that seems risky: a public read never resolves

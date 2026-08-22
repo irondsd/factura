@@ -1,7 +1,7 @@
 import type { Diagnostic } from "@/content-system/types";
 import { cn } from "@/lib/cn";
 
-// The Validation tab. Warnings never disappear silently (§5.3): they are listed
+// The Validation tab. Warnings never disappear silently (cms.md): they are listed
 // beside the errors, marked as advisory, and they do not block publication.
 
 /** The gate a set of diagnostics was produced by. Named here because the panel

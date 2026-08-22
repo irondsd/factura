@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 
 // One metadata field, rendered from its descriptor. Every section's form is
 // built out of these, so section 12 adds field *entries* rather than a second
-// form (§7.1).
+// form (cms.md).
 //
 // Nothing here shows JSON. A list of keywords is a list of keywords; the FAQ is
 // pairs of boxes. Assembling the JSONB object is `toPatch`'s job, not the

@@ -4,7 +4,7 @@ import { db as defaultDb, type Database } from "@/db";
 import { cmsMedia } from "@/db/schema";
 import { publicMediaUrl } from "./origin";
 
-// The public site's read contract for media (cms.md §9.12).
+// The public site's read contract for media (cms.md).
 //
 // Small on purpose. The public renderer needs four facts about an image — where
 // its bytes are, how big it is, and what its default alt says — and nothing

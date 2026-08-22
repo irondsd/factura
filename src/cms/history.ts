@@ -9,17 +9,18 @@ import type { ContentStatus } from "@/content-system/types";
 //
 // One page's activity, newest first. It is deliberately *not* the version
 // history: the copies you can open and restore are `cms_page_revision`, shown
-// alongside these in the «Historial» tab (cms.md §14.7). This list answers "who
+// alongside these in the «Historial» tab (cms.md). This list answers "who
 // has been working on this", it is bounded to ten rows, and a run of saves is
 // folded into one line — so it can be read at a glance rather than scrolled.
 
 /** The kinds of change recorded. Mirrors `cms_page_event.action`.
  *
  * `restored`, `discarded` and `preview_promoted` arrived with revisions
- * (cms.md §14.7): each is a decision about *which copy* a page holds, which the
+ * (cms.md): each is a decision about *which copy* a page holds, which the
  * three original actions cannot express — a restore is not a save, and
  * promoting a public preview is not the same as the status flip that
- * accompanies it. */
+ * accompanies it. `renamed` is the page's *address* moving, which is not a
+ * change to any copy at all. */
 export const HISTORY_ACTIONS = [
   "created",
   "saved",
@@ -27,6 +28,7 @@ export const HISTORY_ACTIONS = [
   "restored",
   "discarded",
   "preview_promoted",
+  "renamed",
 ] as const;
 
 export type HistoryAction = (typeof HISTORY_ACTIONS)[number];
@@ -117,6 +119,7 @@ export function describeEvent(event: {
   if (event.action === "discarded") return "descartó el borrador";
   if (event.action === "preview_promoted")
     return "actualizó la vista previa pública";
+  if (event.action === "renamed") return "cambió la dirección de la página";
   if (event.toStatus === "published") return "publicó la página";
   if (event.toStatus === "preview") return "puso la página en vista previa";
   if (event.toStatus === "draft") {

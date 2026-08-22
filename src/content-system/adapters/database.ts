@@ -5,7 +5,7 @@ import { cmsPageRevisions, cmsPages } from "@/db/schema";
 import type { ContentDocument, ContentSection } from "../types";
 import { type CmsRevisionRow, rowToDocument } from "../repository/mapping";
 
-// `documentsFromDatabase()` (cms.md §5.2), the counterpart to the filesystem
+// `documentsFromDatabase()` (cms.md), the counterpart to the filesystem
 // adapter: the whole of a section as `ContentDocument`s, in every state.
 //
 // Used for validation and migration parity, not for rendering — the public site

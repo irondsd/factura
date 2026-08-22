@@ -1,7 +1,7 @@
 import type { ContentStatus } from "../types";
 import type { Audience } from "./visibility";
 
-// Which stored copy a reader sees (cms.md §14.6).
+// Which stored copy a reader sees (cms.md).
 //
 // The companion to `./visibility`: that module answers *whether* a page may be
 // read, this one answers *which version of it*. Both are pure and exhaustive
@@ -21,7 +21,7 @@ export type RevisionPointer = "published" | "preview" | "wip" | null;
  *
  * - `published` → the live publication. Never the WIP, however recently saved.
  * - `preview`   → the promoted snapshot, not the latest save. Refreshing the
- *                 public preview is an explicit action (§14.5.3).
+ *                 public preview is an explicit action (cms.md).
  * - `draft`     → nothing. Indistinguishable from a missing page, by design. */
 export function publicPointer(status: ContentStatus): RevisionPointer {
   switch (status) {

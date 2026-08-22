@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db as defaultDb, type Database } from "@/db";
-import { cmsPageRevisions, cmsPages } from "@/db/schema";
+import { cmsPageRedirects, cmsPageRevisions, cmsPages } from "@/db/schema";
 import {
   cmsRowToDocument,
   cmsRowToSummary,
@@ -26,7 +26,7 @@ import type {
 // module's one non-obvious job is the optimistic-concurrency UPDATE, which has
 // to be a single statement to be correct at all.
 //
-// Since revisions (cms.md §14) the page row holds no prose. Reads here join the
+// Since revisions (cms.md) the page row holds no prose. Reads here join the
 // revision the CMS pointer selects — the working copy if there is one, else the
 // last publication, else the public preview — so `findById` still answers with
 // a whole `ContentDocument` and every caller above is unchanged.
@@ -68,6 +68,9 @@ export type CmsPageUpdate = {
    * the first-publication date, and the four pointers. Authored prose is never
    * in this patch, because it is never on this row. */
   patch: {
+    /** The page's address. Identity rather than prose, which is why it is on
+     * this row and in this patch — see `CmsContentService.rename`. */
+    slug?: string;
     status?: ContentStatus;
     publishedAt?: Date | null;
     publishedRevisionId?: string | null;
@@ -280,7 +283,7 @@ export class CmsPageStore {
   /** The documents a *public* read would see, per page, for the section — the
    * live publication of every published page and the promoted snapshot of
    * every previewed one. What collection validation measures a publication
-   * candidate against (cms.md §14.6). */
+   * candidate against (cms.md). */
   async publicDocumentsForSection(
     section: ContentSection,
   ): Promise<ContentDocument[]> {
@@ -331,7 +334,7 @@ export class CmsPageStore {
    * `lock_version` is incremented in SQL from the column's own value, so it
    * cannot be advanced past a save this transaction never saw. Every accepted
    * mutation bumps it — including a WIP save, which touches no column on this
-   * row at all (cms.md §14.3): the page lock is the CMS's single concurrency
+   * row at all (cms.md): the page lock is the CMS's single concurrency
    * token, and a save that did not move it would let a second editor hold a
    * version that is no longer current. */
   async updateWithLock(input: CmsPageUpdate): Promise<CmsPageRecord | null> {
@@ -339,6 +342,7 @@ export class CmsPageStore {
     const [row] = await this.db
       .update(cmsPages)
       .set({
+        ...(patch.slug !== undefined ? { slug: patch.slug } : {}),
         ...(patch.status !== undefined ? { status: patch.status } : {}),
         ...(patch.publishedAt !== undefined
           ? { publishedAt: patch.publishedAt }
@@ -394,6 +398,98 @@ export class CmsPageStore {
       .update(cmsPages)
       .set(input.patch)
       .where(eq(cmsPages.id, input.id));
+  }
+
+  /** Move one page's address without asking for its version.
+   *
+   * For the *descendants* of a rename: their paths are a consequence of the
+   * ancestor's, not a separate editorial decision, so there is no version for
+   * the editor who triggered it to hold. The lock is still bumped — the row
+   * changed, and a descendant's open editor holding the old version should be
+   * told so rather than saving against a page whose URL has moved underneath
+   * it. The page being renamed goes through `updateWithLock`, which is what
+   * makes the operation as a whole optimistic. */
+  async moveSlug(input: {
+    id: string;
+    slug: string;
+    actorId: string;
+    now: Date;
+  }): Promise<void> {
+    await this.db
+      .update(cmsPages)
+      .set({
+        slug: input.slug,
+        lockVersion: sql`${cmsPages.lockVersion} + 1`,
+        updatedBy: input.actorId,
+        updatedAt: input.now,
+      })
+      .where(eq(cmsPages.id, input.id));
+  }
+
+  /** Preserve old addresses (cms.md).
+   *
+   * Upserted rather than inserted: a path can be vacated twice — renamed away,
+   * taken back, renamed away again — and the second time is not an error, it is
+   * the same claim by (possibly) a different page. */
+  async addRedirects(input: {
+    section: ContentSection;
+    slugs: readonly string[];
+    pageId: string;
+    actorId: string;
+    now: Date;
+  }): Promise<void> {
+    if (input.slugs.length === 0) return;
+    await this.db
+      .insert(cmsPageRedirects)
+      .values(
+        input.slugs.map((slug) => ({
+          section: input.section,
+          fromSlug: slug,
+          pageId: input.pageId,
+          createdBy: input.actorId,
+          createdAt: input.now,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [cmsPageRedirects.section, cmsPageRedirects.fromSlug],
+        set: {
+          pageId: input.pageId,
+          createdBy: input.actorId,
+          createdAt: input.now,
+        },
+      });
+  }
+
+  /** Clear redirects standing at addresses a live page now occupies.
+   *
+   * Called on every rename and every create. A redirect that shadows a real
+   * page is the one way this table can do harm — it would bounce a reader off
+   * the page they asked for — so the rule is simply that a page always wins,
+   * enforced by removing the row rather than by out-ranking it at read time. */
+  async dropRedirects(
+    section: ContentSection,
+    slugs: readonly string[],
+  ): Promise<void> {
+    if (slugs.length === 0) return;
+    await this.db
+      .delete(cmsPageRedirects)
+      .where(
+        and(
+          eq(cmsPageRedirects.section, section),
+          inArray(cmsPageRedirects.fromSlug, [...slugs]),
+        ),
+      );
+  }
+
+  /** Every old address that still answers for this page, oldest first. What the
+   * editor lists under the page's address. */
+  async redirectsForPage(pageId: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ slug: cmsPageRedirects.fromSlug })
+      .from(cmsPageRedirects)
+      .where(eq(cmsPageRedirects.pageId, pageId))
+      .orderBy(asc(cmsPageRedirects.createdAt));
+    return rows.map((row) => row.slug);
   }
 
   /** Remove a row whose pointers the caller has already cleared, inside a

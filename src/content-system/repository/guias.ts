@@ -40,6 +40,15 @@ const getGuideBySlug = unstable_cache(
   { revalidate: 3600, tags: TAGS },
 );
 
+// Cached under the same tag as everything else, which is what makes a rename
+// visible immediately: the rename expires the section, so the old path stops
+// being a cached 404 and starts being a cached redirect on the next request.
+const getGuideRedirect = unstable_cache(
+  (slug: string) => publicContentRepository.redirectFor("guias", [slug]),
+  ["content", "guias", "redirect"],
+  { revalidate: 3600, tags: TAGS },
+);
+
 /** Published guides only: safe for every discovery surface. */
 export const publishedGuides = (): Promise<ContentSummary[]> =>
   listPublishedGuides();
@@ -52,6 +61,11 @@ export const publiclyRenderableGuides = (): Promise<ContentSummary[]> =>
 export const publicGuideBySlug = (
   slug: string,
 ): Promise<ContentDocument | null> => getGuideBySlug(slug);
+
+/** Where a guide path that no longer holds a page should send the reader — the
+ * guide's current slug, or null. Asked only after a miss. */
+export const guideRedirect = async (slug: string): Promise<string | null> =>
+  (await getGuideRedirect(slug))?.join("/") ?? null;
 
 export const primaryCategoryOf = (
   guide: Pick<ContentSummary, "metadata">,

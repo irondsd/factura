@@ -3,7 +3,7 @@ import { chartIdSchema } from "../metadata/guias";
 import type { ContentSection } from "../types";
 import { SECTION_COMPONENT_NAMES } from "./sectionDefinitions";
 
-// The content component manifest, *without* the components (cms.md §3.6).
+// The content component manifest, *without* the components (cms.md).
 //
 // Split from `./manifest.tsx` deliberately. Grammar validation needs the names,
 // the sections, the children rule and the property schemas — and it runs in

@@ -27,7 +27,7 @@ export const RENDER_CODE = "render.failed";
  *
  * Only the `publish` level pays for the collection read and the compile. A
  * draft save runs the grammar alone, which is what makes saving unfinished work
- * fast and cms.md §5.3 correct. */
+ * fast and cms.md correct. */
 export function createCmsValidator(
   store: CmsPageStore = defaultStore,
 ): ContentValidator {
@@ -54,7 +54,7 @@ export function createCmsValidator(
       context: { media: await mediaStatusesFor(document) },
     });
 
-    // Layer 4: render validation (cms.md §5.1). Compile the body against the
+    // Layer 4: render validation (cms.md). Compile the body against the
     // real component registry, because "the grammar is fine" and "React can
     // render this" are different claims — a container nested somewhere the
     // renderer chokes on passes the first and fails the second. Only at publish

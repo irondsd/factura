@@ -12,7 +12,7 @@ import {
 // `ContentDocument`. Every reader goes through it, so "what a row means" has a
 // single definition and the JSONB column is parsed — not cast — exactly once.
 //
-// Two rows, one document (cms.md §14.4): the page carries identity and
+// Two rows, one document (cms.md): the page carries identity and
 // lifecycle — id, section, slug, status, when it first went public — and the
 // revision carries everything that was authored. Which revision is the
 // lifecycle's decision, made in `./revisionSelection` and applied by the
@@ -152,7 +152,7 @@ function base(
     sortOrder: revision.sortOrder,
     crumb: revision.crumb,
     // The page's first publication, not the revision's: an unpublish and a
-    // republish must not move the visible dateline (cms.md §14.5.4).
+    // republish must not move the visible dateline (cms.md).
     publishedAt: page.publishedAt ? iso(page.publishedAt) : null,
     contentUpdatedAt: iso(revision.contentUpdatedAt),
     // Creation belongs to the page — a document created in March and last

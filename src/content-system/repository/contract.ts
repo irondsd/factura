@@ -1,6 +1,6 @@
 import type { ContentDocument, ContentSection, ContentSummary } from "../types";
 
-// The read contract the public site codes against (cms.md §6). Introduced
+// The read contract the public site codes against (cms.md). Introduced
 // before any route changes so the cutover in Phase 7 is a change of
 // implementation, not a change of shape: a filesystem-backed and a
 // PostgreSQL-backed repository both satisfy this, and the composite that mixes
@@ -24,6 +24,19 @@ export interface ContentRepository {
    * the few callers that need to know a path resolves at all, such as
    * `generateStaticParams`. Never feed this to a listing. */
   listPubliclyRenderable(section: ContentSection): Promise<ContentSummary[]>;
+
+  /** Where a path that no longer holds a page should send the reader, or null.
+   *
+   * Only ever asked after `getByPath` has answered null, which is what keeps a
+   * live page unambiguously ahead of any redirect. Answers with the *current*
+   * path of the page that used to live here, so a page renamed three times is
+   * still one hop from any of its old addresses — and answers null when that
+   * page is no longer publicly renderable, because a redirect into a 404 is
+   * worse than the 404 the reader already had. */
+  redirectFor(
+    section: ContentSection,
+    slug: string[],
+  ): Promise<string[] | null>;
 }
 
 /** Slug arrays are how the sections differ: `/guias/[slug]` is one segment,

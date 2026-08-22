@@ -8,7 +8,7 @@ import {
 import { createFakeCms, seedPage, type FakeCms } from "./testFakes";
 
 // The one destructive operation in the CMS, and the guards that keep
-// "archive by status" intact rather than discarding it (cms.md §4.2, §13).
+// "archive by status" intact rather than discarding it (cms.md).
 //
 // Three refusals and one permission. The refusals are what matter: a published
 // page has a public URL and a cached copy that outlives the row; a page others

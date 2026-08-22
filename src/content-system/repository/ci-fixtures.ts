@@ -173,6 +173,13 @@ export class CiFixtureContentRepository implements ContentRepository {
       (document) => document.section === section && document.status !== "draft",
     ).map(withoutBody);
   }
+
+  /** No fixture has ever been renamed, so nothing redirects. The method exists
+   * because the contract has it: a CI build must exercise the same code path
+   * the live site takes, including the miss. */
+  async redirectFor(): Promise<string[] | null> {
+    return null;
+  }
 }
 
 export const ciFixtureContentRepository = new CiFixtureContentRepository();

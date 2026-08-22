@@ -24,7 +24,7 @@ import { cn } from "@/lib/cn";
 // visible before it is read.
 //
 // Local rather than a reuse of `@/components/ConfirmDialog`: that one reads its
-// labels from `useI18n`, and the CMS has no I18n provider on purpose (§2.2 — a
+// labels from `useI18n`, and the CMS has no I18n provider on purpose (cms.md — a
 // Spanish-only internal tool, no locale proxy). Sharing it would mean giving
 // the console a provider it exists without.
 

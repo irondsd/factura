@@ -2,7 +2,7 @@ import type { ContentDocument, Diagnostic } from "../types";
 import type { ContentIndex } from "./document";
 import { fold } from "./text";
 
-// Layer 3 of cms.md §5: collection validation — the rules no single page can
+// Layer 3 of cms.md: collection validation — the rules no single page can
 // check about itself.
 //
 // Two pages sharing a <title> or a description are two pages competing for one

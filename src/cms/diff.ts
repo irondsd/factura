@@ -1,4 +1,4 @@
-// Comparing two versions of a page (cms.md §14.7.2).
+// Comparing two versions of a page (cms.md).
 //
 // Pure and shared: the server uses `documentsEqual` to refuse a publication
 // that would change nothing, and the «Historial» tab uses the rest to render

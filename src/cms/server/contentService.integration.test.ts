@@ -875,7 +875,7 @@ if (!hasTestDatabase()) {
     });
 
     describe("revisions in the database", () => {
-      // The half of §14 that only a real PostgreSQL can prove: the partial
+      // The half of cms.md that only a real PostgreSQL can prove: the partial
       // unique indexes, the `restrict` foreign keys, the check constraints, and
       // the fact that a public read resolves a pointer rather than a row.
       // `workingCopy.test.ts` covers the decisions; this covers the schema that
@@ -1193,6 +1193,99 @@ if (!hasTestDatabase()) {
         await expect(
           repository.getByPath("guias", [page.slug]),
         ).rejects.toThrow(/invalid metadata/);
+      });
+    });
+
+    describe("renames and redirects", () => {
+      // The half the fake cannot prove: the redirect read is a join to
+      // `cms_page`, so the destination is resolved live and the visibility rule
+      // is a `where` clause (cms.md).
+      const rename = async (id: string, slug: string) =>
+        service.rename(actor, {
+          id,
+          expectedLockVersion: await lockOf(id),
+          slug,
+        });
+
+      it("answers the old address with the page's current one", async () => {
+        const page = await service.create(actor, draftInput("moved"));
+        await publish(page.id);
+        const from = page.slug;
+
+        await rename(page.id, `${TEST_PREFIX}moved-once`);
+        expect(await repository.redirectFor("guias", [from])).toEqual([
+          `${TEST_PREFIX}moved-once`,
+        ]);
+
+        // Renamed again: still one hop, because the row points at the page and
+        // not at a path. This is what makes chains impossible rather than rare.
+        await rename(page.id, `${TEST_PREFIX}moved-twice`);
+        expect(await repository.redirectFor("guias", [from])).toEqual([
+          `${TEST_PREFIX}moved-twice`,
+        ]);
+        expect(
+          await repository.redirectFor("guias", [`${TEST_PREFIX}moved-once`]),
+        ).toEqual([`${TEST_PREFIX}moved-twice`]);
+      });
+
+      it("keeps the live page ahead of every redirect", async () => {
+        const page = await service.create(actor, draftInput("live-first"));
+        await publish(page.id);
+        const from = page.slug;
+        await rename(page.id, `${TEST_PREFIX}live-first-moved`);
+
+        // A second page moves in where the first one was. The reader asking for
+        // that address wants this page, not a bounce to the one that left.
+        const settler = await service.create(actor, {
+          ...draftInput("settler"),
+          slug: from,
+        });
+        await publish(settler.id);
+
+        expect((await repository.getByPath("guias", [from]))?.id).toBe(
+          settler.id,
+        );
+        expect(await repository.redirectFor("guias", [from])).toBeNull();
+      });
+
+      it("does not redirect into a page the public cannot see", async () => {
+        const page = await service.create(actor, draftInput("hidden-target"));
+        await publish(page.id);
+        const from = page.slug;
+        await rename(page.id, `${TEST_PREFIX}hidden-target-moved`);
+        await service.unpublish(actor, {
+          id: page.id,
+          expectedLockVersion: await lockOf(page.id),
+        });
+
+        // Bouncing a reader from one 404 to another is worse than the 404 they
+        // already had, and it would leak that the page still exists.
+        expect(await repository.redirectFor("guias", [from])).toBeNull();
+      });
+
+      it("moves a subtree and preserves every path in it", async () => {
+        const hub = await service.create(actor, draftInput("hub"));
+        const child = await service.create(actor, {
+          ...draftInput("hub-child"),
+          slug: `${hub.slug}/hija`,
+          parentId: hub.id,
+        });
+        await publish(hub.id);
+        await publish(child.id);
+
+        await rename(hub.id, `${TEST_PREFIX}centro`);
+
+        expect(
+          await repository.redirectFor("guias", [`${hub.slug}/hija`]),
+        ).toEqual([`${TEST_PREFIX}centro`, "hija"]);
+        expect(
+          (
+            await repository.getByPath("guias", [
+              `${TEST_PREFIX}centro`,
+              "hija",
+            ])
+          )?.id,
+        ).toBe(child.id);
       });
     });
   });

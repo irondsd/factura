@@ -1,8 +1,8 @@
 import type { ContentStatus } from "../types";
 
-// The lifecycle rules, as data. cms.md §3.2 defines three states and three
+// The lifecycle rules, as data. cms.md defines three states and three
 // questions to ask about each; every consumer asks one of those questions, and
-// none of them may answer it themselves (§6: "Public pages never infer
+// none of them may answer it themselves (cms.md: "Public pages never infer
 // visibility themselves; the repository/service owns the rule").
 //
 // Pure and exhaustive on purpose: this is the security-relevant half of the
@@ -17,7 +17,7 @@ export type Audience = "public" | "cms";
  *
  * `preview` is public here: a preview URL is deliberately shareable so an
  * editor can send a link to someone without an account. It is a
- * discoverability control, not an access control (cms.md §10.3) — which is why
+ * discoverability control, not an access control (cms.md) — which is why
  * `noindex, nofollow` and exclusion from every listing are what make it work,
  * and why nothing secret may go in one. */
 const RENDERABLE: Record<Audience, readonly ContentStatus[]> = {
@@ -62,7 +62,7 @@ export const shouldNoindex = (status: ContentStatus): boolean =>
  *
  * `nofollow`, not the site's usual `noindex, follow`. Elsewhere on the site a
  * `noindex` page is "unlisted, not disowned" and its links should still carry a
- * crawler onward; cms.md §3.2 asks for the stricter pair here, because a
+ * crawler onward; cms.md asks for the stricter pair here, because a
  * preview URL is a working copy and nothing on it is an endorsement of what it
  * links to yet.
  *

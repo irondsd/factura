@@ -393,7 +393,7 @@ describe("diagnostics", () => {
   });
 
   it("marks everything it finds as an error", () => {
-    // Nothing in this layer is advisory: cms.md §3.5 says forbidden syntax is
+    // Nothing in this layer is advisory: cms.md says forbidden syntax is
     // rejected, never stripped or warned about.
     for (const diagnostic of check("import x from 'y';\n\n<div />\n")
       .diagnostics) {

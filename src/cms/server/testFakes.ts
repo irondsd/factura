@@ -57,6 +57,8 @@ export type FakeCms = {
   /** Raw access, for asserting on what is stored rather than what is returned. */
   pageRow: (id: string) => CmsPageRecord | undefined;
   revisionRows: (pageId: string) => RevisionRecord[];
+  /** The redirect table, as `section:fromSlug → page id`. */
+  redirectRows: () => Record<string, string>;
 };
 
 let counter = 0;
@@ -77,6 +79,9 @@ export function createFakeCms(
 ): FakeCms {
   const pages = new Map<string, CmsPageRecord>();
   const revisions = new Map<string, RevisionRecord>();
+  /** The redirect table, keyed `section:fromSlug` → page id — the unique index
+   * the real one carries, so a test can catch a rename that would collide. */
+  const redirects = new Map<string, string>();
   const expired: ContentSection[] = [];
   const events: CmsPageEventInsert[] = [];
   const usageWrites: string[] = [];
@@ -339,6 +344,45 @@ export function createFakeCms(
       pages.set(input.id, { ...row, ...input.patch });
     },
 
+    moveSlug: async (input: {
+      id: string;
+      slug: string;
+      actorId: string;
+      now: Date;
+    }) => {
+      const row = pages.get(input.id);
+      if (!row) return;
+      pages.set(input.id, {
+        ...row,
+        slug: input.slug,
+        lockVersion: row.lockVersion + 1,
+        updatedBy: input.actorId,
+        updatedAt: input.now,
+      });
+    },
+
+    addRedirects: async (input: {
+      section: ContentSection;
+      slugs: readonly string[];
+      pageId: string;
+    }) => {
+      for (const slug of input.slugs) {
+        redirects.set(`${input.section}:${slug}`, input.pageId);
+      }
+    },
+
+    dropRedirects: async (
+      section: ContentSection,
+      slugs: readonly string[],
+    ) => {
+      for (const slug of slugs) redirects.delete(`${section}:${slug}`);
+    },
+
+    redirectsForPage: async (pageId: string) =>
+      [...redirects.entries()]
+        .filter(([, id]) => id === pageId)
+        .map(([key]) => key.slice(key.indexOf(":") + 1)),
+
     deleteById: async (id: string) => {
       pages.delete(id);
       for (const [revisionId, revision] of revisions) {
@@ -419,6 +463,7 @@ export function createFakeCms(
       [...revisions.values()]
         .filter((revision) => revision.pageId === pageId)
         .map(clone),
+    redirectRows: () => Object.fromEntries(redirects),
   };
 }
 

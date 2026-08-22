@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 // whose sides are not labelled is a diff you have to guess at, and the guess is
 // wrong half the time.
 //
-// Additions and removals are never colour alone (cms.md §14.8). Every changed
+// Additions and removals are never colour alone (cms.md). Every changed
 // line carries a `+`/`−` in the gutter and a screen-reader word, and the field
 // table says «antes»/«ahora» in text. Colour is the fast path for people who
 // can use it, not the channel the information travels on.
