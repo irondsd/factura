@@ -13,6 +13,8 @@
     "prebuild": "npm run build:worker",
     "indexnow": "bun scripts/ping-indexnow.ts",
     "media:sweep": "dotenv -e .env.prod -- bun --preload ./scripts/lib/serverOnlyShim.ts scripts/mediaSweep.ts",
+    "cms:revisions": "dotenv -e .env.local -- tsx scripts/backfillCmsRevisions.ts",
+    "cms:revisions:prod": "dotenv -e .env.prod -- tsx scripts/backfillCmsRevisions.ts",
     "lint": "eslint",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",

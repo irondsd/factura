@@ -1,4 +1,4 @@
-import { and, eq, isNull, like } from "drizzle-orm";
+import { and, eq, inArray, isNull, like } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { parseMessage } from "@/server/mcp/protocol";
 import { limitKey, MCP_CALL, take } from "@/server/rateLimit";
@@ -83,6 +83,9 @@ describe("tool listing", () => {
       "list_content",
       "get_content",
       "validate_content",
+      "list_content_versions",
+      "get_content_version",
+      "compare_content_version",
       "list_media",
       "get_media",
     ]);
@@ -93,6 +96,8 @@ describe("tool listing", () => {
     expect(names).toContain("create_content");
     expect(names).toContain("update_content");
     expect(names).toContain("set_content_status");
+    expect(names).toContain("restore_content_version");
+    expect(names).toContain("discard_content_wip");
     expect(names).toContain("create_media_upload");
     expect(names).toContain("complete_media_upload");
     expect(names).toContain("update_media");
@@ -127,15 +132,22 @@ describe("tool listing", () => {
     }
   });
 
-  it("marks only the publication switch destructive", () => {
-    // The annotation is what tells a client which call needs a human first.
-    // Editing a live page is not destructive — the URL renders either way —
-    // so flagging `update_content` too would train the editor to click
-    // through the prompt that actually matters.
+  it("marks the publication switch and the discard destructive, and nothing else", () => {
+    // The annotation is what tells a client which call needs a human first, so
+    // the set has to be small enough to still mean something. Two qualify:
+    // `set_content_status` changes what readers see, and `discard_content_wip`
+    // throws away editorial work with nothing behind it.
+    //
+    // Saving is not destructive, and this is the assertion that keeps it that
+    // way: `update_content` writes a private working copy the public cannot
+    // reach, and flagging it would train an agent to ask before every save and
+    // then click through the prompt that actually matters. Restoring is not
+    // either — it overwrites the working copy, but the copy it overwrites is
+    // kept as the checkpoint.
     const destructive = cmsToolListing(CMS_SCOPES)
       .filter((tool) => tool.annotations.destructiveHint)
       .map((tool) => tool.name);
-    expect(destructive).toEqual(["set_content_status"]);
+    expect(destructive).toEqual(["set_content_status", "discard_content_wip"]);
   });
 
   it("marks every read tool read-only and every mutation not", () => {
@@ -521,8 +533,52 @@ if (!hasTestDatabase()) {
     const call = (name: string, args: Record<string, unknown>) =>
       handleCmsMessage(request("tools/call", { name, arguments: args }), agent);
 
-    const cleanup = () =>
-      db.delete(schema.cmsPages).where(like(schema.cmsPages.slug, `${SLUG}%`));
+    /** Pointers, then revisions, then pages — the order the `restrict` foreign
+     * keys allow. See the note on the same helper in
+     * `contentService.integration.test.ts`. */
+    const cleanup = async () => {
+      const mine = like(schema.cmsPages.slug, `${SLUG}%`);
+      await db
+        .update(schema.cmsPages)
+        .set({
+          publishedRevisionId: null,
+          previewRevisionId: null,
+          wipRevisionId: null,
+          checkpointRevisionId: null,
+        })
+        .where(mine);
+      await db
+        .delete(schema.cmsPageRevisions)
+        .where(
+          inArray(
+            schema.cmsPageRevisions.pageId,
+            db
+              .select({ id: schema.cmsPages.id })
+              .from(schema.cmsPages)
+              .where(mine),
+          ),
+        );
+      await db.delete(schema.cmsPages).where(mine);
+    };
+
+    /** The document a page currently stores, read straight from the revision
+     * the CMS pointer selects. These assertions are about what landed in the
+     * database, so they read the revision rather than trusting the tool's own
+     * answer about it. */
+    const storedDocument = async (id: string) => {
+      const page = await db.query.cmsPages.findFirst({
+        where: eq(schema.cmsPages.id, id),
+      });
+      const revisionId =
+        page?.wipRevisionId ??
+        page?.publishedRevisionId ??
+        page?.previewRevisionId;
+      return revisionId
+        ? db.query.cmsPageRevisions.findFirst({
+            where: eq(schema.cmsPageRevisions.id, revisionId),
+          })
+        : undefined;
+    };
 
     const auditRows = () =>
       db
@@ -598,9 +654,15 @@ if (!hasTestDatabase()) {
         expectedLockVersion: page.lockVersion,
         patch: { title: "Título nuevo" },
       });
+      // `update_content` saves the shared working copy, so it answers with the
+      // copy it wrote rather than with a bare document: an agent needs to know
+      // its edit landed in the draft and not on the live page.
       expect(resultOf(response).structuredContent).toMatchObject({
-        title: "Título nuevo",
-        lockVersion: page.lockVersion + 1,
+        created: false,
+        document: {
+          title: "Título nuevo",
+          lockVersion: page.lockVersion + 1,
+        },
       });
     });
 
@@ -620,10 +682,7 @@ if (!hasTestDatabase()) {
       expect(resultOf(stale).isError).toBe(true);
       expect(resultOf(stale).content[0].text).toMatch(/changed since/);
 
-      const row = await db.query.cmsPages.findFirst({
-        where: eq(schema.cmsPages.id, page.id),
-      });
-      expect(row?.title).toBe("Primero");
+      expect((await storedDocument(page.id))?.title).toBe("Primero");
     });
 
     it("returns validation diagnostics structurally, not as prose", async () => {
@@ -656,10 +715,186 @@ if (!hasTestDatabase()) {
       });
 
       expect(resultOf(response).isError).toBe(false);
-      const row = await db.query.cmsPages.findFirst({
+      expect((await storedDocument(page.id))?.bodyMdx).toBe(
+        newPage("validate").body,
+      );
+    });
+
+    it("saves the working copy without touching what the public reads", async () => {
+      // The property an agent has to be able to rely on, because the server's
+      // instructions now tell it that editing a published page is safe and
+      // needs no permission (cms.md §14.9).
+      const page = created(await call("create_content", newPage("wip-safe")));
+      await call("set_content_status", {
+        id: page.id,
+        status: "published",
+        expectedLockVersion: page.lockVersion,
+      });
+      const live = (
+        await db.query.cmsPages.findFirst({
+          where: eq(schema.cmsPages.id, page.id),
+        })
+      )?.publishedRevisionId;
+
+      const state = resultOf(await call("get_content", { id: page.id }))
+        .structuredContent as { lockVersion: number };
+      await call("update_content", {
+        id: page.id,
+        expectedLockVersion: state.lockVersion,
+        patch: { body: "## Sección\n\nBorrador del agente.\n" },
+      });
+
+      const after = await db.query.cmsPages.findFirst({
         where: eq(schema.cmsPages.id, page.id),
       });
-      expect(row?.bodyMdx).toBe(newPage("validate").body);
+      expect(after?.publishedRevisionId).toBe(live);
+      expect(after?.status).toBe("published");
+      expect((await storedDocument(page.id))?.kind).toBe("wip");
+    });
+
+    it("reports the lifecycle, not only the document", async () => {
+      const page = created(await call("create_content", newPage("state")));
+      const state = resultOf(await call("get_content", { id: page.id }))
+        .structuredContent as Record<string, unknown>;
+
+      expect(state).toMatchObject({
+        status: "draft",
+        hasWip: true,
+        publishedRevisionId: null,
+        previewIsStale: false,
+        publicationCount: 0,
+      });
+      expect(state.document).toMatchObject({ id: page.id });
+    });
+
+    it("lists exactly the versions that exist, and no more", async () => {
+      const page = created(await call("create_content", newPage("versions")));
+      await call("set_content_status", {
+        id: page.id,
+        status: "published",
+        expectedLockVersion: page.lockVersion,
+      });
+
+      const listed = resultOf(
+        await call("list_content_versions", { id: page.id }),
+      ).structuredContent as {
+        versions: { kind: string; isLive: boolean }[];
+        baselineIsLive: boolean;
+      };
+      expect(listed.versions).toHaveLength(1);
+      expect(listed.versions[0]).toMatchObject({
+        kind: "published",
+        isLive: true,
+      });
+      expect(listed.baselineIsLive).toBe(true);
+    });
+
+    it("restores a publication into the working copy without publishing it", async () => {
+      const page = created(await call("create_content", newPage("restore")));
+      await call("set_content_status", {
+        id: page.id,
+        status: "published",
+        expectedLockVersion: page.lockVersion,
+      });
+      const before = await db.query.cmsPages.findFirst({
+        where: eq(schema.cmsPages.id, page.id),
+      });
+
+      const listed = resultOf(
+        await call("list_content_versions", { id: page.id }),
+      ).structuredContent as { versions: { revisionId: string }[] };
+      const state = resultOf(await call("get_content", { id: page.id }))
+        .structuredContent as { lockVersion: number };
+
+      const response = await call("restore_content_version", {
+        id: page.id,
+        revisionId: listed.versions[0].revisionId,
+        expectedLockVersion: state.lockVersion,
+      });
+      expect(resultOf(response).isError).toBe(false);
+
+      const after = await db.query.cmsPages.findFirst({
+        where: eq(schema.cmsPages.id, page.id),
+      });
+      // A working copy appeared; the live publication did not move.
+      expect(after?.wipRevisionId).not.toBeNull();
+      expect(after?.publishedRevisionId).toBe(before?.publishedRevisionId);
+      expect(after?.status).toBe("published");
+    });
+
+    it("refuses a revision that belongs to another page", async () => {
+      // Indistinguishable from "no such revision": an id from another page must
+      // not be confirmed as real by the error it produces.
+      const mine = created(await call("create_content", newPage("mine")));
+      const theirs = created(await call("create_content", newPage("theirs")));
+      const theirVersions = resultOf(
+        await call("list_content_versions", { id: theirs.id }),
+      ).structuredContent as { versions: { revisionId: string }[] };
+
+      const response = await call("get_content_version", {
+        id: mine.id,
+        revisionId: theirVersions.versions[0].revisionId,
+      });
+      expect(resultOf(response).isError).toBe(true);
+    });
+
+    it("compares the working copy against the live publication", async () => {
+      const page = created(await call("create_content", newPage("compare")));
+      await call("set_content_status", {
+        id: page.id,
+        status: "published",
+        expectedLockVersion: page.lockVersion,
+      });
+      const state = resultOf(await call("get_content", { id: page.id }))
+        .structuredContent as { lockVersion: number };
+      await call("update_content", {
+        id: page.id,
+        expectedLockVersion: state.lockVersion,
+        patch: { title: "Un título distinto" },
+      });
+
+      const comparison = resultOf(
+        await call("compare_content_version", { id: page.id }),
+      ).structuredContent as {
+        baseline: { isLive: boolean } | null;
+        candidate: { kind: string };
+        diff: { fields: { field: string }[]; identical: boolean } | null;
+      };
+      expect(comparison.baseline?.isLive).toBe(true);
+      expect(comparison.candidate.kind).toBe("wip");
+      expect(comparison.diff?.identical).toBe(false);
+      expect(comparison.diff?.fields.map((f) => f.field)).toContain("title");
+    });
+
+    it("discards the working copy and leaves the published page alone", async () => {
+      const page = created(await call("create_content", newPage("discard")));
+      await call("set_content_status", {
+        id: page.id,
+        status: "published",
+        expectedLockVersion: page.lockVersion,
+      });
+      let state = resultOf(await call("get_content", { id: page.id }))
+        .structuredContent as { lockVersion: number };
+      await call("update_content", {
+        id: page.id,
+        expectedLockVersion: state.lockVersion,
+        patch: { body: "## Sección\n\nDescartable.\n" },
+      });
+      state = resultOf(await call("get_content", { id: page.id }))
+        .structuredContent as { lockVersion: number };
+
+      const response = await call("discard_content_wip", {
+        id: page.id,
+        expectedLockVersion: state.lockVersion,
+      });
+      expect(resultOf(response).isError).toBe(false);
+
+      const after = await db.query.cmsPages.findFirst({
+        where: eq(schema.cmsPages.id, page.id),
+      });
+      expect(after?.wipRevisionId).toBeNull();
+      expect(after?.status).toBe("published");
+      expect(after?.publishedRevisionId).not.toBeNull();
     });
 
     it("puts an agent's publish through the same gate a person's goes through", async () => {

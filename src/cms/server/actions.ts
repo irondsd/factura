@@ -8,12 +8,18 @@ import type {
 } from "@/content-system/types";
 import { requireCmsMember } from "../auth/requireCmsMember";
 import { cmsSectionPath } from "../sections";
-import type { CreateContentInput, UpdateContentInput } from "./contentService";
+import type {
+  CreateContentInput,
+  UpdateContentInput,
+  VersionComparison,
+} from "./contentService";
 import {
   CmsConflictError,
   CmsForbiddenError,
+  CmsNoWorkingCopyError,
   CmsNotDeletableError,
   CmsNotFoundError,
+  CmsRevisionNotFoundError,
   CmsSlugTakenError,
   CmsValidationError,
 } from "./errors";
@@ -37,7 +43,8 @@ export type CmsActionResult<T> =
         | "forbidden"
         | "not_found"
         | "slug_taken"
-        | "not_deletable";
+        | "not_deletable"
+        | "no_working_copy";
       message: string;
       diagnostics?: Diagnostic[];
       /** On a conflict: the version actually in the database. */
@@ -66,6 +73,12 @@ function toResult(error: unknown): CmsActionResult<never> {
   }
   if (error instanceof CmsNotDeletableError) {
     return { ok: false, kind: "not_deletable", message: error.message };
+  }
+  if (error instanceof CmsNoWorkingCopyError) {
+    return { ok: false, kind: "no_working_copy", message: error.message };
+  }
+  if (error instanceof CmsRevisionNotFoundError) {
+    return { ok: false, kind: "not_found", message: error.message };
   }
   if (error instanceof CmsForbiddenError) {
     return { ok: false, kind: "forbidden", message: error.message };
@@ -100,21 +113,128 @@ export async function createContentAction(
   }
 }
 
+/** Save the working copy. Never publishes and never touches the live page —
+ * see `CmsContentService.update`. */
 export async function saveContentAction(
   section: ContentSection,
   input: UpdateContentInput,
-): Promise<CmsActionResult<{ lockVersion: number; contentUpdatedAt: string }>> {
+): Promise<
+  CmsActionResult<{
+    lockVersion: number;
+    contentUpdatedAt: string;
+    wipRevisionId: string;
+    wipUpdatedAt: string;
+  }>
+> {
   const actor = await requireCmsMember();
   try {
-    const page = await service.update(actor, input);
-    refreshCms(section, page.id);
+    const saved = await service.update(actor, input);
+    refreshCms(section, saved.document.id);
     return {
       ok: true,
       data: {
-        lockVersion: page.lockVersion,
-        contentUpdatedAt: page.contentUpdatedAt,
+        lockVersion: saved.document.lockVersion,
+        contentUpdatedAt: saved.document.contentUpdatedAt,
+        wipRevisionId: saved.wipRevisionId,
+        wipUpdatedAt: saved.wipUpdatedAt,
       },
     };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/** Publish the working copy (cms.md §14.5.4). Separate from
+ * `setContentStatusAction` because it answers with more than a status: whether
+ * a publication was actually filed, and which number it got. */
+export async function publishContentAction(
+  section: ContentSection,
+  input: { id: string; expectedLockVersion: number },
+): Promise<
+  CmsActionResult<{
+    status: ContentStatus;
+    lockVersion: number;
+    publicationNumber: number | null;
+    noChange: boolean;
+  }>
+> {
+  const actor = await requireCmsMember();
+  try {
+    const result = await service.publish(actor, input);
+    refreshCms(section, input.id);
+    return {
+      ok: true,
+      data: {
+        status: result.status,
+        lockVersion: result.lockVersion,
+        publicationNumber: result.publicationNumber,
+        noChange: result.noChange,
+      },
+    };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/** Freeze the working copy into the shareable public preview, or refresh a
+ * preview that has fallen behind it. */
+export async function promotePreviewAction(
+  section: ContentSection,
+  input: { id: string; expectedLockVersion: number },
+): Promise<CmsActionResult<{ status: ContentStatus; lockVersion: number }>> {
+  const actor = await requireCmsMember();
+  try {
+    const page = await service.promotePreview(actor, input);
+    refreshCms(section, page.id);
+    return {
+      ok: true,
+      data: { status: page.status, lockVersion: page.lockVersion },
+    };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/** Throw the working copy away. Changes nothing public — the page keeps
+ * serving whatever it was serving. */
+export async function discardWipAction(
+  section: ContentSection,
+  input: { id: string; expectedLockVersion: number },
+): Promise<CmsActionResult<{ lockVersion: number }>> {
+  const actor = await requireCmsMember();
+  try {
+    const page = await service.discardWip(actor, input);
+    refreshCms(section, page.id);
+    return { ok: true, data: { lockVersion: page.lockVersion } };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/** Copy a retained version into the working copy. Never publishes. */
+export async function restoreVersionAction(
+  section: ContentSection,
+  input: { id: string; revisionId: string; expectedLockVersion: number },
+): Promise<CmsActionResult<{ lockVersion: number }>> {
+  const actor = await requireCmsMember();
+  try {
+    const restored = await service.restoreVersion(actor, input);
+    refreshCms(section, input.id);
+    return { ok: true, data: { lockVersion: restored.document.lockVersion } };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/** The comparison the «Historial» tab renders. Read-only: it records nothing
+ * and writes nothing. */
+export async function compareVersionAction(input: {
+  id: string;
+  revisionId?: string;
+}): Promise<CmsActionResult<VersionComparison>> {
+  const actor = await requireCmsMember();
+  try {
+    return { ok: true, data: await service.compareVersion(actor, input) };
   } catch (error) {
     return toResult(error);
   }

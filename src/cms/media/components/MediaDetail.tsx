@@ -177,7 +177,7 @@ export function MediaDetail({
           ) : (
             <ul className="mt-2 space-y-1 font-mono text-[13px]">
               {usage.map((reference) => (
-                <li key={`${reference.pageId}-${reference.placement}`}>
+                <li key={`${reference.revisionId}-${reference.placement}`}>
                   <Link
                     href={cmsEditPath(
                       reference.section as ContentSection,
@@ -188,16 +188,27 @@ export function MediaDetail({
                     {reference.title}
                   </Link>{" "}
                   <span className="text-muted">
-                    · {reference.section} ·{" "}
+                    · {reference.section} · {referenceKindLabel(reference)} ·{" "}
                     {reference.placement === "preview"
                       ? "portada"
                       : `en el cuerpo${reference.occurrences > 1 ? ` (${reference.occurrences}×)` : ""}`}
-                    {reference.status !== "published" &&
-                      ` · ${reference.status}`}
                   </span>
                 </li>
               ))}
             </ul>
+          )}
+          {usage.some(
+            (reference) => reference.kind === "published" && !reference.isLive,
+          ) && (
+            /* The difference an editor needs before they go hunting for the
+               page that "still uses" an image they already removed: a retained
+               publication is a version nobody is reading, and it releases the
+               image on its own once three newer publications push it out. */
+            <p className="mt-3 font-mono text-[12px] leading-[1.6] text-muted">
+              Las versiones publicadas anteriores también cuentan: la imagen
+              queda retenida mientras esas versiones existan, y se libera sola
+              cuando publicaciones más nuevas las desplazan.
+            </p>
           )}
         </section>
 
@@ -297,7 +308,7 @@ export function MediaDetail({
               </button>
               <p className="mt-2 text-[11px] leading-[1.6] text-muted">
                 {usage.length > 0
-                  ? "No se puede: hay páginas que la usan. Quítala de ahí primero."
+                  ? "No se puede: hay versiones guardadas que la usan. Quítala de ahí primero."
                   : `Reversible durante ${graceDays} días. Nada se borra al quitar una imagen de una página.`}
               </p>
             </>
@@ -399,4 +410,23 @@ function Field({
       {children}
     </div>
   );
+}
+
+/** How a reference is described in the usage list. The kind matters here in a
+ * way it does not anywhere else: "the live article uses this" and "a retained
+ * publication from March uses this" are the same row in the table and very
+ * different answers to «¿por qué no puedo borrarla?». */
+function referenceKindLabel(reference: MediaUsageRef): string {
+  switch (reference.kind) {
+    case "wip":
+      return "borrador de trabajo";
+    case "checkpoint":
+      return "copia de seguridad del borrador";
+    case "preview":
+      return "vista previa pública";
+    case "published":
+      return reference.isLive
+        ? "versión en línea"
+        : `publicación anterior ${reference.publicationNumber ?? ""}`.trim();
+  }
 }

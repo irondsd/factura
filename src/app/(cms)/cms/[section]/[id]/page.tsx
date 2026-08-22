@@ -8,6 +8,7 @@ import { sectionFields } from "@/cms/forms/fields";
 import { cmsPageMetadata } from "@/cms/metadata";
 import { cmsSectionPath, findEditableSection } from "@/cms/sections";
 import { loadPageHistory } from "@/cms/server/pageHistory";
+import { cmsContentService } from "@/cms/server/service";
 import { cmsPageStore } from "@/cms/server/store";
 
 // The editor for one page.
@@ -48,9 +49,16 @@ export default async function CmsEditPage({ params }: Props) {
   // Any other page in the section can be this one's parent — except itself and
   // its own descendants, which `checkHierarchy` refuses on save. Offering them
   // here and rejecting on save would be worse than not offering them.
-  const [siblings, history] = await Promise.all([
+  //
+  // `state` and `versions` come from the service rather than from a second
+  // store read: which copy exists and what it means is a lifecycle question,
+  // and a route that answered it itself would be a second implementation of
+  // the rule (cms.md §2.2).
+  const [siblings, history, state, versions] = await Promise.all([
     cmsPageStore.list({ section: section.id }),
     loadPageHistory(page),
+    cmsContentService.getState(actor, id),
+    cmsContentService.listVersions(actor, id),
   ]);
   const parentOptions = siblings
     .filter((candidate) => candidate.id !== page.id)
@@ -72,9 +80,11 @@ export default async function CmsEditPage({ params }: Props) {
       <PageEditor
         section={section}
         page={page}
+        state={state}
         fields={sectionFields(section.id)}
         parentOptions={parentOptions}
         history={history}
+        versions={versions}
       />
     </CmsShell>
   );

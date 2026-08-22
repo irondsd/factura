@@ -20,9 +20,11 @@ validate, preview, publish and unpublish pages from `/cms`; authorized agents
 perform the same operations through a separate MCP endpoint.
 
 This is an internal publishing tool for two people, not a general-purpose CMS.
-It deliberately keeps one mutable copy of each page and has no revision history
-— see Task 2. A published edit is the live page: saving it expires the public
-cache for that section, so the next visitor sees it.
+Each page keeps a small, bounded set of stored copies — one shared working copy,
+a 24-hour checkpoint, the shareable preview snapshot, and the current
+publication plus three previous ones (§14). Editing never changes what a reader
+sees: a save writes the working copy, and the live article keeps serving its
+last publication until somebody publishes.
 
 ## 2. Architectural direction
 
@@ -155,14 +157,16 @@ Rules:
   category hubs, the related rail, the sitemap, the feed, `llms.txt` — and the
   cached 404 of a path that had no page until now.
 - The CMS expires that tag when, and only when, a write changes something a
-  public visitor can see: a save of a `published` or `preview` page, and any
-  transition with `published` or `preview` on either side. A draft is a 404 at
-  its public URL and appears in no listing, so saving one expires nothing.
+  public visitor can see. Since §14 that is a shorter list than it was: a save
+  writes a `wip` revision no public pointer can reach, so **no save expires
+  anything, in any status**. What does: publishing, promoting or refreshing the
+  public preview, unpublishing, and returning a preview to draft.
 - Invalidation is `revalidateTag(tag, { expire: 0 })`, from the content service
   rather than from either transport — `updateTag` is Server-Action-only and the
   CMS MCP is a Route Handler. Immediate expiry rather than the `"max"` profile:
-  with one mutable copy per page, stale-while-revalidate would serve a
-  withdrawn page to the visitor whose request triggered the refresh.
+  unpublishing has to actually take the page down, and stale-while-revalidate
+  would serve the withdrawn copy to the visitor whose request triggered the
+  refresh.
 - The TTL stays as the floor, for the case where invalidation does not run.
   A failed invalidation is logged and never fails the write it follows: the row
   is already committed, and the fallback is the hour that used to be the only
@@ -418,17 +422,24 @@ still exercised without database access or editorial coupling.
 
 ### 5.3 Save/transition policy
 
-- Draft Save: store the content and return diagnostics. Ordinary errors do not
-  block saving incomplete work.
+- Save: grammar only, **whatever state the page is in**. A save writes the
+  working copy, which no reader can reach, so holding it to the rules a public
+  page must meet would only stop an editor saving half-finished work on an
+  article that happens to be live. `WIP_VALIDATION_LEVEL` is a constant rather
+  than a function of status, because "it does not depend on the status" is the
+  property worth making unmistakable.
 - Security errors: store only if the implementation can guarantee the body is
-  never compiled; preferred v1 behavior is to reject the save and preserve the
+  never compiled; preferred behavior is to reject the save and preserve the
   previous saved value.
-- Open Preview: requires grammar and document validation with no errors.
-- Set Public Preview: same gate as Open Preview.
+- Promote to public preview: requires grammar and document validation with no
+  errors — the URL is shareable, so it has to be a real page.
 - Publish: requires grammar, document, collection, and render validation with
-  no errors.
-- Published Save: requires publish-level validation because no prior published
-  revision exists to serve as fallback.
+  no errors. Collection validation measures the candidate as the page's
+  prospective _public_ document while every other page contributes what it is
+  currently serving.
+- Unpublish and return-to-draft: never gated. Taking a page down is the
+  recovery action, and gating it on the page being valid would mean the pages
+  most in need of it are the ones that cannot be taken down.
 - Warnings never disappear silently; show them in the Validation tab. They do
   not block publication unless an existing validator currently treats that
   condition as an error.
@@ -990,20 +1001,20 @@ All of it, across phases 0–12 on the `cms` branch, then reviewed and fixed
 before the merge gate. In one place, so nobody has to reconstruct it from the
 commit log:
 
-| Area               | What exists                                                                                                                                                               |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Schema             | `cms_member`, `cms_page`, `cms_api_token`, `cms_audit_log`, plus the `cms_role` and `cms_page_status` enums. Additive; nothing outside the CMS reads them.                |
-| Authorization      | `src/cms/auth` — one gate (`requireCmsMember`), pure rules beside it (`policy.ts`), membership as an explicit allowlist with no self-service path.                        |
-| Content service    | `src/cms/server/contentService.ts` — the single writer. Authority, validation level, optimistic concurrency and timestamps all decided here; the store only runs SQL.     |
-| Restricted MDX     | Allowlist grammar validation (`validation/grammar.ts`) with compilation gated on it. No bypass flag.                                                                      |
-| Component manifest | `content-system/components` — rules split from bindings so validation tools need no React. 67 components: 10 available to guides, 59 to statistics, 57 to research.       |
-| Validation         | Four pure layers (grammar, document, collection, render) with per-level policy, shared by the CMS and the MCP.                                                            |
-| Repository         | `ContentRepository` with the lifecycle rules in one module (`repository/visibility.ts`); cached public read models for guides and for the registry sections.              |
-| CMS surface        | `/cms`, `/cms/[section]`, `/cms/[section]/new`, `/cms/[section]/[id]`, `/cms/[section]/preview/[id]`, `/cms/tokens` — one dynamic route set driven by a section registry. |
-| Editor             | CodeMirror 6 source editing, section-driven metadata form, Markdown/preview/validation tabs, explicit save, conflict recovery that preserves the losing text.             |
-| CMS MCP            | `/api/cms/mcp` with six tools over the same service, scoped tokens, membership re-checked per call, its own rate-limit bucket, metadata-only audit rows.                  |
-| Importers          | Idempotent, local-first, refuse production without an explicit flag and a confirmation variable, validate before writing.                                                 |
-| Media library      | `cms_media`, `cms_media_collection`, `cms_media_usage`, a separate public bucket, `/cms/media`, five MCP tools and a housekeeping sweep. Design reference in §9.          |
+| Area               | What exists                                                                                                                                                                                                         |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Schema             | `cms_member`, `cms_page`, `cms_page_revision`, `cms_page_event`, `cms_api_token`, `cms_audit_log`, the media tables, plus the `cms_role` and `cms_page_status` enums. Additive; nothing outside the CMS reads them. |
+| Authorization      | `src/cms/auth` — one gate (`requireCmsMember`), pure rules beside it (`policy.ts`), membership as an explicit allowlist with no self-service path.                                                                  |
+| Content service    | `src/cms/server/contentService.ts` — the single writer. Authority, validation level, optimistic concurrency and timestamps all decided here; the store only runs SQL.                                               |
+| Restricted MDX     | Allowlist grammar validation (`validation/grammar.ts`) with compilation gated on it. No bypass flag.                                                                                                                |
+| Component manifest | `content-system/components` — rules split from bindings so validation tools need no React. 67 components: 10 available to guides, 59 to statistics, 57 to research.                                                 |
+| Validation         | Four pure layers (grammar, document, collection, render) with per-level policy, shared by the CMS and the MCP.                                                                                                      |
+| Repository         | `ContentRepository` with the lifecycle rules in one module (`repository/visibility.ts`); cached public read models for guides and for the registry sections.                                                        |
+| CMS surface        | `/cms`, `/cms/[section]`, `/cms/[section]/new`, `/cms/[section]/[id]`, `/cms/[section]/preview/[id]`, `/cms/tokens` — one dynamic route set driven by a section registry.                                           |
+| Editor             | CodeMirror 6 source editing, section-driven metadata form, Markdown/preview/validation tabs, explicit save, conflict recovery that preserves the losing text.                                                       |
+| CMS MCP            | `/api/cms/mcp` with six tools over the same service, scoped tokens, membership re-checked per call, its own rate-limit bucket, metadata-only audit rows.                                                            |
+| Importers          | Idempotent, local-first, refuse production without an explicit flag and a confirmation variable, validate before writing.                                                                                           |
+| Media library      | `cms_media`, `cms_media_collection`, `cms_media_usage`, a separate public bucket, `/cms/media`, five MCP tools and a housekeeping sweep. Design reference in §9.                                                    |
 
 Hierarchy (`parent_id`, `sort_order`, `crumb`) is universal across sections
 rather than a statistics feature, and the section registry drives routes,
@@ -1025,7 +1036,8 @@ Honest gaps, not oversights that were papered over. Each is a §12 task.
 - **Browser mutations are not audited.** `cms_audit_log` records MCP writes
   only, so the trail answers "what did the agent do" and not "who did what,
   including the failed attempts". The narrower question — who changed this page
-  and when — is answered by `cms_page_event` and the editor's «Historia» tab,
+  and when — is answered by `cms_page_event` and the activity strip in the
+  editor's «Historial» tab,
   written for browser and MCP writes alike. Token mints, revocations and
   refused mutations are still unrecorded from the browser. Task 3.
 
@@ -1033,13 +1045,17 @@ Honest gaps, not oversights that were papered over. Each is a §12 task.
 
 Accepted, and the reasons are in the sections above:
 
-- One mutable copy per page. No revision history, no diffs, no restore — the
-  «Historia» tab records who changed a page and when, never the text they
-  replaced.
-- Publication, unpublication and edits to publicly visible pages expire the
-  section's cache tag as they happen, so the next visit sees them. The
-  one-hour TTL remains only as the fallback for an invalidation that did not
-  run. IndexNow is still submitted by hand, after deploying — Task 4.
+- History is bounded on purpose (§14): a working copy, a 24-hour checkpoint, the
+  preview snapshot, and four publications. Saves inside a 24-hour window are
+  compressed rather than kept, so "what did this say on Tuesday afternoon" has
+  no answer unless Tuesday's state was published or checkpointed.
+- Comparison has one baseline — the live or last publication. Two arbitrary
+  versions cannot be compared.
+- Publishing, promoting or refreshing the public preview, and taking a page
+  down expire the section's cache tag as they happen. Saves expire nothing,
+  because they change nothing a reader can see. The one-hour TTL remains only
+  as the fallback for an invalidation that did not run. IndexNow is still
+  submitted by hand, after deploying — Task 4.
 - A page's slug cannot change after creation; there are no redirects.
 - A public `preview` URL is a discoverability control, not an access control.
 - The CMS and the bill app share Auth.js identity and one physical database.
@@ -1092,19 +1108,19 @@ and prerenders those pages and verifies they appear in `sitemap.xml`,
 corpus. No editorial snapshot is committed, and publishing never requires a
 repository change.
 
-### Task 2 — Revisions and change history
+### Task 2 — Revisions and change history — done
 
-The CMS stores one mutable copy per page, which is why saving a published
-page has to pass full publish validation: there is no previous revision to keep
-serving.
+Shipped as §14. A page holds a shared working copy, a 24-hour checkpoint, the
+public preview snapshot, and the current publication plus three previous ones;
+editing never changes the live article; history can preview, compare and restore
+retained publications, from the browser and from the MCP alike.
 
-- Preserve every save, or every explicit checkpoint. `cms_page_event` already
-  has the row per save, with its author and timestamp; the body snapshot hangs
-  off it.
-- Edit a draft while the previous published revision stays public.
-- Show history with author and timestamp; diff two revisions; restore one.
-- Publish a chosen revision transactionally.
-- Add MCP tools for listing and restoring revisions.
+What was deliberately left out, and stays out unless a real need appears:
+scheduled publishing, personal drafts or branches, merge/rebase, revision
+comments, named checkpoints, and arbitrary revision-to-revision comparison.
+Comparison has one baseline — the live (or last) publication — on purpose: two
+arbitrary versions would need a picker, a URL that survives a reload, and an
+answer to "compared against what?" on every screenshot.
 
 ### Task 3 — Complete the audit trail
 
@@ -1156,7 +1172,9 @@ Deliberately plain: a source editor, not a WYSIWYG.
 ### Task 8 — Publishing workflow
 
 Both roles can do everything today; `canPublish` and `canAuthor` are the toggles
-that would narrow it, and both are consulted at every call site.
+that would narrow it, and both are consulted at every call site. The
+working-copy/publication split §14 introduced is the substrate the rest of this
+would build on — an approval step has somewhere to hold the candidate now.
 
 - Scheduled publishing and unpublishing.
 - Review and approval roles; required second-person approval for
@@ -1253,3 +1271,316 @@ Do not silently change architecture while leaving the original text in place.
   The media library moved into the gap it left, as §9, so it sits with the other
   design-reference sections instead of after the decisions log — and §11, §12
   and §13 keep the numbers other files already cite.
+- 2026-08-21: Editing stopped being publishing (§14). `cms_page` was the
+  editable copy and the public copy at once, so a save of a published article
+  was a change to the live site — which is why saving one had to pass the full
+  publish gate, and why unfinished work could not be saved on a live page at
+  all. The fix is a bounded set of stored copies per page rather than a general
+  revision system: one shared working copy, a 24-hour checkpoint, the promoted
+  preview snapshot, and four publications. Bounded because every retained
+  version pins the images it references, and an archive nobody prunes is a media
+  library nobody can clean.
+- 2026-08-21: Media usage moved from pages to revisions. It is the change that
+  makes retention safe: an image is protected for exactly as long as some
+  retained copy references it, and released by the same cascade that prunes
+  that copy. A page-keyed table could not express "the article stopped using
+  this, but the version we are still keeping did not".
+- 2026-08-21: `Revisión`/`Revisar` became `Validación`/`Validar`. Two meanings
+  of the same word — "check this page" and "a stored copy of it" — in one
+  sidebar, once versions existed.
+- 2026-08-21: Comparison has one baseline, the live (or last) publication, and
+  no pairwise selector. Two arbitrary versions would need a picker, a URL that
+  survives a reload, and an answer to "compared against what?" on every
+  screenshot; the comparison people actually want is "what would publishing
+  change".
+- 2026-08-21: §14 sits after this log rather than among the design-reference
+  sections, which is where the media library was deliberately moved _to_. The
+  difference is that §9 had a gap to fill and this does not: inserting it
+  earlier would either renumber sections other files cite, or leave the file
+  reading 12, 14, 13. Monotonic numbering won.
+
+## 14. Working copies, revisions and version history
+
+Editing never changes the currently published article. That one sentence is the
+whole feature, and everything below is what it costs to make it true.
+
+Before this, `cms_page` was the editable copy and the public copy at the same
+time. Saving a published page _was_ the live page, which is why a save had to
+pass full publish validation, why a half-finished paragraph could not be saved
+at all, and why "what does the site actually say right now" and "what am I
+working on" were the same question with one answer.
+
+### 14.1 Terms
+
+- **Page** — stable identity and public path: `id`, `section`, immutable `slug`,
+  lifecycle state, and four revision pointers.
+- **Working copy (WIP)** — the single mutable saved document being edited.
+  Private to the CMS, shared by every CMS member.
+- **Checkpoint** — one immutable copy of the working copy from before the
+  current 24-hour editing window. It exists only to undo a batch of rapid saves.
+- **Public preview** — one immutable, explicitly promoted snapshot served at the
+  page's public URL with `noindex, nofollow` while the page is in `preview`.
+- **Publication** — an immutable snapshot created by publishing a working copy.
+- **Live publication** — the publication the page points at while it is
+  `published`. A `draft` or `preview` page has no live publication, though it
+  may retain a last-published pointer for restoring or republishing.
+
+### 14.2 The decisions, as decisions
+
+1. **One working copy per page**, shared by every editor. No personal drafts and
+   no branches: two people editing the same article is rare enough here that a
+   merge model would cost more than it saves, and the shared copy plus the
+   existing lock version already makes the collision visible.
+2. **Three previous publications.** Not "keep everything": every retained
+   publication also pins every image it references, so unbounded retention means
+   a media library that can never be cleaned. Three answers "undo the last
+   thing, and the thing before it" and stops there.
+3. **Published content is stable.** A working-copy save never alters a public
+   article, listing, sitemap, feed, `llms.txt`, or public cache.
+4. **The public preview is explicit.** Promoting freezes a snapshot; later saves
+   stay private until somebody refreshes it. That is the difference between a
+   link an editor can send someone and a window onto whatever they are typing.
+5. **One comparison baseline** — the live publication, or the last one when the
+   page is down. See Task 2 for why there is no pairwise selector.
+6. **Restore is private.** It copies a retained version into the working copy
+   and changes no status, no public pointer and no cache. A restore that
+   published would make "look at what this used to say" a dangerous click.
+7. **Publishing clears the work.** A successful publication removes the working
+   copy and its checkpoint; the next edit starts from what is now live.
+8. **Retained content pins media.** Working copy, checkpoint, public preview,
+   current publication and the three retained ones all count as media usage.
+
+### 14.3 Invariants
+
+- At most one `wip`, one `checkpoint` and one `preview` per page — partial
+  unique indexes, because this is the invariant two concurrent saves race on and
+  only the database can settle that race.
+- At most four `published` revisions per page.
+- `published` and `preview` revisions are immutable after insertion; only a
+  `wip` is ever updated in place, and the `kind = 'wip'` predicate on that
+  UPDATE is what keeps it so.
+- A `published` page has a non-null published pointer; a `preview` page has a
+  non-null preview pointer; a `draft` is returned by no public read.
+- Every page, revision, media-usage, retention and pointer change belonging to
+  one content operation commits in one transaction.
+- `cms_page.lock_version` remains the single optimistic-concurrency token, and
+  every accepted mutation bumps it — a working-copy save included, even though
+  it writes no column on that row. A save that did not move it would let a
+  second editor keep holding a version that is no longer current.
+
+### 14.4 Data model
+
+`cms_page` keeps identity, lifecycle and provenance, plus four pointers:
+`published_revision_id`, `preview_revision_id`, `wip_revision_id`,
+`checkpoint_revision_id`. All four are `restrict`: a pointer is how a document
+is found, and a revision deleted out from under one would turn a published page
+into a page with no body. The service clears the pointer first, inside the same
+transaction that prunes the revision.
+
+`cms_page_revision` holds the authored document — body, titles, description,
+summary, CTA, canonical slug, metadata, parent, sort order, crumb, and the
+editorial `content_updated_at` — plus `kind`, `based_on_revision_id`, and a
+`publication_number` that is non-null only for publications and is never
+accepted from browser or MCP input.
+
+`slug` stays on the page, because it is identity rather than content. It is
+already read-only in the editor, and restoring an old version does not move a
+page's URL.
+
+The authored columns still on `cms_page` are legacy: nullable, unread, kept for
+one release as the backfill's rollback path. A later schema step drops them.
+
+### 14.5 Operations
+
+Every mutation claims the page first — `updateWithLock` with the version the
+caller holds — and only then inserts, repoints and deletes. Zero rows updated is
+the conflict check, atomic by construction; and a matched UPDATE takes a row
+lock held to commit, so everything after it is serialized against a second
+editor doing the same thing. The claim also _clears_ every pointer whose
+revision the operation is about to replace or delete. Clear, delete, insert,
+repoint — in that order, once per operation.
+
+**1. Saving.** Opening an editor writes nothing. The first save lazily inserts
+the working copy from the submitted document and records what it was based on;
+later saves update it in place. Explicit Save only — no autosave. The response
+carries the new lock version, the working-copy id and its update time.
+
+**2. Twenty-four-hour compression.** Before updating an existing working copy:
+if there is no checkpoint, copy the pre-save state into one; if the checkpoint
+is younger than 24 hours, leave it; if it is older, replace it. The window is
+rolling and measured in instants — saving at 23:58 and again at 00:02 is one
+editing session, and a window that reset at midnight would manufacture a
+checkpoint out of the clock. Ten saves in an hour therefore leave the state
+before that window plus the latest, not ten intermediate bodies.
+
+Restoring is a bigger replacement than a save, so it preserves the pre-restore
+working copy as the checkpoint even inside the window — which is what makes the
+restore itself undoable.
+
+**3. Public preview.** Promoting requires a saved working copy, validates it at
+preview level, and copies it into a new immutable `preview` revision, replacing
+any previous one. The working copy survives, so editing continues privately, and
+the UI says when the shared link has fallen behind and offers «Actualizar vista
+previa pública». Moving a _published_ page into preview takes it out of public
+discovery and serves the snapshot with `noindex, nofollow`; the confirmation
+says so, and the last published pointer is retained.
+
+**4. Publishing.** One transaction: check the lock, validate the working copy at
+publish level, insert an immutable `published` revision with the next
+publication number, repoint the page, delete the working copy, the checkpoint
+and any now-obsolete preview, prune to three previous publications, reconcile
+media usage, record the event. The cache tag is expired after commit, and a
+failed invalidation is logged rather than reported as a failed publication.
+
+A working copy byte-identical to the live publication does not manufacture a
+duplicate — that would consume a retention slot and push the oldest publication
+out for a click that changed nothing. The result says `noChange`, and removing
+the working copy stays a separate decision («Descartar borrador»).
+
+First publication still levels `content_updated_at` with `published_at`; later
+ones keep the working copy's editorial time and the page's original
+`published_at`.
+
+**5. Unpublish, republish, discard.** Unpublishing sets the page to `draft`,
+keeps the last published pointer, deletes the preview snapshot and invalidates.
+Republishing with nothing new re-exposes the retained publication rather than
+copying it. Discarding removes the working copy and its checkpoint, changes no
+status and no public pointer — and is refused when the working copy is the only
+content the page has, because that is «Eliminar esta página», which has its own
+guards.
+
+**6. Restore.** Copies a retained version's complete authored document into the
+working copy, sets `based_on_revision_id`, preserves the previous working copy
+as the checkpoint, validates at draft level, and touches nothing public.
+Restoration covers Markdown, every metadata field, parent, sort order, crumb and
+canonical slug. It does not restore identity, lifecycle status, revision
+authorship or lifecycle timestamps.
+
+### 14.6 Public reads and media
+
+A public read resolves `published_revision_id` or `preview_revision_id` and
+nothing else. That is the security property, and it is a property of the query
+rather than of care: `publicPointer()` in
+`src/content-system/repository/revisionSelection.ts` has no branch that returns
+`wip`, and the repository's join is a `case` on status rather than a `coalesce`
+of pointers — a `coalesce` would fall back to the preview snapshot of a
+published page whose pointer was somehow null, quietly serving an unindexed copy
+at a live URL.
+
+`cms_media_usage` is keyed by revision, not by page. That is what makes "a
+retained version keeps its images" true rather than aspirational: the
+third-oldest publication still references the chart it was published with, so
+trashing that chart is refused for as long as the publication is retained — and
+the moment retention prunes it, the cascade releases the reference in the same
+transaction. `reconcileMediaUsage()` derives from every retained revision. The
+library's usage _count_ is still a count of pages, because that is the number a
+person is asking for; the revision breakdown is in the detail view, which is
+where somebody asking «¿por qué no puedo borrarla?» is looking.
+
+### 14.7 History
+
+The «Historial» tab shows two lists, because they answer two different
+questions. Merging them was the previous design's mistake: it made every save
+look like a version, and none of them were.
+
+**Versions** are things you can open, compare and restore — bounded, at most
+seven, every one a document. Newest first: working copy, checkpoint, public
+preview, then the current publication and up to three previous. Actions are
+«Vista previa», «Comparar con la versión publicada» and «Restaurar como
+borrador».
+
+**Activity** is `cms_page_event`, kept as a bounded strip beside them: at most
+ten rows per page, and a run of saves by the same actor from the same source
+inside a rolling 24 hours is coalesced into one row with a count. Creation
+survives pruning for as long as the page does. It records no bodies and never
+will — recoverable history is `cms_page_revision`.
+
+**Comparison** is Markdown line-by-line plus authored fields and metadata at
+field level. Reordered arrays are changes; nothing is semantically merged.
+Additions and removals never rely on colour alone: every changed line carries a
+`+`/`−` and a screen-reader word, and the field table says «antes»/«ahora» in
+text.
+
+### 14.8 Interface
+
+The tabs are `Markdown | Vista previa | Validación | Historial`, and the button
+is `Validar`. The old `Revisión`/`Revisar` collided with revision vocabulary the
+moment versions existed — the same word for "check this page" and "a stored copy
+of it".
+
+The header says which copies exist, rather than repeating the status chip beside
+it: `Publicada · sin borrador`, `Publicada · borrador guardado`, `Vista previa
+pública · borrador más reciente disponible`, `Borrador · nunca publicada`, plus
+the existing `Sin guardar` for unsaved browser state. «Guardar» always means
+save the working copy and never implies publication.
+
+Every confirmation names the state it affects. The whole risk of a four-copy
+model is that the button you pressed and the copy it moved are not obviously the
+same thing.
+
+### 14.9 MCP
+
+`get_content` returns the page's lifecycle alongside the document: whether a
+working copy exists, what it was based on, the live publication id, whether the
+public preview has fallen behind, and the lock version. `update_content` saves
+the working copy — which is why the server now tells agents that editing a
+published page is safe and needs no permission. `set_content_status` stays the
+one tool that changes what the public sees and the one that needs the human's
+go-ahead every time, in both directions.
+
+Added: `list_content_versions`, `get_content_version`,
+`compare_content_version` (`cms:read`), `restore_content_version` and
+`discard_content_wip` (`cms:write`). None of them changes public output.
+`discard_content_wip` is annotated destructive because it throws away editorial
+work with nothing behind it; `restore_content_version` is not, because the copy
+it overwrites is kept as the checkpoint.
+
+### 14.10 Migration
+
+Additive and backfilled, with no interval in which public content has no
+readable source:
+
+1. `truncate cms_media_usage` — a derived cache, about to be re-keyed, and
+   emptying it first is what lets the schema add a NOT NULL column to it.
+2. `scripts/sql/cms-revisions.sql` — the revision table, the four pointers, the
+   activity columns, and the NOT NULLs dropped from the legacy authored columns.
+   The running deploy still reads those columns and is unaffected.
+3. `scripts/backfillCmsRevisions.ts --apply` — one revision per page:
+   `published` → a publication numbered 1, `preview` → a preview snapshot,
+   `draft` → a working copy. No older publications are invented; a page that
+   existed before this starts with exactly one version and the history says so.
+4. Deploy the code that reads revisions.
+5. Rebuild media usage: «Recalcular» in `/cms/media`, or `bun run media:sweep`.
+   **Do this immediately after the deploy, and trash nothing in between.** The
+   usage table is empty until it runs, so every image looks unused and the trash
+   gate is open rather than closed — the dangerous direction. Two things keep
+   that survivable rather than destructive: trashing is reversible for the whole
+   grace period, and `purgeAsset` re-checks usage immediately before deleting
+   bytes and restores anything that gained a reference (§9.9). Neither is a
+   reason to leave the window open.
+6. Later, once step 4 is verified in production: drop the legacy authored
+   columns from `cms_page`.
+
+The backfill copies column to column inside the database rather than round-
+tripping through Node, and that is a correctness requirement rather than an
+optimization: `timestamptz` keeps microseconds and a JS `Date` keeps
+milliseconds, so reading a row into JavaScript and writing it back silently
+truncates `content_updated_at`. It verifies inside its own transaction — every
+page pointed at, every public page pointing at a public revision, every
+document identical to the row it came from — and rolls back if any check fails.
+It is idempotent: pages that already have a revision are skipped.
+
+Production follows §11: back up first, use the direct Neon DDL endpoint, and
+never verify a migration against production from local test commands.
+
+### 14.11 Boundaries
+
+- Revision SQL lives in `src/cms/server/revisionStore.ts`; policy and lifecycle
+  live in `CmsContentService`. Page-row SQL, including the pointers, stays in
+  `src/cms/server/store.ts`.
+- Public revision selection lives in `src/content-system/repository/`, never in
+  CMS UI code.
+- `src/cms/boundaries.test.ts` confines `cms_page_revision` the way it already
+  confines `cms_page`. A revision written outside the service is a copy with no
+  pointer, no retention and no media usage — invisible to history, and pinning
+  images nothing will ever release.

@@ -17,8 +17,10 @@ import {
   cmsMedia,
   cmsMediaCollections,
   cmsMediaUsage,
+  cmsPageRevisions,
   cmsPages,
 } from "@/db/schema";
+import { isRevisionKind } from "../../revisions";
 import { buildMediaPermalink } from "@/content-system/media/permalink";
 import type {
   MediaAsset,
@@ -92,11 +94,18 @@ export function toAsset(row: MediaRow): MediaAsset {
 // always zero. Spelling the table out is the only way to say which `id` is
 // meant.
 
-/** How many distinct pages reference an asset. A correlated subquery rather
- * than a join, so one asset with three placements is still one row here. */
+/** How many distinct *pages* reference an asset. A correlated subquery rather
+ * than a join, so one asset with three placements is still one row here.
+ *
+ * Pages rather than revisions, deliberately: an image on a published article
+ * and on the working copy about to replace it is used on one page, and the
+ * library's count is a count of places a reader could meet it. The revision
+ * breakdown is in `usageOf`, which is where somebody asking "why can I not
+ * delete this" is looking. */
 const usageCountSql = sql<number>`(
-  select count(distinct usage.page_id)::int
+  select count(distinct revision.page_id)::int
   from cms_media_usage usage
+  join cms_page_revision revision on revision.id = usage.revision_id
   where usage.media_id = cms_media.id
 )`;
 
@@ -496,26 +505,26 @@ export class CmsMediaStore {
 
   // ── usage ───────────────────────────────────────────────────────────────
 
-  /** Replace one page's usage rows, and move the two "was it ever used"
+  /** Replace one revision's usage rows, and move the two "was it ever used"
    * timestamps forward.
    *
    * `coalesce`/`greatest` rather than assignment, because a full reconciliation
    * rebuilds this table from scratch and must never move those backwards or
    * null them out — that would turn every "ya no se usa" back into "nunca
    * usada" and lose the only signal that distinguishes them. */
-  async replacePageUsage(input: {
-    pageId: string;
+  async replaceRevisionUsage(input: {
+    revisionId: string;
     entries: UsageEntry[];
     now: Date;
   }): Promise<void> {
     await this.db
       .delete(cmsMediaUsage)
-      .where(eq(cmsMediaUsage.pageId, input.pageId));
+      .where(eq(cmsMediaUsage.revisionId, input.revisionId));
     if (input.entries.length === 0) return;
 
     await this.db.insert(cmsMediaUsage).values(
       input.entries.map((entry) => ({
-        pageId: input.pageId,
+        revisionId: input.revisionId,
         mediaId: entry.mediaId,
         placement: entry.placement,
         occurrences: entry.occurrences,
@@ -548,25 +557,50 @@ export class CmsMediaStore {
     await this.db.delete(cmsMediaUsage);
   }
 
-  /** Which pages reference an asset, for the detail view and for explaining a
-   * refused trash. */
+  /** Which *versions* reference an asset, grouped by the page they belong to —
+   * the detail view's usage list, and the explanation behind a refused trash.
+   *
+   * The title comes from the revision rather than the page, because a
+   * publication from March may well be called something else than the working
+   * copy is now, and "used by the version titled X" is the sentence that helps.
+   * `kind` travels with it so the screen can say whether the reference is a
+   * live publication, a retained one, the working copy or a checkpoint —
+   * "still in use" and "kept alive by a version nobody is reading" are very
+   * different answers to «¿por qué no puedo borrarla?». */
   async usageOf(mediaId: string): Promise<MediaUsageRef[]> {
     const rows = await this.db
       .select({
         pageId: cmsPages.id,
+        revisionId: cmsPageRevisions.id,
+        kind: cmsPageRevisions.kind,
+        publicationNumber: cmsPageRevisions.publicationNumber,
         section: cmsPages.section,
         slug: cmsPages.slug,
-        title: cmsPages.title,
+        title: cmsPageRevisions.title,
         status: cmsPages.status,
         placement: cmsMediaUsage.placement,
         occurrences: cmsMediaUsage.occurrences,
+        // Whether this is the copy readers are actually being served. Computed
+        // here rather than guessed at the screen: "the live article uses this"
+        // and "a publication from March uses this" are the same row otherwise.
+        isLive: sql<boolean>`${cmsPages.status} = 'published'
+          and ${cmsPages.publishedRevisionId} = ${cmsPageRevisions.id}`,
       })
       .from(cmsMediaUsage)
-      .innerJoin(cmsPages, eq(cmsPages.id, cmsMediaUsage.pageId))
+      .innerJoin(
+        cmsPageRevisions,
+        eq(cmsPageRevisions.id, cmsMediaUsage.revisionId),
+      )
+      .innerJoin(cmsPages, eq(cmsPages.id, cmsPageRevisions.pageId))
       .where(eq(cmsMediaUsage.mediaId, mediaId))
-      .orderBy(asc(cmsPages.section), asc(cmsPages.slug));
+      .orderBy(
+        asc(cmsPages.section),
+        asc(cmsPages.slug),
+        asc(cmsPageRevisions.kind),
+      );
     return rows.map((row) => ({
       ...row,
+      kind: isRevisionKind(row.kind) ? row.kind : "checkpoint",
       placement: row.placement as MediaPlacement,
     }));
   }

@@ -10,23 +10,39 @@ import {
 import { checkHierarchy, type HierarchyNode } from "@/content-system/hierarchy";
 import { parseMetadata } from "@/content-system/metadata/schema";
 import { canAuthor, canPublish } from "../auth/policy";
+import {
+  type ComparableDocument,
+  type DocumentDiff,
+  diffDocuments,
+  documentsEqual,
+} from "../diff";
+import {
+  checkpointIsStale,
+  type PageVersions,
+  RETAINED_PUBLICATIONS,
+  type RevisionKind,
+  type VersionEntry,
+} from "../revisions";
+import { actorLabel } from "../history";
 import type { CmsActor } from "../types";
+import { documentOf } from "./documents";
 import {
   CmsConflictError,
   CmsForbiddenError,
+  CmsNoWorkingCopyError,
   CmsNotDeletableError,
   CmsNotFoundError,
+  CmsRevisionNotFoundError,
   CmsSlugTakenError,
   CmsValidationError,
 } from "./errors";
 import {
   isContentEdit,
   levelForSave,
-  levelForTransition,
   nextPublishedAt,
-  saveAffectsPublicCache,
   stampsContentUpdatedAt,
   statusChangeAffectsPublicCache,
+  WIP_VALIDATION_LEVEL,
   type ValidationLevel,
 } from "./lifecycle";
 import {
@@ -38,7 +54,16 @@ import {
   cmsPageHistoryStore as defaultHistoryStore,
 } from "./historyStore";
 import {
+  type AuthoredDocument,
+  authoredFrom,
+  authoredOf,
+  CmsRevisionStore,
+  cmsRevisionStore as defaultRevisionStore,
+  type RevisionRecord,
+} from "./revisionStore";
+import {
   type CmsListFilter,
+  type CmsPageRecord,
   CmsPageStore,
   cmsPageStore as defaultStore,
 } from "./store";
@@ -49,8 +74,29 @@ import {
 //
 // Everything that decides *whether* a write happens is here: the actor's
 // authority, the validation level the destination demands, the optimistic
-// concurrency check, and the timestamp bookkeeping. The store below it only
-// executes SQL.
+// concurrency check, and the timestamp bookkeeping. The two stores below it
+// only execute SQL.
+//
+// Since revisions (cms.md §14) this module also owns the lifecycle between
+// copies: which revision a save writes, when a checkpoint rotates, what
+// publishing promotes and prunes, and which of the four page pointers moves.
+// Those decisions are the feature, and none of them is expressible as a query.
+//
+// ── the transaction shape every mutation uses ──────────────────────────────
+//
+// Each one claims the page first — `updateWithLock` with the version the caller
+// is holding — and only then inserts, repoints and deletes. Two reasons, and
+// both matter:
+//
+//   * zero rows updated is the conflict check, atomic by construction; and
+//   * a matched UPDATE takes a row lock that is held to commit, so everything
+//     after it is serialized against a second editor doing the same thing.
+//
+// The claim also *clears* every pointer whose revision this operation is about
+// to replace or delete, because those foreign keys are `restrict`: a revision
+// cannot be deleted while the page still names it, and the partial unique
+// indexes mean the replacement cannot be inserted while the old row is still
+// there. Clear, delete, insert, repoint — in that order, once per operation.
 
 /** How content is checked. Phase 4 supplies the real implementation; the
  * service takes it as a dependency rather than importing one, so there is no
@@ -61,19 +107,19 @@ export type ContentValidator = (input: {
   level: ValidationLevel;
 }) => Promise<ValidationResult> | ValidationResult;
 
-/** How a saved page's media usage is recorded (cms.md §9.7).
+/** How a stored revision's media usage is recorded (cms.md §9.7, §14.5).
  *
  * Injected rather than imported so the service does not depend on the media
  * library — the CMS still works with no media storage configured, and the
  * lifecycle tests do not need a media schema. It is handed the *transaction*
- * that is saving the page, because usage rows must land with the save that
- * produced them: a page that committed while its usage rows did not would leave
- * an image looking unused while a live page points at it.
+ * that is writing the revision, because usage rows must land with the copy that
+ * produced them: a revision that committed while its usage rows did not would
+ * leave an image looking unused while a retained version points at it.
  *
- * It records; it never deletes. Removing an image from a page rewrites that
- * page's rows and does nothing else. */
+ * Keyed by revision, not by page: that is what makes a retained publication
+ * keep its images alive after the page has moved on (§14.5). */
 export type MediaUsageRecorder = (input: {
-  page: { id: string; bodyMdx: string; metadata: unknown };
+  revision: { id: string; bodyMdx: string; metadata: unknown };
   now: Date;
   tx: Database;
 }) => Promise<void>;
@@ -100,22 +146,85 @@ export type CreateContentInput = {
   crumb?: string | null;
 };
 
+export type ContentPatch = {
+  title?: string;
+  titleTag?: string | null;
+  description?: string;
+  summary?: string;
+  cta?: string;
+  canonicalSlug?: string | null;
+  body?: string;
+  metadata?: unknown;
+  parentId?: string | null;
+  sortOrder?: number;
+  crumb?: string | null;
+};
+
 export type UpdateContentInput = {
   id: string;
   expectedLockVersion: number;
-  patch: {
-    title?: string;
-    titleTag?: string | null;
-    description?: string;
-    summary?: string;
-    cta?: string;
-    canonicalSlug?: string | null;
-    body?: string;
-    metadata?: unknown;
-    parentId?: string | null;
-    sortOrder?: number;
-    crumb?: string | null;
+  patch: ContentPatch;
+};
+
+/** What a working-copy save answers with (cms.md §14.5.1). The document as
+ * stored, plus which copy it landed in and when — an agent that saved needs to
+ * know it wrote the WIP and not the live page. */
+export type WipSaveResult = {
+  document: ContentDocument;
+  wipRevisionId: string;
+  wipUpdatedAt: string;
+  /** True when this save created the working copy rather than updating it. */
+  created: boolean;
+};
+
+/** Everything the editor header and the MCP's `get_content` need to say what
+ * state a page is in without a second round trip. */
+export type CmsPageState = {
+  document: ContentDocument;
+  status: ContentStatus;
+  lockVersion: number;
+  hasWip: boolean;
+  wipRevisionId: string | null;
+  wipUpdatedAt: string | null;
+  /** The publication or preview the working copy was started from. */
+  wipBasedOnRevisionId: string | null;
+  publishedRevisionId: string | null;
+  publishedAt: string | null;
+  previewRevisionId: string | null;
+  /** The public preview exists and the working copy has been saved since it was
+   * promoted — so what a shared link shows is older than what the editor sees. */
+  previewIsStale: boolean;
+  checkpointRevisionId: string | null;
+  publicationCount: number;
+};
+
+export type PublishResult = {
+  document: ContentDocument;
+  status: ContentStatus;
+  lockVersion: number;
+  /** The publication created, or null when nothing needed publishing. */
+  publicationNumber: number | null;
+  /** True when the working copy matched the live publication exactly, so no
+   * duplicate publication was manufactured (cms.md §14.5.4). */
+  noChange: boolean;
+};
+
+export type VersionComparison = {
+  /** Null when the page has never been published — there is nothing to compare
+   * against, and the tab says so rather than diffing against emptiness. */
+  baseline: {
+    revisionId: string;
+    label: string;
+    at: string;
+    isLive: boolean;
+  } | null;
+  candidate: {
+    revisionId: string;
+    kind: RevisionKind;
+    label: string;
+    at: string;
   };
+  diff: DocumentDiff | null;
 };
 
 /** Stand-in id for a page that does not exist yet, so the hierarchy rules can
@@ -127,8 +236,10 @@ export class CmsContentService {
   constructor(
     private readonly validate: ContentValidator,
     private readonly store: CmsPageStore = defaultStore,
-    /** Where the «Historia» tab's rows come from. Injected like the store so a
-     * test can watch what a mutation records without a database. */
+    /** Where every stored copy of a document lives. */
+    private readonly revisions: CmsRevisionStore = defaultRevisionStore,
+    /** Where the «Historial» tab's activity rows come from. Injected like the
+     * stores so a test can watch what a mutation records without a database. */
     private readonly history: CmsPageHistoryStore = defaultHistoryStore,
     /** Injected so tests can pin timestamps. */
     private readonly clock: () => Date = () => new Date(),
@@ -149,22 +260,60 @@ export class CmsContentService {
     return this.store.list(filter);
   }
 
+  /** The document the CMS shows: the working copy if there is one, otherwise
+   * the baseline an editor would start from. */
   async get(_actor: CmsActor, id: string): Promise<ContentDocument> {
     const page = await this.store.findById(id);
     if (!page) throw new CmsNotFoundError(`Page ${id}`);
     return page;
   }
 
+  /** The same document plus the lifecycle around it. What the editor route and
+   * the MCP's `get_content` both read, so «hay borrador guardado» is one
+   * answer rather than two implementations of it. */
+  async getState(_actor: CmsActor, id: string): Promise<CmsPageState> {
+    const page = await this.store.findPage(id);
+    if (!page) throw new CmsNotFoundError(`Page ${id}`);
+    const revision = await this.selectedRevision(page);
+    const [wip, preview, publications] = await Promise.all([
+      page.wipRevisionId ? this.revisions.byId(page.wipRevisionId) : null,
+      page.previewRevisionId
+        ? this.revisions.byId(page.previewRevisionId)
+        : null,
+      this.revisions.publications(id),
+    ]);
+
+    return {
+      document: documentOf(page, revision),
+      status: page.status,
+      lockVersion: page.lockVersion,
+      hasWip: wip !== null,
+      wipRevisionId: wip?.id ?? null,
+      wipUpdatedAt: wip ? wip.updatedAt.toISOString() : null,
+      wipBasedOnRevisionId: wip?.basedOnRevisionId ?? null,
+      publishedRevisionId: page.publishedRevisionId,
+      publishedAt: page.publishedAt ? page.publishedAt.toISOString() : null,
+      previewRevisionId: page.previewRevisionId,
+      previewIsStale: previewIsStale(preview, wip),
+      checkpointRevisionId: page.checkpointRevisionId,
+      publicationCount: publications.length,
+    };
+  }
+
   /** Create a page. Always `draft` (cms.md §8): a new page is never born
    * public, and an agent that wants one published has to ask for the transition
-   * explicitly and pass the publish gate. */
+   * explicitly and pass the publish gate.
+   *
+   * The initial document becomes the page's working copy, which is why creating
+   * one *does* write a revision while merely opening an editor does not
+   * (§14.5.1): a create carries a complete document, an open carries nothing. */
   async create(
     actor: CmsActor,
     input: CreateContentInput,
   ): Promise<ContentDocument> {
     this.assertMayAuthor(actor);
 
-    const existing = await this.store.findBySlug(input.section, input.slug);
+    const existing = await this.store.findPageBySlug(input.section, input.slug);
     if (existing) throw new CmsSlugTakenError(input.section, input.slug);
 
     const metadata = this.checkedMetadata(input.section, input.metadata);
@@ -179,30 +328,47 @@ export class CmsContentService {
 
     const now = this.clock();
     const draft = await this.store.transaction(async (store, tx) => {
-      const page = await store.insert({
+      const page = await store.insertPage({
         section: input.section,
         slug: input.slug,
         status: "draft",
-        body: input.body,
-        title: input.title,
-        titleTag: input.titleTag ?? null,
-        description: input.description,
-        summary: input.summary,
-        cta: input.cta,
-        canonicalSlug: input.canonicalSlug ?? null,
-        metadata,
-        parentId: input.parentId ?? null,
-        sortOrder: input.sortOrder ?? 0,
-        crumb: input.crumb ?? null,
         actorId: actor.userId,
         now,
       });
-      await this.recordMediaUsage({
-        page: { id: page.id, bodyMdx: page.body, metadata: page.metadata },
+      const revisions = this.revisions.bind(tx);
+      const wip = await revisions.insert({
+        pageId: page.id,
+        kind: "wip",
+        document: authoredFrom(
+          {
+            body: input.body,
+            title: input.title,
+            titleTag: input.titleTag ?? null,
+            description: input.description,
+            summary: input.summary,
+            cta: input.cta,
+            canonicalSlug: input.canonicalSlug ?? null,
+            metadata,
+            parentId: input.parentId ?? null,
+            sortOrder: input.sortOrder ?? 0,
+            crumb: input.crumb ?? null,
+          },
+          now,
+        ),
+        actorId: actor.userId,
         now,
-        tx,
       });
-      return page;
+      // `setPointers`, not `updateWithLock`: the row was inserted by this same
+      // transaction and is already locked by that insert, so there is no
+      // version to check — and bumping it here would hand the editor a
+      // brand-new page already at version 2, which reads as "somebody has
+      // edited this" everywhere the number is shown.
+      await store.setPointers({
+        id: page.id,
+        patch: { wipRevisionId: wip.id },
+      });
+      await this.recordUsage(tx, wip, now);
+      return documentOf({ ...page, wipRevisionId: wip.id }, wip);
     });
 
     await this.record(actor, { pageId: draft.id, action: "created", now });
@@ -213,24 +379,33 @@ export class CmsContentService {
     return draft;
   }
 
-  /** Save an edit. The level a save must meet comes from where the page
-   * currently is — editing a published page has to survive publish validation,
-   * because the copy being edited is the live one. */
+  /** Save the working copy (cms.md §14.5.1).
+   *
+   * Never touches a public copy, whatever state the page is in — which is why
+   * it is checked at draft level and expires no cache. The first save on a page
+   * whose WIP was consumed by a publication lazily creates a new one from the
+   * baseline the editor was looking at, and records which revision that was. */
   async update(
     actor: CmsActor,
     input: UpdateContentInput,
-  ): Promise<ContentDocument> {
+  ): Promise<WipSaveResult> {
     this.assertMayAuthor(actor);
 
-    const current = await this.store.findById(input.id);
-    if (!current) throw new CmsNotFoundError(`Page ${input.id}`);
+    const page = await this.store.findPage(input.id);
+    if (!page) throw new CmsNotFoundError(`Page ${input.id}`);
     // Reported from the row already in hand, before validation: a stale save is
     // not going to land whatever its content says, and "someone else edited
-    // this" is more actionable than a list of rules. The atomic check in
-    // `updateWithLock` still guards the race between this read and the write.
-    if (current.lockVersion !== input.expectedLockVersion) {
+    // this" is more actionable than a list of rules. The atomic check inside
+    // the transaction still guards the race between this read and the write.
+    if (page.lockVersion !== input.expectedLockVersion) {
       await this.reportConflict(input.id, input.expectedLockVersion);
     }
+
+    const existingWip = page.wipRevisionId
+      ? await this.revisions.byId(page.wipRevisionId)
+      : null;
+    const baseline = existingWip ?? (await this.baselineRevision(page));
+    if (!baseline) throw new CmsNotFoundError(`Page ${input.id}`);
 
     // Before anything else that could write: a metadata blob the row → document
     // mapper cannot read back is not a validation failure the editor can see
@@ -239,128 +414,715 @@ export class CmsContentService {
     // where refusing is still cheap.
     const metadata =
       input.patch.metadata !== undefined
-        ? this.checkedMetadata(current.section, input.patch.metadata)
+        ? this.checkedMetadata(
+            page.section as ContentSection,
+            input.patch.metadata,
+          )
         : undefined;
 
-    const next = { ...current, ...input.patch } as ContentDocument;
+    const current = documentOf(page, baseline);
+    const next = {
+      ...current,
+      ...input.patch,
+      ...(metadata !== undefined ? { metadata } : {}),
+    } as ContentDocument;
 
     // Placement is checked before content: a page in the wrong place in the
     // tree is a broken URL and a broken breadcrumb whatever its prose says, and
     // this is also what stops a page being re-parented onto its own descendant.
     await this.assertHierarchy({
-      id: current.id,
-      section: current.section,
-      slug: next.slug,
+      id: page.id,
+      section: page.section as ContentSection,
+      slug: page.slug,
       parentId: next.parentId,
       sortOrder: next.sortOrder,
     });
 
-    const level = levelForSave(current.status);
-    await this.assertValid(next, level);
+    await this.assertValid(next, WIP_VALIDATION_LEVEL);
 
     const now = this.clock();
-    // One transaction: the page and the media usage it implies land together or
-    // not at all. A committed save whose usage rows were lost would leave an
-    // image looking unused while this very page points at it — the one thing
-    // the media library must never believe.
+    const document = authoredFrom(
+      { ...next, metadata: next.metadata },
+      // A content edit moves the editorial timestamp the reader will see once
+      // this is published; a save that changed nothing leaves it alone.
+      isContentEdit(input.patch) ? now : baseline.contentUpdatedAt,
+    );
+
     const saved = await this.store.transaction(async (store, tx) => {
-      const page = await store.updateWithLock({
-        id: input.id,
+      const revisions = this.revisions.bind(tx);
+
+      // 24-hour compression (§14.5.2), decided before the claim so the claim
+      // can clear the checkpoint pointer in the same statement.
+      const checkpoint = page.checkpointRevisionId
+        ? await revisions.byId(page.checkpointRevisionId)
+        : null;
+      const rotate =
+        existingWip !== null &&
+        checkpointIsStale(checkpoint?.createdAt ?? null, now);
+
+      const claimed = await store.updateWithLock({
+        id: page.id,
         expectedLockVersion: input.expectedLockVersion,
         actorId: actor.userId,
         now,
-        patch: {
-          ...input.patch,
-          // The parsed value, not the caller's: Zod strips and defaults, and
-          // what is stored has to be exactly what was validated.
-          ...(metadata !== undefined ? { metadata } : {}),
-          // A content edit moves the editorial timestamp the reader sees; a
-          // status flip does not (see `setStatus`).
-          ...(isContentEdit(input.patch) ? { contentUpdatedAt: now } : {}),
-        },
+        patch: rotate ? { checkpointRevisionId: null } : {},
       });
-      if (!page) return null;
-      await this.recordMediaUsage({
-        page: { id: page.id, bodyMdx: page.body, metadata: page.metadata },
-        now,
-        tx,
+      if (!claimed) return null;
+
+      let checkpointId = page.checkpointRevisionId;
+      if (rotate && existingWip) {
+        if (checkpoint) await revisions.deleteMany([checkpoint.id]);
+        const copy = await revisions.insert({
+          pageId: page.id,
+          kind: "checkpoint",
+          document: authoredOf(existingWip),
+          basedOnRevisionId: existingWip.basedOnRevisionId,
+          // The checkpoint is a copy of somebody's WIP, not a thing this actor
+          // wrote — attributing it to whoever happened to trigger the rotation
+          // would put the wrong name on «antes de esta sesión».
+          createdBy: existingWip.createdBy,
+          actorId: existingWip.updatedBy,
+          now,
+        });
+        checkpointId = copy.id;
+      }
+
+      const wip = existingWip
+        ? await revisions.updateWip({
+            id: existingWip.id,
+            document,
+            actorId: actor.userId,
+            now,
+          })
+        : await revisions.insert({
+            pageId: page.id,
+            kind: "wip",
+            document,
+            basedOnRevisionId: baseline.id,
+            actorId: actor.userId,
+            now,
+          });
+      if (!wip) throw new Error("working copy vanished mid-save");
+
+      await store.setPointers({
+        id: page.id,
+        patch: { wipRevisionId: wip.id, checkpointRevisionId: checkpointId },
       });
-      return page;
+      await this.recordUsage(tx, wip, now);
+      return {
+        document: documentOf({ ...claimed, wipRevisionId: wip.id }, wip),
+        wipRevisionId: wip.id,
+        wipUpdatedAt: wip.updatedAt.toISOString(),
+        created: existingWip === null,
+      };
     });
     if (!saved) await this.reportConflict(input.id, input.expectedLockVersion);
 
     await this.record(actor, { pageId: input.id, action: "saved", now });
-    // The status the page was *in* is what decides this, not the patch: a save
-    // never moves a page between states, and a draft's save is invisible.
-    if (saveAffectsPublicCache(current.status) && isContentEdit(input.patch)) {
-      this.expirePublicCache(current.section);
-    }
-    return saved as ContentDocument;
+    // No cache invalidation, ever. See `saveAffectsPublicCache`.
+    return saved as WipSaveResult;
   }
 
-  /** Move a page between states. The same gate the browser and the MCP share,
-   * so an agent cannot reach a state a person could not. */
-  async setStatus(
+  /** Publish the working copy (cms.md §14.5.4). One transaction: validate,
+   * snapshot, repoint, clear the work, prune to three previous publications. */
+  async publish(
     actor: CmsActor,
-    input: { id: string; status: ContentStatus; expectedLockVersion: number },
-  ): Promise<ContentDocument> {
-    const current = await this.store.findById(input.id);
-    if (!current) throw new CmsNotFoundError(`Page ${input.id}`);
-    if (current.lockVersion !== input.expectedLockVersion) {
+    input: { id: string; expectedLockVersion: number },
+  ): Promise<PublishResult> {
+    const page = await this.store.findPage(input.id);
+    if (!page) throw new CmsNotFoundError(`Page ${input.id}`);
+    if (page.lockVersion !== input.expectedLockVersion) {
       await this.reportConflict(input.id, input.expectedLockVersion);
     }
+    if (!canPublish(actor)) throw new CmsForbiddenError("publicar contenido");
 
-    // Both directions across the published boundary, not just into it.
-    // `canPublish` is documented as covering publish *and* unpublish, and
-    // taking a live page down is the more consequential of the two — gating
-    // only the way in would mean narrowing the role later silently left
-    // unpublishing open to everyone.
-    if (input.status === "published" || current.status === "published") {
-      if (!canPublish(actor)) {
-        throw new CmsForbiddenError(
-          input.status === "published"
-            ? "publicar contenido"
-            : "despublicar contenido",
-        );
-      }
+    const wip = page.wipRevisionId
+      ? await this.revisions.byId(page.wipRevisionId)
+      : null;
+    const live = page.publishedRevisionId
+      ? await this.revisions.byId(page.publishedRevisionId)
+      : null;
+
+    // Republishing a page that was taken down, with nothing new written since:
+    // re-expose the retained publication rather than manufacture a copy of it
+    // (§14.5.5). Editorial dates do not move — the article was not rewritten.
+    if (!wip) {
+      if (!live) throw new CmsNoWorkingCopyError("publicar");
+      return this.reexpose(actor, page, live, input.expectedLockVersion);
     }
 
-    const level = levelForTransition(current.status, input.status);
-    await this.assertValid(current, level);
+    const candidate = documentOf(page, wip);
+    await this.assertValid({ ...candidate, status: "published" }, "publish");
+
+    // Publishing a working copy identical to what is already live would file a
+    // second publication saying nothing, consume a retention slot and move the
+    // publication number. Refused, with the WIP left in place: removing it is
+    // «Descartar borrador», a separate decision.
+    if (live && page.status === "published" && documentsEqual(live, wip)) {
+      return {
+        document: documentOf(page, live),
+        status: page.status,
+        lockVersion: page.lockVersion,
+        publicationNumber: live.publicationNumber,
+        noChange: true,
+      };
+    }
 
     const now = this.clock();
-    const publishedAt = current.publishedAt
-      ? new Date(current.publishedAt)
-      : null;
-    const saved = await this.store.updateWithLock({
-      id: input.id,
-      expectedLockVersion: input.expectedLockVersion,
-      actorId: actor.userId,
-      now,
-      patch: {
-        status: input.status,
-        publishedAt: nextPublishedAt(publishedAt, input.status, now),
-        // Moved only on a *first* publication, where the content is current by
-        // definition. Unpublishing and republishing must not tell every reader
-        // the article was rewritten today.
-        ...(stampsContentUpdatedAt(publishedAt, input.status)
-          ? { contentUpdatedAt: now }
-          : {}),
-      },
+    const result = await this.store.transaction(async (store, tx) => {
+      const revisions = this.revisions.bind(tx);
+      const claimed = await store.updateWithLock({
+        id: page.id,
+        expectedLockVersion: input.expectedLockVersion,
+        actorId: actor.userId,
+        now,
+        patch: {
+          status: "published",
+          publishedAt: nextPublishedAt(page.publishedAt, "published", now),
+          // Everything this operation consumes, released in the claim so the
+          // deletes below are not refused by the `restrict` foreign keys.
+          wipRevisionId: null,
+          checkpointRevisionId: null,
+          previewRevisionId: null,
+        },
+      });
+      if (!claimed) return null;
+
+      // A working copy identical to the last publication on a page that is not
+      // currently published: re-expose that publication and consume the WIP,
+      // rather than file a duplicate.
+      if (live && documentsEqual(live, wip)) {
+        await revisions.deleteMany(
+          [wip.id, page.checkpointRevisionId, page.previewRevisionId].filter(
+            (id): id is string => id !== null,
+          ),
+        );
+        await store.setPointers({
+          id: page.id,
+          patch: { publishedRevisionId: live.id },
+        });
+        return {
+          document: documentOf(claimed, live),
+          status: "published" as ContentStatus,
+          lockVersion: claimed.lockVersion,
+          publicationNumber: live.publicationNumber,
+          noChange: true,
+        };
+      }
+
+      const publicationNumber = await revisions.nextPublicationNumber(page.id);
+      const publication = await revisions.insert({
+        pageId: page.id,
+        kind: "published",
+        document: authoredOf({
+          ...wip,
+          // At the moment of first publication the content is current by
+          // definition, and a `contentUpdatedAt` earlier than `publishedAt`
+          // reads as "updated before it existed". Only ever on the first.
+          contentUpdatedAt: stampsContentUpdatedAt(
+            page.publishedAt,
+            "published",
+          )
+            ? now
+            : wip.contentUpdatedAt,
+        }),
+        basedOnRevisionId: wip.basedOnRevisionId,
+        publicationNumber,
+        publishedAt: now,
+        createdBy: wip.createdBy,
+        actorId: actor.userId,
+        now,
+      });
+
+      await store.setPointers({
+        id: page.id,
+        patch: { publishedRevisionId: publication.id },
+      });
+
+      // The work this publication consumed, plus a public preview that is now
+      // behind the live page.
+      await revisions.deleteMany(
+        [wip.id, page.checkpointRevisionId, page.previewRevisionId].filter(
+          (id): id is string => id !== null,
+        ),
+      );
+
+      // Retention (§14.2): the new publication plus three previous. Never the
+      // one the page now points at — checked rather than assumed, because a
+      // retention bug that pruned the live revision would take the page off the
+      // site with the publication that was supposed to put it there.
+      const publications = await revisions.publications(page.id);
+      const prune = publications
+        .slice(RETAINED_PUBLICATIONS + 1)
+        .filter((revision) => revision.id !== publication.id);
+      await revisions.deleteMany(prune.map((revision) => revision.id));
+
+      await this.recordUsage(tx, publication, now);
+      return {
+        document: documentOf(claimed, publication),
+        status: "published" as ContentStatus,
+        lockVersion: claimed.lockVersion,
+        publicationNumber: publication.publicationNumber,
+        noChange: false,
+      };
     });
-    if (!saved) await this.reportConflict(input.id, input.expectedLockVersion);
+    if (!result) await this.reportConflict(input.id, input.expectedLockVersion);
+    const published = result as PublishResult;
 
     await this.record(actor, {
       pageId: input.id,
       action: "status",
-      fromStatus: current.status,
-      toStatus: input.status,
+      fromStatus: page.status,
+      toStatus: "published",
       now,
     });
-    if (statusChangeAffectsPublicCache(current.status, input.status)) {
-      this.expirePublicCache(current.section);
+    this.expirePublicCache(page.section as ContentSection);
+    return published;
+  }
+
+  /** Promote the working copy to the shareable public preview (cms.md §14.5.3).
+   *
+   * The snapshot is immutable: later saves stay private until this is run
+   * again. That is the difference between a link an editor can send someone and
+   * a window onto whatever they are typing. */
+  async promotePreview(
+    actor: CmsActor,
+    input: { id: string; expectedLockVersion: number },
+  ): Promise<ContentDocument> {
+    this.assertMayAuthor(actor);
+    const page = await this.store.findPage(input.id);
+    if (!page) throw new CmsNotFoundError(`Page ${input.id}`);
+    if (page.lockVersion !== input.expectedLockVersion) {
+      await this.reportConflict(input.id, input.expectedLockVersion);
     }
-    return saved as ContentDocument;
+
+    // The working copy is what a promotion promotes. A published page with no
+    // WIP is being *moved* into preview rather than previewed, and the copy to
+    // freeze is the one already live — otherwise the URL would have nothing to
+    // serve the moment it stopped being published.
+    const source = page.wipRevisionId
+      ? await this.revisions.byId(page.wipRevisionId)
+      : await this.baselineRevision(page);
+    if (!source) throw new CmsNoWorkingCopyError("la vista previa pública");
+
+    const candidate = documentOf(page, source);
+    await this.assertValid({ ...candidate, status: "preview" }, "preview");
+
+    const now = this.clock();
+    const promoted = await this.store.transaction(async (store, tx) => {
+      const revisions = this.revisions.bind(tx);
+      const claimed = await store.updateWithLock({
+        id: page.id,
+        expectedLockVersion: input.expectedLockVersion,
+        actorId: actor.userId,
+        now,
+        patch: { status: "preview", previewRevisionId: null },
+      });
+      if (!claimed) return null;
+
+      if (page.previewRevisionId) {
+        await revisions.deleteMany([page.previewRevisionId]);
+      }
+      const preview = await revisions.insert({
+        pageId: page.id,
+        kind: "preview",
+        document: authoredOf(source),
+        basedOnRevisionId: source.basedOnRevisionId,
+        createdBy: source.createdBy,
+        actorId: actor.userId,
+        now,
+      });
+      await store.setPointers({
+        id: page.id,
+        patch: { previewRevisionId: preview.id },
+      });
+      await this.recordUsage(tx, preview, now);
+      return documentOf({ ...claimed, previewRevisionId: preview.id }, preview);
+    });
+    if (!promoted)
+      await this.reportConflict(input.id, input.expectedLockVersion);
+
+    await this.record(actor, {
+      pageId: input.id,
+      action: "preview_promoted",
+      fromStatus: page.status,
+      toStatus: "preview",
+      now,
+    });
+    this.expirePublicCache(page.section as ContentSection);
+    return promoted as ContentDocument;
+  }
+
+  /** Take a page out of public view — unpublish, or walk a preview back
+   * (cms.md §14.5.5).
+   *
+   * Never blocked by validation. This is the lever an editor reaches for when
+   * something is wrong with a live page, and gating it on the page being valid
+   * would mean the pages most in need of it are the ones that cannot be taken
+   * down. The last published pointer is retained, so republishing is one click
+   * and creates no duplicate. */
+  async unpublish(
+    actor: CmsActor,
+    input: { id: string; expectedLockVersion: number },
+  ): Promise<ContentDocument> {
+    const page = await this.store.findPage(input.id);
+    if (!page) throw new CmsNotFoundError(`Page ${input.id}`);
+    if (page.lockVersion !== input.expectedLockVersion) {
+      await this.reportConflict(input.id, input.expectedLockVersion);
+    }
+    if (page.status === "published" && !canPublish(actor)) {
+      throw new CmsForbiddenError("despublicar contenido");
+    }
+    this.assertMayAuthor(actor);
+    if (page.status === "draft") return this.get(actor, input.id);
+
+    const now = this.clock();
+    const result = await this.store.transaction(async (store, tx) => {
+      const revisions = this.revisions.bind(tx);
+      const claimed = await store.updateWithLock({
+        id: page.id,
+        expectedLockVersion: input.expectedLockVersion,
+        actorId: actor.userId,
+        now,
+        // The preview snapshot exists to be served at a public URL; once the
+        // page is a draft there is no such URL, and keeping the copy would only
+        // pin the images it references.
+        patch: { status: "draft", previewRevisionId: null },
+      });
+      if (!claimed) return null;
+      if (page.previewRevisionId) {
+        await revisions.deleteMany([page.previewRevisionId]);
+      }
+      const revision = await this.selectedRevision(claimed, revisions);
+      return documentOf(claimed, revision);
+    });
+    if (!result) await this.reportConflict(input.id, input.expectedLockVersion);
+
+    await this.record(actor, {
+      pageId: input.id,
+      action: "status",
+      fromStatus: page.status,
+      toStatus: "draft",
+      now,
+    });
+    if (statusChangeAffectsPublicCache(page.status, "draft")) {
+      this.expirePublicCache(page.section as ContentSection);
+    }
+    return result as ContentDocument;
+  }
+
+  /** The lifecycle move as one call, for callers that speak in destinations
+   * rather than operations — the browser's status buttons and the MCP's
+   * `set_content_status`.
+   *
+   * A thin dispatch on purpose: `status: "published"` must never be a way to
+   * expose a mutable working copy, so it goes through the same `publish` that
+   * snapshots and prunes. */
+  async setStatus(
+    actor: CmsActor,
+    input: { id: string; status: ContentStatus; expectedLockVersion: number },
+  ): Promise<ContentDocument> {
+    switch (input.status) {
+      case "published":
+        return (await this.publish(actor, input)).document;
+      case "preview":
+        return this.promotePreview(actor, input);
+      case "draft":
+        return this.unpublish(actor, input);
+    }
+  }
+
+  /** Throw away the working copy and its checkpoint (cms.md §14.5.5).
+   *
+   * Changes no public pointer and no status: the page keeps serving exactly
+   * what it was serving, and the editor reloads onto that baseline. */
+  async discardWip(
+    actor: CmsActor,
+    input: { id: string; expectedLockVersion: number },
+  ): Promise<ContentDocument> {
+    this.assertMayAuthor(actor);
+    const page = await this.store.findPage(input.id);
+    if (!page) throw new CmsNotFoundError(`Page ${input.id}`);
+    if (page.lockVersion !== input.expectedLockVersion) {
+      await this.reportConflict(input.id, input.expectedLockVersion);
+    }
+    if (!page.wipRevisionId) throw new CmsNoWorkingCopyError("descartar");
+    // Discarding the only copy a page has would leave it unreadable — that is
+    // «Eliminar esta página», which has its own guards and its own confirmation.
+    if (!page.publishedRevisionId && !page.previewRevisionId) {
+      throw new CmsNotDeletableError(
+        "Esta página solo existe como borrador: descartar el borrador la dejaría sin contenido. Elimina la página si eso es lo que quieres.",
+      );
+    }
+
+    const now = this.clock();
+    const result = await this.store.transaction(async (store, tx) => {
+      const revisions = this.revisions.bind(tx);
+      const claimed = await store.updateWithLock({
+        id: page.id,
+        expectedLockVersion: input.expectedLockVersion,
+        actorId: actor.userId,
+        now,
+        patch: { wipRevisionId: null, checkpointRevisionId: null },
+      });
+      if (!claimed) return null;
+      await revisions.deleteMany(
+        [page.wipRevisionId, page.checkpointRevisionId].filter(
+          (id): id is string => id !== null,
+        ),
+      );
+      const revision = await this.selectedRevision(claimed, revisions);
+      return documentOf(claimed, revision);
+    });
+    if (!result) await this.reportConflict(input.id, input.expectedLockVersion);
+
+    await this.record(actor, { pageId: input.id, action: "discarded", now });
+    return result as ContentDocument;
+  }
+
+  /** Copy a retained version back into the working copy (cms.md §14.5.6).
+   *
+   * Private, always: it changes no status, no public pointer and no cache. A
+   * restore that published would make "look at what this used to say" a
+   * dangerous click. The pre-restore working copy becomes the checkpoint even
+   * if the 24-hour window has not elapsed, so the restore itself is undoable. */
+  async restoreVersion(
+    actor: CmsActor,
+    input: { id: string; revisionId: string; expectedLockVersion: number },
+  ): Promise<WipSaveResult> {
+    this.assertMayAuthor(actor);
+    const page = await this.store.findPage(input.id);
+    if (!page) throw new CmsNotFoundError(`Page ${input.id}`);
+    if (page.lockVersion !== input.expectedLockVersion) {
+      await this.reportConflict(input.id, input.expectedLockVersion);
+    }
+
+    const source = await this.revisions.byId(input.revisionId);
+    // Same page, and not the working copy itself — restoring the WIP onto the
+    // WIP is a no-op that would still rotate the checkpoint and lose the very
+    // state it was protecting.
+    if (!source || source.pageId !== page.id || source.kind === "wip") {
+      throw new CmsRevisionNotFoundError();
+    }
+
+    const now = this.clock();
+    const restored: AuthoredDocument = {
+      ...authoredOf(source),
+      contentUpdatedAt: now,
+    };
+    const candidate = { ...documentOf(page, source), status: page.status };
+    await this.assertHierarchy({
+      id: page.id,
+      section: page.section as ContentSection,
+      slug: page.slug,
+      parentId: restored.parentId,
+      sortOrder: restored.sortOrder,
+    });
+    await this.assertValid(candidate, WIP_VALIDATION_LEVEL);
+
+    const existingWip = page.wipRevisionId
+      ? await this.revisions.byId(page.wipRevisionId)
+      : null;
+
+    const result = await this.store.transaction(async (store, tx) => {
+      const revisions = this.revisions.bind(tx);
+      const claimed = await store.updateWithLock({
+        id: page.id,
+        expectedLockVersion: input.expectedLockVersion,
+        actorId: actor.userId,
+        now,
+        patch: existingWip ? { checkpointRevisionId: null } : {},
+      });
+      if (!claimed) return null;
+
+      let checkpointId = page.checkpointRevisionId;
+      if (existingWip) {
+        if (page.checkpointRevisionId) {
+          await revisions.deleteMany([page.checkpointRevisionId]);
+        }
+        const copy = await revisions.insert({
+          pageId: page.id,
+          kind: "checkpoint",
+          document: authoredOf(existingWip),
+          basedOnRevisionId: existingWip.basedOnRevisionId,
+          createdBy: existingWip.createdBy,
+          actorId: existingWip.updatedBy,
+          now,
+        });
+        checkpointId = copy.id;
+      }
+
+      const wip = existingWip
+        ? await revisions.updateWip({
+            id: existingWip.id,
+            document: restored,
+            basedOnRevisionId: source.id,
+            actorId: actor.userId,
+            now,
+          })
+        : await revisions.insert({
+            pageId: page.id,
+            kind: "wip",
+            document: restored,
+            basedOnRevisionId: source.id,
+            actorId: actor.userId,
+            now,
+          });
+      if (!wip) throw new Error("working copy vanished mid-restore");
+
+      await store.setPointers({
+        id: page.id,
+        patch: { wipRevisionId: wip.id, checkpointRevisionId: checkpointId },
+      });
+      await this.recordUsage(tx, wip, now);
+      return {
+        document: documentOf({ ...claimed, wipRevisionId: wip.id }, wip),
+        wipRevisionId: wip.id,
+        wipUpdatedAt: wip.updatedAt.toISOString(),
+        created: existingWip === null,
+      };
+    });
+    if (!result) await this.reportConflict(input.id, input.expectedLockVersion);
+
+    await this.record(actor, { pageId: input.id, action: "restored", now });
+    return result as WipSaveResult;
+  }
+
+  /** The bounded list of versions a page holds, newest first (cms.md §14.7). */
+  async listVersions(_actor: CmsActor, id: string): Promise<PageVersions> {
+    const page = await this.store.findPage(id);
+    if (!page) throw new CmsNotFoundError(`Page ${id}`);
+
+    const revisions = await this.revisions.listForPage(id);
+    const actors = await this.history.actorsById(
+      revisions.flatMap((revision) =>
+        revision.updatedBy ? [revision.updatedBy] : [],
+      ),
+    );
+
+    const entry = (revision: RevisionRecord): VersionEntry => ({
+      revisionId: revision.id,
+      kind: revision.kind,
+      publicationNumber: revision.publicationNumber,
+      at: (revision.publishedAt ?? revision.updatedAt).toISOString(),
+      who: actorLabel(
+        (revision.updatedBy && actors.get(revision.updatedBy)) || null,
+      ),
+      // Provenance is on the activity row, not on the revision; the tab reads
+      // it from there rather than duplicating a column that would have to be
+      // kept in agreement with it.
+      source: null,
+      isLive:
+        page.status === "published" && page.publishedRevisionId === revision.id,
+      isPublicPreview: page.previewRevisionId === revision.id,
+      title: revision.title,
+    });
+
+    const byKind = (kind: RevisionKind) =>
+      revisions.filter((revision) => revision.kind === kind);
+    const publications = byKind("published").sort(
+      (a, b) => (b.publicationNumber ?? 0) - (a.publicationNumber ?? 0),
+    );
+
+    const [wip] = byKind("wip");
+    const [checkpoint] = byKind("checkpoint");
+    const [preview] = byKind("preview");
+
+    const versions = [
+      ...(wip ? [entry(wip)] : []),
+      ...(checkpoint ? [entry(checkpoint)] : []),
+      ...(preview ? [entry(preview)] : []),
+      ...publications.map(entry),
+    ];
+
+    return {
+      pageId: id,
+      status: page.status,
+      versions,
+      baselineRevisionId: page.publishedRevisionId,
+      baselineIsLive:
+        page.status === "published" && page.publishedRevisionId !== null,
+      previewIsStale: previewIsStale(preview ?? null, wip ?? null),
+    };
+  }
+
+  /** One stored version, as a document. Used by the history tab's preview and
+   * by the MCP's `get_content_version`. */
+  async getVersion(
+    _actor: CmsActor,
+    input: { id: string; revisionId: string },
+  ): Promise<ContentDocument> {
+    const document = await this.store.findAtRevision(
+      input.id,
+      input.revisionId,
+    );
+    if (!document) throw new CmsRevisionNotFoundError();
+    return document;
+  }
+
+  /** Compare a candidate against the one baseline: the live publication, or the
+   * last one when the page is not currently published (cms.md §14.7.2).
+   *
+   * `revisionId` picks the candidate; omitting it means the working copy, which
+   * is the comparison an editor actually wants. There is no second selector —
+   * see the note at the top of `../diff`. */
+  async compareVersion(
+    _actor: CmsActor,
+    input: { id: string; revisionId?: string },
+  ): Promise<VersionComparison> {
+    const page = await this.store.findPage(input.id);
+    if (!page) throw new CmsNotFoundError(`Page ${input.id}`);
+
+    const candidate = input.revisionId
+      ? await this.revisions.byId(input.revisionId)
+      : page.wipRevisionId
+        ? await this.revisions.byId(page.wipRevisionId)
+        : await this.baselineRevision(page);
+    if (!candidate || candidate.pageId !== page.id) {
+      throw new CmsRevisionNotFoundError();
+    }
+
+    const baseline = page.publishedRevisionId
+      ? await this.revisions.byId(page.publishedRevisionId)
+      : null;
+
+    const asComparable = (revision: RevisionRecord): ComparableDocument => ({
+      body: revision.body,
+      title: revision.title,
+      titleTag: revision.titleTag,
+      description: revision.description,
+      summary: revision.summary,
+      cta: revision.cta,
+      canonicalSlug: revision.canonicalSlug,
+      parentId: revision.parentId,
+      sortOrder: revision.sortOrder,
+      crumb: revision.crumb,
+      metadata: revision.metadata,
+    });
+
+    return {
+      baseline: baseline
+        ? {
+            revisionId: baseline.id,
+            label:
+              page.status === "published"
+                ? `Publicación ${baseline.publicationNumber} · en línea`
+                : `Última versión publicada (${baseline.publicationNumber})`,
+            at: (baseline.publishedAt ?? baseline.updatedAt).toISOString(),
+            isLive: page.status === "published",
+          }
+        : null,
+      candidate: {
+        revisionId: candidate.id,
+        kind: candidate.kind,
+        label: candidateLabel(candidate),
+        at: (candidate.publishedAt ?? candidate.updatedAt).toISOString(),
+      },
+      diff:
+        baseline && baseline.id !== candidate.id
+          ? diffDocuments(asComparable(baseline), asComparable(candidate))
+          : null,
+    };
   }
 
   /** Delete a page for good.
@@ -379,70 +1141,205 @@ export class CmsContentService {
    * - **The lock version, like any other write.** A page someone else has been
    *   editing is not deleted out from under them.
    *
-   * There is no undo — no revision history exists to restore from — so the
-   * browser asks the editor to type the word before this is ever called, and
-   * the CMS MCP does not expose it at all. */
+   * Every retained version goes with it — working copy, checkpoint, public
+   * preview and all four publications — which is why the confirmation says so
+   * and the CMS MCP does not expose this at all. */
   async delete(
     actor: CmsActor,
     input: { id: string; expectedLockVersion: number },
   ): Promise<void> {
     this.assertMayAuthor(actor);
 
-    const current = await this.store.findById(input.id);
-    if (!current) throw new CmsNotFoundError(`Page ${input.id}`);
-    if (current.lockVersion !== input.expectedLockVersion) {
+    const page = await this.store.findPage(input.id);
+    if (!page) throw new CmsNotFoundError(`Page ${input.id}`);
+    if (page.lockVersion !== input.expectedLockVersion) {
       await this.reportConflict(input.id, input.expectedLockVersion);
     }
 
-    if (current.status !== "draft") {
+    if (page.status !== "draft") {
       throw new CmsNotDeletableError(
         "Solo se pueden eliminar borradores. Vuelve la página a borrador antes de eliminarla.",
       );
     }
 
-    const siblings = await this.store.list({
-      section: current.section as ContentSection,
-    });
-    const children = siblings.filter((page) => page.parentId === current.id);
+    // Every *revision* that names this page as its parent, not only the
+    // documents the CMS currently shows. The foreign key is `restrict` and it
+    // is declared on the revision, so a retained publication from before a page
+    // was re-parented would refuse the delete at the database with a constraint
+    // name and nothing else. Asking the same question the constraint asks means
+    // the answer can name the pages instead.
+    const children = await this.store.pagesWithParent(page.id);
     if (children.length > 0) {
       throw new CmsNotDeletableError(
         children.length === 1
-          ? "Otra página cuelga de esta. Muévela o elimínala antes."
-          : `Hay ${children.length} páginas que cuelgan de esta. Muévelas o elimínalas antes.`,
+          ? "Otra página cuelga de esta, en su versión actual o en una guardada. Muévela o elimínala antes."
+          : `Hay ${children.length} páginas que cuelgan de esta, en su versión actual o en alguna guardada. Muévelas o elimínalas antes.`,
       );
     }
 
-    const deleted = await this.store.deleteWithLock(input);
+    const now = this.clock();
+    const deleted = await this.store.transaction(async (store) => {
+      // The four pointers are `restrict`, so they are released before the row
+      // that names them goes; the revisions themselves then cascade with it.
+      const claimed = await store.updateWithLock({
+        id: page.id,
+        expectedLockVersion: input.expectedLockVersion,
+        actorId: actor.userId,
+        now,
+        patch: {
+          publishedRevisionId: null,
+          previewRevisionId: null,
+          wipRevisionId: null,
+          checkpointRevisionId: null,
+        },
+      });
+      if (!claimed) return false;
+      await store.deleteById(page.id);
+      return true;
+    });
     if (!deleted)
       await this.reportConflict(input.id, input.expectedLockVersion);
   }
 
   /** Validate without writing — the Validation tab, and the MCP's
-   * `validate_content`. Takes the *saved* page plus an optional patch so an
-   * editor can ask "would this save be accepted?" before making it. */
+   * `validate_content`. Takes the *working copy* plus an optional patch so an
+   * editor can ask "would this be accepted?" before saving or publishing. */
   async validateOnly(
     _actor: CmsActor,
     input: {
       id: string;
-      patch?: UpdateContentInput["patch"];
+      patch?: ContentPatch;
       level?: ValidationLevel;
     },
   ): Promise<ValidationResult> {
     const current = await this.store.findById(input.id);
     if (!current) throw new CmsNotFoundError(`Page ${input.id}`);
-    const document = { ...current, ...input.patch } as ContentDocument;
-    return this.validate({
-      document,
-      level: input.level ?? levelForSave(current.status),
+    const level = input.level ?? levelForSave(current.status);
+    const document = {
+      ...current,
+      ...input.patch,
+      // At publish level the candidate is measured as the page's prospective
+      // *public* document, so a page still in draft is checked against the
+      // rules it will have to meet rather than the ones it has now (§14.6).
+      ...(level === "publish" ? { status: "published" as ContentStatus } : {}),
+    } as ContentDocument;
+    return this.validate({ document, level });
+  }
+
+  // ── internals ─────────────────────────────────────────────────────────────
+
+  /** The revision a CMS read of this page follows. Throws rather than returning
+   * null: a page with no readable revision is damage, not a state.
+   *
+   * `revisions` is a parameter rather than `this.revisions` because callers
+   * inside a transaction must pass the transaction-bound store. The pool the
+   * tests run against holds one connection, so a read on the outer handle from
+   * inside a transaction does not merely bypass it — it deadlocks, waiting for
+   * a connection the transaction is holding.
+   */
+  private async selectedRevision(
+    page: CmsPageRecord,
+    revisions: CmsRevisionStore = this.revisions,
+  ): Promise<RevisionRecord> {
+    const id =
+      page.wipRevisionId ?? page.publishedRevisionId ?? page.previewRevisionId;
+    const revision = id ? await revisions.byId(id) : null;
+    if (!revision) {
+      throw new CmsNotFoundError(`Page ${page.id} has no readable revision`);
+    }
+    return revision;
+  }
+
+  /** What a new working copy would start from: the last publication, or the
+   * public preview when the page has never been published. */
+  private async baselineRevision(
+    page: CmsPageRecord,
+  ): Promise<RevisionRecord | null> {
+    const id = page.publishedRevisionId ?? page.previewRevisionId;
+    return id ? this.revisions.byId(id) : null;
+  }
+
+  /** Put a retained publication back in front of readers without writing a new
+   * one (cms.md §14.5.5). */
+  private async reexpose(
+    actor: CmsActor,
+    page: CmsPageRecord,
+    live: RevisionRecord,
+    expectedLockVersion: number,
+  ): Promise<PublishResult> {
+    if (page.status === "published") {
+      return {
+        document: documentOf(page, live),
+        status: page.status,
+        lockVersion: page.lockVersion,
+        publicationNumber: live.publicationNumber,
+        noChange: true,
+      };
+    }
+
+    const now = this.clock();
+    const result = await this.store.transaction(async (store, tx) => {
+      const revisions = this.revisions.bind(tx);
+      const claimed = await store.updateWithLock({
+        id: page.id,
+        expectedLockVersion,
+        actorId: actor.userId,
+        now,
+        patch: {
+          status: "published",
+          publishedAt: nextPublishedAt(page.publishedAt, "published", now),
+          previewRevisionId: null,
+        },
+      });
+      if (!claimed) return null;
+      if (page.previewRevisionId) {
+        await revisions.deleteMany([page.previewRevisionId]);
+      }
+      return {
+        document: documentOf(claimed, live),
+        status: "published" as ContentStatus,
+        lockVersion: claimed.lockVersion,
+        publicationNumber: live.publicationNumber,
+        noChange: true,
+      };
+    });
+    if (!result) await this.reportConflict(page.id, expectedLockVersion);
+
+    await this.record(actor, {
+      pageId: page.id,
+      action: "status",
+      fromStatus: page.status,
+      toStatus: "published",
+      now,
+    });
+    this.expirePublicCache(page.section as ContentSection);
+    return result as PublishResult;
+  }
+
+  private recordUsage(
+    tx: Database,
+    revision: RevisionRecord,
+    now: Date,
+  ): Promise<void> {
+    return this.recordMediaUsage({
+      revision: {
+        id: revision.id,
+        bodyMdx: revision.body,
+        metadata: revision.metadata,
+      },
+      now,
+      tx,
     });
   }
 
-  /** Write one history row for a mutation that already succeeded.
+  /** Write one activity row for a mutation that already succeeded.
    *
    * Best-effort, and deliberately so: the write it describes is committed by
    * the time this runs, so a failure here cannot be reported as a failed save
    * without lying to the editor about what is in the database. A missing line
-   * in «Historia» is the smaller loss, and the console says when it happens.
+   * in «Historial» is the smaller loss — the *versions* are the recoverable
+   * history, and they are written inside the transaction — and the console says
+   * when it happens.
    *
    * Called after every accepted mutation rather than from the browser actions,
    * so the CMS MCP records the same trail without a second implementation
@@ -451,7 +1348,13 @@ export class CmsContentService {
     actor: CmsActor,
     input: {
       pageId: string;
-      action: "created" | "saved" | "status";
+      action:
+        | "created"
+        | "saved"
+        | "status"
+        | "restored"
+        | "discarded"
+        | "preview_promoted";
       fromStatus?: ContentStatus;
       toStatus?: ContentStatus;
       now: Date;
@@ -471,11 +1374,9 @@ export class CmsContentService {
   /** Expire the public cache for a section after a write the public can see.
    *
    * Best-effort for the same reason `record` is: the write it follows is
-   * already committed, and telling an editor their save failed because a cache
-   * tag could not be expired would be a lie about what is in the database. The
-   * cost of a failure here is the behaviour that existed before Task 4 — the
-   * change appears within the hour instead of on the next request — which is
-   * not worth failing a save over, but is worth a line in the log. */
+   * already committed, and telling an editor their publication failed because a
+   * cache tag could not be expired would be a lie about what is in the
+   * database. */
   private expirePublicCache(section: ContentSection): void {
     try {
       this.invalidate(section);
@@ -564,5 +1465,29 @@ export class CmsContentService {
       expected,
       await this.store.lockVersionOf(id),
     );
+  }
+}
+
+/** Is the shareable preview behind the working copy? Only meaningful when both
+ * exist: without a preview there is no stale link, and without a WIP nothing
+ * has moved since it was promoted. */
+function previewIsStale(
+  preview: RevisionRecord | null,
+  wip: RevisionRecord | null,
+): boolean {
+  if (!preview || !wip) return false;
+  return wip.updatedAt.getTime() > preview.createdAt.getTime();
+}
+
+function candidateLabel(revision: RevisionRecord): string {
+  switch (revision.kind) {
+    case "wip":
+      return "Borrador de trabajo";
+    case "checkpoint":
+      return "Antes de esta sesión";
+    case "preview":
+      return "Vista previa pública";
+    case "published":
+      return `Publicación ${revision.publicationNumber}`;
   }
 }

@@ -115,10 +115,9 @@ describe("cms_page access", () => {
     path.join("src", "content-system", "repository", "mapping.ts"),
     path.join("src", "cms", "server", "store.ts"),
     // The media library joins `cms_page` to answer "which pages use this
-    // image" and to re-derive usage from page bodies. Reads only, and through
-    // the same store discipline: no route or component queries it directly.
+    // image". Reads only, and through the same store discipline: no route or
+    // component queries it directly.
     path.join("src", "cms", "media", "server", "store.ts"),
-    path.join("src", "cms", "media", "server", "usage.ts"),
     path.join("src", "content-system", "adapters", "database.ts"),
     // The schema defines the table; the seed and test helpers may reference it.
     path.join("src", "db", "schema.ts"),
@@ -155,6 +154,67 @@ describe("cms_page access", () => {
       .filter((rel) => !rel.endsWith(".test.ts") && !rel.endsWith(".test.tsx"))
       .filter((rel) =>
         /\bcmsPages\b/.test(
+          fs.readFileSync(path.join(process.cwd(), rel), "utf8"),
+        ),
+      );
+    expect(offenders).toEqual([]);
+  });
+});
+
+// The same rule for `cms_page_revision` (cms.md §14.11). It is the more
+// important of the two: a revision written outside the service is a copy with
+// no pointer, no retention and no media usage — invisible to the history, and
+// pinning images nothing will ever release. And a *read* outside the selectors
+// is how the working copy ends up in front of a reader.
+describe("cms_page_revision access", () => {
+  const ALLOWED = [
+    // Writes.
+    path.join("src", "cms", "server", "revisionStore.ts"),
+    // Reads that join a page to its selected revision.
+    path.join("src", "cms", "server", "store.ts"),
+    path.join("src", "content-system", "repository", "postgres.ts"),
+    path.join("src", "content-system", "repository", "mapping.ts"),
+    path.join("src", "content-system", "adapters", "database.ts"),
+    // Media usage is keyed by revision, so the library reads the table to
+    // group usage by page and to re-derive it from every retained copy.
+    path.join("src", "cms", "media", "server", "store.ts"),
+    path.join("src", "cms", "media", "server", "usage.ts"),
+    path.join("src", "db", "schema.ts"),
+  ];
+
+  function sourceFiles(dir: string): string[] {
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      if (entry.name === "node_modules") return [];
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) return sourceFiles(full);
+      return /\.tsx?$/.test(entry.name) ? [full] : [];
+    });
+  }
+
+  it("actually finds the modules that do query it", () => {
+    // Guards the guard, exactly as above: a rename would otherwise make the
+    // check below pass by finding nothing.
+    const users = ALLOWED.filter((rel) =>
+      /\bcmsPageRevisions\b/.test(
+        fs.readFileSync(path.join(process.cwd(), rel), "utf8"),
+      ),
+    );
+    expect(users).toContain(
+      path.join("src", "cms", "server", "revisionStore.ts"),
+    );
+    expect(users).toContain(
+      path.join("src", "content-system", "repository", "postgres.ts"),
+    );
+  });
+
+  it("is confined to the revision store and the revision-selecting readers", () => {
+    const root = path.join(process.cwd(), "src");
+    const offenders = sourceFiles(root)
+      .map((file) => path.relative(process.cwd(), file))
+      .filter((rel) => !ALLOWED.includes(rel))
+      .filter((rel) => !rel.endsWith(".test.ts") && !rel.endsWith(".test.tsx"))
+      .filter((rel) =>
+        /\bcmsPageRevisions\b/.test(
           fs.readFileSync(path.join(process.cwd(), rel), "utf8"),
         ),
       );

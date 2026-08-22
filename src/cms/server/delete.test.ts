@@ -1,170 +1,150 @@
-import { describe, expect, it } from "vitest";
-import type {
-  ContentDocument,
-  ContentStatus,
-  ContentSummary,
-} from "@/content-system/types";
-import type { CmsActor } from "../types";
-import { CmsContentService } from "./contentService";
-import {
-  CmsConflictError,
-  CmsNotDeletableError,
-  CmsNotFoundError,
-} from "./errors";
-import type { CmsPageStore } from "./store";
+import { describe, expect, it } from 'vitest'
+import type { CmsActor } from '../types'
+import { CmsConflictError, CmsNotDeletableError, CmsNotFoundError } from './errors'
+import { createFakeCms, seedPage, type FakeCms } from './testFakes'
 
-// The guards on the one destructive operation in the CMS.
+// The one destructive operation in the CMS, and the guards that keep
+// "archive by status" intact rather than discarding it (cms.md §4.2, §13).
 //
-// `contentService.delete` is the only place a `cms_page` row can be removed, so
-// every reason it may refuse is worth pinning: a published page is never one
-// click from gone, a page that others hang off is never orphaned, and a page
-// that moved under the editor is never deleted unseen. Without a database
-// here — the question is which check fires, not what SQL does, and
-// `contentService.integration.test.ts` covers the same ground against the real
-// foreign key.
-
-const PAGE_ID = "22222222-2222-2222-2222-222222222222";
+// Three refusals and one permission. The refusals are what matter: a published
+// page has a public URL and a cached copy that outlives the row; a page others
+// hang off would orphan them; a version the editor no longer holds means
+// somebody else has been working here.
+//
+// Since revisions, deleting also takes every stored version with it — working
+// copy, checkpoint, public preview and all four publications — which is the
+// last assertion below and the reason the confirmation copy says so.
 
 const actor: CmsActor = {
-  userId: "11111111-1111-1111-1111-111111111111",
-  email: "editor@example.com",
-  name: "Editor",
-  role: "editor",
-};
-
-function documentAt(status: ContentStatus): ContentDocument {
-  return {
-    id: PAGE_ID,
-    section: "guias",
-    slug: "una-guia",
-    status,
-    body: "Cuerpo.\n",
-    title: "Una guía",
-    titleTag: null,
-    description: "Descripción.",
-    summary: "Resumen.",
-    cta: "Probá Factura.",
-    canonicalSlug: null,
-    parentId: null,
-    sortOrder: 0,
-    crumb: null,
-    metadata: { keywords: [], categories: [] },
-    publishedAt: status === "published" ? "2026-01-01T12:00:00.000Z" : null,
-    contentUpdatedAt: "2026-01-01T12:00:00.000Z",
-    createdAt: "2026-01-01T12:00:00.000Z",
-    updatedAt: "2026-01-01T12:00:00.000Z",
-    createdBy: actor.userId,
-    updatedBy: actor.userId,
-    lockVersion: 1,
-  };
+  userId: '11111111-1111-1111-1111-111111111111',
+  email: 'editor@example.com',
+  name: 'Editor',
+  role: 'editor',
 }
 
-/** A child of the page under test, as the section list would return it. */
-function childSummary(slug: string): ContentSummary {
-  const { body, ...summary } = documentAt("draft");
-  void body;
-  return {
-    ...summary,
-    id: `child-${slug}`,
-    slug: `una-guia/${slug}`,
-    parentId: PAGE_ID,
-  };
-}
+const lockOf = async (fake: FakeCms, id: string): Promise<number> =>
+  (await fake.service.getState(actor, id)).lockVersion
 
-/** A store that answers reads and records whether the delete was reached. */
-function fakeStore(
-  current: ContentDocument | null,
-  options: { children?: ContentSummary[]; deletes?: boolean } = {},
-) {
-  const deleted: string[] = [];
-  return {
-    deleted,
-    store: {
-      findById: async () => current,
-      list: async () => options.children ?? [],
-      lockVersionOf: async () => current?.lockVersion ?? null,
-      deleteWithLock: async (input: { id: string }) => {
-        deleted.push(input.id);
-        return options.deletes ?? true;
-      },
-    } as unknown as CmsPageStore,
-  };
-}
+describe('deleting a page', () => {
+  it('deletes a childless draft at the expected version', async () => {
+    const fake = createFakeCms()
+    const page = await seedPage(fake, actor)
 
-const permissive = () => ({ ok: true as const, diagnostics: [] });
+    await fake.service.delete(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    })
+    expect(fake.pageRow(page.id)).toBeUndefined()
+  })
 
-const at = (version = 1) => ({ id: PAGE_ID, expectedLockVersion: version });
+  it('takes every stored version with it', async () => {
+    // The confirmation says «también se eliminan las versiones guardadas», and
+    // this is what makes that true rather than aspirational. A page left with
+    // orphaned revisions would keep pinning the images they reference forever.
+    const fake = createFakeCms()
+    const page = await seedPage(fake, actor)
+    await fake.service.publish(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    })
+    await fake.service.update(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+      patch: { body: 'Cuerpo nuevo.\n' },
+    })
+    await fake.service.unpublish(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    })
+    expect(fake.revisionRows(page.id).length).toBeGreaterThan(1)
 
-describe("deleting a page", () => {
-  it("deletes a childless draft at the expected version", async () => {
-    const { store, deleted } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(permissive, store);
+    await fake.service.delete(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    })
+    expect(fake.revisionRows(page.id)).toEqual([])
+  })
 
-    await service.delete(actor, at());
-    expect(deleted).toEqual([PAGE_ID]);
-  });
-
-  it("refuses a published page", async () => {
+  it('refuses a published page', async () => {
     // Unpublishing first is one extra click, and it keeps "this is live" and
     // "this is gone" two separate decisions — the public URL and its cached
     // copy outlive the row.
-    const { store, deleted } = fakeStore(documentAt("published"));
-    const service = new CmsContentService(permissive, store);
+    const fake = createFakeCms()
+    const page = await seedPage(fake, actor)
+    await fake.service.publish(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    })
 
-    await expect(service.delete(actor, at())).rejects.toBeInstanceOf(
-      CmsNotDeletableError,
-    );
-    expect(deleted).toEqual([]);
-  });
+    await expect(
+      fake.service.delete(actor, {
+        id: page.id,
+        expectedLockVersion: await lockOf(fake, page.id),
+      }),
+    ).rejects.toBeInstanceOf(CmsNotDeletableError)
+    expect(fake.pageRow(page.id)).toBeDefined()
+  })
 
-  it("refuses a page in preview", async () => {
-    const { store, deleted } = fakeStore(documentAt("preview"));
-    const service = new CmsContentService(permissive, store);
+  it('refuses a page in public preview', async () => {
+    const fake = createFakeCms()
+    const page = await seedPage(fake, actor)
+    await fake.service.promotePreview(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    })
 
-    await expect(service.delete(actor, at())).rejects.toBeInstanceOf(
-      CmsNotDeletableError,
-    );
-    expect(deleted).toEqual([]);
-  });
+    await expect(
+      fake.service.delete(actor, {
+        id: page.id,
+        expectedLockVersion: await lockOf(fake, page.id),
+      }),
+    ).rejects.toBeInstanceOf(CmsNotDeletableError)
+    expect(fake.pageRow(page.id)).toBeDefined()
+  })
 
-  it("refuses a page other pages hang off, and says how many", async () => {
-    const { store, deleted } = fakeStore(documentAt("draft"), {
-      children: [childSummary("uno"), childSummary("dos")],
-    });
-    const service = new CmsContentService(permissive, store);
+  it('refuses a page other pages hang off, and says how many', async () => {
+    const fake = createFakeCms()
+    const parent = await seedPage(fake, actor, { slug: 'una-guia' })
+    for (const child of ['uno', 'dos']) {
+      await fake.service.create(actor, {
+        section: 'guias',
+        slug: `una-guia/${child}`,
+        parentId: parent.id,
+        title: `Hija ${child}`,
+        description: 'Descripción de prueba para la suite del CMS.',
+        summary: 'Resumen de prueba.',
+        cta: 'Probá Factura.',
+        body: 'Cuerpo de prueba.\n',
+        metadata: { keywords: ['prueba'], categories: ['servicios'] },
+      })
+    }
 
-    await expect(service.delete(actor, at())).rejects.toThrow(/2 páginas/);
-    expect(deleted).toEqual([]);
-  });
+    await expect(
+      fake.service.delete(actor, {
+        id: parent.id,
+        expectedLockVersion: await lockOf(fake, parent.id),
+      }),
+    ).rejects.toThrow(/2 páginas/)
+    expect(fake.pageRow(parent.id)).toBeDefined()
+  })
 
-  it("refuses a version the editor no longer holds", async () => {
-    const { store, deleted } = fakeStore(documentAt("draft"));
-    const service = new CmsContentService(permissive, store);
+  it('refuses a version the editor no longer holds', async () => {
+    const fake = createFakeCms()
+    const page = await seedPage(fake, actor)
 
-    await expect(service.delete(actor, at(0))).rejects.toBeInstanceOf(
+    await expect(fake.service.delete(actor, { id: page.id, expectedLockVersion: 99 })).rejects.toBeInstanceOf(
       CmsConflictError,
-    );
-    expect(deleted).toEqual([]);
-  });
+    )
+    expect(fake.pageRow(page.id)).toBeDefined()
+  })
 
-  it("reports a conflict when the row moved between the read and the delete", async () => {
-    // The version is checked twice: once from the row in hand, and once in the
-    // DELETE's own WHERE clause. Only the second one closes the race.
-    const { store } = fakeStore(documentAt("draft"), { deletes: false });
-    const service = new CmsContentService(permissive, store);
-
-    await expect(service.delete(actor, at())).rejects.toBeInstanceOf(
-      CmsConflictError,
-    );
-  });
-
-  it("reports a page that is already gone as not found", async () => {
-    const { store, deleted } = fakeStore(null);
-    const service = new CmsContentService(permissive, store);
-
-    await expect(service.delete(actor, at())).rejects.toBeInstanceOf(
-      CmsNotFoundError,
-    );
-    expect(deleted).toEqual([]);
-  });
-});
+  it('reports a page that is already gone as not found', async () => {
+    const fake = createFakeCms()
+    await expect(
+      fake.service.delete(actor, {
+        id: '44444444-4444-4444-4444-444444444444',
+        expectedLockVersion: 1,
+      }),
+    ).rejects.toBeInstanceOf(CmsNotFoundError)
+  })
+})

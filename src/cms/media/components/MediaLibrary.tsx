@@ -288,7 +288,7 @@ export function MediaLibrary({
       }
       const { usage, bucket } = result.data;
       setNotice(
-        `${usage.pagesScanned} páginas revisadas, ${usage.referencesFound} referencias. ` +
+        `${usage.revisionsScanned} versiones revisadas, ${usage.referencesFound} referencias. ` +
           `Bucket: ${bucket.objects} objetos, ${bucket.orphanedObjects.length} huérfanos, ` +
           `${bucket.missingObjects.length} filas sin archivo.`,
       );
