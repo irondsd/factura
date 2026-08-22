@@ -11,7 +11,7 @@ import { validationResult } from "../types";
 import { extractBodyReferences } from "../media/references";
 import { missingKeywordWords } from "./text";
 
-// Layer 2 of cms.md §5: document validation. Everything that can be decided
+// Layer 2 of cms.md: document validation. Everything that can be decided
 // about one page — its metadata, its dates, its headings, its links, its
 // components' placement — given an index of the other pages for the few rules
 // that need to resolve a slug.
@@ -594,7 +594,7 @@ function validateNewsDocument(document: ContentDocument): ValidationResult {
   return validationResult(out);
 }
 
-/** The media rules (cms.md §9.7).
+/** The media rules (cms.md).
  *
  * Three things can go wrong, and they fail differently:
  *
@@ -831,7 +831,7 @@ function validateBody(
       ),
     );
   }
-  // The database body must never carry a meta block: §3.7 puts metadata in
+  // The database body must never carry a meta block: cms.md puts metadata in
   // columns and JSONB, and a stray export would also be rejected by the
   // grammar layer. Named separately so the message says which mistake it is.
   if (/export\s+const\s+meta\s*=/.test(body)) {

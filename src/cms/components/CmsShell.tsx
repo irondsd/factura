@@ -8,7 +8,7 @@ import { CMS_SECTIONS, cmsSectionPath } from "../sections";
 // the bill app's shell carries the property switcher, the tRPC providers and the
 // PWA furniture, none of which a publishing console needs, and importing it
 // would tie `src/cms` to the half of the codebase that is meant to move to a
-// different deployment (cms.md §2.2).
+// different deployment (cms.md).
 //
 // Nothing here is client-side. The CMS is a small number of dynamic server
 // pages; interactivity arrives with the editor in Phase 5 and stays scoped to

@@ -83,7 +83,7 @@ export function checkHierarchy(
   if (node.parentId === null) {
     // A path with more than one segment and no parent row would render at a URL
     // whose parent does not exist — the "every intermediate path exists"
-    // invariant cms.md §12 asks for, enforced for every section rather than
+    // invariant cms.md asks for, enforced for every section rather than
     // just the two that have hubs today.
     if (impliedParent !== null) {
       problems.push({

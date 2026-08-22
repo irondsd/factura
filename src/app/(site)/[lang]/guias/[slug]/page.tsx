@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ContentArticle } from "@/components/article/ContentArticle";
 import { Faq } from "@/components/article/Faq";
 import { RelatedGuides } from "@/components/guides/RelatedGuides";
@@ -8,6 +8,7 @@ import { getCategory } from "@/content/guias/categories";
 import { documentHeadings, documentStats } from "@/content-system/document";
 import { contentPageMetadata } from "@/content-system/metadata/page";
 import {
+  guideRedirect,
   publicGuideBySlug,
   publiclyRenderableGuides,
   relatedGuides,
@@ -42,7 +43,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function GuidePage({ params }: Props) {
   const { slug } = await params;
   const guide = await publicGuideBySlug(slug);
-  if (!guide) notFound();
+  // A guide that moved keeps answering from its old address (cms.md). Asked
+  // only after the miss, so a live page always wins, and 308
+  // rather than 302 because the move is the editorial decision, not a
+  // temporary detour.
+  if (!guide) {
+    const moved = await guideRedirect(slug);
+    if (moved) permanentRedirect(`/guias/${moved}`);
+    notFound();
+  }
 
   const [Content, related, media] = await Promise.all([
     compileContent(guide.body, guide.section),

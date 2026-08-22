@@ -58,7 +58,7 @@ export const userLocale = pgEnum("user_locale", ["es", "en"]);
 
 // ── CMS ─────────────────────────────────────────────────────────────────────
 // Everything CMS carries a `cms_` prefix so the whole publishing schema can be
-// identified and lifted into its own database later (see cms.md §2.2, §12 Task 9).
+// identified and lifted into its own database later (see cms.md).
 // It is deliberately additive: nothing in the bill app reads these tables, and
 // a deployment that has them but never writes to them behaves exactly as it did
 // before.
@@ -947,7 +947,7 @@ export const cmsMembers = pgTable("cms_member", {
 });
 
 /** One content page: stable identity, lifecycle, and pointers at the revisions
- * that hold the actual document (cms.md §14).
+ * that hold the actual document (cms.md).
  *
  * The row itself is no longer editable prose. Saving edits a `wip` revision;
  * publishing promotes that WIP into an immutable `published` revision and
@@ -956,7 +956,7 @@ export const cmsMembers = pgTable("cms_member", {
  * readers untouched while the WIP is as unfinished as it needs to be.
  *
  * `section` is text rather than an enum on purpose: `estadisticas` and
- * `investigaciones` arrive in the same table (cms.md §12) and adding a section
+ * `investigaciones` arrive in the same table (cms.md) and adding a section
  * should not need an enum migration. The allowed values are a TypeScript union
  * in `src/content-system/types.ts`, checked on the way in.
  *
@@ -1012,8 +1012,8 @@ export const cmsPages = pgTable(
      * give is acceptable — cascade would delete the public site's content along
      * with an author's account, and restrict would make deleting that account
      * fail forever. Content outlives its author; provenance degrades to
-     * unknown. cms.md §12, Task 9, replaces these with external
-     * subject ids. */
+     * unknown. The day the CMS moves to its own deployment these become
+     * external subject ids. */
     createdBy: uuid("created_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -1048,7 +1048,7 @@ export const cmsPages = pgTable(
 /** One stored copy of a page's authored document.
  *
  * Four kinds, and the difference between them is entirely about who may see the
- * copy and how long it lives (cms.md §14.2):
+ * copy and how long it lives (cms.md):
  *
  * - `wip` — the single shared working copy. The only kind that is ever updated
  *   in place, and the only kind that is never public.
@@ -1201,7 +1201,7 @@ export const cmsPageRevisions = pgTable(
  * No content is stored here, and none ever will be: recoverable history is
  * `cms_page_revision`, which holds the bodies and is bounded by retention.
  * This table is the activity strip beside it — at most ten rows per page,
- * coalesced (cms.md §14.7) — so version history never depends on an unbounded
+ * coalesced (cms.md) — so version history never depends on an unbounded
  * event stream.
  *
  * `page_id` cascades: a deleted draft's history is history of nothing, and the
@@ -1234,7 +1234,7 @@ export const cmsPageEvents = pgTable(
      * tell them apart. */
     source: text("source").notNull().default("browser"),
     /** How many saves this row stands for, and when the first of them was
-     * (cms.md §14.7).
+     * (cms.md).
      *
      * Saving ten times in an hour is one editing session, not ten events, and
      * a timeline that renders it as ten is a timeline nobody scrolls. So a
@@ -1252,6 +1252,40 @@ export const cmsPageEvents = pgTable(
   },
   // The only query: one page's history, newest first.
   (t) => [index("cms_page_event_page_idx").on(t.pageId, t.createdAt)],
+);
+
+/** A path a page used to live at, and still answers from (cms.md).
+ *
+ * The target is the **page**, never a path: the destination is read from
+ * `cms_page.slug` at request time, so a chain of three renames is still one
+ * hop, and a loop cannot be expressed at all. Nothing has to be rewritten when
+ * the page moves again.
+ *
+ * Cascades with the page. A row here for a page that no longer exists would be
+ * a redirect to a 404, which is worse than the 404 itself. */
+export const cmsPageRedirects = pgTable(
+  "cms_page_redirect",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    section: text("section").notNull(),
+    /** The old path, in the same full-path form as `cms_page.slug`. */
+    fromSlug: text("from_slug").notNull(),
+    pageId: uuid("page_id")
+      .notNull()
+      .references(() => cmsPages.id, { onDelete: "cascade" }),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    // One answer per old path, and the database is what guarantees it: two rows
+    // claiming the same address is the one ambiguity this table could have.
+    uniqueIndex("cms_page_redirect_from_idx").on(t.section, t.fromSlug),
+    index("cms_page_redirect_page_idx").on(t.pageId),
+  ],
 );
 
 /** A CMS-scoped bearer token for an agent. Unlike ordinary Factura API tokens,
@@ -1299,7 +1333,7 @@ export const cmsAuditLogs = pgTable(
   (t) => [index("cms_audit_log_created_idx").on(t.createdAt)],
 );
 
-/* ── CMS media library (cms.md §9) ──────────────────────────────────────
+/* ── CMS media library (cms.md) ──────────────────────────────────────
  *
  * Three tables, all `cms_`-prefixed so they move with the CMS when the
  * deployments split. The bytes live in a *separate* S3 bucket from the private
@@ -1307,7 +1341,7 @@ export const cmsAuditLogs = pgTable(
  * `src/cms`, and this is the data half of that separation.
  */
 
-/** A flat, named group of media. cms.md §9.8: single-parent and
+/** A flat, named group of media. cms.md: single-parent and
  * deliberately not nested — at this library's size a tree is furniture, and a
  * name like «Guías · Edesur» carries the same information.
  *
@@ -1341,7 +1375,7 @@ export const cmsMediaCollections = pgTable(
 
 /** One image in the library.
  *
- * `status` is the whole lifecycle (cms.md §9.9):
+ * `status` is the whole lifecycle (cms.md):
  *
  *   pending ──finalize──▶ ready ──trash──▶ trashed ──purge──▶ purging ─▶ purged
  *                            ◀──restore──┘
@@ -1472,7 +1506,7 @@ export const cmsMediaUsage = pgTable(
     mediaId: uuid("media_id")
       .notNull()
       .references(() => cmsMedia.id, { onDelete: "restrict" }),
-    /** Usage belongs to a *revision*, not to a page (cms.md §14.5).
+    /** Usage belongs to a *revision*, not to a page (cms.md).
      *
      * That is what makes "a retained version keeps its images" true rather
      * than aspirational: the third-oldest publication still references the

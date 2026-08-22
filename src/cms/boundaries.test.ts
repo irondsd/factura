@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 // `src/cms` is meant to be lifted into the public-site deployment as one unit
-// (cms.md §2.2, §12 Task 9), which only stays true if nothing in it reaches into the
+// (cms.md), which only stays true if nothing in it reaches into the
 // bill app. That is a rule no reviewer will reliably catch by eye once the
 // module has thirty files, so it is a test.
 //
@@ -105,7 +105,7 @@ describe("src/cms module boundaries", () => {
   });
 });
 
-// cms.md §2 and Phase 2: "Ensure callers outside repository/service modules do
+// cms.md and Phase 2: "Ensure callers outside repository/service modules do
 // not query `cms_pages` directly." Two modules may — the public repository and
 // the CMS store — and everything else goes through them, so the lifecycle rules
 // cannot be bypassed by a route that writes its own `where` clause.
@@ -161,7 +161,7 @@ describe("cms_page access", () => {
   });
 });
 
-// The same rule for `cms_page_revision` (cms.md §14.11). It is the more
+// The same rule for `cms_page_revision` (cms.md). It is the more
 // important of the two: a revision written outside the service is a copy with
 // no pointer, no retention and no media usage — invisible to the history, and
 // pinning images nothing will ever release. And a *read* outside the selectors

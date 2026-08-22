@@ -3,7 +3,7 @@ import type { Diagnostic } from "@/content-system/types";
 // The failures a CMS write can have, as types rather than strings. Both the
 // browser service and the MCP tools have to distinguish them — a conflict is
 // recoverable by reloading, a validation failure is recoverable by editing, and
-// a missing page is neither — and cms.md §8 requires the MCP to return
+// a missing page is neither — and cms.md requires the MCP to return
 // structured diagnostics rather than prose.
 
 /** The page moved under the editor. Carries the version actually in the

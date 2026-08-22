@@ -17,7 +17,7 @@ import { contentTag } from "./tags";
 //     stored" and is explicitly not for rendering — that is how a draft ended
 //     up serving 200 at its real URL.
 //
-//  2. **The cache.** cms.md §3.3 puts the one-hour TTL at the call site, where
+//  2. **The cache.** cms.md puts the one-hour TTL at the call site, where
 //     `revalidate` is a literal Next can see. Without it these routes prerender
 //     with no revalidation at all, and a published edit never reaches the site
 //     until the next deployment. The TTL is the floor; the section's cache tag
@@ -32,6 +32,7 @@ type CachedSection = {
   listPublished: () => Promise<ContentSummary[]>;
   listPubliclyRenderable: () => Promise<ContentSummary[]>;
   getByPath: (slug: string) => Promise<ContentDocument | null>;
+  redirectFor: (slug: string) => Promise<string[] | null>;
 };
 
 function cachedSection(section: ContentSection): CachedSection {
@@ -51,6 +52,14 @@ function cachedSection(section: ContentSection): CachedSection {
       (slug: string) =>
         publicContentRepository.getByPath(section, slugToPath(slug)),
       ["content", section, "path"],
+      { revalidate: 3600, tags },
+    ),
+    // Same tag as the rest: a rename expires the section, so an old path stops
+    // being a cached 404 and becomes a cached redirect on the next request.
+    redirectFor: unstable_cache(
+      (slug: string) =>
+        publicContentRepository.redirectFor(section, slugToPath(slug)),
+      ["content", section, "redirect"],
       { revalidate: 3600, tags },
     ),
   };

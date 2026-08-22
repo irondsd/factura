@@ -25,7 +25,7 @@ import {
 } from "./errors";
 import { cmsContentService as service } from "./service";
 
-// The browser's way into the CMS service. Thin on purpose (§2.1): these
+// The browser's way into the CMS service. Thin on purpose (cms.md): these
 // resolve the actor, call the service, and translate its exceptions into
 // something a form can render. Every rule lives below them, which is what makes
 // the MCP in Phase 8 a second caller rather than a second implementation.
@@ -93,7 +93,7 @@ function toResult(error: unknown): CmsActionResult<never> {
  *
  * Only the CMS's. The public cache is expired by the content service, not from
  * here: whether a write is publicly visible at all is a rule, the MCP performs
- * the same writes through a Route Handler, and §2.2 puts rules below both
+ * the same writes through a Route Handler, and cms.md puts rules below both
  * transports rather than in each of them. See `./invalidation`. */
 function refreshCms(section: ContentSection, id?: string): void {
   revalidatePath(cmsSectionPath(section));
@@ -144,7 +144,7 @@ export async function saveContentAction(
   }
 }
 
-/** Publish the working copy (cms.md §14.5.4). Separate from
+/** Publish the working copy (cms.md). Separate from
  * `setContentStatusAction` because it answers with more than a status: whether
  * a publication was actually filed, and which number it got. */
 export async function publishContentAction(
@@ -251,6 +251,38 @@ export async function setContentStatusAction(
     return {
       ok: true,
       data: { status: page.status, lockVersion: page.lockVersion },
+    };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/** Move a page's public address. Its own action rather than part of a save,
+ * because it is the one edit that changes the live page the instant it lands —
+ * see `CmsContentService.rename`. */
+export async function renameContentAction(
+  section: ContentSection,
+  input: { id: string; expectedLockVersion: number; slug: string },
+): Promise<
+  CmsActionResult<{
+    slug: string;
+    lockVersion: number;
+    moves: { from: string; to: string }[];
+    redirects: string[];
+  }>
+> {
+  const actor = await requireCmsMember();
+  try {
+    const result = await service.rename(actor, input);
+    refreshCms(section, input.id);
+    return {
+      ok: true,
+      data: {
+        slug: result.document.slug,
+        lockVersion: result.lockVersion,
+        moves: result.moves,
+        redirects: result.redirects,
+      },
     };
   } catch (error) {
     return toResult(error);

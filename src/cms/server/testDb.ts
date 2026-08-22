@@ -12,7 +12,7 @@ import * as schema from "@/db/schema";
 //     `.env.local`.
 //
 //  2. They refuse to run against anything that is not a local database. AGENTS
-//     and cms.md §11 both say production is never a test target; a guard is
+//     and cms.md both say production is never a test target; a guard is
 //     worth more than a rule, because the failure mode is a test suite that
 //     truncates rows in production.
 

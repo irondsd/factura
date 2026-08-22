@@ -9,7 +9,7 @@ import { actionsOf, createFakeCms, seedPage } from "./testFakes";
 // save the editor already made into an error.
 //
 // The recording lives in the service rather than in the browser actions on
-// purpose (cms.md §2.2): the CMS MCP calls the same methods, so an agent's edit
+// purpose (cms.md): the CMS MCP calls the same methods, so an agent's edit
 // has to show up in the same trail without a second implementation. That is
 // only true if it is written here, which is what these tests hold in place.
 
@@ -76,7 +76,7 @@ describe("recording page history", () => {
   it("tells restoring, discarding and promoting apart from an ordinary save", async () => {
     // Three actions that would all be «guardó cambios» without their own
     // names, and all three mean something different to whoever reads the
-    // timeline next (cms.md §14.7.3).
+    // timeline next (cms.md).
     const fake = createFakeCms();
     const page = await seedPage(fake, actor);
     await fake.service.promotePreview(actor, {

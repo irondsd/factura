@@ -9,7 +9,7 @@ import { CmsMediaStore, cmsMediaStore, type UsageEntry } from "./store";
 //
 // `cms_media_usage` is a **cache of a pure function of `cms_page_revision`** —
 // that is the definition, and the incremental write on every save is an
-// optimization of it (cms.md §9.7, §14.5). Two consequences shape this module:
+// optimization of it (cms.md). Two consequences shape this module:
 //
 //   * a table maintained only incrementally can never be fully trusted, because
 //     a bug in the maintenance path leaves permanent, invisible drift; and

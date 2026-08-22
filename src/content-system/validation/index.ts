@@ -18,7 +18,7 @@ import {
 } from "./document";
 import { validateGrammar } from "./grammar";
 
-// The entry points cms.md §5.2 specifies, and the level policy from §5.3 that
+// The entry points cms.md specifies, and the level policy from cms.md that
 // decides which layers a given write has to survive.
 //
 // Layering, from cheapest and strictest to most expensive:
@@ -43,7 +43,7 @@ export {
 export { validateGrammar } from "./grammar";
 export { fold, missingKeywordWords } from "./text";
 
-/** Which layers run at each level. cms.md §5.3:
+/** Which layers run at each level. cms.md:
  *
  * - `draft`   — a draft may be incomplete, so only the grammar has to hold.
  *               Forbidden syntax is still refused; unfinished prose is not.

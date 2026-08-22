@@ -9,7 +9,7 @@ import {
   shouldNoindex,
 } from "./visibility";
 
-// cms.md §3.2 is a three-row table, and this is that table. Written out case by
+// cms.md is a three-row table, and this is that table. Written out case by
 // case rather than derived from the implementation, so the test disagrees with
 // the code when the code changes.
 
@@ -20,7 +20,7 @@ describe("public visibility", () => {
 
   it("renders a preview page at its URL", () => {
     // Deliberately shareable: an editor sends the link to someone without an
-    // account. Discoverability-controlled, not access-controlled (cms.md §10.3).
+    // account. Discoverability-controlled, not access-controlled (cms.md).
     expect(canRender("preview", "public")).toBe(true);
   });
 

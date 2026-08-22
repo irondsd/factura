@@ -2,7 +2,7 @@ import { z } from "zod";
 import { CATEGORY_IDS } from "@/content/guias/categories";
 import { CHART_IDS } from "@/content/guias/data/inflacion";
 
-// The one guide metadata schema. cms.md §3.7 requires a single definition
+// The one guide metadata schema. cms.md requires a single definition
 // shared by the CMS form, the mutations, the MCP tools, the importer, the
 // validators and public rendering — anything less and the four of them
 // disagree about what a guide is the first time a field changes.
@@ -87,14 +87,14 @@ export const faqItemSchema = z
   .strict();
 
 /** The JSONB half of a guide's metadata — everything that does not get its own
- * column (cms.md §3.7). `.strict()` throughout: unknown keys are how a renamed
+ * column (cms.md). `.strict()` throughout: unknown keys are how a renamed
  * field turns into data nothing reads. */
 export const guideMetadataSchema = z
   .object({
     // Empty is allowed *here* and rejected by the document validator at preview
     // and publish level. This schema answers "is this the right shape to
     // store?"; whether it is a finished page is an editorial question, and
-    // cms.md §5.3 says a draft may be incomplete. A `min(1)` here would make a
+    // cms.md says a draft may be incomplete. A `min(1)` here would make a
     // new draft unreadable the moment it was written.
     keywords: z.array(filled).default([]),
     categories: z.array(z.enum(CATEGORY_IDS)).default([]),
@@ -106,7 +106,7 @@ export const guideMetadataSchema = z
     ogDescription: filled.optional(),
     ogImage: ogImageSchema.optional(),
     vendor: filled.optional(),
-    /** The page's preview image, as a media-library id (cms.md §9.2).
+    /** The page's preview image, as a media-library id (cms.md).
      *
      * A uuid rather than a path, so an article survives a change of storage
      * origin: the CDN hostname lives in configuration and is resolved at render

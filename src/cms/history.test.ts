@@ -161,20 +161,23 @@ describe("buildHistory", () => {
 });
 
 describe("the new actions", () => {
-  // Three actions that arrived with revisions (cms.md §14.7.3). Each would be
+  // Three actions that arrived with revisions (cms.md). Each would be
   // «guardó cambios» without its own name, and each means something different
   // to whoever reads the timeline next: a restore replaced the working copy, a
   // discard threw it away, and a promotion changed what a shared link shows.
   it("describes restoring, discarding and promoting distinctly", () => {
-    const said = (["restored", "discarded", "preview_promoted"] as const).map(
-      (action) => describeEvent({ action, fromStatus: null, toStatus: null }),
+    const said = (
+      ["restored", "discarded", "preview_promoted", "renamed"] as const
+    ).map((action) =>
+      describeEvent({ action, fromStatus: null, toStatus: null }),
     );
     expect(said).toEqual([
       "restauró una versión anterior",
       "descartó el borrador",
       "actualizó la vista previa pública",
+      "cambió la dirección de la página",
     ]);
-    expect(new Set(said).size).toBe(3);
+    expect(new Set(said).size).toBe(4);
   });
 
   it("carries a coalesced save's count through to the entry", () => {

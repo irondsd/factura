@@ -411,7 +411,7 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
     });
 
     describe("retained versions pin their media", () => {
-      // The property cms.md §14.2.8 promises: a version you can still restore
+      // The property cms.md promises: a version you can still restore
       // is a version whose images still exist. It is not a sweep that has to
       // remember to run — usage is keyed by revision, so it follows the copy,
       // and the moment retention prunes that copy the cascade releases it in

@@ -8,6 +8,7 @@ import {
   type ValidationResult,
 } from "@/content-system/types";
 import { checkHierarchy, type HierarchyNode } from "@/content-system/hierarchy";
+import { canRender } from "@/content-system/repository/visibility";
 import { parseMetadata } from "@/content-system/metadata/schema";
 import { canAuthor, canPublish } from "../auth/policy";
 import {
@@ -24,6 +25,7 @@ import {
   type VersionEntry,
 } from "../revisions";
 import { actorLabel } from "../history";
+import { planRename, RENAME_CODES } from "../rename";
 import type { CmsActor } from "../types";
 import { documentOf } from "./documents";
 import {
@@ -69,7 +71,7 @@ import {
 } from "./store";
 
 // The CMS content service: the single entry point for every content mutation,
-// whether it arrives from the browser or from the CMS MCP (cms.md §2.2 —
+// whether it arrives from the browser or from the CMS MCP (cms.md —
 // "The MCP must not be a second direct database implementation").
 //
 // Everything that decides *whether* a write happens is here: the actor's
@@ -77,7 +79,7 @@ import {
 // concurrency check, and the timestamp bookkeeping. The two stores below it
 // only execute SQL.
 //
-// Since revisions (cms.md §14) this module also owns the lifecycle between
+// Since revisions (cms.md) this module also owns the lifecycle between
 // copies: which revision a save writes, when a checkpoint rotates, what
 // publishing promotes and prunes, and which of the four page pointers moves.
 // Those decisions are the feature, and none of them is expressible as a query.
@@ -107,7 +109,7 @@ export type ContentValidator = (input: {
   level: ValidationLevel;
 }) => Promise<ValidationResult> | ValidationResult;
 
-/** How a stored revision's media usage is recorded (cms.md §9.7, §14.5).
+/** How a stored revision's media usage is recorded (cms.md).
  *
  * Injected rather than imported so the service does not depend on the media
  * library — the CMS still works with no media storage configured, and the
@@ -117,7 +119,7 @@ export type ContentValidator = (input: {
  * leave an image looking unused while a retained version points at it.
  *
  * Keyed by revision, not by page: that is what makes a retained publication
- * keep its images alive after the page has moved on (§14.5). */
+ * keep its images alive after the page has moved on (cms.md). */
 export type MediaUsageRecorder = (input: {
   revision: { id: string; bodyMdx: string; metadata: unknown };
   now: Date;
@@ -166,7 +168,7 @@ export type UpdateContentInput = {
   patch: ContentPatch;
 };
 
-/** What a working-copy save answers with (cms.md §14.5.1). The document as
+/** What a working-copy save answers with (cms.md). The document as
  * stored, plus which copy it landed in and when — an agent that saved needs to
  * know it wrote the WIP and not the live page. */
 export type WipSaveResult = {
@@ -205,8 +207,18 @@ export type PublishResult = {
   /** The publication created, or null when nothing needed publishing. */
   publicationNumber: number | null;
   /** True when the working copy matched the live publication exactly, so no
-   * duplicate publication was manufactured (cms.md §14.5.4). */
+   * duplicate publication was manufactured (cms.md). */
   noChange: boolean;
+};
+
+/** What a rename answers with: the page as it now stands, plus what moved and
+ * which addresses were preserved — an editor is owed both, because a rename
+ * can move pages they were not looking at. */
+export type RenameResult = {
+  document: ContentDocument;
+  lockVersion: number;
+  moves: { from: string; to: string }[];
+  redirects: string[];
 };
 
 export type VersionComparison = {
@@ -231,6 +243,12 @@ export type VersionComparison = {
  * be checked before the insert rather than after. It can never collide with a
  * real row: ids are UUIDs. */
 const PENDING_ID = "pending";
+
+/** A page column's timestamp in the ISO form everything above the store speaks
+ * (`mapping.ts`). Only the rename planner needs one straight off a page record,
+ * which is why it is a line here rather than a shared helper. */
+const pageIso = (value: Date | null): string | null =>
+  value ? value.toISOString() : null;
 
 export class CmsContentService {
   constructor(
@@ -300,13 +318,13 @@ export class CmsContentService {
     };
   }
 
-  /** Create a page. Always `draft` (cms.md §8): a new page is never born
+  /** Create a page. Always `draft` (cms.md): a new page is never born
    * public, and an agent that wants one published has to ask for the transition
    * explicitly and pass the publish gate.
    *
    * The initial document becomes the page's working copy, which is why creating
    * one *does* write a revision while merely opening an editor does not
-   * (§14.5.1): a create carries a complete document, an open carries nothing. */
+   * (cms.md): a create carries a complete document, an open carries nothing. */
   async create(
     actor: CmsActor,
     input: CreateContentInput,
@@ -367,6 +385,10 @@ export class CmsContentService {
         id: page.id,
         patch: { wipRevisionId: wip.id },
       });
+      // A page always wins over a redirect (`rename`). Creating one at an
+      // address something used to redirect away from is the other way that
+      // situation arises, and it is resolved the same way.
+      await store.dropRedirects(input.section, [input.slug]);
       await this.recordUsage(tx, wip, now);
       return documentOf({ ...page, wipRevisionId: wip.id }, wip);
     });
@@ -374,12 +396,12 @@ export class CmsContentService {
     await this.record(actor, { pageId: draft.id, action: "created", now });
 
     // Validated after the insert, not before: a draft is allowed to be
-    // incomplete (§5.3), and the diagnostics are for the editor to see, not a
+    // incomplete (cms.md), and the diagnostics are for the editor to see, not a
     // gate. `validateOnly` is how a caller asks the question without writing.
     return draft;
   }
 
-  /** Save the working copy (cms.md §14.5.1).
+  /** Save the working copy (cms.md).
    *
    * Never touches a public copy, whatever state the page is in — which is why
    * it is checked at draft level and expires no cache. The first save on a page
@@ -451,7 +473,7 @@ export class CmsContentService {
     const saved = await this.store.transaction(async (store, tx) => {
       const revisions = this.revisions.bind(tx);
 
-      // 24-hour compression (§14.5.2), decided before the claim so the claim
+      // 24-hour compression (cms.md), decided before the claim so the claim
       // can clear the checkpoint pointer in the same statement.
       const checkpoint = page.checkpointRevisionId
         ? await revisions.byId(page.checkpointRevisionId)
@@ -523,7 +545,7 @@ export class CmsContentService {
     return saved as WipSaveResult;
   }
 
-  /** Publish the working copy (cms.md §14.5.4). One transaction: validate,
+  /** Publish the working copy (cms.md). One transaction: validate,
    * snapshot, repoint, clear the work, prune to three previous publications. */
   async publish(
     actor: CmsActor,
@@ -545,7 +567,7 @@ export class CmsContentService {
 
     // Republishing a page that was taken down, with nothing new written since:
     // re-expose the retained publication rather than manufacture a copy of it
-    // (§14.5.5). Editorial dates do not move — the article was not rewritten.
+    // (cms.md). Editorial dates do not move — the article was not rewritten.
     if (!wip) {
       if (!live) throw new CmsNoWorkingCopyError("publicar");
       return this.reexpose(actor, page, live, input.expectedLockVersion);
@@ -647,7 +669,7 @@ export class CmsContentService {
         ),
       );
 
-      // Retention (§14.2): the new publication plus three previous. Never the
+      // Retention (cms.md): the new publication plus three previous. Never the
       // one the page now points at — checked rather than assumed, because a
       // retention bug that pruned the live revision would take the page off the
       // site with the publication that was supposed to put it there.
@@ -680,7 +702,7 @@ export class CmsContentService {
     return published;
   }
 
-  /** Promote the working copy to the shareable public preview (cms.md §14.5.3).
+  /** Promote the working copy to the shareable public preview (cms.md).
    *
    * The snapshot is immutable: later saves stay private until this is run
    * again. That is the difference between a link an editor can send someone and
@@ -754,7 +776,7 @@ export class CmsContentService {
   }
 
   /** Take a page out of public view — unpublish, or walk a preview back
-   * (cms.md §14.5.5).
+   * (cms.md).
    *
    * Never blocked by validation. This is the lever an editor reaches for when
    * something is wrong with a live page, and gating it on the page being valid
@@ -832,7 +854,7 @@ export class CmsContentService {
     }
   }
 
-  /** Throw away the working copy and its checkpoint (cms.md §14.5.5).
+  /** Throw away the working copy and its checkpoint (cms.md).
    *
    * Changes no public pointer and no status: the page keeps serving exactly
    * what it was serving, and the editor reloads onto that baseline. */
@@ -880,7 +902,7 @@ export class CmsContentService {
     return result as ContentDocument;
   }
 
-  /** Copy a retained version back into the working copy (cms.md §14.5.6).
+  /** Copy a retained version back into the working copy (cms.md).
    *
    * Private, always: it changes no status, no public pointer and no cache. A
    * restore that published would make "look at what this used to say" a
@@ -988,7 +1010,7 @@ export class CmsContentService {
     return result as WipSaveResult;
   }
 
-  /** The bounded list of versions a page holds, newest first (cms.md §14.7). */
+  /** The bounded list of versions a page holds, newest first (cms.md). */
   async listVersions(_actor: CmsActor, id: string): Promise<PageVersions> {
     const page = await this.store.findPage(id);
     if (!page) throw new CmsNotFoundError(`Page ${id}`);
@@ -1061,7 +1083,7 @@ export class CmsContentService {
   }
 
   /** Compare a candidate against the one baseline: the live publication, or the
-   * last one when the page is not currently published (cms.md §14.7.2).
+   * last one when the page is not currently published (cms.md).
    *
    * `revisionId` picks the candidate; omitting it means the working copy, which
    * is the comparison an editor actually wants. There is no second selector —
@@ -1125,11 +1147,153 @@ export class CmsContentService {
     };
   }
 
+  /** Move a page's public address, preserving the old one (cms.md).
+   *
+   * Not a content edit and not part of a save: the slug is on the page row
+   * rather than on a revision, so a rename takes effect the moment it commits —
+   * for the *live* page, whatever the working copy says. That is why it is its
+   * own method with its own confirmation rather than a field in the metadata
+   * form, and why it expires the public cache while an ordinary save does not.
+   *
+   * Three things happen together or not at all:
+   *
+   *  1. The page moves, and every descendant moves with it — `slug` is the full
+   *     path, so a hub's children are part of its address.
+   *  2. Every vacated path that was ever public becomes a redirect to the page
+   *     that left it. The row points at the *page*, so the next rename does not
+   *     have to rewrite it and a chain can never form.
+   *  3. Any redirect standing at a destination is dropped: a live page always
+   *     wins over a redirect, which is what makes loops impossible rather than
+   *     merely unlikely.
+   */
+  async rename(
+    actor: CmsActor,
+    input: { id: string; expectedLockVersion: number; slug: string },
+  ): Promise<RenameResult> {
+    this.assertMayAuthor(actor);
+
+    const page = await this.store.findPage(input.id);
+    if (!page) throw new CmsNotFoundError(`Page ${input.id}`);
+    if (page.lockVersion !== input.expectedLockVersion) {
+      await this.reportConflict(input.id, input.expectedLockVersion);
+    }
+
+    const section = page.section as ContentSection;
+    const siblings = await this.store.list({ section });
+    const planned = planRename(
+      { id: page.id, slug: page.slug, publishedAt: pageIso(page.publishedAt) },
+      input.slug,
+      siblings.filter((s) => s.id !== page.id),
+    );
+    if (!planned.ok) {
+      // A taken address is the one problem with its own error class, because
+      // the editor and the MCP both already know how to say it.
+      const taken = planned.problems.find(
+        (problem) => problem.code === RENAME_CODES.taken,
+      );
+      if (taken) throw new CmsSlugTakenError(section, input.slug);
+      throw new CmsValidationError(
+        planned.problems.map((problem) => ({
+          code: problem.code,
+          severity: "error" as const,
+          message: problem.message,
+          field: "slug",
+        })),
+      );
+    }
+    const { plan } = planned;
+    const target = plan.moves[0].to;
+
+    // The tree, checked against the section as it would be *after* the move:
+    // a page whose parent is set still has to sit under that parent's path, and
+    // the parent may itself be moving in this same plan.
+    const moved = new Map(plan.moves.map((move) => [move.id, move.to]));
+    const document = await this.store.findById(page.id);
+    if (!document) throw new CmsNotFoundError(`Page ${input.id}`);
+    await this.assertHierarchyAmong(
+      {
+        id: page.id,
+        section,
+        slug: target,
+        parentId: document.parentId,
+        sortOrder: document.sortOrder,
+      },
+      siblings
+        .filter((s) => s.id !== page.id)
+        .map((s) => ({
+          id: s.id,
+          section: s.section,
+          slug: moved.get(s.id) ?? s.slug,
+          parentId: s.parentId,
+          sortOrder: s.sortOrder,
+        })),
+    );
+
+    const now = this.clock();
+    const done = await this.store.transaction(async (store) => {
+      const claimed = await store.updateWithLock({
+        id: page.id,
+        expectedLockVersion: input.expectedLockVersion,
+        actorId: actor.userId,
+        now,
+        patch: { slug: target },
+      });
+      if (!claimed) return null;
+
+      for (const move of plan.moves.slice(1)) {
+        await store.moveSlug({
+          id: move.id,
+          slug: move.to,
+          actorId: actor.userId,
+          now,
+        });
+      }
+
+      // Destinations first: the page may be taking back an address it once
+      // redirected away from, and the unique index would refuse the insert.
+      await store.dropRedirects(section, plan.redirectsToDrop);
+      for (const move of plan.moves) {
+        if (!move.redirect) continue;
+        await store.addRedirects({
+          section,
+          slugs: [move.from],
+          pageId: move.id,
+          actorId: actor.userId,
+          now,
+        });
+      }
+      return claimed;
+    });
+    if (!done) await this.reportConflict(input.id, input.expectedLockVersion);
+    const claimed = done as CmsPageRecord;
+
+    await this.record(actor, { pageId: page.id, action: "renamed", now });
+
+    // Both addresses change for a reader at once — the new one starts
+    // resolving, the old one starts redirecting — and the section's listings,
+    // sitemap and feed all carry the moved path. A page nobody can see yet has
+    // nothing cached to expire.
+    if (
+      plan.moves.some((move) => move.redirect) ||
+      canRender(page.status, "public")
+    ) {
+      this.expirePublicCache(section);
+    }
+
+    const revision = await this.selectedRevision(claimed);
+    return {
+      document: documentOf(claimed, revision),
+      lockVersion: claimed.lockVersion,
+      moves: plan.moves.map(({ from, to }) => ({ from, to })),
+      redirects: plan.redirectsToAdd,
+    };
+  }
+
   /** Delete a page for good.
    *
    * The only destructive operation in the CMS, and the guards are what keep the
    * reasoning behind "archive by status" intact rather than discarding it
-   * (cms.md §4.2, §13):
+   * (cms.md):
    *
    * - **Drafts only.** A published or previewed page has a public URL and, for
    *   up to an hour, a cached copy that outlives the row. Unpublishing first is
@@ -1220,7 +1384,7 @@ export class CmsContentService {
       ...input.patch,
       // At publish level the candidate is measured as the page's prospective
       // *public* document, so a page still in draft is checked against the
-      // rules it will have to meet rather than the ones it has now (§14.6).
+      // rules it will have to meet rather than the ones it has now (cms.md).
       ...(level === "publish" ? { status: "published" as ContentStatus } : {}),
     } as ContentDocument;
     return this.validate({ document, level });
@@ -1260,7 +1424,7 @@ export class CmsContentService {
   }
 
   /** Put a retained publication back in front of readers without writing a new
-   * one (cms.md §14.5.5). */
+   * one (cms.md). */
   private async reexpose(
     actor: CmsActor,
     page: CmsPageRecord,
@@ -1343,7 +1507,7 @@ export class CmsContentService {
    *
    * Called after every accepted mutation rather than from the browser actions,
    * so the CMS MCP records the same trail without a second implementation
-   * (§2.2). Deletes record nothing: the row's events go with it. */
+   * (cms.md). Deletes record nothing: the row's events go with it. */
   private async record(
     actor: CmsActor,
     input: {
@@ -1354,7 +1518,8 @@ export class CmsContentService {
         | "status"
         | "restored"
         | "discarded"
-        | "preview_promoted";
+        | "preview_promoted"
+        | "renamed";
       fromStatus?: ContentStatus;
       toStatus?: ContentStatus;
       now: Date;
@@ -1393,7 +1558,7 @@ export class CmsContentService {
     const siblings = await this.store.list({
       section: node.section as ContentSection,
     });
-    const problems = checkHierarchy(
+    await this.assertHierarchyAmong(
       node,
       siblings
         .filter((s) => s.id !== node.id)
@@ -1405,6 +1570,16 @@ export class CmsContentService {
           sortOrder: s.sortOrder,
         })),
     );
+  }
+
+  /** The same check against a section the caller has already assembled — which
+   * a rename has to, because the tree it must be valid in is the one *after*
+   * the move, and that section does not exist in the database yet. */
+  private async assertHierarchyAmong(
+    node: HierarchyNode,
+    others: readonly HierarchyNode[],
+  ): Promise<void> {
+    const problems = checkHierarchy(node, others);
     if (problems.length > 0) {
       throw new CmsValidationError(
         problems.map((p) => ({
@@ -1430,7 +1605,7 @@ export class CmsContentService {
   /** Parse a metadata blob against its section's schema, or refuse the write.
    *
    * Deliberately *not* part of the validation levels: a draft is allowed to be
-   * incomplete (§5.3), so its metadata is not held to the editorial rules — but
+   * incomplete (cms.md), so its metadata is not held to the editorial rules — but
    * it still has to be the right shape to store, because the mapper that reads
    * a row back applies this same schema and throws when it fails. Everything
    * downstream of a write assumes a row can be read; this is what makes that

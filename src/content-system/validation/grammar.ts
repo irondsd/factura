@@ -7,7 +7,7 @@ import type { ContentSection, Diagnostic, ValidationResult } from "../types";
 import { validationResult } from "../types";
 import { parseContentBody } from "./parse";
 
-// Layer 1 of cms.md §5: security/grammar validation.
+// Layer 1 of cms.md: security/grammar validation.
 //
 // Database content is a *restricted MDX dialect*, not JavaScript. This module
 // parses a body into an AST and refuses it if it contains anything that could
@@ -20,7 +20,7 @@ import { parseContentBody } from "./parse";
 // nothing and closes `<script>`, `<iframe>`, and every event handler an
 // attribute could carry.
 //
-// Failures are never silently stripped. cms.md §3.5: reject with a line/column
+// Failures are never silently stripped. cms.md: reject with a line/column
 // error that explains what to write instead.
 
 /** Stable diagnostic codes. The message may be reworded; these may not, because
@@ -113,7 +113,7 @@ function walk(
   switch (node.type) {
     // `import` / `export` statements. The single most important rejection: an
     // import is arbitrary module loading, and an `export const meta` would put
-    // metadata back in the body where §3.7 says it must not be.
+    // metadata back in the body where cms.md says it must not be.
     case "mdxjsEsm":
       out.push(
         error(

@@ -1,12 +1,12 @@
 // What may be uploaded, and how much of it. Pure: no S3, no sharp, no database,
 // so every rule here is testable without any of them.
 //
-// The governing principle (cms.md §9.5) is that nothing trusts the
+// The governing principle (cms.md) is that nothing trusts the
 // browser. The filename extension and the `Content-Type` the client claims are
 // both hints used to fail *early* and cheaply; the answer that counts comes
 // from the bytes, and is taken again at finalization.
 
-/** The formats the first release delivers (cms.md §9.5).
+/** The formats the first release delivers (cms.md).
  *
  * SVG is deliberately absent. It can carry scripts, external references and
  * other active content, Next.js recommends special CSP/attachment handling
@@ -51,7 +51,7 @@ export const FORMAT_LABEL: Record<SupportedMimeType, string> = {
   "image/gif": "GIF",
 };
 
-/** Guardrails, configuration-backed with the defaults from cms.md §9.5. */
+/** Guardrails, configuration-backed with the defaults from cms.md */
 function numberFromEnv(name: string, fallback: number): number {
   const raw = process.env[name];
   if (!raw) return fallback;
@@ -190,7 +190,7 @@ export function checkDecoded(input: {
   return null;
 }
 
-/** Alt text rules (cms.md §9.3). Blank alt is a claim that the image
+/** Alt text rules (cms.md). Blank alt is a claim that the image
  * carries no information, and that claim has to be made explicitly — a screen
  * reader cannot tell an intentional decoration from a forgotten description. */
 export function checkAltDecision(input: {

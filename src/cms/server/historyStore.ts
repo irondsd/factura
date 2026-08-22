@@ -20,7 +20,7 @@ import {
 // The one piece of policy that lives here rather than above is retention, and
 // it is here because it is inseparable from the insert: coalescing decides
 // whether there *is* an insert, and the prune has to run on the same rows in
-// the same statement sequence. cms.md §14.7.3 bounds both.
+// the same statement sequence. cms.md bounds both.
 
 /** How long a run of saves keeps folding into one activity row. */
 const ACTIVITY_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -46,7 +46,7 @@ export class CmsPageHistoryStore {
   constructor(private readonly db: Database = defaultDb) {}
 
   /** Record one accepted mutation, coalescing runs of saves and keeping the
-   * page's activity bounded (cms.md §14.7.3).
+   * page's activity bounded (cms.md).
    *
    * Two rules, and both exist because this list is read by a person:
    *

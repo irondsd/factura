@@ -2,7 +2,7 @@ import Image from "next/image";
 import type { MediaRef } from "./repository";
 
 // The one component that renders a library image, on the public site and in the
-// CMS preview alike (cms.md §9.11).
+// CMS preview alike (cms.md).
 //
 // It exists so that the things easy to get wrong per call site are decided once:
 // the intrinsic dimensions that stop layout shift, the responsive `sizes` for

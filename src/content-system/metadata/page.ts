@@ -54,7 +54,7 @@ export function contentPageMetadata(
   if (!noindex) return base;
 
   // `buildMetadata`'s own `noindex` keeps `follow: true` on purpose — a page
-  // there is "unlisted, not disowned". The stricter pair cms.md §3.2 asks for
+  // there is "unlisted, not disowned". The stricter pair cms.md asks for
   // is applied here rather than in `buildMetadata`, which every other page on
   // the site shares, and comes from `UNPUBLISHED_ROBOTS` so the registry
   // sections emit exactly the same thing.

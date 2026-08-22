@@ -1,6 +1,6 @@
 // Types shared across the private CMS module. Deliberately free of any
 // dependency on the bill app: `src/cms` is meant to move to the public-site
-// deployment as one unit (cms.md §2.2), so nothing here may reach into
+// deployment as one unit (cms.md), so nothing here may reach into
 // `src/components/app`, the tRPC routers, or the bill domain.
 
 /** A CMS membership role. Mirrors the `cms_role` database enum. */

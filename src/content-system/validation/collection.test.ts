@@ -139,7 +139,7 @@ describe("validation levels", () => {
   });
 
   it("lets a draft save through an ordinary editorial error", () => {
-    // cms.md §5.3: a draft may be incomplete. Only the grammar has to hold.
+    // cms.md: a draft may be incomplete. Only the grammar has to hold.
     expect(validateContentDocument(broken, "draft").ok).toBe(true);
   });
 

@@ -9,7 +9,7 @@ import {
 } from "./errors";
 import { createFakeCms, kindsOf, seedPage, type FakeCms } from "./testFakes";
 
-// The working-copy lifecycle (cms.md §14.5): what a save writes, when a
+// The working-copy lifecycle (cms.md): what a save writes, when a
 // checkpoint rotates, what publishing promotes and prunes, and what restore and
 // discard leave behind.
 //

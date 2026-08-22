@@ -3,7 +3,7 @@ import { revalidateTag } from "next/cache";
 import { contentTag } from "@/content-system/repository/tags";
 import type { ContentSection } from "@/content-system/types";
 
-// On-demand invalidation of the public content cache (cms.md §3.3, Task 4).
+// On-demand invalidation of the public content cache (cms.md).
 //
 // Before this, publishing meant waiting out the one-hour `unstable_cache` TTL
 // and hoping the next visitor was the one who paid for the refresh. The tags
@@ -23,7 +23,7 @@ export type PublicCacheInvalidator = (section: ContentSection) => void;
 /** Expire everything the public site has cached for one section.
  *
  * `revalidateTag`, not `updateTag`, because this runs under both transports and
- * §2.2 allows only one implementation: `updateTag` throws outside a Server
+ * cms.md allows only one implementation: `updateTag` throws outside a Server
  * Action, and the CMS MCP is a Route Handler. `{ expire: 0 }` rather than the
  * `"max"` profile for the same reason the CMS has no revision history — one
  * mutable copy means "unpublish" has to actually take the page down, and

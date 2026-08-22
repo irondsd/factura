@@ -21,7 +21,7 @@ import { guideCategoryLd } from "@/i18n/structuredData";
 // `[slug]` route and can never be shadowed by a guide. (`validate-guides.ts`
 // reserves the slug so nobody creates the collision from the other side.)
 //
-// `dynamicParams = true`, like the guide route, for the reason in cms.md §3.3:
+// `dynamicParams = true`, like the guide route, for the reason in cms.md:
 // which categories have guides is a fact about the database, not about the
 // build. Publishing the first guide in a category used to leave its hub a
 // permanent 404 until the next deploy — no amount of cache invalidation could

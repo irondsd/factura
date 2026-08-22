@@ -60,6 +60,10 @@ export type ContentSection = SectionConfig & {
     document: ContentDocument;
   } | null>;
   listed(): Promise<SectionPage[]>;
+  /** Where an address that no longer holds a page should send the reader, or
+   * null. Asked by the route only after `load` has missed, so a live page is
+   * always ahead of a redirect. */
+  redirect(slug: string[]): Promise<string[] | null>;
   children(slug: string[]): Promise<SectionPage[]>;
   crumbs(slug: string[]): Promise<{ name: string; href: string }[]>;
 };
@@ -135,6 +139,9 @@ export function createSection(config: SectionConfig): ContentSection {
     },
     async listed() {
       return (await allPages()).filter((page) => !page.meta.noindex);
+    },
+    async redirect(slug) {
+      return repository.redirectFor(slugPath(slug));
     },
     async children(slug) {
       const pages = await allPages();

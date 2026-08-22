@@ -22,7 +22,7 @@ import { VersionDiff } from "./VersionDiff";
 // working on it.
 //
 // Two lists, deliberately, because they answer two different questions
-// (cms.md §14.7). The versions are things you can open, compare and restore —
+// (cms.md). The versions are things you can open, compare and restore —
 // bounded, at most seven, and every one of them is a document. The activity
 // below is a bounded strip of who did what, which is not restorable and never
 // claimed to be. Merging them into one timeline was the previous design's

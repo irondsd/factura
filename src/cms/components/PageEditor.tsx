@@ -7,6 +7,7 @@ import {
   discardWipAction,
   promotePreviewAction,
   publishContentAction,
+  renameContentAction,
   restoreVersionAction,
   saveContentAction,
   setContentStatusAction,
@@ -35,6 +36,7 @@ import type {
 } from "@/content-system/types";
 import type { ValidationLevel } from "./ValidationPanel";
 import type { HistoryEntry } from "@/cms/history";
+import { ownSegment, pathSegments } from "@/content-system/hierarchy";
 import { cn } from "@/lib/cn";
 import { CmsConfirmDialog, type DialogTone } from "./CmsDialog";
 import { HistoryPanel } from "./HistoryPanel";
@@ -47,10 +49,10 @@ import Link from "next/link";
 // The editor. One client component holding the whole page's draft state, so
 // "are there unsaved changes" has a single answer and Save sends one patch.
 //
-// Explicit Save only (§3.4): no autosave. A save is a decision, and one that
+// Explicit Save only (cms.md): no autosave. A save is a decision, and one that
 // happened because somebody paused typing is not one anybody made.
 //
-// Since revisions (cms.md §14) «Guardar» writes the shared working copy and
+// Since revisions (cms.md) «Guardar» writes the shared working copy and
 // nothing else — the live article keeps serving its last publication until
 // «Publicar». Which means there are now three different things on screen that
 // could be called "the page", and the header's whole job is to keep them apart:
@@ -142,6 +144,8 @@ export function PageEditor({
   state,
   fields,
   parentOptions,
+  redirects,
+  descendants,
   history,
   versions,
 }: {
@@ -153,6 +157,13 @@ export function PageEditor({
   state: CmsPageState;
   fields: readonly FieldDescriptor[];
   parentOptions: readonly ParentOption[];
+  /** Old addresses that still redirect here. Shown so a rename's consequences
+   * are visible afterwards and not only in the confirmation that announced
+   * them. */
+  redirects: readonly string[];
+  /** Pages whose address hangs off this one's, and which a rename would
+   * therefore move too. */
+  descendants: readonly string[];
   /** Rendered on the server and refreshed by `router.refresh()` after every
    * mutation, so a save shows up in the tab without a reload. */
   history: readonly HistoryEntry[];
@@ -202,7 +213,7 @@ export function PageEditor({
     body !== saved.body ||
     JSON.stringify(values) !== JSON.stringify(saved.values);
 
-  // Warn before leaving with unsaved work (§3.4). The browser supplies the
+  // Warn before leaving with unsaved work (cms.md). The browser supplies the
   // wording; all a page can do is ask for the prompt.
   useEffect(() => {
     if (!dirty) return;
@@ -522,6 +533,63 @@ export function PageEditor({
     setBusy(false);
   };
 
+  /** Move the page's address. Not part of `save`, and not gated on a clean
+   * editor: a rename touches the page row and no revision, so unsaved prose
+   * stays exactly where it is — it only has to be saved against the version the
+   * rename left behind, which is why the new one lands in state here. */
+  const rename = async (slug: string) => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const result = await renameContentAction(section.id, {
+        id: page.id,
+        expectedLockVersion: lockVersion,
+        slug,
+      });
+      if (result.ok) {
+        const { data } = result;
+        setLockVersion(data.lockVersion);
+        // The slug is displayed, never submitted (`toPatch`), so both copies
+        // move together: leaving the saved snapshot behind would show «sin
+        // guardar» for a change this editor never made.
+        setValues((current) => ({ ...current, slug: data.slug }));
+        setSaved((current) => ({
+          ...current,
+          values: { ...current.values, slug: data.slug },
+        }));
+        const others = data.moves.length - 1;
+        setNotice({
+          kind: "ok",
+          text: [
+            `Nueva dirección: ${publicSectionPath(section.id)}/${data.slug}.`,
+            others > 0 &&
+              `Se movieron también ${others} ${others === 1 ? "página que colgaba" : "páginas que colgaban"} de esta.`,
+            data.redirects.length > 0 &&
+              `Las direcciones anteriores redirigen aquí.`,
+          ]
+            .filter(Boolean)
+            .join(" "),
+        });
+        router.refresh();
+        setBusy(false);
+        return true;
+      }
+      setNotice({
+        kind: "error",
+        text:
+          result.kind === "conflict"
+            ? "Alguien más guardó esta página mientras la tenías abierta. Recarga antes de cambiar la dirección."
+            : result.kind === "invalid"
+              ? (result.diagnostics?.[0]?.message ?? result.message)
+              : result.message,
+      });
+    } catch {
+      setNotice({ kind: "error", text: UNEXPECTED });
+    }
+    setBusy(false);
+    return false;
+  };
+
   // The sidebar, resolved against the document as it stands. A field whose
   // condition the page does not meet is dropped here rather than rendered
   // disabled, and a group left with nothing loses its heading too — an empty
@@ -743,6 +811,16 @@ export function PageEditor({
             </section>
           ))}
 
+          <RenamePanel
+            section={section}
+            slug={(values.slug as string) ?? page.slug}
+            redirects={redirects}
+            descendants={descendants}
+            published={state.publishedAt !== null}
+            busy={busy}
+            onRename={rename}
+          />
+
           <DeletePanel status={status} busy={busy} onDelete={remove} />
         </aside>
       </div>
@@ -853,7 +931,7 @@ function Tabs({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
   );
 }
 
-/** The preview shows the last *saved* value (§3.4). Saying so is the whole
+/** The preview shows the last *saved* value (cms.md). Saying so is the whole
  * point: an editor comparing the pane with their unsaved edits should know why
  * they differ. */
 function PreviewPane({ src, dirty }: { src: string; dirty: boolean }) {
@@ -1023,6 +1101,142 @@ function Action({
  * every other control here is reversible, this one has no revision history
  * behind it, and a confirmation dismissed by reflex is the same click as the
  * button that opened it. */
+/** «Dirección»: the one control that moves a page's public URL.
+ *
+ * Deliberately not a field in the metadata form. Everything in that form is
+ * saved into the working copy and reaches a reader only when somebody
+ * publishes; the address is on the page row, so changing it moves the *live*
+ * page immediately. Two things that behave that differently should not look
+ * identical, which is why this is a panel with its own button, its own
+ * confirmation and its own account of what it is about to do.
+ *
+ * The input is the last segment alone. A child page's path is its parent's plus
+ * one segment (`checkHierarchy`), so offering the whole path would only offer
+ * ways to break that invariant — moving a page to another parent is the
+ * «Página madre» field's job. */
+function RenamePanel({
+  section,
+  slug,
+  redirects,
+  descendants,
+  published,
+  busy,
+  onRename,
+}: {
+  section: CmsSection;
+  slug: string;
+  redirects: readonly string[];
+  descendants: readonly string[];
+  /** Whether the page has ever been public — which is what decides whether the
+   * address being vacated is worth preserving. */
+  published: boolean;
+  busy: boolean;
+  onRename: (slug: string) => Promise<boolean>;
+}) {
+  const prefix = pathSegments(slug).slice(0, -1).join("/");
+  const [armed, setArmed] = useState(false);
+  const [segment, setSegment] = useState(() => ownSegment(slug));
+
+  const base = publicSectionPath(section.id);
+  const next = prefix ? `${prefix}/${segment}` : segment;
+  const changed = segment.trim() !== "" && next !== slug;
+
+  const open = () => {
+    setSegment(ownSegment(slug));
+    setArmed(true);
+  };
+
+  return (
+    <section className="border-t border-line pt-6 mb-8">
+      <h2 className="font-mono text-micro uppercase tracking-label-wide text-muted mb-3">
+        Dirección
+      </h2>
+
+      {!armed && (
+        <>
+          <p className="font-mono text-[12px] leading-[1.6] text-ink mt-0 mb-3 break-all">
+            {base}/{slug}
+          </p>
+          {redirects.length > 0 && (
+            <p className="font-mono text-[12px] leading-[1.6] text-muted mt-0 mb-3">
+              También responden, redirigiendo aquí:{" "}
+              {redirects.map((old) => `${base}/${old}`).join(", ")}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={open}
+            disabled={busy}
+            className="inline-flex items-center gap-2 border border-line px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-muted transition-colors hover:border-accent hover:text-accent disabled:opacity-45"
+          >
+            Cambiar dirección
+          </button>
+        </>
+      )}
+
+      {armed && (
+        <div className="border border-line px-4 py-4">
+          <label
+            htmlFor="cms-rename"
+            className="block font-mono text-[12px] leading-[1.6] text-ink mb-2"
+          >
+            Última parte de la URL. Minúsculas, números y guiones.
+          </label>
+          <p className="font-mono text-[12px] text-muted mt-0 mb-2 break-all">
+            {base}/{prefix ? `${prefix}/` : ""}
+            <span className="text-ink">{segment || "…"}</span>
+          </p>
+          <input
+            id="cms-rename"
+            autoFocus
+            value={segment}
+            onChange={(event) => setSegment(event.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            className="w-full border border-line bg-paper px-3 py-2 font-mono text-[13px] text-ink focus:border-accent focus:outline-none"
+          />
+
+          <p className="font-mono text-[12px] leading-[1.6] text-muted mt-3 mb-0">
+            {published
+              ? "La página cambia de dirección en el sitio público apenas confirmes. La dirección anterior queda redirigiendo a la nueva, así que los enlaces que ya existen siguen funcionando."
+              : "Esta página nunca fue pública, así que la dirección anterior no queda redirigiendo: no había nada que enlazara a ella."}
+          </p>
+          {descendants.length > 0 && (
+            <p className="font-mono text-[12px] leading-[1.6] text-muted mt-2 mb-0">
+              Se mueven con ella {descendants.length}{" "}
+              {descendants.length === 1
+                ? "página que cuelga"
+                : "páginas que cuelgan"}{" "}
+              de esta.
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button
+              type="button"
+              onClick={async () => {
+                if (await onRename(next)) setArmed(false);
+              }}
+              disabled={busy || !changed}
+              className="inline-flex items-center gap-2 border border-accent bg-accent px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-paper transition-colors hover:border-ink hover:bg-ink disabled:opacity-45"
+            >
+              {busy ? "…" : "Cambiar dirección"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setArmed(false)}
+              disabled={busy}
+              className="px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-muted transition-colors hover:text-accent disabled:opacity-45"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function DeletePanel({
   status,
   busy,
@@ -1298,7 +1512,7 @@ function actionConfirm(
   }
 }
 
-/** What the header says about which copies exist, in the words §14.8 asks for.
+/** What the header says about which copies exist, in the words cms.md asks for.
  * Deliberately about *copies* rather than about status: the chip beside it
  * already says the status, and repeating it would leave the interesting half —
  * "is there work that readers cannot see" — unsaid. */

@@ -173,7 +173,7 @@ export const CMS_TOOLS: Tool[] = [
         input as Parameters<typeof cmsContentService.setStatus>[1],
       ),
   },
-  // ── versions (cms.md §14.9) ─────────────────────────────────────────────
+  // ── versions (cms.md) ─────────────────────────────────────────────
   //
   // Read the bounded set of stored copies, compare one against the live
   // publication, restore one into the working copy, or throw the working copy
@@ -253,7 +253,7 @@ export const CMS_TOOLS: Tool[] = [
   // ── media library ───────────────────────────────────────────────────────
   //
   // Read, upload and edit. **No destructive tool, deliberately and
-  // permanently** (cms.md §9.9/§9.13): this endpoint already tells its
+  // permanently** (cms.md): this endpoint already tells its
   // clients that it cannot delete anything and that removal is a browser-only
   // action a person performs at /cms, and media follows pages rather than
   // carving out an exception. An agent that wants an image gone leaves it

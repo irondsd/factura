@@ -4,7 +4,7 @@ import { CmsContentService } from "./contentService";
 import { createFakeCms, seedPage } from "./testFakes";
 
 // When a write expires the public cache, and — the part worth pinning — when it
-// does not (cms.md Task 4, §14.6).
+// does not (cms.md).
 //
 // Invalidating on every write would work and would be wrong, and revisions made
 // the rule sharper rather than looser: a save now writes a `wip` revision that
@@ -255,7 +255,7 @@ describe("a failing invalidation", () => {
   it("does not fail the publication it follows", async () => {
     // The rows are committed by then. Reporting an error would tell the editor
     // their publication failed when it did not; the fallback is the TTL that
-    // was the only mechanism before Task 4.
+    // was the only mechanism before on-demand invalidation existed.
     const logged = vi.spyOn(console, "error").mockImplementation(() => {});
     const fake = createFakeCms();
     const page = await seedPage(fake, actor);

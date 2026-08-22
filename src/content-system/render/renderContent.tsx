@@ -12,7 +12,7 @@ import { GRAMMAR_CODES, validateGrammar } from "../validation/grammar";
 
 // Rendering a body that came out of the database.
 //
-// The order here is the whole point, and cms.md §5.1 states it: grammar
+// The order here is the whole point, and cms.md states it: grammar
 // validation first, compilation only if it passes. `evaluate` compiles MDX to a
 // function and runs it — so anything that reaches it is executing. The check
 // below is what stands between a database row and that.

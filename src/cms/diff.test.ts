@@ -8,7 +8,7 @@ import {
   stableJson,
 } from "./diff";
 
-// Comparing two versions of a page (cms.md §14.7.2).
+// Comparing two versions of a page (cms.md).
 //
 // `documentsEqual` carries more weight than a diff usually would: it is what
 // stops a publication that changes nothing from consuming a retention slot and
