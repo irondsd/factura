@@ -832,7 +832,7 @@ function Tabs({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
     // every screen below it scroll sideways.
     <div
       role="tablist"
-      className="flex gap-1 border-b border-line mb-5 overflow-x-auto"
+      className="flex gap-1 border-b border-line mb-5"
     >
       {items.map((item) => (
         <button
