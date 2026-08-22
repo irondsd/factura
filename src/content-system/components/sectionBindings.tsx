@@ -48,6 +48,7 @@ import { RentabilidadTipoCambio } from "@/components/estadisticas/RentabilidadTi
 import { ResumenIpc } from "@/components/estadisticas/ResumenIpc";
 import { ResumenRegion } from "@/components/estadisticas/ResumenRegion";
 import { SueloCordobaResumen } from "@/components/estadisticas/SueloCordobaResumen";
+import { SueloNeuquenBarrios } from "@/components/estadisticas/SueloNeuquenBarrios";
 import { SueloPbaContraste } from "@/components/estadisticas/SueloPbaContraste";
 import { SueloPbaInterior } from "@/components/estadisticas/SueloPbaInterior";
 import { SueloPbaLotes } from "@/components/estadisticas/SueloPbaLotes";
@@ -131,6 +132,7 @@ export const SECTION_COMPONENT_BINDINGS = {
   SeguridadPorDelitoComparacion,
   SeguridadPorDelitoGanadores,
   SueloCordobaResumen,
+  SueloNeuquenBarrios,
   SueloPbaContraste,
   SueloPbaInterior,
   SueloPbaLotes,

@@ -60,6 +60,7 @@ export const SECTION_COMPONENT_NAMES = [
   "SeguridadPorDelitoComparacion",
   "SeguridadPorDelitoGanadores",
   "SueloCordobaResumen",
+  "SueloNeuquenBarrios",
   "SueloPbaContraste",
   "SueloPbaInterior",
   "SueloPbaLotes",
