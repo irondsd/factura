@@ -31,6 +31,9 @@ export const COVERAGE = {
   sourceRecordCount: ">1,7 millones de parcelas urbanas",
 } as const;
 
+/** IDECOR's published provincial median for the 2024 edition. */
+export const PROVINCIAL_MEDIAN_2024_USD_M2 = 32;
+
 export type SoilCluster = {
   id: string;
   label: string;
