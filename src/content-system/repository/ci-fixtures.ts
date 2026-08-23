@@ -26,7 +26,7 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
     crumb: "Guía CI",
     metadata: {
       keywords: ["facturas", "prueba", "ci"],
-      categories: ["leer-facturas"],
+      categories: ["facturas-y-conceptos"],
     },
     publishedAt: DATE,
     contentUpdatedAt: DATE,

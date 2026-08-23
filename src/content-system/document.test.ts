@@ -160,7 +160,7 @@ describe("relatedDocuments", () => {
 
   const current = summary(
     "actual",
-    ["servicios", "leer-facturas"],
+    ["servicios", "facturas-y-conceptos"],
     "2026-01-01T00:00:00-03:00",
   );
 
@@ -169,7 +169,7 @@ describe("relatedDocuments", () => {
       summary("una", ["servicios"], "2026-01-01T00:00:00-03:00"),
       summary(
         "dos",
-        ["servicios", "leer-facturas"],
+        ["servicios", "facturas-y-conceptos"],
         "2026-01-01T00:00:00-03:00",
       ),
     ];
@@ -192,7 +192,7 @@ describe("relatedDocuments", () => {
     // the author placed <RelatedGuides />.
     const candidates = [
       summary("a", ["impuestos"], "2026-01-01T00:00:00-03:00"),
-      summary("b", ["inflacion"], "2026-01-02T00:00:00-03:00"),
+      summary("b", ["mercado-y-precios"], "2026-01-02T00:00:00-03:00"),
       summary("c", ["expensas"], "2026-01-03T00:00:00-03:00"),
     ];
     expect(relatedDocuments(current, candidates)).toHaveLength(3);

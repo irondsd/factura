@@ -739,7 +739,7 @@ if (!hasTestDatabase()) {
           ...draftInput("metadata"),
           metadata: {
             keywords: ["uno", "dos", "tres"],
-            categories: ["servicios", "leer-facturas"],
+            categories: ["servicios", "facturas-y-conceptos"],
             faq: [{ q: "¿Pregunta?", a: "Respuesta." }],
             ogImage: { eyebrow: "Guía · Prueba", stat: "×9" },
             vendor: "Edesur",

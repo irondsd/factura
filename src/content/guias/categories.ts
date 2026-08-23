@@ -12,6 +12,12 @@
 // for the existing ones. Land the entry together with its first guide: a
 // category with nothing in it renders nothing (consumers skip empty ones), so an
 // early entry is harmless but pointless.
+//
+// *Renaming* an id is three things, and none of them are optional: the entry
+// here, a redirect from the old /guias/categoria/<id> in `next.config.ts`, and
+// `scripts/renameGuideCategories.ts` run against every database. The ids live in
+// `cms_page_revision.metadata`, which is parsed against this list on read — a
+// row still holding a retired id makes the guide throw, not degrade.
 
 type CategoryFields = {
   /** Stable id. Doubles as the URL slug, so: lowercase, hyphens, no accents. */
@@ -56,32 +62,32 @@ export const CATEGORIES = [
       "Guías sobre los subsidios energéticos en Argentina: el régimen SEF de luz, gas y garrafa, el registro ReSEF y la tarifa social de agua de AySA.",
   },
   {
-    id: "inflacion",
-    label: "Inflación",
-    title: "Inflación en Argentina: qué le pasa a lo que pagas cada mes",
+    id: "mercado-y-precios",
+    label: "Mercado y precios",
+    title: "Mercado y precios: qué le pasa a lo que pagas cada mes",
     description:
-      "Guías sobre la inflación argentina y los servicios del hogar: cuánto subieron la luz, el gas, el agua y las expensas, y cómo medir tu propia inflación.",
+      "Guías sobre los precios de los servicios del hogar en Argentina: cuánto subieron la luz, el gas, el agua y las expensas, y cómo medir tu propia inflación.",
   },
   {
-    id: "leer-facturas",
-    label: "Cómo leer una factura",
-    title: "Cómo leer una factura: guías paso a paso",
+    id: "facturas-y-conceptos",
+    label: "Facturas y conceptos",
+    title: "Facturas y conceptos: qué dice cada parte de la boleta",
     description:
-      "Guías paso a paso para leer cualquier factura: dónde mirar el total, el vencimiento, el consumo y el detalle de cargos de cada boleta.",
+      "Guías para leer cualquier factura y entender sus conceptos: dónde mirar el total, el vencimiento y el consumo, y qué significa cada cargo del detalle.",
   },
   {
-    id: "ahorro-y-control",
-    label: "Ahorro y control",
-    title: "Ahorro y control de los gastos del hogar",
+    id: "finanzas",
+    label: "Finanzas",
+    title: "Finanzas del hogar: ahorro y control de los gastos",
     description:
-      "Guías para controlar lo que pagas cada mes: comparar valores de referencia, detectar cargos indebidos y seguir la evolución de tus gastos.",
+      "Guías para manejar la plata de tu casa: comparar valores de referencia, detectar cargos indebidos y seguir la evolución de tus gastos mes a mes.",
   },
   {
-    id: "pagos-y-tramites",
-    label: "Pagos y trámites",
-    title: "Pagos y trámites: cómo pagar y digitalizar facturas",
+    id: "tramites-y-gestiones",
+    label: "Trámites y gestiones",
+    title: "Trámites y gestiones: cómo pagar y digitalizar facturas",
     description:
-      "Guías prácticas sobre los pagos y trámites de tus facturas: cómo pagar online de forma segura y cómo digitalizar tus comprobantes en papel.",
+      "Guías prácticas para resolver las gestiones de tus facturas: cómo pagar online de forma segura y cómo digitalizar tus comprobantes en papel.",
   },
   {
     id: "estafas",

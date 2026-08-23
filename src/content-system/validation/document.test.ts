@@ -28,7 +28,7 @@ const base: ContentDocument = {
       "como leer factura edesur",
       "consumo edesur",
     ],
-    categories: ["servicios", "leer-facturas"],
+    categories: ["servicios", "facturas-y-conceptos"],
   },
   body: [
     "## Las secciones de la factura",
@@ -335,8 +335,8 @@ describe("keywords and categories", () => {
         meta({
           categories: [
             "servicios",
-            "leer-facturas",
-            "ahorro-y-control",
+            "facturas-y-conceptos",
+            "finanzas",
             "impuestos",
           ],
         }),

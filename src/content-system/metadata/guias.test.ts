@@ -8,7 +8,7 @@ import {
 
 const valid = {
   keywords: ["factura de edesur", "consumo edesur kwh"],
-  categories: ["servicios", "leer-facturas"],
+  categories: ["servicios", "facturas-y-conceptos"],
 };
 
 describe("guideSlug", () => {

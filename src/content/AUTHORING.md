@@ -211,7 +211,7 @@ for a field to set.
 ```json
 {
   "keywords": ["cómo leer una factura de luz", "consumo kWh"],
-  "categories": ["servicios", "leer-facturas"],
+  "categories": ["servicios", "facturas-y-conceptos"],
   "faq": [{ "q": "…", "a": "…" }],
   "ogTitle": "…",
   "ogDescription": "…",
@@ -235,17 +235,17 @@ for a field to set.
 **The category ids** (the canonical list is
 [`categories.ts`](./guias/categories.ts) — don't invent one):
 
-| id                 | Use it for                                                        |
-| ------------------ | ----------------------------------------------------------------- |
-| `expensas`         | Expensas, consorcios and gastos comunes.                          |
-| `servicios`        | A specific utility: luz, gas, agua, internet, telefonía.          |
-| `impuestos`        | Taxes and levies on the home: Inmobiliario/ABL, Patentes.         |
-| `subsidios`        | Energy subsidies (SEF/ReSEF) and AySA's tarifa social.            |
-| `inflacion`        | Inflation, and how it moves the price of a household service.     |
-| `leer-facturas`    | Walkthroughs of an actual bill — what each section means.         |
-| `ahorro-y-control` | Reference values, wrong charges, tracking spend over time.        |
-| `pagos-y-tramites` | Paying, due dates, and paperwork like scanning or filing bills.   |
-| `estafas`          | Housing and utility scams: fake rentals, fake agencies, phishing. |
+| id                     | Use it for                                                            |
+| ---------------------- | --------------------------------------------------------------------- |
+| `expensas`             | Expensas, consorcios and gastos comunes.                              |
+| `servicios`            | A specific utility: luz, gas, agua, internet, telefonía.              |
+| `impuestos`            | Taxes and levies on the home: Inmobiliario/ABL, Patentes.             |
+| `subsidios`            | Energy subsidies (SEF/ReSEF) and AySA's tarifa social.                |
+| `mercado-y-precios`    | Prices and how they move: inflation, increases, what a service costs. |
+| `facturas-y-conceptos` | Walkthroughs of an actual bill — what each section and charge means.  |
+| `finanzas`             | Reference values, wrong charges, tracking spend over time.            |
+| `tramites-y-gestiones` | Paying, due dates, and paperwork like scanning or filing bills.       |
+| `estafas`              | Housing and utility scams: fake rentals, fake agencies, phishing.     |
 
 Two is the usual number: one for the _topic_, one for the _task_.
 
@@ -429,7 +429,7 @@ MetroGAS" is an argument; "Organiza todos tus servicios" is filler that could
 sit under any of the forty.
 
 `<ProbarCta />` goes **mid-article, right before the closing section**, in
-guides that walk through a real document — the `leer-facturas` ones. The point
+guides that walk through a real document — the `facturas-y-conceptos` ones. The point
 is to reach the reader while the bill is still open in front of them. Skip it on
 conceptual pieces. One per guide.
 
@@ -591,7 +591,7 @@ create_content {
   "cta": "",
   "metadata": {
     "keywords": ["", "", ""],
-    "categories": ["servicios", "leer-facturas"],
+    "categories": ["servicios", "facturas-y-conceptos"],
     "faq": [{ "q": "", "a": "" }]
   },
   "body": "…"
