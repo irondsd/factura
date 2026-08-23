@@ -107,27 +107,27 @@ export function toggleSort(
  * would keep the indentation of a tree while showing none of its structure,
  * and the path under each title would be the only thing left explaining the
  * shape. Guides are all top level, so for them this is exactly a flat sort. */
-export function sortedContentRows(
-  pages: readonly ContentSummary[],
+export function sortedContentRows<T extends ContentSummary>(
+  pages: readonly T[],
   sort: CmsListSort,
-): ContentSummary[] {
-  const key = (page: ContentSummary) =>
+): T[] {
+  const key = (page: T) =>
     sort.column === "creada" ? page.createdAt : page.updatedAt;
   const sign = sort.direction === "desc" ? -1 : 1;
 
-  const compare = (a: ContentSummary, b: ContentSummary) =>
+  const compare = (a: T, b: T) =>
     sign * (Date.parse(key(a)) - Date.parse(key(b))) ||
     a.slug.localeCompare(b.slug);
 
   return flattenTree(sortTree(buildContentTree([...pages]), compare));
 }
 
-type Node = { page: ContentSummary; children: Node[] };
+type Node<T> = { page: T; children: Node<T>[] };
 
-function sortTree(
-  nodes: Node[],
-  compare: (a: ContentSummary, b: ContentSummary) => number,
-): Node[] {
+function sortTree<T>(
+  nodes: Node<T>[],
+  compare: (a: T, b: T) => number,
+): Node<T>[] {
   return [...nodes]
     .sort((a, b) => compare(a.page, b.page))
     .map((node) => ({ ...node, children: sortTree(node.children, compare) }));

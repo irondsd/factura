@@ -56,3 +56,30 @@ export function StatusChip({
     </span>
   );
 }
+
+/** A page can be published while a newer working copy waits in the CMS. This
+ * is intentionally a secondary line rather than a fourth status: the working
+ * copy describes an additional saved version, not what readers currently see. */
+export function WorkingCopyIndicator() {
+  return (
+    <span
+      title="Hay un borrador de trabajo guardado que todavía no está publicado."
+      className="mt-1 inline-flex max-w-full items-center gap-1 whitespace-nowrap font-mono text-[11px] leading-tight text-[var(--vendor-ochre)]"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 12 12"
+        className="size-3 shrink-0"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.2"
+      >
+        <path d="m2.25 8.9-.5 1.35 1.35-.5 6.7-6.7a.9.9 0 0 0-1.27-1.27l-6.7 6.7Z" />
+        <path d="m7.85 2.15 2 2" />
+      </svg>
+      <span>Borrador guardado</span>
+    </span>
+  );
+}

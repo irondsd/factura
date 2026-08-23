@@ -12,8 +12,8 @@ import type {
   ContentDocument,
   ContentSection,
   ContentStatus,
-  ContentSummary,
 } from "@/content-system/types";
+import type { CmsContentSummary } from "../types";
 
 // The authenticated half of `cms_page` access: every state, every column, and
 // the only writer. Together with
@@ -232,7 +232,7 @@ export class CmsPageStore {
   }
 
   /** The CMS list. Every status, in editorial order. */
-  async list(filter: CmsListFilter = {}): Promise<ContentSummary[]> {
+  async list(filter: CmsListFilter = {}): Promise<CmsContentSummary[]> {
     const conditions = [
       filter.section ? eq(cmsPages.section, filter.section) : undefined,
       filter.statuses?.length
@@ -259,7 +259,10 @@ export class CmsPageStore {
       // `buildContentTree` re-sorts anyway; this makes the query deterministic.
       .orderBy(asc(cmsPageRevisions.sortOrder), asc(cmsPages.slug));
 
-    return rows.map((row) => cmsRowToSummary(row.page, row.revision));
+    return rows.map((row) => ({
+      ...cmsRowToSummary(row.page, row.revision),
+      hasWip: row.page.wipRevisionId !== null,
+    }));
   }
 
   /** Whole documents for a section, at the CMS-selected revision. The

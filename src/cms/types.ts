@@ -1,7 +1,16 @@
+import type { ContentSummary } from "@/content-system/types";
+
 // Types shared across the private CMS module. Deliberately free of any
 // dependency on the bill app: `src/cms` is meant to move to the public-site
 // deployment as one unit (cms.md), so nothing here may reach into
 // `src/components/app`, the tRPC routers, or the bill domain.
+
+/** The CMS list needs one piece of editorial state that the public content
+ * summary deliberately does not expose: whether a saved working copy exists
+ * behind the page's current publication status. */
+export type CmsContentSummary = ContentSummary & {
+  hasWip: boolean;
+};
 
 /** A CMS membership role. Mirrors the `cms_role` database enum. */
 export type CmsRole = "admin" | "editor";

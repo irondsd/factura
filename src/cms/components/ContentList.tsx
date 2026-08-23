@@ -1,5 +1,4 @@
 import Link from "next/link";
-import type { ContentSummary } from "@/content-system/types";
 import { depthOf } from "@/content-system/hierarchy";
 import { cn } from "@/lib/cn";
 import { formatContentDateTimeShort } from "@/lib/content-date";
@@ -13,7 +12,8 @@ import {
 } from "../listQuery";
 import type { CmsSection } from "../sections";
 import { cmsEditPath, publicSectionPath } from "../sections";
-import { StatusChip } from "./StatusChip";
+import type { CmsContentSummary } from "../types";
+import { StatusChip, WorkingCopyIndicator } from "./StatusChip";
 
 // A section's pages, as the tree rather than a flat list.
 //
@@ -30,7 +30,7 @@ export function ContentList({
   emptyMessage,
 }: {
   section: CmsSection;
-  pages: readonly ContentSummary[];
+  pages: readonly CmsContentSummary[];
   /** The accounts behind `createdBy`/`updatedBy`, resolved by the route. */
   actors: ReadonlyMap<string, HistoryActor>;
   basePath: string;
@@ -107,6 +107,13 @@ export function ContentList({
             </td>
             <td className="py-3 pr-4 align-top">
               <StatusChip status={page.status} />
+              {/* A saved working copy is distinct from the page's lifecycle
+                  status. Draft pages already say "Borrador" above; the extra
+                  line is for a published/preview page whose newer copy is not
+                  public yet. */}
+              {page.hasWip && page.status !== "draft" && (
+                <WorkingCopyIndicator />
+              )}
             </td>
             <Stamp at={page.createdAt} by={page.createdBy} actors={actors} />
             <Stamp
