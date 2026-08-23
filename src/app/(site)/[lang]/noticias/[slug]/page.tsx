@@ -8,6 +8,7 @@ import { documentHeadings, documentStats } from "@/content-system/document";
 import { mediaComponents } from "@/content-system/media/render";
 import { resolveMediaRef } from "@/content-system/media/repository";
 import { contentComponents } from "@/content-system/render/renderContent";
+import { categoriesByKeys } from "@/content-system/repository/categories";
 import { sectionMetadata } from "@/i18n/metadata";
 import { editorialPageLd, faqPageLd } from "@/i18n/structuredData";
 
@@ -28,6 +29,7 @@ export default async function NoticiaPage({ params }: Props) {
   const page = await noticias.load([slug]);
   if (!page) notFound();
   const { document, meta, Content } = page;
+  const categories = await categoriesByKeys("noticias", meta.categoryKeys);
   const { words, minutes } = documentStats(document);
   const faq = meta.faq ?? [];
   return (
@@ -40,7 +42,9 @@ export default async function NoticiaPage({ params }: Props) {
       previewMedia={await resolveMediaRef(meta.previewMediaId)}
       headings={documentHeadings(document)}
       minutes={minutes}
+      categories={categories}
       section={{
+        id: "noticias",
         label: "Noticias",
         singular: "Noticia",
         href: noticias.base,

@@ -33,7 +33,8 @@ export async function handleCmsMessage(
         "Editing is always safe: update_content saves a shared working copy that no reader can see, so a page that is already published keeps serving its last publication while you work. Save it normally, without asking.",
         "set_content_status is the only tool that changes what the public sees, and it needs the human's explicit go-ahead each time, in both directions. 'published' publishes the working copy as a new immutable publication; 'draft' takes the page down.",
         "A page keeps its working copy, a temporary checkpoint, the public preview snapshot, and the current publication plus three previous ones — list_content_versions shows exactly those. restore_content_version copies one back into the working copy without publishing anything.",
-        "This endpoint cannot delete anything: there is no delete tool, and pages are retired by status, not removed. Deletion is a browser-only action a human performs at /cms, and so is changing a page's address — a rename moves the live URL immediately and leaves a redirect behind, so ask the human to do it at /cms.",
+        "Categories are section-scoped: the same key in two sections means two independent records. list_categories returns the valid keys to put in page metadata. create_category derives the key and slug from the label; update_category can edit copy and order, and those category settings are live immediately.",
+        "This endpoint cannot delete anything: there is no delete tool, and pages are retired by status, not removed. Deleting a category or changing any page or category address is a browser-only action a human performs at /cms; address changes leave redirects behind.",
       ].join(" "),
     });
   if (message.method === "ping") return rpcResult(id, {});
@@ -65,14 +66,19 @@ export async function handleCmsMessage(
     if (tool.scope === "cms:write")
       await audit(
         caller.userId,
-        pageId(parsed.data) ?? pageId(output),
+        auditTarget(tool.name, parsed.data, output),
         tool.name,
         "ok",
       );
     return rpcResult(id, toolSuccess(output));
   } catch (error) {
     if (tool.scope === "cms:write")
-      await audit(caller.userId, pageId(parsed.data), tool.name, "error");
+      await audit(
+        caller.userId,
+        auditTarget(tool.name, parsed.data),
+        tool.name,
+        "error",
+      );
     if (error instanceof CmsValidationError)
       return rpcResult(
         id,
@@ -95,6 +101,23 @@ function pageId(input: unknown): string | null {
     ? input.id
     : null;
 }
+
+type AuditTarget = {
+  pageId: string | null;
+  resourceType: string | null;
+  resourceId: string | null;
+};
+
+function auditTarget(
+  operation: string,
+  input: unknown,
+  output?: unknown,
+): AuditTarget {
+  const id = pageId(input) ?? pageId(output);
+  return operation.endsWith("_category")
+    ? { pageId: null, resourceType: "category", resourceId: id }
+    : { pageId: id, resourceType: null, resourceId: null };
+}
 /** Record who did what, without ever being the reason a request fails.
  *
  * `page_id` is a real foreign key, and the id in a failed mutation is very
@@ -110,20 +133,22 @@ function pageId(input: unknown): string | null {
  * an internal tool is not worth failing the operation over. */
 async function audit(
   actorId: string,
-  pageId: string | null,
+  target: AuditTarget,
   operation: string,
   result: string,
 ) {
-  const row = { actorId, operation, result };
+  const row = { actorId, operation, result, ...target };
   try {
-    await db.insert(cmsAuditLogs).values({ ...row, pageId });
+    await db.insert(cmsAuditLogs).values(row);
   } catch (cause) {
     console.error(
       "[cms-mcp] audit insert failed, retrying unattributed:",
       cause,
     );
     try {
-      await db.insert(cmsAuditLogs).values({ ...row, pageId: null });
+      await db
+        .insert(cmsAuditLogs)
+        .values({ ...row, pageId: null, resourceId: null });
     } catch (retry) {
       console.error("[cms-mcp] audit insert failed:", retry);
     }

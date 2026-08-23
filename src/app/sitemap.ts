@@ -4,7 +4,9 @@ import {
   publishedGuides,
 } from "@/content-system/repository/guias";
 import { SECTIONS } from "@/content/sections";
+import { nonEmptyContentCategories } from "@/content-system/repository/categories";
 import {
+  contentCategoryUrl,
   guideCategoryUrl,
   guidesIndexUrl,
   guideUrl,
@@ -82,7 +84,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // pages, so `lastModified` tracks the newest guide they contain.
     ...categories.map((c) => {
       const inCategory = guides.filter((g) =>
-        g.metadata.categories.includes(c.id),
+        g.metadata.categories.includes(c.key),
       );
       // Compare instants: `updated` carries a timezone offset, so two
       // timestamps don't necessarily order the same way as their text.
@@ -90,7 +92,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ...inCategory.map((g) => Date.parse(g.contentUpdatedAt)),
       );
       return {
-        url: guideCategoryUrl(c.id),
+        url: guideCategoryUrl(c.slug),
         lastModified: new Date(newest),
         changeFrequency: "weekly" as const,
         priority: 0.65,
@@ -124,7 +126,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const sectionEntries: MetadataRoute.Sitemap = (
     await Promise.all(
       SECTIONS.map(async (section) => {
-        const pages = await section.listed();
+        const [pages, categories] = await Promise.all([
+          section.listed(),
+          nonEmptyContentCategories(section.id),
+        ]);
         return [
           {
             url: sectionIndexUrl(section.id),
@@ -136,6 +141,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: "monthly" as const,
             priority: 0.8,
           },
+          ...categories.map((category) => {
+            const inCategory = pages.filter((page) =>
+              page.meta.categoryKeys.includes(category.key),
+            );
+            return {
+              url: contentCategoryUrl(section.id, category.slug),
+              lastModified: new Date(
+                Math.max(
+                  ...inCategory.map((page) => Date.parse(page.meta.updated)),
+                ),
+              ),
+              changeFrequency: "weekly" as const,
+              priority: 0.72,
+            };
+          }),
           ...pages.map((p) => ({
             url: sectionUrl(section.id, p.slug),
             lastModified: new Date(p.meta.updated),

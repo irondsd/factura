@@ -2,7 +2,11 @@ import "server-only";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentType } from "react";
 import { sectionRepository } from "@/content-system/repository/sections";
-import type { ContentDocument, ContentSummary } from "@/content-system/types";
+import type {
+  ContentDocument,
+  ContentSection as ContentSectionId,
+  ContentSummary,
+} from "@/content-system/types";
 
 /** Metadata adapted for the existing section layouts and SEO helpers. */
 export type SectionMeta = {
@@ -17,6 +21,7 @@ export type SectionMeta = {
   previewMediaId?: string;
   cta: string;
   keywords: string[];
+  categoryKeys: string[];
   published: string;
   updated: string;
   sources: { label: string; href: string; note?: string }[];
@@ -34,7 +39,7 @@ export type SectionMeta = {
 };
 
 export type SectionConfig = {
-  id: string;
+  id: Exclude<ContentSectionId, "guias">;
   label: string;
   backLabel: string;
   relatedLabel: string;
@@ -76,6 +81,7 @@ function metaFromDatabase(document: ContentSummary): SectionMeta {
     summary: document.summary,
     cta: document.cta,
     keywords: document.metadata.keywords,
+    categoryKeys: document.metadata.categories,
     published: document.publishedAt ?? document.contentUpdatedAt,
     updated: document.contentUpdatedAt,
     sources: document.metadata.sources ?? [],

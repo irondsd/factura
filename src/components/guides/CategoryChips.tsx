@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui";
-import type { Category } from "@/content/guias/categories";
+import type { ContentCategory } from "@/content-system/categories/types";
+import type { ContentSection } from "@/content-system/types";
 
 // Row of category links. On the /guias index it's the topic switcher (and the
 // only internal link some category hubs get, so it doubles as their entry
@@ -7,10 +8,12 @@ import type { Category } from "@/content/guias/categories";
 
 export function CategoryChips({
   categories,
+  section = "guias",
   label,
   className,
 }: {
-  categories: Category[];
+  categories: readonly ContentCategory[];
+  section?: ContentSection;
   /** Accessible name for the nav landmark — the chips are just labels, so
    * without this a screen reader gets two unlabelled lists on the same page. */
   label: string;
@@ -23,7 +26,7 @@ export function CategoryChips({
       <ul className="flex flex-wrap gap-2 list-none p-0 m-0">
         {categories.map((c) => (
           <li key={c.id}>
-            <Button href={`/guias/categoria/${c.id}`} size="sm">
+            <Button href={`/${section}/categoria/${c.slug}`} size="sm">
               {c.label}
             </Button>
           </li>

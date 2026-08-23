@@ -1,5 +1,6 @@
-import { getCategory } from "@/content/guias/categories";
 import { publishedGuides } from "@/content-system/repository/guias";
+import { contentCategories } from "@/content-system/repository/categories";
+import { CONTENT_SECTIONS } from "@/content-system/types";
 import { SECTIONS } from "@/content/sections";
 import { siteName } from "@/config/meta";
 import { siteUrl } from "@/config/urls";
@@ -50,7 +51,7 @@ const xml = (s: string): string =>
 const rfc822 = (iso: string): string => new Date(iso).toUTCString();
 
 export async function GET(): Promise<Response> {
-  const [guides, sections] = await Promise.all([
+  const [guides, sections, categoryLists] = await Promise.all([
     publishedGuides(),
     Promise.all(
       SECTIONS.map(async (section) => ({
@@ -58,7 +59,21 @@ export async function GET(): Promise<Response> {
         pages: await section.listed(),
       })),
     ),
+    Promise.all(
+      CONTENT_SECTIONS.map(async (section) => ({
+        section,
+        categories: await contentCategories(section),
+      })),
+    ),
   ]);
+  const categoryLabel = new Map(
+    categoryLists.flatMap(({ section, categories }) =>
+      categories.map((category) => [
+        `${section}:${category.key}`,
+        category.label,
+      ]),
+    ),
+  );
 
   const items: Item[] = [
     // Same exclusion the sitemap applies: a guide whose canonical points at
@@ -76,7 +91,8 @@ export async function GET(): Promise<Response> {
         // The primary category — the first id, the one that decides where the
         // guide is grouped everywhere else. Falls back to the section name so a
         // category id that outlives its registry entry can't drop the item.
-        category: getCategory(g.metadata.categories[0])?.label ?? "Guías",
+        category:
+          categoryLabel.get(`guias:${g.metadata.categories[0]}`) ?? "Guías",
       })),
     ...sections.flatMap(({ section, pages }) =>
       pages.map((p) => ({
@@ -85,7 +101,9 @@ export async function GET(): Promise<Response> {
         summary: p.meta.summary,
         published: p.meta.published,
         updated: p.meta.updated,
-        category: section.label,
+        category:
+          categoryLabel.get(`${section.id}:${p.meta.categoryKeys[0] ?? ""}`) ??
+          section.label,
       })),
     ),
   ];

@@ -32,6 +32,7 @@ const caller = (scopes: readonly CmsScope[]): CmsTokenCaller => ({
   email: null,
   name: null,
   role: "editor",
+  source: "mcp",
   tokenId: "22222222-2222-2222-2222-222222222222",
   scopes: [...scopes],
 });
@@ -82,6 +83,8 @@ describe("tool listing", () => {
     expect(names).toEqual([
       "list_content",
       "get_content",
+      "list_categories",
+      "get_category",
       "validate_content",
       "list_content_versions",
       "get_content_version",
@@ -101,6 +104,8 @@ describe("tool listing", () => {
     expect(names).toContain("create_media_upload");
     expect(names).toContain("complete_media_upload");
     expect(names).toContain("update_media");
+    expect(names).toContain("create_category");
+    expect(names).toContain("update_category");
   });
 
   it("offers no way to delete anything, content or media", () => {
@@ -112,6 +117,29 @@ describe("tool listing", () => {
     expect(
       names.filter((name) => /delete|remove|trash|purge/.test(name)),
     ).toEqual([]);
+  });
+
+  it("does not let an agent choose or change a category slug", () => {
+    const create = findCmsTool("create_category");
+    const update = findCmsTool("update_category");
+    expect(
+      create?.schema.safeParse({
+        section: "guias",
+        label: "Prueba",
+        title: "Prueba",
+        description: "Prueba",
+        slug: "elegido-por-el-agente",
+      }).success,
+    ).toBe(false);
+    expect(
+      update?.schema.safeParse({
+        id: "33333333-3333-3333-3333-333333333333",
+        expectedLockVersion: 1,
+        patch: { slug: "cambiado-por-el-agente" },
+      }).success,
+    ).toBe(false);
+    expect(findCmsTool("rename_category")).toBeUndefined();
+    expect(findCmsTool("delete_category")).toBeUndefined();
   });
 
   it("gives every tool an input schema", () => {
@@ -559,6 +587,9 @@ if (!hasTestDatabase()) {
           ),
         );
       await db.delete(schema.cmsPages).where(mine);
+      await db
+        .delete(schema.cmsCategories)
+        .where(like(schema.cmsCategories.key, `${SLUG}%`));
     };
 
     /** The document a page currently stores, read straight from the revision
@@ -603,6 +634,7 @@ if (!hasTestDatabase()) {
         email: null,
         name: null,
         role: member.role,
+        source: "mcp",
         tokenId: "22222222-2222-2222-2222-222222222222",
         scopes: [...CMS_SCOPES],
       };
@@ -944,8 +976,76 @@ if (!hasTestDatabase()) {
         "id",
         "operation",
         "pageId",
+        "resourceId",
+        "resourceType",
         "result",
       ]);
+    });
+
+    it("lets an agent create and edit category copy, but not its slug", async () => {
+      const response = await call("create_category", {
+        section: "noticias",
+        label: "zz cms mcp categoria",
+        title: "Categoría creada por un agente",
+        description: "Categoría temporal para probar el transporte MCP.",
+      });
+      expect(resultOf(response).isError).toBe(false);
+      const category = resultOf(response).structuredContent as {
+        id: string;
+        key: string;
+        slug: string;
+        lockVersion: number;
+      };
+      expect(category).toMatchObject({
+        key: "zz-cms-mcp-categoria",
+        slug: "zz-cms-mcp-categoria",
+      });
+
+      const updated = await call("update_category", {
+        id: category.id,
+        expectedLockVersion: category.lockVersion,
+        patch: { label: "Categoría editada por un agente" },
+      });
+      expect(resultOf(updated).structuredContent).toMatchObject({
+        id: category.id,
+        slug: "zz-cms-mcp-categoria",
+        label: "Categoría editada por un agente",
+      });
+
+      const listed = resultOf(
+        await call("list_categories", { section: "noticias" }),
+      );
+      expect(JSON.parse(listed.content[0].text)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: category.id,
+            slug: "zz-cms-mcp-categoria",
+          }),
+        ]),
+      );
+    });
+
+    it("attributes category mutations without treating the category id as a page id", async () => {
+      const category = resultOf(
+        await call("create_category", {
+          section: "noticias",
+          label: "zz cms mcp audit",
+          title: "Categoría temporal de auditoría",
+          description: "Categoría temporal para verificar la auditoría MCP.",
+        }),
+      ).structuredContent as { id: string };
+
+      const rows = (await auditTrail()).filter(
+        (row) => row.resourceId === category.id,
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        pageId: null,
+        resourceType: "category",
+        resourceId: category.id,
+        operation: "create_category",
+        result: "ok",
+      });
     });
 
     it("audits a failed mutation too", async () => {

@@ -222,8 +222,9 @@ for a field to set.
 ```
 
 - `keywords` — 3–6 real Spanish search phrases, lowercase.
-- `categories` — 1–3 ids from the table below, **most important first**. The
-  first is the primary: it decides the grouping on `/guias` and the breadcrumb.
+- `categories` — 1–3 keys from the section's CMS categories, **most important
+  first**. The first is the primary: it decides the grouping on the section
+  index and the breadcrumb.
 - `vendor` — only when the guide is about one company's bill. Names the social
   card's eyebrow and the JSON-LD `about`.
 - `ogImage` — steers the two text slots on the generated social card.
@@ -232,8 +233,11 @@ for a field to set.
 - Unknown keys are rejected. The schema is `.strict()` on purpose: a renamed
   field would otherwise become data nothing reads.
 
-**The category ids** (the canonical list is
-[`categories.ts`](./guias/categories.ts) — don't invent one):
+**The guide category keys below are examples, not a registry.** The canonical
+list lives in the CMS and can change without a deploy. Agents must call
+`list_categories` for the page's section before writing metadata; people can
+open **Categorías** from that section's CMS screen. Do not copy a key from
+another section: categories with the same name are independent records.
 
 | id                     | Use it for                                                            |
 | ---------------------- | --------------------------------------------------------------------- |
@@ -251,19 +255,18 @@ Two is the usual number: one for the _topic_, one for the _task_.
 
 ### `metadata` for `noticias`
 
-Noticias uses the same editorial metadata as a guide, but without guide
-categories or a vendor field. Use `keywords`, optional `faq`, the social-card
-copy and an optional `previewMediaId`. The index is chronological, newest
-publication first, and each article renders as `NewsArticle` structured data.
-Do not add a category merely to make the form look like Guías: it has no effect
-outside that section.
+Noticias uses the same editorial metadata as a guide, including 1–3
+section-owned categories, but without a vendor field. Use `keywords`, optional
+`faq`, the social-card copy and an optional `previewMediaId`. The index is
+chronological, newest publication first, and each article renders as
+`NewsArticle` structured data.
 
 ### `metadata` for `estadisticas` and `investigaciones`
 
 ```json
 {
   "keywords": ["…"],
-  "categories": [],
+  "categories": ["mercado-y-precios"],
   "faq": [{ "q": "…", "a": "…" }],
   "ogTitle": "…",
   "ogDescription": "…",
@@ -548,7 +551,7 @@ it unused.
 - [ ] `title` and `description` do not repeat another page's — if the overlap is
       real, `canonicalSlug` one at the other instead.
 - [ ] `description` reads like a search result, ~150–160 chars.
-- [ ] 3–6 realistic `keywords`; for guides, 1–3 `categories`, primary first.
+- [ ] 3–6 realistic `keywords`; 1–3 section-owned `categories`, primary first.
 - [ ] At least one internal link to another article, `/docs` or `/demo`.
 - [ ] `cta` is a hook for this page, one line, ≤54 chars.
 - [ ] `<ClosingCta />` present with its own `title` and copy; `<RelatedGuides />`

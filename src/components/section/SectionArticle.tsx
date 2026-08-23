@@ -6,6 +6,7 @@ import { Faq } from "@/components/article/Faq";
 import { TocInline, TocSidebar } from "@/components/article/Toc";
 import { Fuentes } from "@/components/section/Fuentes";
 import { SectionList } from "@/components/section/SectionList";
+import { CategoryChips } from "@/components/guides/CategoryChips";
 import { AsideCta, TopCta } from "@/components/guides/cta";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -17,6 +18,7 @@ import { contentComponents } from "@/content-system/render/renderContent";
 import { mediaComponents } from "@/content-system/media/render";
 import { resolveMediaRef } from "@/content-system/media/repository";
 import { documentHeadings, documentStats } from "@/content-system/document";
+import { categoriesByKeys } from "@/content-system/repository/categories";
 
 // One page of a registry section, at any depth: /estadisticas/delitos-caba,
 // /investigaciones/barrios-seguros-baratos-caba, and
@@ -52,12 +54,13 @@ export async function SectionArticle({
   }
 
   const { Content, meta, document } = page;
-  const [crumbs, children, media] = await Promise.all([
+  const [crumbs, children, media, categories] = await Promise.all([
     section.crumbs(slug),
     section.children(slug),
     // Resolved from the body in one query before this renders, so an article's
     // cost does not scale with how many images it has.
     mediaComponents(document!.body),
+    categoriesByKeys(document!.section, document!.metadata.categories),
   ]);
   const previewMedia = await resolveMediaRef(meta.previewMediaId);
   // Section content is database-backed. The stored document is the single
@@ -90,6 +93,14 @@ export async function SectionArticle({
               items={[
                 { name: "Inicio", href: "/" },
                 { name: section.label, href: section.base },
+                ...(categories[0]
+                  ? [
+                      {
+                        name: categories[0].label,
+                        href: `/${document!.section}/categoria/${categories[0].slug}`,
+                      },
+                    ]
+                  : []),
                 ...crumbs,
               ]}
             />
@@ -129,6 +140,12 @@ export async function SectionArticle({
                 )}
                 <span>{minutes} min de lectura</span>
               </p>
+              <CategoryChips
+                categories={categories}
+                section={document!.section}
+                label={`Temas de ${section.label.toLowerCase()}`}
+                className="mt-5"
+              />
             </header>
 
             <TopCta>{meta.cta}</TopCta>

@@ -118,6 +118,9 @@ describe("cms_page access", () => {
     // image". Reads only, and through the same store discipline: no route or
     // component queries it directly.
     path.join("src", "cms", "media", "server", "store.ts"),
+    // Category usage is a read-only join that answers whether a category may
+    // be retired; all callers still go through the category store/service.
+    path.join("src", "cms", "categories", "server", "store.ts"),
     path.join("src", "content-system", "adapters", "database.ts"),
     // The schema defines the table; the seed and test helpers may reference it.
     path.join("src", "db", "schema.ts"),
@@ -179,6 +182,7 @@ describe("cms_page_revision access", () => {
     // group usage by page and to re-derive it from every retained copy.
     path.join("src", "cms", "media", "server", "store.ts"),
     path.join("src", "cms", "media", "server", "usage.ts"),
+    path.join("src", "cms", "categories", "server", "store.ts"),
     path.join("src", "db", "schema.ts"),
   ];
 

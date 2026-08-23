@@ -142,26 +142,6 @@ const nextConfig: NextConfig = {
         destination: "/estadisticas/inflacion-de-vivienda",
         permanent: true,
       },
-      // Four guide categories were renamed to widen what they cover (see
-      // `src/content/guias/categories.ts`). The id doubles as the URL slug, so
-      // each rename retired a /guias/categoria/… address. The section is young
-      // enough that these were barely indexed, but a category page is exactly
-      // the kind of URL an external link points at, and a 308 costs nothing.
-      //
-      // Same reasoning as the two rules above for living here rather than in
-      // `proxy.ts`: config redirects run before the proxy rewrites the path
-      // into the /es tree, so these match the bare address readers actually
-      // have.
-      ...[
-        ["leer-facturas", "facturas-y-conceptos"],
-        ["inflacion", "mercado-y-precios"],
-        ["ahorro-y-control", "finanzas"],
-        ["pagos-y-tramites", "tramites-y-gestiones"],
-      ].map(([from, to]) => ({
-        source: `/guias/categoria/${from}`,
-        destination: `/guias/categoria/${to}`,
-        permanent: true,
-      })),
     ];
   },
   async rewrites() {

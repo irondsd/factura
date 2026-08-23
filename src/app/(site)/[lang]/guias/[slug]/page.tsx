@@ -4,7 +4,7 @@ import { ContentArticle } from "@/components/article/ContentArticle";
 import { Faq } from "@/components/article/Faq";
 import { RelatedGuides } from "@/components/guides/RelatedGuides";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { getCategory } from "@/content/guias/categories";
+import { categoriesByKeys } from "@/content-system/repository/categories";
 import { documentHeadings, documentStats } from "@/content-system/document";
 import { contentPageMetadata } from "@/content-system/metadata/page";
 import {
@@ -53,14 +53,12 @@ export default async function GuidePage({ params }: Props) {
     notFound();
   }
 
-  const [Content, related, media] = await Promise.all([
+  const [Content, related, media, categories] = await Promise.all([
     compileContent(guide.body, guide.section),
     relatedGuides(guide),
     mediaComponents(guide.body),
+    categoriesByKeys("guias", guide.metadata.categories),
   ]);
-  const categories = guide.metadata.categories
-    .map(getCategory)
-    .filter((category) => category !== undefined);
   const { words, minutes } = documentStats(guide);
   const faq = guide.metadata.faq ?? [];
 

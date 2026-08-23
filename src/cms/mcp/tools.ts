@@ -5,6 +5,7 @@ import { guideMetadataSchema } from "@/content-system/metadata/guias";
 import { sectionMetadataSchema } from "@/content-system/metadata/sections";
 import { cmsContentService } from "@/cms/server/service";
 import { cmsMediaService } from "@/cms/media/server/service";
+import { cmsCategoryService } from "@/cms/categories/server/service";
 import { hasScope, type CmsTokenCaller, type CmsScope } from "./tokens";
 
 const section = z.string().refine(isContentSection, "Unknown content section.");
@@ -94,6 +95,79 @@ export const CMS_TOOLS: Tool[] = [
     schema: z.object({ id: z.string().uuid() }),
     run: (a, input) =>
       cmsContentService.getState(a, (input as { id: string }).id),
+  },
+  {
+    name: "list_categories",
+    scope: "cms:read",
+    description:
+      "List the active categories for one section, including their immutable metadata key, public slug, usage count and lock version.",
+    annotations: readOnly("Listar categorías"),
+    schema: z.object({ section }).strict(),
+    run: (a, input) =>
+      cmsCategoryService.list(
+        a,
+        (input as { section: Parameters<typeof cmsCategoryService.list>[1] })
+          .section,
+      ),
+  },
+  {
+    name: "get_category",
+    scope: "cms:read",
+    description:
+      "Get one category with its usage, redirect history and current lock version.",
+    annotations: readOnly("Ver una categoría"),
+    schema: z.object({ id: z.uuid() }).strict(),
+    run: (a, input) => cmsCategoryService.get(a, (input as { id: string }).id),
+  },
+  {
+    name: "create_category",
+    scope: "cms:write",
+    description:
+      "Create a section-scoped category. The server derives its immutable key and public slug from the label; agents cannot choose either. Category settings are live immediately, although an unused category has no public hub.",
+    annotations: writes("Crear una categoría"),
+    schema: z
+      .object({
+        section,
+        label: z.string(),
+        title: z.string(),
+        description: z.string(),
+        sortOrder: z.number().int().optional(),
+      })
+      .strict(),
+    run: (a, input) =>
+      cmsCategoryService.create(
+        a,
+        input as Parameters<typeof cmsCategoryService.create>[1],
+      ),
+  },
+  {
+    name: "update_category",
+    scope: "cms:write",
+    description:
+      "Edit a category's label, hub title, description or order. Changes are live immediately. The key and public slug cannot be changed by an agent; a human must change the address in /cms.",
+    annotations: writes("Editar una categoría"),
+    schema: z
+      .object({
+        id: z.uuid(),
+        expectedLockVersion: z.number().int().positive(),
+        patch: z
+          .object({
+            label: z.string().optional(),
+            title: z.string().optional(),
+            description: z.string().optional(),
+            sortOrder: z.number().int().optional(),
+          })
+          .strict()
+          .refine((value) => Object.keys(value).length > 0, {
+            message: "At least one editable field is required.",
+          }),
+      })
+      .strict(),
+    run: (a, input) =>
+      cmsCategoryService.update(
+        a,
+        input as Parameters<typeof cmsCategoryService.update>[1],
+      ),
   },
   {
     name: "create_content",

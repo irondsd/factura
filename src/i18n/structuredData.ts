@@ -2,6 +2,7 @@ import "server-only";
 import { dataLicense, githubUrl, siteUrl } from "@/config/urls";
 import type { Locale } from "./config";
 import {
+  contentCategoryUrl,
   guideCardUrl,
   guideCategoryUrl,
   guidesIndexUrl,
@@ -12,6 +13,7 @@ import {
   sectionIndexUrl,
   sectionUrl,
 } from "./metadata";
+import type { ContentSection } from "@/content-system/types";
 
 // schema.org structured data (JSON-LD) for the public landing. Builders return
 // plain objects rendered through <JsonLd>. Stable @ids let the graphs reference
@@ -541,6 +543,44 @@ export function guideCategoryLd({
         position: i + 1,
         name: g.title,
         url: guideUrl(g.slug),
+      })),
+    },
+  };
+}
+
+/** CollectionPage for a section-scoped category hub. */
+export function contentCategoryLd({
+  section,
+  slug,
+  title,
+  description,
+  pages,
+}: {
+  section: ContentSection;
+  slug: string;
+  title: string;
+  description: string;
+  pages: { slug: string; title: string }[];
+}) {
+  const url = contentCategoryUrl(section, slug);
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": `${url}#collection`,
+    url,
+    name: title,
+    description,
+    inLanguage: "es",
+    isPartOf: { "@id": `${sectionIndexUrl(section)}#collection` },
+    publisher: { "@id": ORG_ID },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: pages.length,
+      itemListElement: pages.map((page, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: page.title,
+        url: `${sectionIndexUrl(section)}/${page.slug}`,
       })),
     },
   };

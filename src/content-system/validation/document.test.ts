@@ -90,7 +90,7 @@ describe("statistics and research documents", () => {
     cta: "Compará tus gastos.",
     metadata: {
       keywords: ["alquileres caba"],
-      categories: [],
+      categories: ["alquileres"],
       sources: [
         {
           label: "IDECBA",
@@ -318,7 +318,19 @@ describe("keywords and categories", () => {
   });
 
   it("rejects an unknown category id", () => {
-    expect(codes(meta({ categories: ["inventada"] }))).toContain(
+    const result = validateDocument(
+      { ...base, ...meta({ categories: ["inventada"] }) },
+      index,
+      {
+        categories: new Set([
+          "servicios",
+          "facturas-y-conceptos",
+          "finanzas",
+          "impuestos",
+        ]),
+      },
+    );
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
       DOCUMENT_CODES.categoryUnknown,
     );
   });
