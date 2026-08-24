@@ -672,9 +672,12 @@ if (!hasTestDatabase()) {
     });
 
     it("refuses a create whose metadata is the wrong shape", async () => {
+      // A draft only needs metadata that can be read back safely. Category
+      // membership is checked at preview/publish, so an unknown *string* key
+      // is valid here; this fixture must actually violate the schema shape.
       const response = await call("create_content", {
         ...newPage("bad-meta"),
-        metadata: { keywords: ["x"], categories: ["no-such-category"] },
+        metadata: { keywords: ["x"], categories: "no-such-category" },
       });
       expect(resultOf(response).isError).toBe(true);
     });
