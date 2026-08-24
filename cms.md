@@ -2,7 +2,7 @@
 
 A private, database-backed publishing console for `factura.uno`, with a separate
 MCP endpoint so agents can do the same work. It is in production: `/guias`,
-`/estadisticas` and `/investigaciones` are served from PostgreSQL, edited at
+`/noticias`, `/estadisticas` and `/investigaciones` are served from PostgreSQL, edited at
 `/cms`, and illustrated from the media library at `/cms/media`. There are no
 `.mdx` sources on disk any more, and no filesystem fallback behind the database.
 
@@ -34,7 +34,7 @@ Rules that are tested (`src/cms/boundaries.test.ts`), not merely intended:
 - Route files hold no rules. Both transports call the same
   `CmsContentService` — the MCP is a second caller, never a second
   implementation.
-- Only `src/cms/server/store.ts` and
+- Only the page/content stores, the category-usage store and
   `src/content-system/repository/postgres.ts` query `cms_page`; only
   `src/cms/server/revisionStore.ts` writes revisions.
 - New tables carry a `cms_` prefix.
@@ -173,8 +173,16 @@ never silently stripped — it is refused with a line/column error.
 **The component manifest** (`src/content-system/components`) is the single
 source of truth for which components exist, which sections may use them, what
 their props are, and whether they take children. Rules are split from bindings
-so validators need no React. A new component or category id is unusable until it
-is deployed — the MCP validates against the running production code.
+so validators need no React. A new component is unusable until it is deployed.
+
+**Categories are section-owned CMS records.** Their immutable `key` is stored
+in page metadata; their editable `slug` is only the public address. The same key
+can therefore exist independently in every section. Category copy and order can
+be created or edited by a person or MCP agent. Changing a category slug creates
+a one-hop permanent redirect, and both that operation and category deletion are
+browser-only. Deletion retires the record and is refused while any current
+working, preview or published revision uses its key. Validators resolve the
+active keys from PostgreSQL for the page's own section.
 
 **Metadata is data, never a `meta` export in the body.** Identity and commonly
 queried values are columns; the rest is JSONB validated by one Zod schema per

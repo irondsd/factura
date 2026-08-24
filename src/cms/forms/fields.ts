@@ -1,4 +1,4 @@
-import { CATEGORIES } from "@/content/guias/categories";
+import type { ContentCategory } from "@/content-system/categories/types";
 import type { ContentSection } from "@/content-system/types";
 
 // The metadata form, described as data.
@@ -152,10 +152,6 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     kind: "multiselect",
     required: true,
     group: "busqueda",
-    options: CATEGORIES.map((category) => ({
-      value: category.id,
-      label: category.label,
-    })),
     help: "De 1 a 3. La primera decide en qué grupo aparece en el índice y qué miga muestra.",
   },
   {
@@ -240,11 +236,10 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
 // credibility comes from a named dataset and links to the primary sources.
 // Keep those values as regular form fields: an editor should never have to
 // understand the JSONB representation to publish a data page.
-// Noticias has the same article fields as a guide but no guide taxonomy or
+// Noticias has the same article fields as a guide, except for the
 // vendor-specific structured-data field.
 const NEWS_FIELDS = GUIDE_FIELDS.filter(
-  (field) =>
-    field.path !== "metadata.categories" && field.path !== "metadata.vendor",
+  (field) => field.path !== "metadata.vendor",
 );
 
 const DATA_FIELDS: readonly FieldDescriptor[] = [
@@ -304,6 +299,14 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
     required: true,
     group: "busqueda",
     help: "Términos por los que esta página debe poder encontrarse.",
+  },
+  {
+    path: "metadata.categories",
+    label: "Categorías",
+    kind: "multiselect",
+    required: true,
+    group: "busqueda",
+    help: "De 1 a 3. La primera es la categoría principal de esta página.",
   },
   {
     path: "canonicalSlug",
@@ -401,8 +404,19 @@ const FIELDS: Partial<Record<ContentSection, readonly FieldDescriptor[]>> = {
 
 export function sectionFields(
   section: ContentSection,
+  categories: readonly Pick<ContentCategory, "key" | "label">[] = [],
 ): readonly FieldDescriptor[] {
-  return FIELDS[section] ?? [];
+  return (FIELDS[section] ?? []).map((field) =>
+    field.path === "metadata.categories"
+      ? {
+          ...field,
+          options: categories.map((category) => ({
+            value: category.key,
+            label: category.label,
+          })),
+        }
+      : field,
+  );
 }
 
 export const FIELD_GROUPS: readonly {

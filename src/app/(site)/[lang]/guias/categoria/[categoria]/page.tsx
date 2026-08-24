@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { GuideList } from "@/components/guides/GuideList";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { getCategory } from "@/content/guias/categories";
+import {
+  categoryBySlug,
+  categoryRedirect,
+} from "@/content-system/repository/categories";
 import {
   guidesInCategory,
   nonEmptyCategories,
@@ -32,17 +35,17 @@ export const dynamicParams = true;
 export async function generateStaticParams() {
   // Only a warm-up list now: categories with guides at build time are
   // prerendered, and the rest render on demand.
-  return (await nonEmptyCategories()).map((c) => ({ categoria: c.id }));
+  return (await nonEmptyCategories()).map((c) => ({ categoria: c.slug }));
 }
 
 type Props = { params: Promise<{ categoria: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { categoria } = await params;
-  const category = getCategory(categoria);
+  const category = await categoryBySlug("guias", categoria);
   if (!category) return {};
   return guideCategoryMetadata({
-    id: category.id,
+    id: category.slug,
     title: category.title,
     description: category.description,
   });
@@ -50,10 +53,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function GuideCategoryPage({ params }: Props) {
   const { categoria } = await params;
-  const category = getCategory(categoria);
-  if (!category) notFound();
+  const category = await categoryBySlug("guias", categoria);
+  if (!category) {
+    const moved = await categoryRedirect("guias", categoria);
+    if (moved) permanentRedirect(`/guias/categoria/${moved.slug}`);
+    notFound();
+  }
 
-  const guides = await guidesInCategory(category.id);
+  const guides = await guidesInCategory(category.key);
   // An empty hub is a thin page for Google and a dead end for readers, so it
   // 404s rather than rendering — the rule `generateStaticParams` used to
   // enforce by omission. Asked after the repository read on purpose: that read
@@ -65,7 +72,7 @@ export default async function GuideCategoryPage({ params }: Props) {
     <>
       <JsonLd
         data={guideCategoryLd({
-          id: category.id,
+          id: category.slug,
           title: category.title,
           description: category.description,
           guides: guides.map((g) => ({ slug: g.slug, title: g.title })),
@@ -78,7 +85,10 @@ export default async function GuideCategoryPage({ params }: Props) {
           items={[
             { name: "Inicio", href: "/" },
             { name: "Guías", href: "/guias" },
-            { name: category.label, href: `/guias/categoria/${category.id}` },
+            {
+              name: category.label,
+              href: `/guias/categoria/${category.slug}`,
+            },
           ]}
         />
 

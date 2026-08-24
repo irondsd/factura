@@ -4,6 +4,7 @@ import { siteUrl } from "@/config/urls";
 import { UNPUBLISHED_ROBOTS } from "@/content-system/repository/visibility";
 import { buildMetadata } from "@/lib/seo";
 import type { Locale } from "./config";
+import type { ContentSection } from "@/content-system/types";
 
 // Per-page SEO metadata: the URL layer. These are thin wrappers that work out
 // which absolute URLs a page has, then hand off to `buildMetadata`
@@ -56,8 +57,13 @@ export const guideUrl = (slug: string): string => `${siteUrl}/guias/${slug}`;
 
 /** Absolute canonical URL for a category hub. `/categoria/` keeps these under
  * a static segment so they never collide with a guide slug. */
-export const guideCategoryUrl = (id: string): string =>
-  `${siteUrl}/guias/categoria/${id}`;
+export const contentCategoryUrl = (
+  section: ContentSection,
+  slug: string,
+): string => `${siteUrl}/${section}/categoria/${slug}`;
+
+export const guideCategoryUrl = (slug: string): string =>
+  contentCategoryUrl("guias", slug);
 
 /** The guide's generated social card (see the route for why it isn't the
  * `opengraph-image` file convention).
@@ -111,6 +117,20 @@ export function guideCategoryMetadata({
   description: string;
 }): Metadata {
   return listingMetadata(guideCategoryUrl(id), title, description);
+}
+
+export function contentCategoryMetadata({
+  section,
+  slug,
+  title,
+  description,
+}: {
+  section: ContentSection;
+  slug: string;
+  title: string;
+  description: string;
+}): Metadata {
+  return listingMetadata(contentCategoryUrl(section, slug), title, description);
 }
 
 // ── Normativa (Spanish-only) ──────────────────────────────────────────────

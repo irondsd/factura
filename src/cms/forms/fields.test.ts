@@ -23,6 +23,7 @@ describe("toPatch", () => {
     // one the hierarchy check still validated against.
     for (const section of [
       "guias",
+      "noticias",
       "estadisticas",
       "investigaciones",
     ] as const) {
@@ -42,6 +43,7 @@ describe("toPatch", () => {
     // test above pass by having nothing to skip.
     for (const section of [
       "guias",
+      "noticias",
       "estadisticas",
       "investigaciones",
     ] as const) {
@@ -49,6 +51,35 @@ describe("toPatch", () => {
         (field) => field.path === "slug",
       );
       expect(slug?.readOnly).toBe(true);
+    }
+  });
+});
+
+describe("category fields", () => {
+  it("offers the active categories supplied by the section store", () => {
+    const category = sectionFields("estadisticas", [
+      { key: "mercado-y-precios", label: "Mercado y precios" },
+      { key: "alquileres", label: "Alquileres" },
+    ]).find((field) => field.path === "metadata.categories");
+
+    expect(category?.options).toEqual([
+      { value: "mercado-y-precios", label: "Mercado y precios" },
+      { value: "alquileres", label: "Alquileres" },
+    ]);
+  });
+
+  it("shows categories in every authored section", () => {
+    for (const section of [
+      "guias",
+      "noticias",
+      "estadisticas",
+      "investigaciones",
+    ] as const) {
+      expect(
+        sectionFields(section).some(
+          (field) => field.path === "metadata.categories",
+        ),
+      ).toBe(true);
     }
   });
 });

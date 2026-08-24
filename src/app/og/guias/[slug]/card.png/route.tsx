@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ImageResponse } from "next/og";
-import { getCategory } from "@/content/guias/categories";
+import { categoryByKey } from "@/content-system/repository/categories";
 import {
   publicGuideBySlug,
   publiclyRenderableGuides,
@@ -67,14 +67,14 @@ export async function GET(
   const guide = await publicGuideBySlug(slug);
   if (!guide) return new Response("Not found", { status: 404 });
 
-  const [fraunces, plexMono] = await Promise.all([
+  const [fraunces, plexMono, category] = await Promise.all([
     loadFont("Fraunces-SemiBold.ttf"),
     loadFont("IBMPlexMono-Medium.ttf"),
+    categoryByKey("guias", guide.metadata.categories[0] ?? ""),
   ]);
 
   // "GUÍA · EDESUR" — the vendor when the guide is about one specific bill,
   // otherwise its primary category. An author can override the whole line.
-  const category = getCategory(guide.metadata.categories[0]);
   const eyebrow = (
     guide.metadata.ogImage?.eyebrow ??
     `Guía · ${guide.metadata.vendor ?? category?.label ?? ""}`

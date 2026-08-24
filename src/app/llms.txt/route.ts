@@ -4,7 +4,9 @@ import {
 } from "@/content-system/repository/guias";
 import { NORMAS } from "@/content/normativa/normas";
 import { SECTIONS } from "@/content/sections";
+import { nonEmptyContentCategories } from "@/content-system/repository/categories";
 import {
+  contentCategoryUrl,
   guideCategoryUrl,
   guidesIndexUrl,
   guideUrl,
@@ -123,6 +125,7 @@ export async function GET() {
       SECTIONS.map(async (section) => ({
         section,
         pages: await section.listed(),
+        categories: await nonEmptyContentCategories(section.id),
       })),
     ),
   ]);
@@ -137,7 +140,7 @@ export async function GET() {
     // primary category (same rule as the index) so each one is listed exactly
     // once, even though most carry more than one category.
     ...categories.map(
-      (c) => `- [${c.label}](${guideCategoryUrl(c.id)}): ${c.description}`,
+      (c) => `- [${c.label}](${guideCategoryUrl(c.slug)}): ${c.description}`,
     ),
     ...guideSections.flatMap(({ category, guides }) => [
       "",
@@ -148,7 +151,7 @@ export async function GET() {
   ].join("\n");
 
   const dataSections = sections
-    .map(({ section, pages }) => {
+    .map(({ section, pages, categories }) => {
       const copy = SECTION_LLMS[section.id];
       if (!copy) {
         throw new Error(
@@ -161,6 +164,10 @@ export async function GET() {
         copy.blurb,
         "",
         `- [${copy.heading} index](${sectionIndexUrl(section.id)}): ${copy.index}`,
+        ...categories.map(
+          (category) =>
+            `- [${category.label}](${contentCategoryUrl(section.id, category.slug)}): ${category.description}`,
+        ),
         ...pages.map(
           (p) =>
             `- [${p.meta.title}](${sectionUrl(section.id, p.slug)}): ${p.meta.summary}`,

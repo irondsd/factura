@@ -2,9 +2,11 @@ import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { ClosingCta } from "@/components/guides/cta";
 import { SHELL } from "@/components/landing/parts";
 import { SectionList } from "@/components/section/SectionList";
+import { CategoryChips } from "@/components/guides/CategoryChips";
 import { JsonLd } from "@/components/seo/JsonLd";
 import type { ContentSection } from "@/content/section";
 import { sectionIndexLd } from "@/i18n/structuredData";
+import { nonEmptyContentCategories } from "@/content-system/repository/categories";
 
 // A section index — /estadisticas and /investigaciones. Spanish-only, so the copy
 // each route passes in is written in Spanish rather than looked up: the sections
@@ -34,7 +36,10 @@ export async function SectionIndex({
    * one writes it. */
   closing: { title: string; body: React.ReactNode };
 }) {
-  const pages = await section.children([]);
+  const [pages, categories] = await Promise.all([
+    section.children([]),
+    nonEmptyContentCategories(section.id),
+  ]);
 
   return (
     <>
@@ -64,6 +69,13 @@ export async function SectionIndex({
             {intro}
           </p>
         </header>
+
+        <CategoryChips
+          categories={categories}
+          section={section.id}
+          label={`Temas de ${section.label.toLowerCase()}`}
+          className="mt-8"
+        />
 
         <div className="mt-12 border-t border-line">
           <SectionList section={section} pages={pages} />

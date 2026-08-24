@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { CATEGORY_IDS } from "@/content/guias/categories";
 import { CHART_IDS } from "@/content/guias/data/inflacion";
 
 // The one guide metadata schema. cms.md requires a single definition
@@ -97,7 +96,9 @@ export const guideMetadataSchema = z
     // cms.md says a draft may be incomplete. A `min(1)` here would make a
     // new draft unreadable the moment it was written.
     keywords: z.array(filled).default([]),
-    categories: z.array(z.enum(CATEGORY_IDS)).default([]),
+    // Category membership is section-owned database data. Shape belongs here;
+    // existence and active status are resolved by the document validator.
+    categories: z.array(filled).default([]),
     /** Answers are plain text on purpose: the same list renders the visible
      * block and the FAQPage JSON-LD, so a link in an answer would put markup in
      * the structured data. Links belong in the prose. */

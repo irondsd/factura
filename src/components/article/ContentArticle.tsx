@@ -7,7 +7,8 @@ import { CategoryChips } from "@/components/guides/CategoryChips";
 import { TopCta } from "@/components/guides/cta";
 import { TocInline, TocSidebar } from "@/components/article/Toc";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
-import type { Category } from "@/content/guias/categories";
+import type { ContentCategory } from "@/content-system/categories/types";
+import type { ContentSection } from "@/content-system/types";
 import type { Heading } from "@/content/headings";
 import { formatContentDateTime } from "@/lib/content-date";
 
@@ -37,9 +38,10 @@ export type ContentArticleProps = {
   cta: string;
   /** Optional 16:9 illustration from the media library. */
   previewMedia?: MediaRef | null;
-  categories?: readonly Category[];
+  categories?: readonly ContentCategory[];
   /** Guides are the default; Noticias reuses this shell without its taxonomy. */
   section?: {
+    id: ContentSection;
     label: string;
     singular: string;
     href: string;
@@ -67,6 +69,7 @@ export function ContentArticle({
   previewMedia,
   categories = [],
   section = {
+    id: "guias",
     label: "Guías",
     singular: "Guía",
     href: "/guias",
@@ -103,7 +106,7 @@ export function ContentArticle({
                   ? [
                       {
                         name: primary.label,
-                        href: `/guias/categoria/${primary.id}`,
+                        href: `/${section.id}/categoria/${primary.slug}`,
                       },
                     ]
                   : []),
@@ -152,8 +155,9 @@ export function ContentArticle({
               </p>
               {categories.length > 0 && (
                 <CategoryChips
-                  categories={categories as Category[]}
-                  label="Temas de esta guía"
+                  categories={categories}
+                  section={section.id}
+                  label={`Temas de esta ${section.singular.toLowerCase()}`}
                   className="mt-5"
                 />
               )}

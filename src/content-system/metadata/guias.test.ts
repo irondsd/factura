@@ -77,11 +77,14 @@ describe("guideMetadataSchema", () => {
     expect(guideMetadataSchema.safeParse({}).success).toBe(true);
   });
 
-  it("rejects an unknown category id", () => {
+  it("accepts a nonblank category key structurally", () => {
+    // Category existence is section-scoped database state. The pure metadata
+    // schema checks shape; the document validator receives the active keys
+    // from the CMS before previewing or publishing.
     expect(
       guideMetadataSchema.safeParse({ ...valid, categories: ["inventada"] })
         .success,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("rejects duplicate categories", () => {

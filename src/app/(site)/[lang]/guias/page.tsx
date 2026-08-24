@@ -99,7 +99,7 @@ export default async function GuiasIndexPage() {
                   category lead with a different one. */}
               {total > Math.min(shown.length, PER_SECTION) && (
                 <Button
-                  href={`/guias/categoria/${category.id}`}
+                  href={`/guias/categoria/${category.slug}`}
                   variant="invert"
                   size="lg"
                   // Visible label leaves the category name out — the section

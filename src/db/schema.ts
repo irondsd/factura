@@ -1288,6 +1288,79 @@ export const cmsPageRedirects = pgTable(
   ],
 );
 
+/** One category in one content section.
+ *
+ * `key` is the immutable value stored in page-revision metadata; `slug` is the
+ * editable public address. Keeping them separate is what lets a category move
+ * without rewriting immutable page history. The same key may exist once in
+ * every section — «mercado-y-precios» in guides and statistics is two records,
+ * with independent copy, order and URL history. */
+export const cmsCategories = pgTable(
+  "cms_category",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    section: text("section").notNull(),
+    key: text("key").notNull(),
+    slug: text("slug").notNull(),
+    label: text("label").notNull(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    lockVersion: integer("lock_version").notNull().default(1),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: uuid("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    /** A browser deletion retires rather than erases. Historical revisions can
+     * still name the immutable key, while active reads and selectors omit it. */
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
+    retiredBy: uuid("retired_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("cms_category_section_key_idx").on(t.section, t.key),
+    uniqueIndex("cms_category_section_slug_idx").on(t.section, t.slug),
+    index("cms_category_section_order_idx").on(
+      t.section,
+      t.retiredAt,
+      t.sortOrder,
+    ),
+  ],
+);
+
+/** A category address that moved. The target is the category record rather
+ * than another path, so repeated renames always resolve in one hop. */
+export const cmsCategoryRedirects = pgTable(
+  "cms_category_redirect",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    section: text("section").notNull(),
+    fromSlug: text("from_slug").notNull(),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => cmsCategories.id, { onDelete: "cascade" }),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("cms_category_redirect_from_idx").on(t.section, t.fromSlug),
+    index("cms_category_redirect_category_idx").on(t.categoryId),
+  ],
+);
+
 /** A CMS-scoped bearer token for an agent. Unlike ordinary Factura API tokens,
  * this can never read bills and is invalid the instant its owner loses CMS
  * membership. The cleartext value exists only at creation time. */
@@ -1324,6 +1397,10 @@ export const cmsAuditLogs = pgTable(
     pageId: uuid("page_id").references(() => cmsPages.id, {
       onDelete: "set null",
     }),
+    /** Non-page mutations, currently categories. Kept as text rather than a
+     * foreign key so retiring the resource never erases its audit trail. */
+    resourceType: text("resource_type"),
+    resourceId: uuid("resource_id"),
     operation: text("operation").notNull(),
     result: text("result").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })

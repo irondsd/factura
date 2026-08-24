@@ -10,6 +10,7 @@ import { cmsSectionPath, findEditableSection } from "@/cms/sections";
 import { loadPageHistory } from "@/cms/server/pageHistory";
 import { cmsContentService } from "@/cms/server/service";
 import { cmsPageStore } from "@/cms/server/store";
+import { cmsCategoryService } from "@/cms/categories/server/service";
 
 // The editor for one page.
 export const dynamic = "force-dynamic";
@@ -54,15 +55,17 @@ export default async function CmsEditPage({ params }: Props) {
   // store read: which copy exists and what it means is a lifecycle question,
   // and a route that answered it itself would be a second implementation of
   // the rule (cms.md).
-  const [siblings, history, state, versions, redirects] = await Promise.all([
-    cmsPageStore.list({ section: section.id }),
-    loadPageHistory(page),
-    cmsContentService.getState(actor, id),
-    cmsContentService.listVersions(actor, id),
-    // Old addresses that still answer for this page. Read here so «Dirección»
-    // can show them without the editor asking for them after every rename.
-    cmsPageStore.redirectsForPage(id),
-  ]);
+  const [siblings, history, state, versions, redirects, categories] =
+    await Promise.all([
+      cmsPageStore.list({ section: section.id }),
+      loadPageHistory(page),
+      cmsContentService.getState(actor, id),
+      cmsContentService.listVersions(actor, id),
+      // Old addresses that still answer for this page. Read here so «Dirección»
+      // can show them without the editor asking for them after every rename.
+      cmsPageStore.redirectsForPage(id),
+      cmsCategoryService.list(actor, section.id),
+    ]);
   // Pages whose path hangs off this one's, and which a rename therefore moves
   // too. The prefix is the whole rule (`planRename`), asked once here so the
   // panel can say how many pages a rename is about to touch.
@@ -91,7 +94,7 @@ export default async function CmsEditPage({ params }: Props) {
         section={section}
         page={page}
         state={state}
-        fields={sectionFields(section.id)}
+        fields={sectionFields(section.id, categories)}
         parentOptions={parentOptions}
         redirects={redirects}
         descendants={descendants}

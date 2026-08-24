@@ -7,7 +7,7 @@ import { ContentArticle } from "@/components/article/ContentArticle";
 import { Faq } from "@/components/article/Faq";
 import { RelatedGuides } from "@/components/guides/RelatedGuides";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { getCategory } from "@/content/guias/categories";
+import { cmsCategoryStore } from "@/cms/categories/server/store";
 import {
   documentHeadings,
   documentStats,
@@ -108,8 +108,13 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
   ).filter((candidate) => candidate.id !== page.id);
   const related = relatedDocuments(page, published);
 
+  const categoryMap = new Map(
+    (await cmsCategoryStore.list(page.section, { includeRetired: true })).map(
+      (category) => [category.key, category],
+    ),
+  );
   const categories = (page.metadata.categories ?? [])
-    .map(getCategory)
+    .map((key) => categoryMap.get(key))
     .filter((category) => category !== undefined);
 
   const { words, minutes } = documentStats(page);
@@ -145,6 +150,14 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
       cta={page.cta}
       previewMedia={await resolveMediaRef(page.metadata.previewMediaId)}
       categories={categories}
+      section={{
+        id: page.section,
+        label: section.label,
+        singular: section.id === "noticias" ? "Noticia" : section.label,
+        href: publicSectionPath(section.id),
+        tocLabel: "En esta página",
+        backLabel: `← ${section.label}`,
+      }}
       headings={headings}
       minutes={minutes}
       banner={

@@ -22,6 +22,20 @@ export class CmsConflictError extends Error {
   }
 }
 
+export class CmsCategoryConflictError extends Error {
+  readonly code = "conflict" as const;
+  constructor(
+    readonly categoryId: string,
+    readonly expectedLockVersion: number,
+    readonly actualLockVersion: number | null,
+  ) {
+    super(
+      `La categoría cambió desde que la cargaste (tienes la versión ${expectedLockVersion}; la base tiene ${actualLockVersion ?? "ninguna"}).`,
+    );
+    this.name = "CmsCategoryConflictError";
+  }
+}
+
 export class CmsNotFoundError extends Error {
   readonly code = "not_found" as const;
   constructor(what: string) {
@@ -78,6 +92,33 @@ export class CmsSlugTakenError extends Error {
   constructor(section: string, slug: string) {
     super(`Ya existe una página en /${section}/${slug}. Elige otra dirección.`);
     this.name = "CmsSlugTakenError";
+  }
+}
+
+export class CmsCategorySlugTakenError extends Error {
+  readonly code = "slug_taken" as const;
+  constructor(section: string, slug: string) {
+    super(
+      `Ya existe una categoría en /${section}/categoria/${slug}. Elige otra dirección.`,
+    );
+    this.name = "CmsCategorySlugTakenError";
+  }
+}
+
+export class CmsCategoryInUseError extends Error {
+  readonly code = "category_in_use" as const;
+  constructor(
+    readonly usage: {
+      id: string;
+      section: string;
+      slug: string;
+      title: string;
+    }[],
+  ) {
+    super(
+      `Esta categoría se usa en ${usage.length} página${usage.length === 1 ? "" : "s"}. Quítala de esas páginas antes de eliminarla.`,
+    );
+    this.name = "CmsCategoryInUseError";
   }
 }
 

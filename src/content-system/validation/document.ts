@@ -1,4 +1,3 @@
-import { CATEGORY_IDS, isCategoryId } from "@/content/guias/categories";
 import { z } from "zod";
 import { guideMetadataSchema } from "../metadata/guias";
 import {
@@ -119,6 +118,9 @@ export type DocumentValidationContext = {
    * would be worse than checking none. `src/cms/server/validation.ts` supplies
    * it. */
   media?: ReadonlyMap<string, { status: string; decorative: boolean }>;
+  /** Active category keys for this document's section. Resolved by the CMS
+   * adapter; omitted by pure callers that only want structural checks. */
+  categories?: ReadonlySet<string>;
 };
 
 const error = (code: string, message: string, field?: string): Diagnostic => ({
@@ -159,10 +161,10 @@ export function validateDocument(
   context: DocumentValidationContext = {},
 ): ValidationResult {
   if (document.section === "noticias") {
-    return validateNewsDocument(document);
+    return validateNewsDocument(document, context);
   }
   if (document.section !== "guias") {
-    return validateDataSectionDocument(document);
+    return validateDataSectionDocument(document, context);
   }
   const out: Diagnostic[] = [];
   const { slug, body } = document;
@@ -347,54 +349,7 @@ export function validateDocument(
     }
   }
 
-  // ── categories ────────────────────────────────────────────────────────────
-  // The schema already rejects unknown ids; this repeats the old script's
-  // message for the case where the schema failed for another reason and
-  // `metadata` is undefined, so the author still learns which id is wrong.
-  const rawCategories = raw.categories;
-  if (
-    !Array.isArray(rawCategories) ||
-    rawCategories.length === 0 ||
-    !rawCategories.every((c) => typeof c === "string")
-  ) {
-    out.push(
-      error(
-        DOCUMENT_CODES.metadataShape,
-        `meta.categories must be a non-empty array of ids (${CATEGORY_IDS.join(", ")})`,
-        "categories",
-      ),
-    );
-  } else {
-    for (const category of rawCategories) {
-      if (typeof category === "string" && !isCategoryId(category)) {
-        out.push(
-          error(
-            DOCUMENT_CODES.categoryUnknown,
-            `meta.categories has unknown id "${category}" — valid ids: ${CATEGORY_IDS.join(", ")}`,
-            "categories",
-          ),
-        );
-      }
-    }
-    if (new Set(rawCategories).size !== rawCategories.length) {
-      out.push(
-        error(
-          DOCUMENT_CODES.categoryUnknown,
-          "meta.categories has duplicate ids",
-          "categories",
-        ),
-      );
-    }
-    if (rawCategories.length > 3) {
-      out.push(
-        warn(
-          DOCUMENT_CODES.categoryCount,
-          `meta.categories has ${rawCategories.length} (aim for 1–3; the first is the primary)`,
-          "categories",
-        ),
-      );
-    }
-  }
+  out.push(...validateCategories(raw.categories, context));
 
   // ── faq ───────────────────────────────────────────────────────────────────
   const rawFaq = raw.faq;
@@ -521,15 +476,27 @@ export function validateDocument(
   return validationResult(out);
 }
 
-/** News is editorial like a guide, but has no guide-category taxonomy or data
- * provenance contract. It still gets the lifecycle, heading and FAQ guards. */
-function validateNewsDocument(document: ContentDocument): ValidationResult {
+/** News is editorial like a guide, with its own section-scoped taxonomy but no
+ * data provenance contract. It still gets the lifecycle, heading and FAQ guards. */
+function validateNewsDocument(
+  document: ContentDocument,
+  context: DocumentValidationContext,
+): ValidationResult {
   const out: Diagnostic[] = [];
   if (!SLUG_RE.test(document.slug)) {
     out.push(
       error(
         DOCUMENT_CODES.slugShape,
         `slug "${document.slug}" must be lowercase, hyphen-separated, no accents/spaces`,
+        "slug",
+      ),
+    );
+  }
+  if (document.slug === "categoria") {
+    out.push(
+      error(
+        DOCUMENT_CODES.slugReserved,
+        'slug "categoria" is reserved for category pages',
         "slug",
       ),
     );
@@ -546,6 +513,12 @@ function validateNewsDocument(document: ContentDocument): ValidationResult {
       );
     }
   }
+  out.push(
+    ...validateCategories(
+      (document.metadata as Record<string, unknown> | undefined)?.categories,
+      context,
+    ),
+  );
   if (document.publishedAt && !isValidDateTime(document.publishedAt)) {
     out.push(
       error(
@@ -690,10 +663,11 @@ function validateMedia(
   return out;
 }
 
-/** Statistics/research replace guide categories with dataset provenance while
- * retaining the same lifecycle, date, heading and FAQ placement safeguards. */
+/** Statistics/research add dataset provenance to the shared category,
+ * lifecycle, date, heading and FAQ placement safeguards. */
 function validateDataSectionDocument(
   document: ContentDocument,
+  context: DocumentValidationContext,
 ): ValidationResult {
   const out: Diagnostic[] = [];
   if (!document.slug.split("/").every((segment) => SLUG_RE.test(segment))) {
@@ -701,6 +675,15 @@ function validateDataSectionDocument(
       error(
         DOCUMENT_CODES.slugShape,
         `slug "${document.slug}" must contain lowercase, hyphen-separated path segments`,
+        "slug",
+      ),
+    );
+  }
+  if (document.slug.split("/")[0] === "categoria") {
+    out.push(
+      error(
+        DOCUMENT_CODES.slugReserved,
+        `slug "${document.slug}" starts with the reserved category route`,
         "slug",
       ),
     );
@@ -725,6 +708,7 @@ function validateDataSectionDocument(
     document.metadata && typeof document.metadata === "object"
       ? (document.metadata as Record<string, unknown>)
       : {};
+  out.push(...validateCategories(raw.categories, context));
 
   // Provenance is expected of a data page, but it is `<Fuentes />` that decides
   // whether it is *demanded*. The sources render there and nowhere else, so a
@@ -814,6 +798,62 @@ function validateDataSectionDocument(
       ),
     );
   return validationResult(out);
+}
+
+/** One taxonomy rule for every section. It runs only at preview/publish level
+ * because the validation pipeline never calls the document layer for drafts. */
+function validateCategories(
+  value: unknown,
+  context: DocumentValidationContext,
+): Diagnostic[] {
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    !value.every((category) => typeof category === "string")
+  ) {
+    return [
+      error(
+        DOCUMENT_CODES.metadataShape,
+        "meta.categories must contain 1–3 category keys",
+        "categories",
+      ),
+    ];
+  }
+
+  const categories = value as string[];
+  const out: Diagnostic[] = [];
+  if (new Set(categories).size !== categories.length) {
+    out.push(
+      error(
+        DOCUMENT_CODES.categoryUnknown,
+        "meta.categories has duplicate keys",
+        "categories",
+      ),
+    );
+  }
+  if (categories.length > 3) {
+    out.push(
+      error(
+        DOCUMENT_CODES.categoryCount,
+        `meta.categories has ${categories.length}; use 1–3 and put the primary first`,
+        "categories",
+      ),
+    );
+  }
+  if (context.categories) {
+    for (const category of categories) {
+      if (!context.categories.has(category)) {
+        out.push(
+          error(
+            DOCUMENT_CODES.categoryUnknown,
+            `meta.categories has unknown or retired key "${category}" for this section`,
+            "categories",
+          ),
+        );
+      }
+    }
+  }
+  return out;
 }
 
 function validateBody(

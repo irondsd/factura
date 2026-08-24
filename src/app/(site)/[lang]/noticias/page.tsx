@@ -6,6 +6,8 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { noticias } from "@/content/sections";
 import { sectionIndexMetadata } from "@/i18n/metadata";
 import { sectionIndexLd } from "@/i18n/structuredData";
+import { CategoryChips } from "@/components/guides/CategoryChips";
+import { nonEmptyContentCategories } from "@/content-system/repository/categories";
 
 const TITLE = "Noticias sobre facturas y costo de vida";
 const DESCRIPTION =
@@ -22,7 +24,10 @@ export function generateMetadata(): Metadata {
 }
 
 export default async function NoticiasIndexPage() {
-  const pages = await noticias.listed();
+  const [pages, categories] = await Promise.all([
+    noticias.listed(),
+    nonEmptyContentCategories("noticias"),
+  ]);
   return (
     <>
       <JsonLd
@@ -49,6 +54,12 @@ export default async function NoticiasIndexPage() {
             {INTRO}
           </p>
         </header>
+        <CategoryChips
+          categories={categories}
+          section="noticias"
+          label="Temas de las noticias"
+          className="mt-8"
+        />
         <div className="mt-12 mb-16 border-t border-line">
           <ContentList
             items={pages.map((page) => ({

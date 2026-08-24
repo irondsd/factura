@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { requireCmsMember } from "@/cms/auth/requireCmsMember";
 import { ContentList } from "@/cms/components/ContentList";
 import { CmsShell } from "@/cms/components/CmsShell";
+import { CategoryManager } from "@/cms/categories/components/CategoryManager";
+import { cmsCategoryService } from "@/cms/categories/server/service";
 import { ListFilters } from "@/cms/components/ListFilters";
 import { parseCmsListQuery } from "@/cms/listQuery";
 import { cmsPageMetadata } from "@/cms/metadata";
@@ -51,7 +53,10 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
 
   // Counts come from the unfiltered set so the tabs keep saying how many pages
   // are in each state while you are looking at one of them.
-  const all = await cmsPageStore.list({ section: section.id, search });
+  const [all, categories] = await Promise.all([
+    cmsPageStore.list({ section: section.id, search }),
+    cmsCategoryService.list(actor, section.id),
+  ]);
   const pages = status ? all.filter((page) => page.status === status) : all;
 
   const counts = Object.fromEntries(
@@ -75,13 +80,19 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
         {/* Filled, not outlined: the only control on this screen, and it sits a
             column away from the status labels. An outlined accent box was the
             same shape and the same hue as the «Publicada» chip. */}
-        <Link
-          href={cmsNewPath(section.id)}
-          className="inline-flex items-center gap-2 border border-ink bg-ink px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper no-underline transition-colors hover:border-accent hover:bg-accent"
-        >
-          <span aria-hidden="true">+</span>
-          Nueva página
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <CategoryManager
+            section={section.id}
+            initialCategories={categories}
+          />
+          <Link
+            href={cmsNewPath(section.id)}
+            className="inline-flex items-center gap-2 border border-ink bg-ink px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper no-underline transition-colors hover:border-accent hover:bg-accent"
+          >
+            <span aria-hidden="true">+</span>
+            Nueva página
+          </Link>
+        </div>
       </div>
       <p className="font-mono text-[13px] text-muted mb-8">
         Se publican en{" "}
