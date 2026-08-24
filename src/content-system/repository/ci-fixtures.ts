@@ -1,11 +1,87 @@
+import type { ContentCategory } from "../categories/types";
 import type { ContentDocument, ContentSection, ContentSummary } from "../types";
 import { type ContentRepository, pathToSlug } from "./contract";
 
 // A tiny, deterministic corpus for CI production builds. This is deliberately
 // not a snapshot of editorial data: publishing in the CMS must never create a
-// repository change. These three documents exercise the same public rendering
+// repository change. These four documents exercise the same public rendering
 // and discovery paths as production while remaining code-owned test fixtures.
 const DATE = "2026-01-15T12:00:00.000Z";
+
+/** One active category per CMS section keeps the category hubs and all of the
+ * discovery surfaces on the same no-database fixture path as the pages. The
+ * guide key is the real key already used by the guide fixture; the other
+ * sections share a deliberately obvious CI-only key. */
+export const CI_CONTENT_CATEGORIES: readonly ContentCategory[] = [
+  {
+    id: "00000000-0000-4000-8000-000000000011",
+    section: "guias",
+    key: "facturas-y-conceptos",
+    slug: "facturas-y-conceptos",
+    label: "Facturas y conceptos",
+    title: "Facturas y conceptos",
+    description:
+      "Categoría de ejemplo usada para comprobar las superficies de categorías durante el build de CI.",
+    sortOrder: 0,
+    lockVersion: 1,
+    createdBy: null,
+    updatedBy: null,
+    retiredAt: null,
+    createdAt: DATE,
+    updatedAt: DATE,
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000012",
+    section: "noticias",
+    key: "ci-ejemplo",
+    slug: "ci-ejemplo",
+    label: "Ejemplo CI",
+    title: "Categoría de noticias para CI",
+    description:
+      "Categoría determinista de noticias usada para comprobar las superficies de categorías durante el build.",
+    sortOrder: 0,
+    lockVersion: 1,
+    createdBy: null,
+    updatedBy: null,
+    retiredAt: null,
+    createdAt: DATE,
+    updatedAt: DATE,
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000013",
+    section: "estadisticas",
+    key: "ci-ejemplo",
+    slug: "ci-ejemplo",
+    label: "Ejemplo CI",
+    title: "Categoría de estadísticas para CI",
+    description:
+      "Categoría determinista de estadísticas usada para comprobar las superficies de categorías durante el build.",
+    sortOrder: 0,
+    lockVersion: 1,
+    createdBy: null,
+    updatedBy: null,
+    retiredAt: null,
+    createdAt: DATE,
+    updatedAt: DATE,
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000014",
+    section: "investigaciones",
+    key: "ci-ejemplo",
+    slug: "ci-ejemplo",
+    label: "Ejemplo CI",
+    title: "Categoría de investigaciones para CI",
+    description:
+      "Categoría determinista de investigaciones usada para comprobar las superficies de categorías durante el build.",
+    sortOrder: 0,
+    lockVersion: 1,
+    createdBy: null,
+    updatedBy: null,
+    retiredAt: null,
+    createdAt: DATE,
+    updatedAt: DATE,
+  },
+];
 
 export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
   {
@@ -52,7 +128,10 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
     parentId: null,
     sortOrder: 0,
     crumb: "Noticia CI",
-    metadata: { keywords: ["noticias", "prueba", "ci"], categories: [] },
+    metadata: {
+      keywords: ["noticias", "prueba", "ci"],
+      categories: ["ci-ejemplo"],
+    },
     publishedAt: DATE,
     contentUpdatedAt: DATE,
     createdAt: DATE,
@@ -79,7 +158,7 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
     crumb: "Estadística CI",
     metadata: {
       keywords: ["estadísticas", "prueba", "ci"],
-      categories: [],
+      categories: ["ci-ejemplo"],
       ogStat: "CI",
       sources: [{ label: "Fixture de CI", href: "https://factura.uno" }],
       dataset: {
@@ -117,7 +196,7 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
     crumb: "Investigación CI",
     metadata: {
       keywords: ["investigación", "prueba", "ci"],
-      categories: [],
+      categories: ["ci-ejemplo"],
       ogStat: "CI",
       sources: [{ label: "Fixture de CI", href: "https://factura.uno" }],
       dataset: {

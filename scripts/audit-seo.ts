@@ -11,7 +11,7 @@
  *
  * It starts `next start` against the existing production build, walks
  * `sitemap.xml`, and fails the run on repository-owned page errors. Normal runs
- * exclude CMS descendants; CI includes three code-owned fixture articles and
+ * exclude CMS descendants; CI includes four code-owned fixture articles and
  * verifies they reach the sitemap, feed and llms.txt. Production content
  * validation and content-level SEO belong to the CMS.
  *

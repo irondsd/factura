@@ -1,10 +1,10 @@
 import "server-only";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
-import { db } from "@/db";
 import { cmsCategories, cmsCategoryRedirects } from "@/db/schema";
 import type { ContentCategory } from "../categories/types";
 import type { ContentSection, ContentSummary } from "../types";
+import { CI_CONTENT_CATEGORIES } from "./ci-fixtures";
 import { publicContentRepository } from "./public";
 import { contentTag } from "./tags";
 
@@ -19,6 +19,15 @@ const mapCategory = (
 });
 
 async function readCategories(section: ContentSection) {
+  if (process.env.CI_CONTENT_FIXTURES === "1") {
+    return CI_CONTENT_CATEGORIES.filter(
+      (category) => category.section === section && category.retiredAt === null,
+    );
+  }
+
+  // Keep the PostgreSQL client out of CI fixture builds. The public content
+  // repository follows the same lazy boundary; categories must do so too.
+  const { db } = await import("@/db");
   const rows = await db
     .select()
     .from(cmsCategories)
@@ -30,6 +39,9 @@ async function readCategories(section: ContentSection) {
 }
 
 async function readRedirect(section: ContentSection, fromSlug: string) {
+  if (process.env.CI_CONTENT_FIXTURES === "1") return null;
+
+  const { db } = await import("@/db");
   const [row] = await db
     .select({ category: cmsCategories })
     .from(cmsCategoryRedirects)

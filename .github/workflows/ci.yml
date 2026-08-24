@@ -75,12 +75,12 @@ jobs:
 
       # The build catches what typecheck can't: route config, server/client
       # boundaries, prerendering and production bundling. CMS-backed routes use
-      # the three deterministic fixtures above, so CI needs no database.
+      # the four deterministic fixtures above, so CI needs no database.
       - name: Build
         if: ${{ !cancelled() }}
         run: bun run build
 
-      # Audits repository-owned pages plus the three fixture articles over the
+      # Audits repository-owned pages plus the four fixture articles over the
       # real serving path, and proves each fixture reaches every discovery file.
       # The production CMS corpus itself remains the CMS's responsibility.
       - name: Audit SEO

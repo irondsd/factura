@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CONTENT_SECTIONS } from "../types";
 import {
+  CI_CONTENT_CATEGORIES,
   CI_CONTENT_FIXTURE_PATHS,
   CI_CONTENT_FIXTURES,
   CiFixtureContentRepository,
@@ -15,6 +16,22 @@ describe("CI content fixtures", () => {
       const documents = await repository.listPublished(section);
       expect(documents).toHaveLength(1);
       expect(documents[0].section).toBe(section);
+    }
+  });
+
+  it("has one active category per section and categorizes its fixture", () => {
+    expect(CI_CONTENT_CATEGORIES).toHaveLength(CONTENT_SECTIONS.length);
+
+    for (const section of CONTENT_SECTIONS) {
+      const [category] = CI_CONTENT_CATEGORIES.filter(
+        (item) => item.section === section && item.retiredAt === null,
+      );
+      const [document] = CI_CONTENT_FIXTURES.filter(
+        (item) => item.section === section,
+      );
+
+      expect(category).toBeDefined();
+      expect(document?.metadata.categories).toContain(category?.key);
     }
   });
 
