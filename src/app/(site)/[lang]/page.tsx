@@ -18,6 +18,7 @@ import { investigaciones } from "@/content/sections";
 import type { ContentSection, SectionPage } from "@/content/section";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
+import { localizedHref } from "@/i18n/routing";
 import { getI18n } from "@/i18n/server";
 import { softwareApplicationLd } from "@/i18n/structuredData";
 import { cn } from "@/lib/cn";
@@ -178,6 +179,28 @@ export default async function LandingPage({ params }: Props) {
           <p className="text-center font-mono text-xs text-muted mt-[18px]">
             {l.peekCaption}
           </p>
+          <div className="mt-6 flex flex-col gap-5 border border-line border-l-2 border-l-accent bg-card p-5">
+            <div className="min-w-0">
+              <Eyebrow tone="accent">{l.demo.eyebrow}</Eyebrow>
+              <h2 className="font-display font-semibold text-[clamp(23px,4vw,30px)] leading-[1.12] tracking-tight text-ink m-0 mt-2 mb-2 text-pretty">
+                {l.demo.title}
+              </h2>
+              <p className="font-mono text-[13px] leading-[1.65] text-muted text-pretty m-0">
+                {l.demo.body}
+              </p>
+              <p className="font-mono text-micro uppercase tracking-label text-muted mt-3 m-0">
+                {l.demo.note}
+              </p>
+            </div>
+            <Button
+              href={localizedHref("/demo", locale)}
+              variant="accent"
+              size="lg"
+              className="shrink-0 self-start"
+            >
+              {l.demo.cta} →
+            </Button>
+          </div>
         </section>
       </div>
 

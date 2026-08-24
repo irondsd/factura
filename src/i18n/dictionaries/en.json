@@ -28,15 +28,15 @@
       "description": "How Factura keeps your bills safe — passwordless authentication, per-account data isolation, encrypted storage with signed access, and how to report a vulnerability."
     },
     "demo": {
-      "title": "Demo",
+      "title": "Demo: track household bills and monthly spending",
       "description": "Explore Factura with sample data — a live demo of the bill ledger overview: this-month totals, awaiting bills, vendor share and monthly spend, no sign-in required."
     },
     "demoInsights": {
-      "title": "Demo · Insights",
+      "title": "Demo: explore spending insights and bill trends",
       "description": "A live demo of Factura's insights: stacked spend over time, vendor share, pesos against the dollar and consumption trends — all on sample data."
     },
     "demoBills": {
-      "title": "Demo · Bills",
+      "title": "Demo: browse every bill by vendor and month",
       "description": "A live demo of Factura's bill ledger: every parsed bill by vendor and month, in pesos and USD. Open one to see the extracted fields and text."
     },
     "probar": {
@@ -137,6 +137,13 @@
     ],
     "peekInside": "A peek inside",
     "peekCaption": "Palermo · June 2026 so far · 3 of 4 bills in, one awaiting.",
+    "demo": {
+      "eyebrow": "Try it with sample data",
+      "title": "See a month's bills become a ledger.",
+      "body": "Browse the real screens with a fictional Palermo apartment. No account, no setup, nothing to install.",
+      "cta": "Open the live demo",
+      "note": "Sample data · overview, insights, bills"
+    },
     "drivers": {
       "label": "What moves your bills",
       "items": [

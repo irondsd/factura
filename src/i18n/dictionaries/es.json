@@ -28,15 +28,15 @@
       "description": "Cómo Factura mantiene seguras tus facturas: inicio de sesión sin contraseña, aislamiento por cuenta, almacenamiento cifrado con acceso firmado y cómo reportar una vulnerabilidad."
     },
     "demo": {
-      "title": "Demo",
+      "title": "Demo: controlá tus facturas y gastos del hogar",
       "description": "Explora Factura con datos de muestra: una demo en vivo del resumen del registro de facturas —totales del mes, facturas pendientes, participación por proveedor y gasto mensual—, sin iniciar sesión."
     },
     "demoInsights": {
-      "title": "Demo · Análisis",
+      "title": "Demo: analizá tus gastos y tendencias mes a mes",
       "description": "Demo en vivo de los análisis de Factura: gasto en el tiempo, participación por proveedor, pesos frente al dólar y consumo, con datos de muestra."
     },
     "demoBills": {
-      "title": "Demo · Facturas",
+      "title": "Demo: explorá tus facturas por proveedor y mes",
       "description": "Demo en vivo del registro de Factura: cada factura por proveedor y mes, en pesos y dólares. Abrí una para ver los campos extraídos y el texto."
     },
     "probar": {
@@ -137,6 +137,13 @@
     ],
     "peekInside": "Un vistazo por dentro",
     "peekCaption": "Palermo · junio de 2026 hasta ahora · 3 de 4 facturas cargadas, una pendiente.",
+    "demo": {
+      "eyebrow": "Probalo con datos de muestra",
+      "title": "Mirá cómo unas facturas se vuelven un registro.",
+      "body": "Recorré las pantallas reales con un departamento ficticio en Palermo. Sin cuenta, sin configurar nada.",
+      "cta": "Abrir la demo en vivo",
+      "note": "Datos de muestra · resumen, análisis y facturas"
+    },
     "drivers": {
       "label": "Qué influye en tus gastos",
       "items": [
