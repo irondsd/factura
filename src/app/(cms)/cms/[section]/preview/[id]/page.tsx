@@ -15,6 +15,7 @@ import {
 } from "@/content-system/document";
 import { mediaComponents } from "@/content-system/media/render";
 import { resolveMediaRef } from "@/content-system/media/repository";
+import { resolveAuthorCredits } from "@/content-system/authors/repository";
 import {
   compileContentForPreview,
   ContentGrammarError,
@@ -120,6 +121,9 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
   const { words, minutes } = documentStats(page);
   const headings = documentHeadings(page);
   const faq = page.metadata.faq ?? [];
+  // Resolved once and used twice — the header and the structured data — so the
+  // preview cannot show one byline and publish another.
+  const credits = await resolveAuthorCredits(page.metadata);
 
   if (grammarError) {
     return (
@@ -150,6 +154,7 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
       cta={page.cta}
       previewMedia={await resolveMediaRef(page.metadata.previewMediaId)}
       categories={categories}
+      credits={credits}
       section={{
         id: page.section,
         label: section.label,
@@ -185,6 +190,7 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
               section: categories[0]?.label,
               words,
               minutes,
+              credits,
             })}
           />
           {faq.length > 0 && <JsonLd data={faqPageLd(faq, "es")} />}

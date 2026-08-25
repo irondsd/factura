@@ -1,5 +1,7 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
+import { ArticleByline } from "@/components/article/ArticleByline";
+import { ArticleDateline } from "@/components/article/ArticleDateline";
 import { ArticlePreview } from "@/components/article/ArticlePreview";
 import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { Faq } from "@/components/article/Faq";
@@ -13,10 +15,10 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { dataLicense, licenseName } from "@/config/urls";
 import type { ContentSection } from "@/content/section";
 import { faqPageLd, sectionPageLd } from "@/i18n/structuredData";
-import { formatContentDateTime } from "@/lib/content-date";
 import { contentComponents } from "@/content-system/render/renderContent";
 import { mediaComponents } from "@/content-system/media/render";
 import { resolveMediaRef } from "@/content-system/media/repository";
+import { resolveAuthorCredits } from "@/content-system/authors/repository";
 import { documentHeadings, documentStats } from "@/content-system/document";
 import { categoriesByKeys } from "@/content-system/repository/categories";
 
@@ -63,6 +65,9 @@ export async function SectionArticle({
     categoriesByKeys(document!.section, document!.metadata.categories),
   ]);
   const previewMedia = await resolveMediaRef(meta.previewMediaId);
+  // Read from the document rather than from `meta`: the credits are markup, not
+  // article furniture, and nothing that renders needs them yet.
+  const credits = await resolveAuthorCredits(document!.metadata);
   // Section content is database-backed. The stored document is the single
   // source for both rendering and derived article data.
   const { words, minutes } = documentStats(document!);
@@ -71,7 +76,14 @@ export async function SectionArticle({
   return (
     <>
       <JsonLd
-        data={sectionPageLd({ id: section.id, slug, ...meta, words, minutes })}
+        data={sectionPageLd({
+          id: section.id,
+          slug,
+          ...meta,
+          words,
+          minutes,
+          credits,
+        })}
       />
       {/* Only when the page actually renders the questions below — FAQPage
           markup for Q&A a visitor can't see is a spam signal, and binding both
@@ -117,34 +129,33 @@ export async function SectionArticle({
               <h1 className="font-display font-semibold text-[34px] sm:text-[44px] tracking-[-0.025em] leading-[1.06] mt-[18px] mb-0">
                 {meta.title}
               </h1>
-              {/* Updated first, published second — the reverse of a guide. On a
-                  page whose whole claim is "these are the current numbers", the
-                  date of the last data point is the headline fact and the
-                  original publication date is provenance. */}
-              <p className="flex flex-wrap gap-x-2 gap-y-1 font-mono text-micro uppercase tracking-label-wide text-muted mt-5">
-                <span>
-                  Actualizado el{" "}
-                  <time dateTime={meta.updated}>
-                    {formatContentDateTime(meta.updated)}
-                  </time>
-                  <span aria-hidden="true"> ·</span>
-                </span>
-                {meta.updated !== meta.published && (
-                  <span>
-                    Publicado el{" "}
-                    <time dateTime={meta.published}>
-                      {formatContentDateTime(meta.published)}
-                    </time>
-                    <span aria-hidden="true"> ·</span>
-                  </span>
-                )}
-                <span>{minutes} min de lectura</span>
-              </p>
+              <ArticleByline
+                author={credits.author}
+                factChecker={credits.factChecker}
+                className="mt-6"
+              />
+              {(credits.author || credits.factChecker) && (
+                <hr className="border-0 border-t border-line mt-[18px] mb-[14px]" />
+              )}
+              {/* `lead="updated"` is the one way this header differs from a
+                  guide's: on a page whose whole claim is "these are the current
+                  numbers", the last update is the headline fact and the
+                  original publication is provenance. */}
+              <ArticleDateline
+                published={meta.published}
+                updated={meta.updated}
+                minutes={minutes}
+                lead="updated"
+                className={
+                  credits.author || credits.factChecker ? undefined : "mt-5"
+                }
+              />
               <CategoryChips
                 categories={categories}
                 section={document!.section}
+                variant="badge"
                 label={`Temas de ${section.label.toLowerCase()}`}
-                className="mt-5"
+                className="mt-[22px]"
               />
             </header>
 

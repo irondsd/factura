@@ -54,3 +54,4 @@ samples/
 # Captured HTML for the content parity check (scripts/parity-content.ts).
 .parity/
 .codex
+plans/

@@ -6,6 +6,7 @@ import { sectionMetadataSchema } from "@/content-system/metadata/sections";
 import { cmsContentService } from "@/cms/server/service";
 import { cmsMediaService } from "@/cms/media/server/service";
 import { cmsCategoryService } from "@/cms/categories/server/service";
+import { cmsAuthorService } from "@/cms/authors/server/service";
 import { hasScope, type CmsTokenCaller, type CmsScope } from "./tokens";
 
 const section = z.string().refine(isContentSection, "Unknown content section.");
@@ -109,6 +110,23 @@ export const CMS_TOOLS: Tool[] = [
         (input as { section: Parameters<typeof cmsCategoryService.list>[1] })
           .section,
       ),
+  },
+  {
+    name: "list_authors",
+    scope: "cms:read",
+    description:
+      "List the people who can be credited on a page. Use the returned id in a page's authorId (who wrote it) or factCheckerId (who verified its numbers) metadata. Read-only: authors are created and edited by a person at /cms.",
+    annotations: readOnly("Listar autores"),
+    schema: z.object({}).strict(),
+    // No caller and no input: the scope check above is the whole authorization,
+    // and every member sees the same two-name list.
+    run: async () =>
+      (await cmsAuthorService.list()).map((author) => ({
+        id: author.id,
+        name: author.name,
+        jobTitle: author.jobTitle,
+        slug: author.slug,
+      })),
   },
   {
     name: "get_category",

@@ -177,3 +177,41 @@ export class CmsRevisionNotFoundError extends Error {
     this.name = "CmsRevisionNotFoundError";
   }
 }
+
+/** Two authors with one name. Its own class rather than a validation error for
+ * the same reason a slug collision is: nothing about the value is malformed,
+ * the fix is to pick a different one — or to realize the person is already in
+ * the list. Worth refusing loudly because nothing can retire the duplicate. */
+export class CmsAuthorNameTakenError extends Error {
+  readonly code = "name_taken" as const;
+  constructor(name: string) {
+    super(`Ya hay un autor llamado «${name}».`);
+    this.name = "CmsAuthorNameTakenError";
+  }
+}
+
+export class CmsAuthorSlugTakenError extends Error {
+  readonly code = "slug_taken" as const;
+  constructor(slug: string) {
+    super(`Ya hay un autor en /autores/${slug}. Elige otra dirección.`);
+    this.name = "CmsAuthorSlugTakenError";
+  }
+}
+
+/** A media asset cannot be trashed because it is somebody's portrait.
+ *
+ * Separate from `CmsMediaInUseError` because the reference is of a different
+ * kind and so is the remedy: no page mentions this image, and no amount of
+ * editing articles will release it. `cms_media_usage` is keyed on a page
+ * revision and structurally cannot record this, which is exactly why the check
+ * that raises this lives in the media service rather than in the usage table. */
+export class CmsMediaPortraitInUseError extends Error {
+  readonly code = "media_portrait_in_use" as const;
+  constructor(readonly authors: { id: string; name: string }[]) {
+    const names = authors.map((author) => `«${author.name}»`).join(", ");
+    super(
+      `Esta imagen es el retrato de ${names}. Cámbialo en Autores antes de moverla a la papelera.`,
+    );
+    this.name = "CmsMediaPortraitInUseError";
+  }
+}

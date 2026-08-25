@@ -113,6 +113,12 @@ export const guideMetadataSchema = z
      * origin: the CDN hostname lives in configuration and is resolved at render
      * time. */
     previewMediaId: z.uuid().optional(),
+    /** Who wrote the page, and who checked its numbers. Ids into `cms_author`;
+     * existence is resolved by the document validator, the way category keys
+     * are. Both optional — a page with no byline is published by the
+     * organization, which is what the markup said before authors existed. */
+    authorId: z.uuid().optional(),
+    factCheckerId: z.uuid().optional(),
   })
   .strict()
   .refine((m) => new Set(m.categories).size === m.categories.length, {
