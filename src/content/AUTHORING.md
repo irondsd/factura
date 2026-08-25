@@ -155,6 +155,7 @@ place to park an article that is finished but waiting on a decision.
 **The working order, start to finish:**
 
 1. `list_content` — see what already exists, and whether this topic is taken.
+   This is a real step, not a formality; see **Before you create** below.
 2. `create_content` — the draft. Slug and section are fixed here; everything
    else can change later.
 3. `validate_content` with `level: "publish"` — fix every error, read the
@@ -165,6 +166,32 @@ place to park an article that is finished but waiting on a decision.
 
 Publishing expires the public cache for that section, so the next visitor sees
 it. There is no build step and no deploy.
+
+### Before you create: look for the page that already covers this
+
+Two pages chasing the same query split their own ranking signals and neither
+wins — and on a site this size the duplicate is usually one that was written
+three weeks ago. So before `create_content`, search the section properly:
+
+- `list_content` for the section, and read the **slugs** as well as the titles.
+- Search again under the topic's other names — the vendor, the trámite, the
+  keyword you were going to put first. "Cómo leer la factura de Edesur" and
+  "Qué significa cada cargo en la boleta de luz" are one page with two titles.
+- Check the neighbouring sections too. A guía and an investigación about the
+  same increase compete just as hard as two guías do.
+
+If something close already exists, a new page is usually the wrong answer:
+
+| What you found                                       | What to do                                                            |
+| ---------------------------------------------------- | --------------------------------------------------------------------- |
+| The same question, already answered                  | Update that page instead of adding a second one.                      |
+| The same topic from a different angle                | Write it as a child (`parentId`), with a narrower title and keywords. |
+| Enough overlap that both would target the same query | Create it, then `canonicalSlug` the weaker one at the stronger.       |
+| Related but genuinely distinct                       | New page — and link the two to each other.                            |
+
+Say what you found before you write. "There is already `/guias/…` covering
+this, so I am extending it rather than adding a page" is a better outcome than a
+second article, and it is the person's call to overrule.
 
 ---
 
@@ -264,6 +291,28 @@ section-owned categories, but without a vendor field. Use `keywords`, optional
 `faq`, the social-card copy and an optional `previewMediaId`. The index is
 chronological, newest publication first, and each article renders as
 `NewsArticle` structured data.
+
+### Keywords must match what the page answers
+
+`keywords` is not a wish list. Every phrase in it should be one a reader could
+type and land on _this_ page satisfied. A phrase belonging to a neighbouring
+topic drags the page towards a query it cannot answer — and if another page
+does answer it, the two start competing. That is the same cannibalisation as
+above, arriving through metadata instead of a title.
+
+So when you are handed a keyword list — by the person, by a brief, by the page
+you are modelling this one on — **leave out the phrases that do not fit the
+page's intent** rather than stretching the article to cover them. Keep the 3–6
+that do.
+
+Then **say which ones you excluded, and why**, in the conversation:
+
+> Dejé fuera "subsidio de gas" y "tarifa social AySA": esta guía es sobre la
+> factura de luz, y esas búsquedas ya se responden en `/guias/subsidios-…`.
+
+That is feedback, not a request for approval — you do not need permission to
+drop a keyword. Just never drop one silently, and when an excluded phrase looks
+like it deserves a page of its own, say that too.
 
 ### Authorship
 
@@ -575,12 +624,16 @@ it unused.
 
 ## 8. Before you call it finished
 
+- [ ] You searched the section (and its neighbours) for a page that already
+      covers this, and told the person what you found.
 - [ ] Primary keyword in `title`, in the first paragraph, and in at least one `##`.
 - [ ] Rendered `<title>` (`titleTag` if set, else `title`) is ≤60 chars.
 - [ ] `title` and `description` do not repeat another page's — if the overlap is
       real, `canonicalSlug` one at the other instead.
 - [ ] `description` reads like a search result, ~150–160 chars.
-- [ ] 3–6 realistic `keywords`; 1–3 section-owned `categories`, primary first.
+- [ ] 3–6 realistic `keywords`, every one of them matching what this page
+      actually answers — and you named any you excluded; 1–3 section-owned
+      `categories`, primary first.
 - [ ] At least one internal link to another article, `/docs` or `/demo`.
 - [ ] `cta` is a hook for this page, one line, ≤54 chars.
 - [ ] `<ClosingCta />` present with its own `title` and copy; `<RelatedGuides />`
