@@ -75,6 +75,7 @@ export default async function GuidePage({ params }: Props) {
       cta={guide.cta}
       previewMedia={await resolveMediaRef(guide.metadata.previewMediaId)}
       categories={categories}
+      credits={credits}
       headings={documentHeadings(guide)}
       minutes={minutes}
       structuredData={

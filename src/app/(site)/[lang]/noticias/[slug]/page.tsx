@@ -43,6 +43,7 @@ export default async function NoticiaPage({ params }: Props) {
       updated={document.contentUpdatedAt}
       cta={meta.cta}
       previewMedia={await resolveMediaRef(meta.previewMediaId)}
+      credits={credits}
       headings={documentHeadings(document)}
       minutes={minutes}
       categories={categories}

@@ -121,6 +121,9 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
   const { words, minutes } = documentStats(page);
   const headings = documentHeadings(page);
   const faq = page.metadata.faq ?? [];
+  // Resolved once and used twice — the header and the structured data — so the
+  // preview cannot show one byline and publish another.
+  const credits = await resolveAuthorCredits(page.metadata);
 
   if (grammarError) {
     return (
@@ -151,6 +154,7 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
       cta={page.cta}
       previewMedia={await resolveMediaRef(page.metadata.previewMediaId)}
       categories={categories}
+      credits={credits}
       section={{
         id: page.section,
         label: section.label,
@@ -186,7 +190,7 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
               section: categories[0]?.label,
               words,
               minutes,
-              credits: await resolveAuthorCredits(page.metadata),
+              credits,
             })}
           />
           {faq.length > 0 && <JsonLd data={faqPageLd(faq, "es")} />}
