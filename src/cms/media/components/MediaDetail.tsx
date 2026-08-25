@@ -22,12 +22,14 @@ import type { SupportedMimeType } from "../validation/upload";
 export function MediaDetail({
   asset: initial,
   usage,
+  portraitOf,
   duplicates,
   collections,
   graceDays,
 }: {
   asset: MediaAsset;
   usage: MediaUsageRef[];
+  portraitOf: { id: string; name: string }[];
   duplicates: MediaAsset[];
   collections: MediaCollection[];
   graceDays: number;
@@ -197,6 +199,20 @@ export function MediaDetail({
               ))}
             </ul>
           )}
+          {portraitOf.length > 0 && (
+            /* Not a page reference, so it is not in the list above and no
+               amount of editing articles releases it. Said here because it is
+               the only place an editor would think to look for why the image
+               cannot be removed. */
+            <p className="mt-3 font-mono text-[12px] leading-[1.6] text-ink">
+              Es el retrato de{" "}
+              <strong>
+                {portraitOf.map((author) => author.name).join(", ")}
+              </strong>
+              . Cámbialo en Autores, en la portada del CMS, antes de mover esta
+              imagen a la papelera.
+            </p>
+          )}
           {usage.some(
             (reference) => reference.kind === "published" && !reference.isLive,
           ) && (
@@ -301,7 +317,7 @@ export function MediaDetail({
             <>
               <button
                 onClick={trash}
-                disabled={pending || usage.length > 0}
+                disabled={pending || usage.length > 0 || portraitOf.length > 0}
                 className="w-full border border-line px-3 py-2 text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent disabled:opacity-40"
               >
                 Mover a la papelera
@@ -309,7 +325,9 @@ export function MediaDetail({
               <p className="mt-2 text-[11px] leading-[1.6] text-muted">
                 {usage.length > 0
                   ? "No se puede: hay versiones guardadas que la usan. Quítala de ahí primero."
-                  : `Reversible durante ${graceDays} días. Nada se borra al quitar una imagen de una página.`}
+                  : portraitOf.length > 0
+                    ? "No se puede: es el retrato de un autor. Cámbialo en Autores primero."
+                    : `Reversible durante ${graceDays} días. Nada se borra al quitar una imagen de una página.`}
               </p>
             </>
           ) : asset.status === "trashed" || asset.status === "purging" ? (

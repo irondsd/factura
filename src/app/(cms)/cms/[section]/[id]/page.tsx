@@ -11,6 +11,7 @@ import { loadPageHistory } from "@/cms/server/pageHistory";
 import { cmsContentService } from "@/cms/server/service";
 import { cmsPageStore } from "@/cms/server/store";
 import { cmsCategoryService } from "@/cms/categories/server/service";
+import { cmsAuthorService } from "@/cms/authors/server/service";
 
 // The editor for one page.
 export const dynamic = "force-dynamic";
@@ -55,7 +56,7 @@ export default async function CmsEditPage({ params }: Props) {
   // store read: which copy exists and what it means is a lifecycle question,
   // and a route that answered it itself would be a second implementation of
   // the rule (cms.md).
-  const [siblings, history, state, versions, redirects, categories] =
+  const [siblings, history, state, versions, redirects, categories, authors] =
     await Promise.all([
       cmsPageStore.list({ section: section.id }),
       loadPageHistory(page),
@@ -65,6 +66,9 @@ export default async function CmsEditPage({ params }: Props) {
       // can show them without the editor asking for them after every rename.
       cmsPageStore.redirectsForPage(id),
       cmsCategoryService.list(actor, section.id),
+      // Who may be credited. Read here rather than inside the form so the
+      // editor stays a pure component over descriptors it is handed.
+      cmsAuthorService.list(),
     ]);
   // Pages whose path hangs off this one's, and which a rename therefore moves
   // too. The prefix is the whole rule (`planRename`), asked once here so the
@@ -94,7 +98,7 @@ export default async function CmsEditPage({ params }: Props) {
         section={section}
         page={page}
         state={state}
-        fields={sectionFields(section.id, categories)}
+        fields={sectionFields(section.id, categories, authors)}
         parentOptions={parentOptions}
         redirects={redirects}
         descendants={descendants}

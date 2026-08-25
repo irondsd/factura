@@ -36,6 +36,10 @@ export const sectionMetadataSchema = z
      * origin: the CDN hostname lives in configuration and is resolved at render
      * time. */
     previewMediaId: z.uuid().optional(),
+    /** Who wrote the page, and who checked its numbers. Ids into `cms_author`;
+     * existence is resolved by the document validator. */
+    authorId: z.uuid().optional(),
+    factCheckerId: z.uuid().optional(),
     sources: z.array(dataSourceSchema).optional(),
     dataset: datasetMetadataSchema.optional(),
   })

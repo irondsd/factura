@@ -1614,3 +1614,85 @@ export const cmsMediaUsage = pgTable(
     index("cms_media_usage_media_idx").on(t.mediaId),
   ],
 );
+
+/** One person who writes or fact-checks published pages.
+ *
+ * Not section-scoped, unlike `cms_category`: a taxonomy belongs to a section,
+ * a person does not — the same author writes a guide and a research page.
+ *
+ * Not `cms_member` either, and that is the whole reason this table exists. A
+ * member is an account that may sign in to the console; an author is a byline
+ * on the public site. Today they happen to be the same two people, but the two
+ * lists answer different questions, and tying the public credit to a login row
+ * would mean revoking someone's access rewrites the attribution of everything
+ * they ever wrote.
+ *
+ * Which page carries which author is *not* here. That lives in the page
+ * revision's metadata (`authorId`, `factCheckerId`), so a publication keeps the
+ * attribution it was published with and the history panel diffs it like any
+ * other field.
+ *
+ * No `lock_version`: unlike a page or a category this is edited about twice a
+ * year by two people, and the cost of the lost update it would prevent is
+ * retyping a name. No `retired_at` either — nothing here can be removed yet,
+ * which is acceptable at two rows and is one column plus one `where` the day it
+ * is not. */
+export const cmsAuthors = pgTable(
+  "cms_author",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    /** The byline. */
+    name: text("name").notNull(),
+    /** One line of standing — «10 años construyendo sitios web». Becomes the
+     * Person's `description` in the article markup, and the line under the name
+     * in the author block when that ships. */
+    tagline: text("tagline"),
+    jobTitle: text("job_title"),
+
+    /** The portrait, as a media-library id rather than a URL — the same
+     * indirection every other image in the CMS uses, so the storage origin can
+     * change without an UPDATE here.
+     *
+     * `restrict` is a backstop, not the rule: a purge leaves the row behind
+     * with `status = 'purged'`, so the foreign key never fires. What actually
+     * protects a portrait is the author check in the media service's trash
+     * gate, because `cms_media_usage` is keyed on a revision and can therefore
+     * not see a reference held by this table. */
+    imageMediaId: uuid("image_media_id").references(() => cmsMedia.id, {
+      onDelete: "restrict",
+    }),
+
+    /** The future address at `/autores/<slug>`, and already the `@id` of the
+     * Person node in every article this author signs. Nullable until that page
+     * exists; the unique index below is partial so two authors can both be
+     * waiting for one. */
+    slug: text("slug"),
+    /** Long-form biography, for the author page. Nothing reads it yet. */
+    about: text("about"),
+
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: uuid("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    // Two rows for one person is the mistake this size of list makes, and with
+    // no way to retire one it would be permanent.
+    uniqueIndex("cms_author_name_idx").on(sql`lower(${t.name})`),
+    // Partial: null is "no address yet", and any number of authors may be there
+    // at once. A plain unique index would allow that too under the SQL standard,
+    // but saying it explicitly is what keeps the intent readable.
+    uniqueIndex("cms_author_slug_idx")
+      .on(t.slug)
+      .where(sql`${t.slug} is not null`),
+  ],
+);

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AuthorManager } from "@/cms/authors/components/AuthorManager";
+import { cmsAuthorService } from "@/cms/authors/server/service";
 import { requireCmsMember } from "@/cms/auth/requireCmsMember";
 import { CmsShell } from "@/cms/components/CmsShell";
 import { cmsPageMetadata } from "@/cms/metadata";
@@ -25,12 +27,19 @@ export function generateMetadata(): Metadata {
 
 export default async function CmsHomePage() {
   const actor = await requireCmsMember("/cms");
+  const authors = await cmsAuthorService.list();
 
   return (
     <CmsShell actor={actor}>
-      <h1 className="font-display font-semibold text-[30px] tracking-[-0.025em] leading-[1.1] mt-0 mb-3">
-        Secciones
-      </h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-4 mb-3">
+        <h1 className="font-display font-semibold text-[30px] tracking-[-0.025em] leading-[1.1] m-0">
+          Secciones
+        </h1>
+        {/* Authors live here rather than in the navigation. The list is two
+            people who change about once a year, and a nav entry would give it
+            the same weight as a section anyone edits daily. */}
+        <AuthorManager initialAuthors={authors} />
+      </div>
       <p className="font-mono text-[15px] leading-[1.7] text-ink/90 max-w-[62ch] mb-9">
         Elige qué contenido quieres editar.
       </p>

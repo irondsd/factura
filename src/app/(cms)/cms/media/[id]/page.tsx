@@ -46,6 +46,7 @@ export default async function CmsMediaDetailPage({
         asset={detail.asset}
         usage={detail.usage}
         duplicates={detail.duplicates}
+        portraitOf={detail.portraitOf}
         collections={collections}
         graceDays={STORAGE_LIMITS.trashGraceDays}
       />

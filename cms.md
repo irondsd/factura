@@ -34,7 +34,7 @@ Rules that are tested (`src/cms/boundaries.test.ts`), not merely intended:
 - Route files hold no rules. Both transports call the same
   `CmsContentService` — the MCP is a second caller, never a second
   implementation.
-- Only the page/content stores, the category-usage store and
+- Only the page/content stores, the category- and author-usage stores and
   `src/content-system/repository/postgres.ts` query `cms_page`; only
   `src/cms/server/revisionStore.ts` writes revisions.
 - New tables carry a `cms_` prefix.
@@ -184,6 +184,22 @@ browser-only. Deletion retires the record and is refused while any current
 working, preview or published revision uses its key. Validators resolve the
 active keys from PostgreSQL for the page's own section.
 
+**Authors are people, not accounts.** `cms_author` is a separate list from
+`cms_member`: a member may sign in, an author is a byline, and revoking
+someone's console access must not rewrite the attribution of everything they
+wrote. Not section-scoped — the same person writes a guide and a research page.
+A page names them in its revision metadata (`authorId`, `factCheckerId`), so a
+publication keeps the attribution it was published with and the history panel
+diffs a credit like any other field. Both are optional; a page with neither is
+published by the organization. Managed from a modal on `/cms` and deliberately
+absent from the navigation. Agents may _credit_ an author through ordinary page
+metadata and read the list via `list_authors`, but creating and editing one is
+browser-only. No `lock_version` (edited twice a year by two people) and no
+`retired_at` (nothing can be removed yet, which is one column the day it
+matters). Nothing renders an author yet: today they reach readers only as the
+`Person` in each article's structured data, and as `reviewedBy` on the `WebPage`
+node a fact-checked page emits.
+
 **Metadata is data, never a `meta` export in the body.** Identity and commonly
 queried values are columns; the rest is JSONB validated by one Zod schema per
 section, shared by the form, the mutations, the MCP and public rendering. A
@@ -295,6 +311,11 @@ automatically, and nothing trusts the browser.**
   deletes bytes a live page points at.
 - The only path out is the trash: zero references required, 30-day grace, purge
   re-checks usage in the transaction that claims the row. Browser only.
+- An author's portrait is the one reference `cms_media_usage` cannot hold — that
+  table is keyed by revision and a portrait belongs to an author row. The trash
+  and purge gates therefore test two predicates, both inside the removing
+  statement, and the detail screen names the author so a refusal has a visible
+  cause.
 - The library grid is built from PostgreSQL, never by listing the bucket.
   Bucket reconciliation is a separate sweep (`scripts/mediaSweep.ts`).
 

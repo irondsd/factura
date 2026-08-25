@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ArticleByline } from "@/components/article/ArticleByline";
+import { ArticleDateline } from "@/components/article/ArticleDateline";
 import { ArticlePreview } from "@/components/article/ArticlePreview";
 import type { MediaRef } from "@/content-system/media/repository";
 import { Breadcrumbs } from "@/components/article/Breadcrumbs";
@@ -9,8 +11,8 @@ import { TocInline, TocSidebar } from "@/components/article/Toc";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import type { ContentCategory } from "@/content-system/categories/types";
 import type { ContentSection } from "@/content-system/types";
+import type { AuthorRef } from "@/content-system/authors/types";
 import type { Heading } from "@/content/headings";
-import { formatContentDateTime } from "@/lib/content-date";
 
 // The guide article shell: everything around the prose.
 //
@@ -39,6 +41,9 @@ export type ContentArticleProps = {
   /** Optional 16:9 illustration from the media library. */
   previewMedia?: MediaRef | null;
   categories?: readonly ContentCategory[];
+  /** Who wrote the page and who verified it. Both optional at every level —
+   * most pages predate the author list and carry neither. */
+  credits?: { author?: AuthorRef | null; factChecker?: AuthorRef | null };
   /** Guides are the default; Noticias reuses this shell without its taxonomy. */
   section?: {
     id: ContentSection;
@@ -68,6 +73,7 @@ export function ContentArticle({
   cta,
   previewMedia,
   categories = [],
+  credits,
   section = {
     id: "guias",
     label: "Guías",
@@ -127,38 +133,32 @@ export function ContentArticle({
               <h1 className="font-display font-semibold text-[34px] sm:text-[44px] tracking-[-0.025em] leading-[1.06] mt-[18px] mb-0">
                 {title}
               </h1>
-              {/* Wraps onto separate lines on a phone rather than truncating —
-                  three timestamped items don't fit one narrow line. Separators
-                  trail their item so a wrapped line never *starts* with a "·".
-                  There's always a following item (the reading time), so the
-                  trailing dots are never left dangling. */}
-              <p className="flex flex-wrap gap-x-2 gap-y-1 font-mono text-micro uppercase tracking-label-wide text-muted mt-5">
-                {published && (
-                  <span>
-                    Publicado el{" "}
-                    <time dateTime={published}>
-                      {formatContentDateTime(published)}
-                    </time>
-                    <span aria-hidden="true"> ·</span>
-                  </span>
-                )}
-                {updated !== published && (
-                  <span>
-                    Actualizado el{" "}
-                    <time dateTime={updated}>
-                      {formatContentDateTime(updated)}
-                    </time>
-                    <span aria-hidden="true"> ·</span>
-                  </span>
-                )}
-                <span>{minutes} min de lectura</span>
-              </p>
+              <ArticleByline
+                author={credits?.author}
+                factChecker={credits?.factChecker}
+                className="mt-6"
+              />
+              {/* The rule belongs to the byline, not to the dateline: with
+                  nobody credited it would sit directly under the headline and
+                  divide the header from nothing. */}
+              {(credits?.author || credits?.factChecker) && (
+                <hr className="border-0 border-t border-line mt-[18px] mb-[14px]" />
+              )}
+              <ArticleDateline
+                published={published}
+                updated={updated}
+                minutes={minutes}
+                className={
+                  credits?.author || credits?.factChecker ? undefined : "mt-5"
+                }
+              />
               {categories.length > 0 && (
                 <CategoryChips
                   categories={categories}
                   section={section.id}
+                  variant="badge"
                   label={`Temas de esta ${section.singular.toLowerCase()}`}
-                  className="mt-5"
+                  className="mt-[22px]"
                 />
               )}
             </header>

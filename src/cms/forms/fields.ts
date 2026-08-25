@@ -23,6 +23,9 @@ export type FieldKind =
   | "tags"
   /** A fixed set, several choices allowed, order meaningful. */
   | "multiselect"
+  /** A fixed set, one choice or none. Options are injected by
+   * `sectionFields`, the same way `multiselect` gets its categories. */
+  | "select"
   /** Question/answer pairs. */
   | "faq"
   /** The two social-card text slots. */
@@ -84,9 +87,37 @@ export type FieldDescriptor = {
   softMax?: number;
   placeholder?: string;
   options?: readonly FieldOption[];
+  /** The empty choice's label, for a `select` that may hold nothing. */
+  emptyLabel?: string;
   /** Fields in the same group render together under one heading. */
   group: "identidad" | "busqueda" | "social" | "estructura" | "contenido";
 };
+
+// Author credit, identical in every section: who wrote the page and who checked
+// its numbers, both chosen from the same list of people.
+//
+// In «contenido» rather than «identidad» because this is the credibility block —
+// it belongs beside «Fuentes», not beside the URL. Both are optional: a page
+// with no byline is published by the organization, which is exactly what the
+// structured data said before authors existed.
+const CREDIT_FIELDS: readonly FieldDescriptor[] = [
+  {
+    path: "metadata.authorId",
+    label: "Autor",
+    kind: "select",
+    emptyLabel: "Sin autor",
+    group: "contenido",
+    help: "Quién escribió esta página. Se publica en los datos estructurados del artículo; todavía no se muestra en la página.",
+  },
+  {
+    path: "metadata.factCheckerId",
+    label: "Verificado por",
+    kind: "select",
+    emptyLabel: "Sin verificar",
+    group: "contenido",
+    help: "Quién revisó los datos y las cifras. Debería ser una persona distinta de quien la escribió.",
+  },
+];
 
 const GUIDE_FIELDS: readonly FieldDescriptor[] = [
   {
@@ -194,6 +225,7 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     group: "contenido",
     help: "De 4 a 6 preguntas reales de búsqueda. Se muestran donde el cuerpo escribe <Faq />, y solo ahí. Las respuestas son texto plano: los enlaces van en el cuerpo.",
   },
+  ...CREDIT_FIELDS,
   {
     path: "metadata.vendor",
     label: "Empresa",
@@ -364,6 +396,7 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
     group: "contenido",
     help: "Las preguntas se muestran donde el cuerpo escribe <Faq />, y solo ahí.",
   },
+  ...CREDIT_FIELDS,
   {
     path: "metadata.previewMediaId",
     label: "Imagen de portada",
@@ -402,22 +435,40 @@ const FIELDS: Partial<Record<ContentSection, readonly FieldDescriptor[]>> = {
   investigaciones: DATA_FIELDS,
 };
 
+/** The form for one section, with its database-owned option lists filled in.
+ *
+ * Categories and authors are both rows rather than constants, so the descriptors
+ * above declare the field and this fills in what can be chosen. Passing neither
+ * yields a form whose selects are empty, which is what a pure caller (a test,
+ * the validator) wants. */
 export function sectionFields(
   section: ContentSection,
   categories: readonly Pick<ContentCategory, "key" | "label">[] = [],
+  authors: readonly { id: string; name: string }[] = [],
 ): readonly FieldDescriptor[] {
-  return (FIELDS[section] ?? []).map((field) =>
-    field.path === "metadata.categories"
-      ? {
-          ...field,
-          options: categories.map((category) => ({
-            value: category.key,
-            label: category.label,
-          })),
-        }
-      : field,
-  );
+  const authorOptions = authors.map((author) => ({
+    value: author.id,
+    label: author.name,
+  }));
+
+  return (FIELDS[section] ?? []).map((field) => {
+    if (field.path === "metadata.categories") {
+      return {
+        ...field,
+        options: categories.map((category) => ({
+          value: category.key,
+          label: category.label,
+        })),
+      };
+    }
+    if (CREDIT_PATHS.has(field.path)) {
+      return { ...field, options: authorOptions };
+    }
+    return field;
+  });
 }
+
+const CREDIT_PATHS = new Set(CREDIT_FIELDS.map((field) => field.path));
 
 export const FIELD_GROUPS: readonly {
   id: FieldDescriptor["group"];
