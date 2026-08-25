@@ -519,6 +519,13 @@ function validateNewsDocument(
       context,
     ),
   );
+  out.push(
+    ...validateMedia(
+      document,
+      parsed.success ? parsed.data : undefined,
+      context,
+    ),
+  );
   if (document.publishedAt && !isValidDateTime(document.publishedAt)) {
     out.push(
       error(
@@ -709,6 +716,7 @@ function validateDataSectionDocument(
       ? (document.metadata as Record<string, unknown>)
       : {};
   out.push(...validateCategories(raw.categories, context));
+  out.push(...validateMedia(document, metadata ?? undefined, context));
 
   // Provenance is expected of a data page, but it is `<Fuentes />` that decides
   // whether it is *demanded*. The sources render there and nowhere else, so a
