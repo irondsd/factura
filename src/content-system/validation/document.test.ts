@@ -221,6 +221,170 @@ describe("statistics and research documents", () => {
       DOCUMENT_CODES.faqNotPlaced,
     );
   });
+
+  // The same media rules a guide gets. They were reachable only from the guide
+  // branch for a while, which meant a statistics page could publish a trashed
+  // preview or an image with no alt text — the sections differ in provenance
+  // and taxonomy, never in what a reader can see.
+  describe("media references", () => {
+    const ID = "3b1f0c92-6d7a-4c8e-a1b4-2f9e5c0d7a83";
+    const ready = new Map([[ID, { status: "ready", decorative: false }]]);
+
+    const withMedia = (
+      body: string,
+      media: Map<string, { status: string; decorative: boolean }> | undefined,
+      patch: Partial<ContentDocument> = {},
+    ) => {
+      const document = { ...dataPage(), ...patch };
+      return validateDocument(
+        { ...document, body: `${document.body}\n${body}\n` },
+        undefined,
+        media ? { media } : {},
+      ).diagnostics.map((d) => d.code);
+    };
+
+    it("accepts a library image with alt text", () => {
+      const found = withMedia(`![Un mapa](/media/${ID}/mapa.png)`, ready);
+      expect(found).toEqual([]);
+    });
+
+    it("refuses an id the library does not have", () => {
+      expect(
+        withMedia(`![Un mapa](/media/${ID}/mapa.png)`, new Map()),
+      ).toContain(DOCUMENT_CODES.mediaUnknown);
+    });
+
+    it("refuses an image that is in the trash", () => {
+      expect(
+        withMedia(
+          `![Un mapa](/media/${ID}/mapa.png)`,
+          new Map([[ID, { status: "trashed", decorative: false }]]),
+        ),
+      ).toContain(DOCUMENT_CODES.mediaNotReady);
+    });
+
+    it("refuses blank alt unless the library says the image is decorative", () => {
+      expect(withMedia(`![](/media/${ID}/mapa.png)`, ready)).toContain(
+        DOCUMENT_CODES.mediaNoAlt,
+      );
+      expect(
+        withMedia(
+          `![](/media/${ID}/mapa.png)`,
+          new Map([[ID, { status: "ready", decorative: true }]]),
+        ),
+      ).not.toContain(DOCUMENT_CODES.mediaNoAlt);
+    });
+
+    it("refuses an image hotlinked from another site", () => {
+      expect(
+        withMedia("![Algo](https://example.com/mapa.png)", ready),
+      ).toContain(DOCUMENT_CODES.mediaExternal);
+    });
+
+    it("checks the preview id too", () => {
+      const document = dataPage();
+      document.metadata = {
+        ...document.metadata,
+        previewMediaId: ID,
+      } as ContentDocument["metadata"];
+      expect(
+        validateDocument(document, undefined, {
+          media: new Map([[ID, { status: "purged", decorative: false }]]),
+        }).diagnostics.map((d) => d.code),
+      ).toContain(DOCUMENT_CODES.mediaNotReady);
+    });
+
+    it("skips every media rule when the caller cannot resolve the library", () => {
+      const found = withMedia(`![](/media/${ID}/mapa.png)`, undefined);
+      expect(found).not.toContain(DOCUMENT_CODES.mediaNoAlt);
+      expect(found).not.toContain(DOCUMENT_CODES.mediaUnknown);
+    });
+  });
+});
+
+describe("news documents", () => {
+  const newsPage = (): ContentDocument => ({
+    ...base,
+    id: "news-1",
+    section: "noticias",
+    slug: "aumento-de-luz-en-agosto",
+    body: "## Qué cambia\n\nEl cuadro tarifario sube en agosto.\n",
+  });
+
+  describe("media references", () => {
+    const ID = "5c2a8e14-9b3d-4f6a-8e27-1d40b7c95fa2";
+    const ready = new Map([[ID, { status: "ready", decorative: false }]]);
+
+    const withMedia = (
+      body: string,
+      media: Map<string, { status: string; decorative: boolean }> | undefined,
+    ) => {
+      const document = newsPage();
+      return validateDocument(
+        { ...document, body: `${document.body}\n${body}\n` },
+        undefined,
+        media ? { media } : {},
+      ).diagnostics.map((d) => d.code);
+    };
+
+    it("accepts a library image with alt text", () => {
+      expect(
+        withMedia(`![El medidor](/media/${ID}/medidor.jpg)`, ready),
+      ).toEqual([]);
+    });
+
+    it("refuses an id the library does not have", () => {
+      expect(
+        withMedia(`![El medidor](/media/${ID}/medidor.jpg)`, new Map()),
+      ).toContain(DOCUMENT_CODES.mediaUnknown);
+    });
+
+    it("refuses an image that is in the trash", () => {
+      expect(
+        withMedia(
+          `![El medidor](/media/${ID}/medidor.jpg)`,
+          new Map([[ID, { status: "trashed", decorative: false }]]),
+        ),
+      ).toContain(DOCUMENT_CODES.mediaNotReady);
+    });
+
+    it("refuses blank alt unless the library says the image is decorative", () => {
+      expect(withMedia(`![](/media/${ID}/medidor.jpg)`, ready)).toContain(
+        DOCUMENT_CODES.mediaNoAlt,
+      );
+      expect(
+        withMedia(
+          `![](/media/${ID}/medidor.jpg)`,
+          new Map([[ID, { status: "ready", decorative: true }]]),
+        ),
+      ).not.toContain(DOCUMENT_CODES.mediaNoAlt);
+    });
+
+    it("refuses an image hotlinked from another site", () => {
+      expect(
+        withMedia("![Algo](https://example.com/foto.jpg)", ready),
+      ).toContain(DOCUMENT_CODES.mediaExternal);
+    });
+
+    it("checks the preview id too", () => {
+      const document = newsPage();
+      document.metadata = {
+        ...document.metadata,
+        previewMediaId: ID,
+      } as ContentDocument["metadata"];
+      expect(
+        validateDocument(document, undefined, {
+          media: new Map([[ID, { status: "purged", decorative: false }]]),
+        }).diagnostics.map((d) => d.code),
+      ).toContain(DOCUMENT_CODES.mediaNotReady);
+    });
+
+    it("skips every media rule when the caller cannot resolve the library", () => {
+      const found = withMedia(`![](/media/${ID}/medidor.jpg)`, undefined);
+      expect(found).not.toContain(DOCUMENT_CODES.mediaNoAlt);
+      expect(found).not.toContain(DOCUMENT_CODES.mediaUnknown);
+    });
+  });
 });
 
 describe("slug", () => {
