@@ -5,6 +5,8 @@ import { findEditableSection, publicSectionPath } from "@/cms/sections";
 import { cmsPageStore } from "@/cms/server/store";
 import { ContentArticle } from "@/components/article/ContentArticle";
 import { Faq } from "@/components/article/Faq";
+import { Fuentes } from "@/components/section/Fuentes";
+import { dataLicense, licenseName } from "@/config/urls";
 import { RelatedGuides } from "@/components/guides/RelatedGuides";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { cmsCategoryStore } from "@/cms/categories/server/store";
@@ -212,6 +214,24 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
               />
             ),
             Faq: () => <Faq items={faq} />,
+            // The preview is the public page or it is not a preview. A data
+            // page states its own licence; a guide or a news article publishes
+            // no table and gets the list alone.
+            Fuentes: () => (
+              <Fuentes
+                items={page.metadata.sources ?? []}
+                license={
+                  page.section === "guias" || page.section === "noticias"
+                    ? undefined
+                    : page.metadata.dataset?.license
+                      ? {
+                          url: page.metadata.dataset.license,
+                          name: licenseName(page.metadata.dataset.license),
+                        }
+                      : dataLicense
+                }
+              />
+            ),
             // Last, so a name the manifest does not have resolves to a
             // no-op instead of throwing "Expected component X to be defined"
             // out of the MDX runtime. Whatever props the author wrote on it

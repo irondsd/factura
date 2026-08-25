@@ -76,6 +76,47 @@ describe("a well-formed guide", () => {
   });
 });
 
+describe("sources on a guide", () => {
+  // Provenance is optional here and mandatory nowhere: a guide that explains a
+  // thing has nothing to cite, and the well-formed guide above proves silence
+  // costs it nothing. What still holds are the two placement rules, because
+  // they are about the page contradicting itself.
+  const sources = [
+    {
+      label: "Naturgy BAN — Conocé tu factura",
+      href: "https://www.naturgyban.com.ar/conoce-tu-factura-hogares-comercios/",
+    },
+  ];
+
+  it("says nothing about a guide with no sources and no block", () => {
+    expect(codes()).not.toContain(DOCUMENT_CODES.sourcesMissing);
+  });
+
+  it("accepts a guide that names its sources and places the block", () => {
+    expect(
+      check({
+        ...meta({ sources }),
+        body: `${base.body}\n<Fuentes />\n`,
+      }).diagnostics,
+    ).toEqual([]);
+  });
+
+  it("refuses a guide that places <Fuentes /> over an empty list", () => {
+    const result = check({ body: `${base.body}\n<Fuentes />\n` });
+    const placed = result.diagnostics.find(
+      (d) => d.code === DOCUMENT_CODES.sourcesPlacedWithoutData,
+    );
+    expect(placed?.severity).toBe("error");
+  });
+
+  it("advises when a guide names sources it never shows", () => {
+    const notPlaced = check(meta({ sources })).diagnostics.find(
+      (d) => d.code === DOCUMENT_CODES.sourcesNotPlaced,
+    );
+    expect(notPlaced?.severity).toBe("warning");
+  });
+});
+
 describe("statistics and research documents", () => {
   const dataPage = (): ContentDocument => ({
     ...base,

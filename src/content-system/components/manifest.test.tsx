@@ -22,10 +22,11 @@ import { SECTION_COMPONENT_NAMES } from "./sectionDefinitions";
 // a component whose global-map form carries article furniture has to carry it
 // too, or the CMS preview shows a page the public site will not.
 
-/** Names the global MDX map exposes that belong to guides. `Fuentes` and
- * `Subpaginas` are the statistics/research sections' and arrive with section
- * 12. `PaginaRelacionada` is registered separately because the CMS can now
- * use its statistics/research card from guides as well. */
+/** Names the global MDX map exposes that belong to guides. `Subpaginas` is the
+ * statistics/research sections' and arrives with section 12. `Fuentes` and
+ * `PaginaRelacionada` are registered separately because the CMS can now use
+ * them from guides as well — the sources block and the statistics/research
+ * card. */
 const GUIDE_NAMES_IN_GLOBAL_MAP = [
   "ClosingCta",
   "CtaButton",
@@ -36,6 +37,7 @@ const GUIDE_NAMES_IN_GLOBAL_MAP = [
   "TrustBlock",
   "Faq",
   "RelatedGuides",
+  "Fuentes",
 ];
 
 describe("parity with the filesystem MDX map", () => {
@@ -62,9 +64,16 @@ describe("parity with the filesystem MDX map", () => {
   });
 
   it("does not register another section's components for guides", () => {
-    for (const name of ["Fuentes", "Subpaginas"]) {
-      expect(componentsForSection("guias")).not.toContain(name);
-    }
+    // `<Subpaginas />` stays a data-section block: it lists a hub page's CMS
+    // children, and the guides tree has no hubs. `<Fuentes />` used to sit
+    // beside it here and no longer does — a guide that walks through a real
+    // document cites the same kind of primary material a statistics page does.
+    expect(componentsForSection("guias")).not.toContain("Subpaginas");
+  });
+
+  it("registers the sources block for guides and news", () => {
+    expect(componentsForSection("guias")).toContain("Fuentes");
+    expect(componentsForSection("noticias")).toContain("Fuentes");
   });
 
   it("registers the related statistics card for guides", () => {

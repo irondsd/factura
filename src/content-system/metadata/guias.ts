@@ -85,6 +85,18 @@ export const faqItemSchema = z
   })
   .strict();
 
+/** One entry in a page's `<Fuentes />` block: where a number, a rule or a field
+ * name came from, with a link a reader can follow.
+ *
+ * Defined here rather than beside the statistics metadata because it is no
+ * longer a statistics-only idea — a guide that walks through a real bill cites
+ * the distributor's own documentation the same way — and `./sections` already
+ * imports from this module, so this is the end of the dependency that has no
+ * cycle in it. */
+export const dataSourceSchema = z
+  .object({ label: filled, href: z.url(), note: filled.optional() })
+  .strict();
+
 /** The JSONB half of a guide's metadata — everything that does not get its own
  * column (cms.md). `.strict()` throughout: unknown keys are how a renamed
  * field turns into data nothing reads. */
@@ -119,6 +131,11 @@ export const guideMetadataSchema = z
      * organization, which is what the markup said before authors existed. */
     authorId: z.uuid().optional(),
     factCheckerId: z.uuid().optional(),
+    /** Primary sources for what the page asserts, rendered by `<Fuentes />`.
+     * Optional here in a way it is not on a data page: a statistics page
+     * without provenance is an opinion piece with charts, whereas most guides
+     * explain a thing rather than measure it and have nothing to cite. */
+    sources: z.array(dataSourceSchema).optional(),
   })
   .strict()
   .refine((m) => new Set(m.categories).size === m.categories.length, {

@@ -479,6 +479,11 @@ export function validateDocument(
   // ── credits ───────────────────────────────────────────────────────────────
   out.push(...validateCredits(document.metadata, context));
 
+  // ── sources ───────────────────────────────────────────────────────────────
+  // Optional on a guide: only the placement rules apply, so a guide with
+  // nothing to cite says nothing about it.
+  out.push(...validateSources(body, raw, { expected: false }));
+
   // ── media ─────────────────────────────────────────────────────────────────
   out.push(...validateMedia(document, metadata, context));
 
@@ -488,8 +493,9 @@ export function validateDocument(
   return validationResult(out);
 }
 
-/** News is editorial like a guide, with its own section-scoped taxonomy but no
- * data provenance contract. It still gets the lifecycle, heading and FAQ guards. */
+/** News is editorial like a guide, with its own section-scoped taxonomy and the
+ * same optional provenance block. It still gets the lifecycle, heading and FAQ
+ * guards. */
 function validateNewsDocument(
   document: ContentDocument,
   context: DocumentValidationContext,
@@ -532,6 +538,13 @@ function validateNewsDocument(
     ),
   );
   out.push(...validateCredits(document.metadata, context));
+  out.push(
+    ...validateSources(
+      document.body,
+      (document.metadata ?? {}) as Record<string, unknown>,
+      { expected: false },
+    ),
+  );
   out.push(
     ...validateMedia(
       document,
@@ -585,6 +598,63 @@ function validateNewsDocument(
     );
   }
   return validationResult(out);
+}
+
+/** The `<Fuentes />` rules, shared by every section.
+ *
+ * Provenance renders where the tag is placed and nowhere else, so the tag is
+ * what decides whether it is *demanded*: a page without it cannot show a list
+ * however carefully it is filled in, and refusing to publish over one nothing
+ * would display was asking for paperwork. Hence an error when the tag is placed
+ * over an empty list, and a warning for the mirror case.
+ *
+ * `expected` is the one thing that differs by section. A statistics page
+ * without provenance is an opinion piece with charts, so its silence is worth
+ * an advisory. A guide mostly explains a thing rather than measures it, and
+ * most of the forty have nothing to cite — an advisory on every one of them
+ * would be noise that teaches an editor to skim warnings. */
+function validateSources(
+  body: string,
+  raw: Record<string, unknown>,
+  { expected }: { expected: boolean },
+): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  const places = /<Fuentes\b/.test(body);
+  const parsed = z.array(dataSourceSchema).safeParse(raw.sources);
+  const names = parsed.success && parsed.data.length > 0;
+  // A `sources` that is present but malformed is the shape checker's business:
+  // it has already said what is wrong with it, and "there are none" on top of
+  // that would send the editor looking for a second problem.
+  const unreadable = raw.sources !== undefined && !parsed.success;
+  if (!unreadable && !names) {
+    if (places) {
+      out.push(
+        error(
+          DOCUMENT_CODES.sourcesPlacedWithoutData,
+          "body places <Fuentes /> but meta.sources names no source",
+          "sources",
+        ),
+      );
+    } else if (expected) {
+      out.push(
+        warn(
+          DOCUMENT_CODES.sourcesMissing,
+          "meta.sources names no source — a data page should say where its numbers come from, and place <Fuentes /> where they belong",
+          "sources",
+        ),
+      );
+    }
+  }
+  if (names && !places) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.sourcesNotPlaced,
+        "meta.sources is set but the body never places <Fuentes /> — the sources are not shown to readers",
+        "sources",
+      ),
+    );
+  }
+  return out;
 }
 
 /** The author-credit rules.
@@ -791,37 +861,7 @@ function validateDataSectionDocument(
   // paperwork. Missing provenance is worth saying out loud either way — as an
   // advisory when the page does not place the tag, as an error when it does —
   // and the mirror case, sources typed but never placed, is worth saying too.
-  const placesSources = /<Fuentes\b/.test(document.body);
-  const sources = z.array(dataSourceSchema).safeParse(raw.sources);
-  const namesSource = sources.success && sources.data.length > 0;
-  // A `sources` that is present but malformed is the shape checker's business:
-  // it has already said what is wrong with it, and "there are none" on top of
-  // that would send the editor looking for a second problem.
-  const unreadable = raw.sources !== undefined && !sources.success;
-  if (!unreadable && !namesSource) {
-    out.push(
-      placesSources
-        ? error(
-            DOCUMENT_CODES.sourcesPlacedWithoutData,
-            "body places <Fuentes /> but meta.sources names no source",
-            "sources",
-          )
-        : warn(
-            DOCUMENT_CODES.sourcesMissing,
-            "meta.sources names no source — a data page should say where its numbers come from, and place <Fuentes /> where they belong",
-            "sources",
-          ),
-    );
-  }
-  if (namesSource && !placesSources) {
-    out.push(
-      warn(
-        DOCUMENT_CODES.sourcesNotPlaced,
-        "meta.sources is set but the body never places <Fuentes /> — the sources are not shown to readers",
-        "sources",
-      ),
-    );
-  }
+  out.push(...validateSources(document.body, raw, { expected: true }));
   const dataset = datasetMetadataSchema.safeParse(raw.dataset);
   if (!dataset.success && raw.dataset === undefined) {
     out.push(

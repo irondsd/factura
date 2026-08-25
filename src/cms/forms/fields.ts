@@ -225,6 +225,14 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     group: "contenido",
     help: "De 4 a 6 preguntas reales de búsqueda. Se muestran donde el cuerpo escribe <Faq />, y solo ahí. Las respuestas son texto plano: los enlaces van en el cuerpo.",
   },
+  {
+    path: "metadata.sources",
+    label: "Fuentes",
+    kind: "sources",
+    placedBy: "Fuentes",
+    group: "contenido",
+    help: "Opcional. Las fuentes primarias en las que se apoya la guía — la documentación de la empresa, la resolución que fija un cargo. Se muestran donde el cuerpo escribe <Fuentes />, y solo ahí.",
+  },
   ...CREDIT_FIELDS,
   {
     path: "metadata.vendor",

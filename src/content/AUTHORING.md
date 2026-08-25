@@ -246,7 +246,10 @@ for a field to set.
   "vendor": "Edesur",
   "previewMediaId": "<id de la biblioteca de medios>",
   "authorId": "<id de la lista de autores>",
-  "factCheckerId": "<id de la lista de autores>"
+  "factCheckerId": "<id de la lista de autores>",
+  "sources": [
+    { "label": "Edesur — Conocé tu factura", "href": "https://…", "note": "…" }
+  ]
 }
 ```
 
@@ -261,6 +264,13 @@ for a field to set.
   number. Use a figure the article actually states.
 - `authorId` / `factCheckerId` — who wrote the page and who verified its
   numbers. See **Authorship** below.
+- `sources` — optional here, unlike on a data page. Same shape and the same
+  `<Fuentes />` tag: place the tag and the list is required, leave both out and
+  nothing is said. Fill it when the guide rests on something a reader could go
+  and check — the distributor's own «conocé tu factura», the resolution that
+  creates a charge — and leave it empty when the guide just explains a thing.
+  A guide's block prints the list alone: it publishes no table of its own, so
+  the licence line the statistics pages carry is not shown.
 - Unknown keys are rejected. The schema is `.strict()` on purpose: a renamed
   field would otherwise become data nothing reads.
 
@@ -478,7 +488,8 @@ route supplies the data. `<Faq />`, `<RelatedGuides />`, `<Fuentes />` and
 
 **Guides** get the CTA family and the inflation charts: `<ClosingCta>`,
 `<ProbarCta>`, `<CtaButton>`, `<CtaRow>`, `<DemoCta />`, `<SignupCta />`,
-`<TrustBlock />`, `<RelatedGuides />` and `<InflacionChart chart="…" />`. The
+`<TrustBlock />`, `<RelatedGuides />`, `<Fuentes />` and
+`<InflacionChart chart="…" />`. The
 chart ids are fixed by [`data/inflacion.ts`](./guias/data/inflacion.ts); an
 unknown id is rejected. The series come from INDEC's IPC rebased to November
 2023 — **if you quote a chart's figure in prose, re-check it after a data
@@ -508,6 +519,10 @@ what?_ — and the headline plus two sentences are the answer. Be concrete about
 this article's topic: "Factura guarda los m³ y el importe de cada boleta de
 MetroGAS" is an argument; "Organiza todos tus servicios" is filler that could
 sit under any of the forty.
+
+`<Fuentes />`, when the guide has sources, goes **after the closing section and
+before `<Faq />`** — the same place it sits on a data page, so a reader who
+scrolls to the bottom of any article finds provenance in one spot.
 
 `<ProbarCta />` goes **mid-article, right before the closing section**, in
 guides that walk through a real document — the `facturas-y-conceptos` ones. The point

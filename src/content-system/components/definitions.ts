@@ -158,7 +158,13 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
   // Shared statistics/research article furniture. The author writes bare tags;
   // the route binds the page-specific data from CMS JSONB.
   Fuentes: {
-    sections: DATA_SECTIONS,
+    // Not only a data-page block. A guide that walks through a real document
+    // rests on the same kind of primary material a statistics page does — the
+    // distributor's own "conocé tu factura", the ENARGAS resolution behind a
+    // charge — and a reader who wants to check a claim deserves the link in the
+    // article rather than nowhere. Noticias shares the guide metadata schema,
+    // so it gets the tag for the same reason and by the same key.
+    sections: ["guias", "noticias", ...DATA_SECTIONS],
     kind: "leaf",
     props: CONTEXT_BOUND,
     description: "Renders this page's source metadata.",

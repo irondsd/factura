@@ -1,5 +1,4 @@
 import { Eyebrow } from "@/components/landing/parts";
-import { dataLicense } from "@/config/urls";
 import { SOURCES_SECTION } from "@/content/headings";
 import type { SectionMeta } from "@/content/section";
 
@@ -17,6 +16,12 @@ import type { SectionMeta } from "@/content/section";
 // may be reused; a reader who has to read the JSON-LD to find that out is being
 // told something the page itself never says, so the line is printed here, from
 // the same value the markup emits.
+//
+// It is also the one part that does not travel to a guide. A guide cites the
+// distributor's own documentation and a couple of resolutions; it publishes no
+// table of its own, so "las tablas y series derivadas de esta página" would be
+// describing something that isn't there. The data routes pass a licence, the
+// guide route passes none, and the paragraph follows the prop.
 
 export function Fuentes({
   items,
@@ -24,11 +29,12 @@ export function Fuentes({
 }: {
   items: SectionMeta["sources"];
   /** The page's own licence, or the site-wide default. `name` is absent when a
-   * page overrides the default with a licence this site can't name. */
+   * page overrides the default with a licence this site can't name. Omitted
+   * entirely by pages that publish no data of their own — the licence
+   * paragraph is then left off rather than defaulted. */
   license?: { url: string; name?: string };
 }) {
-  if (items.length === 0) return null;
-  const { url, name } = license ?? dataLicense;
+  if (!items || items.length === 0) return null;
 
   return (
     <section
@@ -53,18 +59,20 @@ export function Fuentes({
         ))}
       </ul>
 
-      <p className="mt-5 mb-0 font-mono text-[13px] leading-[1.7] text-muted">
-        Las tablas y series derivadas de esta página se publican bajo{" "}
-        <a
-          href={url}
-          target="_blank"
-          rel="license noopener noreferrer"
-          className="text-accent underline decoration-dotted underline-offset-[3px] hover:decoration-solid"
-        >
-          {name ?? "la licencia de los datos"}
-        </a>
-        . Los datos originales conservan los términos de cada fuente.
-      </p>
+      {license && (
+        <p className="mt-5 mb-0 font-mono text-[13px] leading-[1.7] text-muted">
+          Las tablas y series derivadas de esta página se publican bajo{" "}
+          <a
+            href={license.url}
+            target="_blank"
+            rel="license noopener noreferrer"
+            className="text-accent underline decoration-dotted underline-offset-[3px] hover:decoration-solid"
+          >
+            {license.name ?? "la licencia de los datos"}
+          </a>
+          . Los datos originales conservan los términos de cada fuente.
+        </p>
+      )}
     </section>
   );
 }

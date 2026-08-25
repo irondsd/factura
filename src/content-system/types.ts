@@ -51,6 +51,8 @@ export type GuideMetadata = {
   authorId?: string;
   /** `cms_author` id of whoever verified the page's numbers. */
   factCheckerId?: string;
+  /** Primary sources, rendered wherever the body places `<Fuentes />`. */
+  sources?: DataSource[];
 };
 
 /** Metadata shared by the statistics and research sections.  Their original
@@ -73,7 +75,6 @@ export type DatasetMetadata = {
 export type SectionMetadata = Omit<GuideMetadata, "ogImage"> & {
   ogImage?: { eyebrow?: string; stat?: string };
   ogStat?: string;
-  sources?: DataSource[];
   dataset?: DatasetMetadata;
 };
 

@@ -1,11 +1,12 @@
-import { z } from "zod";
-import { faqItemSchema } from "./guias";
+import { z } from 'zod'
+import { dataSourceSchema, faqItemSchema } from './guias'
 
-const text = z.string().trim().min(1);
+const text = z.string().trim().min(1)
 
-export const dataSourceSchema = z
-  .object({ label: text, href: z.string().url(), note: text.optional() })
-  .strict();
+// `dataSourceSchema` now lives beside the guide metadata, because a guide can
+// carry sources too. Re-exported here so the modules that already read it from
+// the section schema keep one import.
+export { dataSourceSchema }
 
 export const datasetMetadataSchema = z
   .object({
@@ -18,7 +19,7 @@ export const datasetMetadataSchema = z
      * in `src/config/urls.ts`, which is what nearly every page wants. */
     license: z.string().url().optional(),
   })
-  .strict();
+  .strict()
 
 /** JSONB contract for statistics and research pages.  These fields were
  * formerly exported from MDX modules and now travel with the CMS row. */
@@ -43,4 +44,4 @@ export const sectionMetadataSchema = z
     sources: z.array(dataSourceSchema).optional(),
     dataset: datasetMetadataSchema.optional(),
   })
-  .strict();
+  .strict()
