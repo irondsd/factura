@@ -263,10 +263,11 @@ describe("buildSignInMessage", () => {
 describe("signInNoticeMode", () => {
   afterEach(() => vi.unstubAllEnvs());
 
-  it("posts everything when unset", () => {
+  it("posts only new accounts when unset", () => {
     vi.stubEnv("TELEGRAM_NOTIFY_SIGNINS", "");
-    expect(signInNoticeMode()).toBe("all");
-    expect(shouldNotifySignIn(false)).toBe(true);
+    expect(signInNoticeMode()).toBe("new");
+    expect(shouldNotifySignIn(true)).toBe(true);
+    expect(shouldNotifySignIn(false)).toBe(false);
   });
 
   it("goes silent on off", () => {
@@ -283,10 +284,17 @@ describe("signInNoticeMode", () => {
     expect(shouldNotifySignIn(false)).toBe(false);
   });
 
-  it("fails noisy on a value it doesn't recognize", () => {
-    // A typo in the variable that silences the notice must not silence it.
+  it("keeps returning sign-ins quiet on a value it does not recognize", () => {
+    // A typo must not accidentally re-enable notices for existing accounts.
     vi.stubEnv("TELEGRAM_NOTIFY_SIGNINS", "of");
+    expect(signInNoticeMode()).toBe("new");
+    expect(shouldNotifySignIn(false)).toBe(false);
+  });
+
+  it("allows all sign-ins only as an explicit opt-in", () => {
+    vi.stubEnv("TELEGRAM_NOTIFY_SIGNINS", "all");
     expect(signInNoticeMode()).toBe("all");
+    expect(shouldNotifySignIn(false)).toBe(true);
   });
 });
 

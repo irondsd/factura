@@ -240,20 +240,21 @@ export type SignInNoticeMode = "all" | "new" | "off";
 
 /** Read that setting out of the environment.
  *
- * `all` while every sign-in is still worth seeing, `new` once the returning
- * ones are noise and only accounts being created still matter, `off` for
- * silence. Unset means `all`: this exists to be watched, and the volume that
- * makes it too much is exactly the volume that makes changing it obvious.
+ * `new` is the safe default: this is a registration notice, so returning
+ * sign-ins should not reach the channel unless they are explicitly requested.
+ * `all` is available as an opt-in while every sign-in is worth seeing, and
+ * `off` silences the notice entirely.
  *
- * Anything unrecognized also reads as `all` — a typo in the one variable that
- * silences a notice should leave it noisy, not quiet.
+ * Anything unrecognized also reads as `new` — a typo must not accidentally
+ * turn returning sign-ins back on.
  */
 export function signInNoticeMode(): SignInNoticeMode {
   const raw = process.env.TELEGRAM_NOTIFY_SIGNINS?.trim().toLowerCase();
-  if (!raw) return "all";
+  if (!raw) return "new";
   if (["off", "false", "0", "none", "no"].includes(raw)) return "off";
   if (["new", "signups", "new-users"].includes(raw)) return "new";
-  return "all";
+  if (raw === "all") return "all";
+  return "new";
 }
 
 /** Whether this particular sign-in is one the channel wants. Checked before
