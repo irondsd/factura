@@ -8,6 +8,7 @@ import {
 import type { ContentDocument, Diagnostic, ValidationResult } from "../types";
 import { validationResult } from "../types";
 import { extractBodyReferences } from "../media/references";
+import { AUTHOR_ROLE_FIELDS, type AuthorRoleField } from "../authors/types";
 import { missingKeywordWords } from "./text";
 
 // Layer 2 of cms.md: document validation. Everything that can be decided
@@ -89,6 +90,8 @@ export const DOCUMENT_CODES = {
   mediaNotReady: "doc.media-not-ready",
   mediaNoAlt: "doc.media-no-alt",
   mediaExternal: "doc.media-external",
+  authorUnknown: "doc.author-unknown",
+  authorSelfCheck: "doc.author-self-check",
 } as const;
 
 /** What a document needs to know about the rest of the collection. Built once
@@ -121,6 +124,12 @@ export type DocumentValidationContext = {
   /** Active category keys for this document's section. Resolved by the CMS
    * adapter; omitted by pure callers that only want structural checks. */
   categories?: ReadonlySet<string>;
+  /** Every id in `cms_author`. Supplied by the CMS adapter for the same reason
+   * `media` is — the list is a table and this validator has no database.
+   *
+   * Absent skips the existence check, and the self-verification warning below
+   * still runs: comparing two ids needs no lookup. */
+  authors?: ReadonlySet<string>;
 };
 
 const error = (code: string, message: string, field?: string): Diagnostic => ({
@@ -467,6 +476,9 @@ export function validateDocument(
     );
   }
 
+  // ── credits ───────────────────────────────────────────────────────────────
+  out.push(...validateCredits(document.metadata, context));
+
   // ── media ─────────────────────────────────────────────────────────────────
   out.push(...validateMedia(document, metadata, context));
 
@@ -519,6 +531,7 @@ function validateNewsDocument(
       context,
     ),
   );
+  out.push(...validateCredits(document.metadata, context));
   if (document.publishedAt && !isValidDateTime(document.publishedAt)) {
     out.push(
       error(
@@ -565,6 +578,58 @@ function validateNewsDocument(
     );
   }
   return validationResult(out);
+}
+
+/** The author-credit rules.
+ *
+ * Two of them, and they fail at different levels:
+ *
+ *   - an id no author has — only reachable by hand-editing the row or by an
+ *     agent guessing instead of calling `list_authors`. An error: the byline
+ *     would silently vanish from the markup, which is worse than a refused
+ *     save.
+ *   - the same person written down as both the writer and the fact checker.
+ *     A warning rather than an error, because it is an editorial judgement and
+ *     not a broken document — a page can genuinely ship that way while the
+ *     second person is away, and refusing to publish over it would be the CMS
+ *     overruling the desk. */
+function validateCredits(
+  metadata: unknown,
+  context: DocumentValidationContext,
+): Diagnostic[] {
+  const record =
+    metadata && typeof metadata === "object"
+      ? (metadata as Record<string, unknown>)
+      : {};
+
+  const out: Diagnostic[] = [];
+  const ids: Partial<Record<AuthorRoleField, string>> = {};
+
+  for (const field of AUTHOR_ROLE_FIELDS) {
+    const value = record[field];
+    if (typeof value !== "string" || !value) continue;
+    ids[field] = value;
+    if (context.authors && !context.authors.has(value)) {
+      out.push({
+        code: DOCUMENT_CODES.authorUnknown,
+        severity: "error",
+        message: `No hay ningún autor con el id ${value}. Elige uno de la lista de autores.`,
+        field,
+      });
+    }
+  }
+
+  if (ids.authorId && ids.authorId === ids.factCheckerId) {
+    out.push({
+      code: DOCUMENT_CODES.authorSelfCheck,
+      severity: "warning",
+      message:
+        "La misma persona figura como autora y como verificadora. La verificación la hace alguien distinto de quien escribió.",
+      field: "factCheckerId",
+    });
+  }
+
+  return out;
 }
 
 /** The media rules (cms.md).
@@ -709,6 +774,7 @@ function validateDataSectionDocument(
       ? (document.metadata as Record<string, unknown>)
       : {};
   out.push(...validateCategories(raw.categories, context));
+  out.push(...validateCredits(document.metadata, context));
 
   // Provenance is expected of a data page, but it is `<Fuentes />` that decides
   // whether it is *demanded*. The sources render there and nowhere else, so a

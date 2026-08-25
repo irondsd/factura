@@ -4,6 +4,7 @@ import {
   CmsConflictError,
   CmsForbiddenError,
   CmsMediaInUseError,
+  CmsMediaPortraitInUseError,
   CmsMediaUnavailableError,
   CmsNotFoundError,
   CmsValidationError,
@@ -36,6 +37,7 @@ import {
   storeMaster,
 } from "./uploads";
 import { purgeAsset } from "./purge";
+import { CmsAuthorStore, cmsAuthorStore } from "../../authors/server/store";
 
 // The CMS media service: the single entry point for every media operation,
 // browser or MCP.
@@ -71,6 +73,10 @@ export type MediaDetail = {
   /** Other ready assets with the same bytes. A warning, never a merge: two rows
    * with the same pixels are two independent objects on purpose. */
   duplicates: MediaAsset[];
+  /** Authors whose portrait this is. A hold on the image that `usage` above
+   * structurally cannot show, so the detail screen has to be told separately or
+   * a refused deletion would have no visible cause. */
+  portraitOf: { id: string; name: string }[];
 };
 
 const invalid = (rejection: UploadRejection) =>
@@ -83,6 +89,10 @@ export class CmsMediaService {
     private readonly store: CmsMediaStore = cmsMediaStore,
     /** Injected so tests can pin timestamps. */
     private readonly clock: () => Date = () => new Date(),
+    /** Only ever asked one question — "whose portrait is this?" — and only to
+     * explain a refusal the store already made. The gate itself is a predicate
+     * inside the removal statements, not a call from here. */
+    private readonly authors: CmsAuthorStore = cmsAuthorStore,
   ) {}
 
   // ── reads ───────────────────────────────────────────────────────────────
@@ -108,16 +118,21 @@ export class CmsMediaService {
   async get(id: string): Promise<MediaDetail> {
     const asset = await this.store.findById(id);
     if (!asset) throw new CmsNotFoundError(`Media ${id}`);
-    const [usage, sameBytes] = await Promise.all([
+    const [usage, sameBytes, portraitOf] = await Promise.all([
       this.store.usageOf(id),
       asset.sha256
         ? this.store.findBySha256(asset.sha256)
         : Promise.resolve([]),
+      this.authors.byPortrait([id]),
     ]);
     return {
       asset,
       usage,
       duplicates: sameBytes.filter((other) => other.id !== id),
+      portraitOf: portraitOf.map(({ id: authorId, name }) => ({
+        id: authorId,
+        name,
+      })),
     };
   }
 
@@ -331,6 +346,11 @@ export class CmsMediaService {
 
     const usage = await this.store.usageOf(input.id);
     if (usage.length > 0) throw new CmsMediaInUseError(usage);
+    // The other way an image can be held. No page mentions it, so the usage
+    // list above is empty and says nothing useful — the remedy is in Autores,
+    // and the message has to say so or the refusal looks like a bug.
+    const portraits = await this.authors.byPortrait([input.id]);
+    if (portraits.length > 0) throw new CmsMediaPortraitInUseError(portraits);
     // Not referenced and still refused: the status moved under us.
     throw new CmsNotFoundError(`Media ${input.id}`);
   }
@@ -371,6 +391,8 @@ export class CmsMediaService {
       now: this.clock(),
     });
     if (outcome === "restored") {
+      const portraits = await this.authors.byPortrait([input.id]);
+      if (portraits.length > 0) throw new CmsMediaPortraitInUseError(portraits);
       throw new CmsMediaInUseError(await this.store.usageOf(input.id));
     }
   }

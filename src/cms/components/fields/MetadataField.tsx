@@ -185,6 +185,25 @@ function Control({
         />
       );
 
+    // One row from a database-owned list, or none. `undefined` rather than an
+    // empty string when nothing is chosen, so the key is absent from the JSONB
+    // instead of holding "" — which the metadata schema would refuse.
+    case "select":
+      return (
+        <select
+          {...shared}
+          value={(value as string) ?? ""}
+          onChange={(e) => onChange(e.target.value || undefined)}
+        >
+          <option value="">{field.emptyLabel ?? "Ninguno"}</option>
+          {field.options?.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      );
+
     case "faq":
       return <FaqInput value={asFaq(value)} onChange={onChange} />;
 

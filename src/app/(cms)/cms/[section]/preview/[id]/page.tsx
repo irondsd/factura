@@ -15,6 +15,7 @@ import {
 } from "@/content-system/document";
 import { mediaComponents } from "@/content-system/media/render";
 import { resolveMediaRef } from "@/content-system/media/repository";
+import { resolveAuthorCredits } from "@/content-system/authors/repository";
 import {
   compileContentForPreview,
   ContentGrammarError,
@@ -185,6 +186,7 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
               section: categories[0]?.label,
               words,
               minutes,
+              credits: await resolveAuthorCredits(page.metadata),
             })}
           />
           {faq.length > 0 && <JsonLd data={faqPageLd(faq, "es")} />}

@@ -607,3 +607,69 @@ describe("media references", () => {
     expect(found).not.toContain(DOCUMENT_CODES.mediaUnknown);
   });
 });
+
+describe("author credits", () => {
+  const ANA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const LUIS = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const known = new Set([ANA, LUIS]);
+
+  const withCredits = (
+    credits: Record<string, unknown>,
+    authors: ReadonlySet<string> | undefined = known,
+  ) =>
+    validateDocument({ ...base, ...meta(credits) }, index, {
+      ...(authors ? { authors } : {}),
+    }).diagnostics;
+
+  it("accepts a page credited to people who exist", () => {
+    expect(
+      withCredits({ authorId: ANA, factCheckerId: LUIS }).map((d) => d.code),
+    ).toEqual([]);
+  });
+
+  it("rejects an id no author has", () => {
+    const found = withCredits({
+      authorId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    });
+    expect(found.map((d) => d.code)).toContain(DOCUMENT_CODES.authorUnknown);
+    // Named, so the editor's cursor can land on the right control.
+    expect(found[0].field).toBe("authorId");
+  });
+
+  it("checks the fact checker the same way as the author", () => {
+    expect(
+      withCredits({
+        factCheckerId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      }).map((d) => d.field),
+    ).toContain("factCheckerId");
+  });
+
+  it("warns, but does not refuse, when one person does both jobs", () => {
+    const found = withCredits({ authorId: ANA, factCheckerId: ANA });
+    const selfCheck = found.find(
+      (d) => d.code === DOCUMENT_CODES.authorSelfCheck,
+    );
+    expect(selfCheck?.severity).toBe("warning");
+    expect(
+      validateDocument(
+        { ...base, ...meta({ authorId: ANA, factCheckerId: ANA }) },
+        index,
+        {
+          authors: known,
+        },
+      ).ok,
+    ).toBe(true);
+  });
+
+  it("still compares the two ids when the caller cannot resolve the list", () => {
+    // Same contract as the media rules: no way to ask means no existence
+    // check. Comparing two ids to each other needs no lookup, so that rule
+    // keeps working.
+    const found = withCredits({ authorId: ANA, factCheckerId: ANA }, undefined);
+    expect(found.map((d) => d.code)).toEqual([DOCUMENT_CODES.authorSelfCheck]);
+  });
+
+  it("says nothing about a page that credits nobody", () => {
+    expect(withCredits({}).map((d) => d.code)).toEqual([]);
+  });
+});

@@ -14,6 +14,7 @@ import {
   sectionUrl,
 } from "./metadata";
 import type { ContentSection } from "@/content-system/types";
+import type { AuthorRef } from "@/content-system/authors/types";
 
 // schema.org structured data (JSON-LD) for the public landing. Builders return
 // plain objects rendered through <JsonLd>. Stable @ids let the graphs reference
@@ -22,6 +23,77 @@ import type { ContentSection } from "@/content-system/types";
 
 const ORG_NAME = "Factura";
 const ORG_ID = `${siteUrl}/#organization`;
+
+/** Who an article credits. Both optional, and an article with neither emits
+ * exactly the markup it did before authors existed: `author` is the
+ * organization, and there is no WebPage node. */
+export type ArticleCredits = {
+  author?: AuthorRef | null;
+  factChecker?: AuthorRef | null;
+};
+
+/** One credited person as a schema.org `Person`.
+ *
+ * `@id` is set from the slug and `url` deliberately is not. The two are
+ * different claims: `@id` is an identifier, which is what lets the author page's
+ * own node merge with this one the day it ships, while `url` tells a crawler
+ * there is a document to fetch — and until `/autores/<slug>` exists that would
+ * be a link to a 404. An author with no slug gets an anonymous node, which is
+ * valid and says everything except "here is their page".
+ *
+ * `worksFor` ties the person to the publisher, which is the whole reason a
+ * named byline is worth marking up: it is the difference between a page written
+ * by someone and a page written by nobody in particular. */
+function personNode(author: AuthorRef) {
+  return {
+    "@type": "Person" as const,
+    ...(author.slug
+      ? { "@id": `${siteUrl}/autores/${author.slug}#person` }
+      : {}),
+    name: author.name,
+    ...(author.jobTitle ? { jobTitle: author.jobTitle } : {}),
+    ...(author.tagline ? { description: author.tagline } : {}),
+    // Only an absolute URL. `publicMediaUrl` returns a bare path when no media
+    // origin is configured — true of a local dev box — and a relative image in
+    // JSON-LD would resolve against the article's own URL, which is wrong.
+    ...(author.image && /^https?:\/\//.test(author.image)
+      ? { image: author.image }
+      : {}),
+    worksFor: { "@id": ORG_ID },
+  };
+}
+
+/** The `author` value for an article: the named person when there is one, and
+ * the organization when there is not. */
+const authorNode = (credits: ArticleCredits | undefined) =>
+  credits?.author ? personNode(credits.author) : { "@id": ORG_ID };
+
+/** The `WebPage` node carrying `reviewedBy`, or nothing.
+ *
+ * A separate node because `reviewedBy` is a property of `WebPage`, not of
+ * `Article` — putting it on the article would be markup that validates by
+ * accident. Emitted only when someone actually checked the page, so an
+ * unverified article's graph is one node, exactly as before.
+ *
+ * `mainEntity` points back at the article, and the article's existing
+ * `mainEntityOfPage` already names this URL, so the two nodes agree rather than
+ * one of them dangling. */
+const reviewNodes = (
+  url: string,
+  articleId: string,
+  credits?: ArticleCredits,
+) =>
+  credits?.factChecker
+    ? [
+        {
+          "@type": "WebPage" as const,
+          "@id": url,
+          url,
+          mainEntity: { "@id": articleId },
+          reviewedBy: personNode(credits.factChecker),
+        },
+      ]
+    : [];
 
 /** Organization + WebSite: brand-level identity that's true on every marketing
  * page. Rendered once from the (site) layout so all landing routes carry it. */
@@ -203,6 +275,7 @@ export function guideLd({
   section,
   words,
   minutes,
+  credits,
 }: {
   slug: string;
   title: string;
@@ -217,33 +290,40 @@ export function guideLd({
   /** Prose length and reading time, from `guideStats`. */
   words: number;
   minutes: number;
+  credits?: ArticleCredits;
 }) {
   const url = guideUrl(canonical ?? slug);
+  const articleId = `${url}#article`;
   return {
     "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    "@id": `${url}#article`,
-    headline: title,
-    description,
-    inLanguage: "es",
-    datePublished: published,
-    dateModified: updated,
-    mainEntityOfPage: url,
-    // The guide's own card, the same one `og:image` names.
-    image: guideCardUrl(slug, updated),
-    keywords: keywords.join(", "),
-    ...(section ? { articleSection: section } : {}),
-    // What the article is *about*, as opposed to what it mentions. Only set
-    // when the guide is about one company's bill, which is the case the
-    // distinction is worth drawing for.
-    ...(vendor ? { about: { "@type": "Organization", name: vendor } } : {}),
-    wordCount: words,
-    // ISO 8601 duration. Same number the page prints in its dateline, which is
-    // the point: the markup shouldn't claim a different article than the one on
-    // screen.
-    timeRequired: `PT${minutes}M`,
-    author: { "@id": ORG_ID },
-    publisher: { "@id": ORG_ID },
+    "@graph": [
+      {
+        "@type": "BlogPosting",
+        "@id": articleId,
+        headline: title,
+        description,
+        inLanguage: "es",
+        datePublished: published,
+        dateModified: updated,
+        mainEntityOfPage: url,
+        // The guide's own card, the same one `og:image` names.
+        image: guideCardUrl(slug, updated),
+        keywords: keywords.join(", "),
+        ...(section ? { articleSection: section } : {}),
+        // What the article is *about*, as opposed to what it mentions. Only set
+        // when the guide is about one company's bill, which is the case the
+        // distinction is worth drawing for.
+        ...(vendor ? { about: { "@type": "Organization", name: vendor } } : {}),
+        wordCount: words,
+        // ISO 8601 duration. Same number the page prints in its dateline, which is
+        // the point: the markup shouldn't claim a different article than the one on
+        // screen.
+        timeRequired: `PT${minutes}M`,
+        author: authorNode(credits),
+        publisher: { "@id": ORG_ID },
+      },
+      ...reviewNodes(url, articleId, credits),
+    ],
   };
 }
 
@@ -279,6 +359,7 @@ export function editorialPageLd({
   updated,
   words,
   minutes,
+  credits,
 }: {
   id: string;
   slug: string[];
@@ -289,24 +370,31 @@ export function editorialPageLd({
   updated: string;
   words: number;
   minutes: number;
+  credits?: ArticleCredits;
 }) {
   const url = sectionUrl(id, slug);
+  const articleId = `${url}#article`;
   return {
     "@context": "https://schema.org",
-    "@type": "NewsArticle",
-    "@id": `${url}#article`,
-    headline: title,
-    description,
-    inLanguage: "es",
-    datePublished: published,
-    dateModified: updated,
-    mainEntityOfPage: url,
-    image: sectionCardUrl(id, slug, updated),
-    keywords: keywords.join(", "),
-    wordCount: words,
-    timeRequired: `PT${minutes}M`,
-    author: { "@id": ORG_ID },
-    publisher: { "@id": ORG_ID },
+    "@graph": [
+      {
+        "@type": "NewsArticle",
+        "@id": articleId,
+        headline: title,
+        description,
+        inLanguage: "es",
+        datePublished: published,
+        dateModified: updated,
+        mainEntityOfPage: url,
+        image: sectionCardUrl(id, slug, updated),
+        keywords: keywords.join(", "),
+        wordCount: words,
+        timeRequired: `PT${minutes}M`,
+        author: authorNode(credits),
+        publisher: { "@id": ORG_ID },
+      },
+      ...reviewNodes(url, articleId, credits),
+    ],
   };
 }
 
@@ -338,6 +426,7 @@ export function sectionPageLd({
   dataset,
   words,
   minutes,
+  credits,
 }: {
   id: string;
   slug: string[];
@@ -358,16 +447,18 @@ export function sectionPageLd({
   };
   words: number;
   minutes: number;
+  credits?: ArticleCredits;
 }) {
   const url = sectionUrl(id, slug);
   const datasetId = `${url}#dataset`;
+  const articleId = `${url}#article`;
 
   return {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "Article",
-        "@id": `${url}#article`,
+        "@id": articleId,
         headline: title,
         description,
         inLanguage: "es",
@@ -379,9 +470,10 @@ export function sectionPageLd({
         wordCount: words,
         timeRequired: `PT${minutes}M`,
         about: { "@id": datasetId },
-        author: { "@id": ORG_ID },
+        author: authorNode(credits),
         publisher: { "@id": ORG_ID },
       },
+      ...reviewNodes(url, articleId, credits),
       {
         "@type": "Dataset",
         "@id": datasetId,

@@ -166,3 +166,48 @@ describe("fieldState", () => {
     expect(state("guias", "crumb")).toEqual({ visible: true, required: false });
   });
 });
+
+describe("author credits", () => {
+  const authors = [
+    { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", name: "Ana Pérez" },
+    { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", name: "Luis Gómez" },
+  ];
+
+  const credit = (section: Parameters<typeof sectionFields>[0], path: string) =>
+    sectionFields(section, [], authors).find((field) => field.path === path);
+
+  it("offers both credits in every section", () => {
+    for (const section of [
+      "guias",
+      "noticias",
+      "estadisticas",
+      "investigaciones",
+    ] as const) {
+      expect(credit(section, "metadata.authorId")).toBeDefined();
+      expect(credit(section, "metadata.factCheckerId")).toBeDefined();
+    }
+  });
+
+  it("fills both selects from the same list of people", () => {
+    for (const path of ["metadata.authorId", "metadata.factCheckerId"]) {
+      expect(credit("guias", path)?.options).toEqual([
+        { value: authors[0].id, label: "Ana Pérez" },
+        { value: authors[1].id, label: "Luis Gómez" },
+      ]);
+    }
+  });
+
+  it("never demands a credit", () => {
+    // Optional on purpose: an unsigned page is published by the organization,
+    // which is what the markup said before authors existed.
+    expect(credit("guias", "metadata.authorId")?.required).toBeUndefined();
+    expect(credit("guias", "metadata.factCheckerId")?.required).toBeUndefined();
+  });
+
+  it("leaves the selects empty for a caller with no list to offer", () => {
+    expect(
+      sectionFields("guias").find((f) => f.path === "metadata.authorId")
+        ?.options,
+    ).toEqual([]);
+  });
+});

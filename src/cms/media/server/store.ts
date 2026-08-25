@@ -119,6 +119,21 @@ const referencedByAnyPage = () => sql`exists (
   select 1 from cms_media_usage usage where usage.media_id = cms_media.id
 )`;
 
+/** "This row is somebody's portrait."
+ *
+ * A second predicate rather than a row in `cms_media_usage`, because that
+ * table's primary key starts with a revision id and an author is not a page
+ * copy. Held to the same standard as the usage check and combined with it in
+ * the same WHERE clause: the removal gates below have to be decided inside the
+ * statement that removes, or an author edit landing at the same moment could
+ * slip past a check made just before it. */
+const usedAsPortrait = () => sql`exists (
+  select 1 from cms_author author where author.image_media_id = cms_media.id
+)`;
+
+/** Everything that holds an image, for the gates that take one away. */
+const stillInUse = () => sql`(${referencedByAnyPage()} or ${usedAsPortrait()})`;
+
 export type MediaInsert = {
   originalFilename: string;
   displayName: string;
@@ -364,7 +379,7 @@ export class CmsMediaStore {
         and(
           eq(cmsMedia.id, input.id),
           eq(cmsMedia.status, "ready"),
-          not(referencedByAnyPage()),
+          not(stillInUse()),
         ),
       )
       .returning();
@@ -417,7 +432,7 @@ export class CmsMediaStore {
         and(
           eq(cmsMedia.id, input.id),
           inArray(cmsMedia.status, ["trashed", "purging"]),
-          not(referencedByAnyPage()),
+          not(stillInUse()),
         ),
       )
       .returning({ id: cmsMedia.id });
@@ -608,8 +623,8 @@ export class CmsMediaStore {
   async isReferenced(mediaId: string): Promise<boolean> {
     const rows = await this.db
       .select({ one: sql`1` })
-      .from(cmsMediaUsage)
-      .where(eq(cmsMediaUsage.mediaId, mediaId))
+      .from(cmsMedia)
+      .where(and(eq(cmsMedia.id, mediaId), stillInUse()))
       .limit(1);
     return rows.length > 0;
   }

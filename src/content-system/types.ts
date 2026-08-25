@@ -47,6 +47,10 @@ export type GuideMetadata = {
   vendor?: string;
   /** Media-library id of the preview image. */
   previewMediaId?: string;
+  /** `cms_author` id of the byline. */
+  authorId?: string;
+  /** `cms_author` id of whoever verified the page's numbers. */
+  factCheckerId?: string;
 };
 
 /** Metadata shared by the statistics and research sections.  Their original

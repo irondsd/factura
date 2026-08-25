@@ -217,7 +217,9 @@ for a field to set.
   "ogDescription": "…",
   "ogImage": { "eyebrow": "Inflación · Luz", "stat": "+318% en dos años" },
   "vendor": "Edesur",
-  "previewMediaId": "<id de la biblioteca de medios>"
+  "previewMediaId": "<id de la biblioteca de medios>",
+  "authorId": "<id de la lista de autores>",
+  "factCheckerId": "<id de la lista de autores>"
 }
 ```
 
@@ -230,6 +232,8 @@ for a field to set.
 - `ogImage` — steers the two text slots on the generated social card.
   `eyebrow` ≤42 chars, `stat` ≤28 and only for a guide whose answer _is_ a
   number. Use a figure the article actually states.
+- `authorId` / `factCheckerId` — who wrote the page and who verified its
+  numbers. See **Authorship** below.
 - Unknown keys are rejected. The schema is `.strict()` on purpose: a renamed
   field would otherwise become data nothing reads.
 
@@ -261,6 +265,29 @@ section-owned categories, but without a vendor field. Use `keywords`, optional
 chronological, newest publication first, and each article renders as
 `NewsArticle` structured data.
 
+### Authorship
+
+Every section takes the same two optional credits, and they work the way
+`categories` does: the value is an id from a CMS-owned list, so **call
+`list_authors` before writing either one**. Guessing a uuid is a validation
+error, not a silent no-op.
+
+- `authorId` — who wrote the page.
+- `factCheckerId` — who checked its numbers. Should be someone other than the
+  author; naming the same person for both is a warning, not a refusal.
+
+Both may be omitted. A page with no `authorId` is attributed to Factura itself,
+which is what every page said before this list existed — so leave them out
+rather than inventing a plausible name.
+
+You cannot create an author. The list is people, and a person adds one at
+`/cms`. If the right name is not in `list_authors`, write the page without a
+credit and say so.
+
+Nothing renders these yet. They travel in the article's structured data: the
+author becomes a `Person` (replacing the `Organization`), and a fact-checked
+page also emits a `WebPage` node carrying `reviewedBy`.
+
 ### `metadata` for `estadisticas` and `investigaciones`
 
 ```json
@@ -272,6 +299,8 @@ chronological, newest publication first, and each article renders as
   "ogDescription": "…",
   "ogStat": "+42% interanual",
   "previewMediaId": "<id de la biblioteca de medios>",
+  "authorId": "<id de la lista de autores>",
+  "factCheckerId": "<id de la lista de autores>",
   "sources": [
     { "label": "IDECBA — Precios de oferta", "href": "https://…", "note": "…" }
   ],

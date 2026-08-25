@@ -17,6 +17,7 @@ import { formatContentDateTime } from "@/lib/content-date";
 import { contentComponents } from "@/content-system/render/renderContent";
 import { mediaComponents } from "@/content-system/media/render";
 import { resolveMediaRef } from "@/content-system/media/repository";
+import { resolveAuthorCredits } from "@/content-system/authors/repository";
 import { documentHeadings, documentStats } from "@/content-system/document";
 import { categoriesByKeys } from "@/content-system/repository/categories";
 
@@ -63,6 +64,9 @@ export async function SectionArticle({
     categoriesByKeys(document!.section, document!.metadata.categories),
   ]);
   const previewMedia = await resolveMediaRef(meta.previewMediaId);
+  // Read from the document rather than from `meta`: the credits are markup, not
+  // article furniture, and nothing that renders needs them yet.
+  const credits = await resolveAuthorCredits(document!.metadata);
   // Section content is database-backed. The stored document is the single
   // source for both rendering and derived article data.
   const { words, minutes } = documentStats(document!);
@@ -71,7 +75,14 @@ export async function SectionArticle({
   return (
     <>
       <JsonLd
-        data={sectionPageLd({ id: section.id, slug, ...meta, words, minutes })}
+        data={sectionPageLd({
+          id: section.id,
+          slug,
+          ...meta,
+          words,
+          minutes,
+          credits,
+        })}
       />
       {/* Only when the page actually renders the questions below — FAQPage
           markup for Q&A a visitor can't see is a spam signal, and binding both

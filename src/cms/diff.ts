@@ -162,6 +162,8 @@ const METADATA_LABELS: Record<string, string> = {
   ogStat: "Dato destacado",
   vendor: "Empresa",
   previewMediaId: "Imagen de portada",
+  authorId: "Autor",
+  factCheckerId: "Verificado por",
   sources: "Fuentes",
   dataset: "Conjunto de datos",
 };

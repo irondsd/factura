@@ -15,6 +15,7 @@ import {
 } from "@/content-system/repository/guias";
 import { mediaComponents } from "@/content-system/media/render";
 import { resolveMediaRef } from "@/content-system/media/repository";
+import { resolveAuthorCredits } from "@/content-system/authors/repository";
 import {
   compileContent,
   contentComponents,
@@ -61,6 +62,9 @@ export default async function GuidePage({ params }: Props) {
   ]);
   const { words, minutes } = documentStats(guide);
   const faq = guide.metadata.faq ?? [];
+  // Nothing on the page shows these yet — they exist so the article's markup
+  // can name a person instead of only the organization.
+  const credits = await resolveAuthorCredits(guide.metadata);
 
   return (
     <ContentArticle
@@ -88,6 +92,7 @@ export default async function GuidePage({ params }: Props) {
               section: categories[0]?.label,
               words,
               minutes,
+              credits,
             })}
           />
           {faq.length > 0 && <JsonLd data={faqPageLd(faq, "es")} />}

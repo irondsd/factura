@@ -7,6 +7,7 @@ import { noticias } from "@/content/sections";
 import { documentHeadings, documentStats } from "@/content-system/document";
 import { mediaComponents } from "@/content-system/media/render";
 import { resolveMediaRef } from "@/content-system/media/repository";
+import { resolveAuthorCredits } from "@/content-system/authors/repository";
 import { contentComponents } from "@/content-system/render/renderContent";
 import { categoriesByKeys } from "@/content-system/repository/categories";
 import { sectionMetadata } from "@/i18n/metadata";
@@ -32,6 +33,8 @@ export default async function NoticiaPage({ params }: Props) {
   const categories = await categoriesByKeys("noticias", meta.categoryKeys);
   const { words, minutes } = documentStats(document);
   const faq = meta.faq ?? [];
+  // Not displayed yet — they only reach the article's structured data.
+  const credits = await resolveAuthorCredits(document.metadata);
   return (
     <ContentArticle
       title={meta.title}
@@ -64,6 +67,7 @@ export default async function NoticiaPage({ params }: Props) {
               updated: meta.updated,
               words,
               minutes,
+              credits,
             })}
           />
           {faq.length > 0 && <JsonLd data={faqPageLd(faq, "es")} />}
