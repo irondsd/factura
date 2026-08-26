@@ -176,14 +176,20 @@ describe("relatedDocuments", () => {
     expect(relatedDocuments(current, candidates)[0].slug).toBe("dos");
   });
 
-  it("breaks ties on publication date, newest first", () => {
+  it("breaks ties on editorial update date, freshest first", () => {
     const candidates = [
-      summary("vieja", ["servicios"], "2025-01-01T00:00:00-03:00"),
-      summary("nueva", ["servicios"], "2026-06-01T00:00:00-03:00"),
+      {
+        ...summary("antes", ["servicios"], "2026-06-01T00:00:00-03:00"),
+        contentUpdatedAt: "2026-06-01T00:00:00-03:00",
+      },
+      {
+        ...summary("actualizada", ["servicios"], "2025-01-01T00:00:00-03:00"),
+        contentUpdatedAt: "2026-08-01T00:00:00-03:00",
+      },
     ];
     expect(relatedDocuments(current, candidates).map((c) => c.slug)).toEqual([
-      "nueva",
-      "vieja",
+      "actualizada",
+      "antes",
     ]);
   });
 

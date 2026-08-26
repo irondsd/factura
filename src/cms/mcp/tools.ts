@@ -1,8 +1,7 @@
 import "server-only";
 import { toJSONSchema, z } from "zod";
 import { isContentSection, isContentStatus } from "@/content-system/types";
-import { guideMetadataSchema } from "@/content-system/metadata/guias";
-import { sectionMetadataSchema } from "@/content-system/metadata/sections";
+import { contentMetadataSchema } from "@/content-system/metadata/sections";
 import { cmsContentService } from "@/cms/server/service";
 import { cmsMediaService } from "@/cms/media/server/service";
 import { cmsCategoryService } from "@/cms/categories/server/service";
@@ -11,10 +10,9 @@ import { hasScope, type CmsTokenCaller, type CmsScope } from "./tokens";
 
 const section = z.string().refine(isContentSection, "Unknown content section.");
 const status = z.string().refine(isContentStatus, "Unknown content status.");
-// The MCP advertises the same structured metadata contracts as the browser
-// editor.  `section` is still supplied separately for create; the service and
-// repository select the appropriate member when the row is stored/read.
-const metadata = z.union([guideMetadataSchema, sectionMetadataSchema]);
+// One metadata contract for every section. Editorial validation decides which
+// optional capabilities (for example dataset provenance) a page must fill in.
+const metadata = contentMetadataSchema;
 
 const patch = z.object({
   title: z.string().optional(),

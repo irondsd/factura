@@ -4,7 +4,7 @@ import type { ContentSection } from "@/content-system/types";
 //
 // `/cms` lists these; `/cms/[section]/…` is one set of route files driven by
 // them. Adding a section to the CMS — `noticias`, say — is an entry here plus
-// its metadata schema and component registrations, not four new route files and
+// its section profile and component registrations, not four new route files and
 // a fourth copy of the editor.
 //
 // A section id is its URL segment, under `/cms` and on the public site alike:
@@ -27,6 +27,8 @@ export type CmsSection = {
   id: ContentSection;
   /** Shown in the CMS. Spanish, like the rest of the console. */
   label: string;
+  /** Singular label used by article chrome and breadcrumbs. */
+  singular: string;
   /** One line under the label on `/cms`. */
   description: string;
   status: CmsSectionStatus;
@@ -36,6 +38,7 @@ export const CMS_SECTIONS: readonly CmsSection[] = [
   {
     id: "guias",
     label: "Guías",
+    singular: "Guía",
     description:
       "Artículos sobre cómo leer, pagar y entender las facturas del hogar.",
     status: "live",
@@ -43,6 +46,7 @@ export const CMS_SECTIONS: readonly CmsSection[] = [
   {
     id: "noticias",
     label: "Noticias",
+    singular: "Noticia",
     description:
       "Novedades y actualizaciones sobre Factura, facturas y el costo de vida.",
     status: "live",
@@ -50,6 +54,7 @@ export const CMS_SECTIONS: readonly CmsSection[] = [
   {
     id: "estadisticas",
     label: "Estadísticas",
+    singular: "Estadística",
     description:
       "Páginas de datos: precios, alquileres, inflación y costos de construcción.",
     status: "live",
@@ -57,6 +62,7 @@ export const CMS_SECTIONS: readonly CmsSection[] = [
   {
     id: "investigaciones",
     label: "Investigación",
+    singular: "Investigación",
     description: "Análisis propios a partir de los datos publicados.",
     status: "live",
   },

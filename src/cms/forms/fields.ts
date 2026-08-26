@@ -1,5 +1,6 @@
 import type { ContentCategory } from "@/content-system/categories/types";
 import type { ContentSection } from "@/content-system/types";
+import { sectionHasMetadataAddon } from "@/content-system/sectionProfiles";
 
 // The metadata form, described as data.
 //
@@ -272,122 +273,10 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
   },
 ];
 
-// Statistics and research use the same editorial shell as a guide, but their
-// credibility comes from a named dataset and links to the primary sources.
-// Keep those values as regular form fields: an editor should never have to
-// understand the JSONB representation to publish a data page.
-// Noticias has the same article fields as a guide, except for the
-// vendor-specific structured-data field.
-const NEWS_FIELDS = GUIDE_FIELDS.filter(
-  (field) => field.path !== "metadata.vendor",
-);
-
-const DATA_FIELDS: readonly FieldDescriptor[] = [
-  {
-    path: "title",
-    label: "Título",
-    kind: "text",
-    required: true,
-    softMax: 60,
-    group: "identidad",
-    help: "El encabezado de la página y, salvo que definas otro, el título que aparece en Google.",
-  },
-  {
-    path: "slug",
-    label: "Dirección",
-    kind: "slug",
-    required: true,
-    readOnly: true,
-    group: "identidad",
-    help: "La última parte de la URL. Para cambiarla, usa «Dirección» al final de esta columna: mover una página deja la dirección anterior redirigiendo a la nueva.",
-  },
-  {
-    path: "crumb",
-    label: "Nombre corto",
-    kind: "text",
-    group: "identidad",
-    help: "El nombre que aparece en las migas y listados. Si queda vacío se usa el título.",
-  },
-  {
-    path: "parentId",
-    label: "Página madre",
-    kind: "parent",
-    group: "estructura",
-    help: "Deja «Ninguna» para una página de primer nivel. Las páginas hijas forman una URL debajo de esta.",
-  },
-  {
-    path: "sortOrder",
-    label: "Orden",
-    kind: "number",
-    enabledBy: "parentId",
-    group: "estructura",
-    help: "La posición entre las demás hijas de la misma madre. Menor va primero.",
-  },
-  {
-    path: "description",
-    label: "Descripción",
-    kind: "textarea",
-    required: true,
-    softMax: 160,
-    group: "busqueda",
-    help: "El resumen para buscadores y redes. Entre 120 y 170 caracteres.",
-  },
-  {
-    path: "metadata.keywords",
-    label: "Palabras clave",
-    kind: "tags",
-    required: true,
-    group: "busqueda",
-    help: "Términos por los que esta página debe poder encontrarse.",
-  },
-  {
-    path: "metadata.categories",
-    label: "Categorías",
-    kind: "multiselect",
-    required: true,
-    group: "busqueda",
-    help: "De 1 a 3. La primera es la categoría principal de esta página.",
-  },
-  {
-    path: "canonicalSlug",
-    label: "Página canónica",
-    kind: "slug",
-    group: "busqueda",
-    help: "Solo si otra página es la respuesta principal a la misma búsqueda.",
-  },
-  {
-    path: "titleTag",
-    label: "Título para buscadores",
-    kind: "text",
-    softMax: 60,
-    group: "busqueda",
-    help: "Opcional, para acortar un titular largo en resultados de búsqueda.",
-  },
-  {
-    path: "summary",
-    label: "Resumen",
-    kind: "textarea",
-    required: true,
-    group: "contenido",
-    help: "Una o dos frases para tarjetas y páginas madre.",
-  },
-  {
-    path: "cta",
-    label: "Frase de invitación",
-    kind: "text",
-    required: true,
-    softMax: 54,
-    group: "contenido",
-    help: "La línea que acompaña al botón al principio del artículo.",
-  },
-  {
-    path: "metadata.sources",
-    label: "Fuentes",
-    kind: "sources",
-    placedBy: "Fuentes",
-    group: "contenido",
-    help: "Las fuentes primarias del artículo. Se muestran donde el cuerpo escribe <Fuentes />, y solo ahí.",
-  },
+// Data-backed sections add provenance to the same article form. The schema
+// accepts these optional keys everywhere; the profile decides which editor
+// exposes and requires them.
+const DATA_ADDON_FIELDS: readonly FieldDescriptor[] = [
   {
     path: "metadata.dataset",
     label: "Conjunto de datos",
@@ -397,37 +286,6 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
     help: "Describe la serie que sostiene el análisis. Completa nombre, descripción, cobertura temporal y geográfica, y al menos una variable medida. Esto también genera los datos estructurados de la página. La licencia se deja vacía salvo que esta página no se publique bajo la del sitio (CC BY 4.0).",
   },
   {
-    path: "metadata.faq",
-    label: "Preguntas frecuentes",
-    kind: "faq",
-    placedBy: "Faq",
-    group: "contenido",
-    help: "Las preguntas se muestran donde el cuerpo escribe <Faq />, y solo ahí.",
-  },
-  ...CREDIT_FIELDS,
-  {
-    path: "metadata.previewMediaId",
-    label: "Imagen de portada",
-    kind: "media",
-    group: "social",
-    help: "Opcional. Una imagen 16:9 de la biblioteca de medios.",
-  },
-  {
-    path: "metadata.ogTitle",
-    label: "Título para redes",
-    kind: "text",
-    softMax: 70,
-    group: "social",
-    help: "Opcional, si el gancho para compartir es distinto del título.",
-  },
-  {
-    path: "metadata.ogDescription",
-    label: "Descripción para redes",
-    kind: "textarea",
-    softMax: 200,
-    group: "social",
-  },
-  {
     path: "metadata.ogStat",
     label: "Cifra destacada",
     kind: "text",
@@ -435,13 +293,6 @@ const DATA_FIELDS: readonly FieldDescriptor[] = [
     help: "Opcional. Un dato breve que se imprime en la tarjeta al compartir.",
   },
 ];
-
-const FIELDS: Partial<Record<ContentSection, readonly FieldDescriptor[]>> = {
-  guias: GUIDE_FIELDS,
-  noticias: NEWS_FIELDS,
-  estadisticas: DATA_FIELDS,
-  investigaciones: DATA_FIELDS,
-};
 
 /** The form for one section, with its database-owned option lists filled in.
  *
@@ -459,7 +310,16 @@ export function sectionFields(
     label: author.name,
   }));
 
-  return (FIELDS[section] ?? []).map((field) => {
+  const fields = [
+    ...GUIDE_FIELDS.filter(
+      (field) =>
+        field.path !== "metadata.vendor" ||
+        sectionHasMetadataAddon(section, "vendor"),
+    ),
+    ...(sectionHasMetadataAddon(section, "dataset") ? DATA_ADDON_FIELDS : []),
+  ];
+
+  return fields.map((field) => {
     if (field.path === "metadata.categories") {
       return {
         ...field,

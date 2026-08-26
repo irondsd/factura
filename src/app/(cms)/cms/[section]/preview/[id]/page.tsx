@@ -26,6 +26,7 @@ import {
 import { MissingComponent } from "@/cms/components/MissingComponent";
 import { StatusChip } from "@/cms/components/StatusChip";
 import { faqPageLd, guideLd } from "@/i18n/structuredData";
+import { sectionHasMetadataAddon } from "@/content-system/sectionProfiles";
 
 // The exact private preview (cms.md): the last *saved* working
 // copy — or one named stored version — rendered through the same
@@ -160,7 +161,7 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
       section={{
         id: page.section,
         label: section.label,
-        singular: section.id === "noticias" ? "Noticia" : section.label,
+        singular: section.singular,
         href: publicSectionPath(section.id),
         tocLabel: "En esta página",
         backLabel: `← ${section.label}`,
@@ -221,7 +222,7 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
               <Fuentes
                 items={page.metadata.sources ?? []}
                 license={
-                  page.section === "guias" || page.section === "noticias"
+                  !sectionHasMetadataAddon(page.section, "dataset")
                     ? undefined
                     : page.metadata.dataset?.license
                       ? {
