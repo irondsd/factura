@@ -17,6 +17,8 @@ import {
 } from "@/cms/sections";
 import { cmsPageHistoryStore } from "@/cms/server/historyStore";
 import { cmsPageStore } from "@/cms/server/store";
+import { resolveAuthorRefs } from "@/content-system/authors/repository";
+import { authorIdsIn } from "@/content-system/authors/types";
 import { CONTENT_STATUSES, type ContentStatus } from "@/content-system/types";
 
 // One section's content list. A thin route adapter: resolve the actor, resolve
@@ -63,13 +65,17 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
     CONTENT_STATUSES.map((s) => [s, all.filter((p) => p.status === s).length]),
   ) as Record<ContentStatus, number>;
 
-  // One lookup for the whole list: the two author columns across every visible
-  // row usually name a handful of accounts, and `actorsById` de-duplicates.
-  const actors = await cmsPageHistoryStore.actorsById(
-    pages.flatMap((page) =>
-      [page.createdBy, page.updatedBy].filter((id): id is string => !!id),
+  // One lookup each for the whole list, rather than per row: the accounts
+  // behind the two timestamp columns, and the people the credits column names.
+  // Both de-duplicate, and across a section's pages both are a handful of ids.
+  const [actors, authors] = await Promise.all([
+    cmsPageHistoryStore.actorsById(
+      pages.flatMap((page) =>
+        [page.createdBy, page.updatedBy].filter((id): id is string => !!id),
+      ),
     ),
-  );
+    resolveAuthorRefs(pages.flatMap((page) => authorIdsIn(page.metadata))),
+  ]);
 
   return (
     <CmsShell actor={actor}>
@@ -110,6 +116,7 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
         section={section}
         pages={pages}
         actors={actors}
+        authors={authors}
         basePath={cmsSectionPath(section.id)}
         query={query}
         emptyMessage={

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { AuthorRef } from "@/content-system/authors/types";
 import { depthOf } from "@/content-system/hierarchy";
 import { cn } from "@/lib/cn";
 import { formatContentDateTimeShort } from "@/lib/content-date";
@@ -25,6 +26,7 @@ export function ContentList({
   section,
   pages,
   actors,
+  authors,
   basePath,
   query,
   emptyMessage,
@@ -33,6 +35,10 @@ export function ContentList({
   pages: readonly CmsContentSummary[];
   /** The accounts behind `createdBy`/`updatedBy`, resolved by the route. */
   actors: ReadonlyMap<string, HistoryActor>;
+  /** The credited people behind `authorId`/`factCheckerId`, resolved by the
+   * route. An id nothing matches is simply absent, and the row then credits
+   * nobody — the same answer as a page that never named one. */
+  authors: ReadonlyMap<string, AuthorRef>;
   basePath: string;
   query: CmsListQuery;
   emptyMessage: string;
@@ -64,11 +70,24 @@ export function ContentList({
   );
 
   return (
-    <table className="w-full border-collapse font-mono text-[13px]">
+    // Fixed layout, so the title column is whatever is left over rather than
+    // whatever the longest title asks for. Without it a cell cannot be
+    // truncated at all: an auto-laid-out table sizes each column to its widest
+    // content, so `truncate` on the title would just widen the column instead
+    // of clipping — which is how the titles came to wrap onto three lines.
+    <table className="w-full table-fixed border-collapse font-mono text-[13px]">
       <thead>
         <tr>
           <Th>Página</Th>
-          <Th className="w-[130px]">Estado</Th>
+          {/* Wide enough for «Vista previa» on one line: the fixed layout
+              hands each column exactly what is declared here, and a status that
+              wraps makes its row taller than every other cell in it. */}
+          <Th className="w-[150px]">Estado</Th>
+          {/* Not sortable, and not for want of a comparator: sorting a list by
+              who signed it groups a section around one name, which is a filter
+              someone would want, not an order. The header stays a plain label
+              rather than offering an arrow it would answer badly. */}
+          <Th className="w-[190px] hidden lg:table-cell">Créditos</Th>
           {sortHeader("creada", "Creada")}
           {sortHeader("editada", "Última edición")}
         </tr>
@@ -83,13 +102,29 @@ export function ContentList({
                 style={{ paddingLeft: `${(depthOf(page.slug) - 1) * 18}px` }}
                 className="block"
               >
+                {/* One line each from `md` up, clipped with an ellipsis: a
+                    wrapped title pushed its row to three lines and pulled every
+                    other column in it out of alignment, which cost more
+                    scanning than the tail of a long title was worth. Both carry
+                    the full text as a tooltip — `title` is the only mechanism
+                    the browser offers, so it shows whether or not anything was
+                    actually clipped.
+
+                    Below `md` they wrap instead. That is the one width where
+                    the title column is narrow *and* there is no pointer to
+                    hover with, so clipping there would hide the text outright
+                    rather than fold it away. */}
                 <Link
                   href={cmsEditPath(section.id, page.id)}
-                  className="text-ink no-underline hover:text-accent"
+                  title={page.title || undefined}
+                  className="block overflow-hidden text-ellipsis md:whitespace-nowrap text-ink no-underline hover:text-accent"
                 >
                   {page.title || <em className="text-muted">Sin título</em>}
                 </Link>
-                <span className="block text-muted text-[12px] mt-0.5">
+                <span
+                  title={`${publicSectionPath(section.id)}/${page.slug}`}
+                  className="block overflow-hidden text-ellipsis md:whitespace-nowrap text-muted text-[12px] mt-0.5"
+                >
                   {publicSectionPath(section.id)}/{page.slug}
                 </span>
                 {/* A row whose stored metadata no longer matches its schema.
@@ -115,6 +150,7 @@ export function ContentList({
                 <WorkingCopyIndicator />
               )}
             </td>
+            <Credits metadata={page.metadata} authors={authors} />
             <Stamp at={page.createdAt} by={page.createdBy} actors={actors} />
             <Stamp
               at={page.updatedAt}
@@ -126,6 +162,113 @@ export function ContentList({
         ))}
       </tbody>
     </table>
+  );
+}
+
+/** Who signed the page and who checked it, two lines in one cell.
+ *
+ * Names only, with an icon each, because that is what a scan of the column is
+ * for — «which of these did Daria check?» is answered by the names alone, and
+ * spelling out «Autor:» on every row would double the width of the column to
+ * repeat a fact the icon already carries. The words are still there for anyone
+ * who needs them: on hover as a tooltip, and always for a screen reader. */
+function Credits({
+  metadata,
+  authors,
+}: {
+  metadata: { authorId?: string; factCheckerId?: string };
+  authors: ReadonlyMap<string, AuthorRef>;
+}) {
+  const author = metadata.authorId
+    ? (authors.get(metadata.authorId) ?? null)
+    : null;
+  const factChecker = metadata.factCheckerId
+    ? (authors.get(metadata.factCheckerId) ?? null)
+    : null;
+
+  return (
+    <td className="py-3 pr-4 align-top text-muted hidden lg:table-cell">
+      {/* Both credits are optional and most older pages have neither, so the
+          empty cell says so with a dash rather than leaving a hole that reads
+          as a rendering fault. */}
+      {!author && !factChecker && <span aria-hidden="true">—</span>}
+      {author && (
+        <Credit label="Autor" name={author.name} icon={<AuthorIcon />} />
+      )}
+      {factChecker && (
+        <Credit
+          label="Verificado por"
+          name={factChecker.name}
+          icon={<FactCheckIcon />}
+          className={cn(author && "mt-1")}
+        />
+      )}
+    </td>
+  );
+}
+
+function Credit({
+  label,
+  name,
+  icon,
+  className,
+}: {
+  label: string;
+  name: string;
+  icon: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      title={`${label}: ${name}`}
+      className={cn("flex items-center gap-1.5 text-[12px]", className)}
+    >
+      {icon}
+      <span className="sr-only">{label}: </span>
+      {/* Capped rather than merely allowed to shrink: the table lays itself out
+          from its content, so an unbounded name is a wider column for every
+          row. The cap is what the ellipsis is measured against, and the whole
+          name is a hover away. */}
+      <span className="max-w-[150px] truncate">{name}</span>
+    </span>
+  );
+}
+
+/** Head and shoulders — the byline. */
+function AuthorIcon() {
+  return (
+    <Glyph>
+      <circle cx="6" cy="4.1" r="2.05" />
+      <path d="M2.3 10.3a3.7 3.7 0 0 1 7.4 0" />
+    </Glyph>
+  );
+}
+
+/** Two ticks, the way a verified mark is drawn everywhere else. One tick is
+ * «done»; the second is what makes it «checked by someone». */
+function FactCheckIcon() {
+  return (
+    <Glyph>
+      <path d="m1.4 6.4 2.3 2.4 3.6-4.2" />
+      <path d="m6.5 8.8 4.1-4.8" />
+    </Glyph>
+  );
+}
+
+function Glyph({ children }: { children: React.ReactNode }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 12 12"
+      className="size-3 shrink-0 opacity-70"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.2"
+    >
+      {children}
+    </svg>
   );
 }
 

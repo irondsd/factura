@@ -46,7 +46,7 @@ export function StatusChip({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 font-mono text-micro font-semibold uppercase tracking-label-wide",
+        "inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-micro font-semibold uppercase tracking-label-wide",
         TONE[status],
         className,
       )}
