@@ -55,10 +55,8 @@ export type GuideMetadata = {
   sources?: DataSource[];
 };
 
-/** Metadata shared by the statistics and research sections.  Their original
- * MDX modules used the same title/description columns as guides, plus this
- * JSONB payload for dataset provenance and the section-specific article
- * furniture. */
+/** Additive metadata available to any CMS-backed article. Data-section
+ * validation requires dataset provenance; the storage shape does not fork. */
 export type DataSource = { label: string; href: string; note?: string };
 export type DatasetMetadata = {
   name: string;
@@ -72,8 +70,7 @@ export type DatasetMetadata = {
   license?: string;
 };
 
-export type SectionMetadata = Omit<GuideMetadata, "ogImage"> & {
-  ogImage?: { eyebrow?: string; stat?: string };
+export type SectionMetadata = GuideMetadata & {
   ogStat?: string;
   dataset?: DatasetMetadata;
 };

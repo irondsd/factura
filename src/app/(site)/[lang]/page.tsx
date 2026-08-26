@@ -307,13 +307,12 @@ export default async function LandingPage({ params }: Props) {
 /** How many cards a block shows. Three, so a block is one grid row. */
 const PER_BLOCK = 3;
 
-/** Newest first by publication. Registry order is editorial, not chronological,
- * so every block sorts before it slices — and it sorts by `published` rather
- * than `updated` because the badge and the dateline both say "new", and a
- * statistics page refreshed with this month's INDEC release is not new. */
+/** Freshest first by editorial update. Registry order is editorial, not
+ * chronological, so every block sorts before it slices. The card distinguishes
+ * a newly published page from a later update in its badge and visible date. */
 const newest = (pages: SectionPage[]): SectionPage[] =>
   [...pages]
-    .sort((a, b) => Date.parse(b.meta.published) - Date.parse(a.meta.published))
+    .sort((a, b) => Date.parse(b.meta.updated) - Date.parse(a.meta.updated))
     .slice(0, PER_BLOCK);
 
 const sectionCards = (
@@ -327,6 +326,7 @@ const sectionCards = (
     summary: page.meta.summary,
     previewMediaId: page.meta.previewMediaId,
     published: page.meta.published,
+    updated: page.meta.updated,
   }));
 
 async function teaserBlocks(): Promise<TeaserBlock[]> {
@@ -359,7 +359,7 @@ async function teaserBlocks(): Promise<TeaserBlock[]> {
       allLabel: "Ver todas las investigaciones",
     },
     {
-      // `publishedGuides()` already comes back newest first by publication.
+      // `publishedGuides()` already comes back most recently updated first.
       label: "Guías",
       blurb:
         "Aprende a leer tus facturas y a entender qué pagas en cada servicio.",
@@ -370,6 +370,7 @@ async function teaserBlocks(): Promise<TeaserBlock[]> {
         summary: guide.summary,
         previewMediaId: guide.metadata.previewMediaId,
         published: guide.publishedAt ?? guide.contentUpdatedAt,
+        updated: guide.contentUpdatedAt,
       })),
       allHref: "/guias",
       allLabel: "Ver todas las guías",

@@ -156,11 +156,7 @@ export class PostgresContentRepository implements ContentRepository {
     return this.list(section, [...renderableStatuses("public")]);
   }
 
-  /** Newest first by the date readers see in each section's listing.
-   *
-   * Guides display their publication date; statistics and research display
-   * their last-updated date because those pages are refreshed as their source
-   * data changes. */
+  /** Most recently updated first, consistently across every section. */
   private async list(
     section: ContentSection,
     statuses: string[],
@@ -170,17 +166,10 @@ export class PostgresContentRepository implements ContentRepository {
       .from(cmsPages)
       .innerJoin(cmsPageRevisions, eq(cmsPageRevisions.id, PUBLIC_REVISION_ID))
       .where(and(eq(cmsPages.section, section), statusIn(statuses)))
-      // `published_at` is null for a page that has never been published, so a
-      // preview falls back to its editorial timestamp. Slug last makes ties
-      // deterministic without reintroducing editorial ordering.
-      .orderBy(
-        desc(
-          section === "guias" || section === "noticias"
-            ? sql`coalesce(${cmsPages.publishedAt}, ${cmsPageRevisions.contentUpdatedAt})`
-            : cmsPageRevisions.contentUpdatedAt,
-        ),
-        asc(cmsPages.slug),
-      );
+      // A substantive edit has the same listing meaning regardless of section:
+      // the freshest page rises. Slug last makes ties deterministic without
+      // reintroducing editorial ordering.
+      .orderBy(desc(cmsPageRevisions.contentUpdatedAt), asc(cmsPages.slug));
     return rows.map((row) => rowToSummary(row.page, row.revision));
   }
 }

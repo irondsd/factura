@@ -223,6 +223,13 @@ function withoutBody(document: ContentDocument): ContentSummary {
   return summary;
 }
 
+const freshestFirst = (pages: ContentSummary[]): ContentSummary[] =>
+  pages.sort(
+    (a, b) =>
+      Date.parse(b.contentUpdatedAt) - Date.parse(a.contentUpdatedAt) ||
+      a.slug.localeCompare(b.slug),
+  );
+
 export class CiFixtureContentRepository implements ContentRepository {
   async getByPath(
     section: ContentSection,
@@ -239,18 +246,23 @@ export class CiFixtureContentRepository implements ContentRepository {
   }
 
   async listPublished(section: ContentSection): Promise<ContentSummary[]> {
-    return CI_CONTENT_FIXTURES.filter(
-      (document) =>
-        document.section === section && document.status === "published",
-    ).map(withoutBody);
+    return freshestFirst(
+      CI_CONTENT_FIXTURES.filter(
+        (document) =>
+          document.section === section && document.status === "published",
+      ).map(withoutBody),
+    );
   }
 
   async listPubliclyRenderable(
     section: ContentSection,
   ): Promise<ContentSummary[]> {
-    return CI_CONTENT_FIXTURES.filter(
-      (document) => document.section === section && document.status !== "draft",
-    ).map(withoutBody);
+    return freshestFirst(
+      CI_CONTENT_FIXTURES.filter(
+        (document) =>
+          document.section === section && document.status !== "draft",
+      ).map(withoutBody),
+    );
   }
 
   /** No fixture has ever been renamed, so nothing redirects. The method exists

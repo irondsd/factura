@@ -162,8 +162,8 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     // rests on the same kind of primary material a statistics page does — the
     // distributor's own "conocé tu factura", the ENARGAS resolution behind a
     // charge — and a reader who wants to check a claim deserves the link in the
-    // article rather than nowhere. Noticias shares the guide metadata schema,
-    // so it gets the tag for the same reason and by the same key.
+    // article rather than nowhere. Noticias gets the tag for the same reason
+    // and reads it from the same shared metadata key.
     sections: ["guias", "noticias", ...DATA_SECTIONS],
     kind: "leaf",
     props: CONTEXT_BOUND,

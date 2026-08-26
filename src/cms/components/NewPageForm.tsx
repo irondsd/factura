@@ -6,6 +6,7 @@ import { createContentAction } from "@/cms/server/actions";
 import type { CmsSection } from "@/cms/sections";
 import { cmsEditPath, publicSectionPath } from "@/cms/sections";
 import type { ParentOption } from "./fields/MetadataField";
+import { sectionProfile } from "@/content-system/sectionProfiles";
 
 // Creating a page. Deliberately the smallest form that produces a *valid*
 // draft: everything else is edited afterwards, where the full form and the
@@ -68,9 +69,9 @@ export function NewPageForm({
   const parent = parentOptions.find((option) => option.value === parentId);
   const fullSlug = parent ? `${parent.slug}/${slug}` : slug;
   const body =
-    section.id === "guias" || section.id === "noticias"
-      ? GUIDE_SKELETON
-      : DATA_SKELETON;
+    sectionProfile(section.id).newPageTemplate === "data"
+      ? DATA_SKELETON
+      : GUIDE_SKELETON;
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();

@@ -14,10 +14,8 @@ import { formatContentDateShort } from "@/lib/content-date";
 // caller hands it the wider band the TrustBlock and the footer already use.
 //
 // Ordering is the caller's, not this component's: it renders the blocks in the
-// order it is given and badges the FIRST card of each as `NUEVO`, which is only
-// correct because every caller passes them newest first. Said once here rather
-// than re-derived per block — comparing dates in here would badge nothing on a
-// block whose cards were deliberately ordered some other way.
+// order it is given and badges the FIRST card as new or updated. The distinction
+// comes from the page's lifecycle dates; ordering remains the caller's job.
 
 export type TeaserCard = {
   key: string;
@@ -28,10 +26,10 @@ export type TeaserCard = {
    * beside it names the page — so it renders `alt=""`. Pages without one get
    * the blank paper panel, which keeps the cards in a row the same height. */
   previewMediaId?: string;
-  /** Full ISO 8601 publication timestamp. Publication and not the update date:
-   * this block is "what's new", and the badge and the dateline should agree
-   * with the order the cards are in. */
+  /** Full ISO 8601 lifecycle timestamps. Ordering and the visible stamp use the
+   * update when it happened after publication, otherwise the publication. */
   published: string;
+  updated: string;
 };
 
 export type TeaserBlock = {
@@ -106,6 +104,9 @@ function TeaserLink({
   media?: MediaRef;
   isNew: boolean;
 }) {
+  const revised = Date.parse(card.updated) > Date.parse(card.published);
+  const activityAt = revised ? card.updated : card.published;
+
   return (
     <Link
       href={card.href}
@@ -126,11 +127,11 @@ function TeaserLink({
         <div className="flex items-center gap-2">
           {isNew && (
             <span className="flex-none bg-accent text-paper font-mono text-[9.5px] uppercase tracking-[0.14em] leading-none px-1.5 py-[3px]">
-              Nuevo
+              {revised ? "Actualizado" : "Nuevo"}
             </span>
           )}
           <span className="font-mono text-micro uppercase tracking-label text-muted">
-            {formatContentDateShort(card.published)}
+            {formatContentDateShort(activityAt)}
           </span>
         </div>
         <h3 className="m-0 font-display font-semibold text-[18px] tracking-tight leading-tight text-ink transition-colors group-hover:text-accent">
