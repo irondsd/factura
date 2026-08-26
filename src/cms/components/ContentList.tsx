@@ -57,7 +57,11 @@ export function ContentList({
   // context.
   const ordered = sortedContentRows(pages, query.sort);
 
-  const sortHeader = (column: CmsSortColumn, label: string) => (
+  const sortHeader = (
+    column: CmsSortColumn,
+    label: string,
+    className?: string,
+  ) => (
     <SortableTh
       href={cmsListHref(basePath, {
         ...query,
@@ -66,6 +70,7 @@ export function ContentList({
       label={label}
       active={query.sort.column === column}
       direction={query.sort.direction}
+      className={className}
     />
   );
 
@@ -82,14 +87,16 @@ export function ContentList({
           {/* Wide enough for «Vista previa» on one line: the fixed layout
               hands each column exactly what is declared here, and a status that
               wraps makes its row taller than every other cell in it. */}
-          <Th className="w-[150px]">Estado</Th>
+          <Th className="cms-column-status w-[150px]">Estado</Th>
           {/* Not sortable, and not for want of a comparator: sorting a list by
               who signed it groups a section around one name, which is a filter
               someone would want, not an order. The header stays a plain label
               rather than offering an arrow it would answer badly. */}
-          <Th className="w-[190px] hidden lg:table-cell">Créditos</Th>
-          {sortHeader("creada", "Creada")}
-          {sortHeader("editada", "Última edición")}
+          <Th className="cms-column-credits w-[190px] hidden lg:table-cell">
+            Créditos
+          </Th>
+          {sortHeader("creada", "Creada", "cms-column-created")}
+          {sortHeader("editada", "Última edición", "cms-column-updated")}
         </tr>
       </thead>
       <tbody>
@@ -140,7 +147,7 @@ export function ContentList({
                 )}
               </span>
             </td>
-            <td className="py-3 pr-4 align-top">
+            <td className="cms-column-status py-3 pr-4 align-top">
               <StatusChip status={page.status} />
               {/* A saved working copy is distinct from the page's lifecycle
                   status. Draft pages already say "Borrador" above; the extra
@@ -151,12 +158,18 @@ export function ContentList({
               )}
             </td>
             <Credits metadata={page.metadata} authors={authors} />
-            <Stamp at={page.createdAt} by={page.createdBy} actors={actors} />
+            <Stamp
+              at={page.createdAt}
+              by={page.createdBy}
+              actors={actors}
+              className="cms-column-created"
+            />
             <Stamp
               at={page.updatedAt}
               by={page.updatedBy}
               actors={actors}
               last
+              className="cms-column-updated"
             />
           </tr>
         ))}
@@ -187,7 +200,7 @@ function Credits({
     : null;
 
   return (
-    <td className="py-3 pr-4 align-top text-muted hidden lg:table-cell">
+    <td className="cms-column-credits py-3 pr-4 align-top text-muted hidden lg:table-cell">
       {/* Both credits are optional and most older pages have neither, so the
           empty cell says so with a dash rather than leaving a hole that reads
           as a rendering fault. */}
@@ -279,17 +292,20 @@ function Stamp({
   by,
   actors,
   last,
+  className,
 }: {
   at: string;
   by: string | null;
   actors: ReadonlyMap<string, HistoryActor>;
   last?: boolean;
+  className?: string;
 }) {
   return (
     <td
       className={cn(
         "py-3 align-top text-muted hidden md:table-cell whitespace-nowrap",
         !last && "pr-4",
+        className,
       )}
     >
       {formatContentDateTimeShort(at)}
@@ -327,18 +343,23 @@ function SortableTh({
   label,
   active,
   direction,
+  className,
 }: {
   href: string;
   label: string;
   active: boolean;
   direction: "asc" | "desc";
+  className?: string;
 }) {
   return (
     <th
       aria-sort={
         active ? (direction === "asc" ? "ascending" : "descending") : undefined
       }
-      className="w-[170px] text-left font-medium uppercase text-micro tracking-label-wide text-muted border-b border-line py-2 pr-4 hidden md:table-cell whitespace-nowrap"
+      className={cn(
+        "w-[170px] text-left font-medium uppercase text-micro tracking-label-wide text-muted border-b border-line py-2 pr-4 hidden md:table-cell whitespace-nowrap",
+        className,
+      )}
     >
       <Link
         href={href}

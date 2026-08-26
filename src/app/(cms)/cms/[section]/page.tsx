@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCmsMember } from "@/cms/auth/requireCmsMember";
 import { ContentList } from "@/cms/components/ContentList";
+import { ContentColumnSettings } from "@/cms/components/ContentColumnSettings";
 import { CmsShell } from "@/cms/components/CmsShell";
 import { CategoryManager } from "@/cms/categories/components/CategoryManager";
 import { cmsCategoryService } from "@/cms/categories/server/service";
@@ -104,26 +105,32 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
         <code className="font-mono">{publicSectionPath(section.id)}</code>.
       </p>
 
-      <ListFilters
-        basePath={cmsSectionPath(section.id)}
-        query={query}
-        counts={counts}
-        total={all.length}
-      />
-
-      <ContentList
-        section={section}
-        pages={pages}
-        actors={actors}
-        authors={authors}
-        basePath={cmsSectionPath(section.id)}
-        query={query}
-        emptyMessage={
-          status
-            ? "Ninguna página coincide con este filtro."
-            : "Todavía no hay páginas en esta sección."
+      <ContentColumnSettings
+        section={section.id}
+        sectionLabel={section.label}
+        filters={
+          <ListFilters
+            basePath={cmsSectionPath(section.id)}
+            query={query}
+            counts={counts}
+            total={all.length}
+          />
         }
-      />
+      >
+        <ContentList
+          section={section}
+          pages={pages}
+          actors={actors}
+          authors={authors}
+          basePath={cmsSectionPath(section.id)}
+          query={query}
+          emptyMessage={
+            status
+              ? "Ninguna página coincide con este filtro."
+              : "Todavía no hay páginas en esta sección."
+          }
+        />
+      </ContentColumnSettings>
     </CmsShell>
   );
 }

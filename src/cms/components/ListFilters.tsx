@@ -21,11 +21,13 @@ export function ListFilters({
   query,
   counts,
   total,
+  className,
 }: {
   basePath: string;
   query: CmsListQuery;
   counts: Record<ContentStatus, number>;
   total: number;
+  className?: string;
 }) {
   // Changing the filter keeps the column sort — they are two independent
   // choices about the same list, and clearing one by touching the other is the
@@ -34,7 +36,7 @@ export function ListFilters({
     cmsListHref(basePath, { ...query, status });
 
   return (
-    <nav className="mb-6 flex flex-wrap items-center gap-1">
+    <nav className={cn("flex flex-wrap items-center gap-1", className)}>
       <FilterLink
         href={href()}
         active={!query.status}
