@@ -32,6 +32,3 @@ export const contentMetadataSchema = guideMetadataSchema.safeExtend({
   ogStat: text.optional(),
   dataset: datasetMetadataSchema.optional(),
 });
-
-/** @deprecated Use `contentMetadataSchema`; kept for import compatibility. */
-export const sectionMetadataSchema = contentMetadataSchema;
