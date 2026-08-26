@@ -370,6 +370,3 @@ rough order:
 - inline documentation for components and their allowed values;
 - a formatting toolbar and keyboard shortcuts;
 - side-by-side source and preview.
-
-MDXEditor is worth evaluating only after proving it preserves the exact source;
-a WYSIWYG that reformats a body on open would rewrite articles nobody edited.
