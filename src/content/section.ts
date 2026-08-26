@@ -16,6 +16,7 @@ export type SectionMeta = {
   ogTitle?: string;
   ogDescription?: string;
   ogStat?: string;
+  ogImage?: { eyebrow?: string; stat?: string };
   summary: string;
   /** Media-library id of the illustration. */
   previewMediaId?: string;
@@ -99,6 +100,9 @@ function metaFromDatabase(document: ContentSummary): SectionMeta {
       ? { ogDescription: document.metadata.ogDescription }
       : {}),
     ...(document.metadata.ogStat ? { ogStat: document.metadata.ogStat } : {}),
+    ...(document.metadata.ogImage
+      ? { ogImage: document.metadata.ogImage }
+      : {}),
     ...(document.metadata.previewMediaId
       ? { previewMediaId: document.metadata.previewMediaId }
       : {}),

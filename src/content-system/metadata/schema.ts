@@ -1,20 +1,14 @@
 import type { z } from "zod";
 import type { ContentSection } from "../types";
-import { guideMetadataSchema } from "./guias";
-import { sectionMetadataSchema } from "./sections";
+import { contentMetadataSchema } from "./sections";
 
-// Which metadata schema a section's JSONB is held to.
-//
-// One definition, because four callers ask the question and they must not be
-// able to disagree: the row → document mapper on the way out, the CMS service
-// on the way in, the MCP tool arguments, and the importer. When they disagreed,
-// a value the service happily wrote was one the mapper refused to read back —
-// which is a row that exists and cannot be loaded.
+// Compatibility entry point used by callers that already carry a section.
+// Every section now has the same storage shape; the section only affects
+// editorial requiredness later in document validation.
 
 export function metadataSchemaFor(section: ContentSection): z.ZodType {
-  return section === "guias" || section === "noticias"
-    ? guideMetadataSchema
-    : sectionMetadataSchema;
+  void section;
+  return contentMetadataSchema;
 }
 
 /** Parse a metadata blob for a section, returning either the parsed value or a

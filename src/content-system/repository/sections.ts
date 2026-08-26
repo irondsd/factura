@@ -1,12 +1,16 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
-import type { ContentDocument, ContentSection, ContentSummary } from "../types";
+import {
+  CONTENT_SECTIONS,
+  type ContentDocument,
+  type ContentSection,
+  type ContentSummary,
+} from "../types";
 import { slugToPath } from "./contract";
 import { publicContentRepository } from "./public";
 import { contentTag } from "./tags";
 
-// The public read model for the registry sections — `/estadisticas` and
-// `/investigaciones` — and the exact counterpart of `./guias.ts`.
+// The cached public read model for every CMS-backed content section.
 //
 // Two things live here rather than in `PostgresContentRepository`, for the same
 // reasons they do for guides:
@@ -24,7 +28,7 @@ import { contentTag } from "./tags";
 //     is what the CMS expires on publish so the wait is not an hour
 //     (`@/cms/server/invalidation`). Every read below has to carry it.
 //
-// One cached triple per section, built once at module load. The section is in
+// One cached repository per section, built once at module load. The section is in
 // the cache key, and `unstable_cache` adds the function's own arguments, so a
 // path lookup is keyed by section *and* slug.
 
@@ -65,13 +69,11 @@ function cachedSection(section: ContentSection): CachedSection {
   };
 }
 
-const CACHED: Record<string, CachedSection> = {
-  noticias: cachedSection("noticias"),
-  estadisticas: cachedSection("estadisticas"),
-  investigaciones: cachedSection("investigaciones"),
-};
+const CACHED = Object.fromEntries(
+  CONTENT_SECTIONS.map((section) => [section, cachedSection(section)]),
+) as Record<ContentSection, CachedSection>;
 
 /** The cached reads for one registry section, or `undefined` for a section that
  * has none — `normativa` is a hand-built page, not CMS content. */
 export const sectionRepository = (id: string): CachedSection | undefined =>
-  CACHED[id];
+  Object.hasOwn(CACHED, id) ? CACHED[id as ContentSection] : undefined;

@@ -34,31 +34,8 @@ export function isContentStatus(value: string): value is ContentStatus {
   return (CONTENT_STATUSES as readonly string[]).includes(value);
 }
 
-/** Structured metadata for one page, already parsed and validated. The union
- * gains `estadisticas`/`investigaciones` members in section 12; the discriminant
- * is the document's `section`, not a field inside the metadata. */
-export type GuideMetadata = {
-  keywords: string[];
-  categories: string[];
-  faq?: { q: string; a: string }[];
-  ogTitle?: string;
-  ogDescription?: string;
-  ogImage?: { eyebrow?: string; stat?: string };
-  vendor?: string;
-  /** Media-library id of the preview image. */
-  previewMediaId?: string;
-  /** `cms_author` id of the byline. */
-  authorId?: string;
-  /** `cms_author` id of whoever verified the page's numbers. */
-  factCheckerId?: string;
-  /** Primary sources, rendered wherever the body places `<Fuentes />`. */
-  sources?: DataSource[];
-};
-
-/** Metadata shared by the statistics and research sections.  Their original
- * MDX modules used the same title/description columns as guides, plus this
- * JSONB payload for dataset provenance and the section-specific article
- * furniture. */
+/** Additive metadata available to any CMS-backed article. Data-section
+ * validation requires dataset provenance; the storage shape does not fork. */
 export type DataSource = { label: string; href: string; note?: string };
 export type DatasetMetadata = {
   name: string;
@@ -72,14 +49,25 @@ export type DatasetMetadata = {
   license?: string;
 };
 
-export type SectionMetadata = Omit<GuideMetadata, "ogImage"> & {
+export type ContentMetadata = {
+  keywords: string[];
+  categories: string[];
+  faq?: { q: string; a: string }[];
+  ogTitle?: string;
+  ogDescription?: string;
   ogImage?: { eyebrow?: string; stat?: string };
   ogStat?: string;
+  vendor?: string;
+  /** Media-library id of the preview image. */
+  previewMediaId?: string;
+  /** `cms_author` id of the byline. */
+  authorId?: string;
+  /** `cms_author` id of whoever verified the page's numbers. */
+  factCheckerId?: string;
+  /** Primary sources, rendered wherever the body places `<Fuentes />`. */
+  sources?: DataSource[];
   dataset?: DatasetMetadata;
 };
-
-/** The JSONB payload for every CMS-backed content section. */
-export type ContentMetadata = SectionMetadata;
 
 /** A complete page: everything needed to render it and everything needed to
  * edit it. The CMS and the public renderer read the same object — a preview

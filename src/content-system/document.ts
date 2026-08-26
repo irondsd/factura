@@ -91,7 +91,7 @@ export function documentStats(
 /** Pages to suggest at the foot of `document`, best match first.
  *
  * Ranked by shared categories, with a tiebreak bonus for sharing the primary
- * one, then newest first; topped up with the newest others so the block is
+ * one, then most recently updated first; topped up with the freshest others so the block is
  * never awkwardly short. The same ranking `relatedGuides` applies on the
  * filesystem, over whatever set the caller passes — which is how the CMS
  * preview shows a real block instead of an empty one, and how the public page
@@ -120,8 +120,7 @@ export function relatedDocuments(
         ((page.metadata?.categories ?? [])[0] === categories[0] ? 0.5 : 0),
     }))
     .sort(
-      (a, b) =>
-        b.score - a.score || publishedTime(b.page) - publishedTime(a.page),
+      (a, b) => b.score - a.score || updatedTime(b.page) - updatedTime(a.page),
     )
     .map((entry) => entry.page);
 
@@ -131,5 +130,5 @@ export function relatedDocuments(
   return [...ranked, ...filler].slice(0, limit);
 }
 
-const publishedTime = (page: ContentSummary): number =>
-  Date.parse(page.publishedAt ?? page.contentUpdatedAt);
+const updatedTime = (page: ContentSummary): number =>
+  Date.parse(page.contentUpdatedAt);

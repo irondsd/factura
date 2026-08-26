@@ -62,13 +62,14 @@ export default async function NoticiasIndexPage() {
         />
         <div className="mt-12 mb-16 border-t border-line">
           <ContentList
+            datePrefix="Actualizado el "
             items={pages.map((page) => ({
               key: noticias.href(page.slug),
               href: noticias.href(page.slug),
               title: page.meta.title,
               summary: page.meta.summary,
               previewMediaId: page.meta.previewMediaId,
-              date: page.meta.published,
+              date: page.meta.updated,
             }))}
           />
         </div>

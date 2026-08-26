@@ -85,13 +85,14 @@ export async function CategoryHub({
 
         <div className="mt-12 border-t border-line">
           <ContentList
+            datePrefix="Actualizado el "
             items={pages.map((page) => ({
               key: page.id,
               href: `/${section}/${page.slug}`,
               title: page.title,
               summary: page.summary,
               previewMediaId: page.metadata.previewMediaId,
-              date: page.publishedAt ?? page.contentUpdatedAt,
+              date: page.contentUpdatedAt,
             }))}
           />
         </div>

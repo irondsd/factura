@@ -1,6 +1,5 @@
 import type { cmsPageRevisions, cmsPages } from "@/db/schema";
-import { guideMetadataSchema } from "../metadata/guias";
-import { sectionMetadataSchema } from "../metadata/sections";
+import { metadataSchemaFor } from "../metadata/schema";
 import {
   type ContentDocument,
   type ContentMetadata,
@@ -67,11 +66,7 @@ function readMetadata(
       `cms_page ${page.id} has unknown section "${page.section}" — the row is unreadable by this build`,
     );
   }
-  const parsed = (
-    page.section === "guias" || page.section === "noticias"
-      ? guideMetadataSchema
-      : sectionMetadataSchema
-  ).safeParse(revision.metadata);
+  const parsed = metadataSchemaFor(page.section).safeParse(revision.metadata);
   return parsed.success
     ? { ok: true, data: parsed.data as ContentMetadata }
     : {

@@ -77,6 +77,8 @@ export async function sectionCard(
   const page = await section.load(slug.slice(0, -1));
   if (!page) return new Response("Not found", { status: 404 });
   const { meta } = page;
+  const eyebrow = meta.ogImage?.eyebrow ?? section.label;
+  const stat = meta.ogImage?.stat ?? meta.ogStat;
 
   const [fraunces, plexMono] = await Promise.all([
     loadFont("Fraunces-SemiBold.ttf"),
@@ -105,7 +107,7 @@ export async function sectionCard(
           color: ACCENT,
         }}
       >
-        {section.label.toUpperCase()}
+        {eyebrow.toUpperCase()}
       </div>
 
       {/* Grows to fill whatever the headline doesn't, and hangs its contents
@@ -133,7 +135,7 @@ export async function sectionCard(
         {/* Mono, like every other figure on the site — and not optional here:
             satori draws Fraunces' "+" with a broken advance, so "+318%" collides
             with its own digits in the display face. */}
-        {meta.ogStat !== undefined && (
+        {stat !== undefined && (
           <div
             style={{
               marginTop: 32,
@@ -143,7 +145,7 @@ export async function sectionCard(
               display: "flex",
             }}
           >
-            {meta.ogStat}
+            {stat}
           </div>
         )}
       </div>

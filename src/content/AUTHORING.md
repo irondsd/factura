@@ -296,11 +296,11 @@ Two is the usual number: one for the _topic_, one for the _task_.
 
 ### `metadata` for `noticias`
 
-Noticias uses the same editorial metadata as a guide, including 1–3
-section-owned categories, but without a vendor field. Use `keywords`, optional
-`faq`, the social-card copy and an optional `previewMediaId`. The index is
-chronological, newest publication first, and each article renders as
-`NewsArticle` structured data.
+Noticias uses the shared article metadata, including 1–3 section-owned
+categories. Use `keywords`, optional `faq`, the social-card copy and an optional
+`previewMediaId`. Every section index is ordered by editorial
+`contentUpdatedAt`, newest first, and each news article renders as `NewsArticle`
+structured data.
 
 ### Keywords must match what the page answers
 
@@ -347,7 +347,7 @@ Nothing renders these yet. They travel in the article's structured data: the
 author becomes a `Person` (replacing the `Organization`), and a fact-checked
 page also emits a `WebPage` node carrying `reviewedBy`.
 
-### `metadata` for `estadisticas` and `investigaciones`
+### Additive `metadata` for `estadisticas` and `investigaciones`
 
 ```json
 {
@@ -413,7 +413,9 @@ Two fields here have no guides equivalent and carry most of the weight:
     Give the licence a name in `licenseNames` (`src/config/urls.ts`) when you
     introduce one, or the sources block can only render it as a bare link.
 
-Note `ogStat` here, versus `ogImage.stat` for guides — the shapes differ.
+All sections use one metadata shape. Data pages add `dataset`, and keep
+`ogStat` for compatibility with their existing social cards; `ogImage` is also
+valid because it belongs to the shared article shape.
 
 ---
 

@@ -1,15 +1,15 @@
 import { z } from "zod";
-import { guideMetadataSchema } from "../metadata/guias";
 import {
   dataSourceSchema,
   datasetMetadataSchema,
-  sectionMetadataSchema,
+  contentMetadataSchema,
 } from "../metadata/sections";
 import type { ContentDocument, Diagnostic, ValidationResult } from "../types";
 import { validationResult } from "../types";
 import { extractBodyReferences } from "../media/references";
 import { AUTHOR_ROLE_FIELDS, type AuthorRoleField } from "../authors/types";
 import { missingKeywordWords } from "./text";
+import { sectionProfile } from "../sectionProfiles";
 
 // Layer 2 of cms.md: document validation. Everything that can be decided
 // about one page — its metadata, its dates, its headings, its links, its
@@ -169,11 +169,13 @@ export function validateDocument(
   index: ContentIndex = EMPTY_INDEX,
   context: DocumentValidationContext = {},
 ): ValidationResult {
-  if (document.section === "noticias") {
-    return validateNewsDocument(document, context);
-  }
-  if (document.section !== "guias") {
-    return validateDataSectionDocument(document, context);
+  switch (sectionProfile(document.section).validation) {
+    case "news":
+      return validateNewsDocument(document, context);
+    case "data":
+      return validateDataSectionDocument(document, context);
+    case "guide":
+      break;
   }
   const out: Diagnostic[] = [];
   const { slug, body } = document;
@@ -203,7 +205,7 @@ export function validateDocument(
   // use, so "valid metadata" has one definition. It is *stricter* than the old
   // script on one point: an unknown key was a warning there and is an error
   // here, because a database column cannot hold a key nothing reads.
-  const parsed = guideMetadataSchema.safeParse(document.metadata);
+  const parsed = contentMetadataSchema.safeParse(document.metadata);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
       // `keywords` and `categories` are reported below in the old script's
@@ -519,7 +521,7 @@ function validateNewsDocument(
       ),
     );
   }
-  const parsed = guideMetadataSchema.safeParse(document.metadata);
+  const parsed = contentMetadataSchema.safeParse(document.metadata);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
       out.push(
@@ -830,7 +832,7 @@ function validateDataSectionDocument(
       ),
     );
   }
-  const parsed = sectionMetadataSchema.safeParse(document.metadata);
+  const parsed = contentMetadataSchema.safeParse(document.metadata);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
       out.push(

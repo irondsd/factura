@@ -84,6 +84,39 @@ describe("category fields", () => {
   });
 });
 
+describe("section profiles", () => {
+  it("builds every editor from the same article fields", () => {
+    const shared = [
+      "title",
+      "description",
+      "metadata.keywords",
+      "metadata.categories",
+      "metadata.ogImage",
+      "metadata.sources",
+    ];
+    for (const section of [
+      "guias",
+      "noticias",
+      "estadisticas",
+      "investigaciones",
+    ] as const) {
+      const paths = sectionFields(section).map((field) => field.path);
+      expect(paths).toEqual(expect.arrayContaining(shared));
+    }
+  });
+
+  it("adds dataset fields only to data-backed section profiles", () => {
+    expect(sectionFields("guias").map((field) => field.path)).not.toContain(
+      "metadata.dataset",
+    );
+    for (const section of ["estadisticas", "investigaciones"] as const) {
+      const paths = sectionFields(section).map((field) => field.path);
+      expect(paths).toContain("metadata.dataset");
+      expect(paths).toContain("metadata.ogStat");
+    }
+  });
+});
+
 describe("fieldState", () => {
   const field = (
     section: Parameters<typeof sectionFields>[0],
