@@ -29,6 +29,11 @@ import {
 import { tags } from "@lezer/highlight";
 import { useEffect, useRef } from "react";
 import type { Diagnostic } from "@/content-system/types";
+import { componentAssistantExtension } from "../component-assistant/extension";
+import type {
+  ComponentCompletionDescriptor,
+  ComponentRecipeDescriptor,
+} from "../component-assistant/types";
 
 // The Markdown source editor (cms.md): a GitHub-like source workflow, not
 // WYSIWYG. Custom components stay visible as source — an editor who writes
@@ -126,11 +131,15 @@ export function MarkdownEditor({
   onChange,
   diagnostics,
   label,
+  componentDescriptors,
+  recipes,
 }: {
   value: string;
   onChange: (next: string) => void;
   diagnostics: readonly Diagnostic[];
   label: string;
+  componentDescriptors: readonly ComponentCompletionDescriptor[];
+  recipes: readonly ComponentRecipeDescriptor[];
 }) {
   const host = useRef<HTMLDivElement | null>(null);
   const view = useRef<EditorView | null>(null);
@@ -163,6 +172,7 @@ export function MarkdownEditor({
           markdown({ base: markdownLanguage }),
           syntaxHighlighting(highlightStyle),
           theme,
+          componentAssistantExtension(componentDescriptors, recipes),
           keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {

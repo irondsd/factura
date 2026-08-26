@@ -365,8 +365,8 @@ The editor is deliberately plain — a source editor, not a WYSIWYG — and that
 the one place where plainness now costs more than it buys. Worth having, in
 rough order:
 
-- component-name and property autocomplete from the manifest;
-- an insert-component palette with safe templates;
-- inline documentation for components and their allowed values;
+- component-name and property autocomplete from the manifest, an explicit
+  `Mod-Shift-K` assistant, safe component/recipe templates, and inline
+  documentation are shipped in the source editor;
 - a formatting toolbar and keyboard shortcuts;
 - side-by-side source and preview.
