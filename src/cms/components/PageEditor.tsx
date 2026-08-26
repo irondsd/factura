@@ -39,6 +39,7 @@ import type { HistoryEntry } from "@/cms/history";
 import { ownSegment, pathSegments } from "@/content-system/hierarchy";
 import { cn } from "@/lib/cn";
 import { CmsConfirmDialog, type DialogTone } from "./CmsDialog";
+import { CmsIcon, type CmsIconName } from "../icons";
 import { HistoryPanel } from "./HistoryPanel";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { StatusChip, statusLabel } from "./StatusChip";
@@ -94,7 +95,7 @@ const ACTION_NEEDS_SAVE: Record<PendingAction["kind"], boolean> = {
  * One table because the dialog has to match the button that opened it — that is
  * the whole reason the CMS grew its own dialogs instead of keeping
  * `window.confirm`, and two tables would drift the first time somebody
- * restyled one of them. `mark` and `tone` go to the dialog; `fill` is the
+ * restyled one of them. `icon` and `tone` go to the dialog; `fill` is the
  * sidebar button's own class, carrying the same colour by hand because a
  * bordered outline button and a solid dialog button are not the same shape.
  *
@@ -103,30 +104,30 @@ const ACTION_NEEDS_SAVE: Record<PendingAction["kind"], boolean> = {
  * of readers, and the accent for the one that destroys work. */
 const ACTION_STYLE: Record<
   PendingAction["kind"],
-  { mark: string; tone: DialogTone; fill: string }
+  { icon: CmsIconName; tone: DialogTone; fill: string }
 > = {
   publish: {
-    mark: "●",
+    icon: "publish",
     tone: "ok",
     fill: "border-ok bg-ok text-paper hover:border-ink hover:bg-ink",
   },
   preview: {
-    mark: "◐",
+    icon: "preview",
     tone: "ochre",
     fill: "border-[var(--vendor-ochre)] text-[var(--vendor-ochre)] hover:bg-[var(--vendor-ochre)] hover:text-paper",
   },
   unpublish: {
-    mark: "○",
+    icon: "unpublish",
     tone: "quiet",
     fill: "border-dashed border-line text-muted hover:border-ink hover:text-ink",
   },
   discard: {
-    mark: "✕",
+    icon: "delete",
     tone: "accent",
     fill: "border-dashed border-line text-muted hover:border-accent hover:text-accent",
   },
   restore: {
-    mark: "↩",
+    icon: "restore",
     tone: "accent",
     fill: "border-dashed border-line text-muted hover:border-accent hover:text-accent",
   },
@@ -660,12 +661,13 @@ export function PageEditor({
         )}
         {status !== "draft" && (
           <Link
-            className="font-mono text-[12px] text-muted mt-2 mb-0 underline hover:text-accent"
+            className="inline-flex items-center gap-1.5 font-mono text-[12px] text-muted mt-2 mb-0 underline hover:text-accent"
             target="_blank"
             rel="noreferrer"
             href={publicPath}
           >
             {publicPath}
+            <CmsIcon name="externalLink" size="xs" />
           </Link>
         )}
       </header>
@@ -749,8 +751,9 @@ export function PageEditor({
               type="button"
               onClick={save}
               disabled={busy}
-              className="border w-1/2 cursor-pointer border-accent bg-accent px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper transition-colors hover:border-ink hover:bg-ink disabled:opacity-50"
+              className="inline-flex w-1/2 cursor-pointer items-center justify-center gap-2 border border-accent bg-accent px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper transition-colors hover:border-ink hover:bg-ink disabled:opacity-50"
             >
+              <CmsIcon name="save" size="sm" />
               {busy ? "…" : "Guardar"}
             </button>
             <button
@@ -758,8 +761,9 @@ export function PageEditor({
               onClick={check}
               disabled={busy}
               title="Comprueba la página contra todo lo que hace falta para publicarla"
-              className="border w-1/2 cursor-pointer border-line px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent disabled:opacity-50"
+              className="inline-flex w-1/2 cursor-pointer items-center justify-center gap-2 border border-line px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent disabled:opacity-50"
             >
+              <CmsIcon name="checkAll" size="sm" />
               Validar
             </button>
           </div>
@@ -888,7 +892,7 @@ function ActionConfirmDialog({
       description={copy.description}
       details={copy.details}
       confirmLabel={copy.confirmLabel}
-      confirmMark={ACTION_STYLE[action.kind].mark}
+      confirmIcon={ACTION_STYLE[action.kind].icon}
       tone={ACTION_STYLE[action.kind].tone}
       busy={busy}
       onConfirm={onConfirm}
@@ -947,9 +951,10 @@ function PreviewPane({ src, dirty }: { src: string; dirty: boolean }) {
           href={src}
           target="_blank"
           rel="noreferrer"
-          className="font-mono text-micro uppercase tracking-label-wide text-muted no-underline hover:text-accent"
+          className="inline-flex items-center gap-1.5 font-mono text-micro uppercase tracking-label-wide text-muted no-underline hover:text-accent"
         >
-          Abrir en otra pestaña →
+          Abrir en otra pestaña
+          <CmsIcon name="externalLink" size="sm" />
         </a>
       </div>
       <iframe
@@ -998,7 +1003,7 @@ function StatusControls({
       </h2>
       <div className="flex flex-col gap-2">
         <Action
-          mark={ACTION_STYLE.publish.mark}
+          icon={ACTION_STYLE.publish.icon}
           fill={ACTION_STYLE.publish.fill}
           disabled={busy || dirty || !canPublish}
           onClick={onPublish}
@@ -1008,7 +1013,7 @@ function StatusControls({
 
         {(status !== "preview" || previewIsStale || !hasPublicPreview) && (
           <Action
-            mark={ACTION_STYLE.preview.mark}
+            icon={ACTION_STYLE.preview.icon}
             fill={ACTION_STYLE.preview.fill}
             disabled={busy || dirty || !canPreview}
             onClick={onPromotePreview}
@@ -1021,7 +1026,7 @@ function StatusControls({
 
         {status !== "draft" && (
           <Action
-            mark={ACTION_STYLE.unpublish.mark}
+            icon={ACTION_STYLE.unpublish.icon}
             fill={ACTION_STYLE.unpublish.fill}
             disabled={busy}
             onClick={onUnpublish}
@@ -1032,7 +1037,7 @@ function StatusControls({
 
         {hasWip && (
           <Action
-            mark={ACTION_STYLE.discard.mark}
+            icon={ACTION_STYLE.discard.icon}
             fill={ACTION_STYLE.discard.fill}
             disabled={busy}
             onClick={onDiscard}
@@ -1060,16 +1065,16 @@ function StatusControls({
 /** One lifecycle button. The fill tracks how public the destination is —
  * dashed and quiet for the ones that take a page back, ochre for the shareable
  * preview, solid for the one that puts a page in front of readers — and every
- * one carries the same mark its state does elsewhere, so the button and the
+ * one carries the same icon its state does elsewhere, so the button and the
  * chip are recognisably the same vocabulary. */
 function Action({
-  mark,
+  icon,
   fill,
   disabled,
   onClick,
   children,
 }: {
-  mark: string;
+  icon: CmsIconName;
   /** The button's own colour, from `ACTION_STYLE`. Named `fill` and not `tone`
    * so `DialogTone` keeps that word to itself in this file. */
   fill: string;
@@ -1087,7 +1092,7 @@ function Action({
         fill,
       )}
     >
-      <span aria-hidden="true">{mark}</span>
+      <CmsIcon name={icon} size="sm" />
       {children}
     </button>
   );
@@ -1169,6 +1174,7 @@ function RenamePanel({
             disabled={busy}
             className="inline-flex items-center gap-2 border border-line px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-muted transition-colors hover:border-accent hover:text-accent disabled:opacity-45"
           >
+            <CmsIcon name="edit" size="sm" />
             Cambiar dirección
           </button>
         </>
@@ -1220,6 +1226,7 @@ function RenamePanel({
               disabled={busy || !changed}
               className="inline-flex items-center gap-2 border border-accent bg-accent px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-paper transition-colors hover:border-ink hover:bg-ink disabled:opacity-45"
             >
+              <CmsIcon name="arrowRight" size="sm" />
               {busy ? "…" : "Cambiar dirección"}
             </button>
             <button
@@ -1277,7 +1284,7 @@ function DeletePanel({
             disabled={busy}
             className="inline-flex items-center gap-2 border border-accent px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-accent transition-colors hover:bg-accent hover:text-paper disabled:opacity-45"
           >
-            <span aria-hidden="true">✕</span>
+            <CmsIcon name="delete" size="sm" />
             Eliminar esta página
           </button>
         </>
@@ -1307,7 +1314,7 @@ function DeletePanel({
               disabled={busy || !confirmed}
               className="inline-flex items-center gap-2 border border-accent bg-accent px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-paper transition-colors hover:border-ink hover:bg-ink disabled:opacity-45"
             >
-              <span aria-hidden="true">✕</span>
+              <CmsIcon name="delete" size="sm" />
               {busy ? "…" : "Eliminar"}
             </button>
             <button
@@ -1369,8 +1376,9 @@ function ConflictNotice({ body }: { body: string }) {
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="border border-line px-3 py-1.5 mt-3 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent"
+        className="mt-3 inline-flex items-center gap-2 border border-line px-3 py-1.5 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent"
       >
+        <CmsIcon name="refresh" size="xs" />
         Recargar
       </button>
     </div>
@@ -1382,7 +1390,7 @@ function ConflictNotice({ body }: { body: string }) {
  * It used to be one string handed to `window.confirm`, which meant the most
  * consequential control in the CMS and a stray tab-close warning arrived in the
  * same grey box. Split into parts so the dialog can wear what it is about: the
- * mark and tone of the button that opened it, the page's address spelled out
+ * icon and tone of the button that opened it, the page's address spelled out
  * where it changes, and a title that names the action instead of asking
  * «¿Continuar?».
  *

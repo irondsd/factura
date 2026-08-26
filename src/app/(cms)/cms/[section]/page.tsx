@@ -10,6 +10,7 @@ import { cmsCategoryService } from "@/cms/categories/server/service";
 import { ListFilters } from "@/cms/components/ListFilters";
 import { parseCmsListQuery } from "@/cms/listQuery";
 import { cmsPageMetadata } from "@/cms/metadata";
+import { CmsIcon } from "@/cms/icons";
 import {
   cmsNewPath,
   cmsSectionPath,
@@ -95,7 +96,7 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
             href={cmsNewPath(section.id)}
             className="inline-flex items-center gap-2 border border-ink bg-ink px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper no-underline transition-colors hover:border-accent hover:bg-accent"
           >
-            <span aria-hidden="true">+</span>
+            <CmsIcon name="add" size="sm" />
             Nueva página
           </Link>
         </div>

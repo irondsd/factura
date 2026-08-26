@@ -14,6 +14,7 @@ import {
 import type { CmsSection } from "../sections";
 import { cmsEditPath, publicSectionPath } from "../sections";
 import type { CmsContentSummary } from "../types";
+import { CmsIcon } from "../icons";
 import { StatusChip, WorkingCopyIndicator } from "./StatusChip";
 
 // A section's pages, as the tree rather than a flat list.
@@ -206,13 +207,17 @@ function Credits({
           as a rendering fault. */}
       {!author && !factChecker && <span aria-hidden="true">—</span>}
       {author && (
-        <Credit label="Autor" name={author.name} icon={<AuthorIcon />} />
+        <Credit
+          label="Autor"
+          name={author.name}
+          icon={<CmsIcon name="author" size="xs" />}
+        />
       )}
       {factChecker && (
         <Credit
           label="Verificado por"
           name={factChecker.name}
-          icon={<FactCheckIcon />}
+          icon={<CmsIcon name="factCheck" size="xs" />}
           className={cn(author && "mt-1")}
         />
       )}
@@ -244,44 +249,6 @@ function Credit({
           name is a hover away. */}
       <span className="max-w-[150px] truncate">{name}</span>
     </span>
-  );
-}
-
-/** Head and shoulders — the byline. */
-function AuthorIcon() {
-  return (
-    <Glyph>
-      <circle cx="6" cy="4.1" r="2.05" />
-      <path d="M2.3 10.3a3.7 3.7 0 0 1 7.4 0" />
-    </Glyph>
-  );
-}
-
-/** Two ticks, the way a verified mark is drawn everywhere else. One tick is
- * «done»; the second is what makes it «checked by someone». */
-function FactCheckIcon() {
-  return (
-    <Glyph>
-      <path d="m1.4 6.4 2.3 2.4 3.6-4.2" />
-      <path d="m6.5 8.8 4.1-4.8" />
-    </Glyph>
-  );
-}
-
-function Glyph({ children }: { children: React.ReactNode }) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 12 12"
-      className="size-3 shrink-0 opacity-70"
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="1.2"
-    >
-      {children}
-    </svg>
   );
 }
 
@@ -371,9 +338,11 @@ function SortableTh({
         {label}
         {/* The inactive arrow is drawn too, at low contrast: a column that only
             shows it once sorted gives no hint that it can be. */}
-        <span aria-hidden="true" className={cn(!active && "opacity-30")}>
-          {active && direction === "asc" ? "↑" : "↓"}
-        </span>
+        <CmsIcon
+          name={active && direction === "asc" ? "arrowUp" : "arrowDown"}
+          size="xs"
+          className={cn(!active && "opacity-30")}
+        />
       </Link>
     </th>
   );

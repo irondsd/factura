@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCmsMember } from "@/cms/auth/requireCmsMember";
 import { CmsShell } from "@/cms/components/CmsShell";
+import { CmsIcon } from "@/cms/icons";
 import { NewPageForm } from "@/cms/components/NewPageForm";
 import { cmsPageMetadata } from "@/cms/metadata";
 import { cmsSectionPath, findEditableSection } from "@/cms/sections";
@@ -36,9 +37,10 @@ export default async function CmsNewPage({ params }: Props) {
     <CmsShell actor={actor}>
       <Link
         href={cmsSectionPath(section.id)}
-        className="inline-block font-mono text-micro uppercase tracking-label-wide text-muted no-underline mb-6 hover:text-accent"
+        className="mb-6 inline-flex items-center gap-2 font-mono text-micro uppercase tracking-label-wide text-muted no-underline hover:text-accent"
       >
-        ← {section.label}
+        <CmsIcon name="arrowLeft" size="sm" />
+        {section.label}
       </Link>
       <h1 className="font-display font-semibold text-[30px] tracking-[-0.025em] leading-[1.1] mt-0 mb-7">
         Nueva página

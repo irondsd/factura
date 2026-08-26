@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createContentAction } from "@/cms/server/actions";
 import type { CmsSection } from "@/cms/sections";
 import { cmsEditPath, publicSectionPath } from "@/cms/sections";
+import { CmsIcon } from "@/cms/icons";
 import type { ParentOption } from "./fields/MetadataField";
 import { sectionProfile } from "@/content-system/sectionProfiles";
 
@@ -184,8 +185,9 @@ export function NewPageForm({
       <button
         type="submit"
         disabled={busy || !title || !slug}
-        className="border border-accent bg-accent px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper disabled:opacity-50"
+        className="inline-flex items-center justify-center gap-2 border border-accent bg-accent px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper disabled:opacity-50"
       >
+        <CmsIcon name="add" size="sm" />
         {busy ? "Creando…" : "Crear borrador"}
       </button>
     </form>

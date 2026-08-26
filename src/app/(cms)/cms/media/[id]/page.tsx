@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCmsMember } from "@/cms/auth/requireCmsMember";
 import { CmsShell } from "@/cms/components/CmsShell";
+import { CmsIcon } from "@/cms/icons";
 import { cmsPageMetadata } from "@/cms/metadata";
 import { MediaDetail } from "@/cms/media/components/MediaDetail";
 import { cmsMediaService } from "@/cms/media/server/service";
@@ -35,9 +36,10 @@ export default async function CmsMediaDetailPage({
     <CmsShell actor={actor}>
       <Link
         href="/cms/media"
-        className="font-mono text-micro uppercase tracking-label-wide text-muted no-underline hover:text-accent"
+        className="inline-flex items-center gap-2 font-mono text-micro uppercase tracking-label-wide text-muted no-underline hover:text-accent"
       >
-        ← Medios
+        <CmsIcon name="arrowLeft" size="sm" />
+        Medios
       </Link>
       <h1 className="mt-2 mb-6 font-display text-[26px] font-semibold">
         {detail.asset.displayName}

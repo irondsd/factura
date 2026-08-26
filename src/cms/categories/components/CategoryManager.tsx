@@ -239,7 +239,7 @@ function CategoryList({
           el texto; cambiar su dirección conserva el enlace anterior con una
           redirección permanente.
         </p>
-        <DialogButton tone="accent" mark="+" onClick={onCreate}>
+        <DialogButton tone="accent" icon="add" onClick={onCreate}>
           Nueva
         </DialogButton>
       </div>
@@ -425,7 +425,7 @@ function CategoryForm({
         <DialogButton
           type="submit"
           tone="accent"
-          mark={mode === "create" ? "+" : "✓"}
+          icon={mode === "create" ? "add" : "check"}
           disabled={busy}
           className="[form_&]:appearance-none"
         >

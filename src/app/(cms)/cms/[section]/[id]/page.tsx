@@ -6,6 +6,7 @@ import { CmsShell } from "@/cms/components/CmsShell";
 import { PageEditor } from "@/cms/components/PageEditor";
 import { sectionFields } from "@/cms/forms/fields";
 import { cmsPageMetadata } from "@/cms/metadata";
+import { CmsIcon } from "@/cms/icons";
 import { cmsSectionPath, findEditableSection } from "@/cms/sections";
 import { loadPageHistory } from "@/cms/server/pageHistory";
 import { cmsContentService } from "@/cms/server/service";
@@ -90,9 +91,10 @@ export default async function CmsEditPage({ params }: Props) {
     <CmsShell actor={actor}>
       <Link
         href={cmsSectionPath(section.id)}
-        className="inline-block font-mono text-micro uppercase tracking-label-wide text-muted no-underline mb-6 hover:text-accent"
+        className="mb-6 inline-flex items-center gap-2 font-mono text-micro uppercase tracking-label-wide text-muted no-underline hover:text-accent"
       >
-        ← {section.label}
+        <CmsIcon name="arrowLeft" size="sm" />
+        {section.label}
       </Link>
       <PageEditor
         section={section}

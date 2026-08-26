@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import { CmsIcon } from "@/cms/icons";
 import { CmsConfirmDialog, CmsPromptDialog } from "../../components/CmsDialog";
 import {
   createCollectionAction,
@@ -385,18 +386,20 @@ export function MediaLibrary({
               setCollectionError(null);
               setNaming(true);
             }}
-            className="mt-1 block w-full text-left text-micro uppercase tracking-label-wide text-muted hover:text-accent"
+            className="mt-1 inline-flex w-full items-center gap-2 text-left text-micro uppercase tracking-label-wide text-muted hover:text-accent"
           >
-            + Nueva colección
+            <CmsIcon name="add" size="sm" />
+            Nueva colección
           </button>
         </Group>
 
         <button
           onClick={reconcile}
           disabled={pending}
-          className="mt-6 block w-full border border-line px-2 py-1.5 text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent disabled:opacity-50"
+          className="mt-6 inline-flex w-full items-center justify-center gap-2 border border-line px-2 py-1.5 text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent disabled:opacity-50"
           title="Vuelve a derivar el uso desde las páginas y compara el bucket con el catálogo"
         >
+          <CmsIcon name="refresh" size="sm" />
           Recalcular
         </button>
       </aside>
@@ -413,8 +416,9 @@ export function MediaLibrary({
           />
           <button
             onClick={() => input.current?.click()}
-            className="border border-accent px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-accent"
+            className="inline-flex items-center justify-center gap-2 border border-accent px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-accent"
           >
+            <CmsIcon name="upload" size="sm" />
             Seleccionar imágenes
           </button>
           <input
@@ -535,6 +539,7 @@ export function MediaLibrary({
           label="Nombre"
           placeholder="Portadas de guías"
           confirmLabel="Crear"
+          confirmIcon="add"
           busy={pending}
           error={collectionError}
           onSubmit={createCollection}
@@ -561,6 +566,7 @@ export function MediaLibrary({
             "Ninguna página cambia: una colección no interviene en dónde se usa una imagen.",
           ].filter((line): line is string => line !== null)}
           confirmLabel="Eliminar"
+          confirmIcon="delete"
           busy={pending}
           onConfirm={() => removeCollection(removing)}
           onCancel={() => setRemoving(null)}
@@ -640,7 +646,7 @@ function Item({
           aria-label="Eliminar colección"
           className="hidden text-muted hover:text-accent group-hover:block"
         >
-          ×
+          <CmsIcon name="delete" size="xs" />
         </button>
       )}
     </li>

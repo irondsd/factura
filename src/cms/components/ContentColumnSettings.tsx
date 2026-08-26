@@ -9,6 +9,7 @@ import {
 import type { ContentSection } from "@/content-system/types";
 import { cn } from "@/lib/cn";
 import { CmsModal, DialogCancel } from "./CmsDialog";
+import { CmsIcon } from "../icons";
 
 const OPTIONAL_COLUMNS = [
   { id: "status", label: "Estado" },
@@ -117,7 +118,7 @@ export function ContentColumnSettings({
           title="Elegir columnas"
           className="inline-flex size-[34px] shrink-0 cursor-pointer items-center justify-center border border-line bg-paper text-muted transition-colors hover:border-accent hover:text-accent focus-visible:border-accent focus-visible:text-accent focus-visible:outline-none"
         >
-          <GearIcon />
+          <CmsIcon name="settings" size="sm" />
         </button>
       </div>
 
@@ -196,26 +197,5 @@ function ColumnChoice({
         </span>
       )}
     </label>
-  );
-}
-
-function GearIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 20 20"
-      className="size-4"
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="square"
-      strokeLinejoin="miter"
-      strokeWidth="1.25"
-    >
-      <circle cx="10" cy="10" r="2.4" />
-      <path
-        transform="translate(0 .9)"
-        d="M8.6 2.5h2.8l.5 2a6 6 0 0 1 1.2.7l2-.6L16.5 7l-1.5 1.4a6 6 0 0 1 0 1.4l1.5 1.4-1.4 2.4-2-.6a6 6 0 0 1-1.2.7l-.5 2H8.6l-.5-2a6 6 0 0 1-1.2-.7l-2 .6-1.4-2.4L5 9.8a6 6 0 0 1 0-1.4L3.5 7l1.4-2.4 2 .6a6 6 0 0 1 1.2-.7l.5-2Z"
-      />
-    </svg>
   );
 }

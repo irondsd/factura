@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { CmsIcon } from "@/cms/icons";
 import { CmsConfirmDialog } from "../../components/CmsDialog";
 import { cmsEditPath } from "../../sections";
 import type { ContentSection } from "@/content-system/types";
@@ -307,8 +308,9 @@ export function MediaDetail({
         <button
           onClick={save}
           disabled={pending}
-          className="mt-2 w-full border border-accent px-3 py-2 text-micro uppercase tracking-label-wide text-accent disabled:opacity-50"
+          className="mt-2 inline-flex w-full items-center justify-center gap-2 border border-accent px-3 py-2 text-micro uppercase tracking-label-wide text-accent disabled:opacity-50"
         >
+          <CmsIcon name="save" size="sm" />
           Guardar
         </button>
 
@@ -318,8 +320,9 @@ export function MediaDetail({
               <button
                 onClick={trash}
                 disabled={pending || usage.length > 0 || portraitOf.length > 0}
-                className="w-full border border-line px-3 py-2 text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent disabled:opacity-40"
+                className="inline-flex w-full items-center justify-center gap-2 border border-line px-3 py-2 text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent disabled:opacity-40"
               >
+                <CmsIcon name="delete" size="sm" />
                 Mover a la papelera
               </button>
               <p className="mt-2 text-[11px] leading-[1.6] text-muted">
@@ -335,15 +338,17 @@ export function MediaDetail({
               <button
                 onClick={restore}
                 disabled={pending}
-                className="w-full border border-accent px-3 py-2 text-micro uppercase tracking-label-wide text-accent disabled:opacity-50"
+                className="inline-flex w-full items-center justify-center gap-2 border border-accent px-3 py-2 text-micro uppercase tracking-label-wide text-accent disabled:opacity-50"
               >
+                <CmsIcon name="restore" size="sm" />
                 Restaurar
               </button>
               <button
                 onClick={() => setConfirmingPurge(true)}
                 disabled={pending}
-                className="mt-2 w-full border border-line px-3 py-2 text-micro uppercase tracking-label-wide text-muted hover:border-[var(--vendor-ochre)] hover:text-[var(--vendor-ochre)] disabled:opacity-50"
+                className="mt-2 inline-flex w-full items-center justify-center gap-2 border border-line px-3 py-2 text-micro uppercase tracking-label-wide text-muted hover:border-[var(--vendor-ochre)] hover:text-[var(--vendor-ochre)] disabled:opacity-50"
               >
+                <CmsIcon name="delete" size="sm" />
                 Eliminar definitivamente
               </button>
               <p className="mt-2 text-[11px] leading-[1.6] text-muted">
@@ -372,6 +377,7 @@ export function MediaDetail({
             "El registro queda, para que el enlace responda «410 Gone» en vez de un 404.",
           ]}
           confirmLabel="Eliminar"
+          confirmIcon="delete"
           busy={pending}
           onConfirm={purge}
           onCancel={() => setConfirmingPurge(false)}

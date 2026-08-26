@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { formatContentDateTimeShort } from "@/lib/content-date";
 import type { ContentSection } from "@/content-system/types";
+import { CmsIcon } from "../icons";
 import {
   CMS_SEARCHABLE_SECTIONS,
   type CmsSearchHitView,
@@ -87,7 +88,7 @@ export function CmsSearch() {
         aria-haspopup="dialog"
         className="inline-flex cursor-pointer items-center gap-2 border border-line bg-paper px-2.5 py-1 font-mono text-micro uppercase tracking-label-wide text-muted transition-colors hover:border-accent hover:text-accent"
       >
-        <MagnifierIcon />
+        <CmsIcon name="search" size="sm" />
         Buscar
         {/* The shortcut is shown where there is room for it and dropped where
             there is not — on a touch screen it is a label for a key that does
@@ -199,7 +200,7 @@ function SearchOverlay({ onClose }: { onClose: () => void }) {
               Buscar en todas las secciones
             </label>
             <span aria-hidden="true" className="text-muted">
-              <MagnifierIcon large />
+              <CmsIcon name="search" size="lg" />
             </span>
             <input
               id={fieldId}
@@ -248,9 +249,7 @@ function SearchOverlay({ onClose }: { onClose: () => void }) {
                 aria-label="Borrar la búsqueda"
                 className="shrink-0 cursor-pointer border-0 bg-transparent p-1 leading-none text-muted transition-colors hover:text-accent"
               >
-                <span aria-hidden="true" className="font-mono text-[16px]">
-                  ✕
-                </span>
+                <CmsIcon name="close" size="sm" />
               </button>
             )}
             <button
@@ -478,22 +477,5 @@ function Highlighted({ text, term }: { text: string; term: string }) {
         ),
       )}
     </>
-  );
-}
-
-function MagnifierIcon({ large }: { large?: boolean }) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 14 14"
-      className={large ? "size-5" : "size-3.5"}
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeWidth="1.4"
-    >
-      <circle cx="6" cy="6" r="4.2" />
-      <path d="m9.2 9.2 3.1 3.1" />
-    </svg>
   );
 }

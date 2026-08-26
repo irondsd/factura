@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import type { FieldDescriptor } from "@/cms/forms/fields";
 import { MediaPicker } from "@/cms/media/components/MediaPicker";
 import { cn } from "@/lib/cn";
+import { CmsIcon } from "../../icons";
 
 // One metadata field, rendered from its descriptor. Every section's form is
 // built out of these, so section 12 adds field *entries* rather than a second
@@ -311,7 +312,7 @@ function TagsInput({
                 className="text-muted hover:text-accent"
                 aria-label={`Quitar ${entry}`}
               >
-                ×
+                <CmsIcon name="close" size="xs" />
               </button>
             </li>
           ))}
@@ -337,8 +338,9 @@ function TagsInput({
         <button
           type="button"
           onClick={add}
-          className="border border-line px-3 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent"
+          className="inline-flex items-center gap-2 border border-line px-3 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent"
         >
+          <CmsIcon name="add" size="sm" />
           Añadir
         </button>
       </div>
@@ -424,8 +426,9 @@ function FaqInput({
                     : value.filter((_, i) => i !== index),
                 )
               }
-              className="font-mono text-[11px] text-muted hover:text-accent"
+              className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted hover:text-accent"
             >
+              <CmsIcon name="delete" size="xs" />
               Quitar
             </button>
           </div>
@@ -450,8 +453,9 @@ function FaqInput({
       <button
         type="button"
         onClick={() => onChange([...value, { q: "", a: "" }])}
-        className="border border-line px-3 py-1.5 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent"
+        className="inline-flex items-center gap-2 border border-line px-3 py-1.5 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent"
       >
+        <CmsIcon name="add" size="sm" />
         Añadir pregunta
       </button>
     </div>
@@ -562,8 +566,9 @@ function SourcesInput({
                     : value.filter((_, i) => i !== index),
                 )
               }
-              className="font-mono text-[11px] text-muted hover:text-accent"
+              className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted hover:text-accent"
             >
+              <CmsIcon name="delete" size="xs" />
               Quitar
             </button>
           </div>
@@ -596,8 +601,9 @@ function SourcesInput({
       <button
         type="button"
         onClick={() => onChange([...value, { label: "", href: "" }])}
-        className="border border-line px-3 py-1.5 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent"
+        className="inline-flex items-center gap-2 border border-line px-3 py-1.5 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent"
       >
+        <CmsIcon name="add" size="sm" />
         Añadir fuente
       </button>
     </div>

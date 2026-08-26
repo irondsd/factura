@@ -175,7 +175,7 @@ function AuthorList({
           el sitio: por ahora sólo viajan en los datos estructurados de cada
           artículo. No se pueden eliminar.
         </p>
-        <DialogButton tone="accent" mark="+" onClick={onCreate}>
+        <DialogButton tone="accent" icon="add" onClick={onCreate}>
           Nuevo
         </DialogButton>
       </div>
@@ -360,7 +360,7 @@ function AuthorForm({
         <DialogButton
           type="submit"
           tone="accent"
-          mark={mode === "create" ? "+" : "✓"}
+          icon={mode === "create" ? "add" : "check"}
           disabled={busy}
           className="[form_&]:appearance-none"
         >

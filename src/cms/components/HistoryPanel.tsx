@@ -15,6 +15,7 @@ import {
   versionLabel,
 } from "../revisions";
 import { cn } from "@/lib/cn";
+import { CmsIcon } from "../icons";
 import { CmsModal, DialogCancel } from "./CmsDialog";
 import { VersionDiff } from "./VersionDiff";
 
@@ -225,9 +226,10 @@ function VersionRow({
           href={`${cmsPreviewPath(section, pageId)}?revision=${version.revisionId}`}
           target="_blank"
           rel="noreferrer"
-          className="font-mono text-micro uppercase tracking-label-wide text-muted no-underline hover:text-accent focus-visible:text-accent"
+          className="inline-flex items-center gap-1.5 font-mono text-micro uppercase tracking-label-wide text-muted no-underline hover:text-accent focus-visible:text-accent"
         >
-          Vista previa →
+          Vista previa
+          <CmsIcon name="externalLink" size="xs" />
         </Link>
         {comparable && (
           <button
@@ -247,8 +249,9 @@ function VersionRow({
             type="button"
             onClick={onRestore}
             disabled={busy}
-            className="cursor-pointer border-0 bg-transparent p-0 font-mono text-micro uppercase tracking-label-wide text-muted hover:text-accent focus-visible:text-accent disabled:opacity-45"
+            className="inline-flex cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 font-mono text-micro uppercase tracking-label-wide text-muted hover:text-accent focus-visible:text-accent disabled:opacity-45"
           >
+            <CmsIcon name="restore" size="xs" />
             Restaurar como borrador
           </button>
         )}
