@@ -7,6 +7,12 @@ import type {
   Diagnostic,
 } from "@/content-system/types";
 import { requireCmsMember } from "../auth/requireCmsMember";
+import {
+  CMS_SEARCH_LIMIT,
+  type CmsSearchResponse,
+  isSearchableTerm,
+  normalizeSearchSections,
+} from "../search";
 import { cmsSectionPath } from "../sections";
 import type {
   CreateContentInput,
@@ -306,6 +312,38 @@ export async function deleteContentAction(
   } catch (error) {
     return toResult(error);
   }
+}
+
+/** The header search (`src/cms/search.ts`).
+ *
+ * Read-only, and the one action here that is not about a single page: it is
+ * called from the overlay in `CmsSearch`, once per Enter, and answers with
+ * everything a result row draws. A short term or an empty section list comes
+ * back as no hits rather than as an error — both are states the overlay lets an
+ * editor reach by typing, and it says so itself. */
+export async function searchContentAction(input: {
+  term: string;
+  sections: string[];
+}): Promise<CmsSearchResponse> {
+  const actor = await requireCmsMember();
+  const term = input.term.trim();
+  const sections = normalizeSearchSections(input.sections);
+  if (!isSearchableTerm(term) || sections.length === 0) {
+    return { term, hits: [], truncated: false };
+  }
+
+  // One more than the cap, so "there are more of these" is a fact rather than a
+  // guess about a full page of results.
+  const hits = await service.search(actor, {
+    term,
+    sections,
+    limit: CMS_SEARCH_LIMIT + 1,
+  });
+  return {
+    term,
+    hits: hits.slice(0, CMS_SEARCH_LIMIT),
+    truncated: hits.length > CMS_SEARCH_LIMIT,
+  };
 }
 
 /** Validate without saving — what the Validation tab calls. Runs against the

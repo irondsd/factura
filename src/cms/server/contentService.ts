@@ -25,6 +25,7 @@ import {
   type VersionEntry,
 } from "../revisions";
 import { actorLabel } from "../history";
+import { type CmsSearchHitView, tidyExcerpt } from "../search";
 import { planRename, RENAME_CODES } from "../rename";
 import type { CmsActor } from "../types";
 import { documentOf } from "./documents";
@@ -67,6 +68,7 @@ import {
   type CmsListFilter,
   type CmsPageRecord,
   CmsPageStore,
+  type CmsSearchFilter,
   cmsPageStore as defaultStore,
 } from "./store";
 
@@ -276,6 +278,41 @@ export class CmsContentService {
     filter: CmsListFilter = {},
   ): Promise<ContentSummary[]> {
     return this.store.list(filter);
+  }
+
+  /** The console-wide search (`src/cms/search.ts`), with everything a result row
+   * shows already resolved.
+   *
+   * The editor lookup is here rather than in the overlay for the same reason
+   * the section list does it in its route: one query for the whole result set,
+   * not one per row. Membership is the read grant, as it is for `list` — a
+   * search that hid pages an editor could reach by clicking would be a worse
+   * answer, not a safer one. */
+  async search(
+    _actor: CmsActor,
+    filter: CmsSearchFilter,
+  ): Promise<CmsSearchHitView[]> {
+    const hits = await this.store.search(filter);
+    const editors = await this.history.actorsById(
+      hits.map((hit) => hit.updatedBy).filter((id): id is string => !!id),
+    );
+
+    return hits.map((hit) => ({
+      id: hit.id,
+      section: hit.section,
+      slug: hit.slug,
+      title: hit.title,
+      status: hit.status,
+      hasWip: hit.hasWip,
+      updatedAt: hit.updatedAt,
+      updatedBy: hit.updatedBy
+        ? actorLabel(editors.get(hit.updatedBy) ?? null)
+        : null,
+      inTitle: hit.inTitle,
+      excerpt: hit.excerpt
+        ? tidyExcerpt(hit.excerpt, hit.excerptAtStart)
+        : null,
+    }));
   }
 
   /** The document the CMS shows: the working copy if there is one, otherwise

@@ -21,6 +21,7 @@ import {
 import { CmsPageHistoryStore } from "./historyStore";
 import { loadPageHistory } from "./pageHistory";
 import { CmsRevisionStore } from "./revisionStore";
+import { tidyExcerpt } from "../search";
 import { CmsPageStore } from "./store";
 import { createTestDb, hasTestDatabase } from "./testDb";
 
@@ -260,6 +261,102 @@ if (!hasTestDatabase()) {
         await expect(service.create(actor, draftInput("dupe"))).rejects.toThrow(
           CmsSlugTakenError,
         );
+      });
+    });
+
+    // The console-wide search (`src/cms/search.ts`). Its whole reason to exist
+    // is reading the body, and the excerpt is cut out in SQL — neither is
+    // exercised by anything short of a real PostgreSQL.
+    describe("search", () => {
+      /** A page whose body is the only place the term appears. */
+      const withBody = async (slug: string, body: string) => {
+        const page = await service.create(actor, {
+          ...draftInput(slug),
+          title: `Página ${slug}`,
+          body,
+        });
+        return page;
+      };
+
+      it("finds a page by a word that is only in its body", async () => {
+        const page = await withBody(
+          "body-hit",
+          "Antes de leer el consumo hay que mirar el medidor bifásico del edificio.\n",
+        );
+        const hits = await store.search({ term: "bifásico" });
+        const hit = hits.find((h) => h.id === page.id);
+
+        expect(hit).toBeDefined();
+        // A body-only match, and the excerpt is what explains it.
+        expect(hit!.inTitle).toBe(false);
+        expect(tidyExcerpt(hit!.excerpt!, hit!.excerptAtStart)).toContain(
+          "medidor bifásico",
+        );
+      });
+
+      it("matches case-insensitively and treats `%` as a character", async () => {
+        const page = await withBody(
+          "wildcard",
+          "El recargo del 100% se aplica sobre el total.\n",
+        );
+        expect(
+          (await store.search({ term: "RECARGO" })).map((h) => h.id),
+        ).toContain(page.id);
+        // `%` is a wildcard to ILIKE and a character to the person typing it.
+        // Escaped, `100%x` finds nothing; unescaped it would match everything.
+        expect(await store.search({ term: "100%x" })).toEqual([]);
+      });
+
+      it("puts a title match above a body mention", async () => {
+        const mention = await withBody(
+          "mention",
+          "Una nota al pie sobre zzmedidor y poco más.\n",
+        );
+        const named = await service.create(actor, {
+          ...draftInput("named"),
+          title: "Todo sobre el zzmedidor",
+          body: "Sin la palabra en el cuerpo.\n",
+        });
+
+        const ids = (await store.search({ term: "zzmedidor" })).map(
+          (h) => h.id,
+        );
+        expect(ids.indexOf(named.id)).toBeLessThan(ids.indexOf(mention.id));
+      });
+
+      it("searches only the sections it was given", async () => {
+        const page = await withBody(
+          "scoped",
+          "Una palabra rara: zzcarbunclo.\n",
+        );
+        expect(
+          (
+            await store.search({ term: "zzcarbunclo", sections: ["guias"] })
+          ).map((h) => h.id),
+        ).toContain(page.id);
+        expect(
+          await store.search({ term: "zzcarbunclo", sections: ["noticias"] }),
+        ).toEqual([]);
+      });
+
+      it("finds the working copy, not the publication it will replace", async () => {
+        // An editor searching for a sentence they wrote ten minutes ago has to
+        // find their own unsaved-to-the-public draft.
+        const page = await withBody("wip", "Texto publicado sin la palabra.\n");
+        await publish(page.id);
+        await save(page.id, { body: "Ahora dice zzflamante.\n" });
+
+        expect(
+          (await store.search({ term: "zzflamante" })).map((h) => h.id),
+        ).toContain(page.id);
+      });
+
+      it("honours the limit", async () => {
+        await withBody("limit-a", "zzrepetido uno.\n");
+        await withBody("limit-b", "zzrepetido dos.\n");
+        expect(
+          await store.search({ term: "zzrepetido", limit: 1 }),
+        ).toHaveLength(1);
       });
     });
 

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db as defaultDb, type Database } from "@/db";
 import { cmsPageRedirects, cmsPageRevisions, cmsPages } from "@/db/schema";
 import {
@@ -36,6 +36,33 @@ export type CmsListFilter = {
   statuses?: ContentStatus[];
   /** Substring match on title or slug, case-insensitive. */
   search?: string;
+};
+
+/** What the console-wide search asks for (`src/cms/search.ts`). Separate from
+ * `CmsListFilter` because it is a different question: the list filter narrows a
+ * section an editor is already looking at, while this one ranges over sections
+ * and reads the body — the expensive part, and the reason it is not simply a
+ * flag on the filter above. */
+export type CmsSearchFilter = {
+  /** What was typed. Matched as a case-insensitive substring. */
+  term: string;
+  /** Restrict to these sections. Absent or empty means every section. */
+  sections?: readonly ContentSection[];
+  limit?: number;
+};
+
+/** One hit: the summary a row renders, plus where the term was found. */
+export type CmsSearchHit = CmsContentSummary & {
+  /** True when the title or the address matched — the two things the row shows
+   * anyway. False means the only match is in the body, which is what the
+   * excerpt is for. */
+  inTitle: boolean;
+  /** The slice of stored MDX around the first body occurrence, uncleaned;
+   * `tidyExcerpt` makes it readable. Null when the body does not match. */
+  excerpt: string | null;
+  /** Whether that slice starts at the beginning of the body, so the caller
+   * knows whether to open it with an ellipsis. */
+  excerptAtStart: boolean;
 };
 
 /** The page row itself: identity, lifecycle and the four revision pointers.
@@ -137,6 +164,18 @@ const REVISION_COLUMNS = {
  * because a join cannot call a TypeScript function. The unit test in
  * `revisionSelection.test.ts` pins the rule; the integration test pins that
  * this join agrees with it. */
+/** How much of the body to show around a match, and how much of it comes
+ * before. Two lines' worth at the width the results panel renders: enough for
+ * the sentence the term sits in, short enough that ten hits are still a list
+ * rather than a page of prose. */
+const EXCERPT_LEAD = 90;
+const EXCERPT_LENGTH = 240;
+
+/** The cap on one search. Mirrored by `CMS_SEARCH_LIMIT` in `src/cms/search.ts`,
+ * which is what the caller passes; this is the floor under a caller that passes
+ * nothing. */
+const DEFAULT_SEARCH_LIMIT = 40;
+
 const CMS_REVISION_ID = sql`coalesce(${cmsPages.wipRevisionId}, ${cmsPages.publishedRevisionId}, ${cmsPages.previewRevisionId})`;
 
 export class CmsPageStore {
@@ -262,6 +301,84 @@ export class CmsPageStore {
     return rows.map((row) => ({
       ...cmsRowToSummary(row.page, row.revision),
       hasWip: row.page.wipRevisionId !== null,
+    }));
+  }
+
+  /** The console-wide search: one term, across sections, through the body.
+   *
+   * Reading the body is the whole point — a title-only search is what the
+   * per-section box already did, and «¿dónde escribimos sobre el medidor?» is
+   * not answerable from titles. It is also why the excerpt is cut out in SQL
+   * rather than in JavaScript: the alternative is shipping every matching MDX
+   * body back to the server process to slice 240 characters out of it, which
+   * is the exact cost `REVISION_SUMMARY_COLUMNS` exists to avoid.
+   *
+   * Substring matching, not full text. Postgres full-text search would stem and
+   * rank better, but it needs a Spanish configuration, an index and a query
+   * parser between the editor and their results — and with a console this size
+   * an unstemmed `ILIKE` finds what was typed, including the half-words and
+   * slugs a tokenizer would throw away. The index is the upgrade path when the
+   * page count makes one necessary.
+   *
+   * The CMS revision, like every other read here: an editor searching for a
+   * sentence they wrote ten minutes ago must find their own working copy, not
+   * the publication it will replace. */
+  async search(filter: CmsSearchFilter): Promise<CmsSearchHit[]> {
+    const term = filter.term.trim();
+    if (!term) return [];
+
+    // `%` and `_` are literal characters to someone typing a title, so they are
+    // escaped for `ILIKE` — while `strpos` below takes the term as typed,
+    // because it has no pattern syntax to escape it from.
+    const pattern = `%${escapeLike(term)}%`;
+    const titleHit = ilike(cmsPageRevisions.title, pattern);
+    const slugHit = ilike(cmsPages.slug, pattern);
+    // Spelled as one expression rather than `or(...)`, which is typed as
+    // possibly-undefined and would need an assertion at all three uses below.
+    const nameHit = sql`(${titleHit} or ${slugHit})`;
+
+    // Where the body match starts, 1-based; 0 when there is none. Computed
+    // once here and referenced three times below — Postgres evaluates it per
+    // row either way, and naming it keeps the three uses in agreement.
+    const bodyAt = sql<number>`strpos(lower(${cmsPageRevisions.bodyMdx}), lower(${term}::text))`;
+    const windowStart = sql<number>`greatest(${bodyAt} - ${EXCERPT_LEAD}, 1)`;
+
+    const conditions = [
+      filter.sections?.length
+        ? inArray(cmsPages.section, [...filter.sections])
+        : undefined,
+      or(nameHit, sql`${bodyAt} > 0`),
+    ].filter((c) => c !== undefined);
+
+    const rows = await this.db
+      .select({
+        page: PAGE_COLUMNS,
+        revision: REVISION_SUMMARY_COLUMNS,
+        inTitle: sql<boolean>`(${nameHit})`,
+        excerpt: sql<
+          string | null
+        >`case when ${bodyAt} > 0 then substr(${cmsPageRevisions.bodyMdx}, ${windowStart}, ${EXCERPT_LENGTH}) else null end`,
+        excerptAtStart: sql<boolean>`(${windowStart} = 1)`,
+      })
+      .from(cmsPages)
+      .innerJoin(cmsPageRevisions, eq(cmsPageRevisions.id, CMS_REVISION_ID))
+      .where(and(...conditions))
+      // Named matches first, then most recently edited. Not the editorial tree
+      // order the list uses: results span sections, so there is no tree to
+      // preserve, and a page whose *title* is what you typed is the one you
+      // meant far more often than a page that mentions it in passing.
+      .orderBy(
+        sql`case when ${nameHit} then 0 else 1 end`,
+        desc(cmsPageRevisions.updatedAt),
+      )
+      .limit(filter.limit ?? DEFAULT_SEARCH_LIMIT);
+
+    return rows.map((row) => ({
+      ...cmsRowToSummary(row.page, row.revision),
+      hasWip: row.page.wipRevisionId !== null,
+      inTitle: row.inTitle,
+      excerpt: row.excerpt,
+      excerptAtStart: row.excerptAtStart,
     }));
   }
 

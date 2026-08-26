@@ -1,14 +1,20 @@
 import Link from "next/link";
 import { CONTENT_STATUSES, type ContentStatus } from "@/content-system/types";
 import { cn } from "@/lib/cn";
-import { cmsListHref, type CmsListQuery, isDefaultSort } from "../listQuery";
+import { cmsListHref, type CmsListQuery } from "../listQuery";
 import { statusLabel } from "./StatusChip";
 
-// Status filter and search, driven by the URL rather than client state.
+// The status filter, driven by the URL rather than client state.
 //
 // A filtered list is then bookmarkable and shareable ("the drafts I still owe
 // you"), the server does the filtering in the query it was already running, and
 // there is no state to get out of step with what is on screen.
+//
+// A search box used to sit at the other end of this row. It searched titles,
+// inside one section, and it is gone: the header search does the same thing
+// across every section and through the body as well, so keeping this one would
+// have meant two boxes that answer differently — and the narrower of the two is
+// the one nearer the results.
 
 export function ListFilters({
   basePath,
@@ -28,57 +34,23 @@ export function ListFilters({
     cmsListHref(basePath, { ...query, status });
 
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mb-6">
-      <nav className="flex flex-wrap items-center gap-1">
+    <nav className="mb-6 flex flex-wrap items-center gap-1">
+      <FilterLink
+        href={href()}
+        active={!query.status}
+        label="Todas"
+        count={total}
+      />
+      {CONTENT_STATUSES.map((status) => (
         <FilterLink
-          href={href()}
-          active={!query.status}
-          label="Todas"
-          count={total}
+          key={status}
+          href={href(status)}
+          active={query.status === status}
+          label={statusLabel(status)}
+          count={counts[status]}
         />
-        {CONTENT_STATUSES.map((status) => (
-          <FilterLink
-            key={status}
-            href={href(status)}
-            active={query.status === status}
-            label={statusLabel(status)}
-            count={counts[status]}
-          />
-        ))}
-      </nav>
-
-      {/* A plain GET form: no JavaScript, and the result is a URL. */}
-      <form action={basePath} method="get" className="flex items-center gap-2">
-        {query.status && (
-          <input type="hidden" name="estado" value={query.status} />
-        )}
-        {/* The sort survives a search for the same reason it survives a filter
-            change, and a GET form carries nothing it is not told to. */}
-        {!isDefaultSort(query.sort) && (
-          <>
-            <input type="hidden" name="orden" value={query.sort.column} />
-            <input type="hidden" name="dir" value={query.sort.direction} />
-          </>
-        )}
-        <label htmlFor="cms-search" className="sr-only">
-          Buscar por título o dirección
-        </label>
-        <input
-          id="cms-search"
-          type="search"
-          name="q"
-          defaultValue={query.search ?? ""}
-          placeholder="Buscar…"
-          className="border border-line bg-paper px-3 py-1.5 font-mono text-[13px] text-ink placeholder:text-muted focus:border-accent focus:outline-none"
-        />
-        <button
-          type="submit"
-          className="border border-line px-3 py-1.5 font-mono text-micro uppercase tracking-label-wide text-muted transition-colors hover:border-accent hover:text-accent"
-        >
-          Buscar
-        </button>
-      </form>
-    </div>
+      ))}
+    </nav>
   );
 }
 

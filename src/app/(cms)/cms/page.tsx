@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthorManager } from "@/cms/authors/components/AuthorManager";
 import { cmsAuthorService } from "@/cms/authors/server/service";
+import { canManageTokens } from "@/cms/auth/policy";
 import { requireCmsMember } from "@/cms/auth/requireCmsMember";
 import { CmsShell } from "@/cms/components/CmsShell";
 import { cmsPageMetadata } from "@/cms/metadata";
@@ -35,10 +36,26 @@ export default async function CmsHomePage() {
         <h1 className="font-display font-semibold text-[30px] tracking-[-0.025em] leading-[1.1] m-0">
           Secciones
         </h1>
-        {/* Authors live here rather than in the navigation. The list is two
-            people who change about once a year, and a nav entry would give it
-            the same weight as a section anyone edits daily. */}
-        <AuthorManager initialAuthors={authors} />
+        {/* The two things you administer rather than edit, kept off the
+            navigation for the same reason: authors are two people who change
+            about once a year, tokens are a page an admin opens about twice, and
+            a nav entry would give either the same weight as a section somebody
+            edits daily.
+
+            Tokens is a link and not a dialog because minting one shows a secret
+            exactly once — that belongs on a page you can read without a modal
+            over the console, and the page checks `canManageTokens` itself. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <AuthorManager initialAuthors={authors} />
+          {canManageTokens(actor) && (
+            <Link
+              href="/cms/tokens"
+              className="inline-flex items-center gap-2 border border-line bg-paper px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-ink no-underline transition-colors hover:border-accent hover:text-accent"
+            >
+              Tokens
+            </Link>
+          )}
+        </div>
       </div>
       <p className="font-mono text-[15px] leading-[1.7] text-ink/90 max-w-[62ch] mb-9">
         Elige qué contenido quieres editar.

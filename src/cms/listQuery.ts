@@ -5,12 +5,18 @@ import {
 } from "@/content-system/hierarchy";
 import { type ContentStatus, isContentStatus } from "@/content-system/types";
 
-// The CMS list's URL state: status filter, search, and column sort.
+// The CMS list's URL state: status filter and column sort.
 //
-// All three live in the query string rather than in client state, for the same
-// reason the filters always did — the result is a URL you can bookmark and
-// send, the server does the work in the query it was already running, and
-// there is no second copy of "what is on screen" to fall out of step.
+// Both live in the query string rather than in client state — the result is a
+// URL you can bookmark and send, the server does the work in the query it was
+// already running, and there is no second copy of "what is on screen" to fall
+// out of step.
+//
+// Searching used to be here too, as a `q` on each section's list. It is not any
+// more: `src/cms/search.ts` searches every section and reads the body, so the
+// per-section box was left answering a narrower question worse. A stale
+// bookmark carrying `?q=…` simply lists the section, which is the same thing
+// this file does with any parameter it no longer recognises.
 //
 // Pure and free of I/O so the ordering rules can be tested without a database.
 
@@ -35,7 +41,6 @@ export const DEFAULT_CMS_SORT: CmsListSort = {
 
 export type CmsListQuery = {
   status?: ContentStatus;
-  search?: string;
   sort: CmsListSort;
 };
 
@@ -47,7 +52,6 @@ const isSortColumn = (value: string): value is CmsSortColumn =>
  * list, not an error page. */
 export function parseCmsListQuery(params: {
   estado?: string;
-  q?: string;
   orden?: string;
   dir?: string;
 }): CmsListQuery {
@@ -60,7 +64,6 @@ export function parseCmsListQuery(params: {
       params.estado && isContentStatus(params.estado)
         ? params.estado
         : undefined,
-    search: params.q?.trim() || undefined,
     sort: {
       column,
       direction: params.dir === "asc" ? "asc" : "desc",
@@ -77,7 +80,6 @@ export const isDefaultSort = (sort: CmsListSort): boolean =>
 export function cmsListHref(basePath: string, query: CmsListQuery): string {
   const params = new URLSearchParams();
   if (query.status) params.set("estado", query.status);
-  if (query.search) params.set("q", query.search);
   if (!isDefaultSort(query.sort)) {
     params.set("orden", query.sort.column);
     params.set("dir", query.sort.direction);

@@ -29,7 +29,6 @@ type Props = {
   params: Promise<{ section: string }>;
   searchParams: Promise<{
     estado?: string;
-    q?: string;
     orden?: string;
     dir?: string;
   }>;
@@ -51,12 +50,12 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
   if (!section) notFound();
 
   const query = parseCmsListQuery(await searchParams);
-  const { status, search } = query;
+  const { status } = query;
 
   // Counts come from the unfiltered set so the tabs keep saying how many pages
   // are in each state while you are looking at one of them.
   const [all, categories] = await Promise.all([
-    cmsPageStore.list({ section: section.id, search }),
+    cmsPageStore.list({ section: section.id }),
     cmsCategoryService.list(actor, section.id),
   ]);
   const pages = status ? all.filter((page) => page.status === status) : all;
@@ -120,7 +119,7 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
         basePath={cmsSectionPath(section.id)}
         query={query}
         emptyMessage={
-          search || status
+          status
             ? "Ninguna página coincide con este filtro."
             : "Todavía no hay páginas en esta sección."
         }

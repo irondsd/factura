@@ -33,23 +33,32 @@ describe("parseCmsListQuery", () => {
     // A hand-edited URL should still show the list.
     expect(parseCmsListQuery({ orden: "titulo", dir: "sideways" })).toEqual({
       status: undefined,
-      search: undefined,
       sort: { column: "editada", direction: "desc" },
     });
   });
 
-  it("reads a sorted, filtered, searched list", () => {
+  it("reads a sorted, filtered list", () => {
     expect(
       parseCmsListQuery({
         estado: "draft",
-        q: "  edesur ",
         orden: "creada",
         dir: "asc",
       }),
     ).toEqual({
       status: "draft",
-      search: "edesur",
       sort: { column: "creada", direction: "asc" },
+    });
+  });
+
+  it("ignores the `q` a bookmark from the old per-section search still carries", () => {
+    // Searching moved to the header (`src/cms/search.ts`). A saved URL should
+    // still open its section rather than 404 or filter by a parameter nothing
+    // reads any more.
+    expect(
+      parseCmsListQuery({ estado: "draft", q: "edesur" } as never),
+    ).toEqual({
+      status: "draft",
+      sort: DEFAULT_CMS_SORT,
     });
   });
 });
@@ -61,14 +70,13 @@ describe("cmsListHref", () => {
     );
   });
 
-  it("carries filter, search and a non-default sort together", () => {
+  it("carries a filter and a non-default sort together", () => {
     expect(
       cmsListHref("/cms/guias", {
         status: "draft",
-        search: "aysa",
         sort: { column: "creada", direction: "asc" },
       }),
-    ).toBe("/cms/guias?estado=draft&q=aysa&orden=creada&dir=asc");
+    ).toBe("/cms/guias?estado=draft&orden=creada&dir=asc");
   });
 });
 

@@ -106,40 +106,35 @@ export function DialogCancel({
 }
 
 /**
- * The shell: backdrop, panel, and the three things a modal owes the keyboard —
- * focus moves in on open, Tab stays inside, Escape and the backdrop close it.
- * Focus returns to whatever opened it, so dismissing a dialog puts the caret
- * back on the button that raised it rather than at the top of the document.
+ * The three things a modal owes the keyboard, as a hook: focus moves in on
+ * mount, Tab stays inside, Escape closes. The page behind it stops scrolling,
+ * and focus returns to whatever opened it — so dismissing puts the caret back
+ * on the button that raised it rather than at the top of the document.
  *
- * `busy` seals it: while the server is working, Escape and the backdrop stop
- * closing. A request already in flight can't be called back, and a dialog that
- * vanishes mid-write leaves the editor guessing whether it happened.
+ * `busy` seals it: while the server is working, Escape stops closing. A request
+ * already in flight can't be called back, and a dialog that vanishes mid-write
+ * leaves the editor guessing whether it happened.
  *
- * Mount it conditionally — there is no `open` prop, so the mount *is* the open,
- * and the state inside a prompt resets by construction each time.
+ * A hook rather than something only `CmsModal` can have, because the search
+ * overlay is a modal surface with an entirely different shape — a field where a
+ * title would go, and results where a body would — and it should not have to
+ * choose between borrowing this file's header or re-implementing its keyboard.
+ *
+ * Returns the ref to put on the panel element.
  */
-export function CmsModal({
-  eyebrow,
-  title,
+export function useModalChrome({
   busy = false,
   onClose,
-  children,
-  width = "420px",
 }: {
-  eyebrow?: string;
-  title: string;
   busy?: boolean;
   onClose: () => void;
-  children: ReactNode;
-  width?: string;
 }) {
   const panel = useRef<HTMLDivElement>(null);
-  const titleId = useId();
 
   // Focus in on mount, back out on unmount. `document.activeElement` is read
   // once, at open: by the time this unmounts the opening button may itself be
-  // gone (a deleted collection takes its row with it), and `?.focus?.()` is
-  // what keeps that from throwing on the way out.
+  // gone (a deleted collection takes its row with it), and the `isConnected`
+  // check is what keeps that from throwing on the way out.
   useEffect(() => {
     const opener =
       document.activeElement instanceof HTMLElement
@@ -187,6 +182,35 @@ export function CmsModal({
     document.addEventListener("keydown", onKeyDown, true);
     return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [busy, onClose]);
+
+  return panel;
+}
+
+/**
+ * The shell: backdrop, panel, an eyebrow and a title, over `useModalChrome`'s
+ * keyboard. The backdrop closes it too, and stops doing so while `busy` — a
+ * request already in flight can't be called back.
+ *
+ * Mount it conditionally — there is no `open` prop, so the mount *is* the open,
+ * and the state inside a prompt resets by construction each time.
+ */
+export function CmsModal({
+  eyebrow,
+  title,
+  busy = false,
+  onClose,
+  children,
+  width = "420px",
+}: {
+  eyebrow?: string;
+  title: string;
+  busy?: boolean;
+  onClose: () => void;
+  children: ReactNode;
+  width?: string;
+}) {
+  const panel = useModalChrome({ busy, onClose });
+  const titleId = useId();
 
   if (typeof document === "undefined") return null;
 
