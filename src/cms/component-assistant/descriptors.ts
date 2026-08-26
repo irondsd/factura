@@ -24,31 +24,6 @@ type JsonSchema = {
   description?: string;
 };
 
-const CONTEXT_BOUND_NAMES = new Set([
-  "Faq",
-  "RelatedGuides",
-  "Fuentes",
-  "Subpaginas",
-]);
-
-const STRUCTURE_NAMES = new Set([
-  "ClosingCta",
-  "Faq",
-  "Fuentes",
-  "RelatedGuides",
-  "Subpaginas",
-  "PaginaRelacionada",
-  "TrustBlock",
-]);
-
-const CTA_NAMES = new Set([
-  "ProbarCta",
-  "CtaButton",
-  "CtaRow",
-  "DemoCta",
-  "SignupCta",
-]);
-
 const GROUP_BY_ID = new Map(
   COMPONENT_AUTHORING_GROUPS.map((group) => [group.id, group]),
 );
@@ -86,17 +61,17 @@ export function descriptorForComponent(
   const authoring = definition.authoring;
   const group = authoring?.group ?? defaultGroup(name);
   const groupRank = GROUP_BY_ID.get(group)?.rank ?? 999;
-  const rank = authoring?.rank ?? defaultRank(name, group);
-  const props = projectProperties(name, definition, authoring);
+  const rank = authoring?.rank ?? defaultRank(group);
+  const props = projectProperties(definition, authoring);
   const template = buildTemplate(name, definition, props, authoring);
 
+  // A leaf with no schema is one the route binds: the author writes the bare
+  // tag and the page supplies the data. Containers with no schema are a
+  // different thing — their children *are* the content — so they get no note.
   const notes = [
     ...(authoring?.notes ?? []),
-    ...(CONTEXT_BOUND_NAMES.has(name)
+    ...(definition.kind === "leaf" && props.length === 0
       ? ["Escribe el componente bare, sin propiedades."]
-      : []),
-    ...(props.length === 0 && !CONTEXT_BOUND_NAMES.has(name)
-      ? ["Este componente está ligado a su dataset; no agregues propiedades."]
       : []),
   ];
 
@@ -114,7 +89,6 @@ export function descriptorForComponent(
 }
 
 function projectProperties(
-  name: string,
   definition: ContentComponentDefinition,
   authoring?: ComponentAuthoringMetadata,
 ): ComponentPropertyDescriptor[] {
@@ -133,7 +107,7 @@ function projectProperties(
       authoring?.propertyDescriptions?.[propertyName] ?? raw.description;
     const placeholder =
       authoring?.propertyPlaceholders?.[propertyName] ??
-      defaultPlaceholder(name, propertyName, raw, values);
+      defaultPlaceholder(propertyName, raw, values);
 
     return {
       name: propertyName,
@@ -201,15 +175,30 @@ function genericTemplate(
 
   const child =
     authoring?.childPlaceholder ?? "Escribe aquí el contenido de este bloque.";
-  return `<${name}${attributesText}>\n\n${snippetField(0, child)}\n\n</${name}>`;
+  // A CodeMirror field cannot span lines — the snippet parser works line by
+  // line, so a multi-line default is left in the document verbatim. A child
+  // placeholder that is itself several blocks (a CTA row, say) therefore
+  // becomes one tab stop per line, which is the more useful shape anyway.
+  const lines = child.split("\n");
+  const lastFilled = lines.reduce(
+    (last, line, index) => (line.trim() ? index : last),
+    -1,
+  );
+  const body = lines
+    .map((line, index) =>
+      line.trim()
+        ? snippetField(index === lastFilled ? 0 : fieldNumber++, line)
+        : line,
+    )
+    .join("\n");
+  return `<${name}${attributesText}>\n\n${body}\n\n</${name}>`;
 }
 
 function defaultPlaceholder(
-  name: string,
   propertyName: string,
   schema: JsonSchema,
   values: readonly string[] | undefined,
-): string | undefined {
+): string {
   if (values && values.length > 0) return values[0];
   if (schema.pattern?.includes("estadisticas|investigaciones")) {
     return "/estadisticas/ruta";
@@ -218,14 +207,16 @@ function defaultPlaceholder(
   if (propertyName === "title") return "Título específico";
   if (propertyName === "vendor") return "Empresa";
   if (propertyName === "noun") return "factura";
-  if (propertyName === "chart") return "luz-y-gas";
-  if (name) return "Texto específico";
-  return undefined;
+  return "Texto específico";
 }
 
+/** Only the manifest-generated data leaves reach this: every hand-written
+ * component declares its own `authoring.group`. The suffix is the one signal
+ * those generated names carry, so a name that ends in neither a map nor a
+ * chart/summary word lands in the catch-all data bucket. A component that
+ * lands in the wrong one is fixed by giving it an explicit group, not by
+ * growing this list. */
 function defaultGroup(name: string): ComponentAuthoringGroup {
-  if (STRUCTURE_NAMES.has(name)) return "article-structure";
-  if (CTA_NAMES.has(name)) return "calls-to-action";
   if (/Mapa$/.test(name)) return "maps";
   if (
     /(?:Chart|Ipc|Resumen|Historia|Cambio|Cobertura|Cuando|Dispersion|Ganadores|Contraste|Sensibilidad)$/.test(
@@ -237,10 +228,15 @@ function defaultGroup(name: string): ComponentAuthoringGroup {
   return "tables-comparisons";
 }
 
-function defaultRank(name: string, group: ComponentAuthoringGroup): number {
-  if (group === "article-structure") return 200;
-  if (group === "calls-to-action") return 300;
-  return name.length;
+/** One rank for the whole generated catalogue, so `compareDescriptors` and
+ * `sortText` fall through to the name. Dozens of `Delitos*`/`Escrituras*`
+ * entries listed alphabetically keep each dataset's components together;
+ * anything cleverer has to be predictable to the author, which means it
+ * belongs in the manifest as an explicit rank. */
+function defaultRank(group: ComponentAuthoringGroup): number {
+  return group === "article-structure" || group === "calls-to-action"
+    ? 200
+    : 500;
 }
 
 function defaultLabel(name: string): string {

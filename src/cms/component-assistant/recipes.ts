@@ -74,23 +74,20 @@ export function componentRecipesForSection(
       recipe.components.every((name) =>
         allowed.has(name as ContentComponentName),
       ),
-  ).map((recipe) => {
-    const snippet = RECIPE_SNIPPETS[recipe.id];
-    if (!snippet) throw new Error(`Missing snippet for recipe ${recipe.id}`);
-    return {
-      ...recipe,
-      template: { snippet, preview: materializeSnippet(snippet) },
-    };
-  });
+  ).map(withTemplate);
 }
 
 export function allComponentRecipes(): readonly ComponentRecipeDescriptor[] {
-  return RECIPE_DEFINITIONS.map((recipe) => {
-    const snippet = RECIPE_SNIPPETS[recipe.id];
-    if (!snippet) throw new Error(`Missing snippet for recipe ${recipe.id}`);
-    return {
-      ...recipe,
-      template: { snippet, preview: materializeSnippet(snippet) },
-    };
-  });
+  return RECIPE_DEFINITIONS.map(withTemplate);
+}
+
+function withTemplate(
+  recipe: (typeof RECIPE_DEFINITIONS)[number],
+): ComponentRecipeDescriptor {
+  const snippet = RECIPE_SNIPPETS[recipe.id];
+  if (!snippet) throw new Error(`Missing snippet for recipe ${recipe.id}`);
+  return {
+    ...recipe,
+    template: { snippet, preview: materializeSnippet(snippet) },
+  };
 }

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { EditorState } from "@codemirror/state";
+import { snippet } from "@codemirror/autocomplete";
 import {
   CONTENT_COMPONENT_DEFINITIONS,
   CONTENT_COMPONENT_NAMES,
@@ -22,6 +24,26 @@ type JsonSchema = {
   >;
   required?: string[];
 };
+
+/** Expand a template the way the editor does, through CodeMirror's own snippet
+ * parser. `preview` is our reading of the template and the grammar assertions
+ * below are written against it, so the two have to agree — a field CodeMirror
+ * cannot parse (its syntax is line-based, with no escape for braces) would
+ * otherwise land in the document as literal `${0:…}` text while every test
+ * still passed. */
+function expandSnippet(template: string): string {
+  let state = EditorState.create({ doc: "" });
+  const view = {
+    get state() {
+      return state;
+    },
+    dispatch: (transaction: { state: EditorState }) => {
+      state = transaction.state;
+    },
+  };
+  snippet(template)(view as never, null as never, 0, 0);
+  return state.doc.toString();
+}
 
 describe("component completion descriptors", () => {
   it("projects every registered component", () => {
@@ -116,6 +138,30 @@ describe("component completion descriptors", () => {
       }
     }
   });
+
+  it("expands every snippet to exactly its own preview", () => {
+    for (const section of CONTENT_SECTIONS) {
+      for (const descriptor of componentCompletionDescriptors(section)) {
+        expect(
+          expandSnippet(descriptor.template.snippet),
+          `${section}/${descriptor.name}`,
+        ).toBe(descriptor.template.preview);
+      }
+    }
+  });
+
+  it("gives a multi-line child placeholder one tab stop per line", () => {
+    // `CtaRow` is the case that proves the split: a single `${0:…}` spanning
+    // blank lines is not a field CodeMirror can parse.
+    const row = componentCompletionDescriptors("guias").find(
+      (descriptor) => descriptor.name === "CtaRow",
+    );
+    expect(row?.template.snippet).toContain("${1:<DemoCta />}");
+    expect(row?.template.snippet).toContain("${0:<SignupCta />}");
+    expect(expandSnippet(row!.template.snippet)).toBe(
+      "<CtaRow>\n\n<DemoCta />\n\n<SignupCta />\n\n</CtaRow>",
+    );
+  });
 });
 
 describe("component recipes", () => {
@@ -137,6 +183,14 @@ describe("component recipes", () => {
           componentRecipesForSection(section).map((item) => item.id),
         ).not.toContain(recipe.id);
       }
+    }
+  });
+
+  it("expands every recipe to exactly its own preview", () => {
+    for (const recipe of allComponentRecipes()) {
+      expect(expandSnippet(recipe.template.snippet), recipe.id).toBe(
+        recipe.template.preview,
+      );
     }
   });
 

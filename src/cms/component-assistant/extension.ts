@@ -4,12 +4,15 @@ import {
   startCompletion,
 } from "@codemirror/autocomplete";
 import { Prec, type Extension } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import { keymap } from "@codemirror/view";
 import type {
   ComponentCompletionDescriptor,
   ComponentRecipeDescriptor,
 } from "./types";
-import { componentCompletionSource } from "./completions";
+import {
+  COMPONENT_ASSISTANT_SHORTCUT,
+  componentCompletionSource,
+} from "./completions";
 
 /** CodeMirror wiring for the assistant. Matching, context detection, and
  * insertion construction live in their own modules; this file only connects
@@ -25,44 +28,25 @@ export function componentAssistantExtension(
       override: [source],
       defaultKeymap: false,
       aboveCursor: true,
-      filterStrict: true,
+      // Deliberately not `filterStrict`: that matcher is prefix-only, and the
+      // data catalogue is sixty `DatasetSuffix` names. Fuzzy matching still
+      // ranks a prefix hit first, and it is what makes `mapa` or `escrhip`
+      // find `AlquilerCabaMapa` and `EscriturasHipotecas`.
       tooltipClass: () => "cms-completion-tooltip",
       positionInfo: (_view, _list, _option, _info, space) => ({
         class: "cms-completion-info",
         style: `max-width: ${Math.max(180, Math.min(360, space.right - space.left - 16))}px;`,
       }),
     }),
+    // A keymap binding only fires while CodeMirror has focus, and CodeMirror
+    // calls `preventDefault` for us as soon as the command returns true — so
+    // this one binding is the whole shortcut. `Mod-` is Cmd on macOS and Ctrl
+    // everywhere else, which is the decision the plan settled on.
     Prec.highest(
       keymap.of([
-        {
-          key: "Mod-Shift-k",
-          run: (view) => startCompletion(view),
-        },
+        { key: COMPONENT_ASSISTANT_SHORTCUT, run: startCompletion },
         ...completionKeymap,
       ]),
     ),
-    // A keymap command is normally enough to consume the event, but the DOM
-    // handler makes the shortcut's preventDefault guarantee explicit and
-    // keeps Cmd/Ctrl handling identical on macOS and other platforms.
-    Prec.highest(
-      EditorView.domEventHandlers({
-        keydown(event, view) {
-          if (!isAssistantShortcut(event)) return false;
-          event.preventDefault();
-          startCompletion(view);
-          return true;
-        },
-      }),
-    ),
   ];
-}
-
-export function isAssistantShortcut(event: KeyboardEvent): boolean {
-  return (
-    !event.isComposing &&
-    event.shiftKey &&
-    !event.altKey &&
-    (event.metaKey || event.ctrlKey) &&
-    event.key.toLowerCase() === "k"
-  );
 }

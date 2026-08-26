@@ -1,5 +1,10 @@
-import { EditorState } from "@codemirror/state";
+import {
+  EditorState,
+  type Transaction,
+  type TransactionSpec,
+} from "@codemirror/state";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+import type { Completion, CompletionResult } from "@codemirror/autocomplete";
 import { describe, expect, it } from "vitest";
 import { componentCompletionDescriptors } from "./descriptors";
 import {
@@ -12,6 +17,41 @@ import { componentRecipesForSection } from "./recipes";
 
 const guideDescriptors = () => componentCompletionDescriptors("guias");
 const dataDescriptors = () => componentCompletionDescriptors("estadisticas");
+
+/** Run a completion's `apply` against a real document. Several of them reach
+ * into the text on the *right* of the cursor, which a from/to assertion alone
+ * cannot show. */
+function applyCompletion(
+  doc: string,
+  result: CompletionResult,
+  option: Completion,
+): string {
+  let state = EditorState.create({ doc });
+  const view = {
+    get state() {
+      return state;
+    },
+    // `EditorView.dispatch` takes either a built transaction or a spec, and
+    // the assistant uses both — `snippet()` builds one, our own handlers pass
+    // a spec.
+    dispatch: (input: Transaction | TransactionSpec) => {
+      state = "state" in input ? input.state : state.update(input).state;
+    },
+  };
+  const apply = option.apply;
+  if (typeof apply === "function") {
+    apply(view as never, option, result.from, result.to ?? result.from);
+  } else {
+    state = state.update({
+      changes: {
+        from: result.from,
+        to: result.to ?? result.from,
+        insert: apply ?? option.label,
+      },
+    }).state;
+  }
+  return state.doc.toString();
+}
 
 describe("component assistant context", () => {
   it("detects a component name and the replacement range", () => {
@@ -83,6 +123,26 @@ describe("component assistant context", () => {
       kind: "property-value",
       propertyName: "href",
       query: "<Ipc",
+    });
+  });
+
+  it("counts properties written after the cursor as already used", () => {
+    const source = '<IpcViviendaChart  variacion="mensual" />';
+    expect(detectSourceContext(source, source.indexOf("  ") + 1)).toMatchObject(
+      {
+        kind: "property-name",
+        componentName: "IpcViviendaChart",
+        usedProperties: ["variacion"],
+      },
+    );
+  });
+
+  it("still completes the half-typed property the cursor is on", () => {
+    const source = '<IpcViviendaChart region="gba" vari';
+    expect(detectSourceContext(source)).toMatchObject({
+      kind: "property-name",
+      query: "vari",
+      usedProperties: ["region"],
     });
   });
 
@@ -201,6 +261,34 @@ describe("component assistant completions", () => {
     expect(shortcutHint("MacIntel")).toContain("Cmd+Shift+K");
     expect(shortcutHint("Linux x86_64")).toContain("Ctrl+Shift+K");
     expect(componentHelpText(guideDescriptors()[0])).toContain("Atajo:");
+  });
+
+  it("replaces a whole existing value rather than typing into it", () => {
+    const doc = '<IpcViviendaChart region="gba" variacion="mensual" />';
+    const position = doc.indexOf('"') + 1;
+    const result = completionResultForContext(
+      detectSourceContext(doc, position),
+      dataDescriptors(),
+      [],
+      { explicit: true },
+    );
+    const option = result?.options.find((item) => item.label === "nacional");
+    expect(applyCompletion(doc, result!, option!)).toBe(
+      '<IpcViviendaChart region="nacional" variacion="mensual" />',
+    );
+  });
+
+  it("finishes a closing tag instead of leaving it open", () => {
+    const doc = "<ClosingCta>\n\ncopy\n\n</Clos";
+    const result = completionResultForContext(
+      detectSourceContext(doc),
+      guideDescriptors(),
+      [],
+      { explicit: false },
+    );
+    expect(applyCompletion(doc, result!, result!.options[0])).toBe(
+      "<ClosingCta>\n\ncopy\n\n</ClosingCta>",
+    );
   });
 
   it("does not return completions for excluded source", () => {

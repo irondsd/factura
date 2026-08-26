@@ -133,6 +133,7 @@ export function detectSourceContext(
 
   const tag = parseTagPrefix(source, scan.activeTag.start, pos);
   const openContainers = [...scan.openContainers].reverse();
+  const usedProperties = usedPropertyNames(source, scan.activeTag.start, tag);
 
   if (tag.currentValue) {
     return {
@@ -143,7 +144,7 @@ export function detectSourceContext(
       tagStart: scan.activeTag.start,
       componentName: tag.name,
       propertyName: tag.currentValue.propertyName,
-      usedProperties: tag.attributes.map((attribute) => attribute.name),
+      usedProperties,
       ...(tag.currentValue.quote ? { quote: tag.currentValue.quote } : {}),
       openContainers,
     };
@@ -182,9 +183,44 @@ export function detectSourceContext(
     query: currentProperty?.query ?? "",
     tagStart: scan.activeTag.start,
     componentName: tag.name,
-    usedProperties: tag.attributes.map((attribute) => attribute.name),
+    usedProperties,
     openContainers,
   };
+}
+
+/** Everything the tag already spells out, including the attributes written
+ * *after* the cursor. Parsing only as far as the cursor would offer `region`
+ * again to someone who put the caret in front of an existing `region="…"`, and
+ * accepting it would write the property twice. The half-typed name the cursor
+ * is on is excluded, so completing it still works. */
+function usedPropertyNames(
+  source: string,
+  tagStart: number,
+  tag: ParsedTagPrefix,
+): string[] {
+  const editing = tag.currentProperty?.query ?? tag.currentValue?.propertyName;
+  return parseTagPrefix(source, tagStart, findTagEnd(source, tagStart))
+    .attributes.map((attribute) => attribute.name)
+    .filter((name) => name !== editing);
+}
+
+/** The end of the tag: its first `>` outside a quoted value, or the end of the
+ * document for a tag still being written. Scanned from the tag's `<` so the
+ * quote state is right — starting at the cursor could pick a closing quote up
+ * as an opening one. */
+function findTagEnd(source: string, tagStart: number): number {
+  let quote: string | null = null;
+  for (let cursor = tagStart; cursor < source.length; cursor += 1) {
+    const character = source[cursor];
+    if (quote) {
+      if (character === quote && source[cursor - 1] !== "\\") quote = null;
+    } else if (character === '"' || character === "'") {
+      quote = character;
+    } else if (character === ">") {
+      return cursor;
+    }
+  }
+  return source.length;
 }
 
 /** The CodeMirror-facing variant adds syntax-tree exclusions for parser-owned

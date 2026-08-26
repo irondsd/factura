@@ -25,41 +25,47 @@ const GROUP_LABELS = new Map(
   COMPONENT_AUTHORING_GROUPS.map((group) => [group.id, group.label]),
 );
 
-const COMPONENT_SECTIONS = new Map<
-  ComponentAuthoringGroup,
-  CompletionSection
->();
+const GROUP_RANKS = new Map(
+  COMPONENT_AUTHORING_GROUPS.map((group) => [group.id, group.rank]),
+);
 
-function completionSection(group: ComponentAuthoringGroup): CompletionSection {
-  const existing = COMPONENT_SECTIONS.get(group);
-  if (existing) return existing;
+/** CodeMirror groups options under section headers, and those headers are the
+ * only chrome the popup has to teach the shortcut with. It is shown once, on
+ * whichever section sorts to the top of *this* result — repeating it above all
+ * five component groups turned the list into an advertisement. Sections are
+ * therefore built per result rather than shared: which one carries the hint
+ * depends on which groups the result actually contains. */
+function sectionBuilder(platform?: string) {
+  const built = new Map<string, CompletionSection>();
+  let hinted: CompletionSection | undefined;
 
-  const section: CompletionSection = {
-    name: GROUP_LABELS.get(group) ?? group,
-    rank: COMPONENT_AUTHORING_GROUPS.find((item) => item.id === group)?.rank,
-    header: (current) => sectionHeader(current.name, true),
+  return (name: string, rank: number): CompletionSection => {
+    const existing = built.get(name);
+    if (existing) return existing;
+
+    const section: CompletionSection = {
+      name,
+      rank,
+      header: (current) =>
+        sectionHeader(current.name, current === hinted, platform),
+    };
+    built.set(name, section);
+    if (!hinted || rank < (hinted.rank as number)) hinted = section;
+    return section;
   };
-  COMPONENT_SECTIONS.set(group, section);
-  return section;
 }
 
-const PROPERTY_SECTION: CompletionSection = {
-  name: "Propiedades",
-  rank: 10,
-  header: (section) => sectionHeader(section.name, true),
-};
+type SectionBuilder = ReturnType<typeof sectionBuilder>;
 
-const VALUE_SECTION: CompletionSection = {
-  name: "Valores permitidos",
-  rank: 10,
-  header: (section) => sectionHeader(section.name, true),
-};
-
-const RECIPE_SECTION: CompletionSection = {
-  name: "Recetas",
-  rank: 0,
-  header: (section) => sectionHeader(section.name, true),
-};
+function groupSection(
+  buildSection: SectionBuilder,
+  group: ComponentAuthoringGroup,
+): CompletionSection {
+  return buildSection(
+    GROUP_LABELS.get(group) ?? group,
+    GROUP_RANKS.get(group) ?? 999,
+  );
+}
 
 export type CompletionBuildOptions = {
   explicit: boolean;
@@ -113,11 +119,12 @@ function componentNameResult(
   descriptors: readonly ComponentCompletionDescriptor[],
   platform?: string,
 ): CompletionResult {
+  const buildSection = sectionBuilder(platform);
   return {
     from: context.from,
     to: context.to,
     options: descriptors.map((descriptor) =>
-      componentCompletion(descriptor, platform),
+      componentCompletion(descriptor, buildSection, platform),
     ),
     validFor: /^[A-Za-z0-9_]*$/,
   };
@@ -128,6 +135,7 @@ function closingNameResult(
   descriptors: readonly ComponentCompletionDescriptor[],
   platform?: string,
 ): CompletionResult | null {
+  const buildSection = sectionBuilder(platform);
   const open = new Set(context.openContainers);
   const options = descriptors
     .filter((descriptor) => descriptor.kind === "container")
@@ -138,13 +146,27 @@ function closingNameResult(
           context.openContainers.indexOf(b.name) ||
         a.name.localeCompare(b.name),
     )
-    .map((descriptor) => ({
-      label: descriptor.name,
-      detail: `cerrar · ${descriptor.label}`,
-      type: "type",
-      section: completionSection(descriptor.group),
-      info: () => completionHelpElement(closingHelpText(descriptor, platform)),
-    }));
+    .map(
+      (descriptor): Completion => ({
+        label: descriptor.name,
+        detail: `cerrar · ${descriptor.label}`,
+        type: "type",
+        section: groupSection(buildSection, descriptor.group),
+        info: () =>
+          completionHelpElement(closingHelpText(descriptor, platform)),
+        // Finish the tag as well as the name — `</ClosingCta` on its own is a
+        // parse error, and it is the whole point of picking from this list.
+        apply: (view, _completion, from, to) => {
+          const closed = view.state.doc.sliceString(to, to + 1) === ">";
+          const text = closed ? descriptor.name : `${descriptor.name}>`;
+          view.dispatch({
+            changes: { from, to, insert: text },
+            selection: { anchor: from + text.length + (closed ? 1 : 0) },
+            userEvent: "input.complete",
+          });
+        },
+      }),
+    );
 
   return options.length
     ? {
@@ -166,10 +188,13 @@ function propertyNameResult(
   );
   if (!descriptor || descriptor.props.length === 0) return null;
 
+  const buildSection = sectionBuilder(platform);
   const used = new Set(context.usedProperties);
   const options = descriptor.props
     .filter((property) => !used.has(property.name))
-    .map((property) => propertyCompletion(descriptor, property, platform));
+    .map((property) =>
+      propertyCompletion(descriptor, property, buildSection, platform),
+    );
 
   return options.length
     ? {
@@ -203,6 +228,7 @@ function propertyValueResult(
         : [];
   if (values.length === 0) return null;
 
+  const buildSection = sectionBuilder(platform);
   return {
     from: context.from,
     to: context.to,
@@ -212,15 +238,44 @@ function propertyValueResult(
         ? `${property.name} · permitido`
         : `${property.name} · sugerencia editable`,
       type: property.type === "boolean" ? "constant" : "value",
-      section: VALUE_SECTION,
+      section: buildSection("Valores permitidos", 10),
       info: () =>
         completionHelpElement(
           propertyValueHelpText(descriptor, property, platform),
         ),
-      apply: context.quote ? value : `"${escapeAttribute(value)}"`,
+      apply: applyPropertyValue(value, context.quote),
     })),
     validFor: /^[^"']*$/,
   };
+}
+
+/** Replace the *whole* value, not just the part before the cursor. The
+ * completion range stops at the cursor so the popup filters on what has been
+ * typed, but an author who clicks into an existing `region="gba"` to change it
+ * has the rest of the value sitting to the right; inserting there would leave
+ * `region="nacionalgba"`. */
+function applyPropertyValue(
+  value: string,
+  quote?: string,
+): Completion["apply"] {
+  const text = quote ? value : `"${escapeAttribute(value)}"`;
+  return (view, _completion, from, to) => {
+    const end = quote ? valueEnd(view.state.doc.toString(), to, quote) : to;
+    view.dispatch({
+      changes: { from, to: end, insert: text },
+      selection: { anchor: from + text.length },
+      userEvent: "input.complete",
+    });
+  };
+}
+
+function valueEnd(source: string, from: number, quote: string): number {
+  for (let cursor = from; cursor < source.length; cursor += 1) {
+    const character = source[cursor];
+    if (character === "\n" || character === ">") return from;
+    if (character === quote && source[cursor - 1] !== "\\") return cursor;
+  }
+  return from;
 }
 
 function neutralResult(
@@ -229,11 +284,12 @@ function neutralResult(
   recipes: readonly ComponentRecipeDescriptor[],
   platform?: string,
 ): CompletionResult {
+  const buildSection = sectionBuilder(platform);
   const recipeOptions = recipes.map((recipe) =>
-    recipeCompletion(recipe, platform),
+    recipeCompletion(recipe, buildSection, platform),
   );
   const componentOptions = descriptors.map((descriptor) =>
-    componentCompletion(descriptor, platform),
+    componentCompletion(descriptor, buildSection, platform),
   );
   return {
     from: context.from,
@@ -245,14 +301,17 @@ function neutralResult(
 
 function componentCompletion(
   descriptor: ComponentCompletionDescriptor,
+  buildSection: SectionBuilder,
   platform?: string,
 ): Completion {
   return {
     label: descriptor.name,
+    // The Spanish label is display-only: CodeMirror matches the typed text
+    // against `label`, which has to stay the exact JSX name.
     detail: `${descriptor.label} · ${kindLabel(descriptor.kind)}`,
     type: descriptor.kind === "container" ? "type" : "class",
     sortText: `${String(descriptor.rank).padStart(8, "0")}${descriptor.name}`,
-    section: completionSection(descriptor.group),
+    section: groupSection(buildSection, descriptor.group),
     info: () => completionHelpElement(componentHelpText(descriptor, platform)),
     apply: (view, completion, from, to) => {
       // The completion range starts after `<` so CodeMirror can match `Clos`
@@ -272,6 +331,7 @@ function componentCompletion(
 function propertyCompletion(
   descriptor: ComponentCompletionDescriptor,
   property: ComponentPropertyDescriptor,
+  buildSection: SectionBuilder,
   platform?: string,
 ): Completion {
   const defaultValue =
@@ -287,7 +347,7 @@ function propertyCompletion(
     label: property.name,
     detail: `${property.required ? "obligatoria" : "opcional"} · ${property.type}`,
     type: "property",
-    section: PROPERTY_SECTION,
+    section: buildSection("Propiedades", 10),
     info: () =>
       completionHelpElement(propertyHelpText(descriptor, property, platform)),
     apply: snippet(propertySnippet),
@@ -296,6 +356,7 @@ function propertyCompletion(
 
 function recipeCompletion(
   recipe: ComponentRecipeDescriptor,
+  buildSection: SectionBuilder,
   platform?: string,
 ): Completion {
   return {
@@ -304,7 +365,7 @@ function recipeCompletion(
     detail: "receta · varios componentes",
     type: "keyword",
     sortText: `00000000${recipe.label}`,
-    section: RECIPE_SECTION,
+    section: buildSection("Recetas", 0),
     info: () => completionHelpElement(recipeHelpText(recipe, platform)),
     apply: snippet(recipe.template.snippet),
   };
@@ -422,7 +483,11 @@ function completionHelpElement(text: string): HTMLElement {
   return element;
 }
 
-function sectionHeader(name: string, withHint: boolean): HTMLElement {
+function sectionHeader(
+  name: string,
+  withHint: boolean,
+  platform?: string,
+): HTMLElement {
   const element = document.createElement("div");
   element.className = "cms-completion-section-header";
   const title = document.createElement("span");
@@ -431,7 +496,7 @@ function sectionHeader(name: string, withHint: boolean): HTMLElement {
   if (withHint) {
     const hint = document.createElement("span");
     hint.className = "cms-completion-shortcut";
-    hint.textContent = shortcutHint();
+    hint.textContent = shortcutHint(platform);
     element.appendChild(hint);
   }
   return element;
