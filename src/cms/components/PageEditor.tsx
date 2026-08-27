@@ -334,12 +334,12 @@ export function PageEditor({
       }
 
       event.preventDefault();
-      if (!busy) void save();
+      if (!busy && dirty) void save();
     };
 
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [busy, save]);
+  }, [busy, dirty, save]);
 
   const check = async () => {
     setBusy(true);
@@ -760,11 +760,20 @@ export function PageEditor({
             <button
               type="button"
               onClick={save}
-              disabled={busy}
-              className="inline-flex w-1/2 cursor-pointer items-center justify-center gap-2 border border-accent bg-accent px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper transition-colors hover:border-ink hover:bg-ink disabled:opacity-50"
+              disabled={busy || !dirty}
+              title={
+                dirty
+                  ? undefined
+                  : "No hay cambios sin guardar en esta pestaña."
+              }
+              className="inline-flex w-1/2 cursor-pointer items-center justify-center gap-2 border border-accent bg-accent px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper transition-colors hover:border-ink hover:bg-ink disabled:cursor-default disabled:opacity-50"
             >
-              <CmsIcon name="save" size="sm" />
-              {busy ? "…" : "Guardar"}
+              <CmsIcon
+                name={busy ? "spinner" : "save"}
+                size="sm"
+                className={busy ? "animate-spin" : undefined}
+              />
+              Guardar
             </button>
             <button
               type="button"

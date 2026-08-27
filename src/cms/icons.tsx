@@ -8,6 +8,7 @@ import {
   Check,
   CheckCheck,
   ExternalLink,
+  LoaderCircle,
   Pencil,
   Plus,
   RefreshCw,
@@ -47,6 +48,7 @@ const ICONS = {
   save: Save,
   search: Search,
   settings: Settings2,
+  spinner: LoaderCircle,
   upload: Upload,
   workingCopy: Pencil,
 } as const satisfies Record<string, LucideIcon>;
