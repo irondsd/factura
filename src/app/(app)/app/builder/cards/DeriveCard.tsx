@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Input, Select, hint, microLabel } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import type { ValueRec } from "@/parsers/builder/evaluate";
 import type { BuilderDerive, DeriveKind } from "@/parsers/builder/model";
 import { cn } from "@/lib/cn";
@@ -33,8 +33,8 @@ function MathField({
   rec?: ValueRec;
   onChange: (e: string) => void;
 }) {
-  const { t } = useI18n();
-  const td = t.builder.derive;
+  const t = useT("builder");
+  const td = t.derive;
   const names = options.map((o) => o.name);
   return (
     <div>
@@ -125,8 +125,8 @@ export function DeriveCard({
   moveUp: () => void;
   moveDown: () => void;
 }) {
-  const { t } = useI18n();
-  const td = t.builder.derive;
+  const t = useT("builder");
+  const td = t.derive;
   const rec = recOf(der.name);
   return (
     <CardShell

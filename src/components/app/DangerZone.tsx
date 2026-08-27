@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { trpc } from "@/lib/trpc";
 
 /**
@@ -17,8 +17,8 @@ import { trpc } from "@/lib/trpc";
  * confirmation survives the session it destroys.
  */
 export function DangerZone() {
-  const { t } = useI18n();
-  const td = t.profile.danger;
+  const t = useT("profile");
+  const td = t.danger;
   const { data } = trpc.account.stats.useQuery();
 
   const bills = data?.bills.total ?? 0;

@@ -44,3 +44,8 @@ export const localeNames: Record<Locale, string> = {
 // truth. This is a type-only construct — it is erased at build time and pulls
 // nothing into the client bundle. Every dictionary must match es.json.
 export type Dictionary = typeof import("./dictionaries/es.json");
+
+/** A top-level section of the dictionary — `nav`, `probar`, `legal`… A tree is
+ * given the namespaces its client components read, never the whole file; see
+ * `./I18nProvider`. */
+export type Namespace = keyof Dictionary;

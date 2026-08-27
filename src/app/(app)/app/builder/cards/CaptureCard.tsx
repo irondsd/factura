@@ -2,7 +2,7 @@
 
 import { Button, Input, hint, microLabel } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import type { ValueRec } from "@/parsers/builder/evaluate";
 import type { BuilderCapture } from "@/parsers/builder/model";
 import { newOutput } from "@/parsers/builder/model";
@@ -24,8 +24,8 @@ export function CaptureCard({
   onRemove?: () => void;
   onPreview: (name: string | null) => void;
 }) {
-  const { t } = useI18n();
-  const tc = t.builder.capture;
+  const t = useT("builder");
+  const tc = t.capture;
   let invalid = false;
   if (cap.pattern.trim()) {
     try {

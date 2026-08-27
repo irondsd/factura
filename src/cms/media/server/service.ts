@@ -1,4 +1,5 @@
 import "server-only";
+import { CONTENT_SECTIONS } from "@/content-system/types";
 import { canAuthor } from "../../auth/policy";
 import {
   CmsConflictError,
@@ -9,6 +10,10 @@ import {
   CmsNotFoundError,
   CmsValidationError,
 } from "../../server/errors";
+import {
+  revalidatePublicContent,
+  type PublicCacheInvalidator,
+} from "../../server/invalidation";
 import type { CmsActor } from "../../types";
 import type {
   MediaAsset,
@@ -93,6 +98,9 @@ export class CmsMediaService {
      * explain a refusal the store already made. The gate itself is a predicate
      * inside the removal statements, not a call from here. */
     private readonly authors: CmsAuthorStore = cmsAuthorStore,
+    /** Injected rather than imported so a unit test can watch the decision
+     * without a Next.js request context, which `revalidateTag` requires. */
+    private readonly invalidate: PublicCacheInvalidator = revalidatePublicContent,
   ) {}
 
   // ── reads ───────────────────────────────────────────────────────────────
@@ -320,6 +328,18 @@ export class CmsMediaService {
         await this.store.lockVersionOf(input.id),
       );
     }
+    // Two of these five fields reach readers: `defaultAlt` and `decorative` are
+    // the whole of what `MediaRef` carries beyond the bytes
+    // (`@/content-system/media/repository`), and the bytes themselves are
+    // immutable — a replaced image is a new id at a new URL. The other three
+    // are library bookkeeping no visitor ever sees, so filing an image into a
+    // collection must not cost a regeneration.
+    if (
+      input.patch.defaultAlt !== undefined ||
+      input.patch.decorative !== undefined
+    ) {
+      this.expirePublicCache();
+    }
     return saved;
   }
 
@@ -475,6 +495,28 @@ export class CmsMediaService {
   private assertStorage(): void {
     if (!isMediaStorageConfigured()) {
       throw new CmsMediaUnavailableError(mediaStorageProblem()!);
+    }
+  }
+
+  /** An image's alt text reaches readers through every page that embeds it and
+   * through the portrait of every author who uses it — across all four
+   * sections, with no page of its own to expire. Same answer as the author
+   * service, and for the same reason: there is no one section to name.
+   *
+   * Asking `usageOf` which sections actually embed it would be narrower, but it
+   * would also miss the portrait case and would put a join on the path of every
+   * alt-text fix to save regenerations of pages that, having not changed, are
+   * not re-stored anyway.
+   *
+   * Best-effort, like the other two: the row is already committed, so a failed
+   * expiry is logged rather than reported as a failed save. */
+  private expirePublicCache(): void {
+    for (const section of CONTENT_SECTIONS) {
+      try {
+        this.invalidate(section);
+      } catch (cause) {
+        console.error("[cms] media cache invalidation failed:", cause);
+      }
     }
   }
 }

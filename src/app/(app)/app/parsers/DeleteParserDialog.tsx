@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 
 /**
  * Confirm deleting one of the user's own parsers. Not ConfirmDialog, because
@@ -38,8 +38,8 @@ export function DeleteParserDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const { t } = useI18n();
-  const tp = t.parsers;
+  const tCommon = useT("common");
+  const tp = useT("parsers");
   const blocked = adopters > 0;
   const warnings = blocked
     ? [
@@ -90,7 +90,7 @@ export function DeleteParserDialog({
         <div className="flex gap-2 mt-5">
           {!blocked && (
             <Button variant="danger" onClick={onConfirm} disabled={busy}>
-              {busy ? t.common.working : t.common.delete}
+              {busy ? tCommon.working : tCommon.delete}
             </Button>
           )}
           <Button
@@ -99,7 +99,7 @@ export function DeleteParserDialog({
             onClick={onCancel}
             disabled={busy}
           >
-            {blocked ? tp.close : t.common.cancel}
+            {blocked ? tp.close : tCommon.cancel}
           </Button>
         </div>
       </div>

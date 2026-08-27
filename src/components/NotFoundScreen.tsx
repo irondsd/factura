@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 
 // The 404 body, shared by the two places a 404 can be produced: `not-found.tsx`
 // in the landing subtree (an explicit `notFound()`) and `global-not-found.tsx`
@@ -11,12 +11,13 @@ import { useI18n } from "@/i18n/I18nProvider";
 // A client component because that's the only way it can know which language to
 // speak: neither file receives `params`, and reading the locale cookie in the
 // landing subtree would opt the statically generated pages out of prerendering.
-// `useI18n` reads the locale the provider above already resolved — the route's
+// `useT` reads the locale the provider above already resolved — the route's
 // `[lang]` on the landing, the cookie on the global page.
 
 export function NotFoundScreen() {
-  const { t, locale } = useI18n();
-  const nf = t.notFound;
+  const t = useT("notFound");
+  const locale = useLocale();
+  const nf = t;
 
   const link =
     "font-mono text-micro uppercase tracking-label-wide no-underline transition-colors";

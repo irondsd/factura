@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { Button, Checkbox, microLabel, hint } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { MAX_FILES_PER_DROP, SUBMISSION_FILE_GRACE_DAYS } from "@/lib/limits";
 
@@ -37,8 +37,8 @@ export function DropArea({
   busy: boolean;
   dragging: boolean;
 }) {
-  const { t } = useI18n();
-  const p = t.probar;
+  const t = useT("probar");
+  const p = t;
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (

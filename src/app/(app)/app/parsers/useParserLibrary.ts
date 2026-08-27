@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import posthog from "posthog-js";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { useToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
 import { PARSER_CATEGORIES } from "@/parsers/categories";
@@ -24,8 +24,7 @@ import {
 export function useParserLibrary() {
   const router = useRouter();
   const { showToast, error: toastErr } = useToast();
-  const { t } = useI18n();
-  const tp = t.parsers;
+  const tp = useT("parsers");
   const utils = trpc.useUtils();
 
   const lib = trpc.parsers.library.useQuery();

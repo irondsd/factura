@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SegmentedControl } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 
@@ -40,19 +40,19 @@ export function PropertySelector({
   onChange: (id?: string) => void;
   className?: string;
 }) {
-  const { t } = useI18n();
+  const t = useT("app");
   const narrow = useMediaQuery(NARROW);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLSpanElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const options = [
-    { value: ALL, label: t.app.propertyAll },
+    { value: ALL, label: t.propertyAll },
     ...properties.map((p) => ({ value: p.id, label: p.nickname })),
   ];
   const current = value ?? ALL;
   const currentLabel =
-    options.find((o) => o.value === current)?.label ?? t.app.propertyAll;
+    options.find((o) => o.value === current)?.label ?? t.propertyAll;
 
   const select = (v: string) => {
     onChange(v === ALL ? undefined : v);
@@ -89,7 +89,7 @@ export function PropertySelector({
         // The top bar is a translucent, blurred card; a solid segment row would
         // punch an opaque hole in it.
         transparent
-        label={t.app.propertyLabel}
+        label={t.propertyLabel}
         className={className}
       />
     );
@@ -100,7 +100,7 @@ export function PropertySelector({
       <button
         ref={triggerRef}
         type="button"
-        aria-label={t.app.propertyLabel}
+        aria-label={t.propertyLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
@@ -120,7 +120,7 @@ export function PropertySelector({
       {open && (
         <div
           role="listbox"
-          aria-label={t.app.propertyLabel}
+          aria-label={t.propertyLabel}
           // Anchored to the trigger's right edge: at the far end of the top bar
           // there is no room to hang left.
           className="absolute right-0 top-[calc(100%+6px)] z-10 max-h-[min(60vh,20rem)] min-w-[max(100%,9rem)] overflow-y-auto overscroll-contain border border-line bg-card shadow-pop"

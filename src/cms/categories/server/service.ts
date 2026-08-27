@@ -243,8 +243,10 @@ export class CmsCategoryService {
   }
 
   /** The database write is already committed. A cache failure must not turn a
-   * successful category edit into a reported failure; the one-hour TTL remains
-   * the fallback, exactly as it does for page publications. */
+   * successful category edit into a reported failure — so it is logged, exactly
+   * as it is for page publications. Nothing catches it after that: the public
+   * reads have no TTL underneath them, so the next deployment is what puts the
+   * hubs right. */
   private expirePublicCache(section: ContentSection): void {
     try {
       this.invalidate(section);

@@ -5,6 +5,7 @@ import { fraunces, plexMono } from "@/config/fonts";
 import { siteName } from "@/config/meta";
 import { getDictionary } from "@/i18n/dictionaries";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { pickNamespaces } from "@/i18n/namespaces";
 import { getLocale } from "@/i18n/server";
 
 // The 404 for a URL that matches no route at all — the broken inbound link, the
@@ -47,7 +48,10 @@ export default async function GlobalNotFound() {
       className={`${fraunces.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <I18nProvider locale={locale} dictionary={dictionary}>
+        <I18nProvider
+          locale={locale}
+          dictionary={pickNamespaces(dictionary, ["notFound"])}
+        >
           <NotFoundScreen />
         </I18nProvider>
       </body>

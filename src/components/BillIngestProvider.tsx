@@ -10,7 +10,7 @@ import {
 import posthog from "posthog-js";
 import { Button } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { formatARS, formatMonth } from "@/lib/format";
 import { trpc } from "@/lib/trpc";
 import { useToasts } from "@/providers/ToastProvider";
@@ -56,8 +56,10 @@ export function useBillIngest(): BillIngestValue {
  * arrived. */
 export function BillIngestProvider({ children }: { children: ReactNode }) {
   const { showToast } = useToasts();
-  const { t, locale } = useI18n();
-  const td = t.drop;
+  const tApp = useT("app");
+  const tCommon = useT("common");
+  const td = useT("drop");
+  const locale = useLocale();
   const [busy, setBusy] = useState(false);
   const [confirmQueue, setConfirmQueue] = useState<PendingConfirm[]>([]);
   const [newNickname, setNewNickname] = useState("");
@@ -185,7 +187,7 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
 
       {busy && (
         <div className="fixed bottom-4 left-4 z-50 animate-pulse border border-line bg-card px-4 py-2 text-[11px] uppercase tracking-wider text-muted">
-          {t.app.loading}
+          {tApp.loading}
         </div>
       )}
 
@@ -267,7 +269,7 @@ export function BillIngestProvider({ children }: { children: ReactNode }) {
                     className="flex-1 border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-accent"
                   />
                   <Button type="submit" disabled={createProperty.isPending}>
-                    {t.common.add}
+                    {tCommon.add}
                   </Button>
                 </form>
               </div>

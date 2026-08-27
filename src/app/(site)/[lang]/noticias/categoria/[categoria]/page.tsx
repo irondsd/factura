@@ -5,13 +5,16 @@ import {
   nonEmptyContentCategories,
 } from "@/content-system/repository/categories";
 import { contentCategoryMetadata } from "@/i18n/metadata";
+import { spanishOnly } from "@/i18n/routing";
 
 export const dynamicParams = true;
 
-export async function generateStaticParams() {
-  return (await nonEmptyContentCategories("noticias")).map((category) => ({
-    categoria: category.slug,
-  }));
+export function generateStaticParams() {
+  return spanishOnly(async () =>
+    (await nonEmptyContentCategories("noticias")).map((category) => ({
+      categoria: category.slug,
+    })),
+  );
 }
 
 type Props = { params: Promise<{ categoria: string }> };

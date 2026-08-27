@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { LOCALE_COOKIE } from "./config";
-import { useI18n } from "./I18nProvider";
+import { useLocale, useT } from "./I18nProvider";
 import { oppositePath } from "./routing";
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
@@ -15,7 +15,8 @@ const ONE_YEAR = 60 * 60 * 24 * 365;
 // "Cambiar a español") is always in the target language. The app/profile uses
 // the separate cookie+DB `LanguageSwitch`.
 export function LandingLanguageSwitch({ className }: { className?: string }) {
-  const { t, locale } = useI18n();
+  const t = useT("meta");
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const target = locale === "es" ? "en" : "es";
@@ -32,7 +33,7 @@ export function LandingLanguageSwitch({ className }: { className?: string }) {
       onClick={switchTo}
       className={cn("whitespace-nowrap", className)}
     >
-      {t.meta.switchTo}
+      {t.switchTo}
     </Button>
   );
 }

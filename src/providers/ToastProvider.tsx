@@ -11,7 +11,7 @@ import {
 } from "react";
 
 import { Button } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 
 /** An optional "go look at this" link on a toast. Exists for outcomes the user
  * can't act on from where they are — a bill that landed in the review queue is
@@ -37,7 +37,7 @@ export function useToasts(): ToastApi {
 
 /** Owns the toast queue and renders the bottom-right toast region. */
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const { t } = useI18n();
+  const t = useT("common");
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const dismiss = useCallback((id: string) => {
@@ -83,7 +83,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 type="button"
                 variant="icon"
                 onClick={() => dismiss(toast.id)}
-                aria-label={t.billDrawer.close}
+                aria-label={t.close}
                 className="-mt-0.5"
               >
                 ✕

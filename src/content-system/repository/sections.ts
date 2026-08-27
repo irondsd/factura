@@ -21,12 +21,15 @@ import { contentTag } from "./tags";
 //     stored" and is explicitly not for rendering — that is how a draft ended
 //     up serving 200 at its real URL.
 //
-//  2. **The cache.** cms.md puts the one-hour TTL at the call site, where
-//     `revalidate` is a literal Next can see. Without it these routes prerender
-//     with no revalidation at all, and a published edit never reaches the site
-//     until the next deployment. The TTL is the floor; the section's cache tag
-//     is what the CMS expires on publish so the wait is not an hour
-//     (`@/cms/server/invalidation`). Every read below has to carry it.
+//  2. **The cache.** These reads are cached indefinitely and expire only when
+//     the CMS calls `revalidateTag` (`@/cms/server/invalidation`) — that is the
+//     documented contract for `revalidate: false`: cache until a matching
+//     `revalidateTag()`. There was a one-hour TTL here as well, written before
+//     on-demand invalidation existed and left in place after. It bought nothing
+//     the tag does not already do, and it put every content route on an hourly
+//     regeneration cycle whose output Vercel re-stores as ISR writes. So the
+//     tag is now the whole mechanism, and every read below has to carry one: a
+//     read without a tag is a read the CMS cannot expire at all.
 //
 // One cached repository per section, built once at module load. The section is in
 // the cache key, and `unstable_cache` adds the function's own arguments, so a
@@ -45,18 +48,18 @@ function cachedSection(section: ContentSection): CachedSection {
     listPublished: unstable_cache(
       () => publicContentRepository.listPublished(section),
       ["content", section, "published"],
-      { revalidate: 3600, tags },
+      { revalidate: false, tags },
     ),
     listPubliclyRenderable: unstable_cache(
       () => publicContentRepository.listPubliclyRenderable(section),
       ["content", section, "renderable"],
-      { revalidate: 3600, tags },
+      { revalidate: false, tags },
     ),
     getByPath: unstable_cache(
       (slug: string) =>
         publicContentRepository.getByPath(section, slugToPath(slug)),
       ["content", section, "path"],
-      { revalidate: 3600, tags },
+      { revalidate: false, tags },
     ),
     // Same tag as the rest: a rename expires the section, so an old path stops
     // being a cached 404 and becomes a cached redirect on the next request.
@@ -64,7 +67,7 @@ function cachedSection(section: ContentSection): CachedSection {
       (slug: string) =>
         publicContentRepository.redirectFor(section, slugToPath(slug)),
       ["content", section, "redirect"],
-      { revalidate: 3600, tags },
+      { revalidate: false, tags },
     ),
   };
 }

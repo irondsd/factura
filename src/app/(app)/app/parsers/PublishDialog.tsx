@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button, Label } from "@/components/ui";
 import { FIELD_BASE } from "@/components/ui/styles";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 
 const NOTE_MAX = 200;
@@ -27,8 +27,8 @@ export function PublishDialog({
   onConfirm: (note: string | undefined) => void;
   onCancel: () => void;
 }) {
-  const { t } = useI18n();
-  const tp = t.parsers;
+  const tCommon = useT("common");
+  const tp = useT("parsers");
   const [note, setNote] = useState("");
   const submit = () => {
     const trimmed = note.trim();
@@ -69,7 +69,7 @@ export function PublishDialog({
         </div>
         <div className="flex gap-2 mt-4">
           <Button variant="solid" onClick={submit} disabled={busy}>
-            {busy ? t.common.working : tp.publish}
+            {busy ? tCommon.working : tp.publish}
           </Button>
           <Button
             variant="ghost"
@@ -77,7 +77,7 @@ export function PublishDialog({
             onClick={onCancel}
             disabled={busy}
           >
-            {t.common.cancel}
+            {tCommon.cancel}
           </Button>
         </div>
       </div>

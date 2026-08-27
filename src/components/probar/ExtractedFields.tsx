@@ -3,7 +3,7 @@
 import { Badge, microLabel } from "@/components/ui";
 import type { Locale } from "@/i18n/config";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatARS, formatDate, formatMonth } from "@/lib/format";
 import type { CustomFieldDef, Tier, TierMatch } from "@/lib/probar";
@@ -88,8 +88,9 @@ function Row({
  * read your kWh" is a different (and more surprising) claim than "we read the
  * amount" — and because a parser that defines none shouldn't leave a gap. */
 export function ExtractedFields({ match }: { match: TierMatch }) {
-  const { t, locale } = useI18n();
-  const p = t.probar;
+  const t = useT("probar");
+  const locale = useLocale();
+  const p = t;
   const result = match.result;
   if (!result) return null;
 

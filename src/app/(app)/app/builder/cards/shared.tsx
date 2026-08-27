@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Select, microLabel } from "@/components/ui";
 import { type Dictionary, interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import type { ValueRec } from "@/parsers/builder/evaluate";
 import type { ScopeValue, TransformOp } from "@/parsers/engine/types";
 import { cn } from "@/lib/cn";
@@ -49,7 +49,7 @@ export function ValueChip({
   size?: "sm" | "md";
   title?: string;
 }) {
-  const { t } = useI18n();
+  const t = useT("builder");
   const sz =
     size === "sm" ? "text-[10.5px] py-px px-1.5" : "text-[11.5px] py-0.5 px-2";
   const wrap = size === "sm" ? CHIP_CLAMP : CHIP_FULL;
@@ -77,7 +77,7 @@ export function ValueChip({
           "whitespace-nowrap text-muted border border-dashed border-line",
         )}
       >
-        {t.builder.shared.noMatch}
+        {t.shared.noMatch}
       </span>
     );
   }
@@ -135,14 +135,14 @@ export function XBtn({
   onClick: () => void;
   title?: string;
 }) {
-  const { t } = useI18n();
+  const t = useT("builder");
   return (
     <Button
       type="button"
       variant="icon"
       size="sm"
       onClick={onClick}
-      title={title ?? t.builder.shared.remove}
+      title={title ?? t.shared.remove}
     >
       ✕
     </Button>
@@ -176,8 +176,8 @@ function ValueList({
   onPreview?: (name: string | null) => void;
   onClose: () => void;
 }) {
-  const { t } = useI18n();
-  const ts = t.builder.shared;
+  const t = useT("builder");
+  const ts = t.shared;
   const [q, setQ] = useState("");
   const showSearch = options.length > 9;
   const filtered = q
@@ -274,8 +274,8 @@ export function ValuePicker({
   variant?: "A" | "B";
   placeholder?: string;
 }) {
-  const { t } = useI18n();
-  const ph = placeholder ?? t.builder.shared.pickValue;
+  const t = useT("builder");
+  const ph = placeholder ?? t.shared.pickValue;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | HTMLSpanElement>(null);
   useClickAway(ref, () => {
@@ -315,7 +315,7 @@ export function ValuePicker({
           )}
         >
           {empty ? (
-            <span>{t.builder.shared.addValue}</span>
+            <span>{t.shared.addValue}</span>
           ) : (
             <>
               {isDerived && <span className="text-accent">≈</span>}
@@ -381,8 +381,8 @@ export function FallbackChain({
   onChange: (refs: string[]) => void;
   onPreview?: (name: string | null) => void;
 }) {
-  const { t } = useI18n();
-  const ts = t.builder.shared;
+  const t = useT("builder");
+  const ts = t.shared;
   return (
     <div className="flex flex-wrap gap-1.5 items-center">
       {refs.map((r, i) => (
@@ -465,8 +465,8 @@ export function TransformsEditor({
   transforms: (string | TransformOp)[];
   onChange: (t: (string | TransformOp)[]) => void;
 }) {
-  const { t } = useI18n();
-  const ts = t.builder.shared;
+  const t = useT("builder");
+  const ts = t.shared;
   return (
     <div className="mt-2">
       <span className={microLabel}>{ts.transforms}</span>

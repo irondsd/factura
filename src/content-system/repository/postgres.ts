@@ -22,11 +22,10 @@ import { listableStatuses, renderableStatuses } from "./visibility";
 // half-rewritten paragraph cannot put it in front of a reader by accident, and
 // no amount of getting the status wrong changes that.
 //
-// Caching is deliberately *not* here. Section 3.3 puts the one-hour
-// `unstable_cache` wrapper at the call site in Phase 7, where the tag and the
-// `revalidate` value have to be statically analyzable; a repository that
-// cached itself would also be a repository the CMS could not reuse for its
-// uncached previews.
+// Caching is deliberately *not* here. Section 3.3 puts the `unstable_cache`
+// wrapper at the call site, where the tag has to be statically analyzable; a
+// repository that cached itself would also be a repository the CMS could not
+// reuse for its uncached previews.
 
 /** The page half of a public read. */
 const PAGE_COLUMNS = {

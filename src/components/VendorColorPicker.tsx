@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import {
   VENDOR_COLOR_NAMES,
@@ -19,7 +19,7 @@ export function VendorColorPicker({
   value: string;
   onChange?: (name: VendorColorName) => void;
 }) {
-  const { t } = useI18n();
+  const t = useT("common");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -50,7 +50,7 @@ export function VendorColorPicker({
     <div ref={ref} className="relative flex-none">
       <button
         type="button"
-        aria-label={t.common.changeColor}
+        aria-label={t.changeColor}
         aria-haspopup="true"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}

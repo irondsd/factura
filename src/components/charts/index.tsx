@@ -17,7 +17,7 @@ import {
 } from "recharts";
 import { useCallback, useState } from "react";
 import { cn } from "@/lib/cn";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { formatMonth, formatMonthShort, formatMoney } from "@/lib/format";
 import type { Slice } from "@/lib/insights";
 import { Delta, Legend } from "./primitives";
@@ -103,7 +103,8 @@ function StackTooltip({
   label?: string | number;
   currency: string;
 }) {
-  const { t, locale } = useI18n();
+  const t = useT("charts");
+  const locale = useLocale();
   if (!active || !payload || payload.length === 0) return null;
   // Each slot Bar carries the whole month's row; read the sorted segments off it.
   const row = (payload[0] as { payload?: { _segments?: Segment[] } }).payload;
@@ -128,7 +129,7 @@ function StackTooltip({
         </div>
       ))}
       <div className="flex justify-between gap-4 mt-[7px] pt-1.5 border-t border-line">
-        <span className="text-muted">{t.charts.total}</span>
+        <span className="text-muted">{t.total}</span>
         <span className="font-semibold">{formatExact(total, currency)}</span>
       </div>
     </div>
@@ -152,7 +153,8 @@ function LineTooltip({
   label?: string | number;
   currency: string;
 }) {
-  const { t, locale } = useI18n();
+  const t = useT("charts");
+  const locale = useLocale();
   if (!active || !payload || payload.length === 0) return null;
   const rows = payload
     .filter((p) => p.value != null)
@@ -184,7 +186,7 @@ function LineTooltip({
               <span className="w-13 shrink-0 text-right">
                 <Delta pct={p.pct} />
               </span>{" "}
-              {t.charts.vsPrevMonth}
+              {t.vsPrevMonth}
             </div>
           )}
         </div>
@@ -212,7 +214,7 @@ export function LineChartFx({
   currency?: string;
   height?: number;
 }) {
-  const { locale } = useI18n();
+  const locale = useLocale();
   const data = months.map((m, i) => {
     const row: Record<string, number | string | null> = { month: m };
     for (const s of series) {
@@ -301,7 +303,7 @@ export function StackedBarsFx({
    * `useEntranceAnimation`. */
   animate?: boolean;
 }) {
-  const { locale } = useI18n();
+  const locale = useLocale();
   // Rank vendors once by their summed spend over the whole period, then use that
   // order for every bar. Recharts draws the first <Bar> at the bottom of the stack,
   // so "desc" (biggest first) puts the biggest vendor on the bottom.
@@ -532,9 +534,9 @@ export function VendorShare({
   emptyLabel?: string;
   animate?: boolean;
 }) {
-  const { t } = useI18n();
+  const t = useT("charts");
   const { hidden, toggle } = useHiddenSet();
-  const empty = emptyLabel ?? t.charts.noCompleteMonths;
+  const empty = emptyLabel ?? t.noCompleteMonths;
   // Hidden vendors drop out of the donut; percentages then recompute over the
   // remaining visible total so the ring always sums to 100% of what's shown.
   const shown = slices.filter((s) => !hidden.has(s.id));

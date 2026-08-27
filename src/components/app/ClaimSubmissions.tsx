@@ -6,7 +6,7 @@ import posthog from "posthog-js";
 import type { ClaimResponse } from "@/lib/probar";
 import { trpc } from "@/lib/trpc";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { useToasts } from "@/providers/ToastProvider";
 
 /** Completes the /probar → sign in → "saved to your account" loop.
@@ -26,7 +26,7 @@ export function ClaimSubmissions() {
   const router = useRouter();
   const utils = trpc.useUtils();
   const { showToast } = useToasts();
-  const { t } = useI18n();
+  const t = useT("probar");
   const fired = useRef(false);
 
   const shouldClaim = params.get("claim") === "1";
@@ -54,7 +54,7 @@ export function ClaimSubmissions() {
             already: results.filter((r) => r.status === "already").length,
           });
           if (saved > 0) {
-            showToast(interpolate(t.probar.claimedToast, { count: saved }));
+            showToast(interpolate(t.claimedToast, { count: saved }));
             await utils.invalidate();
           }
         }

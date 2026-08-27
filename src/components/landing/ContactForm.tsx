@@ -12,7 +12,7 @@ import {
 } from "@/components/ui";
 import { FIELD_BASE } from "@/components/ui/styles";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { CONTACT_MESSAGE_MAX, CONTACT_MESSAGE_MIN } from "@/lib/limits";
 
@@ -27,8 +27,9 @@ import { CONTACT_MESSAGE_MAX, CONTACT_MESSAGE_MIN } from "@/lib/limits";
 type State = "idle" | "sending" | "sent";
 
 export function ContactForm() {
-  const { t, locale } = useI18n();
-  const c = t.contact;
+  const t = useT("contact");
+  const locale = useLocale();
+  const c = t;
   // Ids rather than a `name` per field: two of these labels are long enough to
   // wrap, and a label needs its own control to point at.
   const uid = useId();

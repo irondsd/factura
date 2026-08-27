@@ -5,7 +5,7 @@ import { Eyebrow } from "@/components/charts/primitives";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Bone, Button, Input, Select } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { formatDate, formatRelativeTime } from "@/lib/format";
 import { useToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
@@ -34,8 +34,9 @@ export function AccessTokens({
   card: string;
   meta: string;
 }) {
-  const { t, locale } = useI18n();
-  const tt = t.sessions.tokens;
+  const t = useT("sessions");
+  const locale = useLocale();
+  const tt = t.tokens;
   const { opts, showToast, error } = useToast();
   const utils = trpc.useUtils();
 
@@ -173,12 +174,12 @@ export function AccessTokens({
                 disabled={revoke.isPending}
                 onClick={() => setRevoking({ id: token.id, name: token.name })}
               >
-                {t.sessions.revoke}
+                {t.revoke}
               </Button>
             </div>
             <p className={meta}>
               {token.lastUsedAt
-                ? interpolate(t.sessions.lastActive, {
+                ? interpolate(t.lastActive, {
                     when: formatRelativeTime(token.lastUsedAt, locale),
                   })
                 : tt.neverUsed}
@@ -200,7 +201,7 @@ export function AccessTokens({
         description={interpolate(tt.confirm.description, {
           name: revoking?.name ?? "",
         })}
-        confirmLabel={t.sessions.revoke}
+        confirmLabel={t.revoke}
         busy={revoke.isPending}
         onCancel={() => setRevoking(null)}
         onConfirm={() => {

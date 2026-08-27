@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { Button, microLabel } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 
 /** The one-line answer to "what happened to my files?", above the cards.
  *
@@ -31,8 +31,8 @@ export function ResultsHeader({
   onFiles: (files: File[]) => void;
   busy: boolean;
 }) {
-  const { t } = useI18n();
-  const p = t.probar;
+  const t = useT("probar");
+  const p = t;
   const inputRef = useRef<HTMLInputElement>(null);
 
   const parts = [

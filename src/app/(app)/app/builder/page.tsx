@@ -35,7 +35,7 @@ import type { BuilderConfig } from "@/parsers/builder/model";
 import { normalize } from "@/parsers/normalize";
 import { PARSER_CATEGORIES } from "@/parsers/categories";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { useToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
@@ -104,8 +104,8 @@ function Builder() {
   const billId = params.get("bill");
   const parserSlug = params.get("parser");
   const { showToast } = useToast();
-  const { t } = useI18n();
-  const tbu = t.builder;
+  const tbu = useT("builder");
+  const tParsers = useT("parsers");
   const utils = trpc.useUtils();
 
   const billQuery = trpc.bills.get.useQuery(
@@ -712,7 +712,7 @@ function Builder() {
                   <option value="">{tbu.categoryNone}</option>
                   {PARSER_CATEGORIES.map((c) => (
                     <option key={c} value={c}>
-                      {t.parsers.categories[c]}
+                      {tParsers.categories[c]}
                     </option>
                   ))}
                   <option value={CATEGORY_OTHER}>{tbu.categoryOther}</option>

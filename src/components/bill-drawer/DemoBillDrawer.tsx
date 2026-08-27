@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge, Button, microLabel } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { demoBill, demoProperties, demoVendors } from "@/lib/demo/fixtures";
 import { cn } from "@/lib/cn";
 import { formatMonth } from "@/lib/format";
@@ -29,8 +29,9 @@ export function DemoBillDrawer({
   onClose: () => void;
   onToast?: (text: string) => void;
 }) {
-  const { t, locale } = useI18n();
-  const tb = t.billDrawer;
+  const t = useT("billDrawer");
+  const locale = useLocale();
+  const tb = t;
   const bill = billId ? demoBill(billId) : null;
 
   const vendor = demoVendors.find((v) => v.id === bill?.vendorId);

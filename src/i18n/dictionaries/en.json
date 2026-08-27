@@ -292,7 +292,8 @@
     "add": "Add",
     "working": "Working…",
     "cantUndo": "This can't be undone",
-    "changeColor": "Change color"
+    "changeColor": "Change color",
+    "close": "Close"
   },
   "properties": {
     "eyebrow": "Properties",
@@ -355,7 +356,6 @@
     "dueDate": "Due date",
     "amountArs": "Amount (ARS)",
     "unrecognizedVendor": "Unrecognized",
-    "close": "Close",
     "extractedFields": "Extracted fields",
     "parser": "Parser",
     "notSavedParser": "not a saved parser",

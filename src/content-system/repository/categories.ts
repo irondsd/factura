@@ -76,12 +76,12 @@ function cached(section: ContentSection): CachedCategories {
     list: unstable_cache(
       () => readCategories(section),
       ["content", section, "categories"],
-      { revalidate: 3600, tags },
+      { revalidate: false, tags },
     ),
     redirect: unstable_cache(
       (slug: string) => readRedirect(section, slug),
       ["content", section, "category-redirect"],
-      { revalidate: 3600, tags },
+      { revalidate: false, tags },
     ),
   };
   CACHE.set(section, value);

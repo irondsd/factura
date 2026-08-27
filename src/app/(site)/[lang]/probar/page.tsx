@@ -5,6 +5,8 @@ import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { ProbarClient } from "@/components/probar/ProbarClient";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
+import { I18nProvider } from "@/i18n/I18nProvider";
+import { pickNamespaces } from "@/i18n/namespaces";
 import { getI18n } from "@/i18n/server";
 
 type Props = { params: Promise<{ lang: string }> };
@@ -45,7 +47,14 @@ export default async function ProbarPage({ params }: Props) {
         </header>
 
         <div className="pt-10 pb-20">
-          <ProbarClient />
+          {/* The parser try-out is the one public route with a real
+              application inside it. Its copy stays on this route. */}
+          <I18nProvider
+            locale={locale}
+            dictionary={pickNamespaces(t, ["probar", "nav", "billDrawer"])}
+          >
+            <ProbarClient />
+          </I18nProvider>
         </div>
       </main>
 

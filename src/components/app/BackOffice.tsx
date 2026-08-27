@@ -3,8 +3,8 @@
 import type { ReactNode } from "react";
 import { Eyebrow } from "@/components/charts/primitives";
 import { Bone, Button } from "@/components/ui";
-import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { interpolate, type Dictionary } from "@/i18n/config";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 
@@ -36,7 +36,7 @@ function Row({
   href: string;
   last?: boolean;
 }) {
-  const { t } = useI18n();
+  const t = useT("profile");
   return (
     <div
       className={cn(
@@ -58,15 +58,15 @@ function Row({
       {/* The ghost's transparent border is already in the box, so the accent
           hover outline costs no reflow. */}
       <Button href={href} variant="ghost" className="hover:border-accent">
-        {t.profile.manage}
+        {t.manage}
       </Button>
     </div>
   );
 }
 
 export function BackOffice() {
-  const { t } = useI18n();
-  const tp = t.profile;
+  const t = useT("profile");
+  const tp = t;
 
   const properties = trpc.properties.list.useQuery();
   const stats = trpc.account.stats.useQuery();
@@ -120,7 +120,7 @@ export function BackOffice() {
   );
 }
 
-type Dict = ReturnType<typeof useI18n>["t"]["profile"];
+type Dict = Dictionary["profile"];
 
 /** "3 · 1 compartida" — a property is shared when someone other than the
  * reader is a member of it. */

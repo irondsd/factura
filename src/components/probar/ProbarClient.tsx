@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { MAX_FILES_PER_DROP, PUBLIC_MAX_BYTES } from "@/lib/limits";
 import {
   type ParseResponse,
@@ -40,8 +40,9 @@ const pendingTiers = (): Record<Tier, TierState> => ({
 });
 
 export function ProbarClient() {
-  const { t, locale } = useI18n();
-  const p = t.probar;
+  const t = useT("probar");
+  const locale = useLocale();
+  const p = t;
   const { showToast } = useToasts();
 
   const [submissions, setSubmissions] = useState<Submission[]>([]);

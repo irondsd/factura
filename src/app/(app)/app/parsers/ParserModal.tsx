@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { Display } from "@/components/charts/primitives";
 import { Button, Label, Select } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import {
   catLabel,
@@ -45,7 +45,7 @@ export function ParserModal({
   onFork: () => void;
   onEdit: () => void;
 }) {
-  const { t } = useI18n();
+  const t = useT("common");
   const net = p.up - p.down;
   const owned = p.rel === "owned" ? publishState(tp, p) : null;
   const options = versionOptions(tp, p);
@@ -201,7 +201,7 @@ export function ParserModal({
                 disabled={busy}
                 onClick={onDelete}
               >
-                {t.common.delete}
+                {t.delete}
               </Button>
             </>
           ) : p.rel === "adopted" ? (

@@ -3,7 +3,7 @@
 import { NEW_TAB } from "@/components/landing/parts";
 import { Button, hint } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 
 /** The payoff: the visitor has watched us read their bills, now offer to keep
  * them. `?claim=1` is only a trigger — the submission ids travel in the httpOnly
@@ -19,8 +19,8 @@ export function SaveCta({
   count: number;
   onClick: (count: number) => void;
 }) {
-  const { t } = useI18n();
-  const p = t.probar;
+  const t = useT("probar");
+  const p = t;
 
   return (
     <div className="receipt-edge flex flex-col gap-4 border border-line bg-card px-5 pt-6 pb-11 sm:flex-row sm:items-center sm:gap-6">

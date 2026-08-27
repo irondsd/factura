@@ -2,7 +2,7 @@
 // JSON-mode readout, and the "needs review" box for unresolved structured runs.
 
 import { RowBox } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import type { EvalResult } from "@/parsers/builder/evaluate";
 import type { ParsedResult } from "@/parsers/engine/types";
 import { cn } from "@/lib/cn";
@@ -12,8 +12,8 @@ function fmt(v: unknown): string {
 }
 
 export function StructuredPreview({ result }: { result: EvalResult }) {
-  const { t } = useI18n();
-  const p = t.builder.previewRows;
+  const t = useT("builder");
+  const p = t.previewRows;
   const rows: [string, string][] = [
     [p.identity, fmt(result.roleOut.identity.value)],
     [p.amount, fmt(result.roleOut.amount.value)],
@@ -30,8 +30,8 @@ export function StructuredPreview({ result }: { result: EvalResult }) {
 }
 
 export function ParsedPreview({ result }: { result: ParsedResult }) {
-  const { t } = useI18n();
-  const p = t.builder.previewRows;
+  const t = useT("builder");
+  const p = t.previewRows;
   const rows: [string, string][] = [
     [p.identity, result.identity],
     [p.amount, String(result.amount)],
