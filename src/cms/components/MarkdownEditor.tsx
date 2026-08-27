@@ -29,6 +29,12 @@ import {
 import { tags } from "@lezer/highlight";
 import { useEffect, useRef } from "react";
 import type { Diagnostic } from "@/content-system/types";
+import styles from "./MarkdownEditor.module.css";
+import { componentAssistantExtension } from "../component-assistant/extension";
+import type {
+  ComponentCompletionDescriptor,
+  ComponentRecipeDescriptor,
+} from "../component-assistant/types";
 
 // The Markdown source editor (cms.md): a GitHub-like source workflow, not
 // WYSIWYG. Custom components stay visible as source — an editor who writes
@@ -75,10 +81,26 @@ const theme = EditorView.theme({
     border: "none",
     borderRight: "1px solid var(--line)",
   },
-  ".cm-activeLine": { backgroundColor: "var(--accent-soft)" },
-  ".cm-activeLineGutter": { backgroundColor: "var(--accent-soft)" },
-  ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
-    backgroundColor: "var(--accent-soft)",
+  // Translucent on purpose. CodeMirror draws the selection in a layer *under*
+  // the content, so an opaque active-line background paints straight over the
+  // selection and hides it on the one line you are most likely to be editing.
+  ".cm-activeLine": {
+    backgroundColor: "color-mix(in srgb, var(--accent) 7%, transparent)",
+  },
+  ".cm-activeLineGutter": {
+    backgroundColor: "color-mix(in srgb, var(--accent) 7%, transparent)",
+  },
+  // Two things were hiding the selection. `--accent-soft` is a 5% mix, close
+  // enough to the paper to read as nothing — and the rule never applied while
+  // the editor had focus anyway: CodeMirror's own
+  // `&light.cm-focused > .cm-scroller > …` is five classes deep and outranked
+  // it, so an editing selection was really the library's default lavender.
+  // Matching that selector is what makes the colour below the one you see.
+  ".cm-selectionBackground": {
+    background: "color-mix(in srgb, var(--accent) 26%, var(--card))",
+  },
+  "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
+    background: "color-mix(in srgb, var(--accent) 26%, var(--card))",
   },
   ".cm-panels": {
     backgroundColor: "var(--card)",
@@ -126,11 +148,15 @@ export function MarkdownEditor({
   onChange,
   diagnostics,
   label,
+  componentDescriptors,
+  recipes,
 }: {
   value: string;
   onChange: (next: string) => void;
   diagnostics: readonly Diagnostic[];
   label: string;
+  componentDescriptors: readonly ComponentCompletionDescriptor[];
+  recipes: readonly ComponentRecipeDescriptor[];
 }) {
   const host = useRef<HTMLDivElement | null>(null);
   const view = useRef<EditorView | null>(null);
@@ -163,6 +189,7 @@ export function MarkdownEditor({
           markdown({ base: markdownLanguage }),
           syntaxHighlighting(highlightStyle),
           theme,
+          componentAssistantExtension(componentDescriptors, recipes),
           keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
@@ -197,5 +224,5 @@ export function MarkdownEditor({
     );
   }, [diagnostics]);
 
-  return <div ref={host} className="cms-editor" />;
+  return <div ref={host} className={styles.editor} />;
 }

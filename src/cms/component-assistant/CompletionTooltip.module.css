@@ -1,0 +1,122 @@
+/* The completion popup. CodeMirror builds this DOM outside React — the popup is
+   attached to the editor, not rendered by a component — so the class names here
+   are handed to it explicitly: `tooltipClass` in `extension.ts` for the shell,
+   and `completions.ts` for the header and help panel it constructs. The
+   `:global` selectors are CodeMirror's own class names, which must survive
+   CSS-module hashing.
+
+   Scoped to the CMS bundle on purpose: none of this belongs on the public
+   marketing pages, which never mount an editor. */
+.tooltip {
+  z-index: 30;
+  max-width: min(430px, calc(100vw - 24px));
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--card);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.tooltip :global(.cm-completionList) {
+  max-height: min(52vh, 390px);
+  padding: 4px 0;
+}
+.tooltip :global(.cm-completionOption) {
+  min-height: 28px;
+  padding: 4px 9px;
+}
+/* The selected row. Written against CodeMirror's own selector shape on
+   purpose: its default is `&light .cm-tooltip-autocomplete ul li[aria-selected]`
+   — two element selectors deeper than a plain class rule — so anything less
+   specific loses and the row comes out in the library's default blue, which is
+   what was happening. `--accent-soft` is too faint to carry a keyboard
+   selection, so this is a stronger tint of the same accent. */
+.tooltip:global(.cm-tooltip-autocomplete) :global(ul li[aria-selected]) {
+  background: color-mix(in srgb, var(--accent) 18%, var(--card));
+  color: var(--ink);
+}
+.tooltip :global(.cm-completionLabel) {
+  color: var(--ink);
+}
+.tooltip :global(.cm-completionDetail) {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.sectionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 14px;
+  padding: 7px 9px 4px;
+  border-top: 1px solid var(--line);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+.sectionHeader:first-child {
+  border-top: 0;
+}
+.shortcut {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+/* The selected item's documentation. `positionInfo` in `extension.ts` decides
+   which of these four it gets; the margin on each is the gap that keeps it off
+   the list, which otherwise reads as one box with the list clipped — the two
+   surfaces share a border colour. */
+.tooltip :global(.cm-completionInfo) {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--card);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink);
+}
+.tooltip :global(.cm-completionInfo-left) {
+  margin-right: 6px;
+}
+.tooltip :global(.cm-completionInfo-right) {
+  margin-left: 6px;
+}
+/* Stacked, and anchored to the list rather than to the highlighted row. The
+   offsets themselves are set inline by `positionInfo`; these carry the gap. */
+.infoBelow {
+  margin-top: 6px;
+}
+.infoAbove {
+  margin-bottom: 6px;
+}
+.help {
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 10px 12px;
+}
+.help pre {
+  max-width: 100%;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 11px/1.55 var(--font-mono);
+}
+
+@media (max-width: 40rem) {
+  .tooltip {
+    max-width: calc(100vw - 16px);
+  }
+  .tooltip :global(.cm-completionInfo) {
+    max-width: calc(100vw - 16px) !important;
+  }
+  .help {
+    max-width: calc(100vw - 40px);
+  }
+}

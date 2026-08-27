@@ -13,6 +13,8 @@ import { cmsContentService } from "@/cms/server/service";
 import { cmsPageStore } from "@/cms/server/store";
 import { cmsCategoryService } from "@/cms/categories/server/service";
 import { cmsAuthorService } from "@/cms/authors/server/service";
+import { componentCompletionDescriptors } from "@/cms/component-assistant/descriptors";
+import { componentRecipesForSection } from "@/cms/component-assistant/recipes";
 
 // The editor for one page.
 export const dynamic = "force-dynamic";
@@ -48,6 +50,11 @@ export default async function CmsEditPage({ params }: Props) {
   // form is section-shaped, and rendering a statistics page in the guides form
   // would offer fields it does not have.
   if (!page || page.section !== section.id) notFound();
+
+  // Project only this section's manifest entries across the server/client
+  // boundary. Zod schemas stay server-side; the editor receives plain data.
+  const componentDescriptors = componentCompletionDescriptors(section.id);
+  const recipes = componentRecipesForSection(section.id);
 
   // Any other page in the section can be this one's parent — except itself and
   // its own descendants, which `checkHierarchy` refuses on save. Offering them
@@ -106,6 +113,8 @@ export default async function CmsEditPage({ params }: Props) {
         descendants={descendants}
         history={history}
         versions={versions}
+        componentDescriptors={componentDescriptors}
+        recipes={recipes}
       />
     </CmsShell>
   );

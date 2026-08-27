@@ -46,6 +46,10 @@ import { StatusChip, statusLabel } from "./StatusChip";
 import { MetadataField, type ParentOption } from "./fields/MetadataField";
 import { ValidationPanel } from "./ValidationPanel";
 import Link from "next/link";
+import type {
+  ComponentCompletionDescriptor,
+  ComponentRecipeDescriptor,
+} from "../component-assistant/types";
 
 // The editor. One client component holding the whole page's draft state, so
 // "are there unsaved changes" has a single answer and Save sends one patch.
@@ -149,6 +153,8 @@ export function PageEditor({
   descendants,
   history,
   versions,
+  componentDescriptors,
+  recipes,
 }: {
   section: CmsSection;
   /** The working copy if one is saved, otherwise the baseline an editor starts
@@ -169,6 +175,8 @@ export function PageEditor({
    * mutation, so a save shows up in the tab without a reload. */
   history: readonly HistoryEntry[];
   versions: PageVersions;
+  componentDescriptors: readonly ComponentCompletionDescriptor[];
+  recipes: readonly ComponentRecipeDescriptor[];
 }) {
   const router = useRouter();
 
@@ -719,6 +727,8 @@ export function PageEditor({
               onChange={setBody}
               diagnostics={diagnostics}
               label="Cuerpo de la página en Markdown"
+              componentDescriptors={componentDescriptors}
+              recipes={recipes}
             />
           </div>
 
