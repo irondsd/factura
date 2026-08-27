@@ -59,12 +59,14 @@ export type DialogTone = keyof typeof TONES;
  * buttons don't match the ones behind it looks borrowed. */
 export function DialogButton({
   tone,
+  mark,
   icon,
   className,
   children,
   ...rest
 }: {
   tone: DialogTone;
+  mark?: string;
   icon?: CmsIconName;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
@@ -77,6 +79,7 @@ export function DialogButton({
         className,
       )}
     >
+      {mark && <span aria-hidden="true">{mark}</span>}
       {icon && <CmsIcon name={icon} size="sm" />}
       {children}
     </button>
@@ -298,6 +301,7 @@ export function CmsConfirmDialog({
   description,
   details,
   confirmLabel,
+  confirmMark,
   confirmIcon,
   cancelLabel,
   tone = "accent",
@@ -310,6 +314,7 @@ export function CmsConfirmDialog({
   description?: ReactNode;
   details?: readonly string[];
   confirmLabel: string;
+  confirmMark?: string;
   confirmIcon?: CmsIconName;
   cancelLabel?: string;
   tone?: DialogTone;
@@ -339,6 +344,7 @@ export function CmsConfirmDialog({
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <DialogButton
           tone={tone}
+          mark={confirmMark}
           icon={confirmIcon}
           onClick={onConfirm}
           disabled={busy}

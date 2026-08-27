@@ -23,7 +23,7 @@ const LABEL: Record<ContentStatus, string> = {
  * private, half once it is reachable by anyone holding the link, solid once it
  * is listed. Three states read as one scale that way, rather than as three
  * unrelated words, and it survives being printed or read in greyscale. */
-const MARK: Record<ContentStatus, string> = {
+export const STATUS_MARK: Record<ContentStatus, string> = {
   draft: "○",
   preview: "◐",
   published: "●",
@@ -52,7 +52,7 @@ export function StatusChip({
         className,
       )}
     >
-      <span aria-hidden="true">{MARK[status]}</span>
+      <span aria-hidden="true">{STATUS_MARK[status]}</span>
       {LABEL[status]}
     </span>
   );

@@ -42,7 +42,7 @@ import { CmsConfirmDialog, type DialogTone } from "./CmsDialog";
 import { CmsIcon, type CmsIconName } from "../icons";
 import { HistoryPanel } from "./HistoryPanel";
 import { MarkdownEditor } from "./MarkdownEditor";
-import { StatusChip, statusLabel } from "./StatusChip";
+import { STATUS_MARK, StatusChip, statusLabel } from "./StatusChip";
 import { MetadataField, type ParentOption } from "./fields/MetadataField";
 import { ValidationPanel } from "./ValidationPanel";
 import Link from "next/link";
@@ -99,7 +99,7 @@ const ACTION_NEEDS_SAVE: Record<PendingAction["kind"], boolean> = {
  * One table because the dialog has to match the button that opened it — that is
  * the whole reason the CMS grew its own dialogs instead of keeping
  * `window.confirm`, and two tables would drift the first time somebody
- * restyled one of them. `icon` and `tone` go to the dialog; `fill` is the
+ * restyled one of them. `mark`/`icon` and `tone` go to the dialog; `fill` is the
  * sidebar button's own class, carrying the same colour by hand because a
  * bordered outline button and a solid dialog button are not the same shape.
  *
@@ -108,20 +108,20 @@ const ACTION_NEEDS_SAVE: Record<PendingAction["kind"], boolean> = {
  * of readers, and the accent for the one that destroys work. */
 const ACTION_STYLE: Record<
   PendingAction["kind"],
-  { icon: CmsIconName; tone: DialogTone; fill: string }
+  { mark?: string; icon?: CmsIconName; tone: DialogTone; fill: string }
 > = {
   publish: {
-    icon: "publish",
+    mark: STATUS_MARK.published,
     tone: "ok",
     fill: "border-ok bg-ok text-paper hover:border-ink hover:bg-ink",
   },
   preview: {
-    icon: "preview",
+    mark: STATUS_MARK.preview,
     tone: "ochre",
     fill: "border-[var(--vendor-ochre)] text-[var(--vendor-ochre)] hover:bg-[var(--vendor-ochre)] hover:text-paper",
   },
   unpublish: {
-    icon: "unpublish",
+    mark: STATUS_MARK.draft,
     tone: "quiet",
     fill: "border-dashed border-line text-muted hover:border-ink hover:text-ink",
   },
@@ -902,6 +902,7 @@ function ActionConfirmDialog({
       description={copy.description}
       details={copy.details}
       confirmLabel={copy.confirmLabel}
+      confirmMark={ACTION_STYLE[action.kind].mark}
       confirmIcon={ACTION_STYLE[action.kind].icon}
       tone={ACTION_STYLE[action.kind].tone}
       busy={busy}
@@ -1013,7 +1014,7 @@ function StatusControls({
       </h2>
       <div className="flex flex-col gap-2">
         <Action
-          icon={ACTION_STYLE.publish.icon}
+          mark={ACTION_STYLE.publish.mark}
           fill={ACTION_STYLE.publish.fill}
           disabled={busy || dirty || !canPublish}
           onClick={onPublish}
@@ -1023,7 +1024,7 @@ function StatusControls({
 
         {(status !== "preview" || previewIsStale || !hasPublicPreview) && (
           <Action
-            icon={ACTION_STYLE.preview.icon}
+            mark={ACTION_STYLE.preview.mark}
             fill={ACTION_STYLE.preview.fill}
             disabled={busy || dirty || !canPreview}
             onClick={onPromotePreview}
@@ -1036,7 +1037,7 @@ function StatusControls({
 
         {status !== "draft" && (
           <Action
-            icon={ACTION_STYLE.unpublish.icon}
+            mark={ACTION_STYLE.unpublish.mark}
             fill={ACTION_STYLE.unpublish.fill}
             disabled={busy}
             onClick={onUnpublish}
@@ -1074,17 +1075,18 @@ function StatusControls({
 
 /** One lifecycle button. The fill tracks how public the destination is —
  * dashed and quiet for the ones that take a page back, ochre for the shareable
- * preview, solid for the one that puts a page in front of readers — and every
- * one carries the same icon its state does elsewhere, so the button and the
- * chip are recognisably the same vocabulary. */
+ * preview, solid for the one that puts a page in front of readers — and each
+ * lifecycle button carries the same status mark its chip does elsewhere. */
 function Action({
+  mark,
   icon,
   fill,
   disabled,
   onClick,
   children,
 }: {
-  icon: CmsIconName;
+  mark?: string;
+  icon?: CmsIconName;
   /** The button's own colour, from `ACTION_STYLE`. Named `fill` and not `tone`
    * so `DialogTone` keeps that word to itself in this file. */
   fill: string;
@@ -1102,7 +1104,8 @@ function Action({
         fill,
       )}
     >
-      <CmsIcon name={icon} size="sm" />
+      {mark && <span aria-hidden="true">{mark}</span>}
+      {icon && <CmsIcon name={icon} size="sm" />}
       {children}
     </button>
   );
