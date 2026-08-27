@@ -5,10 +5,14 @@ import type { ContentSection } from "@/content-system/types";
 
 // On-demand invalidation of the public content cache (cms.md).
 //
-// Before this, publishing meant waiting out the one-hour `unstable_cache` TTL
+// Before this, publishing meant waiting out an hour-long `unstable_cache` TTL
 // and hoping the next visitor was the one who paid for the refresh. The tags
 // are attached in `@/content-system/repository/tags`; this is the other half —
 // the CMS expiring them the moment it changes something a reader can see.
+//
+// That TTL is gone now (`repository/sections.ts`), which promotes this file
+// from "the fast path" to "the only path": a public read expires when something
+// here says so, and otherwise not until the next deployment.
 //
 // *Which* writes reach here is decided in `./lifecycle`, and the answer for
 // most of them is "none": a draft is invisible, so saving one leaves nothing

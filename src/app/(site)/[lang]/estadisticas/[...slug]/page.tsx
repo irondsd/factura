@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SectionArticle } from "@/components/section/SectionArticle";
 import { estadisticas } from "@/content/sections";
 import { sectionMetadata } from "@/i18n/metadata";
+import { spanishOnly } from "@/i18n/routing";
 
 // One statistics page, at any depth: /estadisticas/delitos-caba today,
 // /estadisticas/alquiler/caba the day a statistic gets per-district pages. The
@@ -11,8 +12,10 @@ import { sectionMetadata } from "@/i18n/metadata";
 // The body is `<SectionArticle />`, shared with /investigaciones.
 export const dynamicParams = true;
 
-export async function generateStaticParams() {
-  return (await estadisticas.slugs()).map((slug) => ({ slug }));
+export function generateStaticParams() {
+  return spanishOnly(async () =>
+    (await estadisticas.slugs()).map((slug) => ({ slug })),
+  );
 }
 
 type Props = { params: Promise<{ slug: string[] }> };

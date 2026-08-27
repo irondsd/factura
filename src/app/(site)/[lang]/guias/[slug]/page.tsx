@@ -22,15 +22,18 @@ import {
   contentComponents,
 } from "@/content-system/render/renderContent";
 import { faqPageLd, guideLd } from "@/i18n/structuredData";
+import { spanishOnly } from "@/i18n/routing";
 
 // Database rows created after a deployment render on their first request. The
 // static params below are only a build-time warmup, never an allowlist.
 export const dynamicParams = true;
 
-export async function generateStaticParams() {
-  return (await publiclyRenderableGuides()).map((guide) => ({
-    slug: guide.slug,
-  }));
+export function generateStaticParams() {
+  return spanishOnly(async () =>
+    (await publiclyRenderableGuides()).map((guide) => ({
+      slug: guide.slug,
+    })),
+  );
 }
 
 type Props = { params: Promise<{ slug: string }> };

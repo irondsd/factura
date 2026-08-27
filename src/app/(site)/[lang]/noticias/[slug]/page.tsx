@@ -13,10 +13,13 @@ import { contentComponents } from "@/content-system/render/renderContent";
 import { categoriesByKeys } from "@/content-system/repository/categories";
 import { sectionMetadata } from "@/i18n/metadata";
 import { editorialPageLd, faqPageLd } from "@/i18n/structuredData";
+import { spanishOnly } from "@/i18n/routing";
 
 export const dynamicParams = true;
-export async function generateStaticParams() {
-  return (await noticias.slugs()).map(([slug]) => ({ slug }));
+export function generateStaticParams() {
+  return spanishOnly(async () =>
+    (await noticias.slugs()).map(([slug]) => ({ slug })),
+  );
 }
 type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

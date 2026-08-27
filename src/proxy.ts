@@ -1,11 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { LOCALE_COOKIE, type Locale } from "@/i18n/config";
+import { isSpanishOnlyPath, stripEnPrefix } from "@/i18n/routing";
 
 // Locale routing for the public landing (Next 16's renamed middleware). Spanish
 // is canonical and unprefixed; English lives under /en. Pages are statically
 // generated under `(site)/[lang]` as /es/* and /en/*; this proxy:
 //   • redirects /es and /es/* → the bare path (no duplicate Spanish URL),
-//   • passes /en and /en/* straight through to the English static page,
+//   • passes /en and /en/* straight through to the English static page, except
+//     the Spanish-only sections, which redirect to their bare Spanish URL,
 //   • rewrites every other matched (bare) path → /es/* so the Spanish static
 //     page serves at the clean URL (the browser URL stays bare),
 //   • for anonymous visitors, keeps NEXT_LOCALE pointed at the version they're
@@ -60,6 +62,22 @@ export function proxy(request: NextRequest): NextResponse {
 
   // English pages are served directly from /en*.
   if (pathname === "/en" || pathname.startsWith("/en/")) {
+    // …except the Spanish-only sections, which have no English page to serve.
+    // `ContentChrome` would 404 the request, and on a route with
+    // `dynamicParams = true` that 404 is generated and then *stored* — so a
+    // crawler working through stale /en links would mint durable cache entries
+    // for pages that deliberately do not exist. Sending the visitor to the
+    // article they were after costs a proxy hop and stores nothing.
+    //
+    // 307, not 308: /en/guias is empty because nobody has translated it yet,
+    // not because it moved. A permanent redirect is cached in browsers past the
+    // point where anyone could take it back, and this is a rule we expect to
+    // retire one section at a time.
+    if (isSpanishOnlyPath(pathname)) {
+      const spanish = request.nextUrl.clone();
+      spanish.pathname = stripEnPrefix(pathname);
+      return NextResponse.redirect(spanish, 307);
+    }
     return withLocaleCookie(request, NextResponse.next(), "en");
   }
 

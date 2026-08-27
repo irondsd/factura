@@ -15,6 +15,7 @@ import {
 } from "@/content-system/repository/guias";
 import { guideCategoryMetadata } from "@/i18n/metadata";
 import { guideCategoryLd } from "@/i18n/structuredData";
+import { spanishOnly } from "@/i18n/routing";
 
 // One category hub, e.g. /guias/categoria/expensas. Lists every guide *tagged*
 // with the category — a superset of the category's section on the index, which
@@ -32,10 +33,12 @@ import { guideCategoryLd } from "@/i18n/structuredData";
 // below, where it can be re-evaluated per request instead of once at build.
 export const dynamicParams = true;
 
-export async function generateStaticParams() {
+export function generateStaticParams() {
   // Only a warm-up list now: categories with guides at build time are
   // prerendered, and the rest render on demand.
-  return (await nonEmptyCategories()).map((c) => ({ categoria: c.slug }));
+  return spanishOnly(async () =>
+    (await nonEmptyCategories()).map((c) => ({ categoria: c.slug })),
+  );
 }
 
 type Props = { params: Promise<{ categoria: string }> };

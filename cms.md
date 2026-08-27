@@ -103,13 +103,14 @@ Comparison has one baseline, the live or last publication.
 ## Caching, and what a reader sees
 
 Public reads are wrapped in `unstable_cache` at the call site
-(`src/content-system/repository/guias.ts`, `sections.ts`) with a literal
-`revalidate: 3600` and the section's tag, `content:<section>`
+(`src/content-system/repository/sections.ts`, `categories.ts`) with
+`revalidate: false` and the section's tag, `content:<section>`
 (`repository/tags.ts`). A route inherits the tags of the cached reads it ran, so
 one tag reaches the article, the indexes, the category hubs, the related rail,
 the sitemap, the feed, `llms.txt` — and the cached 404 of a path that had no
-page until now. A cached read missing its tag is a surface that keeps serving
-the old copy after a publish, with no symptom for an hour.
+page until now. There is no TTL underneath any of it: the tag is the only thing
+that expires a public read, so **a cached read missing its tag is a surface
+that serves the old copy for good.**
 
 The CMS expires that tag when, and only when, a write changes something a
 visitor can see: publishing, promoting or refreshing the public preview,
@@ -117,12 +118,29 @@ unpublishing, returning a preview to draft, and renaming a page that was ever
 public. **No save expires anything, in any status** — it changed nothing
 public. Invalidation is `revalidateTag(tag, { expire: 0 })` from the content
 service, best-effort: the row is already committed, so a failed expiry is logged
-rather than reported as a failed publication, and the one-hour TTL is the
-fallback underneath it.
+rather than reported as a failed publication. Nothing catches it if it fails —
+the next deployment reprerenders the page, and until then the old copy stands.
+
+Three writes outside the page lifecycle expire it too, because they change what
+a reader sees without any page being saved: a **category** edit (its own
+section), an **author** edit (all sections — a name travels in the structured
+data of every page it signed), and a **media** edit that touches `defaultAlt` or
+`decorative` (all sections, for the same reason). A media edit that only renames
+the asset, credits it or files it in a collection expires nothing: none of that
+is in `MediaRef`.
 
 Routes keep `dynamicParams = true`, so a page created after a deployment renders
 on its first request. `generateStaticParams` is a build-time warm-up, never an
 allowlist.
+
+Those sections are Spanish-only, and that has to be said three times to be true:
+`ContentChrome` 404s a non-Spanish request, `spanishOnly` (`@/i18n/routing`)
+keeps the build from prerendering the English half, and `proxy.ts` redirects an
+`/en` visitor to the Spanish URL before the request reaches a route. Drop the
+second and the build stores ~85 English 404s; drop the third and
+`dynamicParams = true` recreates them one request at a time. `spanishOnly`
+stamps `lang` onto every result rather than filtering on the parent's — see the
+comment there, because filtering type checks and silently prerenders nothing.
 
 ## Addresses
 
@@ -337,9 +355,11 @@ automatically, and nothing trusts the browser.**
 - `unstable_cache` entries live in `.next/cache`, which platforms restore
   between builds — **a deploy does not flush them.** The CMS expires them
   itself on every publicly visible write, so that is covered; what is not is a
-  change the CMS did not make. Repairing content with SQL leaves the old copy
-  served until the TTL expires. Fix content through `/cms` or the MCP; clear
-  `.next/cache` when verifying locally.
+  change the CMS did not make. There is no TTL to fall back on, so repairing
+  content with SQL leaves the old copy served indefinitely. Fix content through
+  `/cms` or the MCP; a migration that has to touch the rows directly is only
+  safe alongside the deployment that reprerenders them. Clear `.next/cache`
+  when verifying locally.
 - CI builds one deterministic in-memory fixture per section and checks those
   pages across the sitemap, feed and `llms.txt`. It needs no `DATABASE_URL`, and
   publishing never requires a repository change.
