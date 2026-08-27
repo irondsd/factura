@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { AuthorRef } from "@/content-system/authors/types";
 import { depthOf } from "@/content-system/hierarchy";
 import { cn } from "@/lib/cn";
 import { formatContentDateTimeShort } from "@/lib/content-date";
+import { resolveColumnOrder } from "../columnPreferences";
 import { actorLabel, type HistoryActor } from "../history";
 import {
   cmsListHref,
@@ -16,6 +20,7 @@ import { cmsEditPath, publicSectionPath } from "../sections";
 import type { CmsContentSummary } from "../types";
 import { CmsIcon } from "../icons";
 import { StatusChip, WorkingCopyIndicator } from "./StatusChip";
+import { useContentColumnPreferences } from "./useContentColumnPreferences";
 
 // A section's pages, as the tree rather than a flat list.
 //
@@ -34,16 +39,25 @@ export function ContentList({
 }: {
   section: CmsSection;
   pages: readonly CmsContentSummary[];
-  /** The accounts behind `createdBy`/`updatedBy`, resolved by the route. */
-  actors: ReadonlyMap<string, HistoryActor>;
+  /** The accounts behind `createdBy`/`updatedBy`, resolved by the route. An
+   * entry array keeps this client boundary serializable. */
+  actors: readonly (readonly [string, HistoryActor])[];
   /** The credited people behind `authorId`/`factCheckerId`, resolved by the
    * route. An id nothing matches is simply absent, and the row then credits
-   * nobody — the same answer as a page that never named one. */
-  authors: ReadonlyMap<string, AuthorRef>;
+   * nobody — the same answer as a page that never named one. Entry arrays keep
+   * this client boundary serializable. */
+  authors: readonly (readonly [string, AuthorRef])[];
   basePath: string;
   query: CmsListQuery;
   emptyMessage: string;
 }) {
+  const preferences = useContentColumnPreferences(section.id);
+  const actorMap = new Map(actors);
+  const authorMap = new Map(authors);
+  const visibleColumnIds = resolveColumnOrder(section.id, preferences).filter(
+    (columnId) => !preferences.hidden.includes(columnId),
+  );
+
   if (pages.length === 0) {
     return (
       <p className="font-mono text-[14px] leading-[1.7] text-muted border border-line border-dashed px-5 py-8 text-center">
@@ -64,6 +78,7 @@ export function ContentList({
     className?: string,
   ) => (
     <SortableTh
+      key={column}
       href={cmsListHref(basePath, {
         ...query,
         sort: toggleSort(query.sort, column),
@@ -75,6 +90,91 @@ export function ContentList({
     />
   );
 
+  const renderHeader = (columnId: string): ReactNode => {
+    switch (columnId) {
+      case "page":
+        return <Th key={columnId}>Página</Th>;
+      case "status":
+        // Wide enough for «Vista previa» on one line: the fixed layout hands
+        // each column exactly what is declared here, and a status that wraps
+        // makes its row taller than every other cell in it.
+        return (
+          <Th key={columnId} className="cms-column-status w-[150px]">
+            Estado
+          </Th>
+        );
+      case "credits":
+        // Not sortable: grouping a section around one credited person is a
+        // filter someone would want, not an order the header should offer.
+        return (
+          <Th
+            key={columnId}
+            className="cms-column-credits w-[190px] hidden lg:table-cell"
+          >
+            Créditos
+          </Th>
+        );
+      case "created":
+        return sortHeader("creada", "Creada", "cms-column-created");
+      case "updated":
+        return sortHeader("editada", "Última edición", "cms-column-updated");
+      default:
+        // A future registry entry can be added before its cell renderer is
+        // shipped. Omitting only that unknown cell keeps the rest of the list
+        // usable instead of making saved layout data fatal.
+        return null;
+    }
+  };
+
+  const renderCell = (page: CmsContentSummary, columnId: string): ReactNode => {
+    switch (columnId) {
+      case "page":
+        return <PageCell key={columnId} page={page} section={section} />;
+      case "status":
+        return (
+          <td key={columnId} className="cms-column-status py-3 pr-4 align-top">
+            <StatusChip status={page.status} />
+            {/* A saved working copy is distinct from the page's lifecycle
+                status. Draft pages already say "Borrador" above; the extra
+                line is for a published/preview page whose newer copy is not
+                public yet. */}
+            {page.hasWip && page.status !== "draft" && <WorkingCopyIndicator />}
+          </td>
+        );
+      case "credits":
+        return (
+          <Credits
+            key={columnId}
+            metadata={page.metadata}
+            authors={authorMap}
+          />
+        );
+      case "created":
+        return (
+          <Stamp
+            key={columnId}
+            at={page.createdAt}
+            by={page.createdBy}
+            actors={actorMap}
+            className="cms-column-created"
+          />
+        );
+      case "updated":
+        return (
+          <Stamp
+            key={columnId}
+            at={page.updatedAt}
+            by={page.updatedBy}
+            actors={actorMap}
+            last
+            className="cms-column-updated"
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     // Fixed layout, so the title column is whatever is left over rather than
     // whatever the longest title asks for. Without it a cell cannot be
@@ -83,99 +183,60 @@ export function ContentList({
     // of clipping — which is how the titles came to wrap onto three lines.
     <table className="w-full table-fixed border-collapse font-mono text-[13px]">
       <thead>
-        <tr>
-          <Th>Página</Th>
-          {/* Wide enough for «Vista previa» on one line: the fixed layout
-              hands each column exactly what is declared here, and a status that
-              wraps makes its row taller than every other cell in it. */}
-          <Th className="cms-column-status w-[150px]">Estado</Th>
-          {/* Not sortable, and not for want of a comparator: sorting a list by
-              who signed it groups a section around one name, which is a filter
-              someone would want, not an order. The header stays a plain label
-              rather than offering an arrow it would answer badly. */}
-          <Th className="cms-column-credits w-[190px] hidden lg:table-cell">
-            Créditos
-          </Th>
-          {sortHeader("creada", "Creada", "cms-column-created")}
-          {sortHeader("editada", "Última edición", "cms-column-updated")}
-        </tr>
+        <tr>{visibleColumnIds.map(renderHeader)}</tr>
       </thead>
       <tbody>
         {ordered.map((page) => (
           <tr key={page.id} className="border-b border-line/60">
-            <td className="py-3 pr-4 align-top">
-              {/* Indented by path depth, so a hub and its children read as a
-                  tree without a second column of tree glyphs. */}
-              <span
-                style={{ paddingLeft: `${(depthOf(page.slug) - 1) * 18}px` }}
-                className="block"
-              >
-                {/* One line each from `md` up, clipped with an ellipsis: a
-                    wrapped title pushed its row to three lines and pulled every
-                    other column in it out of alignment, which cost more
-                    scanning than the tail of a long title was worth. Both carry
-                    the full text as a tooltip — `title` is the only mechanism
-                    the browser offers, so it shows whether or not anything was
-                    actually clipped.
-
-                    Below `md` they wrap instead. That is the one width where
-                    the title column is narrow *and* there is no pointer to
-                    hover with, so clipping there would hide the text outright
-                    rather than fold it away. */}
-                <Link
-                  href={cmsEditPath(section.id, page.id)}
-                  title={page.title || undefined}
-                  className="block overflow-hidden text-ellipsis md:whitespace-nowrap text-ink no-underline hover:text-accent"
-                >
-                  {page.title || <em className="text-muted">Sin título</em>}
-                </Link>
-                <span
-                  title={`${publicSectionPath(section.id)}/${page.slug}`}
-                  className="block overflow-hidden text-ellipsis md:whitespace-nowrap text-muted text-[12px] mt-0.5"
-                >
-                  {publicSectionPath(section.id)}/{page.slug}
-                </span>
-                {/* A row whose stored metadata no longer matches its schema.
-                    It still lists and still opens — that is the whole point of
-                    the CMS's lenient read — but it says so, because its fields
-                    will look empty in the editor and that would otherwise read
-                    as data loss rather than as a page needing repair. */}
-                {page.metadataError && (
-                  <span className="block text-[var(--vendor-ochre)] text-[12px] mt-0.5">
-                    Metadatos ilegibles — abre la página para volver a
-                    completarlos.
-                  </span>
-                )}
-              </span>
-            </td>
-            <td className="cms-column-status py-3 pr-4 align-top">
-              <StatusChip status={page.status} />
-              {/* A saved working copy is distinct from the page's lifecycle
-                  status. Draft pages already say "Borrador" above; the extra
-                  line is for a published/preview page whose newer copy is not
-                  public yet. */}
-              {page.hasWip && page.status !== "draft" && (
-                <WorkingCopyIndicator />
-              )}
-            </td>
-            <Credits metadata={page.metadata} authors={authors} />
-            <Stamp
-              at={page.createdAt}
-              by={page.createdBy}
-              actors={actors}
-              className="cms-column-created"
-            />
-            <Stamp
-              at={page.updatedAt}
-              by={page.updatedBy}
-              actors={actors}
-              last
-              className="cms-column-updated"
-            />
+            {visibleColumnIds.map((columnId) => renderCell(page, columnId))}
           </tr>
         ))}
       </tbody>
     </table>
+  );
+}
+
+function PageCell({
+  page,
+  section,
+}: {
+  page: CmsContentSummary;
+  section: CmsSection;
+}) {
+  return (
+    <td className="py-3 pr-4 align-top">
+      {/* Indented by path depth, so a hub and its children read as a tree
+          without a second column of tree glyphs. */}
+      <span
+        style={{ paddingLeft: `${(depthOf(page.slug) - 1) * 18}px` }}
+        className="block"
+      >
+        {/* One line each from `md` up, clipped with an ellipsis: a wrapped title
+            pushed its row to three lines and pulled every other column in it
+            out of alignment. Below `md` they wrap instead, where clipping
+            would hide text outright on a narrow screen. */}
+        <Link
+          href={cmsEditPath(section.id, page.id)}
+          title={page.title || undefined}
+          className="block overflow-hidden text-ellipsis md:whitespace-nowrap text-ink no-underline hover:text-accent"
+        >
+          {page.title || <em className="text-muted">Sin título</em>}
+        </Link>
+        <span
+          title={`${publicSectionPath(section.id)}/${page.slug}`}
+          className="block overflow-hidden text-ellipsis md:whitespace-nowrap text-muted text-[12px] mt-0.5"
+        >
+          {publicSectionPath(section.id)}/{page.slug}
+        </span>
+        {/* A row whose stored metadata no longer matches its schema still
+            lists and opens, but says so instead of reading like data loss. */}
+        {page.metadataError && (
+          <span className="block text-[var(--vendor-ochre)] text-[12px] mt-0.5">
+            Metadatos ilegibles — abre la página para volver a completarlos.
+          </span>
+        )}
+      </span>
+    </td>
   );
 }
 

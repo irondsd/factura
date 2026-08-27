@@ -121,8 +121,8 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
         <ContentList
           section={section}
           pages={pages}
-          actors={actors}
-          authors={authors}
+          actors={Array.from(actors.entries())}
+          authors={Array.from(authors.entries())}
           basePath={cmsSectionPath(section.id)}
           query={query}
           emptyMessage={

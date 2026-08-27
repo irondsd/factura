@@ -1,53 +1,18 @@
 "use client";
 
-import {
-  useCallback,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from "react";
+import { useState, type ReactNode } from "react";
 import type { ContentSection } from "@/content-system/types";
 import { cn } from "@/lib/cn";
 import { CmsModal, DialogCancel } from "./CmsDialog";
 import { CmsIcon } from "../icons";
-
-const OPTIONAL_COLUMNS = [
-  { id: "status", label: "Estado" },
-  { id: "credits", label: "Créditos" },
-  { id: "created", label: "Creada" },
-  { id: "updated", label: "Última edición" },
-] as const;
-
-type OptionalColumn = (typeof OPTIONAL_COLUMNS)[number]["id"];
-
-const columnIds = new Set<OptionalColumn>(
-  OPTIONAL_COLUMNS.map((column) => column.id),
-);
-
-const PREFERENCES_CHANGED_EVENT = "factura:cms-columns-changed";
-const memoryPreferences = new Map<ContentSection, string>();
-const serverSnapshot = () => null;
-
-export function columnSettingsStorageKey(section: ContentSection) {
-  return `factura.cms.columns.${section}`;
-}
-
-/** Stored preferences are deliberately a list of hidden columns. A column
- * introduced after the preference was saved is therefore visible by default. */
-export function parseHiddenColumns(value: string | null): OptionalColumn[] {
-  if (!value) return [];
-
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item): item is OptionalColumn =>
-        typeof item === "string" && columnIds.has(item as OptionalColumn),
-    );
-  } catch {
-    return [];
-  }
-}
+import {
+  contentColumnsForSection,
+  moveContentColumn,
+  resolveColumnOrder,
+  saveColumnPreferences,
+  type ColumnMoveDirection,
+} from "../columnPreferences";
+import { useContentColumnPreferences } from "./useContentColumnPreferences";
 
 export function ContentColumnSettings({
   section,
@@ -61,50 +26,30 @@ export function ContentColumnSettings({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-
-  const subscribe = useCallback((notify: () => void) => {
-    window.addEventListener("storage", notify);
-    window.addEventListener(PREFERENCES_CHANGED_EVENT, notify);
-    return () => {
-      window.removeEventListener("storage", notify);
-      window.removeEventListener(PREFERENCES_CHANGED_EVENT, notify);
-    };
-  }, []);
-
-  const getSnapshot = useCallback(() => {
-    try {
-      return (
-        localStorage.getItem(columnSettingsStorageKey(section)) ??
-        memoryPreferences.get(section) ??
-        null
-      );
-    } catch {
-      return memoryPreferences.get(section) ?? null;
-    }
-  }, [section]);
-
-  const storedPreference = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    serverSnapshot,
+  const preferences = useContentColumnPreferences(section);
+  const orderedColumns = resolveColumnOrder(section, preferences);
+  const definitions = contentColumnsForSection(section);
+  const definitionById = new Map<string, (typeof definitions)[number]>(
+    definitions.map((column) => [column.id, column]),
   );
-  const hiddenColumns = parseHiddenColumns(storedPreference);
 
-  const toggleColumn = (column: OptionalColumn) => {
-    const next = hiddenColumns.includes(column)
-      ? hiddenColumns.filter((item) => item !== column)
-      : [...hiddenColumns, column];
-    const serialized = JSON.stringify(next);
+  const toggleColumn = (columnId: string) => {
+    const nextHidden = preferences.hidden.includes(columnId)
+      ? preferences.hidden.filter((item) => item !== columnId)
+      : [...preferences.hidden, columnId];
 
-    // Keep an in-memory copy too: storage can be unavailable in a locked-down
-    // browser, but the choice should still apply for the current visit.
-    memoryPreferences.set(section, serialized);
-    try {
-      localStorage.setItem(columnSettingsStorageKey(section), serialized);
-    } catch {
-      // Persistence is the only part lost when local storage is unavailable.
-    }
-    window.dispatchEvent(new Event(PREFERENCES_CHANGED_EVENT));
+    saveColumnPreferences(section, {
+      version: preferences.version,
+      hidden: nextHidden,
+      placements: { ...preferences.placements },
+    });
+  };
+
+  const moveColumn = (columnId: string, direction: ColumnMoveDirection) => {
+    saveColumnPreferences(
+      section,
+      moveContentColumn(section, preferences, columnId, direction),
+    );
   };
 
   return (
@@ -122,16 +67,7 @@ export function ContentColumnSettings({
         </button>
       </div>
 
-      <div
-        className={cn(
-          hiddenColumns.includes("status") && "[&_.cms-column-status]:hidden",
-          hiddenColumns.includes("credits") && "[&_.cms-column-credits]:hidden",
-          hiddenColumns.includes("created") && "[&_.cms-column-created]:hidden",
-          hiddenColumns.includes("updated") && "[&_.cms-column-updated]:hidden",
-        )}
-      >
-        {children}
-      </div>
+      {children}
 
       {open && (
         <CmsModal
@@ -140,20 +76,30 @@ export function ContentColumnSettings({
           onClose={() => setOpen(false)}
         >
           <p className="mt-3 mb-0 font-mono text-[13px] leading-[1.6] text-muted">
-            Esta selección se guarda en este navegador solo para {sectionLabel}.
+            Usa las flechas para cambiar el orden. Esta selección se guarda en
+            este navegador solo para {sectionLabel}.
           </p>
 
           <fieldset className="mt-5 border-0 p-0">
             <legend className="sr-only">Columnas de la tabla</legend>
-            <ColumnChoice label="Página" checked disabled />
-            {OPTIONAL_COLUMNS.map((column) => (
-              <ColumnChoice
-                key={column.id}
-                label={column.label}
-                checked={!hiddenColumns.includes(column.id)}
-                onChange={() => toggleColumn(column.id)}
-              />
-            ))}
+            {orderedColumns.map((columnId, index) => {
+              const column = definitionById.get(columnId);
+              if (!column) return null;
+
+              return (
+                <ColumnChoice
+                  key={column.id}
+                  label={column.label}
+                  checked={!preferences.hidden.includes(column.id)}
+                  disabled={column.locked === true}
+                  canMoveUp={index > 1}
+                  canMoveDown={index < orderedColumns.length - 1}
+                  onChange={() => toggleColumn(column.id)}
+                  onMoveUp={() => moveColumn(column.id, "up")}
+                  onMoveDown={() => moveColumn(column.id, "down")}
+                />
+              );
+            })}
           </fieldset>
 
           <div className="mt-6 flex">
@@ -169,33 +115,72 @@ function ColumnChoice({
   label,
   checked,
   disabled = false,
+  canMoveUp = false,
+  canMoveDown = false,
   onChange,
+  onMoveUp,
+  onMoveDown,
 }: {
   label: string;
   checked: boolean;
   disabled?: boolean;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
   onChange?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }) {
   return (
-    <label
+    <div
       className={cn(
         "flex min-h-11 items-center gap-3 border-b border-line/70 py-2 font-mono text-[13px] first:border-t",
-        disabled ? "cursor-not-allowed text-muted" : "cursor-pointer text-ink",
+        disabled ? "text-muted" : "text-ink",
       )}
     >
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={onChange}
-        className="size-4 accent-[var(--accent)]"
-      />
-      <span>{label}</span>
+      <label
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-3",
+          disabled ? "cursor-not-allowed" : "cursor-pointer",
+        )}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={disabled}
+          onChange={onChange}
+          className="size-4 accent-[var(--accent)]"
+        />
+        <span>{label}</span>
+      </label>
       {disabled && (
         <span className="ml-auto text-micro uppercase tracking-label-wide opacity-70">
           Siempre visible
         </span>
       )}
-    </label>
+      {!disabled && (
+        <div className="ml-auto flex flex-col shrink-0 items-center">
+          <button
+            type="button"
+            onClick={onMoveUp}
+            disabled={!canMoveUp}
+            aria-label={`Subir ${label}`}
+            title={`Subir ${label}`}
+            className="cursor-pointer w-10 h-5 inline-flex items-center justify-center border border-transparent text-muted transition-colors hover:border-accent hover:text-accent focus-visible:border-accent focus-visible:text-accent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <CmsIcon name="arrowUp" size="xs" />
+          </button>
+          <button
+            type="button"
+            onClick={onMoveDown}
+            disabled={!canMoveDown}
+            aria-label={`Bajar ${label}`}
+            title={`Bajar ${label}`}
+            className="cursor-pointer w-10 h-5 inline-flex items-center justify-center border border-transparent text-muted transition-colors hover:border-accent hover:text-accent focus-visible:border-accent focus-visible:text-accent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <CmsIcon name="arrowDown" size="xs" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

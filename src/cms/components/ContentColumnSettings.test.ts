@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   columnSettingsStorageKey,
   parseHiddenColumns,
-} from "./ContentColumnSettings";
+} from "../columnPreferences";
 
 describe("content column settings", () => {
   it("uses an independent storage key for each section", () => {
