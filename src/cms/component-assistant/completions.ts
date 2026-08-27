@@ -18,6 +18,7 @@ import type {
   ComponentRecipeDescriptor,
 } from "./types";
 import { COMPONENT_AUTHORING_GROUPS } from "./types";
+import styles from "./CompletionTooltip.module.css";
 
 export const COMPONENT_ASSISTANT_SHORTCUT = "Mod-Shift-k";
 
@@ -476,7 +477,7 @@ export function shortcutHint(platform?: string): string {
 
 function completionHelpElement(text: string): HTMLElement {
   const element = document.createElement("div");
-  element.className = "cms-completion-help";
+  element.className = styles.help;
   const pre = document.createElement("pre");
   pre.textContent = text;
   element.appendChild(pre);
@@ -489,13 +490,13 @@ function sectionHeader(
   platform?: string,
 ): HTMLElement {
   const element = document.createElement("div");
-  element.className = "cms-completion-section-header";
+  element.className = styles.sectionHeader;
   const title = document.createElement("span");
   title.textContent = name;
   element.appendChild(title);
   if (withHint) {
     const hint = document.createElement("span");
-    hint.className = "cms-completion-shortcut";
+    hint.className = styles.shortcut;
     hint.textContent = shortcutHint(platform);
     element.appendChild(hint);
   }

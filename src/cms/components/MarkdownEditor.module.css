@@ -1,0 +1,7 @@
+/* The CodeMirror host. Everything inside it is styled by the editor's own
+   `EditorView.theme`, which is where CodeMirror expects its rules; this is only
+   the box the view is mounted into. */
+.editor {
+  position: relative;
+  min-width: 0;
+}
