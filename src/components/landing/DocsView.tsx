@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Eyebrow } from "@/components/landing/parts";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 
 // Public docs. A sticky table of contents on the left, one article on the right,
 // switched client-side with the URL hash as the address (so /docs#first-bill
 // deep-links straight to a page — the FAQ relies on that). Content is real, not
 // stubbed: it tracks how the app actually behaves, and lives in the dictionary
-// (t.docs.items) so it translates with the rest of the site. Article bodies are
+// (t.items) so it translates with the rest of the site. Article bodies are
 // trusted, author-controlled HTML strings; the <article> container below carries
 // the prose styling via descendant selectors, so the HTML stays class-free.
 
@@ -36,8 +36,8 @@ const PROSE = cn(
 );
 
 export function DocsView() {
-  const { t } = useI18n();
-  const docs = t.docs.items;
+  const t = useT("docs");
+  const docs = t.items;
 
   const [current, setCurrent] = useState(docs[0].id);
 
@@ -87,7 +87,7 @@ export function DocsView() {
       {/* ── Table of contents ── */}
       <aside className="md:sticky md:top-[84px]">
         <div className="mb-[18px]">
-          <Eyebrow tone="accent">{t.docs.tocEyebrow}</Eyebrow>
+          <Eyebrow tone="accent">{t.tocEyebrow}</Eyebrow>
         </div>
         <nav>
           {groups.map((g) => (
@@ -141,7 +141,7 @@ export function DocsView() {
               onClick={() => select(prev.id, true)}
               className="bg-transparent border-none cursor-pointer text-left font-mono text-[13px] text-muted transition-colors hover:text-accent"
             >
-              <span className={PAGER_LABEL}>{t.docs.prev}</span>
+              <span className={PAGER_LABEL}>{t.prev}</span>
               {prev.title}
             </button>
           ) : (
@@ -153,7 +153,7 @@ export function DocsView() {
               onClick={() => select(next.id, true)}
               className="ml-auto bg-transparent border-none cursor-pointer text-right font-mono text-[13px] text-muted transition-colors hover:text-accent"
             >
-              <span className={PAGER_LABEL}>{t.docs.next}</span>
+              <span className={PAGER_LABEL}>{t.next}</span>
               {next.title}
             </button>
           )}

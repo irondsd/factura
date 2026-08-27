@@ -3,7 +3,7 @@
 import { type FormEvent, useState } from "react";
 import { Button, Input, microLabel, hint } from "@/components/ui";
 import { FIELD_BASE } from "@/components/ui/styles";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { REPORT_MESSAGE_MAX } from "@/lib/probar";
 import { Modal } from "./Modal";
@@ -29,8 +29,8 @@ export function ReportDialog({
   onSubmit: (message: string, email: string) => Promise<void>;
   onClose: () => void;
 }) {
-  const { t } = useI18n();
-  const p = t.probar;
+  const t = useT("probar");
+  const p = t;
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);

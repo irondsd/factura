@@ -41,6 +41,10 @@ export default async function AppRootLayout({
       className={`${fraunces.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* The whole dictionary, unlike the public site: every route under
+            here is `force-dynamic`, so this payload is rendered per request and
+            never stored, and the app's screens between them read most of the
+            file anyway. */}
         <I18nProvider locale={locale} dictionary={dictionary}>
           <Providers>{children}</Providers>
         </I18nProvider>

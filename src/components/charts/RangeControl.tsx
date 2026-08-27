@@ -12,7 +12,7 @@ import {
   SegmentedControl,
   type SegmentedOption,
 } from "@/components/ui/SegmentedControl";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatMonthShort } from "@/lib/format";
 import { useMediaQuery } from "@/lib/useMediaQuery";
@@ -69,9 +69,10 @@ export function RangeControl({
   onChange: (win: InsightsWindow) => void;
   className?: string;
 }) {
-  const { t, locale } = useI18n();
+  const t = useT("insights");
+  const locale = useLocale();
   const narrow = useMediaQuery(NARROW);
-  const ti = t.insights;
+  const ti = t;
   const n = span.length;
   const den = Math.max(1, n - 1);
 

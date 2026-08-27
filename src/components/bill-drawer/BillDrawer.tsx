@@ -5,7 +5,7 @@ import { useState } from "react";
 import posthog from "posthog-js";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Badge, Button, FinePrint, microLabel } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatMonth } from "@/lib/format";
 import { trpc } from "@/lib/trpc";
@@ -41,8 +41,9 @@ export function BillDrawer({
   onToast: (text: string) => void;
 }) {
   const router = useRouter();
-  const { t, locale } = useI18n();
-  const tb = t.billDrawer;
+  const tb = useT("billDrawer");
+  const tCommon = useT("common");
+  const locale = useLocale();
   const utils = trpc.useUtils();
   const billQuery = trpc.bills.get.useQuery(
     { id: billId! },
@@ -308,7 +309,7 @@ export function BillDrawer({
                 onClick={() => setConfirmingDelete(true)}
                 disabled={deleteBill.isPending}
               >
-                {t.common.delete}
+                {tCommon.delete}
               </Button>
             </div>
 

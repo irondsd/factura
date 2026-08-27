@@ -4,7 +4,7 @@ import { type ComponentType, useMemo, useState } from "react";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Badge, Button, FilterPill, Select } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatARS, formatMonthShort, formatUSD } from "@/lib/format";
 import { useToast } from "@/lib/toast";
@@ -45,8 +45,10 @@ export function BillsView({
   propertyId?: string;
 }) {
   const { showToast } = useToast();
-  const { t, locale } = useI18n();
-  const tb = t.bills;
+  const tb = useT("bills");
+  const tCommon = useT("common");
+  const tNav = useT("nav");
+  const locale = useLocale();
   // The bill-editor drawer is local to this screen — it's the only place bills
   // are opened from.
   const [openBillId, setOpenBillId] = useState<string | null>(null);
@@ -86,7 +88,7 @@ export function BillsView({
     [vendors],
   );
   const vendorName = (id: string | null) =>
-    id ? (vendorById.get(id)?.displayName ?? "—") : t.common.unrecognized;
+    id ? (vendorById.get(id)?.displayName ?? "—") : tCommon.unrecognized;
   const propName = (id: string | null) =>
     (properties ?? []).find((p) => p.id === id)?.nickname ?? "—";
 
@@ -98,8 +100,8 @@ export function BillsView({
   return (
     <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
       <Eyebrow>
-        {t.nav.bills} ·{" "}
-        {propertyId ? propName(propertyId) : t.common.allProperties}
+        {tNav.bills} ·{" "}
+        {propertyId ? propName(propertyId) : tCommon.allProperties}
       </Eyebrow>
       <Display as="h1" size={34} className="block mt-1.5">
         {tb.title}
@@ -107,7 +109,7 @@ export function BillsView({
 
       <div className="flex flex-wrap gap-1.5 mt-[18px] border-b border-line pb-3">
         <FilterPill
-          label={t.common.allVendors}
+          label={tCommon.allVendors}
           active={vendorId === "all"}
           onClick={() => setVendorId("all")}
         />
@@ -170,7 +172,7 @@ export function BillsView({
                   )}
                   <td className="fd-td text-right font-medium">
                     {review ? (
-                      <Badge>{t.common.needsReview}</Badge>
+                      <Badge>{tCommon.needsReview}</Badge>
                     ) : (
                       formatARS(b.totalAmount)
                     )}

@@ -4,7 +4,7 @@ import posthog from "posthog-js";
 import { useState } from "react";
 import { Badge, Button } from "@/components/ui";
 import type { Locale } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatARS, formatMonth } from "@/lib/format";
 import { trpc } from "@/lib/trpc";
@@ -26,8 +26,9 @@ export function SelectParserModal({
   onAdopted: () => void;
   onBuildOwn: () => void;
 }) {
-  const { t, locale } = useI18n();
-  const tb = t.billDrawer;
+  const tb = useT("billDrawer");
+  const tCommon = useT("common");
+  const locale = useLocale();
   const suggestions = trpc.parsers.suggestForBill.useQuery(
     { billId: billId! },
     { enabled: Boolean(billId) },
@@ -106,7 +107,7 @@ export function SelectParserModal({
             onClick={onClose}
             disabled={Boolean(busyId)}
           >
-            {tb.close}
+            {tCommon.close}
           </Button>
         </div>
       </div>
@@ -127,8 +128,8 @@ function SuggestionCard({
   disabled: boolean;
   onAdopt: () => void;
 }) {
-  const { t } = useI18n();
-  const tb = t.billDrawer;
+  const tCommon = useT("common");
+  const tb = useT("billDrawer");
   const rows: { label: string; value: string }[] = [];
   if (s.result) {
     rows.push({ label: tb.account, value: s.result.identity });
@@ -172,7 +173,7 @@ function SuggestionCard({
           onClick={onAdopt}
           disabled={disabled}
         >
-          {busy ? t.common.working : tb.selectParserAdopt}
+          {busy ? tCommon.working : tb.selectParserAdopt}
         </Button>
       </div>
 

@@ -7,7 +7,7 @@ import { Display, Eyebrow } from "@/components/charts/primitives";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Badge, Bone, Button } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { formatDate, formatRelativeTime } from "@/lib/format";
 import { useToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
@@ -18,8 +18,9 @@ const card = "border border-line bg-card p-[18px] mb-3";
 const meta = "font-mono text-micro text-muted mt-1";
 
 export default function SessionsPage() {
-  const { t, locale } = useI18n();
-  const ts = t.sessions;
+  const t = useT("sessions");
+  const locale = useLocale();
+  const ts = t;
   const { opts } = useToast();
   const utils = trpc.useUtils();
 

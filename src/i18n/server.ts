@@ -14,7 +14,7 @@ export async function getLocale(): Promise<Locale> {
   return isLocale(value) ? value : defaultLocale;
 }
 
-// Server-component counterpart of the client `useI18n()` hook. Resolves the
+// Server-component counterpart of the client `useT()` hook. Resolves the
 // locale + dictionary for the current render. `cache` dedupes within a single
 // render, so any number of server components can call this freely.
 //

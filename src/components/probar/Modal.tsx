@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Button, microLabel } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 
 /** The overlay both /probar dialogs sit in: the extracted text and the "you read
@@ -32,7 +32,7 @@ export function Modal({
   /** Max panel width in px; the text dialog is wider than the report form. */
   width?: number;
 }) {
-  const { t } = useI18n();
+  const t = useT("probar");
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export function Modal({
           stopPropagation on the panel. */}
       <button
         type="button"
-        aria-label={t.probar.close}
+        aria-label={t.close}
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-[color-mix(in_srgb,var(--ink)_30%,transparent)]"
       />
@@ -90,7 +90,7 @@ export function Modal({
             type="button"
             variant="icon"
             onClick={onClose}
-            aria-label={t.probar.close}
+            aria-label={t.close}
             className="-mt-1 -mr-1"
           >
             ✕

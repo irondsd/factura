@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import posthog from "posthog-js";
 import { useBillIngest } from "@/components/BillIngestProvider";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { SHARE_PARAM, takeSharedFiles } from "@/lib/shareTarget";
 import { useToasts } from "@/providers/ToastProvider";
 
@@ -18,7 +18,7 @@ export function ShareTargetReceiver() {
   const router = useRouter();
   const { handleFiles } = useBillIngest();
   const { showToast } = useToasts();
-  const { t } = useI18n();
+  const t = useT("drop");
   const fired = useRef(false);
 
   const shareId = params.get(SHARE_PARAM);
@@ -43,7 +43,7 @@ export function ShareTargetReceiver() {
         // subtree does, and we're plainly signed in, so a retry works. (A share
         // that arrived with no session never gets this far: the worker sends it
         // to /login instead, having written nothing.)
-        showToast(t.drop.shareFailed);
+        showToast(t.shareFailed);
         return;
       }
       await handleFiles(files);

@@ -14,7 +14,7 @@ import posthog from "posthog-js";
 import { BillIngestProvider } from "@/components/BillIngestProvider";
 import { DropOverlay } from "@/components/DropOverlay";
 import { UploadFab } from "@/components/UploadFab";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { loginHref } from "@/lib/nextPath";
 import { trpc } from "@/lib/trpc";
 import { AppFooter } from "./AppFooter";
@@ -114,7 +114,7 @@ function AppChrome({
 export function AppShell({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { t } = useI18n();
+  const t = useT("app");
 
   // Signed out → leave the app for the public login flow, carrying the page
   // that was asked for so signing in returns to it. Without this, a shared
@@ -141,11 +141,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [status, session]);
 
   if (status === "loading" || status === "unauthenticated" || !session?.user) {
-    return <LoadingScreen label={t.app.loading} />;
+    return <LoadingScreen label={t.loading} />;
   }
 
   return (
-    <Suspense fallback={<LoadingScreen label={t.app.loading} />}>
+    <Suspense fallback={<LoadingScreen label={t.loading} />}>
       <AppChrome user={session.user}>{children}</AppChrome>
     </Suspense>
   );

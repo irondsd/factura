@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { Input, hint, microLabel, tabClass } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { ValueChip } from "./cards";
 import { REGEX_RECIPES, recipeMatch, testerMatches } from "./recipes";
@@ -18,8 +18,8 @@ export function RegexToolkit({
   text: string;
   onCopy: (pattern: string) => void;
 }) {
-  const { t } = useI18n();
-  const tk = t.builder.toolkit;
+  const t = useT("builder");
+  const tk = t.toolkit;
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"recipes" | "tester">("recipes");
   const [pattern, setPattern] = useState("");

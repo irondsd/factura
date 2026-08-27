@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Input, microLabel, hint } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { VENDOR_GUESS_MAX } from "@/lib/probar";
 import * as analytics from "./analytics";
@@ -30,8 +30,8 @@ export function VendorGuessField({
   submissionId: string;
   onSave: (submissionId: string, vendor: string) => Promise<void>;
 }) {
-  const { t } = useI18n();
-  const p = t.probar;
+  const t = useT("probar");
+  const p = t;
   const [value, setValue] = useState("");
   const [saved, setSaved] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);

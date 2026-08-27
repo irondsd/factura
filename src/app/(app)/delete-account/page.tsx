@@ -7,7 +7,7 @@ import posthog from "posthog-js";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Button, Checkbox, ErrorBox, Select } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { trpc, type RouterOutputs } from "@/lib/trpc";
 
@@ -41,8 +41,8 @@ const messageOf = (e: unknown) =>
 export default function DeleteAccountPage() {
   const router = useRouter();
   const { status } = useSession();
-  const { t } = useI18n();
-  const td = t.deleteAccount;
+  const t = useT("deleteAccount");
+  const td = t;
 
   const [phase, setPhase] = useState<"review" | "running" | "done">("review");
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
@@ -473,8 +473,8 @@ function PropertyCard({
   decision?: Decision;
   onDecide: (d: Decision) => void;
 }) {
-  const { t } = useI18n();
-  const td = t.deleteAccount;
+  const t = useT("deleteAccount");
+  const td = t;
   const fateText = {
     destroy: td.fateDestroy,
     choose: td.fateChoose,

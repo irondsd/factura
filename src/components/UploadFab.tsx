@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useRef } from "react";
 import { useBillIngest } from "@/components/BillIngestProvider";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 
 // Routes where the upload button rides along. Drag-and-drop covers wide
 // screens everywhere; narrow screens can't drag, so they get a tap target.
@@ -19,7 +19,7 @@ const FAB_ROUTES = new Set([
  * overlay. */
 export function UploadFab() {
   const pathname = usePathname();
-  const { t } = useI18n();
+  const t = useT("drop");
   const { handleFiles, busy } = useBillIngest();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,8 +43,8 @@ export function UploadFab() {
         type="button"
         onClick={() => fileInputRef.current?.click()}
         disabled={busy}
-        aria-label={t.drop.uploadBill}
-        title={t.drop.uploadBill}
+        aria-label={t.uploadBill}
+        title={t.uploadBill}
         className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-accent bg-accent text-paper shadow-pop transition active:scale-95 disabled:opacity-60 md:hidden"
       >
         <svg

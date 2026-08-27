@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { useBillIngest } from "@/components/BillIngestProvider";
 import { ChartCard, Display, Eyebrow } from "@/components/charts";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 
 /** First-run Overview for a signed-in user with no bills yet. A welcome message
  * and a click-to-upload drop zone sit above a dimmed, non-interactive preview of
@@ -15,9 +15,9 @@ const DOTS =
   "[background-image:radial-gradient(color-mix(in_srgb,var(--line)_75%,transparent)_1px,transparent_1px)] [background-size:20px_20px]";
 
 export function WelcomeOverview() {
-  const { t } = useI18n();
-  const tw = t.overview.welcome;
-  const to = t.overview;
+  const tApp = useT("app");
+  const to = useT("overview");
+  const tw = to.welcome;
   const { handleFiles, busy } = useBillIngest();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,7 +78,7 @@ export function WelcomeOverview() {
             <path d="M3 19l7 7 7-7" />
           </svg>
           <span className="font-display text-3xl font-semibold tracking-tight text-ink">
-            {busy ? t.app.loading : tw.dropTitle}
+            {busy ? tApp.loading : tw.dropTitle}
           </span>
           <span className="max-w-[44ch] font-mono text-[13px] leading-[1.6] text-muted">
             {tw.dropDesc}

@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { useBillIngest } from "@/components/BillIngestProvider";
 import { useWindowFileDrop } from "@/components/useWindowFileDrop";
 
@@ -11,9 +11,9 @@ export function DropOverlay() {
   // The builder page has its own dropzone (drop bills to test against), so the
   // global ingest-on-drop must stand down there.
   const pathname = usePathname();
-  const { t } = useI18n();
+  const t = useT("drop");
   const { handleFiles } = useBillIngest();
-  const td = t.drop;
+  const td = t;
   const disabled = pathname?.startsWith("/app/builder") ?? false;
   const dragging = useWindowFileDrop({ onFiles: handleFiles, disabled });
 

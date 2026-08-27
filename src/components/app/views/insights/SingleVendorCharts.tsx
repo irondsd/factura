@@ -10,7 +10,7 @@ import {
 } from "@/components/charts";
 import { Button, FinePrint } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { downloadTextFile, slugForFilename, toCsv } from "@/lib/csv";
 import { formatMoney } from "@/lib/format";
@@ -41,8 +41,8 @@ export function SingleVendorCharts({
 }: {
   data: VendorDetail | null | undefined;
 }) {
-  const { t } = useI18n();
-  const ti = t.insights;
+  const t = useT("insights");
+  const ti = t;
   const spend = useChartCurrency();
 
   if (!d) {
@@ -136,7 +136,7 @@ function CustomFieldCharts({
   months: string[];
   color: string;
 }) {
-  const { t } = useI18n();
+  const t = useT("insights");
   const money = useChartCurrency();
   const isQuantity = field.type === "quantity";
   // Money fields follow their own currency toggle; quantities/numbers show raw
@@ -170,22 +170,22 @@ function CustomFieldCharts({
 
       {isQuantity && field.unitPrice && (
         <ChartCard
-          title={interpolate(t.insights.pricePer, {
-            unit: field.unit || t.insights.unit,
+          title={interpolate(t.pricePer, {
+            unit: field.unit || t.unit,
           })}
-          caption={t.insights.rebased}
+          caption={t.rebased}
         >
           <LineChartFx
             months={months}
             currency="IDX"
             series={[
               {
-                label: `ARS / ${field.unit || t.insights.unit}`,
+                label: `ARS / ${field.unit || t.unit}`,
                 color: "var(--accent)",
                 values: field.unitPrice.arsIdx,
               },
               {
-                label: `USD / ${field.unit || t.insights.unit}`,
+                label: `USD / ${field.unit || t.unit}`,
                 color: USD_LINE,
                 values: field.unitPrice.usdIdx,
                 dashed: true,
@@ -197,11 +197,11 @@ function CustomFieldCharts({
             className="mt-2.5"
             items={[
               {
-                label: `ARS / ${field.unit || t.insights.unit}`,
+                label: `ARS / ${field.unit || t.unit}`,
                 color: "var(--accent)",
               },
               {
-                label: `USD / ${field.unit || t.insights.unit}`,
+                label: `USD / ${field.unit || t.unit}`,
                 color: USD_LINE,
               },
             ]}

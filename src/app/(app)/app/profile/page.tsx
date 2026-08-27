@@ -7,13 +7,13 @@ import { DangerZone } from "@/components/app/DangerZone";
 import { ProfileStats } from "@/components/app/ProfileStats";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Avatar, Button } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { LanguageSwitch } from "@/i18n/LanguageSwitch";
 
 export default function ProfilePage() {
   const { data: session } = useSession();
-  const { t } = useI18n();
-  const tp = t.profile;
+  const t = useT("profile");
+  const tp = t;
 
   const user = session?.user;
   const name = user?.name ?? user?.email ?? tp.you;

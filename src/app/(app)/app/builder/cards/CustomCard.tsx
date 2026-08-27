@@ -1,7 +1,7 @@
 "use client";
 
 import { Input, Select, microLabel } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import type { ValueRec } from "@/parsers/builder/evaluate";
 import type { CustomDef } from "@/parsers/builder/model";
 import { CardShell, ValueChip, ValueOption, ValuePicker, XBtn } from "./shared";
@@ -25,8 +25,8 @@ export function CustomCard({
   onPreview: (name: string | null) => void;
   focusKey: string | null;
 }) {
-  const { t } = useI18n();
-  const tcf = t.builder.custom;
+  const t = useT("builder");
+  const tcf = t.custom;
   const rec = field.source ? recOf(field.source) : undefined;
   return (
     <CardShell focused={!!focusKey && field.source === focusKey}>

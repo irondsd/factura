@@ -1,6 +1,6 @@
 "use client";
 
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 
 /** Full-screen drop affordance for /probar. While a file is over the page,
  * the whole viewport becomes the target — the bordered box below is only where
@@ -8,8 +8,8 @@ import { useI18n } from "@/i18n/I18nProvider";
  * so the overlay never eats the drag it's advertising; the window listeners in
  * useWindowFileDrop are what actually receive the drop. */
 export function PageDropOverlay({ active }: { active: boolean }) {
-  const { t } = useI18n();
-  const p = t.probar;
+  const t = useT("probar");
+  const p = t;
 
   if (!active) return null;
 

@@ -2,7 +2,7 @@
 
 import { microLabel } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 
 /** The text we actually pulled out of the PDF, in the product's receipt voice.
  *
@@ -23,8 +23,8 @@ export function TextPreview({
   truncated?: boolean;
   compact?: boolean;
 }) {
-  const { t } = useI18n();
-  const p = t.probar;
+  const t = useT("probar");
+  const p = t;
 
   return (
     <div className="flex flex-col gap-1.5">

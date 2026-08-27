@@ -13,7 +13,7 @@ import {
   VendorShare,
 } from "@/components/charts";
 import { Button } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { interpolate } from "@/i18n/config";
 import { cn } from "@/lib/cn";
 import {
@@ -47,8 +47,9 @@ export function OverviewView({
    * new one lands, so a switch reads as a transition rather than a flicker. */
   pending?: boolean;
 }) {
-  const { t, locale } = useI18n();
-  const to = t.overview;
+  const tCommon = useT("common");
+  const to = useT("overview");
+  const locale = useLocale();
   const donut = useChartCurrency();
   const bars = useChartCurrency();
   const trend = useChartCurrency();
@@ -99,7 +100,7 @@ export function OverviewView({
         <div className={fade}>
           <Eyebrow as="div" className="flex flex-wrap items-center gap-x-2.5">
             <span>
-              {d.property ? d.property.nickname : t.common.allProperties} ·
+              {d.property ? d.property.nickname : tCommon.allProperties} ·
             </span>
             <MonthSwitcher
               month={d.month}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wordmark } from "@/components/landing/parts";
 import { Button } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { localizedHref } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
 
@@ -13,12 +13,13 @@ import { cn } from "@/lib/cn";
  * call to action. No property switcher (the demo has a single property). */
 export function DemoTopBar() {
   const pathname = usePathname();
-  const { t, locale } = useI18n();
+  const t = useT("nav");
+  const locale = useLocale();
 
   const NAV = [
-    { href: "/demo", label: t.nav.overview },
-    { href: "/demo/insights", label: t.nav.insights },
-    { href: "/demo/bills", label: t.nav.bills },
+    { href: "/demo", label: t.overview },
+    { href: "/demo/insights", label: t.insights },
+    { href: "/demo/bills", label: t.bills },
   ];
 
   return (
@@ -49,7 +50,7 @@ export function DemoTopBar() {
 
         <div className="ml-auto items-center gap-4 hidden sm:flex">
           <Button href="/login" variant="solid" size="sm">
-            {t.nav.signIn}
+            {t.signIn}
           </Button>
         </div>
       </div>

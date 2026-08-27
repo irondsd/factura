@@ -6,7 +6,7 @@ import type { Session } from "next-auth";
 import { useEffect, useRef, useState } from "react";
 import { Avatar, Badge } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { trpc } from "@/lib/trpc";
 import { BurgerButton } from "./BurgerButton";
@@ -16,7 +16,9 @@ import { PropertySelector } from "./PropertySelector";
 export function TopBar({ user }: { user: Session["user"] }) {
   const pathname = usePathname();
   const { propertyId, setPropertyId } = useApp();
-  const { t } = useI18n();
+  const tApp = useT("app");
+  const tNav = useT("nav");
+  const tProfile = useT("profile");
   const properties = trpc.properties.list.useQuery();
   const [menuOpen, setMenuOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
@@ -27,9 +29,9 @@ export function TopBar({ user }: { user: Session["user"] }) {
   const reviewCount = trpc.bills.reviewCount.useQuery().data ?? 0;
 
   const NAV = [
-    { href: "/app", label: t.nav.overview },
-    { href: "/app/insights", label: t.nav.insights },
-    { href: "/app/bills", label: t.nav.bills, badge: reviewCount },
+    { href: "/app", label: tNav.overview },
+    { href: "/app/insights", label: tNav.insights },
+    { href: "/app/bills", label: tNav.bills, badge: reviewCount },
   ];
 
   // Close the mobile menu on navigation (render-time sync, keyed by pathname —
@@ -77,7 +79,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
       ? `${href}?${new URLSearchParams({ property: propNickname.toLowerCase() })}`
       : href;
 
-  const name = user?.name ?? user?.email ?? t.profile.you;
+  const name = user?.name ?? user?.email ?? tProfile.you;
 
   /** The review count, as a badge — and as the label a screen reader gets,
    * since a bare number next to "Facturas" says nothing on its own. */
@@ -85,7 +87,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
     <Badge
       className="ml-1.5 align-middle"
       aria-label={interpolate(
-        n === 1 ? t.app.reviewBadgeOne : t.app.reviewBadgeOther,
+        n === 1 ? tApp.reviewBadgeOne : tApp.reviewBadgeOther,
         { n },
       )}
     >
@@ -147,7 +149,7 @@ export function TopBar({ user }: { user: Session["user"] }) {
           )}
           <Link
             href={withProperty("/app/profile")}
-            aria-label={t.app.navProfile}
+            aria-label={tApp.navProfile}
             title={name}
             className="hidden md:inline-flex"
           >
@@ -156,8 +158,8 @@ export function TopBar({ user }: { user: Session["user"] }) {
           <BurgerButton
             open={menuOpen}
             onToggle={() => setMenuOpen((o) => !o)}
-            openLabel={t.app.menuOpen}
-            closeLabel={t.app.menuClose}
+            openLabel={tApp.menuOpen}
+            closeLabel={tApp.menuClose}
           />
         </div>
       </div>

@@ -8,6 +8,7 @@ import { baseMetadata, viewport } from "@/config/meta";
 import { isLocale, locales, toLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { pickNamespaces, SITE_NAMESPACES } from "@/i18n/namespaces";
 import { siteLd } from "@/i18n/structuredData";
 import { ToastProvider } from "@/providers/ToastProvider";
 
@@ -67,7 +68,13 @@ export default async function LandingRootLayout({
     >
       <body className="min-h-full flex flex-col">
         <JsonLd data={siteLd(lang)} />
-        <I18nProvider locale={lang} dictionary={dictionary}>
+        {/* Three namespaces, not the whole 93 KB file: this payload is
+            stored for every prerendered page under here. A route that needs
+            more nests its own provider — see /docs, /probar and /demo. */}
+        <I18nProvider
+          locale={lang}
+          dictionary={pickNamespaces(dictionary, SITE_NAMESPACES)}
+        >
           <ToastProvider>
             {children}
             <LangSuggestBanner />

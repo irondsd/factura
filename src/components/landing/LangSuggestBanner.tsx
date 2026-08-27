@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui";
 import { LOCALE_COOKIE, type Locale } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { isSpanishOnlyPath, oppositePath } from "@/i18n/routing";
 
 const DISMISS_KEY = "factura-lang-suggest-dismissed";
@@ -26,7 +26,8 @@ function preferredLocale(): Locale | null {
  * page they landed on (e.g. an English browser on the Spanish `/`). Links to the
  * same page in the other language; never auto-redirects. Remembered once closed. */
 export function LangSuggestBanner() {
-  const { t, locale } = useI18n();
+  const t = useT("meta");
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const [show, setShow] = useState(false);
@@ -62,14 +63,14 @@ export function LangSuggestBanner() {
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-[320px] border border-line bg-card shadow-pop px-4 py-3">
       <p className="font-mono text-xs text-ink leading-[1.5]">
-        {t.meta.suggestText}
+        {t.suggestText}
       </p>
       <div className="mt-2.5 flex items-center gap-3">
         <Button type="button" variant="solid" onClick={accept}>
-          {t.meta.switchTo}
+          {t.switchTo}
         </Button>
         <Button type="button" variant="quiet" onClick={dismiss}>
-          {t.meta.suggestDismiss}
+          {t.suggestDismiss}
         </Button>
       </div>
     </div>

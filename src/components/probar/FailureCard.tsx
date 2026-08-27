@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { hint, microLabel } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { localizedHref } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
 import { VendorGuessField } from "./VendorGuessField";
@@ -31,8 +31,9 @@ export function FailureCard({
   vendorName?: string | null;
   onSaveVendorGuess: (submissionId: string, vendor: string) => Promise<void>;
 }) {
-  const { t, locale } = useI18n();
-  const p = t.probar;
+  const tNav = useT("nav");
+  const p = useT("probar");
+  const locale = useLocale();
 
   const title =
     kind === "no_text"
@@ -79,7 +80,7 @@ export function FailureCard({
           href={localizedHref("/privacy", locale)}
           className="text-accent underline decoration-dotted underline-offset-[3px]"
         >
-          {t.nav.privacy}
+          {tNav.privacy}
         </Link>
       </p>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { microLabel } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import type { RoleDef } from "@/parsers/builder/model";
 import type { ScopeValue } from "@/parsers/engine/types";
 import { cn } from "@/lib/cn";
@@ -32,8 +32,8 @@ export function RoleCard({
   onPreview: (name: string | null) => void;
   focusKey: string | null;
 }) {
-  const { t } = useI18n();
-  const tr = t.builder.role;
+  const t = useT("builder");
+  const tr = t.role;
   const disagree = resolved?.disagree ?? false;
   const focused =
     !!focusKey &&

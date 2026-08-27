@@ -2,7 +2,7 @@
 
 import { microLabel } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { type Tier, TIERS } from "@/lib/probar";
 
@@ -21,8 +21,8 @@ export type TierState =
  * visitor learns the registry has tiers at all, and it turns dead waiting time
  * into something to read. */
 export function TierStepper({ states }: { states: Record<Tier, TierState> }) {
-  const { t } = useI18n();
-  const p = t.probar;
+  const t = useT("probar");
+  const p = t;
 
   const label: Record<Tier, string> = {
     official: p.tierOfficial,

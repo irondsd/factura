@@ -2,7 +2,7 @@
 
 import { Badge, Button, Select } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import {
   catLabel,
@@ -90,13 +90,13 @@ function CardAction({
   onPublish: () => void;
   onDelete: () => void;
 }) {
-  const { t } = useI18n();
+  const t = useT("common");
   if (p.rel === "owned") {
     const state = publishState(tp, p);
     return (
       <div className="flex items-center gap-1.5">
         <Button size="sm" variant="ghost" disabled={busy} onClick={onDelete}>
-          {t.common.delete}
+          {t.delete}
         </Button>
         <Button
           size="sm"

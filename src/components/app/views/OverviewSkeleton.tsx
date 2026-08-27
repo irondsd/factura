@@ -7,7 +7,7 @@ import {
   Eyebrow,
 } from "@/components/charts";
 import { Bone, Button } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 
 /** First paint of the Overview, before the ledger answers.
  *
@@ -65,12 +65,12 @@ function DeadToggle() {
 }
 
 export function OverviewSkeleton() {
-  const { t } = useI18n();
-  const to = t.overview;
+  const tApp = useT("app");
+  const to = useT("overview");
 
   return (
     <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20" aria-busy="true">
-      <span className="sr-only">{t.app.loading}</span>
+      <span className="sr-only">{tApp.loading}</span>
 
       {/* hero */}
       <div className="flex flex-wrap items-end justify-between gap-4">

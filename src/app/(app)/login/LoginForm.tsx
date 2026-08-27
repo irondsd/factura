@@ -6,7 +6,7 @@ import { signIn, useSession } from "next-auth/react";
 import { type FormEvent, useEffect, useState } from "react";
 import posthog from "posthog-js";
 import { Button, Input } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { localizedHref } from "@/i18n/routing";
 
 // Sign-in flow, all on /login:
@@ -33,8 +33,9 @@ export function LoginForm({
 }) {
   const router = useRouter();
   const { status, data: session } = useSession();
-  const { locale, t } = useI18n();
-  const tl = t.login;
+  const tApp = useT("app");
+  const tl = useT("login");
+  const locale = useLocale();
 
   const [step, setStep] = useState<Step>("choose");
   const [email, setEmail] = useState("");
@@ -109,7 +110,7 @@ export function LoginForm({
   if (status === "authenticated") {
     return (
       <div className="flex min-h-screen items-center justify-center font-mono text-xs uppercase tracking-label-wide text-muted">
-        {t.app.loading}
+        {tApp.loading}
       </div>
     );
   }

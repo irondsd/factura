@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Display, Eyebrow, RangeControl } from "@/components/charts";
 import { FilterPill } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { defaultWindow, type InsightsWindow, monthRange } from "@/lib/insights";
 import { AllVendorsCharts } from "./insights/AllVendorsCharts";
 import type { InsightsSource } from "./insights/shared";
@@ -18,7 +18,9 @@ export function InsightsView({
   source: InsightsSource;
   propertyId?: string;
 }) {
-  const { t } = useI18n();
+  const tCommon = useT("common");
+  const tInsights = useT("insights");
+  const tNav = useT("nav");
   const [vendorId, setVendorId] = useState<string>("all");
   const [win, setWin] = useState<InsightsWindow>(defaultWindow);
 
@@ -42,9 +44,9 @@ export function InsightsView({
     <div className="mx-auto max-w-[64rem] px-5 pt-8 pb-20">
       <div className="flex flex-wrap items-end justify-between gap-[14px]">
         <div>
-          <Eyebrow>{t.nav.insights}</Eyebrow>
+          <Eyebrow>{tNav.insights}</Eyebrow>
           <Display as="h1" size={34} className="block mt-1.5">
-            {t.insights.title}
+            {tInsights.title}
           </Display>
         </div>
         <RangeControl span={span} value={win} onChange={setWin} />
@@ -53,7 +55,7 @@ export function InsightsView({
       {/* vendor filter */}
       <div className="flex flex-wrap gap-1.5 mt-[18px] border-b border-line pb-3">
         <FilterPill
-          label={t.common.allVendors}
+          label={tCommon.allVendors}
           active={vendorId === "all"}
           onClick={() => setVendorId("all")}
         />

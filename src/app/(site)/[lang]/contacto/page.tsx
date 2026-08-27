@@ -7,6 +7,8 @@ import { TrustBlock } from "@/components/landing/TrustBlock";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
+import { I18nProvider } from "@/i18n/I18nProvider";
+import { pickNamespaces } from "@/i18n/namespaces";
 import { getI18n } from "@/i18n/server";
 import { contactPageLd } from "@/i18n/structuredData";
 import { cn } from "@/lib/cn";
@@ -110,7 +112,12 @@ export default async function ContactPage({ params }: Props) {
               className={cn(CHANNEL_PROSE, "mb-6")}
               dangerouslySetInnerHTML={{ __html: c.billNote }}
             />
-            <ContactForm />
+            <I18nProvider
+              locale={locale}
+              dictionary={pickNamespaces(t, ["contact"])}
+            >
+              <ContactForm />
+            </I18nProvider>
           </section>
         </div>
 

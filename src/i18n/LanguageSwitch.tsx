@@ -5,7 +5,7 @@ import { useTransition } from "react";
 import { SegmentedControl } from "@/components/ui";
 import { setLocale } from "./actions";
 import { type Locale, localeNames } from "./config";
-import { useI18n } from "./I18nProvider";
+import { useLocale, useT } from "./I18nProvider";
 
 // The invitation is intentionally written in the language you'd switch *to*,
 // so a visitor stuck on the wrong language can always read the way out.
@@ -27,7 +27,8 @@ const OPTIONS = ORDER.map((code) => ({
 }));
 
 export function LanguageSwitch() {
-  const { locale, t } = useI18n();
+  const t = useT("profile");
+  const locale = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -47,7 +48,7 @@ export function LanguageSwitch() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-5 border border-line bg-card py-3 px-5">
       <p className="font-mono text-[13px] text-muted leading-[1.5]">
-        {t.profile.language.help}{" "}
+        {t.language.help}{" "}
         <span className="text-ink">{INVITE[target]}</span>
       </p>
       <SegmentedControl
@@ -57,7 +58,7 @@ export function LanguageSwitch() {
         // Only the in-flight switch disables the control; picking the language
         // that is already on is a no-op (`switchTo` guards).
         disabled={pending}
-        label={t.profile.language.help}
+        label={t.language.help}
       />
     </div>
   );

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Delta } from "@/components/charts/primitives";
 import { Button, Field, Input, microLabel, Select } from "@/components/ui";
 import type { Dictionary } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatMonthShort } from "@/lib/format";
 import type { RouterOutputs } from "@/lib/trpc";
@@ -119,7 +119,7 @@ export function DrawerHeader({
   fileName?: string | null;
   onClose: () => void;
 }) {
-  const { t } = useI18n();
+  const tCommon = useT("common");
   return (
     <div className="flex items-start justify-between gap-3 pt-[22px] px-6 pb-4 border-b border-dashed border-line">
       <div>
@@ -136,7 +136,7 @@ export function DrawerHeader({
         </h2>
         <p className="font-mono text-micro text-muted mt-1">{fileName}</p>
       </div>
-      <Button variant="icon" onClick={onClose} aria-label={t.billDrawer.close}>
+      <Button variant="icon" onClick={onClose} aria-label={tCommon.close}>
         ✕
       </Button>
     </div>
@@ -144,21 +144,22 @@ export function DrawerHeader({
 }
 
 export function YoyStrip({ yoy }: { yoy: Bill["yoy"] }) {
-  const { t, locale } = useI18n();
+  const t = useT("billDrawer");
+  const locale = useLocale();
   if (!yoy) return null;
   return (
     <div className="mt-4 mx-6 py-2.5 px-[14px] border border-line flex items-center gap-2.5 flex-wrap">
       <span className="font-mono text-micro text-muted">
-        {t.billDrawer.vs} {formatMonthShort(yoy.prevPeriod, locale)}{" "}
+        {t.vs} {formatMonthShort(yoy.prevPeriod, locale)}{" "}
         {yoy.prevPeriod.slice(0, 4)}:
       </span>
       <span className="font-mono text-xs">
-        <Delta pct={yoy.arsPct} /> {t.billDrawer.inArs}
+        <Delta pct={yoy.arsPct} /> {t.inArs}
       </span>
       {yoy.usdPct != null && (
         <span className="font-mono text-xs text-muted">
           · {yoy.usdPct > 0 ? "+" : ""}
-          {yoy.usdPct.toFixed(0)}% {t.billDrawer.inUsd}
+          {yoy.usdPct.toFixed(0)}% {t.inUsd}
         </span>
       )}
     </div>
@@ -183,8 +184,8 @@ export function BillFields({
   properties: PropertyOpt[];
   disabled?: boolean;
 }) {
-  const { t } = useI18n();
-  const tb = t.billDrawer;
+  const t = useT("billDrawer");
+  const tb = t;
   const set = (patch: Partial<Draft>) => onChange?.({ ...draft, ...patch });
   return (
     <div className="py-5 px-6 grid grid-cols-1 md:grid-cols-2 gap-[14px]">
@@ -257,12 +258,12 @@ export function ExtractedFields({
 }: {
   fields: Record<string, unknown>;
 }) {
-  const { t } = useI18n();
+  const t = useT("billDrawer");
   const entries = Object.entries(fields);
   if (entries.length === 0) return null;
   return (
     <div className="px-6 pb-1">
-      <p className={cn(microLabel, "mb-1.5")}>{t.billDrawer.extractedFields}</p>
+      <p className={cn(microLabel, "mb-1.5")}>{t.extractedFields}</p>
       <div className="border border-line bg-paper">
         {entries.map(([k, v], i) => (
           <div
@@ -294,11 +295,11 @@ export function EditableCustomFields({
   values: Record<string, string>;
   onChange: (next: Record<string, string>) => void;
 }) {
-  const { t } = useI18n();
+  const t = useT("billDrawer");
   if (defs.length === 0) return null;
   return (
     <div className="py-1 px-6">
-      <p className={cn(microLabel, "mb-1.5")}>{t.billDrawer.extractedFields}</p>
+      <p className={cn(microLabel, "mb-1.5")}>{t.extractedFields}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-[14px]">
         {defs.map((def) => (
           <Field
@@ -350,8 +351,8 @@ export function OriginalFileRow({
   fileName?: string | null;
   downloadUrl?: string | null;
 }) {
-  const { t } = useI18n();
-  const tb = t.billDrawer;
+  const t = useT("billDrawer");
+  const tb = t;
   return (
     <>
       <LabeledRow label={tb.originalFile}>
@@ -382,10 +383,10 @@ export function OriginalFileRow({
 }
 
 export function ExtractedText({ text }: { text: string }) {
-  const { t } = useI18n();
+  const t = useT("billDrawer");
   return (
     <div className="pt-4 px-6 pb-1">
-      <p className={cn(microLabel, "mb-1.5")}>{t.billDrawer.extractedText}</p>
+      <p className={cn(microLabel, "mb-1.5")}>{t.extractedText}</p>
       <pre className="ruled font-mono text-[12.5px] whitespace-pre-wrap text-ink bg-paper border border-line pt-1 px-3 pb-2.5 max-h-[240px] overflow-y-auto">
         {text}
       </pre>

@@ -8,7 +8,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button, Checkbox, Input, Select } from "@/components/ui";
 import { VendorColorPicker } from "@/components/VendorColorPicker";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { OWNED_PROPERTY_LIMIT } from "@/lib/limits";
 import type { VendorColorName } from "@/lib/vendorColors";
@@ -26,8 +26,9 @@ const row =
 export default function PropertiesPage() {
   const { data: session } = useSession();
   const { showToast, error: toastErr, opts } = useToast();
-  const { t } = useI18n();
-  const tp = t.properties;
+  const tBillDrawer = useT("billDrawer");
+  const tCommon = useT("common");
+  const tp = useT("properties");
   const roleLabel = (role: string) =>
     tp.roles[role as keyof typeof tp.roles] ?? role;
   const utils = trpc.useUtils();
@@ -218,7 +219,7 @@ export default function PropertiesPage() {
                       setDeletingApt({ id: apt.id, nickname: apt.nickname })
                     }
                   >
-                    {t.common.delete}
+                    {tCommon.delete}
                   </Button>
                 ) : (
                   <Button
@@ -426,7 +427,7 @@ export default function PropertiesPage() {
       <ConfirmDialog
         open={!!deletingApt}
         eyebrow={tp.deleteEyebrow}
-        title={t.common.cantUndo}
+        title={tCommon.cantUndo}
         description={
           deletingApt ? (
             <>
@@ -438,7 +439,7 @@ export default function PropertiesPage() {
           ) : null
         }
         confirmLabel={tp.deleteConfirm}
-        busyLabel={t.billDrawer.deleting}
+        busyLabel={tBillDrawer.deleting}
         busy={deleteApt.isPending}
         onConfirm={() => {
           if (!deletingApt) return;
@@ -504,8 +505,8 @@ function VendorCell({
   onMerge: (targetId: string) => void;
   onUnlinkAlias: (id: string) => void;
 }) {
-  const { t } = useI18n();
-  const tp = t.properties;
+  const tCommon = useT("common");
+  const tp = useT("properties");
   const [merging, setMerging] = useState(false);
   const [targetId, setTargetId] = useState("");
 
@@ -572,7 +573,7 @@ function VendorCell({
               setTargetId("");
             }}
           >
-            {t.common.cancel}
+            {tCommon.cancel}
           </Button>
         </div>
       )}
@@ -622,8 +623,8 @@ function AccountRow({
   onMerge: (targetId: string) => void;
   onDelete: () => void;
 }) {
-  const { t } = useI18n();
-  const tp = t.properties;
+  const tCommon = useT("common");
+  const tp = useT("properties");
   const [merging, setMerging] = useState(false);
   const [targetId, setTargetId] = useState("");
 
@@ -674,7 +675,7 @@ function AccountRow({
               setTargetId("");
             }}
           >
-            {t.common.cancel}
+            {tCommon.cancel}
           </Button>
         </>
       )}
@@ -700,7 +701,7 @@ function AccountRow({
 
 function InviteForm({ onInvite }: { onInvite: (email: string) => void }) {
   const [email, setEmail] = useState("");
-  const { t } = useI18n();
+  const tp = useT("properties");
   return (
     <form
       className="flex gap-2 mt-2.5"
@@ -715,11 +716,11 @@ function InviteForm({ onInvite }: { onInvite: (email: string) => void }) {
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder={t.properties.invitePlaceholder}
+        placeholder={tp.invitePlaceholder}
         className="flex-1 max-w-[280px]"
       />
       <Button type="submit" variant="outline">
-        {t.properties.invite}
+        {tp.invite}
       </Button>
     </form>
   );

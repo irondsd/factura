@@ -292,7 +292,8 @@
     "add": "Agregar",
     "working": "Procesando…",
     "cantUndo": "Esto no se puede deshacer",
-    "changeColor": "Cambiar color"
+    "changeColor": "Cambiar color",
+    "close": "Cerrar"
   },
   "properties": {
     "eyebrow": "Propiedades",
@@ -355,7 +356,6 @@
     "dueDate": "Fecha de vencimiento",
     "amountArs": "Monto (ARS)",
     "unrecognizedVendor": "Sin reconocer",
-    "close": "Cerrar",
     "extractedFields": "Campos extraídos",
     "parser": "Analizador",
     "notSavedParser": "no es un analizador guardado",

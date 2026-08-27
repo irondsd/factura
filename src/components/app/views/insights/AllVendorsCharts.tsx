@@ -9,13 +9,13 @@ import {
   VendorShare,
 } from "@/components/charts";
 import { FinePrint } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useT } from "@/i18n/I18nProvider";
 import { toSlices } from "@/lib/insights";
 import { type SeriesData, USD_LINE } from "./shared";
 
 export function AllVendorsCharts({ data }: { data: SeriesData | undefined }) {
-  const { t } = useI18n();
-  const ti = t.insights;
+  const t = useT("insights");
+  const ti = t;
   const bars = useChartCurrency();
   const donut = useChartCurrency();
   if (!data) {

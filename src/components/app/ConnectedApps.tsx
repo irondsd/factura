@@ -5,7 +5,7 @@ import { Eyebrow } from "@/components/charts/primitives";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Bone, Button } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { formatDate, formatRelativeTime } from "@/lib/format";
 import { useToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
@@ -26,8 +26,9 @@ export function ConnectedApps({
   card: string;
   meta: string;
 }) {
-  const { t, locale } = useI18n();
-  const tc = t.sessions.apps;
+  const t = useT("sessions");
+  const locale = useLocale();
+  const tc = t.apps;
   const { opts } = useToast();
   const utils = trpc.useUtils();
 
@@ -76,7 +77,7 @@ export function ConnectedApps({
             </div>
             <p className={meta}>{tc.canRead}</p>
             <p className={meta}>
-              {interpolate(t.sessions.lastActive, {
+              {interpolate(t.lastActive, {
                 when: formatRelativeTime(app.lastUsedAt, locale),
               })}
               {" · "}

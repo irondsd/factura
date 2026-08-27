@@ -3,8 +3,8 @@
 import type { ReactNode } from "react";
 import { Display, Eyebrow } from "@/components/charts/primitives";
 import { Bone } from "@/components/ui";
-import { interpolate, type Locale } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { interpolate, type Dictionary, type Locale } from "@/i18n/config";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatMoney, formatMonthShort, formatUSD } from "@/lib/format";
 import { trpc, type RouterOutputs } from "@/lib/trpc";
@@ -91,8 +91,9 @@ function Skeleton() {
 }
 
 export function ProfileStats() {
-  const { t, locale } = useI18n();
-  const ts = t.profile.stats;
+  const t = useT("profile");
+  const locale = useLocale();
+  const ts = t.stats;
   const { data, isPending } = trpc.account.stats.useQuery();
 
   if (isPending)
@@ -120,7 +121,7 @@ export function ProfileStats() {
 
 function cards(
   d: Stats,
-  ts: ReturnType<typeof useI18n>["t"]["profile"]["stats"],
+  ts: Dictionary["profile"]["stats"],
   locale: Locale,
 ) {
   const { bills, money, history, biggest, topMonth, parsers } = d;

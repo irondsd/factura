@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { Button } from "@/components/ui";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatMonth } from "@/lib/format";
 
@@ -22,7 +22,7 @@ import { formatMonth } from "@/lib/format";
 // padding change at the `sm` breakpoint, so there is one set of buttons for a
 // screen reader and one piece of state to keep straight.
 
-/** `t.months.short` is keyed by the English abbreviation. */
+/** `tMonths.short` is keyed by the English abbreviation. */
 const MONTH_KEYS = [
   "Jan",
   "Feb",
@@ -71,8 +71,9 @@ export function MonthSwitcher({
   onSelect: (month: string) => void;
   className?: string;
 }) {
-  const { t, locale } = useI18n();
-  const to = t.overview;
+  const tMonths = useT("months");
+  const to = useT("overview");
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLSpanElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -270,7 +271,7 @@ export function MonthSwitcher({
                                   : "cursor-default text-[color-mix(in_srgb,var(--muted)_40%,transparent)]",
                           )}
                         >
-                          {t.months.short[c.key]}
+                          {tMonths.short[c.key]}
                           {owed && (
                             <span
                               aria-hidden="true"

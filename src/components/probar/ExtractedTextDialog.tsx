@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button, microLabel } from "@/components/ui";
 import { interpolate } from "@/i18n/config";
-import { useI18n } from "@/i18n/I18nProvider";
+import { useLocale, useT } from "@/i18n/I18nProvider";
 import { Modal } from "./Modal";
 
 /** The text we pulled out of the PDF, in a dialog.
@@ -31,8 +31,9 @@ export function ExtractedTextDialog({
   truncated: boolean;
   onClose: () => void;
 }) {
-  const { t, locale } = useI18n();
-  const p = t.probar;
+  const t = useT("probar");
+  const locale = useLocale();
+  const p = t;
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
