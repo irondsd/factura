@@ -73,9 +73,9 @@ export async function requestClientInfo(): Promise<ClientReading> {
       h.get("x-vercel-ip-country") || h.get("cf-ipcountry") || null;
 
     // The one signal the platform can't give us: no browser ships a
-    // display-mode request header, so a client-set cookie carries it (see
-    // src/components/app/DisplayModeProbe.tsx). User-controlled input on its
-    // way to a column the UI renders — hence the allowlist.
+    // display-mode request header, so the app-origin client reports it through
+    // a cookie. User-controlled input on its way to a rendered column — hence
+    // the allowlist.
     const reported = jar.get(DISPLAY_MODE_COOKIE)?.value ?? "";
     const displayMode = isDisplayMode(reported) ? reported : null;
 

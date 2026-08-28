@@ -1,8 +1,8 @@
 "use client";
 
-import { BillsView } from "@/components/app/views/BillsView";
+import { DemoBillDrawer } from "@/components/demo/bill-drawer/DemoBillDrawer";
 import { demoBillsSource } from "@/components/demo/sources";
-import { DemoBillDrawer } from "@/components/bill-drawer";
+import { BillsView } from "@/components/demo/views/BillsView";
 import { demoProperty } from "@/lib/demo/fixtures";
 
 export function DemoBills() {

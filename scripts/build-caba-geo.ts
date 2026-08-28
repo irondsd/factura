@@ -3,7 +3,7 @@
  * Rebuilds `src/content/shared/caba-geo.json` — the SVG outlines of
  * the 48 barrios and 15 comunas — from the city's own boundary files.
  *
- * Run: `bun scripts/build-caba-geo.ts`   (or `npm run data:caba-geo`)
+ * Run: `bun scripts/build-caba-geo.ts`   (or `bun run data:caba-geo`)
  *
  * Effectively a one-off: administrative boundaries change about once a decade
  * (the comunas were drawn in 2005). It exists so the numbers in the output are

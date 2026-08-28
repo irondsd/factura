@@ -95,10 +95,9 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // The share-target worker is the one file that must never be served
-        // stale: a cached copy would keep handling shares with old logic long
-        // after a deploy. `Service-Worker-Allowed` lets it claim the whole
-        // origin even though it only ever answers /share-target.
+        // Retirement worker for browsers that installed the old monolith PWA.
+        // It must not be cached: activation clears the old share cache and
+        // unregisters the marketing-origin worker.
         source: "/sw.js",
         headers: [
           {
@@ -128,6 +127,41 @@ const nextConfig: NextConfig = {
             {
               source: "/delete-account",
               destination: `${publicOrigins.appOrigin}/delete-account`,
+              permanent: true,
+            },
+            {
+              source: "/oauth/authorize",
+              destination: `${publicOrigins.appOrigin}/oauth/authorize`,
+              permanent: true,
+            },
+            {
+              source: "/api/mcp",
+              destination: `${publicOrigins.appOrigin}/api/mcp`,
+              permanent: true,
+            },
+            {
+              source: "/api/oauth/:path*",
+              destination: `${publicOrigins.appOrigin}/api/oauth/:path*`,
+              permanent: true,
+            },
+            {
+              source: "/.well-known/oauth-authorization-server",
+              destination: `${publicOrigins.appOrigin}/.well-known/oauth-authorization-server`,
+              permanent: true,
+            },
+            {
+              source: "/.well-known/oauth-authorization-server/:path*",
+              destination: `${publicOrigins.appOrigin}/.well-known/oauth-authorization-server/:path*`,
+              permanent: true,
+            },
+            {
+              source: "/.well-known/oauth-protected-resource",
+              destination: `${publicOrigins.appOrigin}/.well-known/oauth-protected-resource`,
+              permanent: true,
+            },
+            {
+              source: "/.well-known/oauth-protected-resource/:path*",
+              destination: `${publicOrigins.appOrigin}/.well-known/oauth-protected-resource/:path*`,
               permanent: true,
             },
           ];
@@ -169,31 +203,6 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-      // OAuth discovery. The specs put these at /.well-known/*, but a source
-      // directory named `.well-known` is hidden on every filesystem this repo
-      // gets checked out on, so the handlers live at ordinary paths and the
-      // well-known URLs are mapped onto them.
-      //
-      // Each document is served at two shapes because clients disagree about
-      // which to try: the bare path, and RFC 9728's path-insertion form
-      // (/.well-known/oauth-protected-resource/api/mcp). There is only one MCP
-      // resource here, so both answer with the same document.
-      {
-        source: "/.well-known/oauth-authorization-server",
-        destination: "/api/oauth/metadata/authorization-server",
-      },
-      {
-        source: "/.well-known/oauth-authorization-server/:path*",
-        destination: "/api/oauth/metadata/authorization-server",
-      },
-      {
-        source: "/.well-known/oauth-protected-resource",
-        destination: "/api/oauth/metadata/protected-resource",
-      },
-      {
-        source: "/.well-known/oauth-protected-resource/:path*",
-        destination: "/api/oauth/metadata/protected-resource",
-      },
       {
         source: "/ingest/static/:path*",
         destination: "https://us-assets.i.posthog.com/static/:path*",

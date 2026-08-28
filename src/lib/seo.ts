@@ -142,13 +142,7 @@ const NOINDEX: Metadata["robots"] = {
   googleBot: { index: false, follow: false },
 };
 
-/** Root metadata for the signed-in app + auth subtree: the site defaults, minus
- * any claim to be indexable and minus a canonical.
- *
- * robots.txt already disallows /app and /login, but a disallow only stops the
- * crawl — a URL linked from elsewhere can still be indexed URL-only, and the
- * blocked crawl is precisely what stops Google from seeing a `noindex`. Saying
- * it in the markup is the half we control. */
+/** Metadata for identity routes: site defaults, but no index or canonical. */
 export function privateMetadata({
   locale,
   title,
@@ -161,12 +155,7 @@ export function privateMetadata({
   return { ...baseMetadata({ locale, title, description }), robots: NOINDEX };
 }
 
-/** The tab title of a page inside the signed-in app, in the cookie locale.
- * `robots` and everything else come from the subtree root above, so these set
- * the one thing that is actually theirs.
- *
- * Most of them declare it from a `layout.tsx`: the app pages are client
- * components, which can't export `generateMetadata`. */
+/** The tab title of an identity page, in the cookie locale. */
 async function appTitle(key: keyof Dictionary["meta"]["app"]): Promise<string> {
   const locale = await getLocale();
   const t = await getDictionary(locale);
@@ -177,19 +166,4 @@ export async function appPageMetadata(
   key: keyof Dictionary["meta"]["app"],
 ): Promise<Metadata> {
   return { title: await appTitle(key) };
-}
-
-/** Same, for a segment that has child routes of its own (`/app`).
- *
- * The template has to be repeated here. Metadata merges shallowly, so a plain
- * `title` string in an intermediate segment replaces the parent's whole `title`
- * object — template included — and every route below it would render a bare
- * "Análisis" with no brand. As `title.default` it still picks up the root
- * template for this segment itself, so /app is "Resumen — Factura". */
-export async function appSectionMetadata(
-  key: keyof Dictionary["meta"]["app"],
-): Promise<Metadata> {
-  return {
-    title: { default: await appTitle(key), template: `%s — ${siteName}` },
-  };
 }

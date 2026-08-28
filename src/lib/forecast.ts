@@ -180,13 +180,12 @@ export function normalizeHistory(history: Observation[]): Observation[] {
 // this file. A negative result about an estimator can be a result about the
 // series it was handed.
 //
-// Re-run `npm run forecast:backtest` before adding anything back. The harness
-// still carries the discarded candidates so any of this can be re-measured.
+// The product repository owns the backtest harness and discarded candidates;
+// re-measure there before changing the estimator this public demo mirrors.
 
 /** Median of the last few observed amounts. No longer the production
  * estimator — it lags a trending series by about a month, which measured at
- * 19.9% against carry's 5.7% — but the backtest harness still scores it, so it
- * stays exported. */
+ * 19.9% against carry's 5.7% — but it remains a useful tested baseline. */
 export function recentLevel(history: Observation[]): number | null {
   const sorted = normalizeHistory(history);
   return medianOf(sorted.slice(-RECENT).map((o) => o.amount));

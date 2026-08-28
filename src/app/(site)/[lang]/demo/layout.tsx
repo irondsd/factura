@@ -8,7 +8,7 @@ import { pickNamespaces } from "@/i18n/namespaces";
 import { getI18n } from "@/i18n/server";
 
 // Public, indexable demo of the signed-in app rendered on static sample data.
-// Deliberately NOT under the /app auth gate — no session, no DB, no tRPC — so
+// Deliberately public — no session or DB — so
 // search engines and visitors can explore the product without signing in.
 export default async function DemoLayout({
   children,

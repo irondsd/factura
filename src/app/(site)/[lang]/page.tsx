@@ -24,8 +24,8 @@ import { softwareApplicationLd } from "@/i18n/structuredData";
 import { cn } from "@/lib/cn";
 
 // Public marketing landing — "the long receipt": one narrow centered column
-// that reads top-to-bottom like a single printed slip. The signed-in app lives
-// under /app; every call to action points at /login.
+// that reads top-to-bottom like a single printed slip. Every product call to
+// action points at the shared `/login` handoff.
 
 const STEP_NUMBERS = ["01", "02", "03"];
 

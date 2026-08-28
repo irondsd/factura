@@ -5,7 +5,7 @@
  *
  *   src/content/estadisticas/data/suelo-pba.json
  *
- * Run: `bun scripts/fetch-pba-suelo.ts`   (or `npm run data:suelo`)
+ * Run: `bun scripts/fetch-pba-suelo.ts`   (or `bun run data:suelo`)
  *      `--dry-run`   parse and report without writing
  *
  * ── The source ────────────────────────────────────────────────────────────

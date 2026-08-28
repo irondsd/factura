@@ -16,9 +16,9 @@ import {
   sectionUrl,
 } from "@/i18n/metadata";
 
-// Only genuinely public, logged-out-visible pages belong here. The
-// authenticated app (everything under /app) is `noindex`. Each
-// landing page exists in both languages: the Spanish (canonical) URL is listed
+// Only genuinely public marketing pages belong here. The product app has its
+// own origin and sitemap policy. Each landing page exists in both languages:
+// the Spanish (canonical) URL is listed
 // with `hreflang` alternates so Google indexes the English (/en) version too.
 const LANDING: {
   path: string;

@@ -1,15 +1,13 @@
 /**
  * Transactional email — Resend + the react-email templates in /emails.
  *
- * Every send is best-effort: if `RESEND_API_KEY` is unset (local dev, CI) the
- * helpers no-op, and any send error is caught and logged rather than thrown.
- * Email must never block sign-in or fail an invite mutation — the invite is
- * valid regardless of whether its notification went out.
+ * Welcome sends are best-effort. OTP delivery is the sign-in mechanism itself,
+ * so its failure surfaces to Auth.js instead of silently stranding the user.
  *
  * Configure (in .env.local):
  *   RESEND_API_KEY   — Resend API key (https://resend.com/api-keys)
  *   EMAIL_FROM       — verified sender, e.g. "Factura <hello@yourdomain.com>"
- *   AUTH_URL         — app base URL, reused for links (falls back to :4000)
+ *   NEXT_PUBLIC_APP_URL — product app origin used by welcome-email links
  */
 
 import { eq } from "drizzle-orm";
@@ -20,19 +18,12 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import {
   defaultLocale,
-  interpolate,
   isLocale,
   LOCALE_COOKIE,
   type Locale,
 } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
-import { formatMonth } from "@/lib/format";
-import {
-  MonthlyReportEmail,
-  type ReportVendor,
-} from "../../emails/monthly-report";
 import { OtpEmail } from "../../emails/opt";
-import { ShareInviteEmail } from "../../emails/share-invite";
 import { WelcomeEmail } from "../../emails/welcome";
 
 const FROM = process.env.EMAIL_FROM ?? "Factura <onboarding@resend.dev>";
@@ -52,9 +43,7 @@ async function storedLocale(email: string): Promise<Locale | null> {
   }
 }
 
-/** The locale of the *current request's* visitor, from `NEXT_LOCALE`. Only
- * meaningful when the recipient is the person making the request (i.e. the OTP
- * signer) — never for an invite, where the recipient is someone else. */
+/** The locale of the current OTP request's visitor, from `NEXT_LOCALE`. */
 async function cookieLocale(): Promise<Locale | null> {
   try {
     const value = (await cookies()).get(LOCALE_COOKIE)?.value;
@@ -64,13 +53,12 @@ async function cookieLocale(): Promise<Locale | null> {
   }
 }
 
-/** Absolute base URL for links inside emails. */
-function baseUrl(): string {
-  return (
-    process.env.AUTH_URL ??
-    process.env.NEXT_PUBLIC_APP_URL ??
-    "http://localhost:4000"
-  ).replace(/\/$/, "");
+/** Product origin for links inside identity emails. */
+function appUrl(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:4001").replace(
+    /\/$/,
+    "",
+  );
 }
 
 let client: Resend | null = null;
@@ -119,7 +107,7 @@ export async function sendWelcomeEmail(opts: {
       t,
       locale,
       name: opts.name?.trim() || undefined,
-      ledgerUrl: `${baseUrl()}/app`,
+      ledgerUrl: `${appUrl()}/`,
     }),
   });
 }
@@ -153,62 +141,4 @@ export async function sendOtpEmail(opts: { to: string; code: string }) {
     react: OtpEmail({ t, locale, code: opts.code }),
   });
   if (!sent) throw new Error("Failed to send sign-in code");
-}
-
-/** Monthly closing report — fired once per property+month when the last expected
- * bill of that month lands. `locale` is passed explicitly (the caller already has
- * each member's stored preference) so we don't re-query per recipient. */
-export async function sendMonthlyReportEmail(opts: {
-  to: string;
-  locale: Locale;
-  property: string;
-  /** Reporting month as "YYYY-MM-01" (or "YYYY-MM"). */
-  month: string;
-  totalArs: number;
-  totalUsd: number | null;
-  vendors: ReportVendor[];
-}) {
-  const t = (await getDictionary(opts.locale)).emails;
-  const monthLabel = formatMonth(opts.month, opts.locale);
-  return send({
-    to: opts.to,
-    subject: interpolate(t.monthlyReport.subject, {
-      property: opts.property,
-      month: monthLabel,
-    }),
-    react: MonthlyReportEmail({
-      t,
-      locale: opts.locale,
-      property: opts.property,
-      month: opts.month,
-      totalArs: opts.totalArs,
-      totalUsd: opts.totalUsd,
-      vendors: opts.vendors,
-      ledgerUrl: `${baseUrl()}/app`,
-    }),
-  });
-}
-
-/** Shared-property invite — fired when an owner invites someone by email.
- * Accept links to the Properties page, where the invitee (signed in with the
- * invited Google address) explicitly accepts or declines the share. */
-export async function sendShareInviteEmail(opts: {
-  to: string;
-  inviter: string;
-  property: string;
-}) {
-  const locale = (await storedLocale(opts.to)) ?? defaultLocale;
-  const t = (await getDictionary(locale)).emails;
-  return send({
-    to: opts.to,
-    subject: interpolate(t.invite.subject, { inviter: opts.inviter }),
-    react: ShareInviteEmail({
-      t,
-      locale,
-      inviter: opts.inviter,
-      property: opts.property,
-      acceptUrl: `${baseUrl()}/app/properties`,
-      declineUrl: `${baseUrl()}/app/properties`,
-    }),
-  });
 }

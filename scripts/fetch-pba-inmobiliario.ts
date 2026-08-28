@@ -5,7 +5,7 @@
  *
  *   src/content/estadisticas/data/venta-pba.json
  *
- * Run: `bun scripts/fetch-pba-inmobiliario.ts`   (or `npm run data:pba`)
+ * Run: `bun scripts/fetch-pba-inmobiliario.ts`   (or `bun run data:pba`)
  *      `--dry-run`   parse and report without writing
  *      `--months=N`  how far back to look (default 14)
  *

@@ -10,7 +10,7 @@
  * apartments. The third is supply — how much floor area is on offer — and is
  * built by a separate pass further down, for reasons set out there.
  *
- * Run: `bun scripts/fetch-caba-inmobiliario.ts`   (or `npm run data:caba`)
+ * Run: `bun scripts/fetch-caba-inmobiliario.ts`   (or `bun run data:caba`)
  *      `--dry-run`          parse and report without writing
  *      `--only=alquiler`    just the ones whose id contains this
  *

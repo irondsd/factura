@@ -147,7 +147,7 @@ export function saveCtaClicked(billCount: number) {
   posthog.capture("probar_save_cta_clicked", { bill_count: billCount });
 }
 
-/** Fired from /app after sign-in, on the identified person — the far end of the
+/** Fired from the app after sign-in, on the identified person — the far end of the
  * funnel that began anonymously on /probar. */
 export function claimCompleted(props: {
   total: number;

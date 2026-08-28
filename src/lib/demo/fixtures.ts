@@ -1,8 +1,8 @@
 // Static sample data for the public /demo experience — a coherent, fictional
 // "Palermo" apartment with four vendors and ~2 years of history. Everything here
-// is hand-authored (deterministic, no DB, no auth) and typed against the real
-// `RouterOutputs`, so the demo renders the exact same view components as the
-// signed-in app and the fixtures can't silently drift from the procedure shapes.
+// is hand-authored (deterministic, no DB, no auth) and owned entirely by the
+// marketing site. Keeping its types local prevents the public demo from pulling
+// the signed-in app's tRPC router into this repository.
 //
 // The series is anchored to a fixed EPOCH, not to "today": every value is a pure
 // function of its absolute calendar month, so a given month always shows the
@@ -14,16 +14,6 @@
 import { forecast, type Observation } from "@/lib/forecast";
 import { type InsightsWindow, monthRange } from "@/lib/insights";
 import { vendorColorVar } from "@/lib/vendorColors";
-import type { RouterOutputs } from "@/lib/trpc";
-
-type Overview = RouterOutputs["insights"]["overview"];
-type Series = RouterOutputs["insights"]["series"];
-type VendorDetail = NonNullable<RouterOutputs["insights"]["vendorDetail"]>;
-type VendorRow = RouterOutputs["vendors"]["list"][number];
-type PropertyRow = RouterOutputs["properties"]["list"][number];
-type Paged = RouterOutputs["bills"]["listPaged"];
-type PagedRow = Paged["rows"][number];
-type BillGet = NonNullable<RouterOutputs["bills"]["get"]>;
 
 // ── Identities ──────────────────────────────────────────────────────────────
 const PROPERTY_ID = "d0000000-0000-4000-8000-000000000001";
@@ -174,8 +164,6 @@ function quantity(key: VendorKey, month: string): number | null {
 const usdOf = (ars: number, month: string) => ars / rate(month);
 
 // ── Insights aggregation (mirrors server/routers/insights.aggregate) ─────────
-type View = Overview["byCurrency"]["ARS"];
-
 function rebase(vals: (number | null)[]): (number | null)[] {
   const first = vals.find((v) => v != null);
   return vals.map((v) => (v == null || !first ? null : (v / first) * 100));
@@ -195,7 +183,7 @@ function buildView(
   months: string[],
   currency: "ARS" | "USD",
   now: string,
-): View {
+) {
   const completeFlags = completeFlagsFor(months, now);
 
   const series = months.map((m) => {
@@ -245,12 +233,12 @@ const CREATED_AT = "2024-07-01 12:00:00";
 export const demoProperty = { id: PROPERTY_ID, nickname: "Palermo" };
 
 /** properties.list shape — a single demo property the visitor "owns". */
-export const demoProperties: PropertyRow[] = [
+export const demoProperties = [
   {
     id: PROPERTY_ID,
     nickname: "Palermo",
     address: "Av. Santa Fe 3200, Palermo",
-    role: "owner",
+    role: "owner" as const,
     members: [
       { userId: USER_ID, role: "owner", name: "You", email: "you@example.com" },
     ],
@@ -259,7 +247,7 @@ export const demoProperties: PropertyRow[] = [
 ];
 
 /** vendors.list shape — raw rows (color is the palette *name*). */
-export const demoVendors: VendorRow[] = VENDORS.map((v) => ({
+export const demoVendors = VENDORS.map((v) => ({
   id: v.id,
   propertyId: PROPERTY_ID,
   slug: v.slug,
@@ -299,7 +287,7 @@ function demoPredictionHistory(
  * unbroken behind it, so only the current month is ever open. The trend and
  * share below stay anchored to today whatever is picked — see the matching
  * note on the `overview` procedure. */
-export function demoOverview(month?: string): Overview {
+export function demoOverview(month?: string) {
   const now = nowMonth();
   const target = month && month >= EPOCH && month < now ? month : now;
   const isCurrentMonth = target === now;
@@ -381,7 +369,7 @@ function windowMonths(win: InsightsWindow): string[] {
   return monthRange(lo > hi ? hi : lo, hi);
 }
 
-export function demoSeries(win: InsightsWindow): Series {
+export function demoSeries(win: InsightsWindow) {
   const now = nowMonth();
   const months = windowMonths(win);
   const completeFlags = completeFlagsFor(months, now);
@@ -415,7 +403,7 @@ const FIELD_DEFS: Record<
   VendorKey,
   {
     name: string;
-    type: VendorDetail["fields"][number]["type"];
+    type: "money" | "quantity";
     unit: string | null;
   }[]
 > = {
@@ -428,7 +416,7 @@ const FIELD_DEFS: Record<
 export function demoVendorDetail(
   vendorId: string,
   win: InsightsWindow,
-): VendorDetail | null {
+) {
   const def = VENDORS.find((v) => v.id === vendorId);
   if (!def) return null;
   const now = nowMonth();
@@ -539,7 +527,35 @@ function rawTextFor(seed: DemoBillSeed): string {
     .join("\n");
 }
 
-type FullBill = Omit<BillGet, "downloadUrl" | "yoy">;
+type FullBill = {
+  id: string;
+  createdBy: string;
+  accountId: string | null;
+  vendorId: string | null;
+  propertyId: string | null;
+  period: string | null;
+  totalAmount: string | null;
+  currency: string;
+  dueDate: string | null;
+  status: "parsed" | "needs_review";
+  fileName: string;
+  storageKey: null;
+  rawText: string;
+  textHash: string;
+  parserKey: string | null;
+  parserVersion: string | null;
+  extra: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type DemoBill = FullBill & {
+  downloadUrl: string | null;
+  yoy: {
+    prevPeriod: string;
+    arsPct: number | null;
+    usdPct: number | null;
+  } | null;
+};
 
 function seedToFull(seed: DemoBillSeed): FullBill {
   const v = seed.key ? VENDOR_BY_KEY.get(seed.key)! : null;
@@ -567,7 +583,7 @@ function seedToFull(seed: DemoBillSeed): FullBill {
   };
 }
 
-function fullToRow(full: FullBill): PagedRow {
+function fullToRow(full: FullBill) {
   // listPaged omits the heavy raw text; the rest of the row carries through.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { rawText, ...rest } = full;
@@ -579,6 +595,8 @@ function fullToRow(full: FullBill): PagedRow {
 }
 
 // Same ordering the real listPaged applies: review-needed first, then newest period.
+type PagedRow = ReturnType<typeof fullToRow>;
+
 function sortRows(rows: PagedRow[]): PagedRow[] {
   return [...rows].sort((a, b) => {
     if ((a.status === "needs_review") !== (b.status === "needs_review"))
@@ -598,7 +616,7 @@ export function demoListPaged(args: {
   vendorId?: string;
   page: number;
   perPage: number;
-}): Paged {
+}) {
   const all = billSeeds(nowMonth()).map((s) => fullToRow(seedToFull(s)));
   const filtered = args.vendorId
     ? all.filter((r) => r.vendorId === args.vendorId)
@@ -615,12 +633,12 @@ export function demoListPaged(args: {
 
 /** bills.get shape for the demo drawer: full bill + raw text, no PDF, plus YoY
  * for parsed bills that have a same-vendor bill twelve months earlier. */
-export function demoBill(id: string): BillGet | null {
+export function demoBill(id: string): DemoBill | null {
   const seed = billSeeds(nowMonth()).find((s) => s.id === id);
   if (!seed) return null;
   const full = seedToFull(seed);
 
-  let yoy: BillGet["yoy"] = null;
+  let yoy: DemoBill["yoy"] = null;
   if (seed.key && seed.month) {
     const prevMonth = monthList(seed.month, 13)[0]; // 12 months earlier
     const cur = amountARS(seed.key, seed.month);
@@ -636,3 +654,12 @@ export function demoBill(id: string): BillGet | null {
 
   return { ...full, downloadUrl: null, yoy };
 }
+
+export type DemoOverviewData = ReturnType<typeof demoOverview>;
+export type DemoSeriesData = ReturnType<typeof demoSeries>;
+export type DemoVendorDetail = NonNullable<
+  ReturnType<typeof demoVendorDetail>
+>;
+export type DemoVendor = (typeof demoVendors)[number];
+export type DemoProperty = (typeof demoProperties)[number];
+export type DemoPagedBills = ReturnType<typeof demoListPaged>;

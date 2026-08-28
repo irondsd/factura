@@ -5,7 +5,7 @@
  *   src/content/shared/amba-geo.json  the 27 partidos a price is published for
  *   src/content/shared/pba-geo.json   all 135 partidos of the province
  *
- * Run: `bun scripts/build-pba-geo.ts`   (or `npm run data:pba-geo`)
+ * Run: `bun scripts/build-pba-geo.ts`   (or `bun run data:pba-geo`)
  *      `--dry-run`   build and report without writing
  *
  * Effectively a one-off, like its CABA twin: partido boundaries change about

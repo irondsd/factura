@@ -4,7 +4,7 @@
  *
  *   src/content/estadisticas/data/costo-construccion-caba.json
  *
- * Run: `bun scripts/fetch-caba-construccion.ts`   (or `npm run data:construccion`)
+ * Run: `bun scripts/fetch-caba-construccion.ts`   (or `bun run data:construccion`)
  *      `--dry-run`   parse and report without writing
  *
  * Two IDECBA tables, joined on one monthly axis:

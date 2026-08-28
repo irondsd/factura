@@ -6,8 +6,12 @@ import { interpolate } from "@/i18n/config";
 import { useLocale, useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/cn";
 import { formatARS, formatDate, formatMonth } from "@/lib/format";
-import type { CustomFieldDef, Tier, TierMatch } from "@/lib/probar";
-import type { TypedValue } from "@/parsers/engine/types";
+import type {
+  CustomFieldDef,
+  Tier,
+  TierMatch,
+  TypedValue,
+} from "@/lib/probar";
 
 /** Parser authors name their own custom fields, so there is no fixed vocabulary
  * to translate — `consumption`, `Fixed Charge` and `cuotaExtra` are all names

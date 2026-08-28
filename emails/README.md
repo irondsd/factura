@@ -5,7 +5,7 @@ Transactional email templates, built with [react-email](https://react.email).
 ## Preview
 
 ```bash
-npm run email      # live preview at http://localhost:3001
+bun run email      # live preview at http://localhost:3001
 ```
 
 ## Structure
@@ -16,8 +16,7 @@ npm run email      # live preview at http://localhost:3001
   and a `<DetailRow>` helper. New emails compose through this shell — only the
   content swaps.
 - **`welcome.tsx`** — `WelcomeEmail`, registration / welcome.
-- **`share-invite.tsx`** — `ShareInviteEmail`, shared-property invite (adds a
-  ledger-style detail block + decline link).
+- **`opt.tsx`** — `OtpEmail`, the six-digit email sign-in code.
 
 Each template file has a default export (picked up by the preview server) and a
 `PreviewProps` for sample data.
@@ -40,7 +39,7 @@ accent `#d9480f`; Fraunces (display) + IBM Plex Mono.
 ## Rendering to HTML
 
 ```bash
-npx email export --dir emails --outDir .email-out
+bunx email export --dir emails --outDir .email-out
 ```
 
 To send, render with `@react-email/render` and hand the HTML to your provider

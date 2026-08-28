@@ -84,12 +84,6 @@ export function baseMetadata({
     },
     // favicon.ico, icon.png and apple-icon.png are picked up automatically from
     // src/app/ as file-based metadata — no manual icons config needed.
-    manifest: "/manifest.webmanifest",
-    appleWebApp: {
-      capable: true,
-      title: siteName,
-      statusBarStyle: "default",
-    },
     formatDetection: {
       email: false,
       address: false,

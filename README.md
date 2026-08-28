@@ -1,159 +1,107 @@
-# Factura
+# Factura — site and CMS
 
-**Drop a utility-bill PDF, get a ledger.** Factura reads your bills, pulls out the
-vendor, account, billing period and amount, and keeps a running total per
-property and month — with missing-bill detection, per-vendor history, and
-ARS/USD insights.
+This repository contains the public website and publishing system for
+[factura.uno](https://factura.uno). The signed-in product is a separate project,
+served from [app.factura.uno](https://app.factura.uno).
 
-It's self-hostable and built around a **config-driven parser engine**: parsers
-are pure data, not code, so you can teach Factura a new vendor's bill format in a
-visual builder and share it — no fork required.
+## What lives here
 
-> **Privacy.** PDF text is extracted in your browser. The bill (extracted text
-> plus the original PDF) is then stored privately to your account so it can be
-> viewed and re-parsed later. Bills are scoped to your account — only you can
-> see them.
+- The Spanish and English marketing pages, public demo, documentation, FAQ,
+  privacy, security, and contact pages.
+- Published guides, statistics, investigations, news, and normativa pages.
+- The private `/cms` authoring and media interface, plus its CMS-only MCP API.
+- `/probar`, whose browser client sends bill samples to the app origin's API.
+- Shared Auth.js sign-in, callback, session-cookie, and logout endpoints.
+- Permanent compatibility redirects from legacy product URLs such as `/app/*`,
+  `/api/mcp`, and `/api/oauth/*` to the app origin.
+- The authoritative Drizzle schema and migrations shared by both deployments.
 
-## Features
-
-- **Drop-to-ingest** — drop a PDF anywhere on the dashboard; Factura extracts the
-  text in-browser, stores the file, and files the bill into your ledger.
-- **Property ledger** — totals per property and month, per-vendor history, and
-  detection of months that are missing a bill.
-- **Insights** — charts for spend over time and by vendor, with a per-chart
-  ARS/USD toggle.
-- **Accounts → properties** — the first bill from an unknown account asks which
-  property it belongs to, once; address variants pre-select the answer.
-- **Shared properties** — invite members to a property so co-owners or tenants
-  share the same ledger.
-- **Review inbox** — unrecognized vendors and failed parses land here; fix the
-  fields by hand, or fix the parser and re-parse. Raw text is stored, so bills
-  re-extract without re-dropping files.
-- **Config-driven parser engine** — vendor-agnostic by construction; a parser is
-  JSON-serializable data the engine interprets (region slicing → captures →
-  compute → validation → field roles).
-- **Visual parser builder** (`/builder`) — build and test a parser against a real
-  bill without writing code.
-- **Parser registry** — keep your own parsers, adopt official/community ones, and
-  publish or fork them.
-- **Auth** — Google OAuth and email one-time-password sign-in.
+This repository does not contain the product dashboard, bill APIs, parser
+engine, product MCP/OAuth implementation, private bill storage, or PWA runtime.
+`/sw.js` is intentionally retained as a small retirement worker so browsers
+that installed the former monolith can clear its share cache and unregister it.
 
 ## Stack
 
-[Next.js 16](https://nextjs.org) (App Router) · [tRPC](https://trpc.io) ·
-[Drizzle ORM](https://orm.drizzle.team) · Postgres ·
-[NextAuth v5](https://authjs.dev) · [Tailwind v4](https://tailwindcss.com) ·
-[Recharts](https://recharts.org) · S3-compatible storage (MinIO / R2 / S3) ·
-[Resend](https://resend.com) for email.
+[Next.js 16](https://nextjs.org) (App Router), React 19, Tailwind CSS 4,
+[Drizzle ORM](https://orm.drizzle.team), Postgres, Auth.js, Recharts,
+React Email/Resend, and S3-compatible public CMS media storage.
 
 ## Quick start
 
-Requires Node 20+ and Docker.
+Requires Bun and Docker.
 
 ```bash
-git clone <your-fork-url> factura && cd factura
-
-cp env.example .env.local   # see Configuration below
-docker compose up -d        # Postgres on :5433, MinIO on :9000 (console :9001)
-npm install
-npm run db:push             # create the schema
-npm run db:seed             # local user + starter vendors
-npm run dev                 # http://localhost:4000
+git clone <your-fork-url> factura
+cd factura
+cp env.example .env.local
+bun install
+docker compose up -d
+bun run db:push
+bun run dev
 ```
 
-Auth and email work out of the box in dev without external accounts: leave
-`RESEND_API_KEY` blank and sign-in codes are printed to the server console
-instead of being emailed. Add Google OAuth credentials to enable
-"Continue with Google".
+The site runs at `http://localhost:4000`; the documented neighboring app runs at
+`http://localhost:4001`.
 
-## How it works
-
-1. **Drop a PDF anywhere** on the dashboard. The browser extracts the text
-   (`react-pdftotext`); the original file is uploaded to S3-compatible storage
-   (when configured) and the extracted text is sent to the server.
-2. The server runs the **parser engine** over the text. A matching parser yields
-   a structured bill (vendor, account, period, amount) that's saved to your
-   ledger. No match → the **review inbox**; a partial match → a manual-fix queue.
-3. Because the **raw text is stored**, bills can be **re-parsed** on the server
-   after you improve a parser — no need to re-drop the files.
-
-## Parsers
-
-Parsers are **data, not code**. A `ParserConfig` (`src/parsers/engine/types.ts`)
-describes a pipeline the engine interprets, and nothing in it names a vendor or
-country — locale lives in transform params (`numberAR` vs `numberUS`), never in
-identifiers.
-
-There are three ways to add one:
-
-- **Visual builder** (`/builder`) — drop a bill, define captures and field roles
-  against the live text, test, and save. This is the recommended path.
-- **Registry** — adopt a published parser for a vendor someone has already
-  mapped, or fork one that's close.
-- **In code** — the seed parsers live under `src/parsers/engine/configs/`, with
-  sanitized sample bills in `src/parsers/__fixtures__/` and tests alongside the
-  engine. Useful when you want the parser checked into the repo.
-
-After changing a parser, **re-parse** affected bills to backfill them.
+Email sign-in works locally without Resend: leave `RESEND_API_KEY` blank and the
+one-time code is printed to the server console. Add Google OAuth credentials to
+enable “Continue with Google.”
 
 ## Project layout
 
+```text
+src/app/             public routes, login/logout, CMS routes, retained APIs
+src/components/      marketing, editorial, demo, chart, and shared UI
+src/cms/             CMS domain and public-media management
+src/content-system/  content repository, rendering, validation, and metadata
+src/db/              shared Drizzle schema
+src/server/          identity, contact notifications, rate limits, CMS protocol
+emails/              OTP and welcome React Email templates
+scripts/             SEO audit, public datasets, CMS media, and DB utilities
 ```
-src/
-  app/            # Next.js App Router pages (insights, bills, properties,
-                  #   parsers, builder, profile, login, api)
-  components/     # UI — DropOverlay (drop-to-ingest), charts, app shell
-  server/         # tRPC routers, storage (S3), parser registry, auth
-  parsers/
-    engine/       # the config-driven engine + seed configs
-    builder/      # builder-page logic (config <-> editable model)
-    __fixtures__/ # sanitized sample bill text for tests
-  db/             # Drizzle schema + seed
-emails/           # React Email templates (welcome, sign-in code, invites)
-```
+
+Public articles are stored in Postgres and authored through `/cms` or the
+`factura-cms` MCP server. Read `src/content/AUTHORING.md` before editing content.
 
 ## Configuration
 
-Copy `env.example` to `.env.local`. The defaults match `docker-compose.yml`, so
-local dev needs no edits.
+Copy `env.example` to `.env.local`.
 
-| Variable                                                                                                        | Purpose                                                                             |
-| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                                                                                  | Postgres connection string.                                                         |
-| `AUTH_SECRET`                                                                                                   | Session/JWT secret (`npx auth secret`).                                             |
-| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`                                                                         | Google OAuth; optional in dev.                                                      |
-| `RESEND_API_KEY` / `EMAIL_FROM`                                                                                 | Transactional email; blank in dev logs sign-in codes to the console.                |
-| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHANNEL_ID`                                                                    | Where /contacto and unrecognized /probar bills post; blank in dev logs to console.  |
-| `TELEGRAM_NOTIFY_SIGNINS`                                                                                        | Registration notices: `new` by default, `all` for every sign-in, or `off`.           |
-| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_FORCE_PATH_STYLE` | Storage for original PDFs. Leave blank to run text-only (no PDF upload / View PDF). |
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Shared Postgres connection string. |
+| `NEXT_PUBLIC_SITE_URL` | Canonical marketing origin. |
+| `NEXT_PUBLIC_APP_URL` | Canonical app origin used by links, redirects, and allowlists. |
+| `AUTH_SECRET` | Auth.js session secret. |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth; optional in development. |
+| `SESSION_COOKIE_DOMAIN` | Production cookie domain shared with `app.factura.uno`. |
+| `RESEND_API_KEY` / `EMAIL_FROM` | OTP and welcome email delivery. |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHANNEL_ID` | Contact-form and optional sign-up notices. |
+| `TELEGRAM_NOTIFY_SIGNINS` | `new` by default, `all`, or `off`. |
+| `CMS_MEDIA_S3_BUCKET` / `CMS_MEDIA_PUBLIC_ORIGIN` | Public CMS media bucket and browser origin. |
+| `S3_ENDPOINT` / `S3_REGION` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_FORCE_PATH_STYLE` | S3-compatible connection used by CMS media. |
 
-## Scripts
+The two public origin variables are deliberately distinct: one names this site
+and one names the app. Server-only and browser-visible code derive from the same
+pair, so links and security allowlists cannot drift.
 
-```bash
-npm run dev          # dev server on :4000
-npm run build        # production build
-npm run start        # serve the production build
-npm test             # vitest
-npm run typecheck    # tsc --noEmit
-npm run lint         # eslint
-npm run format       # prettier --write .
-npm run db:push      # push the Drizzle schema
-npm run db:seed      # seed local user + vendors
-npm run db:studio    # Drizzle Studio
-npm run email        # preview email templates on :3001
-```
-
-## Contributing
-
-Issues and pull requests are welcome. Before opening a PR:
+## Commands
 
 ```bash
-npm run typecheck && npm test && npm run lint
+bun run dev          # development server on :4000
+bun run build        # production build
+bun run start        # serve the production build
+bun run lint         # ESLint
+bun run typecheck    # TypeScript
+bun run test         # Vitest
+bun run audit:seo    # audit built public SEO output
+bun run db:push      # push the shared Drizzle schema
+bun run db:studio    # inspect the shared database
+bun run email        # preview email templates on :3001
 ```
 
-New vendor parsers are especially welcome — build one in `/builder`, add a
-sanitized fixture and a test, and open a PR. Please keep sample bills free of
-real names, addresses, and account numbers.
+Public-data and CMS-media maintenance commands are listed in `package.json`.
 
 ## License
 

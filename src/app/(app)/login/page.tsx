@@ -2,9 +2,14 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { loginTarget } from "@/lib/nextPath";
 import { appPageMetadata } from "@/lib/seo";
-import { SHARE_DENIED, SHARE_PARAM } from "@/lib/shareTarget";
 import { auth } from "@/server/auth";
 import { LoginForm } from "./LoginForm";
+
+// The app's Android share target can send a signed-out user here. This tiny
+// query contract belongs to the cross-origin login handoff, not to the retired
+// marketing-site service worker.
+const SHARE_PARAM = "share";
+const SHARE_DENIED = "denied";
 
 export function generateMetadata(): Promise<Metadata> {
   return appPageMetadata("login");
@@ -21,8 +26,7 @@ function one(value: string | string[] | undefined): string | null {
 /** The sign-in page, gated on the server so an already-signed-in visitor never
  * loads it at all.
  *
- * Every "Ingresar"/"Comenzar" button on the landing points here rather than at
- * /app, and this is what makes that the right call: the session is resolved
+ * Every "Ingresar"/"Comenzar" button on the landing points here. The session is resolved
  * before a byte of the form ships, so a signed-in visitor gets a 307 straight
  * to where they were going, while everyone else — the majority arriving from a
  * marketing page — gets the small login card and none of the app's bundle.
@@ -40,7 +44,7 @@ export default async function LoginPage({
   // Where sign-in leads. `next` is what carries a deep link across the flow —
   // /oauth/authorize sets it, so does the app's own auth gate — and `claim` is
   // the flag /probar sets for bills dropped while logged out. loginTarget runs
-  // `next` through safeNext, so a hostile ?next= can only land on /app.
+  // `next` through safeNext, so a hostile value cannot become an open redirect.
   const target = loginTarget(one(resolved.next), one(resolved.claim) === "1");
 
   const session = await auth();

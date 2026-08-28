@@ -7,15 +7,13 @@ import { sendSignInMessage } from "./telegram";
 
 /** "Someone signed in" → the Telegram channel.
  *
- * The channel already carries the contact form and the bills no parser could
- * read; sign-ins are the third thing worth knowing the moment it happens rather
- * than the next time somebody opens a table. Volume is the whole risk here, so
+ * The channel already carries the contact form; sign-ups are also worth knowing
+ * the moment they happen. Volume is the whole risk here, so
  * how much of it gets posted is a setting — see `signInNoticeMode` — and this
  * function is only reached once that gate has said yes.
  *
- * Best-effort in every direction, like the /probar notice: called from
- * `after()`, so it never delays the sign-in redirect, and every step degrades
- * rather than throws.
+ * Best-effort in every direction: called from `after()`, so it never delays the
+ * sign-in redirect, and every step degrades rather than throws.
  */
 export async function notifySignIn(input: {
   user: { email?: string | null; name?: string | null };

@@ -2,11 +2,8 @@
 #
 # Sync the local Docker Postgres from the Neon (production) database.
 #
-# Dumps Neon and restores it into the local container, then nulls out the R2
-# storage references — the local `factura-dev` bucket doesn't contain the prod
-# objects, so pointing the app at them would render dead "View PDF" links. With
-# storage_key cleared, migrated bills show "not stored" and re-uploads land in
-# factura-dev with fresh keys. See src/server/storage.ts / bill-drawer/parts.tsx.
+# Dumps Neon and restores it into the local container. This is useful for
+# developing against current CMS content and shared identity/schema data.
 #
 # Runs pg_dump / psql *inside* the `db` container, so no host Postgres client is
 # needed — only Docker and a running db (`docker compose up -d db`).
@@ -67,9 +64,5 @@ echo "▸ Resetting local schema…"
 echo "▸ Dumping Neon → local…"
 "${DB_EXEC[@]}" pg_dump --no-owner --no-acl --no-comments "$SOURCE_URL" \
   | "${DB_EXEC[@]}" psql "$LOCAL_URL" -v ON_ERROR_STOP=1 -q
-
-echo "▸ Clearing R2 storage references (prod objects aren't in factura-dev)…"
-"${DB_EXEC[@]}" psql "$LOCAL_URL" -v ON_ERROR_STOP=1 -q \
-  -c "UPDATE bills SET storage_key = NULL WHERE storage_key IS NOT NULL;"
 
 echo "✓ Local DB synced from Neon."

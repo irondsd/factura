@@ -4,7 +4,7 @@
  *
  *   src/content/estadisticas/data/delitos-caba.json
  *
- * Run: `bun scripts/fetch-caba-delitos.ts`   (or `npm run data:delitos`)
+ * Run: `bun scripts/fetch-caba-delitos.ts`   (or `bun run data:delitos`)
  *      `--dry-run`   parse and report without writing
  *
  * Four sources, joined on the city's 48 barrios and 15 comunas:

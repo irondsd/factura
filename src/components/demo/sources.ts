@@ -1,10 +1,9 @@
-// Fixture-backed data sources that plug the static demo dataset into the same
-// view components the signed-in app uses. These are plain (non-hook) functions —
+// Fixture-backed data sources for the public demo. These are plain functions —
 // they return data synchronously — which keeps the call count stable wherever a
 // view invokes them, satisfying the Rules of Hooks.
 
-import type { BillsSource } from "@/components/app/views/BillsView";
-import type { InsightsSource } from "@/components/app/views/InsightsView";
+import type { BillsSource } from "@/components/demo/views/BillsView";
+import type { InsightsSource } from "@/components/demo/views/InsightsView";
 import {
   demoListPaged,
   demoProperties,

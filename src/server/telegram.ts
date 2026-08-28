@@ -1,12 +1,10 @@
 /**
- * Telegram delivery — the destination for the public contact form and for the
- * bills /probar could not read.
+ * Telegram delivery for the public contact form and identity sign-in notices.
  *
  * Mail on @factura.uno is forwarded to a real inbox, so the addressed channels
  * on /contacto need nothing from us. The form is the one thing that had no
  * destination: it goes to a Telegram channel, which is where a message from a
- * stranger is actually noticed. An unrecognized bill is the same shape of
- * problem — something a stranger sent that only matters if we see it today.
+ * stranger is actually noticed.
  *
  * Configure (in .env.local / the host's env):
  *   TELEGRAM_BOT_TOKEN   — from @BotFather
@@ -22,12 +20,6 @@ import { parseUserAgent } from "@/lib/userAgent";
 
 /** Telegram rejects a `sendMessage` longer than this. */
 const MESSAGE_LIMIT = 4096;
-
-/** …and a `sendDocument` caption at a quarter of it. An unrecognized-bill
- * notice is written once and sent either way — attached to the PDF or on its
- * own when there's no file — so the whole thing is budgeted to the smaller
- * ceiling rather than built twice. */
-const CAPTION_LIMIT = 1024;
 
 /** Room kept free for the header lines and the truncation marker, so a
  * maximum-length message body can never push the whole thing over the limit. */
@@ -58,13 +50,6 @@ export function escapeMarkdownV2(text: string): string {
  * here would print the backslashes literally. */
 function escapeCode(text: string): string {
   return text.replace(/[`\\]/g, (c) => `\\${c}`);
-}
-
-/** Escape for the `(...)` half of an inline link, where Telegram reserves only
- * `)` and `\`. Running the full escaper over a presigned URL would put
- * backslashes inside the signature and break the download. */
-function escapeUrl(url: string): string {
-  return url.replace(/[)\\]/g, (c) => `\\${c}`);
 }
 
 /** Clip escaped text to `max` characters without splitting an escape pair.
@@ -101,75 +86,6 @@ export function buildContactMessage(contact: ContactMessage): string {
   return clipEscaped(lines.join("\n"), MESSAGE_LIMIT);
 }
 
-export type UnrecognizedBill = {
-  submissionId: string;
-  fileName: string;
-  fileBytes: number;
-  pageCount: number | null;
-  /** Which language the visitor was reading — a rough proxy for where the bill
-   * is from, and the language any reply would be written in. */
-  locale?: Locale | null;
-  /** "Who is this bill from?", if the visitor answered before we posted. Usually
-   * null: the field only appears once the cascade has failed, which is the
-   * moment this notice is sent. */
-  vendorGuess: string | null;
-  /** First slice of the extracted text — enough to tell at a glance which vendor
-   * this is, without opening the PDF. */
-  textPreview: string;
-  /** Signed link to the stored original, for when the file itself couldn't be
-   * attached. Null when there is nothing to link to. */
-  downloadUrl?: string | null;
-};
-
-/** Human-sized file size. One decimal on MB, none on KB — this is a glanceable
- * line in a chat, not a report. */
-function formatBytes(bytes: number): string {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-}
-
-/** The channel post for a bill no parser recognized.
- *
- * This is the queue of parsers to write next, so the post is built to answer
- * one question — "what is this bill and can I get at it?" — inside a caption's
- * 1024 characters, since it usually rides along with the PDF itself. */
-export function buildUnrecognizedBillMessage(bill: UnrecognizedBill): string {
-  const size = formatBytes(bill.fileBytes);
-  const pages =
-    bill.pageCount === null
-      ? ""
-      : `, ${bill.pageCount} ${bill.pageCount === 1 ? "page" : "pages"}`;
-
-  const lines = [
-    "🧾 *Unrecognized bill*",
-    "",
-    // The name is a visitor's, so it goes in a code span rather than through the
-    // full escaper — and code spans are tap-to-copy, which helps when the file
-    // is sitting in a folder next to a dozen others.
-    `*File:* \`${escapeCode(bill.fileName)}\` — ${escapeMarkdownV2(`${size}${pages}`)}`,
-  ];
-  if (bill.vendorGuess)
-    lines.push(`*Says it's from:* ${escapeMarkdownV2(bill.vendorGuess)}`);
-  if (bill.locale) lines.push(`*Language:* ${bill.locale}`);
-  lines.push(`*Submission:* \`${escapeCode(bill.submissionId)}\``);
-  if (bill.downloadUrl)
-    lines.push(`*Download:* [stored PDF](${escapeUrl(bill.downloadUrl)})`);
-
-  const header = lines.join("\n");
-  // Whatever the header didn't use goes to the text, minus the blank line
-  // between them and a little room for the ellipsis.
-  const budget = CAPTION_LIMIT - header.length - 8;
-  const preview =
-    budget > 40
-      ? clipEscaped(escapeMarkdownV2(bill.textPreview.trim()), budget)
-      : "";
-
-  return clipEscaped(
-    preview ? `${header}\n\n${preview}` : header,
-    CAPTION_LIMIT,
-  );
-}
-
 export type SignInNotice = {
   email: string | null;
   name: string | null;
@@ -197,9 +113,8 @@ const PROVIDER_LABELS: Record<string, string> = {
 /** The channel post for one sign-in.
  *
  * Deliberately short: this is a heartbeat, not a record. Everything here is
- * already in the database — `/app/sessions` is the place that answers questions
- * about a session — so the post carries only what makes it worth glancing at:
- * who, whether they're new, and roughly from where.
+ * already in the database, so the post carries only what makes it worth
+ * glancing at: who, whether they're new, and roughly from where.
  *
  * No IP address on purpose. City and country say as much as this notice needs,
  * and a channel is a longer-lived, less controlled home for an address than the
@@ -264,12 +179,6 @@ export function shouldNotifySignIn(isNewUser: boolean): boolean {
   return mode === "all" || (mode === "new" && isNewUser);
 }
 
-/** Whether a channel is configured at all. Lets a caller skip the work of
- * gathering an attachment it has nowhere to send. */
-export function isTelegramConfigured(): boolean {
-  return config() !== null;
-}
-
 function config(): { token: string; chatId: string } | null {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHANNEL_ID;
@@ -325,80 +234,6 @@ export async function sendTelegramMessage(
     return { ok: false, skipped: false };
   } catch (err) {
     console.error("[telegram] sendMessage threw:", err);
-    return { ok: false, skipped: false };
-  }
-}
-
-/** Post a file to the channel, with `caption` as its message.
- *
- * Same bargain as `sendTelegramMessage` — unconfigured is `skipped`, not a
- * failure — except that a caller with no channel has nothing to attach to, so
- * `isTelegramConfigured` is worth checking before reading a file off storage
- * just to hand it back here.
- */
-export async function sendTelegramDocument(
-  file: { bytes: Uint8Array; fileName: string },
-  caption: string,
-): Promise<{ ok: boolean; skipped: boolean }> {
-  const cfg = config();
-  if (!cfg) {
-    console.warn(
-      `[telegram] TELEGRAM_BOT_TOKEN/TELEGRAM_CHANNEL_ID unset — ${file.fileName} not sent:\n${caption}`,
-    );
-    return { ok: true, skipped: true };
-  }
-
-  const post = (extra?: Record<string, string>) => {
-    const body = new FormData();
-    body.set("chat_id", cfg.chatId);
-    body.set("caption", caption);
-    for (const [key, value] of Object.entries(extra ?? {}))
-      body.set(key, value);
-    // A fresh FormData per attempt: the retry below re-sends the same bytes and
-    // a consumed multipart body cannot be replayed.
-    body.set(
-      "document",
-      // The cast is the `Uint8Array<ArrayBufferLike>` every byte reader in this
-      // codebase hands back meeting a `BlobPart` that insists on the
-      // ArrayBuffer-backed variant. Same bytes — the distinction exists only to
-      // keep SharedArrayBuffer out of DOM APIs.
-      new Blob([file.bytes as Uint8Array<ArrayBuffer>], {
-        type: "application/pdf",
-      }),
-      file.fileName,
-    );
-    return fetch(`https://api.telegram.org/bot${cfg.token}/sendDocument`, {
-      method: "POST",
-      body,
-    });
-  };
-
-  try {
-    const res = await post({ parse_mode: "MarkdownV2" });
-    if (res.ok) return { ok: true, skipped: false };
-
-    const detail = await res.text().catch(() => "");
-    console.error(`[telegram] sendDocument failed (${res.status}): ${detail}`);
-
-    // Same reasoning as the sendMessage path: a 400 is entity parsing, and the
-    // bill is worth more than the bold labels on its caption.
-    if (res.status === 400) {
-      const plain = await post();
-      if (plain.ok) {
-        console.warn(
-          "[telegram] document delivered without caption formatting",
-        );
-        return { ok: true, skipped: false };
-      }
-      console.error(
-        `[telegram] plain-caption retry failed (${plain.status}): ${await plain
-          .text()
-          .catch(() => "")}`,
-      );
-    }
-    return { ok: false, skipped: false };
-  } catch (err) {
-    console.error("[telegram] sendDocument threw:", err);
     return { ok: false, skipped: false };
   }
 }

@@ -159,7 +159,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return true;
     },
-    // Expose the user id on the session so tRPC can scope every query to it.
+    // Expose the user id on the session for the app and CMS authorization.
     //
     // Returns a fresh object rather than the argument: with the database
     // strategy Auth.js passes `{...sessionRow, user}` here, and whatever this

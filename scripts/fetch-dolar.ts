@@ -4,7 +4,7 @@
  *
  *   src/content/estadisticas/data/dolar.json
  *
- * Run: `bun scripts/fetch-dolar.ts`   (or `npm run data:dolar`)
+ * Run: `bun scripts/fetch-dolar.ts`   (or `bun run data:dolar`)
  *      `--dry-run`   fetch and report without writing
  *
  * ── Why this file exists ───────────────────────────────────────────────────

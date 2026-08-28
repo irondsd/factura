@@ -5,7 +5,7 @@
  *
  *   src/content/estadisticas/data/escrituras-pba.json
  *
- * Run: `bun scripts/fetch-pba-escrituras.ts`   (or `npm run data:escrituras`)
+ * Run: `bun scripts/fetch-pba-escrituras.ts`   (or `bun run data:escrituras`)
  *      `--dry-run`   parse and report without writing
  *
  * ── The source ────────────────────────────────────────────────────────────

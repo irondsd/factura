@@ -1,8 +1,16 @@
-import type { ParsedResult } from "@/parsers/engine/types";
-
 /** Wire types for the public /probar endpoints, shared by the route handlers and
- * the browser. Dependency-free (like limits.ts) so the client island can import
- * it without dragging in server-only code. */
+ * the browser. These mirror the app API's JSON contract without importing the
+ * parser engine that now lives in the app repository. */
+
+export type TypedValue = string | number | { value: number; unit: string };
+
+export type ParsedResult = {
+  identity: string;
+  amount: number;
+  period: string;
+  dueDate: string;
+  custom: Record<string, TypedValue>;
+};
 
 export type Tier = "official" | "verified" | "community";
 

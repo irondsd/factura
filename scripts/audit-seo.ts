@@ -15,7 +15,7 @@
  * verifies they reach the sitemap, feed and llms.txt. Production content
  * validation and content-level SEO belong to the CMS.
  *
- * Run: `bun scripts/audit-seo.ts`  (or `npm run audit:seo`)
+ * Run: `bun scripts/audit-seo.ts`  (or `bun run audit:seo`)
  * Set `AUDIT_BASE_URL` to audit a server that is already running (a preview
  * deploy, say) instead of starting one.
  */
@@ -34,10 +34,8 @@ const PROD_ORIGIN = "https://factura.uno";
 const PORT = Number(process.env.AUDIT_PORT ?? 4173);
 const usingCiFixtures = process.env.CI_CONTENT_FIXTURES === "1";
 
-/** Pages that must NOT be indexable, checked explicitly because — by design —
- * they never appear in the sitemap. This is the phase-1 invariant: the signed-in
- * app says `noindex` and claims no canonical of its own. */
-const PRIVATE_PATHS = ["/login", "/app", "/delete-account"];
+/** The identity page must not be indexable and never appears in the sitemap. */
+const PRIVATE_PATHS = ["/login"];
 
 /** The index at each prefix is repository-owned; its descendants are authored
  * in the CMS. `/guias/categoria/*` is also content-derived: the category exists

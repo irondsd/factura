@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { OverviewView } from "@/components/app/views/OverviewView";
+import { OverviewView } from "@/components/demo/views/OverviewView";
 import { demoOverview } from "@/lib/demo/fixtures";
 
 /** The /demo Overview. Holds the month the forecast block is showing, exactly

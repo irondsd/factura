@@ -100,7 +100,7 @@ A live, interactive walkthrough of the app on sample data — no sign-in require
 
 ## MCP server
 
-Factura exposes a read-only MCP server, so an AI assistant can answer questions from a user's own bills. The endpoint is https://factura.uno/api/mcp. It requires authorization — but a client can bootstrap that itself: an unauthenticated call returns 401 with a \`WWW-Authenticate\` header pointing at https://factura.uno/.well-known/oauth-protected-resource, and the server supports OAuth 2.1 with dynamic client registration. The user approves the connection on a consent screen in the app, and can revoke it there at any time. Clients that cannot do OAuth can send a personal access token the user creates in the app instead.
+Factura exposes a read-only MCP server, so an AI assistant can answer questions from a user's own bills. The endpoint is https://app.factura.uno/api/mcp. It requires authorization — but a client can bootstrap that itself: an unauthenticated call returns 401 with a \`WWW-Authenticate\` header pointing at https://app.factura.uno/.well-known/oauth-protected-resource, and the server supports OAuth 2.1 with dynamic client registration. The user approves the connection on a consent screen in the app, and can revoke it there at any time. Clients that cannot do OAuth can send a personal access token the user creates in the app instead.
 
 There is one scope, \`mcp:read\`. The tools cover properties, vendors, bills (list and detail, with year-over-year), and spending (monthly snapshot, series in pesos and USD, per-vendor history and consumption). Nothing writes: creating, editing, and deleting bills happen in the app only. The server does not expose bill PDFs or their extracted text.
 
@@ -115,7 +115,7 @@ There is one scope, \`mcp:read\`. The tools cover properties, vendors, bills (li
 ## Optional
 
 - [Feed](https://factura.uno/feed.xml): RSS 2.0 over Noticias, Guías, Estadísticas and Investigación above, newest change first. Items carry both \`pubDate\` (first published) and \`atom:updated\` (last revised) — the statistics pages are republished monthly as new official data lands, so the second is the one that moves.
-- The signed-in application lives under https://factura.uno/app and requires authentication; it is not publicly indexable. The /demo pages above show the same screens on sample data.`;
+- The signed-in application lives under https://app.factura.uno/ and requires authentication; it is not publicly indexable. The /demo pages above show the same screens on sample data.`;
 
 export async function GET() {
   const [guideSections, categories, sections] = await Promise.all([
