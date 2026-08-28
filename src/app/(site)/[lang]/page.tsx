@@ -307,12 +307,13 @@ export default async function LandingPage({ params }: Props) {
 /** How many cards a block shows. Three, so a block is one grid row. */
 const PER_BLOCK = 3;
 
-/** Freshest first by editorial update. Registry order is editorial, not
- * chronological, so every block sorts before it slices. The card distinguishes
- * a newly published page from a later update in its badge and visible date. */
+/** Most recently published first. Registry order is editorial, not
+ * chronological, so every block sorts before it slices. Publication, not the
+ * monthly data refresh: the homepage window is the newest pages, and the first
+ * of them wears `NUEVO`. */
 const newest = (pages: SectionPage[]): SectionPage[] =>
   [...pages]
-    .sort((a, b) => Date.parse(b.meta.updated) - Date.parse(a.meta.updated))
+    .sort((a, b) => Date.parse(b.meta.published) - Date.parse(a.meta.published))
     .slice(0, PER_BLOCK);
 
 const sectionCards = (
@@ -326,7 +327,6 @@ const sectionCards = (
     summary: page.meta.summary,
     previewMediaId: page.meta.previewMediaId,
     published: page.meta.published,
-    updated: page.meta.updated,
   }));
 
 async function teaserBlocks(): Promise<TeaserBlock[]> {
@@ -359,19 +359,26 @@ async function teaserBlocks(): Promise<TeaserBlock[]> {
       allLabel: "Ver todas las investigaciones",
     },
     {
-      // `publishedGuides()` already comes back most recently updated first.
+      // `publishedGuides()` comes back most recently *updated* first, so this
+      // block re-sorts by publication like the other two.
       label: "Guías",
       blurb:
         "Aprende a leer tus facturas y a entender qué pagas en cada servicio.",
-      cards: guides.slice(0, PER_BLOCK).map((guide) => ({
-        key: guide.slug,
-        href: `/guias/${guide.slug}`,
-        title: guide.title,
-        summary: guide.summary,
-        previewMediaId: guide.metadata.previewMediaId,
-        published: guide.publishedAt ?? guide.contentUpdatedAt,
-        updated: guide.contentUpdatedAt,
-      })),
+      cards: [...guides]
+        .sort(
+          (a, b) =>
+            Date.parse(b.publishedAt ?? b.contentUpdatedAt) -
+            Date.parse(a.publishedAt ?? a.contentUpdatedAt),
+        )
+        .slice(0, PER_BLOCK)
+        .map((guide) => ({
+          key: guide.slug,
+          href: `/guias/${guide.slug}`,
+          title: guide.title,
+          summary: guide.summary,
+          previewMediaId: guide.metadata.previewMediaId,
+          published: guide.publishedAt ?? guide.contentUpdatedAt,
+        })),
       allHref: "/guias",
       allLabel: "Ver todas las guías",
     },
