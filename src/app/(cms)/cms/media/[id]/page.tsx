@@ -51,6 +51,7 @@ export default async function CmsMediaDetailPage({
         portraitOf={detail.portraitOf}
         collections={collections}
         graceDays={STORAGE_LIMITS.trashGraceDays}
+        maxBytes={STORAGE_LIMITS.maxBytes}
       />
     </CmsShell>
   );

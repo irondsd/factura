@@ -18,7 +18,11 @@ import type {
   MediaListFilter,
 } from "../types";
 import type { MediaPatch } from "./store";
-import { cmsMediaService as service, type ReservedUpload } from "./service";
+import {
+  cmsMediaService as service,
+  type ReservedReplacement,
+  type ReservedUpload,
+} from "./service";
 import { reconcileMediaUsage } from "./usage";
 import { reconcileBucket, type BucketReconciliation } from "./purge";
 
@@ -151,6 +155,48 @@ export async function completeUploadAction(input: {
     const asset = await service.completeUpload(actor, input);
     refresh();
     return { ok: true, data: asset };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+export async function reserveReplacementAction(input: {
+  mediaId: string;
+  expectedLockVersion: number;
+  filename: string;
+  contentType: string;
+  byteSize: number;
+}): Promise<MediaActionResult<ReservedReplacement>> {
+  const actor = await requireCmsMember(`/cms/media/${input.mediaId}`);
+  try {
+    return { ok: true, data: await service.reserveReplacement(actor, input) };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+export async function completeReplacementAction(input: {
+  mediaId: string;
+  expectedLockVersion: number;
+  filename: string;
+}): Promise<MediaActionResult<MediaAsset>> {
+  const actor = await requireCmsMember(`/cms/media/${input.mediaId}`);
+  try {
+    const asset = await service.completeReplacement(actor, input);
+    refresh(input.mediaId);
+    return { ok: true, data: asset };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+export async function cancelReplacementAction(input: {
+  mediaId: string;
+}): Promise<MediaActionResult<{ id: string }>> {
+  const actor = await requireCmsMember(`/cms/media/${input.mediaId}`);
+  try {
+    await service.cancelReplacement(actor, input);
+    return { ok: true, data: { id: input.mediaId } };
   } catch (error) {
     return toResult(error);
   }

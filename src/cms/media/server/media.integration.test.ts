@@ -49,7 +49,7 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
   describe("CMS media library", () => {
     const { db, client } = createTestDb();
     const store = new CmsMediaStore(db);
-    const service = new CmsMediaService(store);
+    const service = new CmsMediaService(store, undefined, undefined, () => {});
     const schema = db._.fullSchema;
 
     const actor: CmsActor = {
@@ -235,6 +235,99 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
         });
         expect(again.id).toBe(asset.id);
         expect(again.status).toBe("ready");
+      });
+    });
+
+    describe("replacement", () => {
+      it("keeps the media identity and metadata while deleting the old master", async () => {
+        const original = await upload(
+          `${TEST_PREFIX}original.png`,
+          await png(40, 24),
+        );
+        created.add(original.id);
+        const described = await service.update(actor, {
+          id: original.id,
+          expectedLockVersion: original.lockVersion,
+          patch: {
+            displayName: "Gráfico compartido",
+            defaultAlt: "Consumo mensual",
+            attribution: "Factura",
+          },
+        });
+        const oldKey = (await store.objectKeysOf(original.id))!.objectKey!;
+        const body = await png(96, 48);
+
+        const reservation = await service.reserveReplacement(actor, {
+          mediaId: original.id,
+          expectedLockVersion: described.lockVersion,
+          filename: `${TEST_PREFIX}optimized.png`,
+          contentType: "image/png",
+          byteSize: body.length,
+        });
+        const response = await fetch(reservation.uploadUrl, {
+          method: "PUT",
+          body: new Uint8Array(body),
+          headers: { "Content-Type": "image/png" },
+        });
+        expect(response.ok).toBe(true);
+
+        const replaced = await service.completeReplacement(actor, {
+          mediaId: original.id,
+          expectedLockVersion: reservation.lockVersion,
+          filename: `${TEST_PREFIX}optimized.png`,
+        });
+        const keys = await store.objectKeysOf(original.id);
+
+        expect(replaced).toMatchObject({
+          id: original.id,
+          permalink: described.permalink,
+          originalFilename: `${TEST_PREFIX}optimized.png`,
+          displayName: "Gráfico compartido",
+          defaultAlt: "Consumo mensual",
+          attribution: "Factura",
+          width: 96,
+          height: 48,
+        });
+        expect(keys?.objectKey).not.toBe(oldKey);
+        expect(keys?.replacementCleanupKey).toBeNull();
+        expect(await listAllKeys(oldKey)).toEqual([]);
+        expect(await listAllKeys(keys!.objectKey!)).toHaveLength(1);
+      });
+
+      it("keeps the new master when finalization is submitted twice concurrently", async () => {
+        const original = await upload(`${TEST_PREFIX}concurrent-original.png`);
+        created.add(original.id);
+        const body = await png(72, 36);
+        const reservation = await service.reserveReplacement(actor, {
+          mediaId: original.id,
+          expectedLockVersion: original.lockVersion,
+          filename: `${TEST_PREFIX}concurrent-new.png`,
+          contentType: "image/png",
+          byteSize: body.length,
+        });
+        await fetch(reservation.uploadUrl, {
+          method: "PUT",
+          body: new Uint8Array(body),
+          headers: { "Content-Type": "image/png" },
+        });
+
+        const outcomes = await Promise.allSettled([
+          service.completeReplacement(actor, {
+            mediaId: original.id,
+            expectedLockVersion: reservation.lockVersion,
+            filename: `${TEST_PREFIX}concurrent-new.png`,
+          }),
+          service.completeReplacement(actor, {
+            mediaId: original.id,
+            expectedLockVersion: reservation.lockVersion,
+            filename: `${TEST_PREFIX}concurrent-new.png`,
+          }),
+        ]);
+        expect(
+          outcomes.filter((outcome) => outcome.status === "fulfilled"),
+        ).toHaveLength(1);
+        const key = (await store.objectKeysOf(original.id))!.objectKey!;
+        expect(await listAllKeys(key)).toHaveLength(1);
       });
     });
 

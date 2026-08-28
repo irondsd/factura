@@ -318,8 +318,11 @@ automatically, and nothing trusts the browser.**
   the presigned URL exists), upload to a staging key, then finalize — the server
   sniffs magic bytes, decodes, strips EXIF/GPS, writes the master, hashes it and
   flips the row to `ready`. JPEG, PNG, WebP, AVIF, GIF. **No SVG.**
-- Masters are immutable. There is no "replace file": upload a new asset and move
-  the references.
+- Each stored master is immutable, but an asset can be replaced from its detail
+  screen. Replacement stages and validates a new master, keeps the UUID and all
+  authored references, atomically points the row at the new hash-addressed key,
+  and deletes the superseded object. A failed S3 delete remains recorded for
+  the housekeeping sweep to retry; it never becomes an untracked orphan.
 - Alt text belongs to the _use_, in the Markdown; the row carries an editable
   default. Blank alt without the decorative flag is a validation error.
 - Usage (`cms_media_usage`) is keyed by **revision**, which is what makes a

@@ -37,5 +37,14 @@ export async function GET(
     return new Response("Gone", { status: 410 });
   }
 
-  return Response.redirect(publicMediaUrl(row.objectKey), 308);
+  // The media id is stable but its current master can be replaced. A permanent
+  // redirect would let a browser or crawler pin the superseded object forever,
+  // defeating that contract when the permalink is opened directly.
+  return new Response(null, {
+    status: 307,
+    headers: {
+      Location: publicMediaUrl(row.objectKey),
+      "Cache-Control": "no-store",
+    },
+  });
 }

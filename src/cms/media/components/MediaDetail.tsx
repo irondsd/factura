@@ -4,17 +4,29 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { CmsIcon } from "@/cms/icons";
-import { CmsConfirmDialog } from "../../components/CmsDialog";
+import {
+  CmsConfirmDialog,
+  CmsModal,
+  DialogButton,
+  DialogCancel,
+} from "../../components/CmsDialog";
 import { cmsEditPath } from "../../sections";
 import type { ContentSection } from "@/content-system/types";
 import {
+  cancelReplacementAction,
+  completeReplacementAction,
   purgeMediaAction,
+  reserveReplacementAction,
   restoreMediaAction,
   trashMediaAction,
   updateMediaAction,
 } from "../server/actions";
 import type { MediaAsset, MediaCollection, MediaUsageRef } from "../types";
-import { formatBytes, FORMAT_LABEL } from "../validation/upload";
+import {
+  formatBytes,
+  FORMAT_LABEL,
+  SUPPORTED_MIME_TYPES,
+} from "../validation/upload";
 import type { SupportedMimeType } from "../validation/upload";
 
 // One image: the large preview, its editable metadata, where it is used, and
@@ -27,6 +39,7 @@ export function MediaDetail({
   duplicates,
   collections,
   graceDays,
+  maxBytes,
 }: {
   asset: MediaAsset;
   usage: MediaUsageRef[];
@@ -34,6 +47,7 @@ export function MediaDetail({
   duplicates: MediaAsset[];
   collections: MediaCollection[];
   graceDays: number;
+  maxBytes: number;
 }) {
   const router = useRouter();
   const [asset, setAsset] = useState(initial);
@@ -45,6 +59,11 @@ export function MediaDetail({
   const [message, setMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [confirmingPurge, setConfirmingPurge] = useState(false);
+  const [replacing, setReplacing] = useState(false);
+  const [replacementBusy, setReplacementBusy] = useState(false);
+  const [replacementFile, setReplacementFile] = useState<File | null>(null);
+  const [replacementProgress, setReplacementProgress] = useState(0);
+  const [replacementError, setReplacementError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   const markdown = `![${decorative ? "" : defaultAlt}](${asset.permalink})`;
@@ -104,6 +123,67 @@ export function MediaDetail({
       router.push("/cms/media");
     });
 
+  const replace = async () => {
+    if (!replacementFile) return;
+    setReplacementBusy(true);
+    setReplacementError(null);
+    setReplacementProgress(0);
+
+    const reserved = await reserveReplacementAction({
+      mediaId: asset.id,
+      expectedLockVersion: asset.lockVersion,
+      filename: replacementFile.name,
+      contentType: replacementFile.type,
+      byteSize: replacementFile.size,
+    });
+    if (!reserved.ok) {
+      setReplacementError(reserved.message);
+      setReplacementBusy(false);
+      return;
+    }
+    // Reservation itself participates in optimistic concurrency. Keep this
+    // detail screen on the version it just created so a failed upload can be
+    // released and retried without forcing a reload.
+    setAsset((current) => ({
+      ...current,
+      lockVersion: reserved.data.lockVersion,
+    }));
+
+    try {
+      await uploadReplacement(
+        reserved.data.uploadUrl,
+        replacementFile,
+        setReplacementProgress,
+      );
+      const done = await completeReplacementAction({
+        mediaId: asset.id,
+        expectedLockVersion: reserved.data.lockVersion,
+        filename: replacementFile.name,
+      });
+      if (!done.ok) throw new Error(done.message);
+
+      setAsset(done.data);
+      setReplacementFile(null);
+      setReplacing(false);
+      setReplacementBusy(false);
+      setReplacementProgress(0);
+      setMessage(
+        "Imagen reemplazada. Las páginas que la usan ya apuntan al archivo nuevo.",
+      );
+      router.refresh();
+    } catch (error) {
+      const cancellation = await cancelReplacementAction({ mediaId: asset.id });
+      setReplacementError(
+        cancellation.ok
+          ? error instanceof Error
+            ? error.message
+            : "No se pudo reemplazar la imagen."
+          : `${error instanceof Error ? error.message : "No se pudo reemplazar la imagen."} Tampoco se pudo limpiar la subida: ${cancellation.message}`,
+      );
+      setReplacementBusy(false);
+    }
+  };
+
   return (
     <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_320px]">
       <div>
@@ -124,6 +204,24 @@ export function MediaDetail({
             </p>
           )}
         </div>
+
+        {asset.status === "ready" && (
+          <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+            <p className="max-w-[560px] font-mono text-[11px] leading-[1.6] text-muted">
+              Conserva el identificador y todas sus apariciones. Al terminar, el
+              archivo anterior se elimina del almacenamiento.
+            </p>
+            <button
+              type="button"
+              onClick={() => setReplacing(true)}
+              disabled={pending}
+              className="inline-flex min-h-11 items-center justify-center gap-2 border border-accent px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-accent hover:bg-accent hover:text-paper disabled:opacity-50"
+            >
+              <CmsIcon name="refresh" size="sm" />
+              Reemplazar imagen
+            </button>
+          </div>
+        )}
 
         <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-[12px]">
           <Fact label="Archivo">{asset.originalFilename}</Fact>
@@ -383,8 +481,111 @@ export function MediaDetail({
           onCancel={() => setConfirmingPurge(false)}
         />
       )}
+
+      {replacing && (
+        <CmsModal
+          eyebrow={asset.displayName}
+          title="Reemplazar imagen"
+          busy={replacementBusy}
+          onClose={() => {
+            setReplacing(false);
+            setReplacementFile(null);
+            setReplacementError(null);
+            setReplacementProgress(0);
+          }}
+        >
+          <p className="mt-3 font-mono text-[12px] leading-[1.7] text-muted">
+            La imagen nueva aparecerá automáticamente en las páginas que usan
+            este medio. El nombre, el texto alternativo, el crédito y la
+            colección se conservan. El archivo anterior se borra y no puede
+            recuperarse.
+          </p>
+          <label className="mt-5 block font-mono text-micro uppercase tracking-label-wide text-muted">
+            Archivo nuevo
+            <input
+              type="file"
+              accept={SUPPORTED_MIME_TYPES.join(",")}
+              disabled={replacementBusy}
+              onChange={(event) => {
+                setReplacementFile(event.target.files?.[0] ?? null);
+                setReplacementError(null);
+              }}
+              className="mt-2 block w-full border border-line bg-card px-3 py-2 text-[12px] normal-case tracking-normal file:mr-3 file:border-0 file:bg-transparent file:font-mono file:text-micro file:uppercase file:tracking-label-wide file:text-accent"
+            />
+          </label>
+          <p className="mt-2 font-mono text-[11px] leading-[1.6] text-muted">
+            JPEG, PNG, WebP, AVIF o GIF · máximo {formatBytes(maxBytes)}.
+          </p>
+
+          {replacementProgress > 0 && (
+            <div className="mt-4" aria-live="polite">
+              <div className="h-1.5 overflow-hidden bg-line">
+                <div
+                  className="h-full bg-accent transition-[width]"
+                  style={{ width: `${Math.round(replacementProgress * 100)}%` }}
+                />
+              </div>
+              <p className="mt-2 font-mono text-[11px] text-muted">
+                {replacementProgress < 1
+                  ? `Subiendo… ${Math.round(replacementProgress * 100)}%`
+                  : "Procesando y reemplazando…"}
+              </p>
+            </div>
+          )}
+
+          {replacementError && (
+            <p
+              role="alert"
+              className="mt-4 border border-[var(--vendor-ochre)] px-3 py-2 font-mono text-[12px] text-[var(--vendor-ochre)]"
+            >
+              {replacementError}
+            </p>
+          )}
+
+          <div className="mt-6 flex items-center gap-2">
+            <DialogButton
+              tone="accent"
+              icon="refresh"
+              disabled={!replacementFile || replacementBusy}
+              onClick={() => void replace()}
+            >
+              Reemplazar
+            </DialogButton>
+            <DialogCancel
+              disabled={replacementBusy}
+              onClick={() => {
+                setReplacing(false);
+                setReplacementFile(null);
+                setReplacementError(null);
+              }}
+            />
+          </div>
+        </CmsModal>
+      )}
     </div>
   );
+}
+
+function uploadReplacement(
+  uploadUrl: string,
+  file: File,
+  onProgress: (progress: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("PUT", uploadUrl);
+    request.setRequestHeader("Content-Type", file.type);
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(event.loaded / event.total);
+    };
+    request.onload = () =>
+      request.status >= 200 && request.status < 300
+        ? resolve()
+        : reject(new Error(`El almacenamiento respondió ${request.status}.`));
+    request.onerror = () =>
+      reject(new Error("No se pudo conectar con el almacenamiento."));
+    request.send(file);
+  });
 }
 
 function statusLabel(asset: MediaAsset): string {

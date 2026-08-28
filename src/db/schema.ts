@@ -1481,6 +1481,14 @@ export const cmsMedia = pgTable(
      * still has one past its reservation lifetime is what the cleanup sweep
      * looks for. */
     stagingKey: text("staging_key"),
+    /** A replacement is staged separately while the current master remains
+     * live. Keeping the key on the row preserves the same no-orphan invariant
+     * as a first upload without changing the asset's `ready` state. */
+    replacementStagingKey: text("replacement_staging_key").unique(),
+    /** The previous master after an atomic replacement swap. Normally cleared
+     * milliseconds later, once S3 confirms deletion; if storage is briefly
+     * unavailable, the sweep can retry because the key is still durable. */
+    replacementCleanupKey: text("replacement_cleanup_key").unique(),
     /** The immutable master key, null until finalization. Never returned to
      * content authors: articles reference `/media/<id>/<name>`, so moving
      * providers is a configuration change rather than an edit to every page. */
