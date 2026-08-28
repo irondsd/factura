@@ -7,6 +7,7 @@
  * Three jobs:
  *
  *   reservations  uploads that were reserved and never finished
+ *   replacements expired uploads and superseded masters awaiting deletion
  *   trash         assets past the grace period, plus anything a storage failure
  *                 left mid-purge
  *   reconcile     re-derive usage from every page, then diff the bucket against
@@ -69,6 +70,7 @@ async function main() {
   const result = await sweep();
   console.log(
     `reservations swept: ${result.reservations.swept}\n` +
+      `replacements: ${result.replacements.abandoned} abandoned, ${result.replacements.oldObjectsDeleted} old objects deleted\n` +
       `trash purged: ${result.trash.purged}, restored: ${result.trash.restored}, skipped: ${result.trash.skipped}`,
   );
 }

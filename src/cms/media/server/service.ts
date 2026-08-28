@@ -30,6 +30,7 @@ import {
 } from "../validation/upload";
 import { CmsMediaStore, cmsMediaStore, type MediaPatch } from "./store";
 import {
+  deleteObject,
   isMediaStorageConfigured,
   mediaStorageProblem,
   presignUpload,
@@ -70,6 +71,11 @@ export type ReservedUpload = {
   uploadUrl: string;
   /** ISO. After this the presigned URL is dead and the reservation is swept. */
   expiresAt: string;
+};
+
+export type ReservedReplacement = ReservedUpload & {
+  /** The version produced by the reservation and required at finalization. */
+  lockVersion: number;
 };
 
 export type MediaDetail = {
@@ -271,6 +277,188 @@ export class CmsMediaService {
     return ready;
   }
 
+  /** Stage a new master for an existing stable media id. The current image
+   * remains live until finalization has decoded and stored the replacement. */
+  async reserveReplacement(
+    actor: CmsActor,
+    input: ReserveUploadInput & {
+      mediaId: string;
+      expectedLockVersion: number;
+    },
+  ): Promise<ReservedReplacement> {
+    this.assertMayAuthor(actor);
+    this.assertStorage();
+
+    const rejection = checkReservation(input);
+    if (rejection) throw invalid(rejection);
+
+    const stagingKey = stagingKeyFor(newReservationId());
+    const now = this.clock();
+    const reserved = await this.store.reserveReplacement({
+      id: input.mediaId,
+      expectedLockVersion: input.expectedLockVersion,
+      stagingKey,
+      actorId: actor.userId,
+      now,
+    });
+    if (!reserved) {
+      throw new CmsConflictError(
+        input.mediaId,
+        input.expectedLockVersion,
+        await this.store.lockVersionOf(input.mediaId),
+      );
+    }
+
+    let uploadUrl: string;
+    try {
+      uploadUrl = await presignUpload({
+        key: stagingKey,
+        contentType: input.contentType,
+        expiresInSeconds: RESERVATION_TTL_MINUTES * 60,
+      });
+    } catch (cause) {
+      await this.store.clearReplacementStaging({
+        id: input.mediaId,
+        key: stagingKey,
+      });
+      throw cause;
+    }
+    return {
+      mediaId: input.mediaId,
+      uploadUrl,
+      lockVersion: reserved.lockVersion,
+      expiresAt: new Date(
+        now.getTime() + RESERVATION_TTL_MINUTES * 60_000,
+      ).toISOString(),
+    };
+  }
+
+  /** Swap an asset's stored bytes without changing its id or any authored
+   * reference. Each master is still immutable: replacement writes a new
+   * hash-addressed key, atomically redirects the row, then deletes the old key. */
+  async completeReplacement(
+    actor: CmsActor,
+    input: {
+      mediaId: string;
+      expectedLockVersion: number;
+      filename: string;
+    },
+  ): Promise<MediaAsset> {
+    this.assertMayAuthor(actor);
+    this.assertStorage();
+
+    const current = await this.store.findById(input.mediaId);
+    if (!current || current.status !== "ready") {
+      throw new CmsNotFoundError(`Media ${input.mediaId}`);
+    }
+    const keys = await this.store.objectKeysOf(input.mediaId);
+    const stagingKey = keys?.replacementStagingKey;
+    if (!stagingKey) throw new CmsNotFoundError(`Media ${input.mediaId}`);
+
+    let processed;
+    try {
+      processed = await processStagedUpload(stagingKey);
+    } catch (error) {
+      if (error instanceof MediaUploadError) {
+        throw invalid({ code: error.code, message: error.message });
+      }
+      throw error;
+    }
+
+    const objectKey = await storeMaster({
+      mediaId: input.mediaId,
+      stagingKey,
+      processed,
+    });
+    const replaced = await this.store.replaceWithLock({
+      id: input.mediaId,
+      expectedLockVersion: input.expectedLockVersion,
+      stagingKey,
+      objectKey,
+      originalFilename: input.filename,
+      mimeType: processed.mimeType,
+      byteSize: processed.byteSize,
+      width: processed.width,
+      height: processed.height,
+      sha256: processed.sha256,
+      actorId: actor.userId,
+      now: this.clock(),
+    });
+    if (!replaced) {
+      // The staged copy was consumed by `storeMaster`; release its reservation
+      // and remove the unreferenced new master before reporting the conflict.
+      // Record it first so a failed delete remains retryable by the sweep.
+      if (objectKey !== keys?.objectKey) {
+        const claimed = await this.store.moveReplacementToCleanup({
+          id: input.mediaId,
+          stagingKey,
+          cleanupKey: objectKey,
+        });
+        if (claimed) {
+          try {
+            await deleteObject(objectKey);
+            await this.store.clearReplacementCleanup({
+              id: input.mediaId,
+              key: objectKey,
+            });
+          } catch (cause) {
+            console.error(
+              "[cms/media] conflicted replacement cleanup failed",
+              cause,
+            );
+          }
+        }
+      } else {
+        await this.store.clearReplacementStaging({
+          id: input.mediaId,
+          key: stagingKey,
+        });
+      }
+      throw new CmsConflictError(
+        input.mediaId,
+        input.expectedLockVersion,
+        await this.store.lockVersionOf(input.mediaId),
+      );
+    }
+
+    const cleanupKey = (await this.store.objectKeysOf(input.mediaId))
+      ?.replacementCleanupKey;
+    if (cleanupKey) {
+      try {
+        await deleteObject(cleanupKey);
+        await this.store.clearReplacementCleanup({
+          id: input.mediaId,
+          key: cleanupKey,
+        });
+      } catch (cause) {
+        // The replacement is already live. Keep the key on the row so the
+        // housekeeping sweep can finish deletion without guessing.
+        console.error(
+          "[cms/media] old replacement object cleanup failed",
+          cause,
+        );
+      }
+    }
+
+    this.expirePublicCache();
+    return replaced;
+  }
+
+  /** Release a replacement reservation after the browser upload or
+   * finalization fails. The live master was never touched. */
+  async cancelReplacement(
+    actor: CmsActor,
+    input: { mediaId: string },
+  ): Promise<void> {
+    this.assertMayAuthor(actor);
+    this.assertStorage();
+    const key = (await this.store.objectKeysOf(input.mediaId))
+      ?.replacementStagingKey;
+    if (!key) return;
+    await deleteObject(key);
+    await this.store.clearReplacementStaging({ id: input.mediaId, key });
+  }
+
   // ── metadata ────────────────────────────────────────────────────────────
 
   /** Edit the library title, the default alt, the decorative flag, the credit
@@ -330,8 +518,7 @@ export class CmsMediaService {
     }
     // Two of these five fields reach readers: `defaultAlt` and `decorative` are
     // the whole of what `MediaRef` carries beyond the bytes
-    // (`@/content-system/media/repository`), and the bytes themselves are
-    // immutable — a replaced image is a new id at a new URL. The other three
+    // (`@/content-system/media/repository`). The other three
     // are library bookkeeping no visitor ever sees, so filing an image into a
     // collection must not cost a regeneration.
     if (

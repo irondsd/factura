@@ -77,6 +77,7 @@ export async function purgeAsset(input: {
 
 export type SweepReport = {
   reservations: { swept: number };
+  replacements: { abandoned: number; oldObjectsDeleted: number };
   trash: { purged: number; restored: number; skipped: number };
 };
 
@@ -98,6 +99,27 @@ export async function sweepReservations(
     await cmsMediaStore.markPurged({ id: asset.id, actorId: null, now });
   }
   return stale.length;
+}
+
+/** Finish replacement work that could not be completed synchronously: remove
+ * superseded masters whose first delete hit a storage error, and abandon
+ * replacement uploads whose presigned reservation expired. */
+export async function sweepReplacements(
+  now: Date = new Date(),
+): Promise<SweepReport["replacements"]> {
+  const cleanup = await cmsMediaStore.replacementCleanupCandidates();
+  for (const candidate of cleanup) {
+    await deleteObject(candidate.key);
+    await cmsMediaStore.clearReplacementCleanup(candidate);
+  }
+
+  const cutoff = new Date(now.getTime() - RESERVATION_TTL_MINUTES * 60_000);
+  const stale = await cmsMediaStore.staleReplacementReservations(cutoff);
+  for (const candidate of stale) {
+    await deleteObject(candidate.key);
+    await cmsMediaStore.clearReplacementStaging(candidate);
+  }
+  return { abandoned: stale.length, oldObjectsDeleted: cleanup.length };
 }
 
 /** Trashed assets past the grace period, plus anything a storage failure left
@@ -125,8 +147,9 @@ export async function sweepTrash(
 
 export async function sweep(now: Date = new Date()): Promise<SweepReport> {
   const reservations = await sweepReservations(now);
+  const replacements = await sweepReplacements(now);
   const trash = await sweepTrash(now);
-  return { reservations: { swept: reservations }, trash };
+  return { reservations: { swept: reservations }, replacements, trash };
 }
 
 export type BucketReconciliation = {
@@ -180,7 +203,11 @@ export async function reconcileBucket(
       .filter((entry) => !presentKeys.has(entry.key))
       // A `pending` row whose upload has not landed yet is not missing, it is
       // in flight. Only rows that should have bytes count.
-      .filter((entry) => entry.status === "ready" || entry.status === "purging")
+      .filter(
+        (entry) =>
+          entry.kind === "master" &&
+          (entry.status === "ready" || entry.status === "purging"),
+      )
       .map((entry) => ({ id: entry.id, key: entry.key, status: entry.status })),
     staleStaging: objects.filter(
       (object) =>

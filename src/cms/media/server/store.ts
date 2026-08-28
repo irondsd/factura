@@ -154,6 +154,13 @@ export type MediaFinalize = {
   now: Date;
 };
 
+export type MediaReplacement = MediaFinalize & {
+  expectedLockVersion: number;
+  stagingKey: string;
+  originalFilename: string;
+  actorId: string;
+};
+
 export type MediaPatch = {
   displayName?: string;
   defaultAlt?: string;
@@ -222,6 +229,131 @@ export class CmsMediaStore {
       .where(and(eq(cmsMedia.id, input.id), eq(cmsMedia.status, "pending")))
       .returning();
     return row ? toAsset(row) : null;
+  }
+
+  /** Record a replacement reservation while leaving the current master live.
+   * The lock bump prevents a second tab from reserving a competing file from
+   * the same version of the detail screen. */
+  async reserveReplacement(input: {
+    id: string;
+    expectedLockVersion: number;
+    stagingKey: string;
+    actorId: string;
+    now: Date;
+  }): Promise<MediaAsset | null> {
+    const [row] = await this.db
+      .update(cmsMedia)
+      .set({
+        replacementStagingKey: input.stagingKey,
+        lockVersion: sql`${cmsMedia.lockVersion} + 1`,
+        updatedBy: input.actorId,
+        updatedAt: input.now,
+      })
+      .where(
+        and(
+          eq(cmsMedia.id, input.id),
+          eq(cmsMedia.status, "ready"),
+          eq(cmsMedia.lockVersion, input.expectedLockVersion),
+          isNull(cmsMedia.replacementStagingKey),
+          isNull(cmsMedia.replacementCleanupKey),
+        ),
+      )
+      .returning();
+    return row ? toAsset(row) : null;
+  }
+
+  /** Point the stable media id at a newly stored immutable master. The old key
+   * stays recorded until object storage confirms its deletion, so a transient
+   * S3 failure cannot turn it into an untracked orphan. */
+  async replaceWithLock(input: MediaReplacement): Promise<MediaAsset | null> {
+    const current = await this.objectKeysOf(input.id);
+    if (!current?.objectKey) return null;
+    const cleanupKey =
+      current.objectKey === input.objectKey ? null : current.objectKey;
+
+    const [row] = await this.db
+      .update(cmsMedia)
+      .set({
+        objectKey: input.objectKey,
+        replacementStagingKey: null,
+        replacementCleanupKey: cleanupKey,
+        originalFilename: input.originalFilename,
+        mimeType: input.mimeType,
+        byteSize: input.byteSize,
+        width: input.width,
+        height: input.height,
+        sha256: input.sha256,
+        lockVersion: sql`${cmsMedia.lockVersion} + 1`,
+        updatedBy: input.actorId,
+        updatedAt: input.now,
+      })
+      .where(
+        and(
+          eq(cmsMedia.id, input.id),
+          eq(cmsMedia.status, "ready"),
+          eq(cmsMedia.lockVersion, input.expectedLockVersion),
+          eq(cmsMedia.replacementStagingKey, input.stagingKey),
+          eq(cmsMedia.objectKey, current.objectKey),
+        ),
+      )
+      .returning();
+    return row ? toAsset(row) : null;
+  }
+
+  async clearReplacementCleanup(input: {
+    id: string;
+    key: string;
+  }): Promise<void> {
+    await this.db
+      .update(cmsMedia)
+      .set({ replacementCleanupKey: null })
+      .where(
+        and(
+          eq(cmsMedia.id, input.id),
+          eq(cmsMedia.replacementCleanupKey, input.key),
+        ),
+      );
+  }
+
+  /** Abandon a reservation that can no longer be finalized (for example after
+   * a concurrent metadata edit). The exact-key condition leaves a newer
+   * reservation untouched. */
+  async clearReplacementStaging(input: {
+    id: string;
+    key: string;
+  }): Promise<void> {
+    await this.db
+      .update(cmsMedia)
+      .set({ replacementStagingKey: null })
+      .where(
+        and(
+          eq(cmsMedia.id, input.id),
+          eq(cmsMedia.replacementStagingKey, input.key),
+        ),
+      );
+  }
+
+  /** A new master was stored but lost the optimistic-concurrency race. Track
+   * it as cleanup work before releasing the now-consumed staging key. */
+  async moveReplacementToCleanup(input: {
+    id: string;
+    stagingKey: string;
+    cleanupKey: string;
+  }): Promise<boolean> {
+    const rows = await this.db
+      .update(cmsMedia)
+      .set({
+        replacementStagingKey: null,
+        replacementCleanupKey: input.cleanupKey,
+      })
+      .where(
+        and(
+          eq(cmsMedia.id, input.id),
+          eq(cmsMedia.replacementStagingKey, input.stagingKey),
+        ),
+      )
+      .returning({ id: cmsMedia.id });
+    return rows.length > 0;
   }
 
   async findById(id: string): Promise<MediaAsset | null> {
@@ -483,32 +615,101 @@ export class CmsMediaStore {
 
   /** Every key this table believes exists, for reconciliation against the
    * bucket. Includes staging keys: an abandoned upload is a real object. */
-  async allKnownKeys(): Promise<{ key: string; id: string; status: string }[]> {
+  async allKnownKeys(): Promise<
+    {
+      key: string;
+      id: string;
+      status: string;
+      kind: "master" | "staging" | "cleanup";
+    }[]
+  > {
     const rows = await this.db
       .select({
         id: cmsMedia.id,
         status: cmsMedia.status,
         objectKey: cmsMedia.objectKey,
         stagingKey: cmsMedia.stagingKey,
+        replacementStagingKey: cmsMedia.replacementStagingKey,
+        replacementCleanupKey: cmsMedia.replacementCleanupKey,
       })
       .from(cmsMedia);
-    return rows.flatMap((row) =>
-      [row.objectKey, row.stagingKey]
+    return rows.flatMap((row) => [
+      ...(row.objectKey
+        ? [
+            {
+              key: row.objectKey,
+              id: row.id,
+              status: row.status,
+              kind: "master" as const,
+            },
+          ]
+        : []),
+      ...[row.stagingKey, row.replacementStagingKey]
         .filter((key): key is string => Boolean(key))
-        .map((key) => ({ key, id: row.id, status: row.status })),
-    );
+        .map((key) => ({
+          key,
+          id: row.id,
+          status: row.status,
+          kind: "staging" as const,
+        })),
+      ...(row.replacementCleanupKey
+        ? [
+            {
+              key: row.replacementCleanupKey,
+              id: row.id,
+              status: row.status,
+              kind: "cleanup" as const,
+            },
+          ]
+        : []),
+    ]);
   }
 
   /** The internal key for an asset. Server-side only, and never mapped into
    * `MediaAsset`. */
-  async objectKeysOf(
-    id: string,
-  ): Promise<{ objectKey: string | null; stagingKey: string | null } | null> {
+  async objectKeysOf(id: string): Promise<{
+    objectKey: string | null;
+    stagingKey: string | null;
+    replacementStagingKey: string | null;
+    replacementCleanupKey: string | null;
+  } | null> {
     const row = await this.db.query.cmsMedia.findFirst({
       where: eq(cmsMedia.id, id),
-      columns: { objectKey: true, stagingKey: true },
+      columns: {
+        objectKey: true,
+        stagingKey: true,
+        replacementStagingKey: true,
+        replacementCleanupKey: true,
+      },
     });
     return row ?? null;
+  }
+
+  async replacementCleanupCandidates(): Promise<{ id: string; key: string }[]> {
+    const rows = await this.db
+      .select({ id: cmsMedia.id, key: cmsMedia.replacementCleanupKey })
+      .from(cmsMedia)
+      .where(not(isNull(cmsMedia.replacementCleanupKey)));
+    return rows.flatMap((row) =>
+      row.key ? [{ id: row.id, key: row.key }] : [],
+    );
+  }
+
+  async staleReplacementReservations(
+    cutoff: Date,
+  ): Promise<{ id: string; key: string }[]> {
+    const rows = await this.db
+      .select({ id: cmsMedia.id, key: cmsMedia.replacementStagingKey })
+      .from(cmsMedia)
+      .where(
+        and(
+          not(isNull(cmsMedia.replacementStagingKey)),
+          lt(cmsMedia.updatedAt, cutoff),
+        ),
+      );
+    return rows.flatMap((row) =>
+      row.key ? [{ id: row.id, key: row.key }] : [],
+    );
   }
 
   async findBySha256(sha256: string): Promise<MediaAsset[]> {
