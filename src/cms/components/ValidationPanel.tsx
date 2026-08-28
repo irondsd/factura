@@ -3,6 +3,12 @@ import { cn } from "@/lib/cn";
 
 // The Validation tab. Warnings never disappear silently (cms.md): they are listed
 // beside the errors, marked as advisory, and they do not block publication.
+//
+// It is also where a save says what it could not say by refusing. Saving is
+// never blocked — a working copy is private, and unfinished work is what it is
+// for — so everything that stands between this page and «Publicar» is reported
+// here instead, and this panel comes forward on its own when a save leaves
+// something in it.
 
 /** The gate a set of diagnostics was produced by. Named here because the panel
  * is what tells the editor which question was asked — a draft that "has no
@@ -29,7 +35,7 @@ export function ValidationPanel({
   if (!level) {
     return (
       <Empty>
-        Guarda o pulsa «Revisar» para ver el resultado de la revisión.
+        Guarda o pulsa «Validar» para ver qué le falta a esta página.
       </Empty>
     );
   }
@@ -45,10 +51,13 @@ export function ValidationPanel({
 
   return (
     <div>
-      <p className="font-mono text-[13px] text-muted mb-4">
+      <p className="font-mono text-[13px] leading-[1.6] text-muted mb-4">
         {errors.length} {errors.length === 1 ? "error" : "errores"} ·{" "}
         {warnings.length} {warnings.length === 1 ? "aviso" : "avisos"} para{" "}
-        {REQUIREMENT[level]}. Los avisos no impiden publicar.
+        {REQUIREMENT[level]}.{" "}
+        {errors.length > 0
+          ? "Los errores impiden publicar; los avisos no. Guardar funciona igual."
+          : "Los avisos no impiden publicar."}
       </p>
       <ul className="list-none p-0 m-0">
         {[...errors, ...warnings].map((diagnostic, index) => (

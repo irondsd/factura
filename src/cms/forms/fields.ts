@@ -90,24 +90,45 @@ export type FieldDescriptor = {
   options?: readonly FieldOption[];
   /** The empty choice's label, for a `select` that may hold nothing. */
   emptyLabel?: string;
+  /** For a list field: how many entries the guidance is written around. The
+   * denominator in the collapsed summary's «5 / 6», and nothing else — the
+   * validator owns the rule, this is the hint, exactly like `softMax`. */
+  softMaxItems?: number;
+  /** For a list field: the entry count from which it opens collapsed.
+   *
+   * A filled FAQ is six question/answer boxes and a filled «Fuentes» is three
+   * triples of inputs, and both sit between the editor and the fields below
+   * them for the whole life of the page after the one afternoon they were
+   * written. Collapsed they are a heading and a count — «Preguntas frecuentes ·
+   * 6 preguntas» — which is what somebody scanning the form actually wants to
+   * know. `1` means "as soon as it holds anything"; keywords use `4`, because
+   * three chips are shorter than the sentence explaining them. */
+  collapseFrom?: number;
   /** Fields in the same group render together under one heading. */
-  group: "identidad" | "busqueda" | "social" | "estructura" | "contenido";
+  group:
+    | "identidad"
+    | "estructura"
+    | "busqueda"
+    | "contenido"
+    | "bloques"
+    | "creditos"
+    | "social";
 };
 
 // Author credit, identical in every section: who wrote the page and who checked
 // its numbers, both chosen from the same list of people.
 //
-// In «contenido» rather than «identidad» because this is the credibility block —
-// it belongs beside «Fuentes», not beside the URL. Both are optional: a page
-// with no byline is published by the organization, which is exactly what the
-// structured data said before authors existed.
+// Their own heading, directly under «Bloques», because this is the credibility
+// block — it belongs beside «Fuentes», not beside the URL. Both are optional: a
+// page with no byline is published by the organization, which is exactly what
+// the structured data said before authors existed.
 const CREDIT_FIELDS: readonly FieldDescriptor[] = [
   {
     path: "metadata.authorId",
     label: "Autor",
     kind: "select",
     emptyLabel: "Sin autor",
-    group: "contenido",
+    group: "creditos",
     help: "Quién escribió esta página. Se publica en los datos estructurados del artículo; todavía no se muestra en la página.",
   },
   {
@@ -115,11 +136,21 @@ const CREDIT_FIELDS: readonly FieldDescriptor[] = [
     label: "Verificado por",
     kind: "select",
     emptyLabel: "Sin verificar",
-    group: "contenido",
+    group: "creditos",
     help: "Quién revisó los datos y las cifras. Debería ser una persona distinta de quien la escribió.",
   },
 ];
 
+// The article form, in the order the sidebar shows it.
+//
+// Order is the whole design here: `sectionFields` keeps declaration order and
+// the editor groups by `group`, so this list *is* the layout. The rule it
+// follows is that a heading answers one question. «Búsqueda» is the page as a
+// search result and nothing else — the two lines Google prints, then what the
+// page is filed under; the FAQ and the sources moved out of «Contenido» into
+// «Bloques del artículo», because those two are not copy an editor writes into
+// the sidebar, they are the data behind a tag in the body, and they were the
+// long things standing between the short ones.
 const GUIDE_FIELDS: readonly FieldDescriptor[] = [
   {
     path: "title",
@@ -146,6 +177,16 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     group: "identidad",
     help: "Cómo se nombra esta página en las migas y en los listados, cuando el título es demasiado largo. Si lo dejas vacío se usa el título.",
   },
+  // «Empresa» is what the page is *about*, not how it is shared: it colours the
+  // article and names the vendor in the listings. It sat under «Redes» because
+  // the social card was the first thing that read it.
+  {
+    path: "metadata.vendor",
+    label: "Empresa",
+    kind: "text",
+    group: "identidad",
+    help: "La empresa de la que trata la guía — «Edesur», «AySA». Déjalo vacío si la guía trata un tema y no una factura concreta.",
+  },
   {
     path: "parentId",
     label: "Página madre",
@@ -161,6 +202,8 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     group: "estructura",
     help: "En qué posición aparece entre las demás hijas de la misma madre. Menor va primero; si empatan, se ordenan por dirección.",
   },
+  // The search result, in the order it is read: the line, the line under it,
+  // the query they are written for, the shelf the page sits on.
   {
     path: "description",
     label: "Descripción",
@@ -171,10 +214,20 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     help: "El párrafo que Google muestra debajo del título. Entre 120 y 170 caracteres.",
   },
   {
+    path: "titleTag",
+    label: "Título para buscadores",
+    kind: "text",
+    softMax: 60,
+    group: "busqueda",
+    help: "Solo si el título funciona en la página pero es demasiado largo para un resultado de búsqueda.",
+  },
+  {
     path: "metadata.keywords",
     label: "Palabras clave",
     kind: "tags",
     required: true,
+    softMaxItems: 6,
+    collapseFrom: 4,
     group: "busqueda",
     help: "Entre 3 y 6. La primera es la búsqueda que esta página quiere ganar, y conviene que sus palabras aparezcan en el título y en la descripción.",
   },
@@ -183,6 +236,7 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     label: "Categorías",
     kind: "multiselect",
     required: true,
+    softMaxItems: 3,
     group: "busqueda",
     help: "De 1 a 3. La primera decide en qué grupo aparece en el índice y qué miga muestra.",
   },
@@ -192,14 +246,6 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     kind: "slug",
     group: "busqueda",
     help: "Solo si esta página compite con otra por la misma búsqueda y la otra es la respuesta. Escribe su dirección: esta seguirá viéndose, pero le cede el lugar en Google.",
-  },
-  {
-    path: "titleTag",
-    label: "Título para buscadores",
-    kind: "text",
-    softMax: 60,
-    group: "busqueda",
-    help: "Solo si el título funciona en la página pero es demasiado largo para un resultado de búsqueda.",
   },
   {
     path: "summary",
@@ -223,7 +269,9 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     label: "Preguntas frecuentes",
     kind: "faq",
     placedBy: "Faq",
-    group: "contenido",
+    softMaxItems: 6,
+    collapseFrom: 1,
+    group: "bloques",
     help: "De 4 a 6 preguntas reales de búsqueda. Se muestran donde el cuerpo escribe <Faq />, y solo ahí. Las respuestas son texto plano: los enlaces van en el cuerpo.",
   },
   {
@@ -231,17 +279,11 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     label: "Fuentes",
     kind: "sources",
     placedBy: "Fuentes",
-    group: "contenido",
+    collapseFrom: 1,
+    group: "bloques",
     help: "Opcional. Las fuentes primarias en las que se apoya la guía — la documentación de la empresa, la resolución que fija un cargo. Se muestran donde el cuerpo escribe <Fuentes />, y solo ahí.",
   },
   ...CREDIT_FIELDS,
-  {
-    path: "metadata.vendor",
-    label: "Empresa",
-    kind: "text",
-    group: "social",
-    help: "La empresa de la que trata la guía — «Edesur», «AySA». Déjalo vacío si la guía trata un tema y no una factura concreta.",
-  },
   {
     path: "metadata.previewMediaId",
     label: "Imagen de portada",
@@ -282,7 +324,7 @@ const DATA_ADDON_FIELDS: readonly FieldDescriptor[] = [
     label: "Conjunto de datos",
     kind: "dataset",
     required: true,
-    group: "contenido",
+    group: "bloques",
     help: "Describe la serie que sostiene el análisis. Completa nombre, descripción, cobertura temporal y geográfica, y al menos una variable medida. Esto también genera los datos estructurados de la página. La licencia se deja vacía salvo que esta página no se publique bajo la del sitio (CC BY 4.0).",
   },
   {
@@ -344,8 +386,10 @@ export const FIELD_GROUPS: readonly {
 }[] = [
   { id: "identidad", label: "Identidad" },
   { id: "estructura", label: "Ubicación" },
-  { id: "contenido", label: "Contenido" },
   { id: "busqueda", label: "Búsqueda" },
+  { id: "contenido", label: "Contenido" },
+  { id: "bloques", label: "Bloques del artículo" },
+  { id: "creditos", label: "Créditos" },
   { id: "social", label: "Redes" },
 ];
 

@@ -1,10 +1,15 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId } from "react";
 import type { FieldDescriptor } from "@/cms/forms/fields";
 import { MediaPicker } from "@/cms/media/components/MediaPicker";
 import { cn } from "@/lib/cn";
-import { CmsIcon } from "../../icons";
+import { CategoriesField } from "./CategoriesField";
+import { Counter, inputClass, TagsInput } from "./controls";
+import { FaqField } from "./FaqField";
+import { KeywordsField } from "./KeywordsField";
+import { SourcesField } from "./SourcesField";
+import { asDataset, asOgImage, type Dataset, type OgImage } from "./values";
 
 // One metadata field, rendered from its descriptor. Every section's form is
 // built out of these, so section 12 adds field *entries* rather than a second
@@ -13,10 +18,21 @@ import { CmsIcon } from "../../icons";
 // Nothing here shows JSON. A list of keywords is a list of keywords; the FAQ is
 // pairs of boxes. Assembling the JSONB object is `toPatch`'s job, not the
 // editor's.
+//
+// Three kinds bring their own heading, because their heading is a fold and has
+// to say what is folded away — see `CollapsibleField`. Everything else is a
+// label, a control and a line of help, laid out here.
 
 /** A page that may be chosen as a parent. `slug` is carried alongside the
  * label because the create form has to build the child's full path from it. */
 export type ParentOption = { value: string; label: string; slug: string };
+
+/** The kinds that render their own label, because it doubles as the fold. */
+const SELF_HEADING: ReadonlySet<FieldDescriptor["kind"]> = new Set([
+  "tags",
+  "faq",
+  "sources",
+]);
 
 export function MetadataField({
   field,
@@ -39,6 +55,18 @@ export function MetadataField({
   const id = useId();
   const isRequired = required ?? field.required === true;
   const describedBy = field.help ? `${id}-help` : undefined;
+
+  if (SELF_HEADING.has(field.kind)) {
+    const props = { field, value, onChange, required: isRequired, invalid };
+    switch (field.kind) {
+      case "tags":
+        return <KeywordsField {...props} />;
+      case "faq":
+        return <FaqField {...props} />;
+      default:
+        return <SourcesField {...props} />;
+    }
+  }
 
   // A read-only field renders as text, and there is no form control for a
   // `<label for>` to point at — so the label becomes a plain heading the value
@@ -83,9 +111,6 @@ export function MetadataField({
     </div>
   );
 }
-
-const inputClass =
-  "w-full border border-line bg-paper px-3 py-2 font-mono text-[13.5px] text-ink placeholder:text-muted focus:border-accent focus:outline-none";
 
 function Control({
   id,
@@ -167,22 +192,14 @@ function Control({
         </select>
       );
 
-    case "tags":
-      return (
-        <TagsInput
-          value={asStrings(value)}
-          onChange={onChange}
-          id={id}
-          describedBy={describedBy}
-        />
-      );
-
     case "multiselect":
       return (
-        <MultiSelect
-          value={asStrings(value)}
-          options={field.options ?? []}
+        <CategoriesField
+          field={field}
+          value={value}
           onChange={onChange}
+          describedBy={describedBy}
+          invalid={invalid}
         />
       );
 
@@ -205,9 +222,6 @@ function Control({
         </select>
       );
 
-    case "faq":
-      return <FaqInput value={asFaq(value)} onChange={onChange} />;
-
     case "media":
       return (
         <MediaPicker
@@ -216,13 +230,11 @@ function Control({
           describedBy={describedBy}
         />
       );
+
     case "ogImage":
       return (
         <OgImageInput value={asOgImage(value)} onChange={onChange} id={id} />
       );
-
-    case "sources":
-      return <SourcesInput value={asSources(value)} onChange={onChange} />;
 
     case "dataset":
       return (
@@ -245,233 +257,16 @@ function Control({
   }
 }
 
-/** A live character count against the length the guidance is written around.
- * Advisory, not enforcement — the validator owns the rules, and an editor who
- * needs 62 characters should be able to save and see the warning. */
-function Counter({ value, softMax }: { value: unknown; softMax?: number }) {
-  if (!softMax) return null;
-  const length = typeof value === "string" ? value.length : 0;
-  const over = length > softMax;
-  return (
-    <p
-      className={cn(
-        "font-mono text-[11px] mt-1 mb-0 text-right",
-        over ? "text-[var(--vendor-ochre)]" : "text-muted",
-      )}
-    >
-      {length} / {softMax}
-      <span className="sr-only">
-        {over ? " caracteres, por encima del recomendado" : " caracteres"}
-      </span>
-    </p>
-  );
-}
-
-function TagsInput({
-  value,
-  onChange,
-  id,
-  describedBy,
-}: {
-  value: string[];
-  onChange: (next: string[]) => void;
-  id: string;
-  describedBy?: string;
-}) {
-  const [draft, setDraft] = useState("");
-
-  const add = () => {
-    const entry = draft.trim();
-    if (entry === "" || value.includes(entry)) return setDraft("");
-    onChange([...value, entry]);
-    setDraft("");
-  };
-
-  return (
-    <div>
-      {value.length > 0 && (
-        <ul className="flex flex-wrap gap-2 list-none p-0 m-0 mb-2">
-          {value.map((entry, index) => (
-            <li
-              key={entry}
-              className="flex items-center gap-2 border border-line px-2 py-1 font-mono text-[12px]"
-            >
-              {/* The first keyword is the query the page is written to win. */}
-              {index === 0 && (
-                <span
-                  className="text-accent text-[10px] uppercase tracking-label-wide"
-                  title="Palabra clave principal"
-                >
-                  1ª
-                </span>
-              )}
-              <span>{entry}</span>
-              <button
-                type="button"
-                onClick={() => onChange(value.filter((v) => v !== entry))}
-                className="text-muted hover:text-accent"
-                aria-label={`Quitar ${entry}`}
-              >
-                <CmsIcon name="close" size="xs" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="flex gap-2">
-        <input
-          id={id}
-          type="text"
-          value={draft}
-          aria-describedby={describedBy}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            // Enter adds a keyword; it must not submit the page.
-            if (e.key === "Enter") {
-              e.preventDefault();
-              add();
-            }
-          }}
-          placeholder="Escribe y pulsa Enter"
-          className={inputClass}
-        />
-        <button
-          type="button"
-          onClick={add}
-          className="inline-flex items-center gap-2 border border-line px-3 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent"
-        >
-          <CmsIcon name="add" size="sm" />
-          Añadir
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function MultiSelect({
-  value,
-  options,
-  onChange,
-}: {
-  value: string[];
-  options: readonly { value: string; label: string }[];
-  onChange: (next: string[]) => void;
-}) {
-  const toggle = (option: string) =>
-    onChange(
-      value.includes(option)
-        ? value.filter((v) => v !== option)
-        : [...value, option],
-    );
-
-  return (
-    <ul className="flex flex-wrap gap-2 list-none p-0 m-0">
-      {options.map((option) => {
-        const index = value.indexOf(option.value);
-        const selected = index >= 0;
-        return (
-          <li key={option.value}>
-            <button
-              type="button"
-              onClick={() => toggle(option.value)}
-              aria-pressed={selected}
-              className={cn(
-                "border px-3 py-1.5 font-mono text-[12px] transition-colors",
-                selected
-                  ? "border-accent text-accent"
-                  : "border-line text-muted hover:border-accent",
-              )}
-            >
-              {/* Order is meaningful — the first category decides the index
-                  grouping and the breadcrumb — so selected chips show it. */}
-              {selected && (
-                <span className="mr-1.5 opacity-70">{index + 1}</span>
-              )}
-              {option.label}
-            </button>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function FaqInput({
-  value,
-  onChange,
-}: {
-  value: { q: string; a: string }[];
-  onChange: (next: { q: string; a: string }[] | undefined) => void;
-}) {
-  const update = (index: number, patch: Partial<{ q: string; a: string }>) =>
-    onChange(
-      value.map((item, i) => (i === index ? { ...item, ...patch } : item)),
-    );
-
-  return (
-    <div>
-      {value.map((item, index) => (
-        // Index keys: the rows have no stable id and reordering is not offered.
-        <div key={index} className="border border-line p-3 mb-2">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-mono text-[11px] uppercase tracking-label-wide text-muted">
-              Pregunta {index + 1}
-            </span>
-            <button
-              type="button"
-              onClick={() =>
-                onChange(
-                  value.length === 1
-                    ? undefined
-                    : value.filter((_, i) => i !== index),
-                )
-              }
-              className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted hover:text-accent"
-            >
-              <CmsIcon name="delete" size="xs" />
-              Quitar
-            </button>
-          </div>
-          <input
-            type="text"
-            value={item.q}
-            onChange={(e) => update(index, { q: e.target.value })}
-            placeholder="¿Pregunta?"
-            aria-label={`Pregunta ${index + 1}`}
-            className={cn(inputClass, "mb-2")}
-          />
-          <textarea
-            rows={3}
-            value={item.a}
-            onChange={(e) => update(index, { a: e.target.value })}
-            placeholder="Respuesta en texto plano."
-            aria-label={`Respuesta ${index + 1}`}
-            className={inputClass}
-          />
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={() => onChange([...value, { q: "", a: "" }])}
-        className="inline-flex items-center gap-2 border border-line px-3 py-1.5 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent"
-      >
-        <CmsIcon name="add" size="sm" />
-        Añadir pregunta
-      </button>
-    </div>
-  );
-}
-
 function OgImageInput({
   value,
   onChange,
   id,
 }: {
-  value: { eyebrow?: string; stat?: string };
-  onChange: (next: { eyebrow?: string; stat?: string } | undefined) => void;
+  value: OgImage;
+  onChange: (next: OgImage | undefined) => void;
   id: string;
 }) {
-  const set = (patch: { eyebrow?: string; stat?: string }) => {
+  const set = (patch: OgImage) => {
     const next = { ...value, ...patch };
     const cleaned = Object.fromEntries(
       Object.entries(next).filter(([, v]) => (v ?? "").trim() !== ""),
@@ -498,114 +293,6 @@ function OgImageInput({
         aria-label="Cifra destacada de la tarjeta"
         className={inputClass}
       />
-    </div>
-  );
-}
-
-const asStrings = (value: unknown): string[] =>
-  Array.isArray(value)
-    ? value.filter((v): v is string => typeof v === "string")
-    : [];
-
-const asFaq = (value: unknown): { q: string; a: string }[] =>
-  Array.isArray(value) ? (value as { q: string; a: string }[]) : [];
-
-const asOgImage = (value: unknown): { eyebrow?: string; stat?: string } =>
-  value && typeof value === "object"
-    ? (value as { eyebrow?: string; stat?: string })
-    : {};
-
-type Source = { label: string; href: string; note?: string };
-type Dataset = {
-  name?: string;
-  description?: string;
-  temporalCoverage?: string;
-  spatialCoverage?: string;
-  variableMeasured?: string[];
-  license?: string;
-};
-
-const asSources = (value: unknown): Source[] =>
-  Array.isArray(value)
-    ? value.filter(
-        (item): item is Source => item !== null && typeof item === "object",
-      )
-    : [];
-
-const asDataset = (value: unknown): Dataset =>
-  value !== null && typeof value === "object" ? (value as Dataset) : {};
-
-function SourcesInput({
-  value,
-  onChange,
-}: {
-  value: Source[];
-  onChange: (next: Source[] | undefined) => void;
-}) {
-  const update = (index: number, patch: Partial<Source>) =>
-    onChange(
-      value.map((source, i) =>
-        i === index ? { ...source, ...patch } : source,
-      ),
-    );
-
-  return (
-    <div>
-      {value.map((source, index) => (
-        <div key={index} className="border border-line p-3 mb-2">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-mono text-[11px] uppercase tracking-label-wide text-muted">
-              Fuente {index + 1}
-            </span>
-            <button
-              type="button"
-              onClick={() =>
-                onChange(
-                  value.length === 1
-                    ? undefined
-                    : value.filter((_, i) => i !== index),
-                )
-              }
-              className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted hover:text-accent"
-            >
-              <CmsIcon name="delete" size="xs" />
-              Quitar
-            </button>
-          </div>
-          <input
-            type="text"
-            value={source.label}
-            onChange={(e) => update(index, { label: e.target.value })}
-            placeholder="Organismo o publicación"
-            aria-label={`Nombre de la fuente ${index + 1}`}
-            className={cn(inputClass, "mb-2")}
-          />
-          <input
-            type="url"
-            value={source.href}
-            onChange={(e) => update(index, { href: e.target.value })}
-            placeholder="https://…"
-            aria-label={`Enlace de la fuente ${index + 1}`}
-            className={cn(inputClass, "mb-2")}
-          />
-          <input
-            type="text"
-            value={source.note ?? ""}
-            onChange={(e) => update(index, { note: e.target.value })}
-            placeholder="Nota opcional"
-            aria-label={`Nota de la fuente ${index + 1}`}
-            className={inputClass}
-          />
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={() => onChange([...value, { label: "", href: "" }])}
-        className="inline-flex items-center gap-2 border border-line px-3 py-1.5 font-mono text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent"
-      >
-        <CmsIcon name="add" size="sm" />
-        Añadir fuente
-      </button>
     </div>
   );
 }
@@ -670,6 +357,7 @@ function DatasetInput({
         value={value.variableMeasured ?? []}
         onChange={(variableMeasured) => set({ variableMeasured })}
         id={`${id}-variables`}
+        placeholder="Variable medida, y pulsa Enter"
       />
       {/* Left blank on nearly every page: the site-wide licence
           (`dataLicense`) is what both the markup and the sources block use.

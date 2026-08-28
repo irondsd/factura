@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteContentAction,
@@ -202,7 +202,11 @@ export function PageEditor({
   );
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{
-    kind: "ok" | "error";
+    /** `warn` is a thing that worked and left something to do — a save that
+     * landed on a page that is not publishable yet. It wears the ochre of the
+     * failures rather than the accent of the successes, because the half worth
+     * reading is the half that is not done. */
+    kind: "ok" | "warn" | "error";
     text: string;
   } | null>(null);
   const [conflict, setConflict] = useState(false);
@@ -212,6 +216,11 @@ export function PageEditor({
    * that opened it — and «Descartar borrador» and «Restaurar» have no
    * destination status to be named by. */
   const [pending, setPending] = useState<PendingAction | null>(null);
+  /** Orders the publish checks. Several can be in flight — one from opening the
+   * editor, one from a save — and only the newest one is about the document as
+   * it now stands. */
+  const checkSeq = useRef(0);
+  const checkedOnOpen = useRef(false);
 
   // The last saved snapshot, held as state rather than a ref: "are there
   // unsaved changes" is rendered, so it is state by definition. Comparing
@@ -243,14 +252,28 @@ export function PageEditor({
     <T,>(
       result: CmsActionResult<T>,
       onOk: (data: T) => void,
-      okText: string,
+      options: {
+        okText: string;
+        /** The gate whose diagnostics this result carries, so the panel can
+         * name the question it answered rather than guessing from the status. */
+        level: ValidationLevel;
+        /** Leave the panel showing the previous check on success. For the save,
+         * which replaces it a moment later with the publish-level answer — and
+         * flashing «sin problemas» in between would be a lie with a very short
+         * shelf life. */
+        keepDiagnostics?: boolean;
+        /** How the failure notice opens, in the voice of the button pressed. */
+        failLead?: string;
+      },
     ) => {
       if (result.ok) {
         setConflict(false);
-        setDiagnostics([]);
-        setCheckedLevel(levelForStatus(status));
+        if (!options.keepDiagnostics) {
+          setDiagnostics([]);
+          setCheckedLevel(options.level);
+        }
         onOk(result.data);
-        setNotice({ kind: "ok", text: okText });
+        setNotice({ kind: "ok", text: options.okText });
         return;
       }
       if (result.kind === "conflict") {
@@ -265,13 +288,13 @@ export function PageEditor({
         const diagnostics = result.diagnostics ?? [];
         const errors = diagnostics.filter((d) => d.severity === "error").length;
         setDiagnostics(diagnostics);
-        setCheckedLevel(levelForStatus(status));
+        setCheckedLevel(options.level);
         setTab("validation");
         // The service's own message is developer-facing English; the console is
         // Spanish, and the detail is in the panel below anyway.
         setNotice({
           kind: "error",
-          text: `No se guardó: ${errors} ${errors === 1 ? "problema" : "problemas"} que hay que resolver primero. Están abajo, en Validación.`,
+          text: `${options.failLead ?? "No se completó"}: ${errors} ${errors === 1 ? "problema" : "problemas"} que hay que resolver primero. Están abajo, en Validación.`,
         });
         return;
       }
@@ -279,13 +302,76 @@ export function PageEditor({
       // showing: they name the slug, the permission or the page.
       setNotice({ kind: "error", text: result.message });
     },
-    [status],
+    [],
   );
 
+  /** Ask the server what this page still needs in order to be **published**,
+   * and put the answer in «Validación».
+   *
+   * Always the publish gate, whatever state the page is in, and never a gate on
+   * anything: saving a working copy is checked for grammar alone — which is
+   * right, it is private — so the honest moment to say "this is not publishable
+   * yet" is right after a save, in a panel, rather than by refusing the save.
+   * The answer is what «Publicar» is enabled from; see `publishBlockers`.
+   *
+   * Returns the diagnostics so the caller can say something about them, or
+   * `null` if the answer never arrived or was overtaken by a newer check. */
+  const runCheck = useCallback(
+    async ({
+      focus,
+    }: {
+      /** Bring «Validación» forward when there is something in it — and step
+       * back out of it when a check comes back clean. */
+      focus: boolean;
+    }): Promise<readonly Diagnostic[] | null> => {
+      const seq = ++checkSeq.current;
+      try {
+        const result = await validateContentAction({
+          id: page.id,
+          patch: patch(),
+          level: "publish",
+        });
+        // A newer check has been asked for since. Its answer is the current
+        // one; this is about a document that no longer exists.
+        if (seq !== checkSeq.current) return null;
+        if (!result.ok) {
+          setNotice({ kind: "error", text: result.message });
+          return null;
+        }
+        const { diagnostics } = result.data;
+        setDiagnostics(diagnostics);
+        setCheckedLevel("publish");
+        if (focus) {
+          setTab((current) =>
+            diagnostics.length > 0
+              ? "validation"
+              : current === "validation"
+                ? "markdown"
+                : current,
+          );
+        }
+        return diagnostics;
+      } catch {
+        setNotice({ kind: "error", text: UNEXPECTED });
+        return null;
+      }
+    },
+    [page.id, patch],
+  );
+
+  // Saving never asks whether the page is finished. A working copy is checked
+  // for grammar alone (`WIP_VALIDATION_LEVEL`), so half-written copy, three
+  // keywords out of six and a missing category all save — and are then
+  // reported, in «Validación», as what still stands between this page and
+  // «Publicar». Warned about here, blocking only there.
   const save = useCallback(async () => {
     setBusy(true);
     setNotice(null);
     try {
+      const saveText =
+        status === "published"
+          ? "Guardado en el borrador. La página publicada no cambió."
+          : "Guardado.";
       const result = await saveContentAction(section.id, {
         id: page.id,
         expectedLockVersion: lockVersion,
@@ -299,10 +385,22 @@ export function PageEditor({
           setHasWip(true);
           router.refresh();
         },
-        status === "published"
-          ? "Guardado en el borrador. La página publicada no cambió."
-          : "Guardado.",
+        {
+          okText: saveText,
+          level: "draft",
+          keepDiagnostics: true,
+          failLead: "No se guardó",
+        },
       );
+      if (result.ok) {
+        const diagnostics = await runCheck({ focus: true });
+        if (diagnostics && diagnostics.length > 0) {
+          setNotice({
+            kind: "warn",
+            text: `${saveText} ${pendingForPublish(diagnostics)}`,
+          });
+        }
+      }
     } catch {
       setNotice({ kind: "error", text: UNEXPECTED });
     }
@@ -313,6 +411,7 @@ export function PageEditor({
     page.id,
     patch,
     router,
+    runCheck,
     section.id,
     status,
     values,
@@ -341,32 +440,25 @@ export function PageEditor({
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [busy, dirty, save]);
 
+  // «Validar»: the same question, asked on purpose. Unlike the check that
+  // follows a save it always ends on the panel, because looking at the answer
+  // is the entire reason somebody pressed it.
   const check = async () => {
     setBusy(true);
     setNotice(null);
-    try {
-      // Always the publish gate, whatever state the page is in. A working copy
-      // is checked for grammar alone when it is *saved*, which is right — it is
-      // private — but «Validar» is the button someone presses to find out
-      // whether the page is ready, and answering the easier question would
-      // report a draft as clean right up until publishing refused it.
-      const result = await validateContentAction({
-        id: page.id,
-        patch: patch(),
-        level: "publish",
-      });
-      if (result.ok) {
-        setDiagnostics(result.data.diagnostics);
-        setCheckedLevel("publish");
-        setTab("validation");
-      } else {
-        setNotice({ kind: "error", text: result.message });
-      }
-    } catch {
-      setNotice({ kind: "error", text: UNEXPECTED });
-    }
+    await runCheck({ focus: false });
+    setTab("validation");
     setBusy(false);
   };
+
+  // One check when the editor opens, so «Publicar» knows whether it may be
+  // pressed before anybody has pressed anything. Quiet: no spinner, and it
+  // never moves the editor off the Markdown it opened on.
+  useEffect(() => {
+    if (checkedOnOpen.current) return;
+    checkedOnOpen.current = true;
+    void runCheck({ focus: false });
+  }, [runCheck]);
 
   /** Ask before doing. Every action that changes what the public sees, plus
    * discard and restore, goes through here.
@@ -395,14 +487,20 @@ export function PageEditor({
    * `ConflictNotice` rather than a toast, and keep the dialog sealed until the
    * write lands. */
   const act = async <T,>(
-    okText: string,
+    options: {
+      okText: string;
+      /** The gate this transition has to pass, so a refusal reports itself
+       * against the question that was actually asked. */
+      level: ValidationLevel;
+      failLead?: string;
+    },
     run: () => Promise<CmsActionResult<T>>,
     onOk: (data: T) => void,
   ) => {
     setBusy(true);
     setNotice(null);
     try {
-      handle(await run(), onOk, okText);
+      handle(await run(), onOk, options);
     } catch {
       setNotice({ kind: "error", text: UNEXPECTED });
     }
@@ -415,7 +513,7 @@ export function PageEditor({
 
   const publish = () =>
     act(
-      "Publicada.",
+      { okText: "Publicada.", level: "publish", failLead: "No se publicó" },
       () =>
         publishContentAction(section.id, {
           id: page.id,
@@ -444,7 +542,11 @@ export function PageEditor({
 
   const promotePreview = () =>
     act(
-      "Vista previa pública actualizada.",
+      {
+        okText: "Vista previa pública actualizada.",
+        level: "preview",
+        failLead: "No se actualizó la vista previa",
+      },
       () =>
         promotePreviewAction(section.id, {
           id: page.id,
@@ -459,7 +561,7 @@ export function PageEditor({
 
   const unpublish = () =>
     act(
-      `Estado: ${statusLabel("draft")}.`,
+      { okText: `Estado: ${statusLabel("draft")}.`, level: "draft" },
       () =>
         setContentStatusAction(section.id, {
           id: page.id,
@@ -475,7 +577,7 @@ export function PageEditor({
 
   const discard = () =>
     act(
-      "Borrador descartado.",
+      { okText: "Borrador descartado.", level: "draft" },
       () =>
         discardWipAction(section.id, {
           id: page.id,
@@ -493,7 +595,7 @@ export function PageEditor({
 
   const restore = (version: VersionEntry) =>
     act(
-      "Versión restaurada en el borrador.",
+      { okText: "Versión restaurada en el borrador.", level: "draft" },
       () =>
         restoreVersionAction(section.id, {
           id: page.id,
@@ -637,6 +739,24 @@ export function PageEditor({
   const invalidFields = useMemo(
     () => new Set(diagnostics.map((d) => d.field).filter(Boolean) as string[]),
     [diagnostics],
+  );
+
+  /** How many errors stand between this page and «Publicar», as of the last
+   * publish-level check.
+   *
+   * This is what disables the button. It can only ever be stale in the safe
+   * direction: every save runs the check, and publishing is refused outright
+   * while the tab holds unsaved edits, so a clean editor is always one whose
+   * check is about the document on screen. Zero is not a promise — the server
+   * asks the same question again, against the collection as it stands when the
+   * button is pressed — it is the difference between a button that explains
+   * itself and one that fails after the click. */
+  const publishBlockers = useMemo(
+    () =>
+      checkedLevel === "publish"
+        ? diagnostics.filter((d) => d.severity === "error").length
+        : 0,
+    [checkedLevel, diagnostics],
   );
 
   // The address the page has (or would have) in public. Read from the *edited*
@@ -795,6 +915,8 @@ export function PageEditor({
             previewIsStale={state.previewIsStale}
             busy={busy}
             dirty={dirty}
+            blockers={publishBlockers}
+            onShowValidation={() => setTab("validation")}
             onPublish={() => request({ kind: "publish" })}
             onPromotePreview={() => request({ kind: "preview" })}
             onUnpublish={() => request({ kind: "unpublish" })}
@@ -994,6 +1116,8 @@ function StatusControls({
   previewIsStale,
   busy,
   dirty,
+  blockers,
+  onShowValidation,
   onPublish,
   onPromotePreview,
   onUnpublish,
@@ -1006,6 +1130,11 @@ function StatusControls({
   previewIsStale: boolean;
   busy: boolean;
   dirty: boolean;
+  /** Errors the last publish-level check found. The one thing that stops
+   * «Publicar» without stopping «Guardar»: everything in this editor saves, and
+   * only this decides what may be put in front of readers. */
+  blockers: number;
+  onShowValidation: () => void;
   onPublish: () => void;
   onPromotePreview: () => void;
   onUnpublish: () => void;
@@ -1015,6 +1144,10 @@ function StatusControls({
   // page that was taken down — the publication it still holds.
   const canPublish = hasWip || (hasPublication && status !== "published");
   const canPreview = hasWip || hasPublication || hasPublicPreview;
+  // The publish gate is a superset of the preview gate plus the collection and
+  // render layers, so its errors are not all the preview's business. Promotion
+  // keeps its own answer, which the server gives it.
+  const blocked = blockers > 0;
 
   return (
     <section className="mb-8">
@@ -1025,7 +1158,7 @@ function StatusControls({
         <Action
           mark={ACTION_STYLE.publish.mark}
           fill={ACTION_STYLE.publish.fill}
-          disabled={busy || dirty || !canPublish}
+          disabled={busy || dirty || blocked || !canPublish}
           onClick={onPublish}
         >
           {status === "published" ? "Publicar cambios" : "Publicar"}
@@ -1076,6 +1209,20 @@ function StatusControls({
       {!dirty && !canPublish && (
         <p className="font-mono text-[11px] leading-[1.6] text-muted mt-2 mb-0">
           No hay nada nuevo que publicar: guarda un cambio primero.
+        </p>
+      )}
+      {!dirty && canPublish && blocked && (
+        <p className="font-mono text-[11px] leading-[1.6] text-[var(--vendor-ochre)] mt-2 mb-0">
+          {blockers} {blockers === 1 ? "error" : "errores"} que hay que resolver
+          antes de publicar.{" "}
+          <button
+            type="button"
+            onClick={onShowValidation}
+            className="cursor-pointer underline hover:text-accent"
+          >
+            Ver en Validación
+          </button>
+          . Guardar sigue funcionando.
         </p>
       )}
     </section>
@@ -1564,12 +1711,17 @@ function copyState(
   return hasWip ? "Borrador · nunca publicada" : "Borrador";
 }
 
-/** Which gate a save of a page in this state has to pass. Mirrors
- * `levelForSave` on the server; duplicated rather than imported because that
- * module is server-only, and the two are one line each. */
-const levelForStatus = (status: ContentStatus): ValidationLevel =>
-  status === "published"
-    ? "publish"
-    : status === "preview"
-      ? "preview"
-      : "draft";
+/** The tail of the notice after a save that landed on a page which is not
+ * publishable yet. Said in the same breath as «Guardado», because the two
+ * halves are the point: the work is safe, and it is not finished. */
+function pendingForPublish(diagnostics: readonly Diagnostic[]): string {
+  const errors = diagnostics.filter((d) => d.severity === "error").length;
+  const warnings = diagnostics.length - errors;
+  const parts = [
+    errors > 0 && `${errors} ${errors === 1 ? "error" : "errores"}`,
+    warnings > 0 && `${warnings} ${warnings === 1 ? "aviso" : "avisos"}`,
+  ].filter(Boolean);
+  return errors > 0
+    ? `Quedan ${parts.join(" y ")} antes de poder publicar: están en Validación.`
+    : `Quedan ${parts.join(" y ")} en Validación; no impiden publicar.`;
+}
