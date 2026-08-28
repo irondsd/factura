@@ -205,24 +205,6 @@ export function MediaDetail({
           )}
         </div>
 
-        {asset.status === "ready" && (
-          <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
-            <p className="max-w-[560px] font-mono text-[11px] leading-[1.6] text-muted">
-              Conserva el identificador y todas sus apariciones. Al terminar, el
-              archivo anterior se elimina del almacenamiento.
-            </p>
-            <button
-              type="button"
-              onClick={() => setReplacing(true)}
-              disabled={pending}
-              className="inline-flex min-h-11 items-center justify-center gap-2 border border-accent px-3 py-2 font-mono text-micro uppercase tracking-label-wide text-accent hover:bg-accent hover:text-paper disabled:opacity-50"
-            >
-              <CmsIcon name="refresh" size="sm" />
-              Reemplazar imagen
-            </button>
-          </div>
-        )}
-
         <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-[12px]">
           <Fact label="Archivo">{asset.originalFilename}</Fact>
           <Fact label="Formato">
@@ -416,9 +398,22 @@ export function MediaDetail({
           {asset.status === "ready" ? (
             <>
               <button
+                type="button"
+                onClick={() => setReplacing(true)}
+                disabled={pending}
+                className="inline-flex w-full items-center justify-center gap-2 border border-accent px-3 py-2 text-micro uppercase tracking-label-wide text-accent hover:bg-accent hover:text-paper disabled:opacity-50"
+              >
+                <CmsIcon name="refresh" size="sm" />
+                Reemplazar imagen
+              </button>
+              <p className="mt-2 text-[11px] leading-[1.6] text-muted">
+                Conserva el identificador y todas sus apariciones. Al terminar,
+                el archivo anterior se elimina del almacenamiento.
+              </p>
+              <button
                 onClick={trash}
                 disabled={pending || usage.length > 0 || portraitOf.length > 0}
-                className="inline-flex w-full items-center justify-center gap-2 border border-line px-3 py-2 text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent disabled:opacity-40"
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 border border-line px-3 py-2 text-micro uppercase tracking-label-wide text-muted hover:border-accent hover:text-accent disabled:opacity-40"
               >
                 <CmsIcon name="delete" size="sm" />
                 Mover a la papelera
