@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { billSubmissions } from "@/db/schema";
+import { probarOptions, withProbarCors } from "@/server/probarCors";
 import { limitKey, PROBAR_CLAIM, take } from "@/server/rateLimit";
 import {
   findTicket,
@@ -34,7 +35,7 @@ function requestedIds(body: Record<string, unknown>): string[] | null {
  *
  * The address is deliberately inert: unverified, never linked to an account,
  * never used to authenticate, and good for exactly one notice. */
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const limit = take(limitKey(request, "probar:notify"), PROBAR_CLAIM);
   if (!limit.ok)
     return Response.json(
@@ -85,3 +86,6 @@ export async function POST(request: Request) {
 
   return Response.json({ ok: true, saved: saved.length });
 }
+
+export const POST = withProbarCors(handlePost);
+export const OPTIONS = probarOptions();

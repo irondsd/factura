@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { billSubmissions } from "@/db/schema";
 import { REPORT_MESSAGE_MAX } from "@/lib/probar";
+import { probarOptions, withProbarCors } from "@/server/probarCors";
 import { limitKey, PROBAR_CLAIM, take } from "@/server/rateLimit";
 import { findTicket, loadOwnedSubmission } from "@/server/submissions";
 
@@ -18,7 +19,7 @@ export const runtime = "nodejs";
  * Ticket-gated, and one report per submission: the column is overwritten rather
  * than appended, so a second, better-worded report replaces the first instead of
  * queueing another row to triage. */
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const limit = take(limitKey(request, "probar:report"), PROBAR_CLAIM);
   if (!limit.ok)
     return Response.json(
@@ -69,3 +70,6 @@ export async function POST(request: Request) {
 
   return Response.json({ ok: true });
 }
+
+export const POST = withProbarCors(handlePost);
+export const OPTIONS = probarOptions();

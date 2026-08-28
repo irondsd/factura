@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { billSubmissions } from "@/db/schema";
 import { VENDOR_GUESS_MAX } from "@/lib/probar";
+import { probarOptions, withProbarCors } from "@/server/probarCors";
 import { limitKey, PROBAR_HINT, take } from "@/server/rateLimit";
 import { findTicket, loadOwnedSubmission } from "@/server/submissions";
 
@@ -21,7 +22,7 @@ export const runtime = "nodejs";
  * row or on none. Stored as free text and never resolved against `vendors`
  * automatically: it's a hint for whoever writes the parser, and a typo'd or
  * joke answer must not be able to reshape our vendor table. */
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const limit = take(limitKey(request, "probar:hint"), PROBAR_HINT);
   if (!limit.ok)
     return Response.json(
@@ -58,3 +59,6 @@ export async function POST(request: Request) {
 
   return Response.json({ ok: true });
 }
+
+export const POST = withProbarCors(handlePost);
+export const OPTIONS = probarOptions();

@@ -3,6 +3,7 @@ import { db } from "@/db";
 import type { ClaimResponse } from "@/lib/probar";
 import { auth } from "@/server/auth";
 import { claimSubmissions } from "@/server/claim";
+import { probarOptions, withProbarCors } from "@/server/probarCors";
 import { limitKey, PROBAR_CLAIM, take } from "@/server/rateLimit";
 import { readTickets, trackedCookieNames } from "@/server/submissions";
 
@@ -17,7 +18,7 @@ export const maxDuration = 60;
  * dropped. A Route Handler rather than a tRPC mutation because the whole job is
  * a cookie lifecycle — read it, spend it, delete it — and owning the response
  * explicitly beats relying on the tRPC adapter's incidental access to it. */
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const limit = take(limitKey(request, "probar:claim"), PROBAR_CLAIM);
   if (!limit.ok)
     return Response.json(
@@ -56,3 +57,6 @@ export async function POST(request: Request) {
 
   return Response.json({ results } as ClaimResponse);
 }
+
+export const POST = withProbarCors(handlePost, "app");
+export const OPTIONS = probarOptions("app");

@@ -1,14 +1,10 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
 import { DISPLAY_MODE_COOKIE, isDisplayMode } from "@/lib/displayMode";
+import { SESSION_COOKIE_NAMES } from "./authCookie";
 
 /** Both names Auth.js can give the session cookie: the plain one in dev and the
  * `__Secure-` one it switches to over HTTPS. Same pair proxy.ts checks. */
-const SESSION_COOKIES = [
-  "authjs.session-token",
-  "__Secure-authjs.session-token",
-];
-
 /** How stale a session's last-active reading may get before the next request
  * that touches it writes a fresh one. Every signed-in request already reads the
  * session row; this bounds how often it also writes one. */
@@ -24,7 +20,7 @@ export const HEARTBEAT_MS = 5 * 60 * 1000;
  */
 export async function currentSessionToken(): Promise<string | null> {
   const jar = await cookies();
-  for (const name of SESSION_COOKIES) {
+  for (const name of SESSION_COOKIE_NAMES) {
     const value = jar.get(name)?.value;
     if (value) return value;
   }

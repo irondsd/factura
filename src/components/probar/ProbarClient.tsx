@@ -10,6 +10,7 @@ import {
   type Tier,
   TIERS,
 } from "@/lib/probar";
+import { probarApiUrl } from "@/lib/probarApi";
 import { useToasts } from "@/providers/ToastProvider";
 import { useWindowFileDrop } from "@/components/useWindowFileDrop";
 import * as analytics from "./analytics";
@@ -137,8 +138,9 @@ export function ProbarClient() {
    * promise silently broken. */
   const saveNotify = useCallback(
     async (submissionIds: string[], email: string) => {
-      const res = await fetch("/api/probar/notify", {
+      const res = await fetch(probarApiUrl("/notify"), {
         method: "POST",
+        credentials: "include",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ submissionIds, email }),
       });
@@ -187,8 +189,9 @@ export function ProbarClient() {
 
       let submitted: SubmitResponse;
       try {
-        const res = await fetch("/api/probar/submit", {
+        const res = await fetch(probarApiUrl("/submit"), {
           method: "POST",
+          credentials: "include",
           body: form,
         });
         const bail = (
@@ -274,8 +277,9 @@ export function ProbarClient() {
         setTier(key, tier, { status: "running" });
         let run: ParseResponse;
         try {
-          const res = await fetch("/api/probar/parse", {
+          const res = await fetch(probarApiUrl("/parse"), {
             method: "POST",
+            credentials: "include",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
               submissionId: submitted.submissionId,
@@ -504,8 +508,9 @@ export function ProbarClient() {
    * text the visitor typed instead of closing on a write that didn't land. */
   const report = useCallback(
     async (submissionId: string, message: string, email: string) => {
-      const res = await fetch("/api/probar/report", {
+      const res = await fetch(probarApiUrl("/report"), {
         method: "POST",
+        credentials: "include",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ submissionId, message, email }),
       });
@@ -523,8 +528,9 @@ export function ProbarClient() {
    * retry on the next keystroke rather than treating the value as delivered. */
   const saveVendorGuess = useCallback(
     async (submissionId: string, vendor: string) => {
-      const res = await fetch("/api/probar/hint", {
+      const res = await fetch(probarApiUrl("/hint"), {
         method: "POST",
+        credentials: "include",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ submissionId, vendor }),
       });

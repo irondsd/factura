@@ -13,6 +13,7 @@ import { toLocale } from "@/i18n/config";
 import { normalize } from "@/parsers/normalize";
 import { RAW_TEXT_MAX } from "@/server/ownership";
 import { extractPdfDocument } from "@/server/pdf";
+import { probarOptions, withProbarCors } from "@/server/probarCors";
 import {
   clientIp,
   hashIp,
@@ -50,7 +51,7 @@ function tooMany(retryAfterSec: number) {
  * the follow-up /api/probar/parse calls so the browser can show the tier
  * cascade stepping. Nothing here writes a bill: a submission only becomes one
  * when its visitor signs in and claims it. */
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const burst = take(limitKey(request, "probar:submit"), PROBAR_SUBMIT);
   if (!burst.ok) return tooMany(burst.retryAfterSec);
 
@@ -202,3 +203,6 @@ export async function POST(request: Request) {
       };
   return Response.json(body);
 }
+
+export const POST = withProbarCors(handlePost);
+export const OPTIONS = probarOptions();

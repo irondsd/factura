@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { publicOrigins } from "./src/config/origins";
 
 /** The one host remote images may come from: the CMS media bucket's public
  * origin (cms.md §9.11).
@@ -110,7 +111,29 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
+    const productRedirects =
+      publicOrigins.appOrigin === publicOrigins.siteOrigin
+        ? []
+        : [
+            {
+              source: "/app",
+              destination: `${publicOrigins.appOrigin}/`,
+              permanent: true,
+            },
+            {
+              source: "/app/:path*",
+              destination: `${publicOrigins.appOrigin}/:path*`,
+              permanent: true,
+            },
+            {
+              source: "/delete-account",
+              destination: `${publicOrigins.appOrigin}/delete-account`,
+              permanent: true,
+            },
+          ];
+
     return [
+      ...productRedirects,
       // The research section is plural, for consistency with /guias and
       // /estadisticas and now all the way down to its `cms_page.section` id.
       // These two rules are the last trace of the singular name it shipped

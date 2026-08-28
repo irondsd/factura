@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { LOCALE_COOKIE } from "@/i18n/config";
-import { proxy } from "@/proxy";
+import { config, proxy } from "@/proxy";
 
 // The four decisions the proxy makes, and the one it started making to keep the
 // Spanish-only sections from being generated per request.
@@ -81,4 +81,14 @@ describe("the Spanish-only sections under /en", () => {
     const res = proxy(request("/en/normal"));
     expect(res.headers.get("location")).toBeNull();
   });
+});
+
+describe("non-marketing routes", () => {
+  it.each(["/login", "/logout", "/app/bills", "/cms", "/api/auth/session"])(
+    "does not locale-rewrite %s",
+    (path) => {
+      const matcher = new RegExp(`^${config.matcher[0]}$`);
+      expect(matcher.test(path)).toBe(false);
+    },
+  );
 });

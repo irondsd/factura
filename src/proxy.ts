@@ -16,7 +16,7 @@ import { isSpanishOnlyPath, stripEnPrefix } from "@/i18n/routing";
 //     language). Signed-in visitors are left untouched: their saved preference
 //     (set via the in-app switch, mirrored to the DB) must win over passive
 //     browsing, and is never silently overridden.
-// The matcher excludes /app, /login, /delete-account, /api, /share-target,
+// The matcher excludes /app, /login, /logout, /delete-account, /api, /share-target,
 // /_next, and files, so the app keeps its cookie-driven locale untouched.
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
@@ -102,6 +102,6 @@ export const config = {
   // sitemap.xml, robots.txt, og images…). The OAuth discovery documents live
   // under /.well-known/, which the extension rule already excludes.
   matcher: [
-    "/((?!api|ingest|_next/static|_next/image|app|cms|login|oauth|delete-account|share-target|media|.*\\..*).*)",
+    "/((?!api|ingest|_next/static|_next/image|app|cms|login|logout|oauth|delete-account|share-target|media|.*\\..*).*)",
   ],
 };

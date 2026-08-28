@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/app/AppShell";
+import { db } from "@/db";
 import { appSectionMetadata } from "@/lib/seo";
+import { auth } from "@/server/auth";
+import { onboardAppUser } from "@/server/onboarding";
 
 // A server layout wrapping the client shell, so the segment can carry metadata:
 // `AppShell` needs the session, the router and tRPC, and a "use client" module
@@ -14,6 +17,9 @@ export function generateMetadata(): Promise<Metadata> {
   return appSectionMetadata("overview");
 }
 
-export default function AppLayout({ children }: { children: ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  const session = await auth();
+  if (session?.user?.id) await onboardAppUser(db, session.user.id);
+
+  return <AppShell initialUser={session?.user ?? null}>{children}</AppShell>;
 }

@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { billSubmissions } from "@/db/schema";
 import { type ParseResponse, type Tier, TIERS } from "@/lib/probar";
 import { normalize } from "@/parsers/normalize";
+import { probarOptions, withProbarCors } from "@/server/probarCors";
 import { limitKey, PROBAR_PARSE, take } from "@/server/rateLimit";
 import { notifyUnrecognizedSubmission } from "@/server/submissions/alerts";
 import { runTier } from "@/server/submissions/cascade";
@@ -27,7 +28,7 @@ function isTier(value: unknown): value is Tier {
  * The result is persisted on the submission row, and it's that row (never
  * anything the client sends back) that a later claim reads. The client cannot
  * name the parser its bill was filed under. */
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const limit = take(limitKey(request, "probar:parse"), PROBAR_PARSE);
   if (!limit.ok)
     return Response.json(
@@ -111,3 +112,6 @@ export async function POST(request: Request) {
   };
   return Response.json(response);
 }
+
+export const POST = withProbarCors(handlePost);
+export const OPTIONS = probarOptions();
