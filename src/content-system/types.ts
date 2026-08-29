@@ -52,6 +52,9 @@ export type DatasetMetadata = {
 export type ContentMetadata = {
   keywords: string[];
   categories: string[];
+  /** Immutable keys from the global geographic registry. Stored in canonical
+   * registry order; unlike categories there is no primary member. */
+  locations: string[];
   faq?: { q: string; a: string }[];
   ogTitle?: string;
   ogDescription?: string;

@@ -239,6 +239,7 @@ for a field to set.
 {
   "keywords": ["cómo leer una factura de luz", "consumo kWh"],
   "categories": ["servicios", "facturas-y-conceptos"],
+  "locations": ["caba"],
   "faq": [{ "q": "…", "a": "…" }],
   "ogTitle": "…",
   "ogDescription": "…",
@@ -257,6 +258,12 @@ for a field to set.
 - `categories` — 1–3 keys from the section's CMS categories, **most important
   first**. The first is the primary: it decides the grouping on the section
   index and the breadcrumb.
+- `locations` — one or more keys from the global location registry. Call
+  `list_locations` before writing them. Choose the narrow place the page
+  directly applies to or analyzes: a Córdoba page uses `cordoba`, not both
+  `cordoba` and `argentina`. Use `argentina` only for genuinely nationwide
+  content. Matching is exact and flat; there is no inherited containment.
+  More than three locations is allowed but produces a warning.
 - `vendor` — only when the guide is about one company's bill. Names the social
   card's eyebrow and the JSON-LD `about`.
 - `ogImage` — steers the two text slots on the generated social card.
@@ -666,6 +673,8 @@ it unused.
 - [ ] 3–6 realistic `keywords`, every one of them matching what this page
       actually answers — and you named any you excluded; 1–3 section-owned
       `categories`, primary first.
+- [ ] One or more exact global `locations` from `list_locations`; no automatic
+      Argentina/province ancestor and no inference from `spatialCoverage`.
 - [ ] At least one internal link to another article, `/docs` or `/demo`.
 - [ ] `cta` is a hook for this page, one line, ≤54 chars.
 - [ ] `<ClosingCta />` present with its own `title` and copy; `<RelatedGuides />`
@@ -709,6 +718,7 @@ create_content {
   "metadata": {
     "keywords": ["", "", ""],
     "categories": ["servicios", "facturas-y-conceptos"],
+    "locations": ["<clave de list_locations>"],
     "faq": [{ "q": "", "a": "" }]
   },
   "body": "…"

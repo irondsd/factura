@@ -88,7 +88,7 @@ export function NewPageForm({
         summary: "",
         cta: "",
         body,
-        metadata: { keywords: [], categories: [] },
+        metadata: { keywords: [], categories: [], locations: [] },
         parentId: parentId || null,
       });
 

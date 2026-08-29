@@ -35,6 +35,7 @@ const SPANISH_ONLY_PREFIXES = [
   "/estadisticas",
   "/investigaciones",
   "/normativa",
+  "/ubicacion",
 ];
 
 /** Whether a landing pathname belongs to a Spanish-only section. Takes a

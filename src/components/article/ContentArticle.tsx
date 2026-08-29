@@ -10,6 +10,8 @@ import { TopCta } from "@/components/guides/cta";
 import { TocInline, TocSidebar } from "@/components/article/Toc";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import type { ContentCategory } from "@/content-system/categories/types";
+import type { ContentLocation } from "@/content-system/locations/types";
+import { LocationLinks } from "@/components/article/LocationLinks";
 import type { ContentSection } from "@/content-system/types";
 import type { AuthorRef } from "@/content-system/authors/types";
 import type { Heading } from "@/content/headings";
@@ -41,6 +43,7 @@ export type ContentArticleProps = {
   /** Optional 16:9 illustration from the media library. */
   previewMedia?: MediaRef | null;
   categories?: readonly ContentCategory[];
+  locations?: readonly ContentLocation[];
   /** Who wrote the page and who verified it. Both optional at every level —
    * most pages predate the author list and carry neither. */
   credits?: { author?: AuthorRef | null; factChecker?: AuthorRef | null };
@@ -73,6 +76,7 @@ export function ContentArticle({
   cta,
   previewMedia,
   categories = [],
+  locations = [],
   credits,
   section = {
     id: "guias",
@@ -180,7 +184,9 @@ export function ContentArticle({
 
             <div className="mt-8 border-t border-line pt-2">{children}</div>
 
-            <nav className="mt-14 border-t border-line pt-6">
+            <LocationLinks locations={locations} label={`Ubicación de esta ${section.singular.toLowerCase()}`} />
+
+            <nav className={locations.length ? "mt-8" : "mt-14 border-t border-line pt-6"}>
               <Link
                 href={section.href}
                 className="font-mono text-micro uppercase tracking-label-wide text-muted no-underline transition-colors hover:text-accent"

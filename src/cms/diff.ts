@@ -155,6 +155,7 @@ function metadataChanges(
 const METADATA_LABELS: Record<string, string> = {
   keywords: "Palabras clave",
   categories: "Categorías",
+  locations: "Ubicaciones",
   faq: "Preguntas frecuentes",
   ogTitle: "Título para redes",
   ogDescription: "Descripción para redes",

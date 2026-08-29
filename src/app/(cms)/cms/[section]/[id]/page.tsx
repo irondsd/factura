@@ -13,6 +13,7 @@ import { cmsContentService } from "@/cms/server/service";
 import { cmsPageStore } from "@/cms/server/store";
 import { cmsCategoryService } from "@/cms/categories/server/service";
 import { cmsAuthorService } from "@/cms/authors/server/service";
+import { cmsLocationService } from "@/cms/locations/server/service";
 import { componentCompletionDescriptors } from "@/cms/component-assistant/descriptors";
 import { componentRecipesForSection } from "@/cms/component-assistant/recipes";
 
@@ -64,7 +65,7 @@ export default async function CmsEditPage({ params }: Props) {
   // store read: which copy exists and what it means is a lifecycle question,
   // and a route that answered it itself would be a second implementation of
   // the rule (cms.md).
-  const [siblings, history, state, versions, redirects, categories, authors] =
+  const [siblings, history, state, versions, redirects, categories, authors, locations] =
     await Promise.all([
       cmsPageStore.list({ section: section.id }),
       loadPageHistory(page),
@@ -77,6 +78,7 @@ export default async function CmsEditPage({ params }: Props) {
       // Who may be credited. Read here rather than inside the form so the
       // editor stays a pure component over descriptors it is handed.
       cmsAuthorService.list(),
+      cmsLocationService.list(actor),
     ]);
   // Pages whose path hangs off this one's, and which a rename therefore moves
   // too. The prefix is the whole rule (`planRename`), asked once here so the
@@ -107,7 +109,7 @@ export default async function CmsEditPage({ params }: Props) {
         section={section}
         page={page}
         state={state}
-        fields={sectionFields(section.id, categories, authors)}
+        fields={sectionFields(section.id, categories, authors, locations)}
         parentOptions={parentOptions}
         redirects={redirects}
         descendants={descendants}

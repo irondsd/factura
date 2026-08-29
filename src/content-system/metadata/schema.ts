@@ -25,7 +25,18 @@ export function parseMetadata(
   | { ok: true; data: unknown }
   | { ok: false; problems: { field: string; message: string }[] } {
   const parsed = metadataSchemaFor(section).safeParse(value);
-  if (parsed.success) return { ok: true, data: parsed.data };
+  if (parsed.success) {
+    const data = parsed.data as Record<string, unknown>;
+    return {
+      ok: true,
+      data: {
+        ...data,
+        locations: Array.isArray(data.locations)
+          ? [...data.locations].sort()
+          : [],
+      },
+    };
+  }
   return {
     ok: false,
     problems: parsed.error.issues.map((issue) => ({

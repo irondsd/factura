@@ -102,8 +102,26 @@ export function isContentEdit(patch: {
   cta?: string;
   canonicalSlug?: string | null;
   metadata?: unknown;
-}): boolean {
-  return Object.keys(patch).length > 0;
+}, current?: { metadata?: unknown }, next?: { metadata?: unknown }): boolean {
+  const authoredKeys = Object.keys(patch).filter((key) => key !== "metadata");
+  if (authoredKeys.length > 0) return true;
+  if (!("metadata" in patch)) return false;
+  if (!current || !next) return true;
+  return stableWithoutLocations(current.metadata) !== stableWithoutLocations(next.metadata);
+}
+
+function stableWithoutLocations(value: unknown): string {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return JSON.stringify(value);
+  }
+  const rest = Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      ([key]) => key !== "locations",
+    ),
+  );
+  return JSON.stringify(
+    Object.fromEntries(Object.entries(rest).sort(([a], [b]) => a.localeCompare(b))),
+  );
 }
 
 /** Whether saving a working copy changes something a public visitor can already

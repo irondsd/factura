@@ -1,7 +1,7 @@
 import "server-only";
 import { revalidateTag } from "next/cache";
-import { contentTag } from "@/content-system/repository/tags";
-import type { ContentSection } from "@/content-system/types";
+import { contentTag, locationsTag } from "@/content-system/repository/tags";
+import { CONTENT_SECTIONS, type ContentSection } from "@/content-system/types";
 
 // On-demand invalidation of the public content cache (cms.md).
 //
@@ -40,4 +40,12 @@ export type PublicCacheInvalidator = (section: ContentSection) => void;
  * did not resolve until this write. */
 export function revalidatePublicContent(section: ContentSection): void {
   revalidateTag(contentTag(section), { expire: 0 });
+}
+
+/** Registry copy appears across every section and all global location hubs. */
+export function revalidatePublicLocations(): void {
+  revalidateTag(locationsTag, { expire: 0 });
+  for (const section of CONTENT_SECTIONS) {
+    revalidateTag(contentTag(section), { expire: 0 });
+  }
 }

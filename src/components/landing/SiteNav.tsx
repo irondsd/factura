@@ -92,6 +92,10 @@ export function siteFooterColumns(
               { label: t.nav.regulations, href: "/normativa" },
             ]
           : []),
+        // Spanish-only, but deliberately visible in both footers: the English
+        // URL redirects to the canonical bare path, like every language entry
+        // into a Spanish-only discovery section.
+        { label: "Ubicaciones", href: "/ubicacion" },
         { label: t.nav.faq, href: "/faq" },
         { label: t.nav.glossary, href: "/glosario" },
       ],

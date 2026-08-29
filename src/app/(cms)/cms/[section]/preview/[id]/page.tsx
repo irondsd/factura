@@ -27,6 +27,7 @@ import { MissingComponent } from "@/cms/components/MissingComponent";
 import { StatusChip } from "@/cms/components/StatusChip";
 import { faqPageLd, guideLd } from "@/i18n/structuredData";
 import { sectionHasMetadataAddon } from "@/content-system/sectionProfiles";
+import { locationsByKeys } from "@/content-system/repository/locations";
 
 // The exact private preview (cms.md): the last *saved* working
 // copy — or one named stored version — rendered through the same
@@ -120,6 +121,7 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
   const categories = (page.metadata.categories ?? [])
     .map((key) => categoryMap.get(key))
     .filter((category) => category !== undefined);
+  const locations = await locationsByKeys(page.metadata.locations ?? []);
 
   const { words, minutes } = documentStats(page);
   const headings = documentHeadings(page);
@@ -157,6 +159,7 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
       cta={page.cta}
       previewMedia={await resolveMediaRef(page.metadata.previewMediaId)}
       categories={categories}
+      locations={locations}
       credits={credits}
       section={{
         id: page.section,
@@ -194,6 +197,7 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
               words,
               minutes,
               credits,
+              locations,
             })}
           />
           {faq.length > 0 && <JsonLd data={faqPageLd(faq, "es")} />}

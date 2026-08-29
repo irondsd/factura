@@ -34,6 +34,7 @@ export async function handleCmsMessage(
         "set_content_status is the only tool that changes what the public sees, and it needs the human's explicit go-ahead each time, in both directions. 'published' publishes the working copy as a new immutable publication; 'draft' takes the page down.",
         "A page keeps its working copy, a temporary checkpoint, the public preview snapshot, and the current publication plus three previous ones — list_content_versions shows exactly those. restore_content_version copies one back into the working copy without publishing anything.",
         "Categories are section-scoped: the same key in two sections means two independent records. list_categories returns the valid keys to put in page metadata. create_category derives the key and slug from the label; update_category can edit copy and order, and those category settings are live immediately.",
+        "Locations are global across every authored section. Call list_locations and put one or more returned keys in metadata.locations before requesting preview or publication. Choose the narrow exact area the page directly covers; use argentina only for genuinely nationwide content, never as an automatic ancestor of a province or city.",
         "This endpoint cannot delete anything: there is no delete tool, and pages are retired by status, not removed. Deleting a category or changing any page or category address is a browser-only action a human performs at /cms; address changes leave redirects behind.",
       ].join(" "),
     });
@@ -114,9 +115,9 @@ function auditTarget(
   output?: unknown,
 ): AuditTarget {
   const id = pageId(input) ?? pageId(output);
-  return operation.endsWith("_category")
-    ? { pageId: null, resourceType: "category", resourceId: id }
-    : { pageId: id, resourceType: null, resourceId: null };
+  if (operation.endsWith("_category")) return { pageId: null, resourceType: "category", resourceId: id };
+  if (operation.endsWith("_location")) return { pageId: null, resourceType: "location", resourceId: id };
+  return { pageId: id, resourceType: null, resourceId: null };
 }
 /** Record who did what, without ever being the reason a request fails.
  *

@@ -35,7 +35,7 @@ const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /** Metadata fields the checks below report themselves, in the wording
  * `scripts/validate-guides.ts` used. Zod's generic issue for these is skipped so
  * nothing is reported twice. */
-const EXPLICITLY_REPORTED = new Set(["keywords", "categories"]);
+const EXPLICITLY_REPORTED = new Set(["keywords", "categories", "locations"]);
 
 // Fractional seconds are optional: hand-authored MDX writes
 // "2026-07-12T09:00:00-03:00", and a value that has been through a `timestamptz`
@@ -62,6 +62,10 @@ export const DOCUMENT_CODES = {
   keywordMissing: "doc.keyword-missing-from-copy",
   categoryUnknown: "doc.category-unknown",
   categoryCount: "doc.category-count",
+  locationsMissing: "doc.locations-missing",
+  locationDuplicate: "doc.location-duplicate",
+  locationUnknown: "doc.location-unknown",
+  locationCount: "doc.location-count",
   faqMarkup: "doc.faq-markup",
   faqCount: "doc.faq-count",
   faqNotPlaced: "doc.faq-not-placed",
@@ -124,6 +128,8 @@ export type DocumentValidationContext = {
   /** Active category keys for this document's section. Resolved by the CMS
    * adapter; omitted by pure callers that only want structural checks. */
   categories?: ReadonlySet<string>;
+  /** Active keys from the global location registry. */
+  locations?: ReadonlySet<string>;
   /** Every id in `cms_author`. Supplied by the CMS adapter for the same reason
    * `media` is — the list is a table and this validator has no database.
    *
@@ -361,6 +367,7 @@ export function validateDocument(
   }
 
   out.push(...validateCategories(raw.categories, context));
+  out.push(...validateLocations(raw.locations, context));
 
   // ── faq ───────────────────────────────────────────────────────────────────
   const rawFaq = raw.faq;
@@ -536,6 +543,12 @@ function validateNewsDocument(
   out.push(
     ...validateCategories(
       (document.metadata as Record<string, unknown> | undefined)?.categories,
+      context,
+    ),
+  );
+  out.push(
+    ...validateLocations(
+      (document.metadata as Record<string, unknown> | undefined)?.locations,
       context,
     ),
   );
@@ -853,6 +866,7 @@ function validateDataSectionDocument(
       ? (document.metadata as Record<string, unknown>)
       : {};
   out.push(...validateCategories(raw.categories, context));
+  out.push(...validateLocations(raw.locations, context));
   out.push(...validateCredits(document.metadata, context));
   out.push(...validateMedia(document, metadata ?? undefined, context));
 
@@ -964,6 +978,63 @@ function validateCategories(
             DOCUMENT_CODES.categoryUnknown,
             `meta.categories has unknown or retired key "${category}" for this section`,
             "categories",
+          ),
+        );
+      }
+    }
+  }
+  return out;
+}
+
+/** Global, flat, unordered location membership. The document layer runs only
+ * for preview/publish, so drafts may retain an empty list while public copies
+ * must name at least one active key. */
+function validateLocations(
+  value: unknown,
+  context: DocumentValidationContext,
+): Diagnostic[] {
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    !value.every((location) => typeof location === "string")
+  ) {
+    return [
+      error(
+        DOCUMENT_CODES.locationsMissing,
+        "meta.locations must contain at least one location key",
+        "locations",
+      ),
+    ];
+  }
+
+  const locations = value as string[];
+  const out: Diagnostic[] = [];
+  if (new Set(locations).size !== locations.length) {
+    out.push(
+      error(
+        DOCUMENT_CODES.locationDuplicate,
+        "meta.locations has duplicate keys",
+        "locations",
+      ),
+    );
+  }
+  if (locations.length > 3) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.locationCount,
+        `meta.locations has ${locations.length}; more than three is unusually broad`,
+        "locations",
+      ),
+    );
+  }
+  if (context.locations) {
+    for (const location of locations) {
+      if (!context.locations.has(location)) {
+        out.push(
+          error(
+            DOCUMENT_CODES.locationUnknown,
+            `meta.locations has unknown or retired key "${location}"`,
+            "locations",
           ),
         );
       }

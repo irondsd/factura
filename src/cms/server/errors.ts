@@ -122,6 +122,34 @@ export class CmsCategoryInUseError extends Error {
   }
 }
 
+export class CmsLocationConflictError extends Error {
+  readonly code = "conflict" as const;
+  constructor(
+    readonly locationId: string,
+    readonly expectedLockVersion: number,
+    readonly actualLockVersion: number | null,
+  ) {
+    super(`La ubicación cambió desde que la cargaste (tienes la versión ${expectedLockVersion}; la base tiene ${actualLockVersion ?? "ninguna"}).`);
+    this.name = "CmsLocationConflictError";
+  }
+}
+
+export class CmsLocationSlugTakenError extends Error {
+  readonly code = "slug_taken" as const;
+  constructor(slug: string) {
+    super(`Ya existe una ubicación en /ubicacion/${slug}. Elige otra dirección.`);
+    this.name = "CmsLocationSlugTakenError";
+  }
+}
+
+export class CmsLocationInUseError extends Error {
+  readonly code = "location_in_use" as const;
+  constructor(readonly usage: { id: string; section: string; slug: string; title: string; status: string }[]) {
+    super(`Esta ubicación se usa en ${usage.length} página${usage.length === 1 ? "" : "s"}. Quítala de esas páginas antes de eliminarla.`);
+    this.name = "CmsLocationInUseError";
+  }
+}
+
 /** A media asset cannot be trashed because pages still point at it.
  *
  * Its own class, like `CmsNotDeletableError`: no role changes the answer and

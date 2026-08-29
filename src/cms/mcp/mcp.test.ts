@@ -85,6 +85,8 @@ describe("tool listing", () => {
       "get_content",
       "list_categories",
       "list_authors",
+      "list_locations",
+      "get_location",
       "get_category",
       "validate_content",
       "list_content_versions",

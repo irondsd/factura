@@ -98,4 +98,53 @@ describe("isContentEdit", () => {
     // sees. Publishing is not editing.
     expect(isContentEdit({})).toBe(false);
   });
+
+  const current = {
+    metadata: {
+      keywords: ["luz"],
+      categories: ["servicios"],
+      locations: ["caba"],
+    },
+  };
+
+  it("does not stamp location-only additions, removals or reorderings", () => {
+    expect(
+      isContentEdit(
+        { metadata: { ...current.metadata, locations: ["caba", "mendoza"] } },
+        current,
+        { metadata: { ...current.metadata, locations: ["caba", "mendoza"] } },
+      ),
+    ).toBe(false);
+    expect(
+      isContentEdit(
+        { metadata: { ...current.metadata, locations: [] } },
+        current,
+        { metadata: { ...current.metadata, locations: [] } },
+      ),
+    ).toBe(false);
+    expect(
+      isContentEdit(
+        { metadata: { ...current.metadata, locations: ["mendoza", "caba"] } },
+        { metadata: { ...current.metadata, locations: ["caba", "mendoza"] } },
+        { metadata: { ...current.metadata, locations: ["mendoza", "caba"] } },
+      ),
+    ).toBe(false);
+  });
+
+  it("stamps a mixed location/title or location/category edit", () => {
+    expect(
+      isContentEdit(
+        { title: "Nuevo", metadata: { ...current.metadata, locations: ["mendoza"] } },
+        current,
+        { metadata: { ...current.metadata, locations: ["mendoza"] } },
+      ),
+    ).toBe(true);
+    expect(
+      isContentEdit(
+        { metadata: { ...current.metadata, categories: ["precios"], locations: ["mendoza"] } },
+        current,
+        { metadata: { ...current.metadata, categories: ["precios"], locations: ["mendoza"] } },
+      ),
+    ).toBe(true);
+  });
 });

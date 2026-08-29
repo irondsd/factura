@@ -185,3 +185,30 @@ describe("article credits", () => {
     expect("image" in author).toBe(false);
   });
 });
+
+describe("article locations", () => {
+  it("describes exact locations as Place nodes with canonical hub URLs", () => {
+    const article = nodeOfType(
+      guideLd({
+        slug: "como-leer-la-factura-de-edesur",
+        title: "Cómo leer la factura de Edesur",
+        description: "Qué significa cada sección.",
+        keywords: ["factura edesur"],
+        published: "2026-01-01T00:00:00.000Z",
+        updated: "2026-06-01T00:00:00.000Z",
+        words: 900,
+        minutes: 5,
+        locations: [{ label: "CABA", slug: "caba" }],
+      }),
+      "BlogPosting",
+    );
+
+    expect(article?.contentLocation).toEqual([
+      {
+        "@type": "Place",
+        name: "CABA",
+        url: `${siteUrl}/ubicacion/caba`,
+      },
+    ]);
+  });
+});

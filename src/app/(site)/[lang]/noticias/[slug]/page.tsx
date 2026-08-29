@@ -14,6 +14,7 @@ import { categoriesByKeys } from "@/content-system/repository/categories";
 import { sectionMetadata } from "@/i18n/metadata";
 import { editorialPageLd, faqPageLd } from "@/i18n/structuredData";
 import { spanishOnly } from "@/i18n/routing";
+import { locationsByKeys } from "@/content-system/repository/locations";
 
 export const dynamicParams = true;
 export function generateStaticParams() {
@@ -35,6 +36,7 @@ export default async function NoticiaPage({ params }: Props) {
   if (!page) notFound();
   const { document, meta, Content } = page;
   const categories = await categoriesByKeys("noticias", meta.categoryKeys);
+  const locations = await locationsByKeys(document.metadata.locations);
   const { words, minutes } = documentStats(document);
   const faq = meta.faq ?? [];
   // Not displayed yet — they only reach the article's structured data.
@@ -51,6 +53,7 @@ export default async function NoticiaPage({ params }: Props) {
       headings={documentHeadings(document)}
       minutes={minutes}
       categories={categories}
+      locations={locations}
       section={{
         id: "noticias",
         label: "Noticias",
@@ -73,6 +76,7 @@ export default async function NoticiaPage({ params }: Props) {
               words,
               minutes,
               credits,
+              locations,
             })}
           />
           {faq.length > 0 && <JsonLd data={faqPageLd(faq, "es")} />}

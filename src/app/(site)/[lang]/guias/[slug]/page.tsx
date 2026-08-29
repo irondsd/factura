@@ -23,6 +23,7 @@ import {
 } from "@/content-system/render/renderContent";
 import { faqPageLd, guideLd } from "@/i18n/structuredData";
 import { spanishOnly } from "@/i18n/routing";
+import { locationsByKeys } from "@/content-system/repository/locations";
 
 // Database rows created after a deployment render on their first request. The
 // static params below are only a build-time warmup, never an allowlist.
@@ -58,11 +59,12 @@ export default async function GuidePage({ params }: Props) {
     notFound();
   }
 
-  const [Content, related, media, categories] = await Promise.all([
+  const [Content, related, media, categories, locations] = await Promise.all([
     compileContent(guide.body, guide.section),
     relatedGuides(guide),
     mediaComponents(guide.body),
     categoriesByKeys("guias", guide.metadata.categories),
+    locationsByKeys(guide.metadata.locations),
   ]);
   const { words, minutes } = documentStats(guide);
   const faq = guide.metadata.faq ?? [];
@@ -79,6 +81,7 @@ export default async function GuidePage({ params }: Props) {
       cta={guide.cta}
       previewMedia={await resolveMediaRef(guide.metadata.previewMediaId)}
       categories={categories}
+      locations={locations}
       credits={credits}
       headings={documentHeadings(guide)}
       minutes={minutes}
@@ -98,6 +101,7 @@ export default async function GuidePage({ params }: Props) {
               words,
               minutes,
               credits,
+              locations,
             })}
           />
           {faq.length > 0 && <JsonLd data={faqPageLd(faq, "es")} />}

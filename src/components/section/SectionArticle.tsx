@@ -21,6 +21,8 @@ import { resolveMediaRef } from "@/content-system/media/repository";
 import { resolveAuthorCredits } from "@/content-system/authors/repository";
 import { documentHeadings, documentStats } from "@/content-system/document";
 import { categoriesByKeys } from "@/content-system/repository/categories";
+import { locationsByKeys } from "@/content-system/repository/locations";
+import { LocationLinks } from "@/components/article/LocationLinks";
 
 // One page of a registry section, at any depth: /estadisticas/delitos-caba,
 // /investigaciones/barrios-seguros-baratos-caba, and
@@ -56,13 +58,14 @@ export async function SectionArticle({
   }
 
   const { Content, meta, document } = page;
-  const [crumbs, children, media, categories] = await Promise.all([
+  const [crumbs, children, media, categories, locations] = await Promise.all([
     section.crumbs(slug),
     section.children(slug),
     // Resolved from the body in one query before this renders, so an article's
     // cost does not scale with how many images it has.
     mediaComponents(document!.body),
     categoriesByKeys(document!.section, document!.metadata.categories),
+    locationsByKeys(document!.metadata.locations),
   ]);
   const previewMedia = await resolveMediaRef(meta.previewMediaId);
   // Read from the document rather than from `meta`: the credits are markup, not
@@ -83,6 +86,7 @@ export async function SectionArticle({
           words,
           minutes,
           credits,
+          locations,
         })}
       />
       {/* Only when the page actually renders the questions below — FAQPage
@@ -204,7 +208,9 @@ export async function SectionArticle({
               />
             </div>
 
-            <nav className="mt-14 border-t border-line pt-6">
+            <LocationLinks locations={locations} label={`Ubicación de ${section.label.toLowerCase()}`} />
+
+            <nav className={locations.length ? "mt-8" : "mt-14 border-t border-line pt-6"}>
               <Link
                 href={section.base}
                 className="font-mono text-micro uppercase tracking-label-wide text-muted no-underline transition-colors hover:text-accent"

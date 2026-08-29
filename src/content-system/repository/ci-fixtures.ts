@@ -1,4 +1,5 @@
 import type { ContentCategory } from "../categories/types";
+import type { ContentLocation } from "../locations/types";
 import type { ContentDocument, ContentSection, ContentSummary } from "../types";
 import { type ContentRepository, pathToSlug } from "./contract";
 
@@ -7,6 +8,24 @@ import { type ContentRepository, pathToSlug } from "./contract";
 // repository change. These four documents exercise the same public rendering
 // and discovery paths as production while remaining code-owned test fixtures.
 const DATE = "2026-01-15T12:00:00.000Z";
+
+export const CI_CONTENT_LOCATIONS: readonly ContentLocation[] = [
+  {
+    id: "00000000-0000-4000-8000-000000000021",
+    key: "argentina",
+    slug: "argentina",
+    label: "Argentina",
+    title: "Contenido sobre Argentina",
+    description: "Guías, noticias, estadísticas e investigaciones de alcance nacional.",
+    sortOrder: 0,
+    lockVersion: 1,
+    createdBy: null,
+    updatedBy: null,
+    retiredAt: null,
+    createdAt: DATE,
+    updatedAt: DATE,
+  },
+];
 
 /** One active category per CMS section keeps the category hubs and all of the
  * discovery surfaces on the same no-database fixture path as the pages. The
@@ -103,6 +122,7 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
     metadata: {
       keywords: ["facturas", "prueba", "ci"],
       categories: ["facturas-y-conceptos"],
+      locations: ["argentina"],
     },
     publishedAt: DATE,
     contentUpdatedAt: DATE,
@@ -131,6 +151,7 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
     metadata: {
       keywords: ["noticias", "prueba", "ci"],
       categories: ["ci-ejemplo"],
+      locations: ["argentina"],
     },
     publishedAt: DATE,
     contentUpdatedAt: DATE,
@@ -159,6 +180,7 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
     metadata: {
       keywords: ["estadísticas", "prueba", "ci"],
       categories: ["ci-ejemplo"],
+      locations: ["argentina"],
       ogStat: "CI",
       sources: [{ label: "Fixture de CI", href: "https://factura.uno" }],
       dataset: {
@@ -197,6 +219,7 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
     metadata: {
       keywords: ["investigación", "prueba", "ci"],
       categories: ["ci-ejemplo"],
+      locations: ["argentina"],
       ogStat: "CI",
       sources: [{ label: "Fixture de CI", href: "https://factura.uno" }],
       dataset: {

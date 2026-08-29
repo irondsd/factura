@@ -16,7 +16,7 @@ const doc = (over: Partial<ContentDocument> = {}): ContentDocument => ({
   parentId: null,
   sortOrder: 0,
   crumb: null,
-  metadata: { keywords: [], categories: [] },
+  metadata: { keywords: [], categories: [], locations: [] },
   body: "",
   publishedAt: "2026-01-01T00:00:00-03:00",
   contentUpdatedAt: "2026-01-01T00:00:00-03:00",
@@ -45,7 +45,7 @@ describe("documentHeadings", () => {
     const headings = documentHeadings(
       doc({
         body: "## Uno\n\n<Faq />\n",
-        metadata: { keywords: [], categories: [], faq: [{ q: "¿?", a: "." }] },
+        metadata: { keywords: [], categories: [], locations: [], faq: [{ q: "¿?", a: "." }] },
       }),
     );
     expect(headings.at(-1)).toEqual({
@@ -59,7 +59,7 @@ describe("documentHeadings", () => {
     const headings = documentHeadings(
       doc({
         body: "## Uno\n",
-        metadata: { keywords: [], categories: [], faq: [{ q: "¿?", a: "." }] },
+        metadata: { keywords: [], categories: [], locations: [], faq: [{ q: "¿?", a: "." }] },
       }),
     );
     expect(headings.map((h) => h.id)).toEqual(["uno"]);
@@ -82,6 +82,7 @@ describe("documentHeadings", () => {
         metadata: {
           keywords: [],
           categories: [],
+          locations: [],
           sources: [{ label: "INDEC", href: "https://indec.gob.ar" }],
         },
       }),
@@ -107,6 +108,7 @@ describe("documentHeadings", () => {
         metadata: {
           keywords: [],
           categories: [],
+          locations: [],
           faq: [{ q: "¿?", a: "." }],
           sources: [{ label: "INDEC", href: "https://indec.gob.ar" }],
         },
@@ -129,6 +131,7 @@ describe("documentStats", () => {
         metadata: {
           keywords: [],
           categories: [],
+          locations: [],
           faq: [{ q: "cuatro cinco", a: "seis siete ocho" }],
         },
       }),
@@ -151,7 +154,7 @@ describe("relatedDocuments", () => {
     const { body, ...rest } = doc({
       id: slug,
       slug,
-      metadata: { keywords: [], categories },
+      metadata: { keywords: [], categories, locations: [] },
       publishedAt: published,
     });
     void body;

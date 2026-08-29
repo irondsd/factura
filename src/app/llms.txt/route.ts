@@ -5,6 +5,7 @@ import {
 import { NORMAS } from "@/content/normativa/normas";
 import { SECTIONS } from "@/content/sections";
 import { nonEmptyContentCategories } from "@/content-system/repository/categories";
+import { nonEmptyContentLocations } from "@/content-system/repository/locations";
 import {
   contentCategoryUrl,
   guideCategoryUrl,
@@ -13,6 +14,8 @@ import {
   normativaUrl,
   sectionIndexUrl,
   sectionUrl,
+  locationsIndexUrl,
+  locationUrl,
 } from "@/i18n/metadata";
 
 // What each registry section is, in English, for the reader of this file. Kept
@@ -118,7 +121,7 @@ There is one scope, \`mcp:read\`. The tools cover properties, vendors, bills (li
 - The signed-in application lives under https://app.factura.uno/ and requires authentication; it is not publicly indexable. The /demo pages above show the same screens on sample data.`;
 
 export async function GET() {
-  const [guideSections, categories, sections] = await Promise.all([
+  const [guideSections, categories, sections, locations] = await Promise.all([
     guidesByPrimaryCategory(),
     nonEmptyCategories(),
     Promise.all(
@@ -128,6 +131,7 @@ export async function GET() {
         categories: await nonEmptyContentCategories(section.id),
       })),
     ),
+    nonEmptyContentLocations(),
   ]);
 
   const guidesSection = [
@@ -192,7 +196,16 @@ export async function GET() {
     ),
   ].join("\n");
 
-  const body = `${PREAMBLE}\n\n${guidesSection}\n\n${dataSections}\n\n${normativaSection}\n\n${AFTER}\n`;
+  const locationsSection = [
+    "## Ubicaciones",
+    "",
+    "Spanish-only discovery pages grouping Factura's published content by the exact geographic area it covers.",
+    "",
+    `- [Ubicaciones index](${locationsIndexUrl}): Every location with published content.`,
+    ...locations.map((location) => `- [${location.label}](${locationUrl(location.slug)}): ${location.description}`),
+  ].join("\n");
+
+  const body = `${PREAMBLE}\n\n${guidesSection}\n\n${dataSections}\n\n${locationsSection}\n\n${normativaSection}\n\n${AFTER}\n`;
 
   return new Response(body, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
