@@ -98,7 +98,9 @@ const reviewNodes = (
       ]
     : [];
 
-const locationNodes = (locations: readonly Pick<ContentLocation, "label" | "slug">[] | undefined) =>
+const locationNodes = (
+  locations: readonly Pick<ContentLocation, "label" | "slug">[] | undefined,
+) =>
   locations?.map((location) => ({
     "@type": "Place" as const,
     name: location.label,
@@ -332,7 +334,9 @@ export function guideLd({
         // screen.
         timeRequired: `PT${minutes}M`,
         author: authorNode(credits),
-        ...(locations?.length ? { contentLocation: locationNodes(locations) } : {}),
+        ...(locations?.length
+          ? { contentLocation: locationNodes(locations) }
+          : {}),
         publisher: { "@id": ORG_ID },
       },
       ...reviewNodes(url, articleId, credits),
@@ -406,7 +410,9 @@ export function editorialPageLd({
         wordCount: words,
         timeRequired: `PT${minutes}M`,
         author: authorNode(credits),
-        ...(locations?.length ? { contentLocation: locationNodes(locations) } : {}),
+        ...(locations?.length
+          ? { contentLocation: locationNodes(locations) }
+          : {}),
         publisher: { "@id": ORG_ID },
       },
       ...reviewNodes(url, articleId, credits),
@@ -489,7 +495,9 @@ export function sectionPageLd({
         timeRequired: `PT${minutes}M`,
         about: { "@id": datasetId },
         author: authorNode(credits),
-        ...(locations?.length ? { contentLocation: locationNodes(locations) } : {}),
+        ...(locations?.length
+          ? { contentLocation: locationNodes(locations) }
+          : {}),
         publisher: { "@id": ORG_ID },
       },
       ...reviewNodes(url, articleId, credits),
@@ -697,7 +705,9 @@ export function contentCategoryLd({
   };
 }
 
-export function locationsIndexLd(locations: readonly Pick<ContentLocation, "slug" | "label" | "description">[]) {
+export function locationsIndexLd(
+  locations: readonly Pick<ContentLocation, "slug" | "label" | "description">[],
+) {
   return {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
@@ -721,7 +731,10 @@ export function locationsIndexLd(locations: readonly Pick<ContentLocation, "slug
   };
 }
 
-export function locationHubLd({ location, pages }: {
+export function locationHubLd({
+  location,
+  pages,
+}: {
   location: Pick<ContentLocation, "slug" | "title" | "description">;
   pages: readonly { section: ContentSection; slug: string; title: string }[];
 }) {

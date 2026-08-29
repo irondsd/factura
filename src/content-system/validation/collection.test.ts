@@ -22,7 +22,11 @@ const doc = (
   parentId: null,
   sortOrder: 0,
   crumb: null,
-  metadata: { keywords: ["a", "b", "c"], categories: ["servicios"], locations: ["argentina"] },
+  metadata: {
+    keywords: ["a", "b", "c"],
+    categories: ["servicios"],
+    locations: ["argentina"],
+  },
   body: "## Uno\n\n<RelatedGuides />\n",
   publishedAt: "2026-01-01T00:00:00-03:00",
   contentUpdatedAt: "2026-01-01T00:00:00-03:00",

@@ -179,11 +179,7 @@ function completeFlagsFor(months: string[], now: string): boolean[] {
   return months.map((m) => VENDORS.every((v) => hasBill(v.key, m, now)));
 }
 
-function buildView(
-  months: string[],
-  currency: "ARS" | "USD",
-  now: string,
-) {
+function buildView(months: string[], currency: "ARS" | "USD", now: string) {
   const completeFlags = completeFlagsFor(months, now);
 
   const series = months.map((m) => {
@@ -413,10 +409,7 @@ const FIELD_DEFS: Record<
   expensas: [{ name: "Extraordinaria", type: "money", unit: null }],
 };
 
-export function demoVendorDetail(
-  vendorId: string,
-  win: InsightsWindow,
-) {
+export function demoVendorDetail(vendorId: string, win: InsightsWindow) {
   const def = VENDORS.find((v) => v.id === vendorId);
   if (!def) return null;
   const now = nowMonth();
@@ -657,9 +650,7 @@ export function demoBill(id: string): DemoBill | null {
 
 export type DemoOverviewData = ReturnType<typeof demoOverview>;
 export type DemoSeriesData = ReturnType<typeof demoSeries>;
-export type DemoVendorDetail = NonNullable<
-  ReturnType<typeof demoVendorDetail>
->;
+export type DemoVendorDetail = NonNullable<ReturnType<typeof demoVendorDetail>>;
 export type DemoVendor = (typeof demoVendors)[number];
 export type DemoProperty = (typeof demoProperties)[number];
 export type DemoPagedBills = ReturnType<typeof demoListPaged>;

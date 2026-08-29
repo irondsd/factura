@@ -68,19 +68,19 @@ Public articles are stored in Postgres and authored through `/cms` or the
 
 Copy `env.example` to `.env.local`.
 
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | Shared Postgres connection string. |
-| `NEXT_PUBLIC_SITE_URL` | Canonical marketing origin. |
-| `NEXT_PUBLIC_APP_URL` | Canonical app origin used by links, redirects, and allowlists. |
-| `AUTH_SECRET` | Auth.js session secret. |
-| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth; optional in development. |
-| `SESSION_COOKIE_DOMAIN` | Production cookie domain shared with `app.factura.uno`. |
-| `RESEND_API_KEY` / `EMAIL_FROM` | OTP and welcome email delivery. |
-| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHANNEL_ID` | Contact-form and optional sign-up notices. |
-| `TELEGRAM_NOTIFY_SIGNINS` | `new` by default, `all`, or `off`. |
-| `CMS_MEDIA_S3_BUCKET` / `CMS_MEDIA_PUBLIC_ORIGIN` | Public CMS media bucket and browser origin. |
-| `S3_ENDPOINT` / `S3_REGION` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_FORCE_PATH_STYLE` | S3-compatible connection used by CMS media. |
+| Variable                                                                                          | Purpose                                                        |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `DATABASE_URL`                                                                                    | Shared Postgres connection string.                             |
+| `NEXT_PUBLIC_SITE_URL`                                                                            | Canonical marketing origin.                                    |
+| `NEXT_PUBLIC_APP_URL`                                                                             | Canonical app origin used by links, redirects, and allowlists. |
+| `AUTH_SECRET`                                                                                     | Auth.js session secret.                                        |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`                                                           | Google OAuth; optional in development.                         |
+| `SESSION_COOKIE_DOMAIN`                                                                           | Production cookie domain shared with `app.factura.uno`.        |
+| `RESEND_API_KEY` / `EMAIL_FROM`                                                                   | OTP and welcome email delivery.                                |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHANNEL_ID`                                                      | Contact-form and optional sign-up notices.                     |
+| `TELEGRAM_NOTIFY_SIGNINS`                                                                         | `new` by default, `all`, or `off`.                             |
+| `CMS_MEDIA_S3_BUCKET` / `CMS_MEDIA_PUBLIC_ORIGIN`                                                 | Public CMS media bucket and browser origin.                    |
+| `S3_ENDPOINT` / `S3_REGION` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_FORCE_PATH_STYLE` | S3-compatible connection used by CMS media.                    |
 
 The two public origin variables are deliberately distinct: one names this site
 and one names the app. Server-only and browser-visible code derive from the same

@@ -93,21 +93,28 @@ export function stampsContentUpdatedAt(
  * Drives the revision's `content_updated_at`, which is the "Actualizado el …"
  * the reader sees. A status flip is not an edit: unpublishing and republishing
  * a page must not tell every reader the article was rewritten today. */
-export function isContentEdit(patch: {
-  body?: string;
-  title?: string;
-  titleTag?: string | null;
-  description?: string;
-  summary?: string;
-  cta?: string;
-  canonicalSlug?: string | null;
-  metadata?: unknown;
-}, current?: { metadata?: unknown }, next?: { metadata?: unknown }): boolean {
+export function isContentEdit(
+  patch: {
+    body?: string;
+    title?: string;
+    titleTag?: string | null;
+    description?: string;
+    summary?: string;
+    cta?: string;
+    canonicalSlug?: string | null;
+    metadata?: unknown;
+  },
+  current?: { metadata?: unknown },
+  next?: { metadata?: unknown },
+): boolean {
   const authoredKeys = Object.keys(patch).filter((key) => key !== "metadata");
   if (authoredKeys.length > 0) return true;
   if (!("metadata" in patch)) return false;
   if (!current || !next) return true;
-  return stableWithoutLocations(current.metadata) !== stableWithoutLocations(next.metadata);
+  return (
+    stableWithoutLocations(current.metadata) !==
+    stableWithoutLocations(next.metadata)
+  );
 }
 
 function stableWithoutLocations(value: unknown): string {
@@ -120,7 +127,9 @@ function stableWithoutLocations(value: unknown): string {
     ),
   );
   return JSON.stringify(
-    Object.fromEntries(Object.entries(rest).sort(([a], [b]) => a.localeCompare(b))),
+    Object.fromEntries(
+      Object.entries(rest).sort(([a], [b]) => a.localeCompare(b)),
+    ),
   );
 }
 

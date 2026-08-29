@@ -86,10 +86,15 @@ describe("category fields", () => {
 
 describe("location fields", () => {
   it("offers the shared registry in its supplied order", () => {
-    const locations = sectionFields("guias", [], [], [
-      { key: "caba", label: "CABA" },
-      { key: "argentina", label: "Argentina" },
-    ]).find((field) => field.path === "metadata.locations");
+    const locations = sectionFields(
+      "guias",
+      [],
+      [],
+      [
+        { key: "caba", label: "CABA" },
+        { key: "argentina", label: "Argentina" },
+      ],
+    ).find((field) => field.path === "metadata.locations");
 
     expect(locations).toMatchObject({
       kind: "locations",

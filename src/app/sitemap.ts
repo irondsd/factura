@@ -186,13 +186,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ? [
         {
           url: locationsIndexUrl,
-          lastModified: new Date(Math.max(...locations.flatMap((location) => location.pages.map((page) => Date.parse(page.contentUpdatedAt))))),
+          lastModified: new Date(
+            Math.max(
+              ...locations.flatMap((location) =>
+                location.pages.map((page) => Date.parse(page.contentUpdatedAt)),
+              ),
+            ),
+          ),
           changeFrequency: "weekly" as const,
           priority: 0.7,
         },
         ...locations.map((location) => ({
           url: locationUrl(location.slug),
-          lastModified: new Date(Math.max(...location.pages.map((page) => Date.parse(page.contentUpdatedAt)))),
+          lastModified: new Date(
+            Math.max(
+              ...location.pages.map((page) =>
+                Date.parse(page.contentUpdatedAt),
+              ),
+            ),
+          ),
           changeFrequency: "weekly" as const,
           priority: 0.68,
         })),
@@ -202,5 +214,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // The data sections ahead of the guides, matching both the priorities above
   // and the nav order. Order carries no formal weight in the protocol, but it's
   // the reading order of anyone — or anything — walking the file top to bottom.
-  return [...landing, ...sectionEntries, ...guidesEntries, ...locationEntries, ...normativa];
+  return [
+    ...landing,
+    ...sectionEntries,
+    ...guidesEntries,
+    ...locationEntries,
+    ...normativa,
+  ];
 }

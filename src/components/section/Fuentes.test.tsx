@@ -31,7 +31,10 @@ describe("Fuentes", () => {
     const html = await renderToHtml(
       createElement(Fuentes, {
         items,
-        license: { url: "https://creativecommons.org/licenses/by/4.0/", name: "CC BY 4.0" },
+        license: {
+          url: "https://creativecommons.org/licenses/by/4.0/",
+          name: "CC BY 4.0",
+        },
       }),
     );
     expect(html).toContain("Las tablas y series derivadas");

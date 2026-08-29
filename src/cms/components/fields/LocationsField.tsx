@@ -41,17 +41,31 @@ export function LocationsField({
   const suggestions = options.filter(
     (option) =>
       !selectedSet.has(option.value) &&
-      (!folded || fold(option.label).includes(folded) || option.value.includes(folded)),
+      (!folded ||
+        fold(option.label).includes(folded) ||
+        option.value.includes(folded)),
   );
 
   const set = (keys: string[]) => onChange(keys.length ? keys : undefined);
   const add = (key: string) => {
     const nextSet = new Set([...selectedKeys, key]);
-    set(options.filter((option) => nextSet.has(option.value)).map((option) => option.value)
-      .concat([...nextSet].filter((item) => !options.some((option) => option.value === item))));
-    setQuery(""); setActive(0); setOpen(false); inputRef.current?.focus();
+    set(
+      options
+        .filter((option) => nextSet.has(option.value))
+        .map((option) => option.value)
+        .concat(
+          [...nextSet].filter(
+            (item) => !options.some((option) => option.value === item),
+          ),
+        ),
+    );
+    setQuery("");
+    setActive(0);
+    setOpen(false);
+    inputRef.current?.focus();
   };
-  const remove = (key: string) => set(selectedKeys.filter((item) => item !== key));
+  const remove = (key: string) =>
+    set(selectedKeys.filter((item) => item !== key));
   const listId = `${id}-suggestions`;
 
   return (
@@ -66,7 +80,9 @@ export function LocationsField({
         }}
       >
         {chosen.map((location) => {
-          const known = options.some((option) => option.value === location.value);
+          const known = options.some(
+            (option) => option.value === location.value,
+          );
           return (
             <span
               key={location.value}
@@ -76,7 +92,11 @@ export function LocationsField({
               )}
             >
               <span>{location.label}</span>
-              {!known && <span className="ml-2 text-[9px] tracking-label-wide text-[var(--vendor-ochre)] uppercase">No existe</span>}
+              {!known && (
+                <span className="ml-2 text-[9px] tracking-label-wide text-[var(--vendor-ochre)] uppercase">
+                  No existe
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => remove(location.value)}
@@ -95,34 +115,66 @@ export function LocationsField({
           aria-autocomplete="list"
           aria-expanded={open && suggestions.length > 0}
           aria-controls={listId}
-          aria-activedescendant={open && suggestions[active] ? `${listId}-${active}` : undefined}
+          aria-activedescendant={
+            open && suggestions[active] ? `${listId}-${active}` : undefined
+          }
           aria-describedby={describedBy}
           aria-invalid={invalid || undefined}
           value={query}
-          placeholder={chosen.length ? "Añadir ubicación…" : "Busca una ubicación…"}
+          placeholder={
+            chosen.length ? "Añadir ubicación…" : "Busca una ubicación…"
+          }
           onFocus={() => setOpen(true)}
           onBlur={() => window.setTimeout(() => setOpen(false), 120)}
-          onChange={(event) => { setQuery(event.target.value); setActive(0); setOpen(true); }}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setActive(0);
+            setOpen(true);
+          }}
           onKeyDown={(event) => {
-            if (event.key === "ArrowDown" && suggestions.length) { event.preventDefault(); setOpen(true); setActive((value) => (value + 1) % suggestions.length); }
-            if (event.key === "ArrowUp" && suggestions.length) { event.preventDefault(); setOpen(true); setActive((value) => (value - 1 + suggestions.length) % suggestions.length); }
-            if (event.key === "Enter" && open && suggestions[active]) { event.preventDefault(); add(suggestions[active].value); }
-            if (event.key === "Escape") { setOpen(false); }
-            if (event.key === "Backspace" && !query && chosen.length) remove(chosen[chosen.length - 1].value);
+            if (event.key === "ArrowDown" && suggestions.length) {
+              event.preventDefault();
+              setOpen(true);
+              setActive((value) => (value + 1) % suggestions.length);
+            }
+            if (event.key === "ArrowUp" && suggestions.length) {
+              event.preventDefault();
+              setOpen(true);
+              setActive(
+                (value) =>
+                  (value - 1 + suggestions.length) % suggestions.length,
+              );
+            }
+            if (event.key === "Enter" && open && suggestions[active]) {
+              event.preventDefault();
+              add(suggestions[active].value);
+            }
+            if (event.key === "Escape") {
+              setOpen(false);
+            }
+            if (event.key === "Backspace" && !query && chosen.length)
+              remove(chosen[chosen.length - 1].value);
           }}
           className="min-h-8 min-w-[12ch] flex-1 border-0 bg-transparent px-1 font-mono text-[13.5px] text-ink outline-none placeholder:text-muted"
         />
       </div>
 
       {open && suggestions.length > 0 && (
-        <ul id={listId} role="listbox" className="absolute z-30 mt-1 max-h-60 w-full list-none overflow-auto border border-line bg-paper p-1 shadow-lg">
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute z-30 mt-1 max-h-60 w-full list-none overflow-auto border border-line bg-paper p-1 shadow-lg"
+        >
           {suggestions.map((option, index) => (
             <li
               key={option.value}
               id={`${listId}-${index}`}
               role="option"
               aria-selected={index === active}
-              onMouseDown={(event) => { event.preventDefault(); add(option.value); }}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                add(option.value);
+              }}
               onMouseEnter={() => setActive(index)}
               className={cn(
                 "cursor-pointer px-3 py-2 font-mono text-[13px] text-ink",
@@ -135,10 +187,18 @@ export function LocationsField({
         </ul>
       )}
       {options.length === 0 && chosen.length === 0 && (
-        <p className="mt-2 mb-0 font-mono text-[12px] leading-[1.6] text-muted">Todavía no hay ubicaciones. Créalas desde la portada del CMS antes de publicar.</p>
+        <p className="mt-2 mb-0 font-mono text-[12px] leading-[1.6] text-muted">
+          Todavía no hay ubicaciones. Créalas desde la portada del CMS antes de
+          publicar.
+        </p>
       )}
     </div>
   );
 }
 
-const fold = (value: string) => value.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "").trim();
+const fold = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();

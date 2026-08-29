@@ -69,11 +69,25 @@ export const locationsIndexUrl = `${siteUrl}/ubicacion`;
 export const locationUrl = (slug: string): string =>
   `${locationsIndexUrl}/${slug}`;
 
-export function locationsIndexMetadata({ title, description }: { title: string; description: string }): Metadata {
+export function locationsIndexMetadata({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}): Metadata {
   return listingMetadata(locationsIndexUrl, title, description);
 }
 
-export function locationMetadata({ slug, title, description }: { slug: string; title: string; description: string }): Metadata {
+export function locationMetadata({
+  slug,
+  title,
+  description,
+}: {
+  slug: string;
+  title: string;
+  description: string;
+}): Metadata {
   return listingMetadata(locationUrl(slug), title, description);
 }
 

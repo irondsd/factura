@@ -504,7 +504,9 @@ export class CmsContentService {
       { ...next, metadata: next.metadata },
       // A content edit moves the editorial timestamp the reader will see once
       // this is published; a save that changed nothing leaves it alone.
-      isContentEdit(input.patch, current, next) ? now : baseline.contentUpdatedAt,
+      isContentEdit(input.patch, current, next)
+        ? now
+        : baseline.contentUpdatedAt,
     );
 
     const saved = await this.store.transaction(async (store, tx) => {

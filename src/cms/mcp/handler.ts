@@ -115,8 +115,10 @@ function auditTarget(
   output?: unknown,
 ): AuditTarget {
   const id = pageId(input) ?? pageId(output);
-  if (operation.endsWith("_category")) return { pageId: null, resourceType: "category", resourceId: id };
-  if (operation.endsWith("_location")) return { pageId: null, resourceType: "location", resourceId: id };
+  if (operation.endsWith("_category"))
+    return { pageId: null, resourceType: "category", resourceId: id };
+  if (operation.endsWith("_location"))
+    return { pageId: null, resourceType: "location", resourceId: id };
   return { pageId: id, resourceType: null, resourceId: null };
 }
 /** Record who did what, without ever being the reason a request fails.

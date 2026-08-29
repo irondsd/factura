@@ -45,7 +45,12 @@ describe("documentHeadings", () => {
     const headings = documentHeadings(
       doc({
         body: "## Uno\n\n<Faq />\n",
-        metadata: { keywords: [], categories: [], locations: [], faq: [{ q: "¿?", a: "." }] },
+        metadata: {
+          keywords: [],
+          categories: [],
+          locations: [],
+          faq: [{ q: "¿?", a: "." }],
+        },
       }),
     );
     expect(headings.at(-1)).toEqual({
@@ -59,7 +64,12 @@ describe("documentHeadings", () => {
     const headings = documentHeadings(
       doc({
         body: "## Uno\n",
-        metadata: { keywords: [], categories: [], locations: [], faq: [{ q: "¿?", a: "." }] },
+        metadata: {
+          keywords: [],
+          categories: [],
+          locations: [],
+          faq: [{ q: "¿?", a: "." }],
+        },
       }),
     );
     expect(headings.map((h) => h.id)).toEqual(["uno"]);

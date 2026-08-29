@@ -93,8 +93,10 @@ export function logoutTarget(
   next: string | null | undefined,
   origins: OriginConfig = publicOrigins,
 ): string {
-  return safeNext(next, origins) ??
-    (origins.appOrigin === origins.siteOrigin ? "/" : origins.siteOrigin);
+  return (
+    safeNext(next, origins) ??
+    (origins.appOrigin === origins.siteOrigin ? "/" : origins.siteOrigin)
+  );
 }
 
 /** Final redirect gate used by Auth.js after a provider callback.

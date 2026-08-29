@@ -139,7 +139,8 @@ export const CMS_TOOLS: Tool[] = [
   {
     name: "get_location",
     scope: "cms:read",
-    description: "Get one global location with usage across every section, redirect history and current lock version.",
+    description:
+      "Get one global location with usage across every section, redirect history and current lock version.",
     annotations: readOnly("Ver una ubicación"),
     schema: z.object({ id: z.uuid() }).strict(),
     run: (a, input) => cmsLocationService.get(a, (input as { id: string }).id),
@@ -147,27 +148,51 @@ export const CMS_TOOLS: Tool[] = [
   {
     name: "create_location",
     scope: "cms:write",
-    description: "Create a global location. The server derives its immutable key and public slug from the label; agents cannot choose either. Settings are live immediately, although an unused location has no public hub.",
+    description:
+      "Create a global location. The server derives its immutable key and public slug from the label; agents cannot choose either. Settings are live immediately, although an unused location has no public hub.",
     annotations: writes("Crear una ubicación"),
-    schema: z.object({
-      label: z.string(), title: z.string(), description: z.string(),
-      sortOrder: z.number().int().optional(),
-    }).strict(),
-    run: (a, input) => cmsLocationService.create(a, input as Parameters<typeof cmsLocationService.create>[1]),
+    schema: z
+      .object({
+        label: z.string(),
+        title: z.string(),
+        description: z.string(),
+        sortOrder: z.number().int().optional(),
+      })
+      .strict(),
+    run: (a, input) =>
+      cmsLocationService.create(
+        a,
+        input as Parameters<typeof cmsLocationService.create>[1],
+      ),
   },
   {
     name: "update_location",
     scope: "cms:write",
-    description: "Edit a location's label, hub title, description or order. Changes are live immediately. Address changes and retirement are browser-only.",
+    description:
+      "Edit a location's label, hub title, description or order. Changes are live immediately. Address changes and retirement are browser-only.",
     annotations: writes("Editar una ubicación"),
-    schema: z.object({
-      id: z.uuid(), expectedLockVersion: z.number().int().positive(),
-      patch: z.object({
-        label: z.string().optional(), title: z.string().optional(),
-        description: z.string().optional(), sortOrder: z.number().int().optional(),
-      }).strict().refine((value) => Object.keys(value).length > 0, { message: "At least one editable field is required." }),
-    }).strict(),
-    run: (a, input) => cmsLocationService.update(a, input as Parameters<typeof cmsLocationService.update>[1]),
+    schema: z
+      .object({
+        id: z.uuid(),
+        expectedLockVersion: z.number().int().positive(),
+        patch: z
+          .object({
+            label: z.string().optional(),
+            title: z.string().optional(),
+            description: z.string().optional(),
+            sortOrder: z.number().int().optional(),
+          })
+          .strict()
+          .refine((value) => Object.keys(value).length > 0, {
+            message: "At least one editable field is required.",
+          }),
+      })
+      .strict(),
+    run: (a, input) =>
+      cmsLocationService.update(
+        a,
+        input as Parameters<typeof cmsLocationService.update>[1],
+      ),
   },
   {
     name: "get_category",

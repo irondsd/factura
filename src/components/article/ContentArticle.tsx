@@ -184,9 +184,16 @@ export function ContentArticle({
 
             <div className="mt-8 border-t border-line pt-2">{children}</div>
 
-            <LocationLinks locations={locations} label={`Ubicación de esta ${section.singular.toLowerCase()}`} />
+            <LocationLinks
+              locations={locations}
+              label={`Ubicación de esta ${section.singular.toLowerCase()}`}
+            />
 
-            <nav className={locations.length ? "mt-8" : "mt-14 border-t border-line pt-6"}>
+            <nav
+              className={
+                locations.length ? "mt-8" : "mt-14 border-t border-line pt-6"
+              }
+            >
               <Link
                 href={section.href}
                 className="font-mono text-micro uppercase tracking-label-wide text-muted no-underline transition-colors hover:text-accent"

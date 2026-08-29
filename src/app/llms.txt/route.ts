@@ -202,7 +202,10 @@ export async function GET() {
     "Spanish-only discovery pages grouping Factura's published content by the exact geographic area it covers.",
     "",
     `- [Ubicaciones index](${locationsIndexUrl}): Every location with published content.`,
-    ...locations.map((location) => `- [${location.label}](${locationUrl(location.slug)}): ${location.description}`),
+    ...locations.map(
+      (location) =>
+        `- [${location.label}](${locationUrl(location.slug)}): ${location.description}`,
+    ),
   ].join("\n");
 
   const body = `${PREAMBLE}\n\n${guidesSection}\n\n${dataSections}\n\n${locationsSection}\n\n${normativaSection}\n\n${AFTER}\n`;

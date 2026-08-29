@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  parseOrigin,
-  resolvePublicOrigins,
-} from "./origins";
+import { parseOrigin, resolvePublicOrigins } from "./origins";
 
 describe("parseOrigin", () => {
   it("normalizes valid HTTPS and local development origins", () => {

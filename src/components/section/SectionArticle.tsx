@@ -208,9 +208,16 @@ export async function SectionArticle({
               />
             </div>
 
-            <LocationLinks locations={locations} label={`Ubicación de ${section.label.toLowerCase()}`} />
+            <LocationLinks
+              locations={locations}
+              label={`Ubicación de ${section.label.toLowerCase()}`}
+            />
 
-            <nav className={locations.length ? "mt-8" : "mt-14 border-t border-line pt-6"}>
+            <nav
+              className={
+                locations.length ? "mt-8" : "mt-14 border-t border-line pt-6"
+              }
+            >
               <Link
                 href={section.base}
                 className="font-mono text-micro uppercase tracking-label-wide text-muted no-underline transition-colors hover:text-accent"

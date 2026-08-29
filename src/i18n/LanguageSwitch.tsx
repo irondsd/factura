@@ -48,8 +48,7 @@ export function LanguageSwitch() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-5 border border-line bg-card py-3 px-5">
       <p className="font-mono text-[13px] text-muted leading-[1.5]">
-        {t.language.help}{" "}
-        <span className="text-ink">{INVITE[target]}</span>
+        {t.language.help} <span className="text-ink">{INVITE[target]}</span>
       </p>
       <SegmentedControl
         options={OPTIONS}

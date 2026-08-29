@@ -134,16 +134,31 @@ describe("isContentEdit", () => {
   it("stamps a mixed location/title or location/category edit", () => {
     expect(
       isContentEdit(
-        { title: "Nuevo", metadata: { ...current.metadata, locations: ["mendoza"] } },
+        {
+          title: "Nuevo",
+          metadata: { ...current.metadata, locations: ["mendoza"] },
+        },
         current,
         { metadata: { ...current.metadata, locations: ["mendoza"] } },
       ),
     ).toBe(true);
     expect(
       isContentEdit(
-        { metadata: { ...current.metadata, categories: ["precios"], locations: ["mendoza"] } },
+        {
+          metadata: {
+            ...current.metadata,
+            categories: ["precios"],
+            locations: ["mendoza"],
+          },
+        },
         current,
-        { metadata: { ...current.metadata, categories: ["precios"], locations: ["mendoza"] } },
+        {
+          metadata: {
+            ...current.metadata,
+            categories: ["precios"],
+            locations: ["mendoza"],
+          },
+        },
       ),
     ).toBe(true);
   });

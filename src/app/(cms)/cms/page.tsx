@@ -73,8 +73,12 @@ export default async function CmsHomePage() {
       </ul>
 
       <section className="mt-10 border-t border-line pt-8">
-        <h2 className="m-0 font-display text-[24px] font-semibold tracking-[-0.02em]">Colecciones globales</h2>
-        <p className="mt-2 mb-6 max-w-[62ch] font-mono text-[13px] leading-[1.6] text-muted">Datos compartidos por todas las secciones de contenido.</p>
+        <h2 className="m-0 font-display text-[24px] font-semibold tracking-[-0.02em]">
+          Colecciones globales
+        </h2>
+        <p className="mt-2 mb-6 max-w-[62ch] font-mono text-[13px] leading-[1.6] text-muted">
+          Datos compartidos por todas las secciones de contenido.
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <AuthorManager initialAuthors={authors} />
           <LocationManager initialLocations={locations} />

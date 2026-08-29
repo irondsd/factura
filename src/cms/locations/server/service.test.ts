@@ -29,7 +29,8 @@ function fakeLocations() {
   const store = {
     transaction: async <T>(body: (bound: CmsLocationStore) => Promise<T>) =>
       body(store as unknown as CmsLocationStore),
-    list: async () => [...locations.values()].filter((value) => !value.retiredAt),
+    list: async () =>
+      [...locations.values()].filter((value) => !value.retiredAt),
     findById: async (id: string) => locations.get(id) ?? null,
     findByKey: async (key: string) =>
       [...locations.values()].find((value) => value.key === key) ?? null,

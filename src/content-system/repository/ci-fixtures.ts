@@ -16,7 +16,8 @@ export const CI_CONTENT_LOCATIONS: readonly ContentLocation[] = [
     slug: "argentina",
     label: "Argentina",
     title: "Contenido sobre Argentina",
-    description: "Guías, noticias, estadísticas e investigaciones de alcance nacional.",
+    description:
+      "Guías, noticias, estadísticas e investigaciones de alcance nacional.",
     sortOrder: 0,
     lockVersion: 1,
     createdBy: null,
