@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   CRIME_YEAR,
   DEFAULT_SIZE,
@@ -67,18 +68,18 @@ export function PrecioSeguridadDispersion() {
   const discounts = fit.slope < 0;
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          Lo que el mercado ya cobra por la seguridad
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Un punto por barrio · {SIZE.label} · {fit.n} barrios con las dos
-          cifras · correlación {formatCoefficient(fit.r)}, R²{" "}
-          {formatCoefficient(fit.r2)}
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>Lo que el mercado ya cobra por la seguridad</>,
+        subtitle: (
+          <>
+            Un punto por barrio · {SIZE.label} · {fit.n} barrios con las dos
+            cifras · correlación {formatCoefficient(fit.r)}, R²{" "}
+            {formatCoefficient(fit.r2)}
+          </>
+        ),
+      }}
+    >
       <PrecioSeguridadScatter points={points} line={line} median={median} />
 
       <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
@@ -139,6 +140,6 @@ export function PrecioSeguridadDispersion() {
         está en {formatArsPerMetre(median.rentPerMetre)} y{" "}
         {formatRate(median.crimeRate)} hechos cada 1.000 habitantes.
       </p>
-    </figure>
+    </DataFigure>
   );
 }

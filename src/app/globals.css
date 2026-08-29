@@ -177,6 +177,18 @@
     @apply font-mono text-[13px] py-3 px-0;
     border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
   }
+  /* A cell holding a number. Right-aligned so the digits line up column-wise,
+     lining figures so they are the same width, and never wrapped — a price or a
+     rate broken across two lines stops being one value.
+
+     Its own class because these three travel together on every numeric cell the
+     data figures draw, and spelled out they were the single largest repeated
+     string in the site's HTML: 44 variations on `fd-td text-right tabular-nums
+     whitespace-nowrap …`, 104 KB of class attribute across the statistics and
+     research pages. `DataTable` writes it from `numeric: true`. */
+  .fd-num {
+    @apply text-right tabular-nums whitespace-nowrap;
+  }
 
   /* Skeleton fill for a value the page doesn't know yet. See ui/Bone. */
   .fd-bone {

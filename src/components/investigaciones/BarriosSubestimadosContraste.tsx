@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 const OUT = [
   {
     barrio: "Flores",
@@ -27,16 +28,17 @@ const OUT = [
 
 export function BarriosSubestimadosContraste() {
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          Los que quedaron en la puerta —y por qué
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          La prueba contra la selección: un candidato cercano, uno ya valorado,
-          dos sin cobertura y un falso atajo.
-        </p>
-      </figcaption>
+    <DataFigure
+      header={{
+        title: <>Los que quedaron en la puerta —y por qué</>,
+        subtitle: (
+          <>
+            La prueba contra la selección: un candidato cercano, uno ya
+            valorado, dos sin cobertura y un falso atajo.
+          </>
+        ),
+      }}
+    >
       <div className="divide-y divide-line">
         {OUT.map((item) => (
           <div
@@ -57,6 +59,6 @@ export function BarriosSubestimadosContraste() {
           </div>
         ))}
       </div>
-    </figure>
+    </DataFigure>
   );
 }

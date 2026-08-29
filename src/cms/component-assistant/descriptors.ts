@@ -59,9 +59,9 @@ export function descriptorForComponent(
   definition: ContentComponentDefinition,
 ): ComponentCompletionDescriptor {
   const authoring = definition.authoring;
-  const group = authoring?.group ?? defaultGroup(name);
+  const group = authoring.group;
   const groupRank = GROUP_BY_ID.get(group)?.rank ?? 999;
-  const rank = authoring?.rank ?? defaultRank(group);
+  const rank = authoring.rank ?? defaultRank(group);
   const props = projectProperties(definition, authoring);
   const template = buildTemplate(name, definition, props, authoring);
 
@@ -69,7 +69,7 @@ export function descriptorForComponent(
   // tag and the page supplies the data. Containers with no schema are a
   // different thing — their children *are* the content — so they get no note.
   const notes = [
-    ...(authoring?.notes ?? []),
+    ...(authoring.notes ?? []),
     ...(definition.kind === "leaf" && props.length === 0
       ? ["Escribe el componente bare, sin propiedades."]
       : []),
@@ -78,7 +78,7 @@ export function descriptorForComponent(
   return {
     name,
     kind: definition.kind,
-    label: authoring?.label ?? defaultLabel(name),
+    label: authoring.label,
     group,
     rank: groupRank * 1000 + rank,
     description: definition.description,
@@ -210,24 +210,6 @@ function defaultPlaceholder(
   return "Texto específico";
 }
 
-/** Only the manifest-generated data leaves reach this: every hand-written
- * component declares its own `authoring.group`. The suffix is the one signal
- * those generated names carry, so a name that ends in neither a map nor a
- * chart/summary word lands in the catch-all data bucket. A component that
- * lands in the wrong one is fixed by giving it an explicit group, not by
- * growing this list. */
-function defaultGroup(name: string): ComponentAuthoringGroup {
-  if (/Mapa$/.test(name)) return "maps";
-  if (
-    /(?:Chart|Ipc|Resumen|Historia|Cambio|Cobertura|Cuando|Dispersion|Ganadores|Contraste|Sensibilidad)$/.test(
-      name,
-    )
-  ) {
-    return "charts-summaries";
-  }
-  return "tables-comparisons";
-}
-
 /** One rank for the whole generated catalogue, so `compareDescriptors` and
  * `sortText` fall through to the name. Dozens of `Delitos*`/`Escrituras*`
  * entries listed alphabetically keep each dataset's components together;
@@ -237,14 +219,6 @@ function defaultRank(group: ComponentAuthoringGroup): number {
   return group === "article-structure" || group === "calls-to-action"
     ? 200
     : 500;
-}
-
-function defaultLabel(name: string): string {
-  return name
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/Caba/g, "CABA")
-    .replace(/Pba/g, "PBA")
-    .replace(/Ipc/g, "IPC");
 }
 
 function compareDescriptors(

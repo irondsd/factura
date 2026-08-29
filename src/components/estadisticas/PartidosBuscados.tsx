@@ -1,3 +1,5 @@
+import { DataFigure } from "@/components/figures/DataFigure";
+import { DataTable } from "@/components/figures/DataTable";
 import {
   formatPct,
   formatUsd,
@@ -55,50 +57,60 @@ export function PartidosBuscados() {
   });
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          El valor del m² en los partidos más consultados
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Puesto sobre {withFigure} partidos con dato · {LAST_UPDATED}
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>El valor del m² en los partidos más consultados</>,
+        subtitle: (
+          <>
+            Puesto sobre {withFigure} partidos con dato · {LAST_UPDATED}
+          </>
+        ),
+      }}
+    >
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="fd-th">Partido</th>
-              <th className="fd-th text-right pl-3">US$ por m²</th>
-              <th className="fd-th text-right pl-3">Un 2 ambientes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {featured.map((r) => (
-              <tr key={r.id}>
-                <td className="fd-td align-top">
+        <DataTable
+          rows={featured}
+          rowKey={(r) => r.id}
+          columns={[
+            {
+              header: "Partido",
+              cellClassName: "align-top",
+              cell: (r) => (
+                <>
                   <span className="text-ink">{r.label}</span>
                   <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5">
                     {r.zonaLabel}
                     {r.rank === null ? "" : ` · puesto ${r.rank}`}
                   </span>
-                </td>
-                <td className="fd-td text-right pl-3 align-top tabular-nums whitespace-nowrap">
+                </>
+              ),
+            },
+            {
+              header: "US$ por m²",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top",
+              cell: (r) => (
+                <>
                   <span className="text-ink">
                     {r.usd === null ? NO_DATA : formatUsd(r.usd)}
                   </span>
                   <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5">
                     {r.anual === null ? "" : `${formatPct(r.anual)} anual`}
                   </span>
-                </td>
-                <td className="fd-td text-right pl-3 align-top text-ink tabular-nums whitespace-nowrap">
-                  {r.usd === null ? "—" : formatUsd(totalPrice(r.usd, AREA))}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+            {
+              header: "Un 2 ambientes",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top text-ink",
+              cell: (r) =>
+                r.usd === null ? "—" : formatUsd(totalPrice(r.usd, AREA)),
+            },
+          ]}
+        />
       </div>
 
       <p className="font-mono text-[11.5px] text-muted mt-4 leading-[1.6] opacity-85">
@@ -108,6 +120,6 @@ export function PartidosBuscados() {
         el valor del m². Los {rows().length} partidos con dato —{SCOPE_LONG}—
         están en la tabla que sigue al mapa.
       </p>
-    </figure>
+    </DataFigure>
   );
 }

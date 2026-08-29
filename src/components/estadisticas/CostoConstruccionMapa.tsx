@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   BREAKS,
   ciudadShare,
@@ -129,7 +130,30 @@ export function CostoConstruccionMapa() {
   }
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          En cada barrio, qué parte del precio de publicación del metro cuadrado
+          se explica por el costo de construirlo. Cuanto más oscuro, más de lo
+          que se paga es la obra en sí; cuanto más claro, más se está pagando
+          por el terreno y la ubicación. La segunda columna es lo que queda por
+          metro cuadrado una vez descontada la construcción.
+        </>
+      }
+      note={
+        <>
+          Es una cuenta nuestra, no un dato que publique IDECBA: el costo de
+          construcción del trimestre —convertido a dólares al promedio del dólar
+          blue— dividido por el precio de publicación del metro cuadrado de
+          departamentos usados de cada barrio, del mismo trimestre y del mismo
+          organismo. Lo que queda no es ganancia: adentro están el terreno, los
+          honorarios, los derechos de construcción, los impuestos, el
+          financiamiento y el margen del desarrollador, además de que un
+          departamento usado no es uno a estrenar. No es un cálculo de
+          rentabilidad de obra. Datos del {quarterLabel(JOIN_PERIOD)}.
+        </>
+      }
+    >
       <MapaCaba
         title="Cuánto del precio de un departamento es costo de construcción"
         dimensions={[
@@ -157,26 +181,6 @@ export function CostoConstruccionMapa() {
         }}
         ariaLabel="Mapa de la Ciudad de Buenos Aires sombreado según qué porcentaje del precio de publicación del metro cuadrado corresponde al costo de construcción. Los mismos valores están en la tabla que sigue."
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        En cada barrio, qué parte del precio de publicación del metro cuadrado
-        se explica por el costo de construirlo. Cuanto más oscuro, más de lo que
-        se paga es la obra en sí; cuanto más claro, más se está pagando por el
-        terreno y la ubicación. La segunda columna es lo que queda por metro
-        cuadrado una vez descontada la construcción.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Es una cuenta nuestra, no un dato que publique IDECBA: el costo de
-        construcción del trimestre —convertido a dólares al promedio del dólar
-        blue— dividido por el precio de publicación del metro cuadrado de
-        departamentos usados de cada barrio, del mismo trimestre y del mismo
-        organismo. Lo que queda no es ganancia: adentro están el terreno, los
-        honorarios, los derechos de construcción, los impuestos, el
-        financiamiento y el margen del desarrollador, además de que un
-        departamento usado no es uno a estrenar. No es un cálculo de
-        rentabilidad de obra. Datos del {quarterLabel(JOIN_PERIOD)}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

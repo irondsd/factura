@@ -1,4 +1,5 @@
-import { Fragment } from "react";
+import { DataFigure } from "@/components/figures/DataFigure";
+import { DataTable } from "@/components/figures/DataTable";
 import {
   CRIME_YEAR,
   DEFAULT_PRIORITY,
@@ -49,92 +50,100 @@ export function PrecioSeguridadRanking() {
   ];
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          El ranking, con el cálculo a la vista
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          {order.length} barrios comparables · {SIZE.label} ·{" "}
-          {PRIORITY.label.toLowerCase()} · alquiler del {RENT_PERIOD_LABEL},
-          delitos de {CRIME_YEAR}
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>El ranking, con el cálculo a la vista</>,
+        subtitle: (
+          <>
+            {order.length} barrios comparables · {SIZE.label} ·{" "}
+            {PRIORITY.label.toLowerCase()} · alquiler del {RENT_PERIOD_LABEL},
+            delitos de {CRIME_YEAR}
+          </>
+        ),
+      }}
+      caption={
+        <>
+          Las dos columnas del medio son las posiciones, de 0 a 100, entre los{" "}
+          {order.length} barrios comparados: «barato» alto significa que casi
+          todos los demás son más caros, «seguro» alto que casi todos registran
+          más hechos. El puntaje es su promedio ponderado. Un barrio puede
+          llegar arriba por dos caminos distintos —barato y del montón en
+          delitos, o tranquilo y del montón en precio— y la tabla deja ver cuál
+          es cuál.
+        </>
+      }
+      note={
+        <>
+          El alquiler es el pedido en avisos para un departamento de{" "}
+          {SIZE.label.toLowerCase()}, con la cifra mensual arriba y la misma
+          cifra por metro cuadrado debajo; el orden se calcula sobre la segunda,
+          que es la que se puede comparar entre tamaños. Los delitos son hechos
+          registrados cada 1.000 residentes censados: en los barrios del
+          microcentro esa tasa está inflada por la gente que va sin vivir ahí, y
+          es por eso que los últimos puestos son casi todos del centro.
+        </>
+      }
+    >
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="fd-th">Barrio</th>
-              <th className="fd-th text-right pl-3">Alquiler</th>
-              <th className="fd-th text-right pl-3">Delitos</th>
-              <th className="fd-th text-right pl-3">Barato</th>
-              <th className="fd-th text-right pl-3">Seguro</th>
-              <th className="fd-th text-right pl-3">Puntaje</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groups.map((group) => (
-              <Fragment key={group.key}>
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="font-mono text-micro uppercase tracking-label-wide text-muted pt-4 pb-1"
-                  >
-                    {group.label}
-                  </td>
-                </tr>
-                {group.rows.map((r) => (
-                  <tr key={r.id}>
-                    <td className="fd-td">
-                      <span className="text-muted">{rank.get(r.id)}. </span>
-                      <span className="text-ink">{r.label}</span>
-                      <span className="text-muted"> · {r.meta}</span>
-                    </td>
-                    <td className="fd-td text-right pl-3 text-ink/90 tabular-nums whitespace-nowrap">
-                      {formatArs(r.rentMonthly)}
-                      <span className="block text-muted">
-                        {formatArsPerMetre(r.rentPerMetre)}
-                      </span>
-                    </td>
-                    <td className="fd-td text-right pl-3 text-ink/90 tabular-nums whitespace-nowrap">
-                      {formatRate(r.crimeRate)}
-                    </td>
-                    <td className="fd-td text-right pl-3 text-muted tabular-nums whitespace-nowrap">
-                      {formatScore(r.cheap)}
-                    </td>
-                    <td className="fd-td text-right pl-3 text-muted tabular-nums whitespace-nowrap">
-                      {formatScore(r.safe)}
-                    </td>
-                    <td className="fd-td text-right pl-3 text-ink tabular-nums whitespace-nowrap">
-                      {formatScore(r.score)}
-                    </td>
-                  </tr>
-                ))}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          groups={groups}
+          rowKey={(r) => r.id}
+          columns={[
+            {
+              header: "Barrio",
+              cell: (r) => (
+                <>
+                  <span className="text-muted">{rank.get(r.id)}. </span>
+                  <span className="text-ink">{r.label}</span>
+                  <span className="text-muted"> · {r.meta}</span>
+                </>
+              ),
+            },
+            {
+              header: "Alquiler",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 text-ink/90",
+              cell: (r) => (
+                <>
+                  {formatArs(r.rentMonthly)}
+                  <span className="block text-muted">
+                    {formatArsPerMetre(r.rentPerMetre)}
+                  </span>
+                </>
+              ),
+            },
+            {
+              header: "Delitos",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 text-ink/90",
+              cell: (r) => formatRate(r.crimeRate),
+            },
+            {
+              header: "Barato",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 text-muted",
+              cell: (r) => formatScore(r.cheap),
+            },
+            {
+              header: "Seguro",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 text-muted",
+              cell: (r) => formatScore(r.safe),
+            },
+            {
+              header: "Puntaje",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 text-ink",
+              cell: (r) => formatScore(r.score),
+            },
+          ]}
+        />
       </div>
-
-      <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Las dos columnas del medio son las posiciones, de 0 a 100, entre los{" "}
-        {order.length} barrios comparados: «barato» alto significa que casi
-        todos los demás son más caros, «seguro» alto que casi todos registran
-        más hechos. El puntaje es su promedio ponderado. Un barrio puede llegar
-        arriba por dos caminos distintos —barato y del montón en delitos, o
-        tranquilo y del montón en precio— y la tabla deja ver cuál es cuál.
-      </p>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        El alquiler es el pedido en avisos para un departamento de{" "}
-        {SIZE.label.toLowerCase()}, con la cifra mensual arriba y la misma cifra
-        por metro cuadrado debajo; el orden se calcula sobre la segunda, que es
-        la que se puede comparar entre tamaños. Los delitos son hechos
-        registrados cada 1.000 residentes censados: en los barrios del
-        microcentro esa tasa está inflada por la gente que va sin vivir ahí, y
-        es por eso que los últimos puestos son casi todos del centro.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

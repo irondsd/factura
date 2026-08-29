@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import { brecha, RATES } from "@/content/estadisticas/data/dolar";
 import {
   ciudad,
@@ -91,44 +92,45 @@ export function RentabilidadTipoCambio() {
   const gapNow = brecha(PERIODS[PERIODS.length - 1]);
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          La misma serie con tres tipos de cambio
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Departamentos usados de {SIZE.label} · promedio de la Ciudad
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>La misma serie con tres tipos de cambio</>,
+        subtitle: (
+          <>Departamentos usados de {SIZE.label} · promedio de la Ciudad</>
+        ),
+      }}
+      caption={
+        <>
+          La rentabilidad del alquiler en CABA calculada con el dólar blue, con
+          el oficial y con el MEP. El alquiler se cobra en pesos y el
+          departamento se compra en dólares, así que la cuenta depende de a qué
+          cambio se pasa uno al otro.
+        </>
+      }
+      note={
+        <>
+          Las tres curvas coinciden salvo durante el cepo. El blue y el MEP —dos
+          precios de mercado a los que se llega por caminos distintos— se
+          mantienen juntos toda la serie, y el que se separa es el oficial, que
+          durante esos años no era un precio sino una cotización sostenida por
+          el control de cambios.
+          {worst &&
+            ` En el ${periodLabel(worst.period)}, el peor caso, la diferencia es entre ${formatYield(worst.blue)} y ${formatYield(worst.oficial)}.`}
+          {gapNow !== null &&
+            gapNow < 0.02 &&
+            " Hoy la brecha es prácticamente nula y los tres dan lo mismo."}{" "}
+          Esta página usa el blue: es la referencia con la que efectivamente se
+          compran y se venden departamentos en la Ciudad.{" "}
+          <strong className="font-medium">La elección no afecta el mapa</strong>
+          : dentro de un mismo trimestre todos los barrios se dividen por el
+          mismo número, así que el orden entre barrios es idéntico con
+          cualquiera de los tres. Mueve la altura de esta curva, no la
+          comparación entre zonas. Fuentes: IDECBA y ArgentinaDatos, datos hasta
+          el {LAST_UPDATED}.
+        </>
+      }
+    >
       <TipoCambioChart rows={rows} rates={rates} band={bandBounds()} />
-
-      <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        La rentabilidad del alquiler en CABA calculada con el dólar blue, con el
-        oficial y con el MEP. El alquiler se cobra en pesos y el departamento se
-        compra en dólares, así que la cuenta depende de a qué cambio se pasa uno
-        al otro.
-      </p>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Las tres curvas coinciden salvo durante el cepo. El blue y el MEP —dos
-        precios de mercado a los que se llega por caminos distintos— se
-        mantienen juntos toda la serie, y el que se separa es el oficial, que
-        durante esos años no era un precio sino una cotización sostenida por el
-        control de cambios.
-        {worst &&
-          ` En el ${periodLabel(worst.period)}, el peor caso, la diferencia es entre ${formatYield(worst.blue)} y ${formatYield(worst.oficial)}.`}
-        {gapNow !== null &&
-          gapNow < 0.02 &&
-          " Hoy la brecha es prácticamente nula y los tres dan lo mismo."}{" "}
-        Esta página usa el blue: es la referencia con la que efectivamente se
-        compran y se venden departamentos en la Ciudad.{" "}
-        <strong className="font-medium">La elección no afecta el mapa</strong>:
-        dentro de un mismo trimestre todos los barrios se dividen por el mismo
-        número, así que el orden entre barrios es idéntico con cualquiera de los
-        tres. Mueve la altura de esta curva, no la comparación entre zonas.
-        Fuentes: IDECBA y ArgentinaDatos, datos hasta el {LAST_UPDATED}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

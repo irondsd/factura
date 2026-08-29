@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   coverage,
   DEFAULT_SIZE,
@@ -61,42 +62,46 @@ export function OfertaCobertura() {
   const last = rows[rows.length - 1];
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          Barrios con precio de alquiler publicable, trimestre a trimestre
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          <span className="text-ink">
-            De {last.total} barrios, departamentos de {SIZE.label}
-          </span>{" "}
-          · Mínimo {floor.withData} ({floor.title}) · Máximo {peak.withData} (
-          {peak.title}) · Último {last.withData} ({last.title})
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: (
+          <>Barrios con precio de alquiler publicable, trimestre a trimestre</>
+        ),
+        subtitle: (
+          <>
+            <span className="text-ink">
+              De {last.total} barrios, departamentos de {SIZE.label}
+            </span>{" "}
+            · Mínimo {floor.withData} ({floor.title}) · Máximo {peak.withData} (
+            {peak.title}) · Último {last.withData} ({last.title})
+          </>
+        ),
+      }}
+      caption={
+        <>
+          En cuántos de los {last.total} barrios de la Ciudad hubo avisos
+          suficientes como para que IDECBA pudiera publicar un precio promedio
+          de alquiler. No mide precios: mide en cuántos barrios había mercado
+          que medir.
+        </>
+      }
+      note={
+        <>
+          Esta serie no la publica nadie, ni siquiera el organismo: sale de
+          contar, trimestre por trimestre, cuántos barrios quedan sin dato en
+          sus propios cuadros de precios. El organismo no informa un promedio
+          cuando la cantidad de avisos del barrio es demasiado baja, así que un
+          barrio que desaparece del cuadro es un barrio donde dejó de publicarse
+          lo suficiente. Es una medición distinta de la del gráfico anterior
+          —otra tabla, otra frecuencia, otra unidad y un umbral que fija la
+          fuente— y por eso sirve como control. Empieza en 2018, que es donde
+          empiezan los cuadros de precios, así que no alcanza para decir nada
+          sobre la caída anterior. Las líneas verticales son las mismas dos
+          fechas. Fuente: IDECBA, datos hasta {LAST_UPDATED}.
+        </>
+      }
+    >
       <CoberturaChart rows={rows} markers={MARKERS} />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        En cuántos de los {last.total} barrios de la Ciudad hubo avisos
-        suficientes como para que IDECBA pudiera publicar un precio promedio de
-        alquiler. No mide precios: mide en cuántos barrios había mercado que
-        medir.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Esta serie no la publica nadie, ni siquiera el organismo: sale de
-        contar, trimestre por trimestre, cuántos barrios quedan sin dato en sus
-        propios cuadros de precios. El organismo no informa un promedio cuando
-        la cantidad de avisos del barrio es demasiado baja, así que un barrio
-        que desaparece del cuadro es un barrio donde dejó de publicarse lo
-        suficiente. Es una medición distinta de la del gráfico anterior —otra
-        tabla, otra frecuencia, otra unidad y un umbral que fija la fuente— y
-        por eso sirve como control. Empieza en 2018, que es donde empiezan los
-        cuadros de precios, así que no alcanza para decir nada sobre la caída
-        anterior. Las líneas verticales son las mismas dos fechas. Fuente:
-        IDECBA, datos hasta {LAST_UPDATED}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

@@ -145,14 +145,14 @@ export function SerieChart({
 
   return (
     <>
-      <figcaption className="mb-4">
+      <div className="mb-4">
         <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
           {title}
         </h3>
         <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
           {stat}
         </p>
-      </figcaption>
+      </div>
 
       <div className="h-[300px] sm:h-[360px]">
         <ResponsiveContainer width="100%" height="100%">

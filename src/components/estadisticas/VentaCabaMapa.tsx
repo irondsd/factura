@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   BREAKS,
   ciudad,
@@ -112,7 +113,28 @@ export function VentaCabaMapa() {
   const provisional = PROVISIONAL.has(LAST_PERIOD);
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          Precio de publicación del metro cuadrado de departamentos usados en
+          venta en la Ciudad de Buenos Aires, en dólares, por barrio y por
+          comuna. Permite comparar cuánto cuesta el metro cuadrado en Palermo,
+          Belgrano, Recoleta, Villa Urquiza, Caballito, Flores o Mataderos, y
+          ver en qué zona de la Ciudad se concentran los valores más altos y más
+          bajos.
+        </>
+      }
+      note={
+        <>
+          Son precios de <strong className="font-medium">publicación</strong>,
+          no de escrituración: lo que se pide, no lo que se paga. La misma
+          escala de colores se usa en los seis mapas, para que se puedan
+          comparar entre sí. Fuente: IDECBA sobre la base de Argenprop, datos
+          hasta el {LAST_UPDATED}
+          {provisional ? " (provisorio)" : ""}.
+        </>
+      }
+    >
       <MapaCaba
         // Not "…, por barrio": the map switches to comunas and the heading
         // can't follow it without contradicting itself half the time.
@@ -138,22 +160,6 @@ export function VentaCabaMapa() {
         columns={{ region: "Barrio o comuna", value: "US$ por m²" }}
         ariaLabel={`Mapa de la Ciudad de Buenos Aires sombreado según el precio de publicación del metro cuadrado en venta. Los mismos valores están en la tabla que sigue.`}
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Precio de publicación del metro cuadrado de departamentos usados en
-        venta en la Ciudad de Buenos Aires, en dólares, por barrio y por comuna.
-        Permite comparar cuánto cuesta el metro cuadrado en Palermo, Belgrano,
-        Recoleta, Villa Urquiza, Caballito, Flores o Mataderos, y ver en qué
-        zona de la Ciudad se concentran los valores más altos y más bajos.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Son precios de <strong className="font-medium">publicación</strong>, no
-        de escrituración: lo que se pide, no lo que se paga. La misma escala de
-        colores se usa en los seis mapas, para que se puedan comparar entre sí.
-        Fuente: IDECBA sobre la base de Argenprop, datos hasta el {LAST_UPDATED}
-        {provisional ? " (provisorio)" : ""}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

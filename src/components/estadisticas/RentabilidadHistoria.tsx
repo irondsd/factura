@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   ciudad,
   DEFAULT_SIZE,
@@ -71,32 +72,35 @@ export function RentabilidadHistoria() {
   const last = withValue[withValue.length - 1];
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          Evolución de la rentabilidad bruta anual del alquiler en la Ciudad de
+          Buenos Aires, trimestre a trimestre, para un departamento usado de{" "}
+          {SIZE.label}. Muestra cuánto rendía comprar para alquilar en cada
+          momento y cuántos años de alquiler hacían falta para recuperar la
+          inversión.
+        </>
+      }
+      note={
+        <>
+          El piso de la serie es {formatYield(trough.value)} en el{" "}
+          {trough.title} —{formatPayback(payback(trough.value))} de alquiler
+          para recuperar la compra— y el último dato es{" "}
+          {formatYield(last.value)}, o {formatPayback(payback(last.value))}. Las
+          dos líneas verticales marcan cuándo entró en vigencia la Ley de
+          Alquileres y cuándo se derogó; son fechas, no explicaciones.
+          Rentabilidad bruta, sobre precios de publicación, con el alquiler
+          convertido a dólares al promedio trimestral del blue. Fuentes: IDECBA
+          y ArgentinaDatos, datos hasta el {LAST_UPDATED}.
+        </>
+      }
+    >
       <HistoriaChart
         title={`Rentabilidad del alquiler en CABA, ${PERIODS[0].slice(0, 4)}–${LAST_UPDATED.slice(-4)}`}
         rows={rows}
         markers={markers}
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Evolución de la rentabilidad bruta anual del alquiler en la Ciudad de
-        Buenos Aires, trimestre a trimestre, para un departamento usado de{" "}
-        {SIZE.label}. Muestra cuánto rendía comprar para alquilar en cada
-        momento y cuántos años de alquiler hacían falta para recuperar la
-        inversión.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        El piso de la serie es {formatYield(trough.value)} en el {trough.title}{" "}
-        —{formatPayback(payback(trough.value))} de alquiler para recuperar la
-        compra— y el último dato es {formatYield(last.value)}, o{" "}
-        {formatPayback(payback(last.value))}. Las dos líneas verticales marcan
-        cuándo entró en vigencia la Ley de Alquileres y cuándo se derogó; son
-        fechas, no explicaciones. Rentabilidad bruta, sobre precios de
-        publicación, con el alquiler convertido a dólares al promedio trimestral
-        del blue. Fuentes: IDECBA y ArgentinaDatos, datos hasta el{" "}
-        {LAST_UPDATED}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

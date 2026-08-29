@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   BREAKS,
   ciudad,
@@ -126,7 +127,31 @@ export function AlquilerCabaMapa() {
   const cityPerMetre = ciudadPerMetre(DEFAULT_SIZE);
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          Precio de publicación de los alquileres de departamentos usados en la
+          Ciudad de Buenos Aires, en pesos por mes, por barrio y por comuna.
+          Permite comparar cuánto sale alquilar en Palermo, Belgrano, Recoleta,
+          Villa Urquiza, Caballito, Flores o Mataderos, y ver en qué zona de la
+          Ciudad se concentran los alquileres más caros y más baratos.
+        </>
+      }
+      note={
+        <>
+          Son precios de <strong className="font-medium">publicación</strong>,
+          no de contratos firmados: lo que se pide, no lo que se termina
+          pagando. Están en pesos corrientes de cada trimestre, así que dos
+          trimestres distintos no se comparan sin descontar la inflación.
+          {cityPerMetre === null
+            ? ""
+            : ` En el promedio de la Ciudad, un ${SIZES.find((s) => s.id === DEFAULT_SIZE)!.label} equivale a ${formatArsPerMetre(cityPerMetre)}.`}{" "}
+          Fuente: IDECBA sobre la base de Argenprop, datos hasta el{" "}
+          {LAST_UPDATED}
+          {provisional ? " (provisorio)" : ""}.
+        </>
+      }
+    >
       <MapaCaba
         title="Mapa comparativo del alquiler en CABA"
         dimensions={[
@@ -154,26 +179,6 @@ export function AlquilerCabaMapa() {
         }}
         ariaLabel="Mapa de la Ciudad de Buenos Aires sombreado según el precio de publicación de los alquileres. Los mismos valores están en la tabla que sigue."
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Precio de publicación de los alquileres de departamentos usados en la
-        Ciudad de Buenos Aires, en pesos por mes, por barrio y por comuna.
-        Permite comparar cuánto sale alquilar en Palermo, Belgrano, Recoleta,
-        Villa Urquiza, Caballito, Flores o Mataderos, y ver en qué zona de la
-        Ciudad se concentran los alquileres más caros y más baratos.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Son precios de <strong className="font-medium">publicación</strong>, no
-        de contratos firmados: lo que se pide, no lo que se termina pagando.
-        Están en pesos corrientes de cada trimestre, así que dos trimestres
-        distintos no se comparan sin descontar la inflación.
-        {cityPerMetre === null
-          ? ""
-          : ` En el promedio de la Ciudad, un ${SIZES.find((s) => s.id === DEFAULT_SIZE)!.label} equivale a ${formatArsPerMetre(cityPerMetre)}.`}{" "}
-        Fuente: IDECBA sobre la base de Argenprop, datos hasta el {LAST_UPDATED}
-        {provisional ? " (provisorio)" : ""}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }
