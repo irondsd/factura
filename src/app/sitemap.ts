@@ -39,6 +39,20 @@ const LANDING: {
   { path: "/security", changeFrequency: "monthly", priority: 0.5 },
 ];
 
+// The newest of a set of content timestamps, or `undefined` when there is
+// nothing to date. Every listing page below takes its `lastModified` from the
+// pages it lists, and that list can come back empty even for a category the
+// category query just called non-empty: the two queries are separately cached,
+// so tag invalidation landing out of order is enough to make them disagree.
+// `Math.max()` of nothing is `-Infinity`, and a `Date` built from that throws
+// `RangeError: Invalid time value` when the sitemap is serialised — aborting
+// `next build` with a message that names neither the section nor the category.
+// Omitting the date is the honest answer anyway, by the rule below.
+function newestDate(timestamps: readonly string[]): Date | undefined {
+  const newest = Math.max(...timestamps.map((t) => Date.parse(t)));
+  return Number.isFinite(newest) ? new Date(newest) : undefined;
+}
+
 // `lastModified` is only ever a real content date here, never the time the
 // sitemap happened to be generated. A file that stamps "modified just now" on
 // every fetch teaches Google that its `lastmod` is noise, and Google then
@@ -72,11 +86,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // category hubs below, applied across every guide instead of one category.
     {
       url: guidesIndexUrl,
-      lastModified: guides.length
-        ? new Date(
-            Math.max(...guides.map((g) => Date.parse(g.contentUpdatedAt))),
-          )
-        : undefined,
+      lastModified: newestDate(guides.map((g) => g.contentUpdatedAt)),
       changeFrequency: "weekly",
       priority: 0.7,
     },
@@ -86,14 +96,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const inCategory = guides.filter((g) =>
         g.metadata.categories.includes(c.key),
       );
-      // Compare instants: `updated` carries a timezone offset, so two
-      // timestamps don't necessarily order the same way as their text.
-      const newest = Math.max(
-        ...inCategory.map((g) => Date.parse(g.contentUpdatedAt)),
-      );
       return {
         url: guideCategoryUrl(c.slug),
-        lastModified: new Date(newest),
+        // Compare instants: `updated` carries a timezone offset, so two
+        // timestamps don't necessarily order the same way as their text.
+        lastModified: newestDate(inCategory.map((g) => g.contentUpdatedAt)),
         changeFrequency: "weekly" as const,
         priority: 0.65,
       };
@@ -133,11 +140,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         return [
           {
             url: sectionIndexUrl(section.id),
-            lastModified: pages.length
-              ? new Date(
-                  Math.max(...pages.map((p) => Date.parse(p.meta.updated))),
-                )
-              : undefined,
+            lastModified: newestDate(pages.map((p) => p.meta.updated)),
             changeFrequency: "monthly" as const,
             priority: 0.8,
           },
@@ -147,10 +150,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             );
             return {
               url: contentCategoryUrl(section.id, category.slug),
-              lastModified: new Date(
-                Math.max(
-                  ...inCategory.map((page) => Date.parse(page.meta.updated)),
-                ),
+              lastModified: newestDate(
+                inCategory.map((page) => page.meta.updated),
               ),
               changeFrequency: "weekly" as const,
               priority: 0.72,
