@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   DEFAULT_SIZE,
   elasticity,
@@ -92,41 +93,44 @@ export function RentabilidadDispersion() {
   const worst = order[order.length - 1];
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          Cuanto más caro el barrio, menos rinde
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Un punto por barrio · {SIZE.label} · {fitStats.n} barrios con los dos
-          precios publicados
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>Cuanto más caro el barrio, menos rinde</>,
+        subtitle: (
+          <>
+            Un punto por barrio · {SIZE.label} · {fitStats.n} barrios con los
+            dos precios publicados
+          </>
+        ),
+      }}
+      caption={
+        <>
+          Relación entre el precio de venta del metro cuadrado y la rentabilidad
+          del alquiler en los barrios de la Ciudad de Buenos Aires. Cada punto
+          es un barrio: hacia la derecha, más caro comprar; hacia arriba, más
+          rinde alquilar. La curva es el ajuste sobre esos mismos puntos.
+        </>
+      }
+      note={
+        <>
+          Entre el barrio más caro y el más barato hay{" "}
+          {dec(fitStats.priceSpread)} veces de diferencia en el precio de venta,
+          pero solo {dec(fitStats.rentSpread)} veces en el alquiler por metro
+          cuadrado. Esa es toda la explicación: el alquiler está mucho más
+          aplanado que la venta, así que el retorno cae casi mecánicamente a
+          medida que el barrio se encarece. Ajustando en logaritmos, un barrio
+          el doble de caro para comprar se alquila apenas un{" "}
+          {Math.round((fitStats.doubling - 1) * 100)} % más caro (elasticidad{" "}
+          {dec(fitStats.beta)}, R² {dec(fitStats.r2)}). En este trimestre el
+          extremo rentable es {best.label} con {dec(best.value, 1)} % y el otro{" "}
+          {worst.label} con {dec(worst.value, 1)} %, sobre departamentos de{" "}
+          {AREA} m² que se piden a {formatUsd(best.flatUsd ?? 0)} y{" "}
+          {formatUsd(worst.flatUsd ?? 0)} respectivamente. Datos del{" "}
+          {LAST_UPDATED}.
+        </>
+      }
+    >
       <DispersionChart points={points} fit={curve(fitStats.beta, points)} />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Relación entre el precio de venta del metro cuadrado y la rentabilidad
-        del alquiler en los barrios de la Ciudad de Buenos Aires. Cada punto es
-        un barrio: hacia la derecha, más caro comprar; hacia arriba, más rinde
-        alquilar. La curva es el ajuste sobre esos mismos puntos.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Entre el barrio más caro y el más barato hay {dec(fitStats.priceSpread)}{" "}
-        veces de diferencia en el precio de venta, pero solo{" "}
-        {dec(fitStats.rentSpread)} veces en el alquiler por metro cuadrado. Esa
-        es toda la explicación: el alquiler está mucho más aplanado que la
-        venta, así que el retorno cae casi mecánicamente a medida que el barrio
-        se encarece. Ajustando en logaritmos, un barrio el doble de caro para
-        comprar se alquila apenas un {Math.round((fitStats.doubling - 1) * 100)}{" "}
-        % más caro (elasticidad {dec(fitStats.beta)}, R² {dec(fitStats.r2)}). En
-        este trimestre el extremo rentable es {best.label} con{" "}
-        {dec(best.value, 1)} % y el otro {worst.label} con {dec(worst.value, 1)}{" "}
-        %, sobre departamentos de {AREA} m² que se piden a{" "}
-        {formatUsd(best.flatUsd ?? 0)} y {formatUsd(worst.flatUsd ?? 0)}{" "}
-        respectivamente. Datos del {LAST_UPDATED}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

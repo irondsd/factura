@@ -140,6 +140,23 @@ export const comunaCovers = (comuna: number): string =>
  *
  * Anything derived from these groupings has to be presented as our arithmetic
  * over published barrio figures, never as a figure the source published. */
+/** The barrios people actually type into a search box.
+ *
+ * Editorial, and chosen for how often they are looked up rather than for what
+ * they cost — a list that quietly turned into "the six dearest" would be a
+ * different figure. It lives here because the sale, rent and yield pages each
+ * carry the same short table and the whole point of it is that a reader can
+ * carry a comparison across all three; three copies of the list is three
+ * chances for that to stop being true. */
+export const FEATURED_BARRIOS = [
+  "palermo",
+  "belgrano",
+  "recoleta",
+  "villa-urquiza",
+  "caballito",
+  "flores",
+] as const satisfies readonly (typeof BARRIOS)[number]["id"][];
+
 export const ZONAS = [
   { id: "norte", label: "Zona norte", comunas: [2, 12, 13, 14] },
   { id: "centro", label: "Zona centro", comunas: [1, 3, 5, 6, 15] },

@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import { MapaProvincia, type MapView } from "@/components/maps/MapaProvincia";
 import {
   all,
@@ -81,7 +82,36 @@ export function SueloPbaMapa() {
   };
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          La mediana de lo que se pide por un metro cuadrado de{" "}
+          <strong className="text-ink font-normal">terreno</strong> —el suelo,
+          sin nada construido encima— en cada partido. El mapa tiene tres cosas
+          que la tabla no puede mostrar. La mancha oscura del conurbano no llega
+          hasta su propio borde: se apaga antes, y Pilar, Moreno, Merlo o La
+          Plata están al nivel de una ciudad del interior. La costa atlántica
+          dibuja una franja propia entre La Costa y Mar del Plata, por encima de
+          los partidos de campo que tiene detrás. Y el resto del territorio es
+          casi todo un mismo tono: fuera del área metropolitana, solo Pinamar y
+          Ensenada pasan los 100 dólares por metro. El «rango habitual» de la
+          tabla va del percentil 25 al 75 de las muestras del partido, y es la
+          mejor forma de ver cuánto se dispersa cada uno.
+        </>
+      }
+      note={
+        <>
+          Son precios de oferta —lo que se pide, no lo que se escritura— de{" "}
+          {COVERAGE.samplesTotal.toLocaleString("es-AR")} parcelas
+          georreferenciadas relevadas entre {VINTAGE}. No es una serie: cada
+          parcela se observó una sola vez y el relevamiento no se actualizó
+          desde entonces, así que el mapa es una foto de esos años. Se publica
+          la mediana, no el promedio, y se descartaron los lotes de más de{" "}
+          {METHOD.maxSupM2.toLocaleString("es-AR")} m², que son campos y no
+          terrenos para construir. Fuente: {SOURCE}.
+        </>
+      }
+    >
       <MapaProvincia
         title="Precio del m² de terreno por partido, Provincia de Buenos Aires"
         dimensions={[]}
@@ -98,32 +128,6 @@ export function SueloPbaMapa() {
         }}
         ariaLabel="Mapa de los 135 partidos de la Provincia de Buenos Aires sombreados según el precio mediano de oferta del metro cuadrado de terreno. Los partidos sin dato suficiente aparecen rayados. Los mismos valores están en la tabla que sigue."
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        La mediana de lo que se pide por un metro cuadrado de{" "}
-        <strong className="text-ink font-normal">terreno</strong> —el suelo, sin
-        nada construido encima— en cada partido. El mapa tiene tres cosas que la
-        tabla no puede mostrar. La mancha oscura del conurbano no llega hasta su
-        propio borde: se apaga antes, y Pilar, Moreno, Merlo o La Plata están al
-        nivel de una ciudad del interior. La costa atlántica dibuja una franja
-        propia entre La Costa y Mar del Plata, por encima de los partidos de
-        campo que tiene detrás. Y el resto del territorio es casi todo un mismo
-        tono: fuera del área metropolitana, solo Pinamar y Ensenada pasan los
-        100 dólares por metro. El «rango habitual» de la tabla va del percentil
-        25 al 75 de las muestras del partido, y es la mejor forma de ver cuánto
-        se dispersa cada uno.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Son precios de oferta —lo que se pide, no lo que se escritura— de{" "}
-        {COVERAGE.samplesTotal.toLocaleString("es-AR")} parcelas
-        georreferenciadas relevadas entre {VINTAGE}. No es una serie: cada
-        parcela se observó una sola vez y el relevamiento no se actualizó desde
-        entonces, así que el mapa es una foto de esos años. Se publica la
-        mediana, no el promedio, y se descartaron los lotes de más de{" "}
-        {METHOD.maxSupM2.toLocaleString("es-AR")} m², que son campos y no
-        terrenos para construir. Fuente: {SOURCE}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

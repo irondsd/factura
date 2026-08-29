@@ -1,3 +1,5 @@
+import { DataFigure } from "@/components/figures/DataFigure";
+import { DataTable } from "@/components/figures/DataTable";
 import {
   barrio,
   DEFAULT_SIZE,
@@ -148,54 +150,60 @@ export function RentabilidadContraste() {
       .join(" ");
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          Los mismos barrios, medidos por otra fuente
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Nuestro cálculo sobre IDECBA, {LAST_UPDATED} · {REFERENCE.source},{" "}
-          {REFERENCE.when} · {SIZE.label}
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>Los mismos barrios, medidos por otra fuente</>,
+        subtitle: (
+          <>
+            Nuestro cálculo sobre IDECBA, {LAST_UPDATED} · {REFERENCE.source},{" "}
+            {REFERENCE.when} · {SIZE.label}
+          </>
+        ),
+      }}
+    >
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="fd-th">Barrio</th>
-              <th className="fd-th text-right pl-3">Esta página</th>
-              <th className="fd-th text-right pl-3">{REFERENCE.source}</th>
-              <th className="fd-th text-right pl-3">Diferencia</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paired.map((p) => (
-              <tr key={p.id}>
-                <td className="fd-td align-top text-ink">{p.label}</td>
-                <td className="fd-td text-right pl-3 align-top tabular-nums whitespace-nowrap text-ink">
-                  {formatYield(p.ours)}
-                </td>
-                <td className="fd-td text-right pl-3 align-top tabular-nums whitespace-nowrap text-ink/90">
-                  {formatYield(p.theirs)}
-                </td>
-                <td className="fd-td text-right pl-3 align-top tabular-nums whitespace-nowrap text-muted">
-                  {signed(p.ours - p.theirs)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          rows={paired}
+          rowKey={(p) => p.id}
+          columns={[
+            {
+              header: "Barrio",
+              cellClassName: "align-top text-ink",
+              cell: (p) => p.label,
+            },
+            {
+              header: "Esta página",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top text-ink",
+              cell: (p) => formatYield(p.ours),
+            },
+            {
+              header: REFERENCE.source,
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top text-ink/90",
+              cell: (p) => formatYield(p.theirs),
+            },
+            {
+              header: "Diferencia",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top text-muted",
+              cell: (p) => signed(p.ours - p.theirs),
+            },
+          ]}
+        />
       </div>
 
-      <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
+      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
         Los dos cálculos coinciden en la forma y difieren en el nivel. La
         correlación entre las {paired.length} mediciones que se pueden aparear
         es de {dec(r)}, y esta página queda en promedio {signed(offset)} puntos
         por encima. Son dos relevamientos independientes: portales distintos,
         muestras distintas, y una superficie de referencia de {REFERENCE.area}{" "}
         m² contra los {REFERENCE_AREA[DEFAULT_SIZE]} m² que usa IDECBA.
-      </p>
+      </figcaption>
 
       {onlyTheirs.length > 0 && (
         <p className="font-mono text-xs text-muted mt-3 leading-[1.6]">
@@ -235,6 +243,6 @@ export function RentabilidadContraste() {
         metodologías distintas: sirve para ver si las dos cuentan la misma
         historia, no para arbitrar cuál tiene razón en el segundo decimal.
       </p>
-    </figure>
+    </DataFigure>
   );
 }

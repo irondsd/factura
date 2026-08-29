@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   capitulosSeries,
   CHAPTERS,
@@ -42,7 +43,42 @@ export function CostoCapitulos() {
   const sorted = [...rates].sort((a, b) => b.rate - a.rate);
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          Cada capítulo del Índice del Costo de la Construcción, medido contra
+          el índice completo. En 100 el capítulo se movió igual que el costo de
+          construir en general; por encima de 100 corrió más rápido, y es lo que
+          estuvo empujando el precio del metro cuadrado.
+          {sorted.length > 0 && (
+            <>
+              {" "}
+              En los últimos doce meses el que más subió fue{" "}
+              <strong className="font-medium">
+                {sorted[0].label.toLowerCase()}
+              </strong>
+              , y el que menos,{" "}
+              <strong className="font-medium">
+                {sorted[sorted.length - 1].label.toLowerCase()}
+              </strong>
+              .
+            </>
+          )}
+        </>
+      }
+      note={
+        <>
+          No son porcentajes de composición: cada línea es el índice del
+          capítulo dividido por el índice general, así que las tres no suman
+          100. Se dibujan así porque los tres capítulos comparten año base pero
+          no nivel de partida, y en pesos corrientes las tres curvas serían la
+          misma curva de inflación a tres alturas distintas. {ICC_BASE}. Serie
+          de {periodLabel(PERIODS[0])} a {periodLabel(LAST_PERIOD)}. Fuente:
+          IDECBA, datos hasta {LAST_UPDATED}
+          {IS_PROVISIONAL && " (provisorio)"}.
+        </>
+      }
+    >
       <CapitulosChart
         title="Qué empuja el costo: cada capítulo contra el índice general"
         stat={
@@ -63,38 +99,6 @@ export function CostoCapitulos() {
         }
         rows={rows}
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Cada capítulo del Índice del Costo de la Construcción, medido contra el
-        índice completo. En 100 el capítulo se movió igual que el costo de
-        construir en general; por encima de 100 corrió más rápido, y es lo que
-        estuvo empujando el precio del metro cuadrado.
-        {sorted.length > 0 && (
-          <>
-            {" "}
-            En los últimos doce meses el que más subió fue{" "}
-            <strong className="font-medium">
-              {sorted[0].label.toLowerCase()}
-            </strong>
-            , y el que menos,{" "}
-            <strong className="font-medium">
-              {sorted[sorted.length - 1].label.toLowerCase()}
-            </strong>
-            .
-          </>
-        )}
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        No son porcentajes de composición: cada línea es el índice del capítulo
-        dividido por el índice general, así que las tres no suman 100. Se
-        dibujan así porque los tres capítulos comparten año base pero no nivel
-        de partida, y en pesos corrientes las tres curvas serían la misma curva
-        de inflación a tres alturas distintas. {ICC_BASE}. Serie de{" "}
-        {periodLabel(PERIODS[0])} a {periodLabel(LAST_PERIOD)}. Fuente: IDECBA,
-        datos hasta {LAST_UPDATED}
-        {IS_PROVISIONAL && " (provisorio)"}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

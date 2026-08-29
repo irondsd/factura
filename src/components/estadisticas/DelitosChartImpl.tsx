@@ -154,14 +154,14 @@ export function HistoriaChart({
   return (
     <>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <figcaption className="min-w-0">
+        <div className="min-w-0">
           <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
             {title}
           </h3>
           <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
             {unit === "rate" ? statRate : statCount}
           </p>
-        </figcaption>
+        </div>
         <div className="flex flex-wrap gap-2">
           <SegmentedControl
             label="Unidad"
@@ -308,14 +308,14 @@ export function HoraChart({
   return (
     <>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <figcaption className="min-w-0">
+        <div className="min-w-0">
           <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
             {title}
           </h3>
           <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
             {stat}
           </p>
-        </figcaption>
+        </div>
         <div className="flex flex-wrap gap-2">
           <SegmentedControl
             label="Tipo de delito"

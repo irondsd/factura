@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   FLAGGED,
   formatCount,
@@ -56,7 +57,25 @@ export function EscriturasAnual() {
   ).reduce((a, y) => (y.compraventas > a.compraventas ? y : a));
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          Cada barra es un año completo de escrituras de compraventa. La barra
+          clara de la derecha es el año en curso, que va por{" "}
+          {YEARS[YEARS.length - 1].months} meses y no se compara con las demás.
+          El año más alto de la serie es {YEAR_EXTREMES.high.year}, por encima
+          de {runnerUp.year}, que era el récord anterior.
+        </>
+      }
+      note={
+        <>
+          Son cantidades de actos, no montos: no hace falta corregirlas por
+          inflación ni convertirlas, y por eso son la parte de este dato que se
+          puede leer de punta a punta sin ninguna advertencia. Fuente: {SOURCE},
+          datos hasta {LAST_UPDATED}.
+        </>
+      }
+    >
       <AnualChart
         // The chart draws the running year too, held back, so the title has to
         // span it — naming only the complete years would caption a bar it
@@ -98,21 +117,6 @@ export function EscriturasAnual() {
         rows={rows}
         average={average}
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Cada barra es un año completo de escrituras de compraventa. La barra
-        clara de la derecha es el año en curso, que va por{" "}
-        {YEARS[YEARS.length - 1].months} meses y no se compara con las demás. El
-        año más alto de la serie es {YEAR_EXTREMES.high.year}, por encima de{" "}
-        {runnerUp.year}, que era el récord anterior.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Son cantidades de actos, no montos: no hace falta corregirlas por
-        inflación ni convertirlas, y por eso son la parte de este dato que se
-        puede leer de punta a punta sin ninguna advertencia. Fuente: {SOURCE},
-        datos hasta {LAST_UPDATED}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

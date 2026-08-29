@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { SegmentedControl } from "@/components/ui";
+import { DataTable, type DataColumn } from "@/components/figures/DataTable";
 import { cn } from "@/lib/cn";
 
 // A shaded choropleth: an SVG map, a legend, a hovering tooltip and the table
@@ -215,6 +216,37 @@ export function Mapa({
   }, [view]);
 
   const active = hovered ? view.regions.find((r) => r.id === hovered) : null;
+
+  /** The text half of the figure. The third column exists only when the caller
+   * named one, which is what `sub` opting in means on both this and the
+   * tooltip. */
+  const tableColumns: DataColumn<MapRegion>[] = [
+    {
+      header: columns.region,
+      cell: (r) => (
+        <>
+          <span className="text-ink">{r.label}</span>
+          <span className="text-muted"> · {r.meta}</span>
+        </>
+      ),
+    },
+    {
+      header: columns.value,
+      numeric: true,
+      cellClassName: (r) => (r.display ? "text-ink" : "text-muted"),
+      cell: (r) => r.display ?? noDataLabel,
+    },
+    ...(columns.sub
+      ? [
+          {
+            header: columns.sub,
+            numeric: true,
+            cellClassName: "text-muted",
+            cell: (r: MapRegion) => r.sub ?? "—",
+          },
+        ]
+      : []),
+  ];
 
   const track = (e: React.PointerEvent<HTMLDivElement>) => {
     const box = e.currentTarget.getBoundingClientRect();
@@ -456,43 +488,20 @@ export function Mapa({
         {view.note}
       </p>
 
-      <table className="w-full border-collapse mt-4">
-        <thead>
-          <tr>
-            <th className="fd-th">{columns.region}</th>
-            <th className="fd-th text-right">{columns.value}</th>
-            {columns.sub && <th className="fd-th text-right">{columns.sub}</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((r) => (
-            <tr
-              key={r.id}
-              onMouseEnter={() => setHovered(r.id)}
-              onMouseLeave={() => setHovered((h) => (h === r.id ? null : h))}
-              className={cn(hovered === r.id && "bg-paper")}
-            >
-              <td className="fd-td">
-                <span className="text-ink">{r.label}</span>
-                <span className="text-muted"> · {r.meta}</span>
-              </td>
-              <td
-                className={cn(
-                  "fd-td text-right tabular-nums whitespace-nowrap",
-                  r.display ? "text-ink" : "text-muted",
-                )}
-              >
-                {r.display ?? noDataLabel}
-              </td>
-              {columns.sub && (
-                <td className="fd-td text-right tabular-nums whitespace-nowrap text-muted">
-                  {r.sub ?? "—"}
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <DataTable
+        className="mt-4"
+        rows={sorted}
+        rowKey={(r) => r.id}
+        // Hovering a row highlights its region on the map above, which is the
+        // whole reason the table is inside this client component rather than
+        // rendered on the server beside it.
+        rowProps={(r) => ({
+          onMouseEnter: () => setHovered(r.id),
+          onMouseLeave: () => setHovered((h) => (h === r.id ? null : h)),
+          className: cn(hovered === r.id && "bg-paper"),
+        })}
+        columns={tableColumns}
+      />
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { DataFigure } from "@/components/figures/DataFigure";
+import { DataTable } from "@/components/figures/DataTable";
 import {
   CATEGORIES,
   ciudad,
@@ -69,74 +71,84 @@ export function PrecioSeguridadResumen() {
   ];
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          Las dos variables, y por qué no se pueden sumar
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Sobre los {order.length} barrios con alquiler publicado · alquiler del{" "}
-          {RENT_PERIOD_LABEL}, delitos de {CRIME_YEAR}
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>Las dos variables, y por qué no se pueden sumar</>,
+        subtitle: (
+          <>
+            Sobre los {order.length} barrios con alquiler publicado · alquiler
+            del {RENT_PERIOD_LABEL}, delitos de {CRIME_YEAR}
+          </>
+        ),
+      }}
+      caption={
+        <>
+          La última columna es todo el problema. Entre el barrio más barato y el
+          más caro hay una diferencia moderada; entre el más tranquilo y el que
+          más hechos registra, mucho mayor. Escalar las dos medidas contra su
+          propio rango dejaría a casi todos los barrios amontonados en el
+          extremo seguro y el «puntaje combinado» sería, en los hechos, el
+          ranking de precios otra vez. Por eso lo que se combina son posiciones,
+          no valores.
+        </>
+      }
+      note={
+        <>
+          La fila del alquiler es el precio pedido en avisos, no el firmado, y
+          la de delitos son hechos{" "}
+          <strong className="font-medium">registrados</strong>, no ocurridos. La
+          cifra de la Ciudad en alquiler es el total ponderado que publica el
+          organismo, y la de delitos incluye los hechos que no se pudieron
+          ubicar en ningún barrio, así que ninguna de las dos es el promedio de
+          las columnas de al lado.
+        </>
+      }
+    >
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="fd-th">Medida</th>
-              <th className="fd-th text-right pl-3">Ciudad</th>
-              <th className="fd-th text-right pl-3">Mínimo</th>
-              <th className="fd-th text-right pl-3">Máximo</th>
-              <th className="fd-th text-right pl-3">Veces</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.key}>
-                <td className="fd-td">
+        <DataTable
+          rows={rows}
+          rowKey={(r) => r.key}
+          columns={[
+            {
+              header: "Medida",
+              cell: (r) => (
+                <>
                   <span className="text-ink">{r.measure}</span>
                   <span className="text-muted"> · {r.unit}</span>
-                </td>
-                <td className="fd-td text-right pl-3 text-ink tabular-nums whitespace-nowrap">
-                  {r.city}
-                </td>
-                {[r.low, r.high].map((end) => (
-                  <td
-                    key={end.label}
-                    className="fd-td text-right pl-3 text-ink/90 tabular-nums whitespace-nowrap"
-                  >
-                    {end.value}
-                    <span className="block text-muted">{end.label}</span>
-                  </td>
-                ))}
-                <td className="fd-td text-right pl-3 text-muted tabular-nums whitespace-nowrap">
-                  {times(r.spread)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+            {
+              header: "Ciudad",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 text-ink",
+              cell: (r) => r.city,
+            },
+            // The two ends read the same way, so they are the same column twice
+            // over a different field rather than two hand-written ones.
+            ...(["low", "high"] as const).map((end, i) => ({
+              header: i === 0 ? "Mínimo" : "Máximo",
+              headClassName: "text-right pl-3",
+              numeric: true,
+              cellClassName: "pl-3 text-ink/90",
+              cell: (r: (typeof rows)[number]) => (
+                <>
+                  {r[end].value}
+                  <span className="block text-muted">{r[end].label}</span>
+                </>
+              ),
+            })),
+            {
+              header: "Veces",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 text-muted",
+              cell: (r) => times(r.spread),
+            },
+          ]}
+        />
       </div>
-
-      <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        La última columna es todo el problema. Entre el barrio más barato y el
-        más caro hay una diferencia moderada; entre el más tranquilo y el que
-        más hechos registra, mucho mayor. Escalar las dos medidas contra su
-        propio rango dejaría a casi todos los barrios amontonados en el extremo
-        seguro y el «puntaje combinado» sería, en los hechos, el ranking de
-        precios otra vez. Por eso lo que se combina son posiciones, no valores.
-      </p>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        La fila del alquiler es el precio pedido en avisos, no el firmado, y la
-        de delitos son hechos{" "}
-        <strong className="font-medium">registrados</strong>, no ocurridos. La
-        cifra de la Ciudad en alquiler es el total ponderado que publica el
-        organismo, y la de delitos incluye los hechos que no se pudieron ubicar
-        en ningún barrio, así que ninguna de las dos es el promedio de las
-        columnas de al lado.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

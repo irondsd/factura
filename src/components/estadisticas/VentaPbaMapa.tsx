@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import { MapaAmba, type MapView } from "@/components/maps/MapaPba";
 import { PARTIDOS } from "@/content/shared/pba";
 import {
@@ -90,7 +91,29 @@ export function VentaPbaMapa() {
   };
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          El valor del metro cuadrado de los departamentos en venta en los{" "}
+          {rows().length} partidos de la provincia para los que hay dato —
+          {SCOPE} y La Plata—, en dólares. El mapa no se ordena en bloques por
+          zona: la franja más cara es continua y corre pegada al río hacia el
+          norte, y a medida que uno se aleja de la Ciudad —en cualquier
+          dirección— el valor cae. Dos partidos vecinos pueden estar al doble
+          uno del otro, y eso se ve mejor acá que en la tabla.
+        </>
+      }
+      note={
+        <>
+          Son precios de publicación —lo que se pide, no lo que se paga— y no
+          hay una serie oficial equivalente: ningún organismo de estadística
+          releva el precio del m² en la provincia. Fuente: {SOURCE}, datos hasta{" "}
+          {LAST_UPDATED}. El delta de Tigre y San Fernando no se dibuja: son
+          islas, y el precio que publica el portal es el de la parte
+          continental.
+        </>
+      }
+    >
       <MapaAmba
         title={`Precio del m² por partido en ${SCOPE_LONG}`}
         dimensions={[]}
@@ -107,24 +130,6 @@ export function VentaPbaMapa() {
         }}
         ariaLabel="Mapa de los partidos del Gran Buenos Aires y La Plata sombreados según el precio de publicación del metro cuadrado en venta. Los mismos valores están en la tabla que sigue."
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        El valor del metro cuadrado de los departamentos en venta en los{" "}
-        {rows().length} partidos de la provincia para los que hay dato —{SCOPE}{" "}
-        y La Plata—, en dólares. El mapa no se ordena en bloques por zona: la
-        franja más cara es continua y corre pegada al río hacia el norte, y a
-        medida que uno se aleja de la Ciudad —en cualquier dirección— el valor
-        cae. Dos partidos vecinos pueden estar al doble uno del otro, y eso se
-        ve mejor acá que en la tabla.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Son precios de publicación —lo que se pide, no lo que se paga— y no hay
-        una serie oficial equivalente: ningún organismo de estadística releva el
-        precio del m² en la provincia. Fuente: {SOURCE}, datos hasta{" "}
-        {LAST_UPDATED}. El delta de Tigre y San Fernando no se dibuja: son
-        islas, y el precio que publica el portal es el de la parte continental.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   BREAKS,
   CATEGORIES,
@@ -145,7 +146,29 @@ export function DelitosCabaMapa() {
   }
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          Delitos registrados cada 1.000 habitantes por año en la Ciudad de
+          Buenos Aires, por barrio y por comuna. Permite comparar la tasa de
+          Palermo, Belgrano, Recoleta, Caballito, Flores, Villa Lugano o San
+          Nicolás, y ver en qué zona de la Ciudad se concentran los robos, los
+          hurtos y los delitos contra las personas.
+        </>
+      }
+      note={
+        <>
+          Son <strong className="font-medium">hechos registrados</strong>: lo
+          que llegó a una denuncia o a una actuación policial o judicial, no lo
+          que ocurrió. La población es la del Censo 2022: exacta por comuna, y
+          por barrio estimada repartiendo cada comuna según el censo de 2010.
+          Donde esa estimación es más floja es en {WEAKEST}, que en 2010 casi no
+          tenía habitantes y desde entonces creció mucho más que el resto de su
+          comuna: su tasa aquí queda sobreestimada. Fuente: {SOURCE}, datos de{" "}
+          {LAST_YEAR}.
+        </>
+      }
+    >
       <MapaCaba
         title="Mapa del delito en CABA, por barrio y por comuna"
         dimensions={[
@@ -173,25 +196,6 @@ export function DelitosCabaMapa() {
         }}
         ariaLabel="Mapa de la Ciudad de Buenos Aires sombreado según los delitos registrados cada 1.000 habitantes, comparados con el promedio de la Ciudad. Los mismos valores están en la tabla que sigue."
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Delitos registrados cada 1.000 habitantes por año en la Ciudad de Buenos
-        Aires, por barrio y por comuna. Permite comparar la tasa de Palermo,
-        Belgrano, Recoleta, Caballito, Flores, Villa Lugano o San Nicolás, y ver
-        en qué zona de la Ciudad se concentran los robos, los hurtos y los
-        delitos contra las personas.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Son <strong className="font-medium">hechos registrados</strong>: lo que
-        llegó a una denuncia o a una actuación policial o judicial, no lo que
-        ocurrió. La población es la del Censo 2022: exacta por comuna, y por
-        barrio estimada repartiendo cada comuna según el censo de 2010. Donde
-        esa estimación es más floja es en {WEAKEST}, que en 2010 casi no tenía
-        habitantes y desde entonces creció mucho más que el resto de su comuna:
-        su tasa aquí queda sobreestimada. Fuente: {SOURCE}, datos de {LAST_YEAR}
-        .
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

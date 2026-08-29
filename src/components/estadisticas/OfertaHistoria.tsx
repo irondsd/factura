@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   EVENTOS,
   eventoMonth,
@@ -71,7 +72,35 @@ export function OfertaHistoria() {
   const legacyTo = PERIODS[PERIODS.indexOf(PROVIDER_CHANGE) - 1];
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          Cuántos departamentos se publicaron en alquiler en la Ciudad de Buenos
+          Aires cada mes, desde que arranca la serie de IDECBA. La línea fina es
+          el dato del mes; la gruesa, el promedio de los {ROLLING} meses
+          anteriores, que es la que conviene leer porque la oferta tiene una
+          estacionalidad marcada.
+        </>
+      }
+      note={
+        <>
+          Tomando {WINDOW.base.label} como base 100, la oferta cae a{" "}
+          {formatIndex(cityIndex(DEFAULT_SIZE, "trough"))} en{" "}
+          {WINDOW.trough.label} y está en{" "}
+          {formatIndex(cityIndex(DEFAULT_SIZE, "now"))} en los últimos doce
+          meses. El piso de la serie suavizada son {formatM2(trough.m2Avg)}{" "}
+          mensuales promedio y el máximo, {formatM2(peak.m2Avg)}. La franja gris
+          de la izquierda son los meses que el organismo relevó sobre otro
+          proveedor de avisos: no son estrictamente comparables con el resto.
+          Las dos líneas verticales marcan cuándo empezó a regir la Ley de
+          Alquileres y cuándo quedó derogada; son fechas, no explicaciones. La
+          cantidad de departamentos es aproximada —superficie publicada dividida
+          por la superficie promedio de un aviso del mes—. Universo:
+          departamentos usados y a estrenar, de 1 a 5 ambientes. Fuente: IDECBA,
+          datos hasta {LAST_UPDATED}.
+        </>
+      }
+    >
       <SerieChart
         title={`Departamentos publicados en alquiler en CABA, ${SPAN}`}
         stat={
@@ -93,31 +122,6 @@ export function OfertaHistoria() {
             : null
         }
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Cuántos departamentos se publicaron en alquiler en la Ciudad de Buenos
-        Aires cada mes, desde que arranca la serie de IDECBA. La línea fina es
-        el dato del mes; la gruesa, el promedio de los {ROLLING} meses
-        anteriores, que es la que conviene leer porque la oferta tiene una
-        estacionalidad marcada.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Tomando {WINDOW.base.label} como base 100, la oferta cae a{" "}
-        {formatIndex(cityIndex(DEFAULT_SIZE, "trough"))} en{" "}
-        {WINDOW.trough.label} y está en{" "}
-        {formatIndex(cityIndex(DEFAULT_SIZE, "now"))} en los últimos doce meses.
-        El piso de la serie suavizada son {formatM2(trough.m2Avg)} mensuales
-        promedio y el máximo, {formatM2(peak.m2Avg)}. La franja gris de la
-        izquierda son los meses que el organismo relevó sobre otro proveedor de
-        avisos: no son estrictamente comparables con el resto. Las dos líneas
-        verticales marcan cuándo empezó a regir la Ley de Alquileres y cuándo
-        quedó derogada; son fechas, no explicaciones. La cantidad de
-        departamentos es aproximada —superficie publicada dividida por la
-        superficie promedio de un aviso del mes—. Universo: departamentos usados
-        y a estrenar, de 1 a 5 ambientes. Fuente: IDECBA, datos hasta{" "}
-        {LAST_UPDATED}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }
