@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   costo,
   costoUsd,
@@ -47,7 +48,31 @@ export function CostoConstruccionHistoria() {
   const change = yoy(DEFAULT_MODEL);
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          Cuánto costó construir un metro cuadrado en la Ciudad de Buenos Aires,
+          mes a mes. En dólares se ve si construir está caro o barato; en pesos
+          se ve el número que publica el organismo, que es el que sirve para
+          presupuestar hoy.
+        </>
+      }
+      note={
+        <>
+          La serie en pesos son{" "}
+          <strong className="font-medium">pesos corrientes</strong>: no está
+          corregida por inflación, así que sube todos los meses y no dice nada
+          sobre si construir se encareció en términos reales. Para eso está la
+          serie en dólares, que arranca en 2017 porque es desde donde tenemos el
+          tipo de cambio: cada mes está convertido al promedio del dólar blue de
+          su trimestre, que es una conversión más gruesa que el dato mensual y
+          la única honesta para comparar contra precios de inmuebles, que se
+          publican por trimestre. Costo directo, sin terreno ni honorarios ni
+          impuestos. Fuente: IDECBA, datos hasta {LAST_UPDATED}
+          {IS_PROVISIONAL && " (provisorio)"}.
+        </>
+      }
+    >
       <CostoChart
         title={`Costo de construcción del m² en CABA, ${SPAN}`}
         statUsd={
@@ -88,27 +113,6 @@ export function CostoConstruccionHistoria() {
         }
         rows={rows}
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Cuánto costó construir un metro cuadrado en la Ciudad de Buenos Aires,
-        mes a mes. En dólares se ve si construir está caro o barato; en pesos se
-        ve el número que publica el organismo, que es el que sirve para
-        presupuestar hoy.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        La serie en pesos son{" "}
-        <strong className="font-medium">pesos corrientes</strong>: no está
-        corregida por inflación, así que sube todos los meses y no dice nada
-        sobre si construir se encareció en términos reales. Para eso está la
-        serie en dólares, que arranca en 2017 porque es desde donde tenemos el
-        tipo de cambio: cada mes está convertido al promedio del dólar blue de
-        su trimestre, que es una conversión más gruesa que el dato mensual y la
-        única honesta para comparar contra precios de inmuebles, que se publican
-        por trimestre. Costo directo, sin terreno ni honorarios ni impuestos.
-        Fuente: IDECBA, datos hasta {LAST_UPDATED}
-        {IS_PROVISIONAL && " (provisorio)"}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

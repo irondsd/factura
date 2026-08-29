@@ -1,3 +1,4 @@
+import { DataTable } from "@/components/figures/DataTable";
 import {
   formatPercent,
   LAST_UPDATED,
@@ -18,40 +19,35 @@ import {
 export function ResumenIpc() {
   return (
     <div className="my-6 overflow-x-auto">
-      <table className="w-full border-collapse font-mono text-[14px]">
-        <caption className="caption-bottom pt-3 text-left font-mono text-xs leading-[1.6] text-muted">
-          IPC de vivienda, agua, electricidad, gas y otros combustibles. Último
-          dato disponible: {LAST_UPDATED}. Fuente: INDEC.
-        </caption>
-        <thead>
-          <tr>
-            <th className="text-left font-medium uppercase text-micro tracking-label-wide text-muted border-b border-line py-2 pr-4">
-              Región
-            </th>
-            <th className="text-right font-medium uppercase text-micro tracking-label-wide text-muted border-b border-line py-2 pr-4">
-              Mensual
-            </th>
-            <th className="text-right font-medium uppercase text-micro tracking-label-wide text-muted border-b border-line py-2">
-              Interanual
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {REGIONS.map((r) => (
-            <tr key={r.id}>
-              <td className="border-b border-line/60 py-2 pr-4 text-ink">
-                {r.label}
-              </td>
-              <td className="border-b border-line/60 py-2 pr-4 text-right text-ink/90 tabular-nums">
-                {formatPercent(lastMonthly(r.id))}
-              </td>
-              <td className="border-b border-line/60 py-2 text-right text-ink/90 tabular-nums">
-                {formatPercent(lastInteranual(r.id))}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <DataTable
+        rows={REGIONS}
+        rowKey={(r) => r.id}
+        caption={
+          <caption className="caption-bottom pt-3 text-left font-mono text-xs leading-[1.6] text-muted">
+            IPC de vivienda, agua, electricidad, gas y otros combustibles.
+            Último dato disponible: {LAST_UPDATED}. Fuente: INDEC.
+          </caption>
+        }
+        columns={[
+          {
+            header: "Región",
+            cellClassName: "text-ink",
+            cell: (r) => r.label,
+          },
+          {
+            header: "Mensual",
+            headClassName: "text-right pl-3",
+            cellClassName: "text-right pl-3 text-ink/90 tabular-nums",
+            cell: (r) => formatPercent(lastMonthly(r.id)),
+          },
+          {
+            header: "Interanual",
+            headClassName: "text-right pl-3",
+            cellClassName: "text-right pl-3 text-ink/90 tabular-nums",
+            cell: (r) => formatPercent(lastInteranual(r.id)),
+          },
+        ]}
+      />
     </div>
   );
 }

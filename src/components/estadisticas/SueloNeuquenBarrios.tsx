@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   AS_OF,
   NEIGHBORHOOD_MAX_USD_M2,
@@ -41,16 +42,30 @@ function widthFor(value: number): string {
  */
 export function SueloNeuquenBarrios() {
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          Estimación del suelo por barrio
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Neuquén Capital · 49 barrios · {AS_OF} · US$ por m²
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>Estimación del suelo por barrio</>,
+        subtitle: <>Neuquén Capital · 49 barrios · {AS_OF} · US$ por m²</>,
+      }}
+      caption={
+        <>
+          El color y el largo de cada barra son una escala visual propia; la
+          tabla es la representación exacta. La fuente publica estos valores
+          como una mediana de parcelas estimadas por barrio. No son 49 muestras
+          independientes ni se promedian para reconstruir la mediana reportada
+          de la ciudad.
+        </>
+      }
+      note={
+        <>
+          La diferencia espacial va de {formatUsd(NEIGHBORHOOD_MIN_USD_M2)} en
+          Colonia Nueva Esperanza a {formatUsd(NEIGHBORHOOD_MAX_USD_M2)} en
+          Santa Genoveva. Son estimaciones de oferta de la fuente para {SCOPE},
+          con vintage de {AS_OF}; donde hay pocas publicaciones la precisión es
+          menor.
+        </>
+      }
+    >
       <div aria-hidden="true" className="flex flex-col gap-2">
         {NEIGHBORHOODS.map((row) => (
           <div key={row.id} className="flex items-center gap-2">
@@ -72,21 +87,6 @@ export function SueloNeuquenBarrios() {
           </div>
         ))}
       </div>
-
-      <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        El color y el largo de cada barra son una escala visual propia; la tabla
-        es la representación exacta. La fuente publica estos valores como una
-        mediana de parcelas estimadas por barrio. No son 49 muestras
-        independientes ni se promedian para reconstruir la mediana reportada de
-        la ciudad.
-      </p>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        La diferencia espacial va de {formatUsd(NEIGHBORHOOD_MIN_USD_M2)} en
-        Colonia Nueva Esperanza a {formatUsd(NEIGHBORHOOD_MAX_USD_M2)} en Santa
-        Genoveva. Son estimaciones de oferta de la fuente para {SCOPE}, con
-        vintage de {AS_OF}; donde hay pocas publicaciones la precisión es menor.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

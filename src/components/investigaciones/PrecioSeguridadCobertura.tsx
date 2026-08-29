@@ -1,3 +1,5 @@
+import { DataFigure } from "@/components/figures/DataFigure";
+import { DataTable } from "@/components/figures/DataTable";
 import {
   coverage,
   CRIME_YEAR,
@@ -35,74 +37,78 @@ export function PrecioSeguridadCobertura() {
   const quiet = cov.missing.filter((m) => m.safetyRank <= NOTABLE);
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          Los barrios que este ranking no puede ver
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          {cov.missing.length} de {cov.total} barrios sin alquiler publicado
-          para {SIZE.inTitle}, ordenados del más tranquilo al que más hechos
-          registra
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>Los barrios que este ranking no puede ver</>,
+        subtitle: (
+          <>
+            {cov.missing.length} de {cov.total} barrios sin alquiler publicado
+            para {SIZE.inTitle}, ordenados del más tranquilo al que más hechos
+            registra
+          </>
+        ),
+      }}
+      caption={
+        quiet.length > 0 && (
+          <>
+            Vale la pena leer las primeras filas al derecho:{" "}
+            <strong className="font-medium text-ink">
+              {quiet.map((m) => m.label).join(", ")}
+            </strong>{" "}
+            {quiet.length === 1 ? "está" : "están"} entre los {NOTABLE} barrios
+            más tranquilos de la Ciudad y no{" "}
+            {quiet.length === 1 ? "aparece" : "aparecen"} en ninguna tabla de
+            esta página. No es que puntúen mal: es que no hay suficientes
+            departamentos publicados como para ponerles precio. Si lo que se
+            busca es tranquilidad, son exactamente los barrios que conviene
+            preguntar a mano.
+          </>
+        )
+      }
+      note={
+        <>
+          El organismo no publica el alquiler de un barrio cuando la cantidad de
+          avisos del trimestre es demasiado chica para promediarla, y eso pasa
+          tanto en la periferia barata como en los barrios chicos y quietos. La
+          columna de delitos sí existe para los 48: un hecho registrado nunca se
+          suprime, así que el puesto en seguridad se calcula sobre la Ciudad
+          entera, con datos de {CRIME_YEAR}. La cobertura además cambia con el
+          tamaño del departamento —para tres ambientes faltan más barrios que
+          para uno—, así que esta lista es la de {SIZE.inTitle}.
+        </>
+      }
+    >
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="fd-th">Barrio</th>
-              <th className="fd-th text-right pl-3">
-                Puesto en seguridad, de {cov.total}
-              </th>
-              <th className="fd-th text-right pl-3">Delitos</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cov.missing.map((m) => (
-              <tr key={m.id}>
-                <td className="fd-td">
+        <DataTable
+          rows={cov.missing}
+          rowKey={(m) => m.id}
+          columns={[
+            {
+              header: "Barrio",
+              cell: (m) => (
+                <>
                   <span className="text-ink">{m.label}</span>
                   <span className="text-muted"> · {m.meta}</span>
-                </td>
-                <td className="fd-td text-right pl-3 text-ink/90 tabular-nums whitespace-nowrap">
-                  {m.safetyRank}.º
-                </td>
-                <td className="fd-td text-right pl-3 text-muted tabular-nums whitespace-nowrap">
-                  {formatRate(m.crimeRate)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+            {
+              header: <>Puesto en seguridad, de {cov.total}</>,
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 text-ink/90",
+              cell: (m) => <>{m.safetyRank}.º</>,
+            },
+            {
+              header: "Delitos",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 text-muted",
+              cell: (m) => formatRate(m.crimeRate),
+            },
+          ]}
+        />
       </div>
-
-      {quiet.length > 0 && (
-        <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-          Vale la pena leer las primeras filas al derecho:{" "}
-          <strong className="font-medium text-ink">
-            {quiet.map((m) => m.label).join(", ")}
-          </strong>{" "}
-          {quiet.length === 1 ? "está" : "están"} entre los {NOTABLE} barrios
-          más tranquilos de la Ciudad y no{" "}
-          {quiet.length === 1 ? "aparece" : "aparecen"} en ninguna tabla de esta
-          página. No es que puntúen mal: es que no hay suficientes departamentos
-          publicados como para ponerles precio. Si lo que se busca es
-          tranquilidad, son exactamente los barrios que conviene preguntar a
-          mano.
-        </p>
-      )}
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        El organismo no publica el alquiler de un barrio cuando la cantidad de
-        avisos del trimestre es demasiado chica para promediarla, y eso pasa
-        tanto en la periferia barata como en los barrios chicos y quietos. La
-        columna de delitos sí existe para los 48: un hecho registrado nunca se
-        suprime, así que el puesto en seguridad se calcula sobre la Ciudad
-        entera, con datos de {CRIME_YEAR}. La cobertura además cambia con el
-        tamaño del departamento —para tres ambientes faltan más barrios que para
-        uno—, así que esta lista es la de {SIZE.inTitle}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

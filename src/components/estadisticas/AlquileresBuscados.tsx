@@ -1,3 +1,6 @@
+import { DataFigure } from "@/components/figures/DataFigure";
+import { featuredBarrioColumn, featuredRows } from "./featuredBarrios";
+import { DataTable } from "@/components/figures/DataTable";
 import {
   barrio,
   DEFAULT_SIZE,
@@ -24,15 +27,6 @@ import {
 // a reference number we picked. That is the difference from the sale page's
 // third column, which *is* ours and has to say so.
 
-const FEATURED = [
-  "palermo",
-  "belgrano",
-  "recoleta",
-  "villa-urquiza",
-  "caballito",
-  "flores",
-] as const;
-
 const SIZE = SIZES.find((s) => s.id === DEFAULT_SIZE)!;
 const AREA = REFERENCE_AREA[DEFAULT_SIZE];
 
@@ -46,68 +40,64 @@ export function AlquileresBuscados() {
   // Dearest first, so the "puesto" column reads in order. Withheld barrios have
   // no rank and go last — on this page that is a real possibility, not a
   // formality: IDECBA withholds rent for about a third of the barrios.
-  const rows = FEATURED.map((id) => ({
-    id,
-    data: barrio(id, DEFAULT_SIZE),
-  })).sort((a, b) => (b.data?.monthly ?? -1) - (a.data?.monthly ?? -1));
+  const rows = featuredRows(
+    (id) => barrio(id, DEFAULT_SIZE),
+    (d) => d.monthly,
+  );
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          El alquiler en los barrios más consultados
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Departamentos usados de {SIZE.label} · {LAST_UPDATED}
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>El alquiler en los barrios más consultados</>,
+        subtitle: (
+          <>
+            Departamentos usados de {SIZE.label} · {LAST_UPDATED}
+          </>
+        ),
+      }}
+      caption={
+        <>
+          Cuánto sale alquilar en {list(rows.map((r) => r.data?.label ?? r.id))}
+          , con el precio del mes y el equivalente por metro cuadrado. El resto
+          de los barrios de la Ciudad están en la tabla completa, debajo del
+          mapa.
+        </>
+      }
+      note={
+        <>
+          El puesto es entre los barrios con alquiler publicado este trimestre,
+          del más caro al más barato; cuántos son cambia según cuántos avisos
+          haya habido, y en alquiler son bastantes menos que en venta. El valor
+          por m² es el precio del mes dividido por los {AREA} m² que IDECBA toma
+          como superficie de referencia para un {SIZE.label}. Fuente: IDECBA
+          sobre la base de Argenprop, datos hasta el {LAST_UPDATED}.
+        </>
+      }
+    >
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="fd-th">Barrio</th>
-              <th className="fd-th text-right pl-3">Alquiler por mes</th>
-              <th className="fd-th text-right pl-3">Por m²</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ id, data }) => (
-              <tr key={id}>
-                <td className="fd-td align-top">
-                  <span className="text-ink">{data?.label ?? id}</span>
-                  <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5">
-                    {data
-                      ? `${data.meta} · ${data.rank}.º de ${data.of}`
-                      : NO_DATA}
-                  </span>
-                </td>
-                <td className="fd-td text-right pl-3 align-top tabular-nums whitespace-nowrap text-ink">
-                  {data ? formatArs(data.monthly) : "—"}
-                </td>
-                <td className="fd-td text-right pl-3 align-top tabular-nums whitespace-nowrap text-ink/90">
-                  {data ? formatArsPerMetre(data.perMetre) : "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          rows={rows}
+          rowKey={({ id }) => id}
+          columns={[
+            featuredBarrioColumn(NO_DATA),
+            {
+              header: "Alquiler por mes",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top text-ink",
+              cell: ({ data }) => (data ? formatArs(data.monthly) : "—"),
+            },
+            {
+              header: "Por m²",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top text-ink/90",
+              cell: ({ data }) =>
+                data ? formatArsPerMetre(data.perMetre) : "—",
+            },
+          ]}
+        />
       </div>
-
-      <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Cuánto sale alquilar en {list(rows.map((r) => r.data?.label ?? r.id))},
-        con el precio del mes y el equivalente por metro cuadrado. El resto de
-        los barrios de la Ciudad están en la tabla completa, debajo del mapa.
-      </p>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        El puesto es entre los barrios con alquiler publicado este trimestre,
-        del más caro al más barato; cuántos son cambia según cuántos avisos haya
-        habido, y en alquiler son bastantes menos que en venta. El valor por m²
-        es el precio del mes dividido por los {AREA} m² que IDECBA toma como
-        superficie de referencia para un {SIZE.label}. Fuente: IDECBA sobre la
-        base de Argenprop, datos hasta el {LAST_UPDATED}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

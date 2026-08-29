@@ -1,3 +1,5 @@
+import { DataFigure } from "@/components/figures/DataFigure";
+import { DataTable } from "@/components/figures/DataTable";
 import {
   formatUsd,
   LAST_UPDATED,
@@ -33,30 +35,45 @@ export function PrecioPartidoZona() {
   }));
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          El precio del m² por zona del Gran Buenos Aires
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Norte, oeste y sur · {LAST_UPDATED}
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>El precio del m² por zona del Gran Buenos Aires</>,
+        subtitle: <>Norte, oeste y sur · {LAST_UPDATED}</>,
+      }}
+      caption={
+        <>
+          Las tres zonas son las del conurbano, no las de la provincia: {SCOPE}{" "}
+          se divide en norte, oeste y sur, y el interior bonaerense no entra en
+          ninguna. Cada zona va de su partido más caro al más barato, y los tres
+          rangos se pisan entre sí: hay partidos del oeste por encima de
+          partidos del norte y al revés. La zona sirve para ubicarse en el mapa,
+          no para estimar un precio —para eso está el partido.
+        </>
+      }
+      note={
+        <>
+          El «partido del medio» es la mediana de los partidos de la zona, con
+          cada partido contando una vez. El «índice del portal» es el promedio
+          que publica la fuente, ponderado por la cantidad de avisos, así que
+          los dos números no tienen por qué coincidir. La Plata figura en la
+          zona sur porque es donde la ubica la fuente, aunque no sea parte del
+          conurbano. Zona Norte: {rows.find((z) => z.id === "norte")?.covers}.
+          Zona Oeste: {rows.find((z) => z.id === "oeste")?.covers}. Zona Sur:{" "}
+          {rows.find((z) => z.id === "sur")?.covers}. Fuente: {SOURCE}, datos
+          hasta {LAST_UPDATED}.
+        </>
+      }
+    >
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="fd-th">Zona</th>
-              <th className="fd-th text-right pl-3">Partido del medio</th>
-              <th className="fd-th text-right pl-3">Más caro</th>
-              <th className="fd-th text-right pl-3">Más barato</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((z) => (
-              <tr key={z.id}>
-                <td className="fd-td align-top">
+        <DataTable
+          rows={rows}
+          rowKey={(z) => z.id}
+          columns={[
+            {
+              header: "Zona",
+              cellClassName: "align-top",
+              cell: (z) => (
+                <>
                   <span className="text-ink whitespace-nowrap">{z.label}</span>
                   <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5">
                     {z.count} partidos
@@ -64,64 +81,57 @@ export function PrecioPartidoZona() {
                       ? ""
                       : ` · índice del portal ${formatUsd(z.index)}`}
                   </span>
-                </td>
-                <td className="fd-td text-right pl-3 align-top text-ink tabular-nums whitespace-nowrap">
-                  {z.median === null ? "—" : formatUsd(z.median)}
-                </td>
-                <td className="fd-td text-right pl-3 align-top tabular-nums whitespace-nowrap">
-                  {z.top === null ? (
-                    "—"
-                  ) : (
-                    <>
-                      <span className="text-ink">
-                        {formatUsd(z.top.usd as number)}
-                      </span>
-                      <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5 whitespace-normal">
-                        {z.top.label}
-                      </span>
-                    </>
-                  )}
-                </td>
-                <td className="fd-td text-right pl-3 align-top tabular-nums whitespace-nowrap">
-                  {z.bottom === null ? (
-                    "—"
-                  ) : (
-                    <>
-                      <span className="text-ink">
-                        {formatUsd(z.bottom.usd as number)}
-                      </span>
-                      <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5 whitespace-normal">
-                        {z.bottom.label}
-                      </span>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+            {
+              header: "Partido del medio",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top text-ink",
+              cell: (z) => (z.median === null ? "—" : formatUsd(z.median)),
+            },
+            {
+              header: "Más caro",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top",
+              cell: (z) =>
+                z.top === null ? (
+                  "—"
+                ) : (
+                  <>
+                    <span className="text-ink">
+                      {formatUsd(z.top.usd as number)}
+                    </span>
+                    <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5 whitespace-normal">
+                      {z.top.label}
+                    </span>
+                  </>
+                ),
+            },
+            {
+              header: "Más barato",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top",
+              cell: (z) =>
+                z.bottom === null ? (
+                  "—"
+                ) : (
+                  <>
+                    <span className="text-ink">
+                      {formatUsd(z.bottom.usd as number)}
+                    </span>
+                    <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5 whitespace-normal">
+                      {z.bottom.label}
+                    </span>
+                  </>
+                ),
+            },
+          ]}
+        />
       </div>
-
-      <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Las tres zonas son las del conurbano, no las de la provincia: {SCOPE} se
-        divide en norte, oeste y sur, y el interior bonaerense no entra en
-        ninguna. Cada zona va de su partido más caro al más barato, y los tres
-        rangos se pisan entre sí: hay partidos del oeste por encima de partidos
-        del norte y al revés. La zona sirve para ubicarse en el mapa, no para
-        estimar un precio —para eso está el partido.
-      </p>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        El «partido del medio» es la mediana de los partidos de la zona, con
-        cada partido contando una vez. El «índice del portal» es el promedio que
-        publica la fuente, ponderado por la cantidad de avisos, así que los dos
-        números no tienen por qué coincidir. La Plata figura en la zona sur
-        porque es donde la ubica la fuente, aunque no sea parte del conurbano.
-        Zona Norte: {rows.find((z) => z.id === "norte")?.covers}. Zona Oeste:{" "}
-        {rows.find((z) => z.id === "oeste")?.covers}. Zona Sur:{" "}
-        {rows.find((z) => z.id === "sur")?.covers}. Fuente: {SOURCE}, datos
-        hasta {LAST_UPDATED}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

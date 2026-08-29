@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import Link from "next/link";
 import {
   formatArs,
@@ -71,7 +72,37 @@ export function EscriturasMonto() {
   const ext = usdExtremes();
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          El monto total declarado en las compraventas de cada mes, dividido por
+          la cantidad de escrituras. En dólares se puede leer de punta a punta;
+          en pesos es el número que publica el Colegio, que sirve para el mes en
+          que se publicó y para poco más.
+        </>
+      }
+      note={
+        <>
+          Es un promedio sobre todo lo que se escrituró: una casa en Tigre, un
+          departamento en La Plata, un lote rural y una cochera entran en el
+          mismo número. Se mueve tanto por lo que cambia de precio como por lo
+          que cambia de mezcla, así que{" "}
+          <strong className="font-medium">
+            no es el precio de una propiedad
+          </strong>{" "}
+          y no responde cuánto vale el metro cuadrado —para eso está{" "}
+          <Link href="/estadisticas/precio-m2-provincia-buenos-aires">
+            el precio del m² en la provincia
+          </Link>
+          —. Tampoco tiene superficie: en esta fuente no hay metros. La
+          conversión a dólares usa el promedio trimestral del dólar blue, que es
+          la moneda en la que se pagan las propiedades en Argentina; es una
+          conversión más gruesa que un dato diario y la única honesta para una
+          serie que atraviesa los años del cepo. Fuente: {SOURCE}, datos hasta{" "}
+          {LAST_UPDATED}.
+        </>
+      }
+    >
       <MontoChart
         title={`Valor promedio declarado de una escritura en la Provincia de Buenos Aires`}
         statUsd={
@@ -97,33 +128,6 @@ export function EscriturasMonto() {
         }
         rows={rows}
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        El monto total declarado en las compraventas de cada mes, dividido por
-        la cantidad de escrituras. En dólares se puede leer de punta a punta; en
-        pesos es el número que publica el Colegio, que sirve para el mes en que
-        se publicó y para poco más.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Es un promedio sobre todo lo que se escrituró: una casa en Tigre, un
-        departamento en La Plata, un lote rural y una cochera entran en el mismo
-        número. Se mueve tanto por lo que cambia de precio como por lo que
-        cambia de mezcla, así que{" "}
-        <strong className="font-medium">
-          no es el precio de una propiedad
-        </strong>{" "}
-        y no responde cuánto vale el metro cuadrado —para eso está{" "}
-        <Link href="/estadisticas/precio-m2-provincia-buenos-aires">
-          el precio del m² en la provincia
-        </Link>
-        —. Tampoco tiene superficie: en esta fuente no hay metros. La conversión
-        a dólares usa el promedio trimestral del dólar blue, que es la moneda en
-        la que se pagan las propiedades en Argentina; es una conversión más
-        gruesa que un dato diario y la única honesta para una serie que
-        atraviesa los años del cepo. Fuente: {SOURCE}, datos hasta{" "}
-        {LAST_UPDATED}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   byPeriod,
   getRegion,
@@ -94,7 +95,13 @@ export function IpcViviendaChart({
     variacion === "interanual" ? interanualRows(region) : undefined;
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      note={
+        <>
+          {NOTE[variacion]} Fuente: INDEC, datos hasta {LAST_UPDATED}.
+        </>
+      }
+    >
       {interanualSeries ? (
         <InteranualChart
           title={title}
@@ -115,11 +122,7 @@ export function IpcViviendaChart({
       <p className="font-mono text-xs text-muted mt-3 leading-[1.6]">
         {CAPTION[variacion][region]}
       </p>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        {NOTE[variacion]} Fuente: INDEC, datos hasta {LAST_UPDATED}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }
 

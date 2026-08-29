@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   compraventas,
   escriturasPhrase,
@@ -73,7 +74,27 @@ export function EscriturasHistoria() {
         );
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          Cuántas propiedades cambiaron de dueño en la provincia cada mes, desde
+          2005. La vista de doce meses suma cada mes con los once anteriores: es
+          la misma serie con la estacionalidad dividida, y es la que hay que
+          mirar para saber si el mercado se mueve. La vista mensual es el dato
+          crudo.
+        </>
+      }
+      note={
+        <>
+          Dos meses de la serie no son mercado y están señalados en el gráfico:
+          diciembre de 2007, con el Registro de la Propiedad de paro, y abril de
+          2020, cuando en toda la provincia se firmó{" "}
+          {escriturasPhrase(compraventas("2020-04"))}. Los actos se cuentan por
+          fecha de escritura, así que los últimos dos meses todavía se corrigen
+          hacia arriba. Fuente: {SOURCE}, datos hasta {LAST_UPDATED}.
+        </>
+      }
+    >
       <HistoriaChart
         title={`Escrituras de compraventa en la Provincia de Buenos Aires, ${SPAN}`}
         statRolling={
@@ -104,22 +125,6 @@ export function EscriturasHistoria() {
         }
         rows={rows}
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Cuántas propiedades cambiaron de dueño en la provincia cada mes, desde
-        2005. La vista de doce meses suma cada mes con los once anteriores: es
-        la misma serie con la estacionalidad dividida, y es la que hay que mirar
-        para saber si el mercado se mueve. La vista mensual es el dato crudo.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Dos meses de la serie no son mercado y están señalados en el gráfico:
-        diciembre de 2007, con el Registro de la Propiedad de paro, y abril de
-        2020, cuando en toda la provincia se firmó{" "}
-        {escriturasPhrase(compraventas("2020-04"))}. Los actos se cuentan por
-        fecha de escritura, así que los últimos dos meses todavía se corrigen
-        hacia arriba. Fuente: {SOURCE}, datos hasta {LAST_UPDATED}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

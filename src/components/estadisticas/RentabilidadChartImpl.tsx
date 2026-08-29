@@ -149,7 +149,7 @@ export function HistoriaChart({
 
   return (
     <>
-      <figcaption className="mb-4">
+      <div className="mb-4">
         <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
           {title}
         </h3>
@@ -160,7 +160,7 @@ export function HistoriaChart({
           {min.value !== null && pct1(min.value)} ({min.title}) · Último dato{" "}
           {last.value !== null && pct1(last.value)} ({last.title})
         </p>
-      </figcaption>
+      </div>
 
       <div className="h-[280px] sm:h-[320px]">
         <ResponsiveContainer width="100%" height="100%">

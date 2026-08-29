@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   byDay,
   byHour,
@@ -67,7 +68,19 @@ export function DelitosCuando() {
   const quietest = week[week.length - 1];
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      note={
+        <>
+          La hora es la que quedó registrada en la denuncia, que en un hurto no
+          siempre es la hora en que ocurrió: quien descubre que le falta la
+          billetera al llegar a su casa denuncia la hora en que se dio cuenta.
+          Los porcentajes se calculan sobre los hechos que tienen hora cargada;
+          el {formatShare(SIN_FRANJA_SHARE)} de los registros de {PERFIL_YEAR}{" "}
+          no la tiene y queda afuera del gráfico. Fuente: {SOURCE}, datos de{" "}
+          {PERFIL_YEAR}.
+        </>
+      }
+    >
       <HoraChart
         title={`A qué hora se registran los delitos en CABA, ${PERFIL_YEAR}`}
         stat={
@@ -100,16 +113,6 @@ export function DelitosCuando() {
         tocaría a cada día. El delito en la Ciudad tiene horario, no tiene tanto
         calendario.
       </p>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        La hora es la que quedó registrada en la denuncia, que en un hurto no
-        siempre es la hora en que ocurrió: quien descubre que le falta la
-        billetera al llegar a su casa denuncia la hora en que se dio cuenta. Los
-        porcentajes se calculan sobre los hechos que tienen hora cargada; el{" "}
-        {formatShare(SIN_FRANJA_SHARE)} de los registros de {PERFIL_YEAR} no la
-        tiene y queda afuera del gráfico. Fuente: {SOURCE}, datos de{" "}
-        {PERFIL_YEAR}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

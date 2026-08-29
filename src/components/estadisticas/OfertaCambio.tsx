@@ -1,3 +1,5 @@
+import { DataFigure } from "@/components/figures/DataFigure";
+import { DataTable } from "@/components/figures/DataTable";
 import {
   barrioChange,
   DEFAULT_SIZE,
@@ -30,96 +32,116 @@ export function OfertaCambio() {
   const recovered = rows.filter((r) => (r.index.at(-1) ?? 0) >= 100).length;
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          Cuánto cayó y cuánto volvió cada barrio
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          <span className="text-ink">Índice base 100 = {BASE.label}</span> ·{" "}
-          {recovered} de {rows.length} barrios superan hoy su propio promedio de{" "}
-          {BASE.label} · Ordenados por el índice, no por tamaño: la primera
-          columna dice sobre qué base se mueve cada uno
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>Cuánto cayó y cuánto volvió cada barrio</>,
+        subtitle: (
+          <>
+            <span className="text-ink">Índice base 100 = {BASE.label}</span> ·{" "}
+            {recovered} de {rows.length} barrios superan hoy su propio promedio
+            de {BASE.label} · Ordenados por el índice, no por tamaño: la primera
+            columna dice sobre qué base se mueve cada uno
+          </>
+        ),
+      }}
+      caption={
+        <>
+          Los 48 barrios de la Ciudad de Buenos Aires ordenados por cuánto se
+          publica hoy en cada uno comparado con lo que se publicaba entre 2016 y
+          2019. Un índice de 100 es exactamente el promedio de esos cuatro años;
+          200, el doble; 50, la mitad.
+        </>
+      }
+      note={
+        <>
+          Cada columna es el promedio mensual de su ventana: {BASE.label} son{" "}
+          {BASE.note}, {TROUGH.label} es {TROUGH.note} y la última son los doce
+          meses {NOW.note}. Un barrio chico se mueve mucho sobre una base chica,
+          y los primeros puestos tienen bastante de eso: por eso la primera
+          columna muestra de cuántos departamentos por mes parte cada uno, y
+          conviene leerla antes que el índice. La base es {BASE.label} y no el
+          arranque de la serie porque en 2015 cambió el proveedor de avisos del
+          que sale el dato, y los años anteriores no son estrictamente
+          comparables. La cantidad de departamentos es aproximada y está
+          redondeada; el índice se calcula sobre los metros cuadrados
+          publicados, sin redondear. Fuente: IDECBA, datos hasta {LAST_UPDATED}.
+        </>
+      }
+    >
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="fd-th">Barrio</th>
-              <th className="fd-th text-right pl-3">
-                {BASE.label}
-                <span className="block font-normal normal-case tracking-normal text-[10.5px] leading-[1.4] opacity-80">
-                  deptos./mes
-                </span>
-              </th>
-              <th className="fd-th text-right pl-3">
-                {TROUGH.label}
-                <span className="block font-normal normal-case tracking-normal text-[10.5px] leading-[1.4] opacity-80">
-                  índice
-                </span>
-              </th>
-              <th className="fd-th text-right pl-3">
-                {NOW.label}
-                <span className="block font-normal normal-case tracking-normal text-[10.5px] leading-[1.4] opacity-80">
-                  índice
-                </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td className="fd-td align-top">
+        <DataTable
+          rows={rows}
+          rowKey={(row) => row.id}
+          columns={[
+            {
+              header: "Barrio",
+              cellClassName: "align-top",
+              cell: (row) => (
+                <>
                   <span className="text-ink">{row.label}</span>
                   <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5">
                     {row.meta}
                   </span>
-                </td>
-                {/* The baseline column prints the count rather than the 100
-                    every row would otherwise carry: it is the size the two
-                    indices beside it are percentages of, and without it a
-                    reader cannot tell a barrio that doubled from four flats to
-                    eight from one that doubled from four hundred. */}
-                <td className="fd-td text-right pl-3 tabular-nums whitespace-nowrap text-muted align-top">
-                  {displayShort(row.units[0])}
-                </td>
-                <td className="fd-td text-right pl-3 tabular-nums whitespace-nowrap text-ink/90 align-top">
-                  {formatIndex(row.index[1])}
-                </td>
-                <td className="fd-td text-right pl-3 tabular-nums whitespace-nowrap text-ink align-top">
+                </>
+              ),
+            },
+            // The baseline column prints the count rather than the 100 every
+            // row would otherwise carry: it is the size the two indices beside
+            // it are percentages of, and without it a reader cannot tell a
+            // barrio that doubled from four flats to eight from one that
+            // doubled from four hundred.
+            {
+              header: (
+                <>
+                  {BASE.label}
+                  <span className="block font-normal normal-case tracking-normal text-[10.5px] leading-[1.4] opacity-80">
+                    deptos./mes
+                  </span>
+                </>
+              ),
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 text-muted align-top",
+              cell: (row) => displayShort(row.units[0]),
+            },
+            {
+              header: (
+                <>
+                  {TROUGH.label}
+                  <span className="block font-normal normal-case tracking-normal text-[10.5px] leading-[1.4] opacity-80">
+                    índice
+                  </span>
+                </>
+              ),
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 text-ink/90 align-top",
+              cell: (row) => formatIndex(row.index[1]),
+            },
+            {
+              header: (
+                <>
+                  {NOW.label}
+                  <span className="block font-normal normal-case tracking-normal text-[10.5px] leading-[1.4] opacity-80">
+                    índice
+                  </span>
+                </>
+              ),
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 text-ink align-top",
+              cell: (row) => (
+                <>
                   {formatIndex(row.index[2])}
                   <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5 font-normal">
                     {displayShort(row.units[2])}
                   </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
-
-      <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Los 48 barrios de la Ciudad de Buenos Aires ordenados por cuánto se
-        publica hoy en cada uno comparado con lo que se publicaba entre 2016 y
-        2019. Un índice de 100 es exactamente el promedio de esos cuatro años;
-        200, el doble; 50, la mitad.
-      </p>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Cada columna es el promedio mensual de su ventana: {BASE.label} son{" "}
-        {BASE.note}, {TROUGH.label} es {TROUGH.note} y la última son los doce
-        meses {NOW.note}. Un barrio chico se mueve mucho sobre una base chica, y
-        los primeros puestos tienen bastante de eso: por eso la primera columna
-        muestra de cuántos departamentos por mes parte cada uno, y conviene
-        leerla antes que el índice. La base es {BASE.label} y no el arranque de
-        la serie porque en 2015 cambió el proveedor de avisos del que sale el
-        dato, y los años anteriores no son estrictamente comparables. La
-        cantidad de departamentos es aproximada y está redondeada; el índice se
-        calcula sobre los metros cuadrados publicados, sin redondear. Fuente:
-        IDECBA, datos hasta {LAST_UPDATED}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

@@ -1,3 +1,4 @@
+import { DataTable } from "@/components/figures/DataTable";
 import { REGIONS } from "@/content/estadisticas/data/ipc-vivienda";
 
 // The geography table for the methodology section: which districts INDEC puts
@@ -12,30 +13,24 @@ import { REGIONS } from "@/content/estadisticas/data/ipc-vivienda";
 export function RegionesIpc() {
   return (
     <div className="my-6 overflow-x-auto">
-      <table className="w-full border-collapse font-mono text-[14px]">
-        <thead>
-          <tr>
-            <th className="text-left font-medium uppercase text-micro tracking-label-wide text-muted border-b border-line py-2 pr-4 whitespace-nowrap">
-              Región
-            </th>
-            <th className="text-left font-medium uppercase text-micro tracking-label-wide text-muted border-b border-line py-2 pr-4">
-              Qué incluye
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {REGIONS.map((r) => (
-            <tr key={r.id}>
-              <td className="border-b border-line/60 py-2 pr-4 align-top text-ink whitespace-nowrap">
-                {r.label}
-              </td>
-              <td className="border-b border-line/60 py-2 pr-4 align-top text-ink/90">
-                {r.covers}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <DataTable
+        rows={REGIONS}
+        rowKey={(r) => r.id}
+        columns={[
+          {
+            header: "Región",
+            headClassName: "whitespace-nowrap",
+            cellClassName: "align-top text-ink whitespace-nowrap",
+            cell: (r) => r.label,
+          },
+          {
+            header: "Qué incluye",
+            headClassName: "pl-3",
+            cellClassName: "pl-3 align-top text-ink/90",
+            cell: (r) => r.covers,
+          },
+        ]}
+      />
     </div>
   );
 }

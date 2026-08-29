@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   averageArea,
   BREAKS,
@@ -144,7 +145,29 @@ export function OfertaAlquilerCabaMapa() {
   const provisional = PROVISIONAL.has(LAST_PERIOD);
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          Cantidad aproximada de departamentos publicados en alquiler en la
+          Ciudad de Buenos Aires, por barrio y por comuna, según la superficie
+          total avisada que releva IDECBA. Permite ver dónde hay oferta para
+          elegir — Palermo, Belgrano, Recoleta, Villa Urquiza, Caballito, Flores
+          — y en qué barrios prácticamente no se publica nada.
+        </>
+      }
+      note={
+        <>
+          Es la <strong className="font-medium">oferta publicada</strong> del
+          mes, no el parque de viviendas: cuenta los avisos vigentes cuya fecha
+          de publicación cae en el mes de referencia, así que un departamento
+          que se alquila rápido pasa por esta serie una sola vez. El universo
+          son departamentos usados y a estrenar, algo más amplio que el de las
+          páginas de precios, que cuentan solo usados. Fuente: IDECBA sobre la
+          base de Argenprop, datos hasta {LAST_UPDATED}
+          {provisional ? " (provisorio)" : ""}.
+        </>
+      }
+    >
       <MapaCaba
         title="Mapa de la oferta de alquiler en CABA"
         dimensions={[
@@ -172,25 +195,6 @@ export function OfertaAlquilerCabaMapa() {
         }}
         ariaLabel="Mapa de la Ciudad de Buenos Aires sombreado según la cantidad de departamentos publicados en alquiler en cada barrio. Los mismos valores están en la tabla que sigue."
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Cantidad aproximada de departamentos publicados en alquiler en la Ciudad
-        de Buenos Aires, por barrio y por comuna, según la superficie total
-        avisada que releva IDECBA. Permite ver dónde hay oferta para elegir —
-        Palermo, Belgrano, Recoleta, Villa Urquiza, Caballito, Flores — y en qué
-        barrios prácticamente no se publica nada.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Es la <strong className="font-medium">oferta publicada</strong> del mes,
-        no el parque de viviendas: cuenta los avisos vigentes cuya fecha de
-        publicación cae en el mes de referencia, así que un departamento que se
-        alquila rápido pasa por esta serie una sola vez. El universo son
-        departamentos usados y a estrenar, algo más amplio que el de las páginas
-        de precios, que cuentan solo usados. Fuente: IDECBA sobre la base de
-        Argenprop, datos hasta {LAST_UPDATED}
-        {provisional ? " (provisorio)" : ""}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

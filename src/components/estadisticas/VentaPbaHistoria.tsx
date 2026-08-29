@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   type SerieRow,
   VentaPbaSerie,
@@ -68,30 +69,34 @@ export function VentaPbaHistoria() {
   }));
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          El precio del metro cuadrado de cada partido de {SCOPE}, mes a mes, en
+          dólares. En dólares y no en pesos porque así se opera y así se
+          publica: una serie en dólares se puede leer de punta a punta sin
+          corregir por inflación, cosa que con precios en pesos argentinos no se
+          puede hacer. Los cortes en las líneas son meses sin dato, no meses sin
+          mercado.
+        </>
+      }
+      note={
+        <>
+          La serie arranca en {periodLabel(PERIODS[0])} y llega hasta{" "}
+          {periodLabel(LAST_PERIOD)}. Es corta por una razón que conviene decir:{" "}
+          {SOURCE} publica un informe por mes y da de baja los anteriores al
+          cabo de unos once meses, así que esta serie empieza cuando Factura
+          empezó a guardarlos y se alarga un mes por mes. La variación anual de
+          cada partido sí mira doce meses atrás, porque la publica la fuente.
+        </>
+      }
+    >
       <VentaPbaSerie
         rows={rows}
         zonas={zonas}
         initial="norte"
         unit="US$ por m², precio de publicación"
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        El precio del metro cuadrado de cada partido de {SCOPE}, mes a mes, en
-        dólares. En dólares y no en pesos porque así se opera y así se publica:
-        una serie en dólares se puede leer de punta a punta sin corregir por
-        inflación, cosa que con precios en pesos argentinos no se puede hacer.
-        Los cortes en las líneas son meses sin dato, no meses sin mercado.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        La serie arranca en {periodLabel(PERIODS[0])} y llega hasta{" "}
-        {periodLabel(LAST_PERIOD)}. Es corta por una razón que conviene decir:{" "}
-        {SOURCE} publica un informe por mes y da de baja los anteriores al cabo
-        de unos once meses, así que esta serie empieza cuando Factura empezó a
-        guardarlos y se alarga un mes por mes. La variación anual de cada
-        partido sí mira doce meses atrás, porque la publica la fuente.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

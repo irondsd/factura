@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   CRIME_YEAR,
   formatRate,
@@ -7,15 +8,14 @@ import {
 export function SeguridadPorDelitoGanadores() {
   const groups = safestByType();
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          El barrio más calmo cambia con el delito
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Tasas de hechos registrados cada 1.000 residentes · {CRIME_YEAR}
-        </p>
-      </figcaption>
+    <DataFigure
+      header={{
+        title: <>El barrio más calmo cambia con el delito</>,
+        subtitle: (
+          <>Tasas de hechos registrados cada 1.000 residentes · {CRIME_YEAR}</>
+        ),
+      }}
+    >
       <div className="grid gap-5 md:grid-cols-3">
         {groups.map(({ type, rows }) => (
           <section key={type.id}>
@@ -41,6 +41,6 @@ export function SeguridadPorDelitoGanadores() {
         En barrios de fuerte circulación diaria, sobre todo el centro, esa tasa
         puede sobrestimar la exposición de quien vive allí.
       </p>
-    </figure>
+    </DataFigure>
   );
 }

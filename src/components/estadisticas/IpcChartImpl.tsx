@@ -189,7 +189,7 @@ function Header({
   const last = rows[rows.length - 1];
 
   return (
-    <figcaption className="mb-4 flex items-start justify-between gap-4">
+    <div className="mb-4 flex items-start justify-between gap-4">
       <div className="min-w-0">
         {/* An h3, not a paragraph: fourteen figures is most of this page, and
             their titles are what a reader scanning the table of contents — or a
@@ -205,7 +205,7 @@ function Header({
         </p>
       </div>
       {action && <div className="flex-none">{action}</div>}
-    </figcaption>
+    </div>
   );
 }
 

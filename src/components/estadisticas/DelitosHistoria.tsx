@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   CATEGORIES,
   change,
@@ -55,7 +56,27 @@ export function DelitosHistoria() {
   const hasBaseline = history("total").some((r) => r.year === BASELINE);
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          Cómo evolucionaron los delitos registrados en la Ciudad de Buenos
+          Aires año por año, en total y abiertos en robos, hurtos y delitos
+          contra las personas. El hueco de {ext.low.year} es la pandemia, y es
+          el motivo por el que conviene comparar contra {BASELINE} y no contra
+          el año anterior.
+        </>
+      }
+      note={
+        <>
+          La tasa se calcula siempre con la misma población, la del Censo 2022:
+          la serie de delitos se movió mucho más en diez años que la cantidad de
+          habitantes de la Ciudad, así que interpolar un divisor año por año
+          agregaría una segunda estimación y ningún cambio visible. Por eso las
+          dos vistas tienen exactamente la misma forma y solo cambia la escala.
+          Fuente: {SOURCE}, datos hasta {LAST_YEAR}.
+        </>
+      }
+    >
       <HistoriaChart
         title={`Delitos registrados en CABA, ${FIRST_YEAR}–${LAST_YEAR}`}
         statRate={
@@ -86,22 +107,6 @@ export function DelitosHistoria() {
         }
         rows={rows}
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Cómo evolucionaron los delitos registrados en la Ciudad de Buenos Aires
-        año por año, en total y abiertos en robos, hurtos y delitos contra las
-        personas. El hueco de {ext.low.year} es la pandemia, y es el motivo por
-        el que conviene comparar contra {BASELINE} y no contra el año anterior.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        La tasa se calcula siempre con la misma población, la del Censo 2022: la
-        serie de delitos se movió mucho más en diez años que la cantidad de
-        habitantes de la Ciudad, así que interpolar un divisor año por año
-        agregaría una segunda estimación y ningún cambio visible. Por eso las
-        dos vistas tienen exactamente la misma forma y solo cambia la escala.
-        Fuente: {SOURCE}, datos hasta {LAST_YEAR}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

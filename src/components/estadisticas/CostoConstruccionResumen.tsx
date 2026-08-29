@@ -1,3 +1,5 @@
+import { DataFigure } from "@/components/figures/DataFigure";
+import { DataTable } from "@/components/figures/DataTable";
 import {
   costo,
   costoUsd,
@@ -38,31 +40,51 @@ export function CostoConstruccionResumen() {
   }));
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          Costo de construcción del metro cuadrado en CABA
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          {LAST_UPDATED}
-          {IS_PROVISIONAL && " · dato provisorio"} · pesos por m² de superficie
-          construida
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>Costo de construcción del metro cuadrado en CABA</>,
+        subtitle: (
+          <>
+            {LAST_UPDATED}
+            {IS_PROVISIONAL && " · dato provisorio"} · pesos por m² de
+            superficie construida
+          </>
+        ),
+      }}
+      caption={
+        <>
+          Cuánto sale el metro cuadrado de construcción en la Ciudad de Buenos
+          Aires, según los cuatro modelos de edificio que releva IDECBA. Para
+          estimar una obra, multiplica los metros cuadrados a construir por el
+          valor del modelo que más se parezca a lo que vas a levantar.
+        </>
+      }
+      note={
+        <>
+          Es el <strong className="font-medium">costo directo</strong>:
+          materiales, mano de obra y gastos generales de obra.{" "}
+          <strong className="font-medium">No incluye</strong> el terreno, los
+          honorarios profesionales, los derechos de construcción, el IVA, los
+          gastos financieros ni el beneficio de la empresa constructora, así que
+          el precio final de una obra es bastante mayor que esta cifra. Los
+          cuatro modelos son edificios de departamentos: no hay un modelo de
+          vivienda unifamiliar en esta serie. La conversión a dólares es
+          nuestra, al promedio del dólar blue del trimestre. Fuente: IDECBA,
+          datos hasta {LAST_UPDATED}
+          {IS_PROVISIONAL && " (provisorio)"}.
+        </>
+      }
+    >
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="fd-th">Modelo de edificio</th>
-              <th className="fd-th text-right pl-3">$ por m²</th>
-              <th className="fd-th text-right pl-3">Interanual</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="fd-td align-top">
+        <DataTable
+          rows={rows}
+          rowKey={(r) => r.id}
+          columns={[
+            {
+              header: "Modelo de edificio",
+              cellClassName: "align-top",
+              cell: (r) => (
+                <>
                   <span className="text-ink">{r.label}</span>
                   <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5">
                     {r.description}
@@ -72,39 +94,26 @@ export function CostoConstruccionResumen() {
                       ≈ {formatUsd(r.usd)} por m²
                     </span>
                   )}
-                </td>
-                <td className="fd-td text-right pl-3 align-top text-ink tabular-nums whitespace-nowrap">
-                  {formatArs(r.ars)}
-                </td>
-                <td className="fd-td text-right pl-3 align-top text-ink/90 tabular-nums whitespace-nowrap">
-                  {r.change === null ? "—" : formatPct(r.change)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+            {
+              header: "$ por m²",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top text-ink",
+              cell: (r) => formatArs(r.ars),
+            },
+            {
+              header: "Interanual",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top text-ink/90",
+              cell: (r) => (r.change === null ? "—" : formatPct(r.change)),
+            },
+          ]}
+        />
       </div>
-
-      <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Cuánto sale el metro cuadrado de construcción en la Ciudad de Buenos
-        Aires, según los cuatro modelos de edificio que releva IDECBA. Para
-        estimar una obra, multiplica los metros cuadrados a construir por el
-        valor del modelo que más se parezca a lo que vas a levantar.
-      </p>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Es el <strong className="font-medium">costo directo</strong>:
-        materiales, mano de obra y gastos generales de obra.{" "}
-        <strong className="font-medium">No incluye</strong> el terreno, los
-        honorarios profesionales, los derechos de construcción, el IVA, los
-        gastos financieros ni el beneficio de la empresa constructora, así que
-        el precio final de una obra es bastante mayor que esta cifra. Los cuatro
-        modelos son edificios de departamentos: no hay un modelo de vivienda
-        unifamiliar en esta serie. La conversión a dólares es nuestra, al
-        promedio del dólar blue del trimestre. Fuente: IDECBA, datos hasta{" "}
-        {LAST_UPDATED}
-        {IS_PROVISIONAL && " (provisorio)"}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

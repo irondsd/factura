@@ -1,3 +1,5 @@
+import { DataFigure } from "@/components/figures/DataFigure";
+import { DataTable } from "@/components/figures/DataTable";
 import {
   formatUsd,
   LAST_UPDATED,
@@ -49,39 +51,57 @@ export function PrecioDepartamentoPba() {
   });
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          Cuánto cuesta un departamento en el Gran Buenos Aires
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Por zona, según la unidad media de cada una · {LAST_UPDATED}
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>Cuánto cuesta un departamento en el Gran Buenos Aires</>,
+        subtitle: (
+          <>Por zona, según la unidad media de cada una · {LAST_UPDATED}</>
+        ),
+      }}
+      caption={
+        <>
+          Para un partido en particular la cuenta es la misma: el valor del m²
+          que figura en el mapa, multiplicado por los metros cubiertos de la
+          unidad. Los precios por metro de dos y de tres ambientes no van juntos
+          —en el norte el departamento más grande cuesta más por metro y en el
+          oeste cuesta menos—, así que conviene usar el de la superficie que
+          estás mirando.
+        </>
+      }
+      note={
+        <>
+          Las superficies son las que usa la fuente para su unidad media: 50 m²
+          cubiertos para un dos ambientes y 70 m² para un tres ambientes. El
+          total está redondeado al millar. Son precios de publicación en
+          dólares, no de escrituración, y {SOURCE} los calcula sobre los avisos
+          de su propio portal. Datos hasta {LAST_UPDATED}.
+        </>
+      }
+    >
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="fd-th">Zona</th>
-              {UNITS.map((u) => (
-                <th key={u.id} className="fd-th text-right pl-3">
-                  {u.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((z) => (
-              <tr key={z.id}>
-                <td className="fd-td align-top">
-                  <span className="text-ink whitespace-nowrap">{z.label}</span>
-                </td>
-                {z.units.map((u) => (
-                  <td
-                    key={u.id}
-                    className="fd-td text-right pl-3 align-top tabular-nums whitespace-nowrap"
-                  >
+        <DataTable
+          rows={rows}
+          rowKey={(z) => z.id}
+          columns={[
+            {
+              header: "Zona",
+              cellClassName: "align-top",
+              cell: (z) => (
+                <span className="text-ink whitespace-nowrap">{z.label}</span>
+              ),
+            },
+            // One column per unit size, positionally: a row's `units` are built
+            // in `UNITS` order, so the header and the cell under it are the
+            // same size without having to look one up by id.
+            ...UNITS.map((unit, i) => ({
+              header: unit.label,
+              headClassName: "text-right pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top",
+              cell: (z: (typeof rows)[number]) => {
+                const u = z.units[i];
+                return (
+                  <>
                     <span className="text-ink">
                       {u.total === null ? "—" : formatUsd(u.total)}
                     </span>
@@ -90,30 +110,13 @@ export function PrecioDepartamentoPba() {
                         ? "—"
                         : `${formatUsd(u.perMetre)}/m² · ${AREA.format(REFERENCE_AREA[u.id])} m²`}
                     </span>
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </>
+                );
+              },
+            })),
+          ]}
+        />
       </div>
-
-      <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Para un partido en particular la cuenta es la misma: el valor del m² que
-        figura en el mapa, multiplicado por los metros cubiertos de la unidad.
-        Los precios por metro de dos y de tres ambientes no van juntos —en el
-        norte el departamento más grande cuesta más por metro y en el oeste
-        cuesta menos—, así que conviene usar el de la superficie que estás
-        mirando.
-      </p>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Las superficies son las que usa la fuente para su unidad media: 50 m²
-        cubiertos para un dos ambientes y 70 m² para un tres ambientes. El total
-        está redondeado al millar. Son precios de publicación en dólares, no de
-        escrituración, y {SOURCE} los calcula sobre los avisos de su propio
-        portal. Datos hasta {LAST_UPDATED}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import {
   BREAKS,
   ciudad,
@@ -132,7 +133,31 @@ export function RentabilidadCabaMapa() {
   const provisional = PROVISIONAL.has(LAST_PERIOD);
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          Rentabilidad bruta anual del alquiler de departamentos usados en la
+          Ciudad de Buenos Aires, por barrio y por comuna: cuánto rinde por año
+          un departamento comprado para alquilar, como porcentaje de lo que
+          cuesta comprarlo. Permite comparar en qué barrios conviene invertir
+          para alquilar y en cuántos años de alquiler se recupera la inversión
+          en Balvanera, Belgrano, Palermo, Caballito, Recoleta o Flores.
+        </>
+      }
+      note={
+        <>
+          Es una rentabilidad <strong className="font-medium">bruta</strong>: no
+          descuenta expensas, ABL, impuesto a las ganancias, seguro, comisiones,
+          arreglos ni los meses sin inquilino. La real es bastante más baja. Se
+          calcula sobre precios de{" "}
+          <strong className="font-medium">publicación</strong> de los dos lados
+          —lo que se pide, no lo que se firma— y el alquiler en pesos se pasa a
+          dólares al promedio trimestral del dólar blue. Fuentes: IDECBA sobre
+          la base de Argenprop y ArgentinaDatos, datos hasta el {LAST_UPDATED}
+          {provisional ? " (provisorio)" : ""}.
+        </>
+      }
+    >
       <MapaCaba
         title="Mapa de rentabilidad del alquiler en CABA"
         dimensions={[
@@ -160,27 +185,6 @@ export function RentabilidadCabaMapa() {
         }}
         ariaLabel="Mapa de la Ciudad de Buenos Aires sombreado según la rentabilidad bruta anual del alquiler. Los mismos valores están en la tabla que sigue."
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Rentabilidad bruta anual del alquiler de departamentos usados en la
-        Ciudad de Buenos Aires, por barrio y por comuna: cuánto rinde por año un
-        departamento comprado para alquilar, como porcentaje de lo que cuesta
-        comprarlo. Permite comparar en qué barrios conviene invertir para
-        alquilar y en cuántos años de alquiler se recupera la inversión en
-        Balvanera, Belgrano, Palermo, Caballito, Recoleta o Flores.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Es una rentabilidad <strong className="font-medium">bruta</strong>: no
-        descuenta expensas, ABL, impuesto a las ganancias, seguro, comisiones,
-        arreglos ni los meses sin inquilino. La real es bastante más baja. Se
-        calcula sobre precios de{" "}
-        <strong className="font-medium">publicación</strong> de los dos lados
-        —lo que se pide, no lo que se firma— y el alquiler en pesos se pasa a
-        dólares al promedio trimestral del dólar blue. Fuentes: IDECBA sobre la
-        base de Argenprop y ArgentinaDatos, datos hasta el {LAST_UPDATED}
-        {provisional ? " (provisorio)" : ""}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

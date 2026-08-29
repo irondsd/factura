@@ -1,3 +1,5 @@
+import { DataFigure } from "@/components/figures/DataFigure";
+import { DataTable } from "@/components/figures/DataTable";
 import {
   DEFAULT_SIZE,
   formatShare,
@@ -30,30 +32,45 @@ export function CostoPorZona() {
   const rows = zonasShare(DEFAULT_SIZE);
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption className="mb-4">
-        <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
-          Obra y terreno por zona de la Ciudad
-        </h3>
-        <p className="font-mono text-xs text-muted mt-1.5 opacity-85 leading-[1.6]">
-          Barrio mediano de cada zona · departamentos de {SIZE.label} ·{" "}
-          {quarterLabel(JOIN_PERIOD)}
-        </p>
-      </figcaption>
-
+    <DataFigure
+      header={{
+        title: <>Obra y terreno por zona de la Ciudad</>,
+        subtitle: (
+          <>
+            Barrio mediano de cada zona · departamentos de {SIZE.label} ·{" "}
+            {quarterLabel(JOIN_PERIOD)}
+          </>
+        ),
+      }}
+      caption={
+        <>
+          En qué zonas de la Ciudad se paga sobre todo la construcción y en
+          cuáles se paga sobre todo la ubicación. Las dos columnas son las dos
+          caras del mismo metro cuadrado: cuanto mayor es el porcentaje que es
+          obra, menos queda para el terreno.
+        </>
+      }
+      note={
+        <>
+          Cada fila es el barrio que queda justo en la mitad de su zona, no un
+          promedio: dentro de una misma zona conviven Puerto Madero y
+          Constitución, y un promedio simple daría un número que no describe a
+          ninguno de los dos. La agrupación en cuatro zonas es nuestra —IDECBA
+          publica barrios y comunas—, y por eso cada fila dice qué comunas
+          incluye. Datos del {quarterLabel(JOIN_PERIOD)}.
+        </>
+      }
+    >
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="fd-th">Zona</th>
-              <th className="fd-th text-right pl-3">% que es obra</th>
-              <th className="fd-th text-right pl-3">Queda para el terreno</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((z) => (
-              <tr key={z.id}>
-                <td className="fd-td align-top">
+        <DataTable
+          rows={rows}
+          rowKey={(z) => z.id}
+          columns={[
+            {
+              header: "Zona",
+              cellClassName: "align-top",
+              cell: (z) => (
+                <>
                   <span className="text-ink">{z.label}</span>
                   <span className="block text-muted text-[11.5px] leading-[1.5] mt-0.5">
                     {z.comunas}
@@ -63,36 +80,29 @@ export function CostoPorZona() {
                       {z.withData} de {z.total} barrios con precio publicado
                     </span>
                   )}
-                </td>
-                <td className="fd-td text-right pl-3 align-top text-ink tabular-nums whitespace-nowrap">
-                  {z.median === null ? "—" : formatShare(z.median)}
-                </td>
-                <td className="fd-td text-right pl-3 align-top text-ink/90 tabular-nums whitespace-nowrap">
-                  {z.medianSurplus === null
-                    ? "—"
-                    : `${formatUsd(z.medianSurplus)}/m²`}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+            {
+              header: "% que es obra",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top text-ink",
+              cell: (z) => (z.median === null ? "—" : formatShare(z.median)),
+            },
+            {
+              header: "Queda para el terreno",
+              headClassName: "pl-3",
+              numeric: true,
+              cellClassName: "pl-3 align-top text-ink/90",
+              cell: (z) =>
+                z.medianSurplus === null
+                  ? "—"
+                  : `${formatUsd(z.medianSurplus)}/m²`,
+            },
+          ]}
+        />
       </div>
-
-      <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        En qué zonas de la Ciudad se paga sobre todo la construcción y en cuáles
-        se paga sobre todo la ubicación. Las dos columnas son las dos caras del
-        mismo metro cuadrado: cuanto mayor es el porcentaje que es obra, menos
-        queda para el terreno.
-      </p>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        Cada fila es el barrio que queda justo en la mitad de su zona, no un
-        promedio: dentro de una misma zona conviven Puerto Madero y
-        Constitución, y un promedio simple daría un número que no describe a
-        ninguno de los dos. La agrupación en cuatro zonas es nuestra —IDECBA
-        publica barrios y comunas—, y por eso cada fila dice qué comunas
-        incluye. Datos del {quarterLabel(JOIN_PERIOD)}.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

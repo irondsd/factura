@@ -1,3 +1,4 @@
+import { DataFigure } from "@/components/figures/DataFigure";
 import { MapaCaba, type MapView } from "@/components/maps/MapaCaba";
 import { BARRIOS, COMUNA_IDS } from "@/content/shared/caba";
 import {
@@ -156,7 +157,32 @@ export function PrecioSeguridadMapa() {
   }
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
+    <DataFigure
+      caption={
+        <>
+          Puntaje combinado de alquiler y delitos registrados en los barrios y
+          comunas de la Ciudad de Buenos Aires. Un barrio con 100 sería a la vez
+          el más barato y el más tranquilo de los que se pueden comparar; uno
+          con 0, el más caro y el que más hechos registra. Permite ver dónde se
+          juntan las dos cosas —el oeste residencial, Caballito, el eje de
+          Flores— y dónde cada una va por su lado.
+        </>
+      }
+      note={
+        <>
+          El puntaje es el promedio ponderado de dos posiciones percentiles, no
+          de dos valores: 100 es el extremo bueno{" "}
+          <strong className="font-medium">entre los barrios comparados</strong>,
+          no un absoluto. Dos barrios separados por veinte puntos pueden estar a
+          unos cientos de pesos y a medio hecho cada 1.000 habitantes de
+          distancia, así que conviene mirar siempre las cifras al lado del
+          color. El alquiler es el pedido en avisos para un departamento de{" "}
+          {SIZE.label}; los delitos son hechos registrados cada 1.000 residentes
+          censados, lo que sobreestima al microcentro, donde la mayoría de las
+          personas que están de día no viven ahí.
+        </>
+      }
+    >
       <MapaCaba
         title="Dónde conviene alquilar según precio y delitos"
         dimensions={[
@@ -184,28 +210,6 @@ export function PrecioSeguridadMapa() {
         }}
         ariaLabel="Mapa de la Ciudad de Buenos Aires sombreado según un puntaje que combina la posición de cada barrio en alquiler pedido por metro cuadrado y en delitos registrados por habitante. Los mismos valores están en la tabla que sigue."
       />
-
-      <figcaption className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Puntaje combinado de alquiler y delitos registrados en los barrios y
-        comunas de la Ciudad de Buenos Aires. Un barrio con 100 sería a la vez
-        el más barato y el más tranquilo de los que se pueden comparar; uno con
-        0, el más caro y el que más hechos registra. Permite ver dónde se juntan
-        las dos cosas —el oeste residencial, Caballito, el eje de Flores— y
-        dónde cada una va por su lado.
-      </figcaption>
-
-      <p className="font-mono text-[11.5px] text-muted mt-3 leading-[1.6] opacity-85">
-        El puntaje es el promedio ponderado de dos posiciones percentiles, no de
-        dos valores: 100 es el extremo bueno{" "}
-        <strong className="font-medium">entre los barrios comparados</strong>,
-        no un absoluto. Dos barrios separados por veinte puntos pueden estar a
-        unos cientos de pesos y a medio hecho cada 1.000 habitantes de
-        distancia, así que conviene mirar siempre las cifras al lado del color.
-        El alquiler es el pedido en avisos para un departamento de {SIZE.label};
-        los delitos son hechos registrados cada 1.000 residentes censados, lo
-        que sobreestima al microcentro, donde la mayoría de las personas que
-        están de día no viven ahí.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }

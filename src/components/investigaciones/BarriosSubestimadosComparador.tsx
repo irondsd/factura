@@ -1,5 +1,7 @@
 "use client";
 
+import { DataFigure } from "@/components/figures/DataFigure";
+
 import { useState } from "react";
 import {
   CANDIDATES,
@@ -27,8 +29,19 @@ export function BarriosSubestimadosComparador() {
     .sort((a, b) => b.score - a.score);
 
   return (
-    <figure className="fd-card my-8 px-5 pt-5 pb-4">
-      <figcaption>
+    <DataFigure
+      caption={
+        <>
+          Pesos actuales para «{selected.label.toLowerCase()}»: precio{" "}
+          {selected.weights.cheap}%, seguridad {selected.weights.safe}%,
+          transporte {selected.weights.transport}%, verde{" "}
+          {selected.weights.publicSpace}% y futuro {selected.weights.future}%.
+          El resultado sirve para revelar el canje, no para fingir precisión
+          inmobiliaria.
+        </>
+      }
+    >
+      <div>
         <h3 className="font-mono text-micro uppercase tracking-label-wide text-muted m-0 scroll-mt-24">
           Cambiá la prioridad, no los datos
         </h3>
@@ -36,7 +49,7 @@ export function BarriosSubestimadosComparador() {
           Precio y seguridad son posiciones oficiales; transporte, verde y
           futuro son evaluaciones editoriales publicadas en esta misma figura.
         </p>
-      </figcaption>
+      </div>
 
       <div
         className="flex flex-wrap gap-2 mt-5"
@@ -105,15 +118,6 @@ export function BarriosSubestimadosComparador() {
           </div>
         ))}
       </div>
-
-      <p className="font-mono text-xs text-muted mt-4 leading-[1.6]">
-        Pesos actuales para «{selected.label.toLowerCase()}»: precio{" "}
-        {selected.weights.cheap}%, seguridad {selected.weights.safe}%,
-        transporte {selected.weights.transport}%, verde{" "}
-        {selected.weights.publicSpace}% y futuro {selected.weights.future}%. El
-        resultado sirve para revelar el canje, no para fingir precisión
-        inmobiliaria.
-      </p>
-    </figure>
+    </DataFigure>
   );
 }
