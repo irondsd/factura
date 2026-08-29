@@ -601,6 +601,21 @@ without one renders exactly the row and header it always has. Guides with and
 without an image are meant to sit in the same list — do not add a filler image
 to make a section look uniform.
 
+**Vendor guides have a template.** For "Cómo leer / Cómo pagar la factura de X"
+and the tarifa social pages — the ones that already show a picture of the bill
+inside the article — do not draw anything by hand. `bun run preview:guide`
+builds the preview from that same bill image, on-brand and at the right size:
+
+```bash
+bun run preview:guide --bill factura-edea.jpg --motif leer --out edea.jpg
+```
+
+The bill goes in uncropped (download it from the media library by its `src`);
+the motif says what the guide does with it, and is what keeps the `leer` and
+`pagar` rows of one vendor from being the same picture twice. `--motifs` lists
+them, and `scripts/build-guide-preview.ts` documents the batch manifest and the
+`--inset` knob for bills that were photographed rather than scanned.
+
 **Statistics and research: include one.** These pages are long, chart-heavy and
 visually similar to one another in the listings, and the thumbnail is what makes
 one distinguishable from the next. Treat a missing `previewMediaId` on a new

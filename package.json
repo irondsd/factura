@@ -15,6 +15,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "audit:seo": "bun scripts/audit-seo.ts",
+    "preview:guide": "bun scripts/build-guide-preview.ts",
     "data:caba": "bun scripts/fetch-caba-inmobiliario.ts",
     "data:pba": "bun scripts/fetch-pba-inmobiliario.ts",
     "data:suelo": "bun scripts/fetch-pba-suelo.ts",
