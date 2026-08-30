@@ -66,7 +66,7 @@ const PREAMBLE = `# Factura
 
 > Factura is a bill ledger that turns uploaded PDF bills into spending, utility, and consumption insights for households.
 
-The site is available in Spanish (default, at the canonical URLs below) and English (under the /en prefix, e.g. https://factura.uno/en, https://factura.uno/en/docs). Each page links its translations via hreflang.
+The product and trust pages are available in Spanish (default, at the canonical URLs below) and English (under the /en prefix, e.g. https://factura.uno/en, https://factura.uno/en/docs), with translations linked via hreflang. The editorial sections — Noticias, Guías, Estadísticas, Investigación, Normativa and Ubicaciones — are Spanish-only.
 
 Factura helps users store, parse, and understand recurring bills such as electricity, gas, water, building expenses, internet, and other home costs.
 

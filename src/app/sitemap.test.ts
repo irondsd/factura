@@ -18,6 +18,17 @@ const page = (slug: string, categoryKeys: string[], updated: string) => ({
   meta: { categoryKeys, updated },
 });
 
+const location = (
+  slug: string,
+  updatedAt: string,
+  pageUpdates: string[],
+) =>
+  ({
+    slug,
+    updatedAt,
+    pages: pageUpdates.map((contentUpdatedAt) => ({ contentUpdatedAt })),
+  }) as never;
+
 const guides = vi.hoisted(() => vi.fn());
 const guideCategories = vi.hoisted(() => vi.fn());
 const listed = vi.hoisted(() => vi.fn());
@@ -124,5 +135,35 @@ describe("sitemap", () => {
     expect(
       entry(entries, "https://factura.uno/estadisticas").lastModified,
     ).toBeUndefined();
+    expect(
+      entries.some((item) => item.url === "https://factura.uno/ubicacion"),
+    ).toBe(false);
+  });
+
+  it("dates location surfaces by registry edits as well as their content", async () => {
+    guides.mockResolvedValue([]);
+    guideCategories.mockResolvedValue([]);
+    listed.mockResolvedValue([]);
+    contentCategories.mockResolvedValue([]);
+    locations.mockResolvedValue([
+      location("caba", "2026-08-20T00:00:00.000Z", [
+        "2026-06-01T00:00:00.000Z",
+      ]),
+      location("mendoza", "2026-03-01T00:00:00.000Z", [
+        "2026-07-10T00:00:00.000Z",
+      ]),
+    ]);
+
+    const entries = await sitemap();
+
+    expect(
+      entry(entries, "https://factura.uno/ubicacion").lastModified,
+    ).toEqual(new Date("2026-08-20T00:00:00.000Z"));
+    expect(
+      entry(entries, "https://factura.uno/ubicacion/caba").lastModified,
+    ).toEqual(new Date("2026-08-20T00:00:00.000Z"));
+    expect(
+      entry(entries, "https://factura.uno/ubicacion/mendoza").lastModified,
+    ).toEqual(new Date("2026-07-10T00:00:00.000Z"));
   });
 });
