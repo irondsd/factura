@@ -642,7 +642,6 @@ if (!hasTestDatabase()) {
         label: "Ubicación de prueba",
         title: "Contenido de prueba",
         description: "Ubicación creada por la suite MCP del CMS.",
-        sortOrder: 900,
       });
       const member = await db.query.cmsMembers.findFirst();
       if (!member) {

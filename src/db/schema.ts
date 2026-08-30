@@ -1373,7 +1373,6 @@ export const cmsLocations = pgTable(
     label: text("label").notNull(),
     title: text("title").notNull(),
     description: text("description").notNull(),
-    sortOrder: integer("sort_order").notNull().default(0),
     lockVersion: integer("lock_version").notNull().default(1),
     createdBy: uuid("created_by").references(() => users.id, {
       onDelete: "set null",
@@ -1395,7 +1394,7 @@ export const cmsLocations = pgTable(
   (t) => [
     uniqueIndex("cms_location_key_idx").on(t.key),
     uniqueIndex("cms_location_slug_idx").on(t.slug),
-    index("cms_location_order_idx").on(t.retiredAt, t.sortOrder),
+    index("cms_location_label_idx").on(t.retiredAt, t.label),
   ],
 );
 

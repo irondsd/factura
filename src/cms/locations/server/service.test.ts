@@ -42,7 +42,6 @@ function fakeLocations() {
       label: string;
       title: string;
       description: string;
-      sortOrder: number;
       actorId: string;
     }) => {
       const id = `00000000-0000-0000-0000-${String(++next).padStart(12, "0")}`;
@@ -53,7 +52,6 @@ function fakeLocations() {
         label: input.label,
         title: input.title,
         description: input.description,
-        sortOrder: input.sortOrder,
         lockVersion: 1,
         createdBy: input.actorId,
         updatedBy: input.actorId,

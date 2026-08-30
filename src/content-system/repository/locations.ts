@@ -2,6 +2,10 @@ import "server-only";
 import { asc, eq, isNull } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { cmsLocationRedirects, cmsLocations } from "@/db/schema";
+import {
+  alphabetizeLocations,
+  sortLocationContentByPublication,
+} from "../locations/alphabetize";
 import type {
   ContentLocation,
   NonEmptyContentLocation,
@@ -27,13 +31,12 @@ const mapLocation = (
 async function readLocations(): Promise<ContentLocation[]> {
   if (process.env.CI_CONTENT_FIXTURES === "1") return [...CI_CONTENT_LOCATIONS];
   const { db } = await import("@/db");
-  return (
-    await db
-      .select()
-      .from(cmsLocations)
-      .where(isNull(cmsLocations.retiredAt))
-      .orderBy(asc(cmsLocations.sortOrder), asc(cmsLocations.label))
-  ).map(mapLocation);
+  const rows = await db
+    .select()
+    .from(cmsLocations)
+    .where(isNull(cmsLocations.retiredAt))
+    .orderBy(asc(cmsLocations.label));
+  return alphabetizeLocations(rows.map(mapLocation));
 }
 
 async function readRedirect(slug: string): Promise<ContentLocation | null> {
@@ -125,8 +128,10 @@ export async function contentInLocation(
   return Object.fromEntries(
     CONTENT_SECTIONS.map((section) => [
       section,
-      bySection[section].filter((page) =>
-        page.metadata.locations.includes(key),
+      sortLocationContentByPublication(
+        bySection[section].filter((page) =>
+          page.metadata.locations.includes(key),
+        ),
       ),
     ]),
   ) as Record<ContentSection, ContentSummary[]>;
@@ -139,13 +144,13 @@ export async function nonEmptyContentLocations(): Promise<
     contentLocations(),
     publishedContentBySection(),
   ]);
-  return locations.flatMap((location) => {
-    const pages = CONTENT_SECTIONS.flatMap((section) =>
-      bySection[section].filter((page) =>
-        page.metadata.locations.includes(location.key),
+  return alphabetizeLocations(locations).flatMap((location) => {
+    const pages = sortLocationContentByPublication(
+      CONTENT_SECTIONS.flatMap((section) =>
+        bySection[section].filter((page) =>
+          page.metadata.locations.includes(location.key),
+        ),
       ),
-    ).sort(
-      (a, b) => Date.parse(b.contentUpdatedAt) - Date.parse(a.contentUpdatedAt),
     );
     if (pages.length === 0) return [];
     return [{ ...location, total: pages.length, pages }];

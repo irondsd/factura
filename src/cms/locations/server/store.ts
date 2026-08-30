@@ -47,7 +47,7 @@ export class CmsLocationStore {
       .where(
         options.includeRetired ? undefined : isNull(cmsLocations.retiredAt),
       )
-      .orderBy(asc(cmsLocations.sortOrder), asc(cmsLocations.label));
+      .orderBy(asc(cmsLocations.label));
     return rows.map(locationOf);
   }
   async findById(id: string): Promise<ContentLocation | null> {
@@ -106,7 +106,6 @@ export class CmsLocationStore {
     label: string;
     title: string;
     description: string;
-    sortOrder: number;
     actorId: string;
     now: Date;
   }): Promise<ContentLocation> {
@@ -128,13 +127,7 @@ export class CmsLocationStore {
     patch: Partial<
       Pick<
         LocationRow,
-        | "slug"
-        | "label"
-        | "title"
-        | "description"
-        | "sortOrder"
-        | "retiredAt"
-        | "retiredBy"
+        "slug" | "label" | "title" | "description" | "retiredAt" | "retiredBy"
       >
     >;
     actorId: string;

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ContentLocation } from "@/content-system/locations/types";
 import { badgeClass } from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
+import { LocationTagLabel } from "./LocationTagLabel";
 
 export function LocationLinks({
   locations,
@@ -26,7 +27,7 @@ export function LocationLinks({
                 "px-2.5 py-1.5 text-ink no-underline transition-colors hover:border-accent hover:text-accent",
               )}
             >
-              {location.label}
+              <LocationTagLabel label={location.label} />
             </Link>
           </li>
         ))}

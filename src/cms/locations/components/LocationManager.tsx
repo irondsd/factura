@@ -271,7 +271,6 @@ type Values = {
   label: string;
   title: string;
   description: string;
-  sortOrder: number;
   slug?: string;
 };
 function LocationForm({
@@ -292,7 +291,6 @@ function LocationForm({
   const [label, setLabel] = useState(location?.label ?? "");
   const [title, setTitle] = useState(location?.title ?? "");
   const [description, setDescription] = useState(location?.description ?? "");
-  const [sortOrder, setSortOrder] = useState(location?.sortOrder ?? 0);
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   return (
@@ -304,7 +302,6 @@ function LocationForm({
           label,
           title,
           description,
-          sortOrder,
           ...(mode === "create" ? { slug } : {}),
         });
       }}
@@ -364,14 +361,6 @@ function LocationForm({
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           className={cn(INPUT, "resize-y")}
-        />
-      </FormField>
-      <FormField label="Orden" help="Los números menores aparecen primero.">
-        <input
-          type="number"
-          value={sortOrder}
-          onChange={(event) => setSortOrder(Number(event.target.value))}
-          className={cn(INPUT, "max-w-32")}
         />
       </FormField>
       <ActionError error={error} />

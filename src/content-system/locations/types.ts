@@ -9,7 +9,6 @@ export type ContentLocation = {
   label: string;
   title: string;
   description: string;
-  sortOrder: number;
   lockVersion: number;
   createdBy: string | null;
   updatedBy: string | null;

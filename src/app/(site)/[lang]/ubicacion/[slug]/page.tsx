@@ -92,14 +92,15 @@ export default async function LocationHubPage({ params }: Props) {
               </div>
               <ContentList
                 titleAs="h3"
-                datePrefix="Actualizado el "
+                datePrefix="Publicado el "
                 items={pages.map((page) => ({
                   key: page.id,
                   href: `/${page.section}/${page.slug}`,
                   title: page.title,
                   summary: page.summary,
                   previewMediaId: page.metadata.previewMediaId,
-                  date: page.contentUpdatedAt,
+                  date: page.publishedAt ?? page.contentUpdatedAt,
+                  badge: section.singular,
                 }))}
               />
             </section>

@@ -1,10 +1,12 @@
 import { db } from "@/db";
-import { cmsLocations } from "@/db/schema";
+import { cmsLocationRedirects, cmsLocations } from "@/db/schema";
 
-/** Initial reviewed registry shape. Inserting is idempotent; later copy changes
- * belong in the CMS so optimistic locking and cache invalidation apply. */
+/** Pre-backfill registry rollout. Re-running it updates the original stage-1
+ * records to the reviewed public labels and concise slugs; after rollout,
+ * ordinary copy changes belong in the CMS. */
 const LOCATIONS = [
   [
+    "argentina",
     "argentina",
     "Argentina",
     "Contenido sobre Argentina",
@@ -12,23 +14,27 @@ const LOCATIONS = [
   ],
   [
     "caba",
+    "caba",
     "CABA",
     "Contenido sobre CABA",
     "Información que se aplica a la Ciudad Autónoma de Buenos Aires o analiza sus datos.",
   ],
   [
     "provincia-de-buenos-aires",
-    "Provincia de Buenos Aires",
-    "Contenido sobre la Provincia de Buenos Aires",
+    "buenos-aires",
+    "Buenos Aires",
+    "Contenido sobre Buenos Aires",
     "Información que se aplica a la Provincia de Buenos Aires o analiza sus datos.",
   ],
   [
     "gran-buenos-aires",
-    "Gran Buenos Aires",
-    "Contenido sobre el Gran Buenos Aires",
+    "gba",
+    "GBA",
+    "Contenido sobre el GBA",
     "Información sobre los partidos y localidades que integran el Gran Buenos Aires.",
   ],
   [
+    "cuyo",
     "cuyo",
     "Cuyo",
     "Contenido sobre Cuyo",
@@ -36,23 +42,27 @@ const LOCATIONS = [
   ],
   [
     "noreste-argentino",
-    "Noreste argentino",
-    "Contenido sobre el Noreste argentino",
+    "noreste",
+    "Noreste",
+    "Contenido sobre el Noreste",
     "Información que analiza o se aplica específicamente al Noreste argentino.",
   ],
   [
     "noroeste-argentino",
-    "Noroeste argentino",
-    "Contenido sobre el Noroeste argentino",
+    "noroeste",
+    "Noroeste",
+    "Contenido sobre el Noroeste",
     "Información que analiza o se aplica específicamente al Noroeste argentino.",
   ],
   [
     "region-pampeana",
-    "Región Pampeana",
-    "Contenido sobre la Región Pampeana",
+    "pampeana",
+    "Pampeana",
+    "Contenido sobre la región Pampeana",
     "Información que analiza o se aplica específicamente a la Región Pampeana.",
   ],
   [
+    "patagonia",
     "patagonia",
     "Patagonia",
     "Contenido sobre la Patagonia",
@@ -60,11 +70,13 @@ const LOCATIONS = [
   ],
   [
     "neuquen",
+    "neuquen",
     "Neuquén",
     "Contenido sobre Neuquén",
     "Información que se aplica a Neuquén o analiza datos de la provincia.",
   ],
   [
+    "mendoza",
     "mendoza",
     "Mendoza",
     "Contenido sobre Mendoza",
@@ -72,11 +84,13 @@ const LOCATIONS = [
   ],
   [
     "cordoba",
-    "Cordoba",
+    "cordoba",
+    "Córdoba",
     "Contenido sobre Córdoba",
     "Información que se aplica a Córdoba o analiza datos de la provincia.",
   ],
   [
+    "santa-fe",
     "santa-fe",
     "Santa Fe",
     "Contenido sobre Santa Fe",
@@ -84,19 +98,30 @@ const LOCATIONS = [
   ],
 ] as const;
 
-await db
-  .insert(cmsLocations)
-  .values(
-    LOCATIONS.map(([key, label, title, description], sortOrder) => ({
-      key,
-      slug: key,
-      label,
-      title,
-      description,
-      sortOrder,
-    })),
-  )
-  .onConflictDoNothing();
+for (const [key, slug, label, title, description] of LOCATIONS) {
+  await db.transaction(async (tx) => {
+    const [location] = await tx
+      .insert(cmsLocations)
+      .values({ key, slug, label, title, description })
+      .onConflictDoUpdate({
+        target: cmsLocations.key,
+        set: { slug, label, title, description, updatedAt: new Date() },
+      })
+      .returning({ id: cmsLocations.id });
+
+    // The stage-1 key was also its public slug. Keep those already-deployed
+    // addresses working when this rollout replaces them with shorter slugs.
+    if (location && key !== slug) {
+      await tx
+        .insert(cmsLocationRedirects)
+        .values({ fromSlug: key, locationId: location.id })
+        .onConflictDoUpdate({
+          target: cmsLocationRedirects.fromSlug,
+          set: { locationId: location.id },
+        });
+    }
+  });
+}
 
 console.log(`[locations] registry ready (${LOCATIONS.length} initial records)`);
 process.exit(0);

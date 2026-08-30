@@ -156,7 +156,6 @@ export const CMS_TOOLS: Tool[] = [
         label: z.string(),
         title: z.string(),
         description: z.string(),
-        sortOrder: z.number().int().optional(),
       })
       .strict(),
     run: (a, input) =>
@@ -169,7 +168,7 @@ export const CMS_TOOLS: Tool[] = [
     name: "update_location",
     scope: "cms:write",
     description:
-      "Edit a location's label, hub title, description or order. Changes are live immediately. Address changes and retirement are browser-only.",
+      "Edit a location's label, hub title or description. Changes are live immediately. Address changes and retirement are browser-only.",
     annotations: writes("Editar una ubicación"),
     schema: z
       .object({
@@ -180,7 +179,6 @@ export const CMS_TOOLS: Tool[] = [
             label: z.string().optional(),
             title: z.string().optional(),
             description: z.string().optional(),
-            sortOrder: z.number().int().optional(),
           })
           .strict()
           .refine((value) => Object.keys(value).length > 0, {

@@ -7,6 +7,7 @@ import {
   isLocationSlug,
   slugifyLocation,
 } from "@/content-system/locations/slug";
+import { alphabetizeLocations } from "@/content-system/locations/alphabetize";
 import { revalidatePublicLocations } from "@/cms/server/invalidation";
 import { canAuthor } from "@/cms/auth/policy";
 import type { CmsActor } from "@/cms/types";
@@ -28,15 +29,12 @@ export type CreateLocationInput = {
   label: string;
   title: string;
   description: string;
-  sortOrder?: number;
   slug?: string;
 };
 export type UpdateLocationInput = {
   id: string;
   expectedLockVersion: number;
-  patch: Partial<
-    Pick<ContentLocation, "label" | "title" | "description" | "sortOrder">
-  >;
+  patch: Partial<Pick<ContentLocation, "label" | "title" | "description">>;
 };
 export type LocationDetail = ContentLocationWithUsage & {
   redirects: string[];
@@ -57,7 +55,7 @@ export class CmsLocationService {
   async list(_actor?: CmsActor): Promise<ContentLocationWithUsage[]> {
     void _actor;
     return Promise.all(
-      (await this.store.list()).map(async (location) => {
+      alphabetizeLocations(await this.store.list()).map(async (location) => {
         const usage = await this.store.usage(location.key);
         return { ...location, usageCount: usage.length, usage };
       }),
@@ -65,12 +63,12 @@ export class CmsLocationService {
   }
 
   /** The registry as the page editor's field needs it: keys and labels, in
-   * registry order, and no usage at all. The editor renders once per page load
+   * alphabetical order, and no usage at all. The editor renders once per page load
    * and never asks who else uses a location, so it should not pay for a
    * revision scan per location to find out. */
   async options(_actor?: CmsActor): Promise<ContentLocation[]> {
     void _actor;
-    return this.store.list();
+    return alphabetizeLocations(await this.store.list());
   }
   async get(_actor: CmsActor, id: string): Promise<LocationDetail> {
     const location = await this.required(id);
@@ -105,7 +103,6 @@ export class CmsLocationService {
         key: slug,
         slug,
         ...values,
-        sortOrder: input.sortOrder ?? 0,
         actorId: actor.userId,
         now,
       });
@@ -268,9 +265,6 @@ function checkedPatch(
       : {}),
     ...(patch.description !== undefined
       ? { description: filled(patch.description, "description", 220) }
-      : {}),
-    ...(patch.sortOrder !== undefined
-      ? { sortOrder: Math.trunc(patch.sortOrder) }
       : {}),
   };
 }
