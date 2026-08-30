@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import { cmsLocationRedirects, cmsLocations } from "@/db/schema";
 import {
   alphabetizeLocations,
+  contentHasLocation,
   sortLocationContentByPublication,
 } from "../locations/alphabetize";
 import type {
@@ -88,7 +89,7 @@ export async function locationBySlug(
 }
 
 export async function locationsByKeys(
-  keys: readonly string[],
+  keys: readonly string[] = [],
 ): Promise<ContentLocation[]> {
   const requested = new Set(keys);
   return (await contentLocations()).filter((location) =>
@@ -129,9 +130,7 @@ export async function contentInLocation(
     CONTENT_SECTIONS.map((section) => [
       section,
       sortLocationContentByPublication(
-        bySection[section].filter((page) =>
-          page.metadata.locations.includes(key),
-        ),
+        bySection[section].filter((page) => contentHasLocation(page, key)),
       ),
     ]),
   ) as Record<ContentSection, ContentSummary[]>;
@@ -148,7 +147,7 @@ export async function nonEmptyContentLocations(): Promise<
     const pages = sortLocationContentByPublication(
       CONTENT_SECTIONS.flatMap((section) =>
         bySection[section].filter((page) =>
-          page.metadata.locations.includes(location.key),
+          contentHasLocation(page, location.key),
         ),
       ),
     );

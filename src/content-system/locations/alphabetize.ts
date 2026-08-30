@@ -55,3 +55,13 @@ export function sortLocationContentByPublication<
     return bPublished - aPublished || a.slug.localeCompare(b.slug, "es");
   });
 }
+
+/** Cached summaries created before the location feature can outlive a deploy.
+ * Treat their missing field exactly like the metadata schema does: an empty
+ * location set, until normal cache invalidation replaces the old payload. */
+export function contentHasLocation(
+  page: { metadata: { locations?: readonly string[] } },
+  key: string,
+): boolean {
+  return page.metadata.locations?.includes(key) ?? false;
+}

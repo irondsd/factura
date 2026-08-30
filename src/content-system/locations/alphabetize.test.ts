@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   alphabetizeLocations,
+  contentHasLocation,
   groupLocationsByInitial,
   sortLocationContentByPublication,
 } from "./alphabetize";
@@ -45,5 +46,12 @@ describe("location alphabetization", () => {
         { slug: "unpublished", publishedAt: null },
       ]).map(({ slug }) => slug),
     ).toEqual(["new", "old", "unpublished"]);
+  });
+
+  it("treats a pre-location cached summary as having no locations", () => {
+    expect(contentHasLocation({ metadata: {} }, "caba")).toBe(false);
+    expect(
+      contentHasLocation({ metadata: { locations: ["caba"] } }, "caba"),
+    ).toBe(true);
   });
 });
