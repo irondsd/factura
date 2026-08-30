@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dataLicense, siteUrl } from "@/config/urls";
-import { guideLd, sectionPageLd } from "./structuredData";
+import { guideLd, sectionPageLd, siteLd } from "./structuredData";
 
 // The `Dataset` node's licence. Google reports a dataset without one as an
 // unoptimised rich result, and every statistics and research page emits one of
@@ -187,7 +187,7 @@ describe("article credits", () => {
 });
 
 describe("article locations", () => {
-  it("describes exact locations as Place nodes with canonical hub URLs", () => {
+  it("describes exact geographic scope as identified Place nodes", () => {
     const article = nodeOfType(
       guideLd({
         slug: "como-leer-la-factura-de-edesur",
@@ -203,12 +203,54 @@ describe("article locations", () => {
       "BlogPosting",
     );
 
-    expect(article?.contentLocation).toEqual([
+    expect(article?.spatialCoverage).toEqual([
       {
         "@type": "Place",
+        "@id": `${siteUrl}/ubicacion/caba#place`,
         name: "CABA",
         url: `${siteUrl}/ubicacion/caba`,
       },
     ]);
+  });
+
+  it("uses the same normalized places for a dataset's spatial coverage", () => {
+    const graph = sectionPageLd({
+      id: "estadisticas",
+      slug: ["alquiler-caba"],
+      title: "Alquileres",
+      description: "Precio pedido por barrio.",
+      keywords: ["alquiler caba"],
+      published: "2026-01-01T00:00:00.000Z",
+      updated: "2026-06-01T00:00:00.000Z",
+      sources: [
+        { label: "IDECBA", href: "https://www.estadisticaciudad.gob.ar/" },
+      ],
+      dataset: {
+        name: "Alquileres por barrio",
+        description: "Precio mensual por barrio.",
+        temporalCoverage: "2024-01/2026-06",
+        spatialCoverage: "Texto anterior que ya no es la fuente canónica",
+        variableMeasured: ["precio de alquiler"],
+      },
+      words: 1200,
+      minutes: 6,
+      locations: [{ label: "CABA", slug: "caba" }],
+    });
+
+    expect(nodeOfType(graph, "Dataset")?.spatialCoverage).toEqual([
+      {
+        "@type": "Place",
+        "@id": `${siteUrl}/ubicacion/caba#place`,
+        name: "CABA",
+        url: `${siteUrl}/ubicacion/caba`,
+      },
+    ]);
+  });
+});
+
+describe("organization", () => {
+  it("uses the crawlable 512px brand asset rather than the 32px app icon", () => {
+    const organization = nodeOfType(siteLd("es"), "Organization");
+    expect(organization?.logo).toBe(`${siteUrl}/logo.svg`);
   });
 });

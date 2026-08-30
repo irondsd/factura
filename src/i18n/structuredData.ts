@@ -98,11 +98,15 @@ const reviewNodes = (
       ]
     : [];
 
+/** One geographic subject shared by article, dataset and location-hub graphs.
+ * The hub fragment identifies the place itself; the document without the
+ * fragment is the collection page about that place. */
 const locationNodes = (
   locations: readonly Pick<ContentLocation, "label" | "slug">[] | undefined,
 ) =>
   locations?.map((location) => ({
     "@type": "Place" as const,
+    "@id": `${locationUrl(location.slug)}#place`,
     name: location.label,
     url: locationUrl(location.slug),
   }));
@@ -118,7 +122,9 @@ export function siteLd(locale: Locale) {
         "@id": ORG_ID,
         name: ORG_NAME,
         url: siteUrl,
-        logo: `${siteUrl}/icon.png`,
+        // The app icon is only 32px. Google's Organization guidance requires
+        // at least 112x112; this public brand mark has a 512x512 viewBox.
+        logo: `${siteUrl}/logo.svg`,
         sameAs: [githubUrl],
       },
       {
@@ -335,7 +341,7 @@ export function guideLd({
         timeRequired: `PT${minutes}M`,
         author: authorNode(credits),
         ...(locations?.length
-          ? { contentLocation: locationNodes(locations) }
+          ? { spatialCoverage: locationNodes(locations) }
           : {}),
         publisher: { "@id": ORG_ID },
       },
@@ -411,7 +417,7 @@ export function editorialPageLd({
         timeRequired: `PT${minutes}M`,
         author: authorNode(credits),
         ...(locations?.length
-          ? { contentLocation: locationNodes(locations) }
+          ? { spatialCoverage: locationNodes(locations) }
           : {}),
         publisher: { "@id": ORG_ID },
       },
@@ -496,7 +502,7 @@ export function sectionPageLd({
         about: { "@id": datasetId },
         author: authorNode(credits),
         ...(locations?.length
-          ? { contentLocation: locationNodes(locations) }
+          ? { spatialCoverage: locationNodes(locations) }
           : {}),
         publisher: { "@id": ORG_ID },
       },
@@ -516,7 +522,12 @@ export function sectionPageLd({
         license: dataset.license ?? dataLicense.url,
         isAccessibleForFree: true,
         temporalCoverage: dataset.temporalCoverage,
-        spatialCoverage: dataset.spatialCoverage,
+        // Location tags are the normalized geographic vocabulary and link to
+        // public hubs. Keep the authored text as a compatibility fallback for
+        // older documents and previews that have no resolved location.
+        spatialCoverage: locations?.length
+          ? locationNodes(locations)
+          : dataset.spatialCoverage,
         variableMeasured: dataset.variableMeasured,
         dateModified: updated,
         // Factura republishes these numbers; it doesn't produce them. `creator`
@@ -735,7 +746,10 @@ export function locationHubLd({
   location,
   pages,
 }: {
-  location: Pick<ContentLocation, "slug" | "title" | "description">;
+  location: Pick<
+    ContentLocation,
+    "slug" | "label" | "title" | "description"
+  >;
   pages: readonly { section: ContentSection; slug: string; title: string }[];
 }) {
   const url = locationUrl(location.slug);
@@ -748,6 +762,7 @@ export function locationHubLd({
     description: location.description,
     inLanguage: "es",
     isPartOf: { "@id": `${locationsIndexUrl}#collection` },
+    about: locationNodes([location])?.[0],
     publisher: { "@id": ORG_ID },
     mainEntity: {
       "@type": "ItemList",
