@@ -104,33 +104,50 @@ export function isContentEdit(
     canonicalSlug?: string | null;
     metadata?: unknown;
   },
-  current?: { metadata?: unknown },
-  next?: { metadata?: unknown },
+  current?: Record<string, unknown>,
+  next?: Record<string, unknown>,
 ): boolean {
-  const authoredKeys = Object.keys(patch).filter((key) => key !== "metadata");
-  if (authoredKeys.length > 0) return true;
-  if (!("metadata" in patch)) return false;
-  if (!current || !next) return true;
-  return (
-    stableWithoutLocations(current.metadata) !==
-    stableWithoutLocations(next.metadata)
+  const keys = Object.keys(patch);
+
+  // No document to compare against: fall back to "the caller sent a field, so
+  // something was written". The status transitions call it this way with an
+  // empty patch, which is the case that matters — publishing is not editing.
+  if (!current || !next) return keys.length > 0;
+
+  // Otherwise compare what the save would actually change. The editor form
+  // submits *every* column plus the body on every save, whether or not the
+  // editor touched them, so key presence says nothing about whether the page
+  // changed — and trusting it is what made a locations-only save move the
+  // visible "Actualizado el …" date.
+  //
+  // `next` rather than the raw patch on purpose: it carries the metadata that
+  // went through the schema, so a blank optional field that was dropped and a
+  // reordered location list both compare equal to what is already stored.
+  return keys.some((key) =>
+    key === "metadata"
+      ? stableWithoutLocations(current.metadata) !==
+        stableWithoutLocations(next.metadata)
+      : stable(current[key]) !== stable(next[key]),
   );
 }
 
+const stable = (value: unknown): string => JSON.stringify(value ?? null);
+
+/** A metadata blob as a comparable string, with `locations` removed and the
+ * remaining keys ordered.
+ *
+ * Locations are navigational metadata: adding, removing or reordering them
+ * changes which hubs list the page and nothing a reader of the page itself
+ * would call an update, so they must not move `contentUpdatedAt`. Any other
+ * metadata key changing in the same save still does. */
 function stableWithoutLocations(value: unknown): string {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return JSON.stringify(value);
+    return JSON.stringify(value ?? null);
   }
-  const rest = Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).filter(
-      ([key]) => key !== "locations",
-    ),
-  );
-  return JSON.stringify(
-    Object.fromEntries(
-      Object.entries(rest).sort(([a], [b]) => a.localeCompare(b)),
-    ),
-  );
+  const rest = Object.entries(value as Record<string, unknown>)
+    .filter(([key]) => key !== "locations")
+    .sort(([a], [b]) => a.localeCompare(b));
+  return JSON.stringify(Object.fromEntries(rest));
 }
 
 /** Whether saving a working copy changes something a public visitor can already

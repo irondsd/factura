@@ -12,8 +12,8 @@ import {
   type ContentSummary,
 } from "../types";
 import { CI_CONTENT_LOCATIONS } from "./ci-fixtures";
-import { publishedContent } from "./categories";
-import { contentTag, locationsTag } from "./tags";
+import { sectionRepository } from "./sections";
+import { locationsTag } from "./tags";
 
 const mapLocation = (
   row: typeof cmsLocations.$inferSelect,
@@ -52,7 +52,6 @@ async function readRedirect(slug: string): Promise<ContentLocation | null> {
   return mapLocation(row.location);
 }
 
-const TAGS = [locationsTag, ...CONTENT_SECTIONS.map(contentTag)];
 const cachedLocations = unstable_cache(
   readLocations,
   ["content", "locations"],
@@ -94,11 +93,25 @@ export async function locationsByKeys(
   );
 }
 
+/** The four published section lists, read through `sectionRepository` — the
+ * *cached* reads, not `publishedContent`'s raw passthrough.
+ *
+ * This is the whole cache-invalidation story for the location surfaces, and the
+ * difference is not cosmetic. A location hub is a static page whose only other
+ * read is the registry, tagged `content:locations`. Reading the sections
+ * untagged left the hub carrying that one tag, so publishing an article
+ * refreshed the sitemap (which reads tagged section lists of its own) and left
+ * the hub serving the old list until the next deployment — and left a hub that
+ * had 404'd while empty answering 404 after its first page was published.
+ * Going through the cached reads is what puts `content:<section>` on the hub's
+ * cache entry, which is what `revalidatePublicContent` already expires. */
 export async function publishedContentBySection(): Promise<
   Record<ContentSection, ContentSummary[]>
 > {
   const lists = await Promise.all(
-    CONTENT_SECTIONS.map((section) => publishedContent(section)),
+    CONTENT_SECTIONS.map((section) =>
+      sectionRepository(section)!.listPublished(),
+    ),
   );
   return Object.fromEntries(
     CONTENT_SECTIONS.map((section, index) => [section, lists[index]]),
@@ -122,7 +135,6 @@ export async function contentInLocation(
 export async function nonEmptyContentLocations(): Promise<
   NonEmptyContentLocation[]
 > {
-  void TAGS; // Documents why hubs inherit all five cache dependencies.
   const [locations, bySection] = await Promise.all([
     contentLocations(),
     publishedContentBySection(),
@@ -136,20 +148,6 @@ export async function nonEmptyContentLocations(): Promise<
       (a, b) => Date.parse(b.contentUpdatedAt) - Date.parse(a.contentUpdatedAt),
     );
     if (pages.length === 0) return [];
-    return [
-      {
-        ...location,
-        total: pages.length,
-        pages,
-        counts: Object.fromEntries(
-          CONTENT_SECTIONS.map((section) => [
-            section,
-            bySection[section].filter((page) =>
-              page.metadata.locations.includes(location.key),
-            ).length,
-          ]),
-        ) as NonEmptyContentLocation["counts"],
-      },
-    ];
+    return [{ ...location, total: pages.length, pages }];
   });
 }

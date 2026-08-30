@@ -49,6 +49,11 @@ export class CmsLocationService {
     private readonly clock: () => Date = () => new Date(),
     private readonly invalidate: () => void = revalidatePublicLocations,
   ) {}
+  /** The registry as the manager and the MCP see it: every active location with
+   * the pages that would block its retirement.
+   *
+   * One usage query per location, which is what makes it the wrong call for the
+   * page editor — see `options` below. */
   async list(_actor?: CmsActor): Promise<ContentLocationWithUsage[]> {
     void _actor;
     return Promise.all(
@@ -57,6 +62,15 @@ export class CmsLocationService {
         return { ...location, usageCount: usage.length, usage };
       }),
     );
+  }
+
+  /** The registry as the page editor's field needs it: keys and labels, in
+   * registry order, and no usage at all. The editor renders once per page load
+   * and never asks who else uses a location, so it should not pay for a
+   * revision scan per location to find out. */
+  async options(_actor?: CmsActor): Promise<ContentLocation[]> {
+    void _actor;
+    return this.store.list();
   }
   async get(_actor: CmsActor, id: string): Promise<LocationDetail> {
     const location = await this.required(id);

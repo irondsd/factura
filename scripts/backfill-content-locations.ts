@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { db } from "@/db";
@@ -67,7 +67,7 @@ if (missingFromDb.length || absentFromMapping.length) {
   throw new Error("The mapping and published database inventory do not match.");
 }
 
-const before = await counts();
+const before = await counts(db);
 console.log(
   JSON.stringify(
     { mode: apply ? "apply" : "dry-run", pages: mapping.pages.length, before },
@@ -112,38 +112,75 @@ await db.transaction(async (tx) => {
       })
       .where(inArray(cmsPageRevisions.id, revisionIds));
   }
+
+  // Verify inside the transaction, so a failed check rolls the write back
+  // instead of reporting a problem about rows that are already committed.
+  // Scoped to *published* pages: a draft's working copy is allowed to carry no
+  // locations, and the publish gate is what stops it reaching a reader.
+  const problems = await verify(tx);
+  if (problems.length) {
+    console.error(JSON.stringify({ problems }, null, 2));
+    throw new Error(
+      `Post-check failed on ${problems.length} active revision(s); rolling back.`,
+    );
+  }
 });
 
-const after = await counts();
-console.log(JSON.stringify({ after }, null, 2));
-const invalid = await db
-  .select({ id: cmsPageRevisions.id })
-  .from(cmsPageRevisions)
-  .innerJoin(
-    cmsPages,
-    and(
-      eq(cmsPageRevisions.pageId, cmsPages.id),
-      or(
-        eq(cmsPageRevisions.id, cmsPages.publishedRevisionId),
-        eq(cmsPageRevisions.id, cmsPages.previewRevisionId),
-        eq(cmsPageRevisions.id, cmsPages.wipRevisionId),
-      ),
-    ),
-  )
-  .where(
-    or(
-      isNull(sql`${cmsPageRevisions.metadata}->'locations'`),
-      sql`jsonb_array_length(${cmsPageRevisions.metadata}->'locations') = 0`,
-    ),
-  );
-if (invalid.length)
-  throw new Error(
-    `Post-check found ${invalid.length} active revisions without locations.`,
-  );
+console.log(JSON.stringify({ after: await counts(db) }, null, 2));
+console.log(
+  "[locations] applied. Redeploy now so no cached article, hub, sitemap or llms.txt survives with the pre-backfill metadata.",
+);
 process.exit(0);
 
-async function counts() {
-  const rows = await db
+type Reader = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** Every active revision of a published page must name at least one active
+ * location. Returns what is wrong rather than throwing, so the caller can print
+ * the whole list once. */
+async function verify(reader: Reader): Promise<string[]> {
+  const rows = await reader
+    .select({
+      section: cmsPages.section,
+      slug: cmsPages.slug,
+      revisionId: cmsPageRevisions.id,
+      kind: cmsPageRevisions.kind,
+      metadata: cmsPageRevisions.metadata,
+    })
+    .from(cmsPages)
+    .innerJoin(
+      cmsPageRevisions,
+      and(
+        eq(cmsPageRevisions.pageId, cmsPages.id),
+        or(
+          eq(cmsPageRevisions.id, cmsPages.publishedRevisionId),
+          eq(cmsPageRevisions.id, cmsPages.previewRevisionId),
+          eq(cmsPageRevisions.id, cmsPages.wipRevisionId),
+        ),
+      ),
+    )
+    .where(eq(cmsPages.status, "published"));
+
+  const problems: string[] = [];
+  for (const row of rows) {
+    const where = `${row.section}/${row.slug} (${row.kind} ${row.revisionId})`;
+    const locations = (row.metadata as { locations?: unknown }).locations;
+    if (!Array.isArray(locations) || locations.length === 0) {
+      problems.push(`${where} has no locations`);
+      continue;
+    }
+    for (const key of locations) {
+      if (typeof key !== "string" || !activeKeys.has(key)) {
+        problems.push(
+          `${where} has unknown or retired location ${String(key)}`,
+        );
+      }
+    }
+  }
+  return problems;
+}
+
+async function counts(reader: Reader) {
+  const rows = await reader
     .select({ section: cmsPages.section, metadata: cmsPageRevisions.metadata })
     .from(cmsPages)
     .innerJoin(

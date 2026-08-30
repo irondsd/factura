@@ -86,7 +86,7 @@ export default async function CmsEditPage({ params }: Props) {
     // Who may be credited. Read here rather than inside the form so the
     // editor stays a pure component over descriptors it is handed.
     cmsAuthorService.list(),
-    cmsLocationService.list(actor),
+    cmsLocationService.options(actor),
   ]);
   // Pages whose path hangs off this one's, and which a rename therefore moves
   // too. The prefix is the whole rule (`planRename`), asked once here so the

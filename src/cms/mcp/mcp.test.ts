@@ -549,6 +549,11 @@ if (!hasTestDatabase()) {
     const { db, client } = createTestDb();
     const schema = db._.fullSchema;
     const SLUG = "zz-cms-mcp-";
+    /** The publish gate requires at least one *active* registry location, so
+     * the suite owns one rather than borrowing whatever the local database
+     * happens to have seeded. Same reasoning as the `${SLUG}` categories it
+     * creates and deletes below. */
+    const LOCATION = `${SLUG}ubicacion`;
 
     let agent: CmsTokenCaller;
     /** Audit rows that already existed when this test started.
@@ -593,6 +598,9 @@ if (!hasTestDatabase()) {
       await db
         .delete(schema.cmsCategories)
         .where(like(schema.cmsCategories.key, `${SLUG}%`));
+      await db
+        .delete(schema.cmsLocations)
+        .where(like(schema.cmsLocations.key, `${SLUG}%`));
     };
 
     /** The document a page currently stores, read straight from the revision
@@ -628,6 +636,14 @@ if (!hasTestDatabase()) {
 
     beforeEach(async () => {
       await cleanup();
+      await db.insert(schema.cmsLocations).values({
+        key: LOCATION,
+        slug: LOCATION,
+        label: "Ubicación de prueba",
+        title: "Contenido de prueba",
+        description: "Ubicación creada por la suite MCP del CMS.",
+        sortOrder: 900,
+      });
       const member = await db.query.cmsMembers.findFirst();
       if (!member) {
         throw new Error("local database has no cms_member row to test with");
@@ -657,7 +673,11 @@ if (!hasTestDatabase()) {
       summary: "Resumen de prueba.",
       cta: "Probá Factura.",
       body: "## Sección\n\nTexto.\n",
-      metadata: { keywords: ["prueba"], categories: ["servicios"] },
+      metadata: {
+        keywords: ["prueba"],
+        categories: ["servicios"],
+        locations: [LOCATION],
+      },
     });
 
     const created = (response: unknown) =>

@@ -196,19 +196,34 @@ export async function GET() {
     ),
   ].join("\n");
 
-  const locationsSection = [
-    "## Ubicaciones",
-    "",
-    "Spanish-only discovery pages grouping Factura's published content by the exact geographic area it covers.",
-    "",
-    `- [Ubicaciones index](${locationsIndexUrl}): Every location with published content.`,
-    ...locations.map(
-      (location) =>
-        `- [${location.label}](${locationUrl(location.slug)}): ${location.description}`,
-    ),
-  ].join("\n");
+  // Omitted entirely while nothing is tagged yet, which is the state stage 1
+  // deploys in. The directory only lists locations that have published content,
+  // so advertising it before then points a crawler at an empty page — and the
+  // sitemap already leaves it out for the same reason.
+  const locationsSection = locations.length
+    ? [
+        "## Ubicaciones",
+        "",
+        "Spanish-only discovery pages grouping Factura's published content by the exact geographic area it covers.",
+        "",
+        `- [Ubicaciones index](${locationsIndexUrl}): Every location with published content.`,
+        ...locations.map(
+          (location) =>
+            `- [${location.label}](${locationUrl(location.slug)}): ${location.description}`,
+        ),
+      ].join("\n")
+    : null;
 
-  const body = `${PREAMBLE}\n\n${guidesSection}\n\n${dataSections}\n\n${locationsSection}\n\n${normativaSection}\n\n${AFTER}\n`;
+  const body = `${[
+    PREAMBLE,
+    guidesSection,
+    dataSections,
+    locationsSection,
+    normativaSection,
+    AFTER,
+  ]
+    .filter((part) => part !== null)
+    .join("\n\n")}\n`;
 
   return new Response(body, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },

@@ -31,10 +31,10 @@ export type ContentLocationWithUsage = ContentLocation & {
   }[];
 };
 
-export type LocationSectionCount = Record<ContentSection, number>;
-
+/** A location with at least one published page, as the directory and the hub
+ * read it. `pages` is every match across all four sections, newest first; a hub
+ * regroups it by section itself. */
 export type NonEmptyContentLocation = ContentLocation & {
   total: number;
-  counts: LocationSectionCount;
   pages: ContentSummary[];
 };
