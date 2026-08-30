@@ -70,7 +70,12 @@ if (missingFromDb.length || absentFromMapping.length) {
 const before = await counts(db);
 console.log(
   JSON.stringify(
-    { mode: apply ? "apply" : "dry-run", pages: mapping.pages.length, before },
+    {
+      mode: apply ? "apply" : "dry-run",
+      pages: mapping.pages.length,
+      before,
+      proposed: mappingCounts(mapping.pages),
+    },
     null,
     2,
   ),
@@ -199,6 +204,19 @@ async function counts(reader: Reader) {
       for (const key of locations)
         if (typeof key === "string")
           byLocation[key] = (byLocation[key] ?? 0) + 1;
+  }
+  return { bySection, byLocation };
+}
+
+function mappingCounts(pages: Mapping["pages"]) {
+  const bySection = Object.fromEntries(
+    CONTENT_SECTIONS.map((section) => [section, 0]),
+  );
+  const byLocation: Record<string, number> = {};
+  for (const page of pages) {
+    bySection[page.section] = (bySection[page.section] ?? 0) + 1;
+    for (const key of page.locations)
+      byLocation[key] = (byLocation[key] ?? 0) + 1;
   }
   return { bySection, byLocation };
 }
