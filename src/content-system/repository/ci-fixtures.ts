@@ -27,6 +27,14 @@ export const CI_CONTENT_LOCATIONS: readonly ContentLocation[] = [
   },
 ];
 
+/** Location discovery URLs the production SEO audit expects in fixture mode.
+ * Hubs are discovery pages, so they belong in sitemap.xml and llms.txt but not
+ * in the publication feed. */
+export const CI_LOCATION_FIXTURE_PATHS = [
+  "/ubicacion",
+  ...CI_CONTENT_LOCATIONS.map((location) => `/ubicacion/${location.slug}`),
+] as const;
+
 /** One active category per CMS section keeps the category hubs and all of the
  * discovery surfaces on the same no-database fixture path as the pages. The
  * guide key is the real key already used by the guide fixture; the other

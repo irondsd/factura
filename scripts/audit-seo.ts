@@ -11,9 +11,10 @@
  *
  * It starts `next start` against the existing production build, walks
  * `sitemap.xml`, and fails the run on repository-owned page errors. Normal runs
- * exclude CMS descendants; CI includes four code-owned fixture articles and
- * verifies they reach the sitemap, feed and llms.txt. Production content
- * validation and content-level SEO belong to the CMS.
+ * exclude CMS descendants; CI includes four code-owned fixture articles and a
+ * location, then verifies each reaches the discovery surfaces appropriate to
+ * its kind. Production content validation and content-level SEO belong to the
+ * CMS.
  *
  * Run: `bun scripts/audit-seo.ts`  (or `bun run audit:seo`)
  * Set `AUDIT_BASE_URL` to audit a server that is already running (a preview
@@ -23,7 +24,10 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CI_CONTENT_FIXTURE_PATHS } from "../src/content-system/repository/ci-fixtures";
+import {
+  CI_CONTENT_FIXTURE_PATHS,
+  CI_LOCATION_FIXTURE_PATHS,
+} from "../src/content-system/repository/ci-fixtures";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(here, "..");
@@ -71,6 +75,19 @@ async function auditFixtureDiscovery(
     if (!feed.includes(absolute)) {
       errors.push(`${pathname} is missing from feed.xml`);
     }
+    if (!llms.includes(absolute)) {
+      errors.push(`${pathname} is missing from llms.txt`);
+    }
+  }
+
+  // Location pages are indexes over the articles above, not publications of
+  // their own: require them in the two discovery indexes, deliberately not in
+  // the RSS feed.
+  for (const pathname of CI_LOCATION_FIXTURE_PATHS) {
+    if (!sitemapPaths.has(pathname)) {
+      errors.push(`${pathname} is missing from sitemap.xml`);
+    }
+    const absolute = `${PROD_ORIGIN}${pathname}`;
     if (!llms.includes(absolute)) {
       errors.push(`${pathname} is missing from llms.txt`);
     }
