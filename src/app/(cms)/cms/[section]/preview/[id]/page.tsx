@@ -6,6 +6,8 @@ import { cmsPageStore } from "@/cms/server/store";
 import { ContentArticle } from "@/components/article/ContentArticle";
 import { Faq } from "@/components/article/Faq";
 import { Fuentes } from "@/components/section/Fuentes";
+import { SectionList } from "@/components/section/SectionList";
+import { estadisticas, investigaciones } from "@/content/sections";
 import { dataLicense, licenseName } from "@/config/urls";
 import { RelatedGuides } from "@/components/guides/RelatedGuides";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -112,6 +114,21 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
     await cmsPageStore.list({ section: section.id, statuses: ["published"] })
   ).filter((candidate) => candidate.id !== page.id);
   const related = relatedDocuments(page, published);
+
+  // A hub page's children, for `<Subpaginas />`. Read through the public
+  // section registry rather than the CMS store so the preview lists exactly
+  // what the public page will — published children only, in the same order,
+  // through the same component. `null` for guides and news, which have no hubs
+  // and where the manifest does not offer the tag.
+  const publicSection =
+    page.section === "estadisticas"
+      ? estadisticas
+      : page.section === "investigaciones"
+        ? investigaciones
+        : null;
+  const children = publicSection
+    ? await publicSection.children(page.slug.split("/"))
+    : [];
 
   const categoryMap = new Map(
     (await cmsCategoryStore.list(page.section, { includeRetired: true })).map(
@@ -237,6 +254,22 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
                 }
               />
             ),
+            // The hub's children, exactly as `SectionArticle` places them.
+            // Without this the tag fell through to the manifest's no-op and a
+            // hub page previewed as if it had no children at all — the one
+            // thing this route promises it will never do.
+            ...(publicSection
+              ? {
+                  Subpaginas: () =>
+                    children.length > 0 ? (
+                      <SectionList
+                        section={publicSection}
+                        pages={children}
+                        titleAs="h3"
+                      />
+                    ) : null,
+                }
+              : {}),
             // Last, so a name the manifest does not have resolves to a
             // no-op instead of throwing "Expected component X to be defined"
             // out of the MDX runtime. Whatever props the author wrote on it

@@ -1,6 +1,12 @@
 import { evaluate } from "@mdx-js/mdx";
 import type { MDXComponents } from "mdx/types";
-import type { ComponentType } from "react";
+import {
+  type ComponentType,
+  createElement,
+  Fragment,
+  type ReactNode,
+} from "react";
+import { prerender } from "react-dom/static";
 import * as jsxRuntime from "react/jsx-runtime";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
@@ -107,6 +113,49 @@ async function compileValidatedBody(body: string): Promise<CompiledContent> {
 
   return compiled.default as CompiledContent;
 }
+
+/** Prove a body actually renders, not merely that it compiles.
+ *
+ * `compileContent` runs the MDX module and hands back a component; it never
+ * calls it. So "it compiled" says the source was well-formed and says nothing
+ * about whether React can turn it into elements — a mis-nested container, a
+ * name MDX resolves to `undefined`, a tree the reconciler refuses. This calls
+ * the component.
+ *
+ * **Every registered component is stubbed to a passthrough, deliberately.**
+ * The real bindings are code: they change on deploy, they are the same for
+ * every page, and `components/manifest.test.tsx` renders all of them on every
+ * CI run. What is *not* code is the document — and the document is what this
+ * function is being asked about. Stubbing also keeps the check safe to run
+ * inside a request: the real manifest reaches client components and data
+ * fetches, neither of which belongs in a publish gate.
+ *
+ * Throws whatever React throws. The caller turns it into a diagnostic. */
+export async function assertContentRenders(
+  body: string,
+  section: ContentSection,
+): Promise<void> {
+  const Content = await compileContent(body, section);
+  const stubs = Object.fromEntries(
+    Object.keys(CONTENT_COMPONENTS).map((name) => [name, Passthrough]),
+  ) as MDXComponents;
+
+  // Drained rather than discarded: `prerender` resolves as soon as the shell
+  // is ready, and an error thrown further down the document surfaces while the
+  // stream is being read. Not reading it would make this check pass on exactly
+  // the pages it exists to catch.
+  const { prelude } = await prerender(
+    createElement(Content, { components: stubs }),
+  );
+  const reader = prelude.getReader();
+  for (;;) if ((await reader.read()).done) break;
+}
+
+/** Stands in for any registered component while the *document* is being
+ * checked: renders its children so the prose inside a container is still
+ * exercised, and nothing else. */
+const Passthrough = ({ children }: { children?: ReactNode }) =>
+  createElement(Fragment, null, children);
 
 /** The components a rendered database page resolves against: the site's
  * markdown element map (headings, tables, links, images — the paper aesthetic

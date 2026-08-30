@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CHART_IDS } from "@/content/guias/data/inflacion";
+import { unsafeUrlMessage, unsafeUrlScheme } from "../validation/url";
 
 // The one guide metadata schema. cms.md requires a single definition
 // shared by the CMS form, the mutations, the MCP tools, the importer, the
@@ -93,8 +94,21 @@ export const faqItemSchema = z
  * the distributor's own documentation the same way — and `./sections` already
  * imports from this module, so this is the end of the dependency that has no
  * cycle in it. */
+/** A URL a page publishes as a link.
+ *
+ * `z.url()` alone is not enough: it accepts anything `new URL()` parses, and
+ * `javascript:alert(1)` parses. Metadata is rendered into `<a href>` the same
+ * way the body is, so it is held to the same allowlist the grammar applies to
+ * markdown links — one policy, in `../validation/url`, checked in both places
+ * rather than trusted to be someone else's problem. */
+export const contentUrl = z.url().superRefine((value, ctx) => {
+  const scheme = unsafeUrlScheme(value);
+  if (scheme)
+    ctx.addIssue({ code: "custom", message: unsafeUrlMessage(scheme) });
+});
+
 export const dataSourceSchema = z
-  .object({ label: filled, href: z.url(), note: filled.optional() })
+  .object({ label: filled, href: contentUrl, note: filled.optional() })
   .strict();
 
 /** The JSONB half of a guide's metadata — everything that does not get its own

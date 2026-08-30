@@ -39,6 +39,23 @@ const ArticleTrustBlock = () => <TrustBlock className="my-10" />;
  * `mdx-components.tsx` registers, and for the same reason: with no article
  * context there is nothing to show. */
 const Unbound = () => null;
+
+/** The components whose only binding here is that no-op.
+ *
+ * Named as a list rather than left implicit in the record below, because it is
+ * a list with a *duty attached*: every route that renders a section has to bind
+ * each of these that the section allows, or an author's tag renders as silence
+ * and nothing anywhere says so. `bindings.test.ts` is what enforces that, and
+ * it needs the list to enforce it against. */
+export const CONTEXT_BOUND_COMPONENT_NAMES = [
+  "Faq",
+  "RelatedGuides",
+  "Fuentes",
+  "Subpaginas",
+] as const;
+
+export type ContextBoundComponentName =
+  (typeof CONTEXT_BOUND_COMPONENT_NAMES)[number];
 const DATA_BINDINGS = Object.fromEntries(
   Object.entries(SECTION_COMPONENT_BINDINGS).filter(
     ([name]) => name !== "ClosingCta",
@@ -54,10 +71,9 @@ const BINDINGS: Record<string, ComponentType<never>> = {
   SignupCta,
   InflacionChart,
   TrustBlock: ArticleTrustBlock,
-  Faq: Unbound,
-  RelatedGuides: Unbound,
-  Fuentes: Unbound,
-  Subpaginas: Unbound,
+  ...Object.fromEntries(
+    CONTEXT_BOUND_COMPONENT_NAMES.map((name) => [name, Unbound]),
+  ),
   ...DATA_BINDINGS,
 };
 

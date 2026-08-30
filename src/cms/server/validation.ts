@@ -1,5 +1,5 @@
 import "server-only";
-import { compileContent } from "@/content-system/render/renderContent";
+import { assertContentRenders } from "@/content-system/render/renderContent";
 import {
   buildContentIndex,
   type ContentValidationLevel,
@@ -80,14 +80,15 @@ export function createCmsValidator(
     });
 
     // Layer 4: render validation (cms.md). Compile the body against the
-    // real component registry, because "the grammar is fine" and "React can
-    // render this" are different claims — a container nested somewhere the
-    // renderer chokes on passes the first and fails the second. Only at publish
-    // level: it is the one gate where a failure would otherwise be a broken
-    // live page.
+    // real component registry *and render it*, because "the grammar is fine"
+    // and "React can render this" are different claims — a container nested
+    // somewhere the renderer chokes on passes the first and fails the second.
+    // This used to stop at the compile, which proved only the first of the two.
+    // Only at publish level: it is the one gate where a failure would otherwise
+    // be a broken live page.
     if (result.ok && validationLevel === "publish") {
       try {
-        await compileContent(document.body, document.section);
+        await assertContentRenders(document.body, document.section);
       } catch (cause) {
         return validationResult([
           ...result.diagnostics,

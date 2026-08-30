@@ -6,6 +6,7 @@ import {
 import type { ContentSection, Diagnostic, ValidationResult } from "../types";
 import { validationResult } from "../types";
 import { parseContentBody } from "./parse";
+import { unsafeUrlMessage, unsafeUrlScheme } from "./url";
 
 // Layer 1 of cms.md: security/grammar validation.
 //
@@ -37,6 +38,7 @@ export const GRAMMAR_CODES = {
   unexpectedChildren: "mdx.unexpected-children",
   invalidProps: "mdx.invalid-props",
   unclosed: "mdx.unclosed-element",
+  unsafeUrl: "mdx.unsafe-url",
 } as const;
 
 type Point = { line?: number; column?: number };
@@ -64,6 +66,8 @@ type Node = {
   type: string;
   name?: string | null;
   value?: string;
+  /** Link destination on `link`, `image` and `definition` nodes. */
+  url?: string;
   children?: Node[];
   attributes?: Attribute[];
   position?: { start: { line: number; column: number } };
@@ -111,6 +115,17 @@ function walk(
   out: Diagnostic[],
 ): void {
   switch (node.type) {
+    // Markdown's own link syntax. The allowlist above covers every *component*
+    // an author can write, and covered nothing about `[texto](javascript:…)` —
+    // which is not JSX, reaches the tree as a `link` node, and is the one
+    // remaining way to write executable content in prose. `definition` is the
+    // reference form (`[ref]: url`), which resolves to the same href.
+    case "link":
+    case "image":
+    case "definition":
+      checkUrl(node.url, node, out);
+      break;
+
     // `import` / `export` statements. The single most important rejection: an
     // import is arbitrary module loading, and an `export const meta` would put
     // metadata back in the body where cms.md says it must not be.
@@ -270,6 +285,42 @@ function checkJsx(
   // twice.
 }
 
+/** Attributes whose value is a URL wherever they appear. Named rather than
+ * sniffed from the value, because "does this string look like a link" has no
+ * good answer and this list has one entry per way a browser will follow it. */
+const URL_ATTRIBUTES = new Set([
+  "href",
+  "src",
+  "srcSet",
+  "action",
+  "formAction",
+  "poster",
+  "data",
+  "url",
+]);
+
+/** Refuse a link destination whose scheme is not on the allowlist.
+ *
+ * React blocks `javascript:` hrefs at render, so this is not the last line of
+ * defence — but "the renderer neutralises it" is a property of today's React,
+ * and `data:text/html` is not neutralised at all. The rule belongs where every
+ * other executable-content rule already is: in the grammar, which runs on
+ * every save including a draft's, so a dangerous link cannot be stored and
+ * then wait for a renderer that stops blocking it. */
+function checkUrl(
+  url: string | undefined,
+  node: { position?: { start: { line: number; column: number } } },
+  out: Diagnostic[],
+): void {
+  if (typeof url !== "string" || url === "") return;
+  const scheme = unsafeUrlScheme(url);
+  if (scheme) {
+    out.push(
+      error(GRAMMAR_CODES.unsafeUrl, unsafeUrlMessage(scheme), at(node)),
+    );
+  }
+}
+
 /** Prove every attribute is a literal value, reporting the ones that are not.
  *
  * `clean` is false as soon as one attribute could carry JavaScript, which is
@@ -318,6 +369,16 @@ function checkAttributes(
     // A bare attribute (`newTab`) is JSX shorthand for `true`.
     literals[attributeName] =
       value === null || value === undefined ? true : value;
+
+    // Defence in depth for the property schemas. `CtaButton` and
+    // `PaginaRelacionada` constrain their own `href`, and both would catch a
+    // `javascript:` URL on their own — but they are the only two components
+    // with a link today, and the next one is written by someone who has not
+    // read this file. Checking every URL-shaped attribute by name means a new
+    // component gets the rule whether or not its author remembered it.
+    if (URL_ATTRIBUTES.has(attributeName) && typeof value === "string") {
+      checkUrl(value, attribute, out);
+    }
   }
 
   return { literals, clean };

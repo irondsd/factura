@@ -554,13 +554,25 @@ the body, or the reverse.
 
 ### MDX gotchas
 
-- The body is MDX: `{` and `}` in prose are interpreted as JS. For a literal
-  brace, write `{"{"}`.
+The body is a **restricted** MDX dialect, and the restriction is a security
+rule rather than a style preference: nothing in a body may execute. The
+validator refuses all of the below on **every save**, including a draft's —
+this is the one thing an unfinished page is not allowed to be.
+
+- `{` and `}` in prose are a JavaScript expression. For a literal brace, write
+  `\{`. (Not `{"{"}` — that is an expression too, and it is refused.)
+- **There are no comments.** `<!-- … -->` is raw HTML and `{/* … */}` is an
+  expression; both are rejected. If a note has to live in the page, write it as
+  prose, and if it must not be published, keep it out of the body.
 - A literal `<` followed by a letter looks like a tag. Write "menor que" or
   `&lt;`. (`<` between spaces, as in `a < b`, is fine.)
-- Comments are `{/* … */}`, not `<!-- -->`.
 - No `---` frontmatter. Metadata is a field, not a header.
 - Keep raw HTML out. Markdown plus registered components.
+- No `import` or `export`. Components are available by name.
+- **Links may only be a site path, an `https:` URL, an anchor or a
+  `mailto:`/`tel:` link.** `javascript:` and `data:` links are refused wherever
+  they appear — in a markdown link, an image, a reference definition, a
+  component property, or a `sources[].href` in metadata.
 
 ---
 

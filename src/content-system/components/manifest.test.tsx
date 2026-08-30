@@ -4,12 +4,12 @@ import { renderToHtml } from "../../../test/renderToHtml";
 import { markdownComponents } from "@/mdx-components";
 import { compileContent, contentComponents } from "../render/renderContent";
 import {
-  CONTENT_COMPONENT_NAMES,
   CONTENT_COMPONENTS,
+  type ContentComponentName,
   componentsForSection,
   isContentComponentName,
 } from "./manifest";
-import { SECTION_COMPONENT_NAMES } from "./sectionDefinitions";
+import { COMPONENT_SAMPLES, DATABASE_BACKED_COMPONENTS } from "./samples";
 
 // Two things this file guards.
 //
@@ -127,48 +127,22 @@ describe("manifest bindings render what the site renders", () => {
   });
 
   it("renders every registered component without throwing", async () => {
-    const samples: Record<string, string> = {
-      ClosingCta: '<ClosingCta title="Título">\n\nCopia.\n\n</ClosingCta>',
-      ProbarCta: '<ProbarCta vendor="Edesur">\n\nCopia.\n\n</ProbarCta>',
-      CtaButton: '<CtaButton href="/demo">Ver</CtaButton>',
-      CtaRow: "<CtaRow>\n\n<DemoCta />\n\n</CtaRow>",
-      DemoCta: "<DemoCta />",
-      SignupCta: "<SignupCta />",
-      InflacionChart: '<InflacionChart chart="expensas" />',
-      TrustBlock: "<TrustBlock />",
-      Faq: "<Faq />",
-      RelatedGuides: "<RelatedGuides />",
-      Fuentes: "<Fuentes />",
-      Subpaginas: "<Subpaginas />",
-      PaginaRelacionada:
-        '<PaginaRelacionada href="/estadisticas/alquiler-caba">Copia.</PaginaRelacionada>',
-      IpcViviendaChart: '<IpcViviendaChart region="gba" variacion="mensual" />',
-      ResumenRegion: '<ResumenRegion region="gba" />',
-      ...Object.fromEntries(
-        SECTION_COMPONENT_NAMES.filter(
-          (name) =>
-            ![
-              "ClosingCta",
-              "PaginaRelacionada",
-              "IpcViviendaChart",
-              "ResumenRegion",
-            ].includes(name),
-        ).map((name) => [name, `<${name} />`]),
-      ),
-    };
-    expect(Object.keys(samples).sort()).toEqual(
-      [...CONTENT_COMPONENT_NAMES].sort(),
-    );
-    for (const [name, source] of Object.entries(samples)) {
+    // The samples come from `../components/samples`, which is keyed by
+    // `ContentComponentName` — so a component registered without an example
+    // does not compile, and this loop cannot silently stop covering one.
+    // `renderCorpus.test.tsx` renders the same samples in *every* section a
+    // component declares; this is the guide-side check that lives beside the
+    // manifest it is about.
+    for (const [name, source] of Object.entries(COMPONENT_SAMPLES)) {
+      const [section] =
+        CONTENT_COMPONENTS[name as ContentComponentName].sections;
       await expect(
         render(
           `${source}\n`,
-          name === "PaginaRelacionada" ? { PaginaRelacionada: () => null } : {},
-          (
-            [...SECTION_COMPONENT_NAMES, "Fuentes", "Subpaginas"] as string[]
-          ).includes(name)
-            ? "estadisticas"
-            : "guias",
+          DATABASE_BACKED_COMPONENTS.includes(name as ContentComponentName)
+            ? { [name]: () => null }
+            : {},
+          section as "guias" | "estadisticas",
         ),
         `<${name}> should render`,
       ).resolves.toBeTypeOf("string");

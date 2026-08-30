@@ -69,3 +69,73 @@ describe("shared content metadata", () => {
     }
   });
 });
+
+describe("URLs stored in metadata", () => {
+  // Metadata is rendered into `<a href>` by `<Fuentes />` exactly the way the
+  // body is, so it is held to the same allowlist. It used to be `z.url()`,
+  // which accepts anything `new URL()` parses — and `javascript:alert(1)`
+  // parses.
+  const withSource = (href: string) => ({
+    keywords: [],
+    categories: [],
+    locations: [],
+    sources: [{ label: "Fuente", href }],
+  });
+
+  it("accepts a real source link", () => {
+    expect(
+      parseMetadata("guias", withSource("https://www.enargas.gob.ar/")).ok,
+    ).toBe(true);
+  });
+
+  it("refuses a javascript: source link", () => {
+    const result = parseMetadata("guias", withSource("javascript:alert(1)"));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.problems[0].field).toBe("sources.0.href");
+      expect(result.problems.map((p) => p.message).join(" ")).toContain(
+        "javascript:",
+      );
+    }
+  });
+
+  it("refuses a data: source link", () => {
+    expect(
+      parseMetadata("guias", withSource("data:text/html,<script>x</script>"))
+        .ok,
+    ).toBe(false);
+  });
+
+  it("holds a dataset licence URL to the same rule", () => {
+    const dataset = {
+      name: "n",
+      description: "d",
+      temporalCoverage: "t",
+      spatialCoverage: "s",
+      variableMeasured: ["v"],
+    };
+    const base = { keywords: [], categories: [], locations: [] };
+    expect(
+      parseMetadata("estadisticas", {
+        ...base,
+        dataset: {
+          ...dataset,
+          license: "https://creativecommons.org/licenses/by/4.0/",
+        },
+      }).ok,
+    ).toBe(true);
+    expect(
+      parseMetadata("estadisticas", {
+        ...base,
+        dataset: { ...dataset, license: "javascript:alert(1)" },
+      }).ok,
+    ).toBe(false);
+  });
+
+  it("still refuses a href that is not a URL at all", () => {
+    // The allowlist narrowed `z.url()`; it must not have replaced it. A bare
+    // path in `sources` is a mistake — a citation points somewhere a reader
+    // can go from anywhere.
+    expect(parseMetadata("guias", withSource("/guias/edesur")).ok).toBe(false);
+  });
+});

@@ -402,6 +402,83 @@ describe("diagnostics", () => {
   });
 });
 
+describe("link destinations", () => {
+  // The hole markdown left open. Every rule above is about JSX, and
+  // `[texto](javascript:…)` is not JSX — it is a `link` node, it survives every
+  // component check, and it is the last way to write executable content in
+  // prose. React neutralises `javascript:` hrefs at render today; `data:` it
+  // does not, and "the renderer happens to catch it" is not where this
+  // project puts a security rule.
+
+  it("accepts the links guides actually write", () => {
+    const result =
+      check(`Ver [la guía](/guias/edesur), el [ente](https://www.enargas.gob.ar/),
+[escribir](mailto:hola@factura.uno), [llamar](tel:+5491100000000) y [arriba](#inicio).
+`);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("refuses a javascript: link", () => {
+    expect(codes("[hacé clic](javascript:alert(1))\n")).toContain(
+      GRAMMAR_CODES.unsafeUrl,
+    );
+  });
+
+  it("refuses a data: link", () => {
+    expect(codes("[descargar](data:text/html,<script>x</script>)\n")).toContain(
+      GRAMMAR_CODES.unsafeUrl,
+    );
+  });
+
+  it("refuses a javascript: image source", () => {
+    expect(codes("![alt](javascript:alert(1))\n")).toContain(
+      GRAMMAR_CODES.unsafeUrl,
+    );
+  });
+
+  it("refuses it in the reference form, where the URL is not next to the link", () => {
+    // `[texto][ref]` looks harmless on its own line; the destination is
+    // somewhere else in the document. Checking only inline links would miss it.
+    expect(codes("Ver [esto][ref].\n\n[ref]: javascript:alert(1)\n")).toContain(
+      GRAMMAR_CODES.unsafeUrl,
+    );
+  });
+
+  it("refuses an autolink too, though the parser gets there first", () => {
+    // `<javascript:alert(1)>` is JSX to MDX, not a markdown autolink, so it
+    // never reaches a `link` node — it fails to parse. Asserted as "refused"
+    // rather than as a specific code: what matters is that no spelling of this
+    // is storable, and pinning the code here would make the test a claim about
+    // MDX's parser instead.
+    expect(check("<javascript:alert(1)>\n").ok).toBe(false);
+  });
+
+  it("refuses it on a component attribute", () => {
+    // `CtaButton` constrains its own href, so this is belt and braces — but it
+    // is the rule a component added next year inherits for free.
+    expect(
+      codes('<CtaButton href="javascript:alert(1)">Ver</CtaButton>\n'),
+    ).toContain(GRAMMAR_CODES.unsafeUrl);
+  });
+
+  it("names the scheme, so the author knows what to change", () => {
+    const [diagnostic] = check("[x](javascript:alert(1))\n").diagnostics;
+    expect(diagnostic.message).toContain("javascript:");
+    expect(diagnostic.severity).toBe("error");
+  });
+
+  it("reports where the link is", () => {
+    const { diagnostics } = check("Un párrafo.\n\n[x](javascript:alert(1))\n");
+    expect(diagnostics[0].line).toBe(3);
+  });
+
+  it("refuses a link the author disguised with whitespace", () => {
+    expect(codes("[x](<java\tscript:alert(1)>)\n")).toContain(
+      GRAMMAR_CODES.unsafeUrl,
+    );
+  });
+});
+
 describe("manifest coverage", () => {
   it("gives every component a schema and a description", () => {
     for (const name of CONTENT_COMPONENT_NAMES) {
