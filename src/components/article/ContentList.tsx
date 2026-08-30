@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArticlePreview } from "@/components/article/ArticlePreview";
+import { Badge } from "@/components/ui/Badge";
 import { resolveMediaRefs } from "@/content-system/media/repository";
 import { formatContentDate } from "@/lib/content-date";
 
@@ -11,6 +12,7 @@ export type ContentListItem = {
   /** Media-library id of the row's illustration. */
   previewMediaId?: string;
   date: string;
+  badge?: string;
 };
 
 /** The row shared by guides, statistics and research. `/guias` is the mobile
@@ -46,6 +48,11 @@ export async function ContentList({
               />
             )}
             <div className="w-full min-w-0 sm:flex-1">
+              {item.badge && (
+                <Badge tone="neutral" className="mb-2">
+                  {item.badge}
+                </Badge>
+              )}
               <div className="flex flex-col gap-y-1 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-x-4">
                 <Title className="min-w-0 font-display font-semibold text-[20px] sm:text-[23px] tracking-tight text-ink m-0 transition-colors group-hover:text-accent">
                   {item.title}

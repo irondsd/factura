@@ -22,3 +22,6 @@ import type { ContentSection } from "../types";
 /** Everything the public site reads out of one CMS section. */
 export const contentTag = (section: ContentSection): string =>
   `content:${section}`;
+
+/** The one global registry read by articles, hubs and discovery surfaces. */
+export const locationsTag = "content:locations";

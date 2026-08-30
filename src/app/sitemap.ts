@@ -5,6 +5,7 @@ import {
 } from "@/content-system/repository/guias";
 import { SECTIONS } from "@/content/sections";
 import { nonEmptyContentCategories } from "@/content-system/repository/categories";
+import { nonEmptyContentLocations } from "@/content-system/repository/locations";
 import {
   contentCategoryUrl,
   guideCategoryUrl,
@@ -14,6 +15,8 @@ import {
   normativaUrl,
   sectionIndexUrl,
   sectionUrl,
+  locationsIndexUrl,
+  locationUrl,
 } from "@/i18n/metadata";
 
 // Only genuinely public marketing pages belong here. The product app has its
@@ -179,8 +182,44 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  const locations = await nonEmptyContentLocations();
+  const locationEntries: MetadataRoute.Sitemap = locations.length
+    ? [
+        {
+          url: locationsIndexUrl,
+          lastModified: new Date(
+            Math.max(
+              ...locations.flatMap((location) =>
+                location.pages.map((page) => Date.parse(page.contentUpdatedAt)),
+              ),
+            ),
+          ),
+          changeFrequency: "weekly" as const,
+          priority: 0.7,
+        },
+        ...locations.map((location) => ({
+          url: locationUrl(location.slug),
+          lastModified: new Date(
+            Math.max(
+              ...location.pages.map((page) =>
+                Date.parse(page.contentUpdatedAt),
+              ),
+            ),
+          ),
+          changeFrequency: "weekly" as const,
+          priority: 0.68,
+        })),
+      ]
+    : [];
+
   // The data sections ahead of the guides, matching both the priorities above
   // and the nav order. Order carries no formal weight in the protocol, but it's
   // the reading order of anyone — or anything — walking the file top to bottom.
-  return [...landing, ...sectionEntries, ...guidesEntries, ...normativa];
+  return [
+    ...landing,
+    ...sectionEntries,
+    ...guidesEntries,
+    ...locationEntries,
+    ...normativa,
+  ];
 }

@@ -3,10 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { sessions } from "@/db/schema";
 import { logoutTarget } from "@/lib/nextPath";
-import {
-  SESSION_COOKIE_NAMES,
-  sessionCookieConfig,
-} from "@/server/authCookie";
+import { SESSION_COOKIE_NAMES, sessionCookieConfig } from "@/server/authCookie";
 
 /**
  * Canonical logout for both deployments.

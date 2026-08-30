@@ -92,9 +92,19 @@ export function AuthorManager({
           setView({ kind: "list" });
           setOpen(true);
         }}
-        className="inline-flex cursor-pointer items-center gap-2 border border-line bg-paper px-4 py-2 font-mono text-micro tracking-label-wide text-ink uppercase transition-colors hover:border-accent hover:text-accent"
+        className="block w-full cursor-pointer border border-line bg-card px-5 py-5 text-left text-ink transition-colors hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
-        Autores
+        <span className="flex items-baseline gap-3">
+          <span className="font-display text-[21px] font-semibold tracking-[-0.015em]">
+            Autores
+          </span>
+          <span className="font-mono text-micro tracking-label-wide text-muted uppercase">
+            Global
+          </span>
+        </span>
+        <span className="mt-2 block font-mono text-[13px] leading-[1.6] text-muted">
+          Administra quién firma y verifica el contenido del sitio.
+        </span>
       </button>
 
       {open && (

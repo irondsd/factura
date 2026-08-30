@@ -1361,6 +1361,66 @@ export const cmsCategoryRedirects = pgTable(
   ],
 );
 
+/** A global geographic taxonomy entry. Unlike categories, locations are shared
+ * by every authored section; revision metadata stores the immutable `key`
+ * while the public `/ubicacion/<slug>` address may be renamed. */
+export const cmsLocations = pgTable(
+  "cms_location",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    key: text("key").notNull(),
+    slug: text("slug").notNull(),
+    label: text("label").notNull(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    lockVersion: integer("lock_version").notNull().default(1),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: uuid("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
+    retiredBy: uuid("retired_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("cms_location_key_idx").on(t.key),
+    uniqueIndex("cms_location_slug_idx").on(t.slug),
+    index("cms_location_label_idx").on(t.retiredAt, t.label),
+  ],
+);
+
+/** Historical public slugs resolve through the location row, keeping repeated
+ * renames to one permanent redirect. */
+export const cmsLocationRedirects = pgTable(
+  "cms_location_redirect",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    fromSlug: text("from_slug").notNull(),
+    locationId: uuid("location_id")
+      .notNull()
+      .references(() => cmsLocations.id, { onDelete: "cascade" }),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("cms_location_redirect_from_idx").on(t.fromSlug),
+    index("cms_location_redirect_location_idx").on(t.locationId),
+  ],
+);
+
 /** A CMS-scoped bearer token for an agent. Unlike ordinary Factura API tokens,
  * this can never read bills and is invalid the instant its owner loses CMS
  * membership. The cleartext value exists only at creation time. */

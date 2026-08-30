@@ -11,6 +11,7 @@ import { mediaIdsIn } from "@/content-system/media/references";
 import { cmsMediaStore } from "../media/server/store";
 import { cmsCategoryStore } from "../categories/server/store";
 import { cmsAuthorStore } from "../authors/server/store";
+import { cmsLocationStore } from "../locations/server/store";
 import type { ContentValidator } from "./contentService";
 import { CmsPageStore, cmsPageStore as defaultStore } from "./store";
 
@@ -47,7 +48,7 @@ export function createCmsValidator(
       ? buildContentIndex(collection)
       : await indexFor(store, document);
 
-    const [media, categories, authors] = await Promise.all([
+    const [media, categories, authors, locations] = await Promise.all([
       mediaStatusesFor(document),
       validationLevel === "draft"
         ? Promise.resolve(undefined)
@@ -62,6 +63,11 @@ export function createCmsValidator(
         : cmsAuthorStore
             .list()
             .then((items) => new Set(items.map((item) => item.id))),
+      validationLevel === "draft"
+        ? Promise.resolve(undefined)
+        : cmsLocationStore
+            .list()
+            .then((items) => new Set(items.map((item) => item.key))),
     ]);
 
     const result = validateContentDocument(document, validationLevel, {
@@ -70,7 +76,7 @@ export function createCmsValidator(
       // The media rules are pure, so the library is resolved before they run.
       // One query for whatever this document references — a page with no images
       // makes none at all.
-      context: { media, categories, authors },
+      context: { media, categories, locations, authors },
     });
 
     // Layer 4: render validation (cms.md). Compile the body against the

@@ -41,6 +41,9 @@ const TEST_PREFIX = "zz-cms-test-";
 const metadata = {
   keywords: ["prueba", "cms", "factura"],
   categories: ["servicios"],
+  // Empty on purpose: a draft may have none, and the storage schema defaults a
+  // missing key to `[]`, so this is also what a legacy row reads back as.
+  locations: [],
 };
 
 const draftInput = (slug: string) => ({
@@ -456,6 +459,70 @@ if (!hasTestDatabase()) {
         );
       });
 
+      /** The shape the CMS editor actually submits: every column, the body and
+       * the metadata, on every save, whether or not the editor touched them.
+       * The timestamp rules have to hold against this, not against a tidy
+       * minimal patch nothing in the product sends. */
+      const formSave = async (
+        id: string,
+        over: Record<string, unknown> = {},
+      ) => {
+        const current = await service.get(actor, id);
+        return save(id, {
+          title: current.title,
+          titleTag: current.titleTag,
+          description: current.description,
+          summary: current.summary,
+          cta: current.cta,
+          canonicalSlug: current.canonicalSlug,
+          parentId: current.parentId,
+          sortOrder: current.sortOrder,
+          crumb: current.crumb,
+          body: current.body,
+          metadata: current.metadata,
+          ...over,
+        });
+      };
+
+      it("does not move the editorial timestamp on a locations-only save", async () => {
+        // Locations are navigational metadata: which hubs list the page is not
+        // something a reader of the page would call an update.
+        const page = await service.create(actor, draftInput("locations-only"));
+        const before = (await formSave(page.id)).contentUpdatedAt;
+        const tagged = await formSave(page.id, {
+          metadata: { ...metadata, locations: ["caba", "mendoza"] },
+        });
+        expect(tagged.contentUpdatedAt).toBe(before);
+
+        const reordered = await formSave(page.id, {
+          metadata: { ...metadata, locations: ["mendoza", "caba"] },
+        });
+        expect(reordered.contentUpdatedAt).toBe(before);
+
+        const cleared = await formSave(page.id, {
+          metadata: { ...metadata, locations: [] },
+        });
+        expect(cleared.contentUpdatedAt).toBe(before);
+      });
+
+      it("moves it when the same save also changes something substantive", async () => {
+        const page = await service.create(actor, draftInput("locations-mixed"));
+        const before = (await formSave(page.id)).contentUpdatedAt;
+        const edited = await formSave(page.id, {
+          title: "Un título distinto",
+          metadata: { ...metadata, locations: ["caba"] },
+        });
+        expect(Date.parse(edited.contentUpdatedAt)).toBeGreaterThan(
+          Date.parse(before),
+        );
+      });
+
+      it("does not move it when a full-form save changed nothing at all", async () => {
+        const page = await service.create(actor, draftInput("form-noop"));
+        const first = (await formSave(page.id)).contentUpdatedAt;
+        expect((await formSave(page.id)).contentUpdatedAt).toBe(first);
+      });
+
       it("levels the editorial timestamp on a first publication", async () => {
         // Otherwise a page created now and published a moment later has
         // "updated" before "published", which the document validator rejects —
@@ -837,6 +904,7 @@ if (!hasTestDatabase()) {
           metadata: {
             keywords: ["uno", "dos", "tres"],
             categories: ["servicios", "facturas-y-conceptos"],
+            locations: ["caba", "mendoza"],
             faq: [{ q: "¿Pregunta?", a: "Respuesta." }],
             ogImage: { eyebrow: "Guía · Prueba", stat: "×9" },
             vendor: "Edesur",

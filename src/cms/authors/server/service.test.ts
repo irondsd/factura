@@ -112,7 +112,10 @@ describe("CmsAuthorService", () => {
     const { service } = fakeAuthors();
     // `null` is a decision — "no address" — and differs from omitting the
     // field, which asks the service to derive one from the name.
-    const author = await service.create(human, { name: "Ana Pérez", slug: null });
+    const author = await service.create(human, {
+      name: "Ana Pérez",
+      slug: null,
+    });
     expect(author.slug).toBeNull();
   });
 
@@ -141,9 +144,9 @@ describe("CmsAuthorService", () => {
 
   it("refuses a blank name", async () => {
     const { service } = fakeAuthors();
-    await expect(
-      service.create(human, { name: "   " }),
-    ).rejects.toBeInstanceOf(CmsValidationError);
+    await expect(service.create(human, { name: "   " })).rejects.toBeInstanceOf(
+      CmsValidationError,
+    );
   });
 
   it("lets an author keep their own name and address while editing", async () => {

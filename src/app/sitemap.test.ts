@@ -22,6 +22,7 @@ const guides = vi.hoisted(() => vi.fn());
 const guideCategories = vi.hoisted(() => vi.fn());
 const listed = vi.hoisted(() => vi.fn());
 const contentCategories = vi.hoisted(() => vi.fn());
+const locations = vi.hoisted(() => vi.fn());
 
 vi.mock("@/content-system/repository/guias", () => ({
   publishedGuides: guides,
@@ -30,6 +31,10 @@ vi.mock("@/content-system/repository/guias", () => ({
 
 vi.mock("@/content-system/repository/categories", () => ({
   nonEmptyContentCategories: contentCategories,
+}));
+
+vi.mock("@/content-system/repository/locations", () => ({
+  nonEmptyContentLocations: locations,
 }));
 
 vi.mock("@/content/sections", () => ({
@@ -49,6 +54,7 @@ const entry = (
 
 describe("sitemap", () => {
   it("dates a category hub by the newest page it lists", async () => {
+    locations.mockResolvedValue([]);
     guides.mockResolvedValue([
       guide("una", ["luz"], "2026-03-01T00:00:00.000Z"),
       guide("otra", ["luz"], "2026-05-02T00:00:00.000Z"),
@@ -72,6 +78,7 @@ describe("sitemap", () => {
   });
 
   it("omits lastModified for a category with no listed pages", async () => {
+    locations.mockResolvedValue([]);
     guides.mockResolvedValue([
       guide("una", ["luz"], "2026-03-01T00:00:00.000Z"),
     ]);
@@ -103,6 +110,7 @@ describe("sitemap", () => {
   });
 
   it("omits lastModified for an empty index rather than inventing one", async () => {
+    locations.mockResolvedValue([]);
     guides.mockResolvedValue([]);
     guideCategories.mockResolvedValue([]);
     listed.mockResolvedValue([]);

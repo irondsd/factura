@@ -8,6 +8,8 @@ import {
   guidesIndexUrl,
   guideUrl,
   localeUrl,
+  locationUrl,
+  locationsIndexUrl,
   normativaUrl,
   sectionCardUrl,
   sectionIndexUrl,
@@ -15,6 +17,7 @@ import {
 } from "./metadata";
 import type { ContentSection } from "@/content-system/types";
 import type { AuthorRef } from "@/content-system/authors/types";
+import type { ContentLocation } from "@/content-system/locations/types";
 
 // schema.org structured data (JSON-LD) for the public landing. Builders return
 // plain objects rendered through <JsonLd>. Stable @ids let the graphs reference
@@ -94,6 +97,15 @@ const reviewNodes = (
         },
       ]
     : [];
+
+const locationNodes = (
+  locations: readonly Pick<ContentLocation, "label" | "slug">[] | undefined,
+) =>
+  locations?.map((location) => ({
+    "@type": "Place" as const,
+    name: location.label,
+    url: locationUrl(location.slug),
+  }));
 
 /** Organization + WebSite: brand-level identity that's true on every marketing
  * page. Rendered once from the (site) layout so all landing routes carry it. */
@@ -276,6 +288,7 @@ export function guideLd({
   words,
   minutes,
   credits,
+  locations,
 }: {
   slug: string;
   title: string;
@@ -291,6 +304,7 @@ export function guideLd({
   words: number;
   minutes: number;
   credits?: ArticleCredits;
+  locations?: readonly Pick<ContentLocation, "label" | "slug">[];
 }) {
   const url = guideUrl(canonical ?? slug);
   const articleId = `${url}#article`;
@@ -320,6 +334,9 @@ export function guideLd({
         // screen.
         timeRequired: `PT${minutes}M`,
         author: authorNode(credits),
+        ...(locations?.length
+          ? { contentLocation: locationNodes(locations) }
+          : {}),
         publisher: { "@id": ORG_ID },
       },
       ...reviewNodes(url, articleId, credits),
@@ -360,6 +377,7 @@ export function editorialPageLd({
   words,
   minutes,
   credits,
+  locations,
 }: {
   id: string;
   slug: string[];
@@ -371,6 +389,7 @@ export function editorialPageLd({
   words: number;
   minutes: number;
   credits?: ArticleCredits;
+  locations?: readonly Pick<ContentLocation, "label" | "slug">[];
 }) {
   const url = sectionUrl(id, slug);
   const articleId = `${url}#article`;
@@ -391,6 +410,9 @@ export function editorialPageLd({
         wordCount: words,
         timeRequired: `PT${minutes}M`,
         author: authorNode(credits),
+        ...(locations?.length
+          ? { contentLocation: locationNodes(locations) }
+          : {}),
         publisher: { "@id": ORG_ID },
       },
       ...reviewNodes(url, articleId, credits),
@@ -427,6 +449,7 @@ export function sectionPageLd({
   words,
   minutes,
   credits,
+  locations,
 }: {
   id: string;
   slug: string[];
@@ -448,6 +471,7 @@ export function sectionPageLd({
   words: number;
   minutes: number;
   credits?: ArticleCredits;
+  locations?: readonly Pick<ContentLocation, "label" | "slug">[];
 }) {
   const url = sectionUrl(id, slug);
   const datasetId = `${url}#dataset`;
@@ -471,6 +495,9 @@ export function sectionPageLd({
         timeRequired: `PT${minutes}M`,
         about: { "@id": datasetId },
         author: authorNode(credits),
+        ...(locations?.length
+          ? { contentLocation: locationNodes(locations) }
+          : {}),
         publisher: { "@id": ORG_ID },
       },
       ...reviewNodes(url, articleId, credits),
@@ -673,6 +700,63 @@ export function contentCategoryLd({
         position: index + 1,
         name: page.title,
         url: `${sectionIndexUrl(section)}/${page.slug}`,
+      })),
+    },
+  };
+}
+
+export function locationsIndexLd(
+  locations: readonly Pick<ContentLocation, "slug" | "label" | "description">[],
+) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": `${locationsIndexUrl}#collection`,
+    url: locationsIndexUrl,
+    name: "Ubicaciones",
+    description: "Contenido de Factura organizado por ubicación geográfica.",
+    inLanguage: "es",
+    publisher: { "@id": ORG_ID },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: locations.length,
+      itemListElement: locations.map((location, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: location.label,
+        description: location.description,
+        url: locationUrl(location.slug),
+      })),
+    },
+  };
+}
+
+export function locationHubLd({
+  location,
+  pages,
+}: {
+  location: Pick<ContentLocation, "slug" | "title" | "description">;
+  pages: readonly { section: ContentSection; slug: string; title: string }[];
+}) {
+  const url = locationUrl(location.slug);
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": `${url}#collection`,
+    url,
+    name: location.title,
+    description: location.description,
+    inLanguage: "es",
+    isPartOf: { "@id": `${locationsIndexUrl}#collection` },
+    publisher: { "@id": ORG_ID },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: pages.length,
+      itemListElement: pages.map((page, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: page.title,
+        url: sectionUrl(page.section, page.slug.split("/")),
       })),
     },
   };

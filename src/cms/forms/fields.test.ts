@@ -84,6 +84,44 @@ describe("category fields", () => {
   });
 });
 
+describe("location fields", () => {
+  it("offers the shared registry in its supplied order", () => {
+    const locations = sectionFields(
+      "guias",
+      [],
+      [],
+      [
+        { key: "caba", label: "CABA" },
+        { key: "argentina", label: "Argentina" },
+      ],
+    ).find((field) => field.path === "metadata.locations");
+
+    expect(locations).toMatchObject({
+      kind: "locations",
+      group: "estructura",
+      options: [
+        { value: "caba", label: "CABA" },
+        { value: "argentina", label: "Argentina" },
+      ],
+    });
+  });
+
+  it("shows locations in every authored section", () => {
+    for (const section of [
+      "guias",
+      "noticias",
+      "estadisticas",
+      "investigaciones",
+    ] as const) {
+      expect(
+        sectionFields(section).some(
+          (field) => field.path === "metadata.locations",
+        ),
+      ).toBe(true);
+    }
+  });
+});
+
 describe("section profiles", () => {
   it("builds every editor from the same article fields", () => {
     const shared = [

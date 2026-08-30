@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthorManager } from "@/cms/authors/components/AuthorManager";
 import { cmsAuthorService } from "@/cms/authors/server/service";
+import { LocationManager } from "@/cms/locations/components/LocationManager";
+import { cmsLocationService } from "@/cms/locations/server/service";
 import { canManageTokens } from "@/cms/auth/policy";
 import { requireCmsMember } from "@/cms/auth/requireCmsMember";
 import { CmsShell } from "@/cms/components/CmsShell";
@@ -28,7 +30,10 @@ export function generateMetadata(): Metadata {
 
 export default async function CmsHomePage() {
   const actor = await requireCmsMember("/cms");
-  const authors = await cmsAuthorService.list();
+  const [authors, locations] = await Promise.all([
+    cmsAuthorService.list(),
+    cmsLocationService.list(actor),
+  ]);
 
   return (
     <CmsShell actor={actor}>
@@ -36,17 +41,10 @@ export default async function CmsHomePage() {
         <h1 className="font-display font-semibold text-[30px] tracking-[-0.025em] leading-[1.1] m-0">
           Secciones
         </h1>
-        {/* The two things you administer rather than edit, kept off the
-            navigation for the same reason: authors are two people who change
-            about once a year, tokens are a page an admin opens about twice, and
-            a nav entry would give either the same weight as a section somebody
-            edits daily.
-
-            Tokens is a link and not a dialog because minting one shows a secret
+        {/* Tokens stays a link rather than a collection card because minting one shows a secret
             exactly once — that belongs on a page you can read without a modal
             over the console, and the page checks `canManageTokens` itself. */}
         <div className="flex flex-wrap items-center gap-2">
-          <AuthorManager initialAuthors={authors} />
           {canManageTokens(actor) && (
             <Link
               href="/cms/tokens"
@@ -73,6 +71,19 @@ export default async function CmsHomePage() {
           );
         })}
       </ul>
+
+      <section className="mt-10 border-t border-line pt-8">
+        <h2 className="m-0 font-display text-[24px] font-semibold tracking-[-0.02em]">
+          Colecciones globales
+        </h2>
+        <p className="mt-2 mb-6 max-w-[62ch] font-mono text-[13px] leading-[1.6] text-muted">
+          Datos compartidos por todas las secciones de contenido.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <AuthorManager initialAuthors={authors} />
+          <LocationManager initialLocations={locations} />
+        </div>
+      </section>
     </CmsShell>
   );
 }

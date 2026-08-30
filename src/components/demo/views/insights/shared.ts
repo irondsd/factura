@@ -1,8 +1,5 @@
 import type { InsightsWindow } from "@/lib/insights";
-import type {
-  DemoSeriesData,
-  DemoVendorDetail,
-} from "@/lib/demo/fixtures";
+import type { DemoSeriesData, DemoVendorDetail } from "@/lib/demo/fixtures";
 
 export type SeriesData = DemoSeriesData;
 export type VendorDetail = DemoVendorDetail;

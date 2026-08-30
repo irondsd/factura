@@ -121,6 +121,9 @@ describe("cms_page access", () => {
     // Category usage is a read-only join that answers whether a category may
     // be retired; all callers still go through the category store/service.
     path.join("src", "cms", "categories", "server", "store.ts"),
+    // Location retirement performs the same read-only active-revision usage
+    // check globally rather than inside one section.
+    path.join("src", "cms", "locations", "server", "store.ts"),
     // Author usage is the same shape of read-only join: "which pages credit
     // this person", for the count the manager shows.
     path.join("src", "cms", "authors", "server", "store.ts"),
@@ -186,6 +189,7 @@ describe("cms_page_revision access", () => {
     path.join("src", "cms", "media", "server", "store.ts"),
     path.join("src", "cms", "media", "server", "usage.ts"),
     path.join("src", "cms", "categories", "server", "store.ts"),
+    path.join("src", "cms", "locations", "server", "store.ts"),
     // Credits live in a revision's metadata, so counting them means reading the
     // three current pointers — the same join the category store makes.
     path.join("src", "cms", "authors", "server", "store.ts"),

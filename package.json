@@ -11,6 +11,8 @@
     "test:db": "dotenv -e .env.local -- vitest run",
     "indexnow": "bun scripts/ping-indexnow.ts",
     "media:sweep": "dotenv -e .env.prod -- bun --preload ./scripts/lib/serverOnlyShim.ts scripts/mediaSweep.ts",
+    "content:locations:seed": "dotenv -e .env.local -- bun --preload ./scripts/lib/serverOnlyShim.ts scripts/seed-content-locations.ts",
+    "content:locations:backfill": "dotenv -e .env.local -- bun --preload ./scripts/lib/serverOnlyShim.ts scripts/backfill-content-locations.ts",
     "lint": "eslint",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",

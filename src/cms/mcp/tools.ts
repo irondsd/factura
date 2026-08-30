@@ -6,6 +6,7 @@ import { cmsContentService } from "@/cms/server/service";
 import { cmsMediaService } from "@/cms/media/server/service";
 import { cmsCategoryService } from "@/cms/categories/server/service";
 import { cmsAuthorService } from "@/cms/authors/server/service";
+import { cmsLocationService } from "@/cms/locations/server/service";
 import { hasScope, type CmsTokenCaller, type CmsScope } from "./tokens";
 
 const section = z.string().refine(isContentSection, "Unknown content section.");
@@ -125,6 +126,71 @@ export const CMS_TOOLS: Tool[] = [
         jobTitle: author.jobTitle,
         slug: author.slug,
       })),
+  },
+  {
+    name: "list_locations",
+    scope: "cms:read",
+    description:
+      "List the active global locations, including immutable metadata keys, public slugs, usage counts and lock versions. Use exact narrow geography; Argentina is only for genuinely nationwide content.",
+    annotations: readOnly("Listar ubicaciones"),
+    schema: z.object({}).strict(),
+    run: (a) => cmsLocationService.list(a),
+  },
+  {
+    name: "get_location",
+    scope: "cms:read",
+    description:
+      "Get one global location with usage across every section, redirect history and current lock version.",
+    annotations: readOnly("Ver una ubicación"),
+    schema: z.object({ id: z.uuid() }).strict(),
+    run: (a, input) => cmsLocationService.get(a, (input as { id: string }).id),
+  },
+  {
+    name: "create_location",
+    scope: "cms:write",
+    description:
+      "Create a global location. The server derives its immutable key and public slug from the label; agents cannot choose either. Settings are live immediately, although an unused location has no public hub.",
+    annotations: writes("Crear una ubicación"),
+    schema: z
+      .object({
+        label: z.string(),
+        title: z.string(),
+        description: z.string(),
+      })
+      .strict(),
+    run: (a, input) =>
+      cmsLocationService.create(
+        a,
+        input as Parameters<typeof cmsLocationService.create>[1],
+      ),
+  },
+  {
+    name: "update_location",
+    scope: "cms:write",
+    description:
+      "Edit a location's label, hub title or description. Changes are live immediately. Address changes and retirement are browser-only.",
+    annotations: writes("Editar una ubicación"),
+    schema: z
+      .object({
+        id: z.uuid(),
+        expectedLockVersion: z.number().int().positive(),
+        patch: z
+          .object({
+            label: z.string().optional(),
+            title: z.string().optional(),
+            description: z.string().optional(),
+          })
+          .strict()
+          .refine((value) => Object.keys(value).length > 0, {
+            message: "At least one editable field is required.",
+          }),
+      })
+      .strict(),
+    run: (a, input) =>
+      cmsLocationService.update(
+        a,
+        input as Parameters<typeof cmsLocationService.update>[1],
+      ),
   },
   {
     name: "get_category",

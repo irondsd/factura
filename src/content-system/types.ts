@@ -52,6 +52,11 @@ export type DatasetMetadata = {
 export type ContentMetadata = {
   keywords: string[];
   categories: string[];
+  /** Immutable keys from the global geographic registry. Unlike categories
+   * there is no primary member, so the stored order carries no meaning and is
+   * sorted on parse — that is what makes a reorder-only save a no-op. Anything
+   * displaying them resolves through the registry and shows registry order. */
+  locations: string[];
   faq?: { q: string; a: string }[];
   ogTitle?: string;
   ogDescription?: string;

@@ -88,6 +88,35 @@ describe("stampsContentUpdatedAt", () => {
 });
 
 describe("isContentEdit", () => {
+  // The stored page a save is compared against. The editor form submits every
+  // one of these columns plus the body on every save, so the comparison — not
+  // which keys arrived — is what has to decide whether the reader's
+  // "Actualizado el …" moves.
+  const stored = {
+    title: "Qué son las expensas",
+    titleTag: null,
+    description: "Qué se paga y por qué.",
+    summary: "Resumen.",
+    cta: "Probá Factura.",
+    canonicalSlug: null,
+    parentId: null,
+    sortOrder: 0,
+    crumb: null,
+    body: "## Uno\n",
+    metadata: {
+      keywords: ["luz"],
+      categories: ["servicios"],
+      locations: ["caba"],
+    },
+  };
+
+  /** What the CMS editor sends: the whole form, every time. `over` is whatever
+   * the editor actually touched. */
+  const save = (over: Record<string, unknown> = {}) => {
+    const next = { ...stored, ...over };
+    return isContentEdit(next, stored, next);
+  };
+
   it("is true when any content field changed", () => {
     expect(isContentEdit({ body: "hola" })).toBe(true);
     expect(isContentEdit({ title: "Nuevo" })).toBe(true);
@@ -97,5 +126,67 @@ describe("isContentEdit", () => {
     // Drives `content_updated_at`, which is the "Actualizado el …" a reader
     // sees. Publishing is not editing.
     expect(isContentEdit({})).toBe(false);
+  });
+
+  it("is false for a full-form save that changed nothing", () => {
+    // The editor's own save shape. Without the comparison this was true for
+    // every save, which is what made the locations rule below unreachable from
+    // the browser.
+    expect(save()).toBe(false);
+  });
+
+  it("is true for a full-form save that changed one column", () => {
+    expect(save({ title: "Qué son las expensas en Argentina" })).toBe(true);
+    expect(save({ body: "## Dos\n" })).toBe(true);
+    expect(save({ crumb: "Expensas" })).toBe(true);
+  });
+
+  it("does not stamp location-only additions, removals or reorderings", () => {
+    expect(
+      save({
+        metadata: { ...stored.metadata, locations: ["caba", "mendoza"] },
+      }),
+    ).toBe(false);
+    expect(save({ metadata: { ...stored.metadata, locations: [] } })).toBe(
+      false,
+    );
+    expect(
+      save({
+        metadata: { ...stored.metadata, locations: ["mendoza", "caba"] },
+      }),
+    ).toBe(false);
+  });
+
+  it("stamps a mixed location/title or location/category edit", () => {
+    expect(
+      save({
+        title: "Nuevo",
+        metadata: { ...stored.metadata, locations: ["mendoza"] },
+      }),
+    ).toBe(true);
+    expect(
+      save({
+        metadata: {
+          ...stored.metadata,
+          categories: ["precios"],
+          locations: ["mendoza"],
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it("ignores metadata key order but not metadata content", () => {
+    expect(
+      save({
+        metadata: {
+          locations: ["caba"],
+          categories: ["servicios"],
+          keywords: ["luz"],
+        },
+      }),
+    ).toBe(false);
+    expect(save({ metadata: { ...stored.metadata, keywords: ["gas"] } })).toBe(
+      true,
+    );
   });
 });

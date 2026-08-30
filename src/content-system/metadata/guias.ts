@@ -111,6 +111,14 @@ export const guideMetadataSchema = z
     // Category membership is section-owned database data. Shape belongs here;
     // existence and active status are resolved by the document validator.
     categories: z.array(filled).default([]),
+    // Geographic membership is global and unordered. Sorting on parse makes a
+    // reorder-only save a no-op while keeping old revisions readable.
+    locations: z
+      .array(filled)
+      .default([])
+      .refine((values) => new Set(values).size === values.length, {
+        message: "locations has duplicate keys",
+      }),
     /** Answers are plain text on purpose: the same list renders the visible
      * block and the FAQPage JSON-LD, so a link in an answer would put markup in
      * the structured data. Links belong in the prose. */

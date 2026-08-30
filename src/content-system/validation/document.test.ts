@@ -29,6 +29,7 @@ const base: ContentDocument = {
       "consumo edesur",
     ],
     categories: ["servicios", "facturas-y-conceptos"],
+    locations: ["argentina"],
   },
   body: [
     "## Las secciones de la factura",
@@ -73,6 +74,34 @@ describe("a well-formed guide", () => {
   it("produces no diagnostics at all", () => {
     expect(check().diagnostics).toEqual([]);
     expect(check().ok).toBe(true);
+  });
+});
+
+describe("locations", () => {
+  it("requires one at preview and publication validation level", () => {
+    expect(codes(meta({ locations: [] }))).toContain(
+      DOCUMENT_CODES.locationsMissing,
+    );
+  });
+
+  it("rejects unknown or retired keys", () => {
+    const result = validateDocument(
+      { ...base, ...meta({ locations: ["inventada"] }) },
+      index,
+      { locations: new Set(["argentina", "caba"]) },
+    );
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      DOCUMENT_CODES.locationUnknown,
+    );
+  });
+
+  it("warns, but does not error, past three locations", () => {
+    const finding = check(
+      meta({ locations: ["caba", "cordoba", "mendoza", "santa-fe"] }),
+    ).diagnostics.find(
+      (diagnostic) => diagnostic.code === DOCUMENT_CODES.locationCount,
+    );
+    expect(finding?.severity).toBe("warning");
   });
 });
 
@@ -132,6 +161,7 @@ describe("statistics and research documents", () => {
     metadata: {
       keywords: ["alquileres caba"],
       categories: ["alquileres"],
+      locations: ["caba"],
       sources: [
         {
           label: "IDECBA",
@@ -158,7 +188,7 @@ describe("statistics and research documents", () => {
 
   it("requires provenance from a page that places <Fuentes />, and a dataset always", () => {
     const document = dataPage();
-    document.metadata = { keywords: [], categories: [] };
+    document.metadata = { keywords: [], categories: [], locations: [] };
     const result = validateDocument(document);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual(
       expect.arrayContaining([

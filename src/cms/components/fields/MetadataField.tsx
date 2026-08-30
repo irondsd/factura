@@ -8,6 +8,7 @@ import { CategoriesField } from "./CategoriesField";
 import { Counter, inputClass, TagsInput } from "./controls";
 import { FaqField } from "./FaqField";
 import { KeywordsField } from "./KeywordsField";
+import { LocationsField } from "./LocationsField";
 import { SourcesField } from "./SourcesField";
 import { asDataset, asOgImage, type Dataset, type OgImage } from "./values";
 
@@ -195,6 +196,18 @@ function Control({
     case "multiselect":
       return (
         <CategoriesField
+          field={field}
+          value={value}
+          onChange={onChange}
+          describedBy={describedBy}
+          invalid={invalid}
+        />
+      );
+
+    case "locations":
+      return (
+        <LocationsField
+          id={id}
           field={field}
           value={value}
           onChange={onChange}

@@ -1,4 +1,5 @@
 import type { ContentCategory } from "@/content-system/categories/types";
+import type { ContentLocation } from "@/content-system/locations/types";
 import type { ContentSection } from "@/content-system/types";
 import { sectionHasMetadataAddon } from "@/content-system/sectionProfiles";
 
@@ -24,6 +25,8 @@ export type FieldKind =
   | "tags"
   /** A fixed set, several choices allowed, order meaningful. */
   | "multiselect"
+  /** Global unordered location values, edited with an autocomplete combobox. */
+  | "locations"
   /** A fixed set, one choice or none. Options are injected by
    * `sectionFields`, the same way `multiselect` gets its categories. */
   | "select"
@@ -202,6 +205,15 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     group: "estructura",
     help: "En qué posición aparece entre las demás hijas de la misma madre. Menor va primero; si empatan, se ordenan por dirección.",
   },
+  {
+    path: "metadata.locations",
+    label: "Ubicaciones",
+    kind: "locations",
+    required: true,
+    softMaxItems: 3,
+    group: "estructura",
+    help: "El área geográfica concreta a la que se aplica o que analiza la página. Usa Argentina sólo para contenido realmente nacional; no añadas también el país a una provincia.",
+  },
   // The search result, in the order it is read: the line, the line under it,
   // the query they are written for, the shelf the page sits on.
   {
@@ -346,6 +358,7 @@ export function sectionFields(
   section: ContentSection,
   categories: readonly Pick<ContentCategory, "key" | "label">[] = [],
   authors: readonly { id: string; name: string }[] = [],
+  locations: readonly Pick<ContentLocation, "key" | "label">[] = [],
 ): readonly FieldDescriptor[] {
   const authorOptions = authors.map((author) => ({
     value: author.id,
@@ -371,6 +384,15 @@ export function sectionFields(
         })),
       };
     }
+    if (field.path === "metadata.locations") {
+      return {
+        ...field,
+        options: locations.map((location) => ({
+          value: location.key,
+          label: location.label,
+        })),
+      };
+    }
     if (CREDIT_PATHS.has(field.path)) {
       return { ...field, options: authorOptions };
     }
@@ -385,7 +407,7 @@ export const FIELD_GROUPS: readonly {
   label: string;
 }[] = [
   { id: "identidad", label: "Identidad" },
-  { id: "estructura", label: "Ubicación" },
+  { id: "estructura", label: "Estructura" },
   { id: "busqueda", label: "Búsqueda" },
   { id: "contenido", label: "Contenido" },
   { id: "bloques", label: "Bloques del artículo" },

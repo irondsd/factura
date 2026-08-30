@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 /* Native buttons should advertise that they are actionable even when a local
    component forgot to add the utility class. Keep this in the base layer so
@@ -195,7 +195,12 @@
     color: transparent;
     border-radius: 2px;
     background-color: var(--bone);
-    background-image: linear-gradient(90deg, var(--bone) 0%, var(--bone-hi) 50%, var(--bone) 100%);
+    background-image: linear-gradient(
+      90deg,
+      var(--bone) 0%,
+      var(--bone-hi) 50%,
+      var(--bone) 100%
+    );
     background-size: 220% 100%;
     animation: fd-bone-shimmer 1.5s linear infinite;
     -webkit-box-decoration-break: clone;
@@ -218,8 +223,8 @@
    so the families/scales/effects are re-declared here. */
 :root {
   /* Families */
-  --font-display: var(--font-fraunces), Georgia, 'Times New Roman', serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --font-body: var(--font-mono);
 
   /* Accent tints + semantic aliases */
@@ -289,7 +294,8 @@
   --dur-fast: 120ms;
   --dur: 150ms;
   --transition-colors:
-    color var(--dur) var(--ease-standard), background-color var(--dur) var(--ease-standard),
+    color var(--dur) var(--ease-standard),
+    background-color var(--dur) var(--ease-standard),
     border-color var(--dur) var(--ease-standard);
 }
 
@@ -298,7 +304,7 @@
    reduced motion, which is also what keeps `BackToTop`'s explicit
    `behavior: "auto"` honest: `auto` resolves to this computed value. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-scroll-behavior='smooth'] {
+  html[data-scroll-behavior="smooth"] {
     scroll-behavior: smooth;
   }
 }
@@ -317,7 +323,13 @@ body {
 .receipt-edge,
 .receipt-edge-sm {
   --zz: 11px;
-  --receipt-tear: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--zz) 100%;
+  --receipt-tear: conic-gradient(
+      from -45deg at bottom,
+      #0000,
+      #000 1deg 89deg,
+      #0000 90deg
+    )
+    50% / var(--zz) 100%;
 }
 .receipt-edge {
   -webkit-mask: var(--receipt-tear);
