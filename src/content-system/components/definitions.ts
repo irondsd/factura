@@ -115,6 +115,26 @@ type DataFigureName = Exclude<
 
 const DATA_LEAF_COMPONENTS: Record<DataFigureName, ContentComponentDefinition> =
   {
+    AbsaComercialCoeficiente: dataFigure(
+      "tables-comparisons",
+      "De dónde sale el aumento de los comercios",
+      "The February rise decomposed into the tariff increase everyone reported and the non-residential coefficient change nobody did. Three rows that multiply to the centavo.",
+    ),
+    AbsaCuadroTarifario: dataFigure(
+      "tables-comparisons",
+      "Todos los valores del m³ de ABSA",
+      "Every value the metro cúbico has taken since December 2024, with the norm that set it and whether it can still be verified on ABSA's own cuadro tarifario.",
+    ),
+    AbsaTarifaHistoria: dataFigure(
+      "charts-summaries",
+      "Historia del valor del m³ de ABSA",
+      "The tariff as the staircase it is: seven decrees in twenty-one months, each holding flat until the next. Place it wherever the page first shows the series.",
+    ),
+    AbsaTarifaVsInflacion: dataFigure(
+      "charts-summaries",
+      "La tarifa de ABSA contra la inflación",
+      "The same series measured against general prices, switchable between the two indexed lines and the gap between them. The figure that shows February 2026 as a correction rather than an increase.",
+    ),
     AlquilerCabaMapa: dataFigure(
       "maps",
       "Mapa del alquiler en CABA",

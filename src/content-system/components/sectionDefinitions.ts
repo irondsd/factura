@@ -1,6 +1,10 @@
 /** Names used by the existing statistics/research MDX corpus.  Kept free of
  * React imports so CLI validation can use the same allowlist as rendering. */
 export const SECTION_COMPONENT_NAMES = [
+  "AbsaComercialCoeficiente",
+  "AbsaCuadroTarifario",
+  "AbsaTarifaHistoria",
+  "AbsaTarifaVsInflacion",
   "AlquilerCabaMapa",
   "AlquileresBuscados",
   "BarriosBuscados",
