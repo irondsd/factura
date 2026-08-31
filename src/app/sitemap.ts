@@ -187,25 +187,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ? [
         {
           url: locationsIndexUrl,
-          lastModified: new Date(
-            Math.max(
-              ...locations.flatMap((location) =>
-                location.pages.map((page) => Date.parse(page.contentUpdatedAt)),
-              ),
-            ),
+          // The directory changes when either one of its entries changes or
+          // an article listed under one does. A renamed/reworded location is a
+          // significant visible change even when all its articles are older.
+          lastModified: newestDate(
+            locations.flatMap((location) => [
+              location.updatedAt,
+              ...location.pages.map((page) => page.contentUpdatedAt),
+            ]),
           ),
           changeFrequency: "weekly" as const,
           priority: 0.7,
         },
         ...locations.map((location) => ({
           url: locationUrl(location.slug),
-          lastModified: new Date(
-            Math.max(
-              ...location.pages.map((page) =>
-                Date.parse(page.contentUpdatedAt),
-              ),
-            ),
-          ),
+          lastModified: newestDate([
+            location.updatedAt,
+            ...location.pages.map((page) => page.contentUpdatedAt),
+          ]),
           changeFrequency: "weekly" as const,
           priority: 0.68,
         })),

@@ -72,7 +72,7 @@ function FilterLink({
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "border px-3 py-1.5 font-mono text-micro uppercase tracking-label-wide no-underline transition-colors",
+        "inline-flex min-h-11 items-center border px-3 py-1.5 font-mono text-micro uppercase tracking-label-wide no-underline transition-colors sm:min-h-0",
         active
           ? "border-accent text-accent"
           : "border-transparent text-muted hover:text-accent",

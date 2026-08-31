@@ -86,7 +86,7 @@ export function CmsSearch() {
         type="button"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
-        className="inline-flex cursor-pointer items-center gap-2 border border-line bg-paper px-2.5 py-1 font-mono text-micro uppercase tracking-label-wide text-muted transition-colors hover:border-accent hover:text-accent"
+        className="inline-flex min-h-11 cursor-pointer items-center gap-2 border border-line bg-paper px-2.5 py-1 font-mono text-micro uppercase tracking-label-wide text-muted transition-colors hover:border-accent hover:text-accent lg:min-h-0"
       >
         <CmsIcon name="search" size="sm" />
         Buscar

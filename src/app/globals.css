@@ -19,6 +19,12 @@
   --ink: #211d16;
   --muted: #857b67;
   --line: #ddd2bb;
+  /* One step fainter than --muted, one step darker than --line: a *text* tone
+     for a label that is present but inert. The A–Z jump bar on /ubicacion sets
+     its dead letters in it — they must stay readable as letters (so not --line,
+     a rule colour that vanishes as type) while reading as unvisitable at a
+     glance (so not --muted, which is ordinary secondary text). */
+  --muted-faint: #c9bfa8;
   --accent: #d9480f;
   --ok: #6f7d52; /* muted olive — positive/valid state, pairs with --accent */
 
@@ -129,6 +135,7 @@
   --color-card: var(--card);
   --color-ink: var(--ink);
   --color-muted: var(--muted);
+  --color-muted-faint: var(--muted-faint);
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-ok: var(--ok);
