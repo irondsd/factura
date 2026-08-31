@@ -6,6 +6,13 @@ import { statusLabel } from "./StatusChip";
 
 // The status filter, driven by the URL rather than client state.
 //
+// Desktop only. The same choice is in the filter dialog, which is where every
+// filter lives on a narrow screen: five pills with counts wrap to three lines
+// on a phone and push the table off the first screenful, and a row of controls
+// that only *mostly* fits reads as a layout fault. Above `sm` there is room,
+// and a filter you can see is faster than one behind a button — so it stays
+// visible there and the dialog omits it.
+//
 // A filtered list is then bookmarkable and shareable ("the drafts I still owe
 // you"), the server does the filtering in the query it was already running, and
 // there is no state to get out of step with what is on screen.
@@ -36,7 +43,7 @@ export function ListFilters({
     cmsListHref(basePath, { ...query, status });
 
   return (
-    <nav className={cn("flex flex-wrap items-center gap-1", className)}>
+    <nav className={cn("hidden flex-wrap items-center gap-1 sm:flex", className)}>
       <FilterLink
         href={href()}
         active={!query.status}

@@ -5,7 +5,7 @@ import type { FieldDescriptor } from "@/cms/forms/fields";
 import { MediaPicker } from "@/cms/media/components/MediaPicker";
 import { cn } from "@/lib/cn";
 import { CategoriesField } from "./CategoriesField";
-import { Counter, inputClass, TagsInput } from "./controls";
+import { CmsSelect, Counter, inputClass, TagsInput } from "./controls";
 import { FaqField } from "./FaqField";
 import { KeywordsField } from "./KeywordsField";
 import { LocationsField } from "./LocationsField";
@@ -179,7 +179,7 @@ function Control({
 
     case "parent":
       return (
-        <select
+        <CmsSelect
           {...shared}
           value={(value as string) ?? ""}
           onChange={(e) => onChange(e.target.value || null)}
@@ -190,7 +190,7 @@ function Control({
               {option.label}
             </option>
           ))}
-        </select>
+        </CmsSelect>
       );
 
     case "multiselect":
@@ -221,7 +221,7 @@ function Control({
     // instead of holding "" — which the metadata schema would refuse.
     case "select":
       return (
-        <select
+        <CmsSelect
           {...shared}
           value={(value as string) ?? ""}
           onChange={(e) => onChange(e.target.value || undefined)}
@@ -232,7 +232,7 @@ function Control({
               {option.label}
             </option>
           ))}
-        </select>
+        </CmsSelect>
       );
 
     case "media":

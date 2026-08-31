@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 import type { ContentSummary } from "@/content-system/types";
 import {
+  activeCmsFilterKeys,
+  clearedCmsFilters,
   cmsListHref,
   DEFAULT_CMS_SORT,
+  filterContentRows,
+  hasUnpublishedChanges,
   parseCmsListQuery,
   sortedContentRows,
   toggleSort,
+  withoutCmsFilter,
 } from "./listQuery";
+import type { CmsContentSummary } from "./types";
 
 const page = (
   id: string,
@@ -162,5 +168,214 @@ describe("sortedContentRows", () => {
       direction: "desc",
     });
     expect(rows.map((row) => row.id)).toEqual(["alfa", "zeta"]);
+  });
+});
+
+// ── filters ─────────────────────────────────────────────────────────────────
+
+const row = (
+  id: string,
+  overrides: Partial<CmsContentSummary> = {},
+): CmsContentSummary =>
+  ({
+    ...page(id),
+    hasWip: false,
+    metadata: { keywords: [], categories: [], locations: [] },
+    ...overrides,
+  }) as CmsContentSummary;
+
+describe("parseCmsListQuery filters", () => {
+  it("reads every facet out of the query string", () => {
+    expect(
+      parseCmsListQuery({
+        estado: "preview",
+        autor: "daria",
+        verificador: "julian",
+        categoria: "tarifas",
+        ubicacion: "caba",
+        cambios: "si",
+      }),
+    ).toEqual({
+      status: "preview",
+      authorId: "daria",
+      factCheckerId: "julian",
+      category: "tarifas",
+      location: "caba",
+      unpublishedChanges: true,
+      sort: DEFAULT_CMS_SORT,
+    });
+  });
+
+  it("treats a blank or unknown `cambios` as no opinion", () => {
+    expect(parseCmsListQuery({ cambios: "" }).unpublishedChanges).toBeUndefined();
+    expect(
+      parseCmsListQuery({ cambios: "quizás" }).unpublishedChanges,
+    ).toBeUndefined();
+    expect(parseCmsListQuery({ cambios: "no" }).unpublishedChanges).toBe(false);
+  });
+
+  it("drops an empty or absurdly long key rather than filtering by it", () => {
+    expect(parseCmsListQuery({ autor: "   " }).authorId).toBeUndefined();
+    expect(
+      parseCmsListQuery({ categoria: "x".repeat(200) }).category,
+    ).toBeUndefined();
+  });
+});
+
+describe("cmsListHref", () => {
+  it("round-trips every facet", () => {
+    const query = parseCmsListQuery({
+      estado: "draft",
+      autor: "daria",
+      verificador: "julian",
+      categoria: "tarifas",
+      ubicacion: "caba",
+      cambios: "no",
+      orden: "creada",
+      dir: "asc",
+    });
+    const href = cmsListHref("/cms/guias", query);
+    const params = Object.fromEntries(
+      new URLSearchParams(href.split("?")[1]).entries(),
+    );
+    expect(parseCmsListQuery(params)).toEqual(query);
+  });
+
+  it("leaves an unfiltered, default-sorted list as the plain address", () => {
+    expect(cmsListHref("/cms/guias", parseCmsListQuery({}))).toBe("/cms/guias");
+  });
+});
+
+describe("filterContentRows", () => {
+  it("keeps everything when nothing is filtered", () => {
+    const pages = [row("a"), row("b")];
+    expect(filterContentRows(pages, parseCmsListQuery({}))).toHaveLength(2);
+  });
+
+  it("ANDs the facets", () => {
+    const pages = [
+      row("both", {
+        status: "published",
+        metadata: {
+          keywords: [],
+          categories: ["tarifas"],
+          locations: [],
+          authorId: "daria",
+        },
+      } as Partial<CmsContentSummary>),
+      row("wrong-author", {
+        status: "published",
+        metadata: {
+          keywords: [],
+          categories: ["tarifas"],
+          locations: [],
+          authorId: "julian",
+        },
+      } as Partial<CmsContentSummary>),
+      row("wrong-category", {
+        status: "published",
+        metadata: {
+          keywords: [],
+          categories: ["subsidios"],
+          locations: [],
+          authorId: "daria",
+        },
+      } as Partial<CmsContentSummary>),
+    ];
+
+    const kept = filterContentRows(
+      pages,
+      parseCmsListQuery({ autor: "daria", categoria: "tarifas" }),
+    );
+    expect(kept.map((p) => p.id)).toEqual(["both"]);
+  });
+
+  it("matches a location among several", () => {
+    const pages = [
+      row("caba", {
+        metadata: {
+          keywords: [],
+          categories: [],
+          locations: ["buenos-aires", "caba"],
+        },
+      }),
+      row("santa-fe", {
+        metadata: { keywords: [], categories: [], locations: ["santa-fe"] },
+      }),
+    ];
+    expect(
+      filterContentRows(pages, parseCmsListQuery({ ubicacion: "caba" })).map(
+        (p) => p.id,
+      ),
+    ).toEqual(["caba"]);
+  });
+
+  it("counts a draft as having nothing pending", () => {
+    // Everything about a draft is unpublished, so folding drafts in would make
+    // the filter mean two things at once — and it is the same rule the row's
+    // «Borrador guardado» line is drawn by.
+    const draft = row("draft", { status: "draft", hasWip: true });
+    const published = row("published", { status: "published", hasWip: true });
+    const clean = row("clean", { status: "published", hasWip: false });
+
+    expect(hasUnpublishedChanges(draft)).toBe(false);
+    expect(
+      filterContentRows(
+        [draft, published, clean],
+        parseCmsListQuery({ cambios: "si" }),
+      ).map((p) => p.id),
+    ).toEqual(["published"]);
+    expect(
+      filterContentRows(
+        [draft, published, clean],
+        parseCmsListQuery({ cambios: "no" }),
+      ).map((p) => p.id),
+    ).toEqual(["draft", "clean"]);
+  });
+
+  it("drops a row whose metadata failed to parse from a metadata filter", () => {
+    const broken = row("broken", {
+      metadata: undefined as never,
+      metadataError: "no anda",
+    });
+    expect(
+      filterContentRows([broken], parseCmsListQuery({ categoria: "tarifas" })),
+    ).toEqual([]);
+    // Still listed when nothing is filtered, so it can be found and fixed.
+    expect(filterContentRows([broken], parseCmsListQuery({}))).toHaveLength(1);
+  });
+});
+
+describe("active filters", () => {
+  it("names the facets in play, and false counts as one", () => {
+    expect(
+      activeCmsFilterKeys(parseCmsListQuery({ estado: "draft", cambios: "no" })),
+    ).toEqual(["status", "unpublishedChanges"]);
+  });
+
+  it("releases one facet and keeps the sort", () => {
+    const query = parseCmsListQuery({
+      estado: "draft",
+      autor: "daria",
+      orden: "creada",
+      dir: "asc",
+    });
+    const next = withoutCmsFilter(query, "status");
+    expect(next.status).toBeUndefined();
+    expect(next.authorId).toBe("daria");
+    expect(next.sort).toEqual({ column: "creada", direction: "asc" });
+  });
+
+  it("clears every facet and keeps the sort", () => {
+    const query = parseCmsListQuery({
+      estado: "draft",
+      autor: "daria",
+      ubicacion: "caba",
+      orden: "creada",
+      dir: "asc",
+    });
+    expect(clearedCmsFilters(query)).toEqual({
+      sort: { column: "creada", direction: "asc" },
+    });
   });
 });

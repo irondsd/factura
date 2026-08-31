@@ -6,6 +6,7 @@ import { createContentAction } from "@/cms/server/actions";
 import type { CmsSection } from "@/cms/sections";
 import { cmsEditPath, publicSectionPath } from "@/cms/sections";
 import { CmsIcon } from "@/cms/icons";
+import { CmsSelect, inputClass } from "./fields/controls";
 import type { ParentOption } from "./fields/MetadataField";
 import { sectionProfile } from "@/content-system/sectionProfiles";
 
@@ -153,10 +154,9 @@ export function NewPageForm({
           label="Página madre"
           help="Deja «Ninguna» para una página de primer nivel."
         >
-          <select
+          <CmsSelect
             value={parentId}
             onChange={(event) => setParentId(event.target.value)}
-            className={inputClass}
           >
             <option value="">Ninguna (primer nivel)</option>
             {parentOptions.map((option) => (
@@ -164,7 +164,7 @@ export function NewPageForm({
                 {option.label}
               </option>
             ))}
-          </select>
+          </CmsSelect>
         </Field>
       )}
 
@@ -193,9 +193,6 @@ export function NewPageForm({
     </form>
   );
 }
-
-const inputClass =
-  "w-full border border-line bg-paper px-3 py-2 font-mono text-[13.5px] text-ink placeholder:text-muted focus:border-accent focus:outline-none";
 
 function Field({
   label,

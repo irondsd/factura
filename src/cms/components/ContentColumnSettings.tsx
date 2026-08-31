@@ -18,11 +18,17 @@ export function ContentColumnSettings({
   section,
   sectionLabel,
   filters,
+  actions,
   children,
 }: {
   section: ContentSection;
   sectionLabel: string;
   filters: ReactNode;
+  /** Controls that belong beside the column button — the filter dialog's
+   * trigger. They share the toolbar rather than getting a row of their own:
+   * both are square icon buttons that act on the same table, and splitting them
+   * across two lines would read as two unrelated toolbars. */
+  actions?: ReactNode;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -56,15 +62,18 @@ export function ContentColumnSettings({
     <>
       <div className="mb-6 flex min-w-0 items-start justify-between gap-3 sm:gap-4">
         <div className="min-w-0">{filters}</div>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Elegir columnas"
-          title="Elegir columnas"
-          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center border border-line bg-paper text-muted transition-colors hover:border-accent hover:text-accent focus-visible:border-accent focus-visible:text-accent focus-visible:outline-none"
-        >
-          <CmsIcon name="settings" size="sm" />
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {actions}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Elegir columnas"
+            title="Elegir columnas"
+            className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center border border-line bg-paper text-muted transition-colors hover:border-accent hover:text-accent focus-visible:border-accent focus-visible:text-accent focus-visible:outline-none"
+          >
+            <CmsIcon name="settings" size="sm" />
+          </button>
+        </div>
       </div>
 
       {children}

@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { FieldDescriptor } from "@/cms/forms/fields";
 import { cn } from "@/lib/cn";
 import { CmsIcon } from "../../icons";
-import { inputClass } from "./controls";
+import { CmsSelect } from "./controls";
 import { asStrings } from "./values";
 
 // «Categorías»: the one to three shelves a page sits on, the first of which
@@ -127,16 +127,13 @@ export function CategoriesField({
 
       {available.length > 0 ? (
         <div className="flex gap-2">
-          <select
+          <CmsSelect
             value={selected}
             aria-describedby={describedBy}
             aria-label="Categoría a añadir"
             aria-invalid={invalid || undefined}
             onChange={(e) => setDraft(e.target.value)}
-            className={cn(
-              inputClass,
-              invalid && "border-[var(--vendor-ochre)]",
-            )}
+            className={cn(invalid && "border-[var(--vendor-ochre)]")}
           >
             <option value="">
               {chosen.length === 0 ? "Elige una categoría" : "Añadir otra…"}
@@ -146,7 +143,7 @@ export function CategoriesField({
                 {option.label}
               </option>
             ))}
-          </select>
+          </CmsSelect>
           <button
             type="button"
             onClick={add}

@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { CmsIcon } from "@/cms/icons";
+import { cn } from "@/lib/cn";
 import {
   CmsConfirmDialog,
   CmsModal,
   DialogButton,
   DialogCancel,
 } from "../../components/CmsDialog";
+import { CmsSelect, inputClass } from "../../components/fields/controls";
 import { cmsEditPath } from "../../sections";
 import type { ContentSection } from "@/content-system/types";
 import {
@@ -329,7 +331,7 @@ export function MediaDetail({
           <input
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
-            className="w-full border border-line bg-card px-2 py-1.5"
+            className={inputClass}
           />
         </Field>
 
@@ -339,7 +341,7 @@ export function MediaDetail({
             onChange={(event) => setDefaultAlt(event.target.value)}
             disabled={decorative}
             rows={3}
-            className="w-full border border-line bg-card px-2 py-1.5 disabled:opacity-50"
+            className={cn(inputClass, "disabled:opacity-50")}
           />
           <label className="mt-1 flex items-center gap-2 text-[12px] text-muted">
             <input
@@ -363,10 +365,9 @@ export function MediaDetail({
         </Field>
 
         <Field label="Colección">
-          <select
+          <CmsSelect
             value={collectionId}
             onChange={(event) => setCollectionId(event.target.value)}
-            className="w-full border border-line bg-card px-2 py-1.5"
           >
             <option value="">Sin colección</option>
             {collections.map((collection) => (
@@ -374,14 +375,14 @@ export function MediaDetail({
                 {collection.name}
               </option>
             ))}
-          </select>
+          </CmsSelect>
         </Field>
 
         <Field label="Crédito (opcional)">
           <input
             value={attribution}
             onChange={(event) => setAttribution(event.target.value)}
-            className="w-full border border-line bg-card px-2 py-1.5"
+            className={inputClass}
           />
         </Field>
 

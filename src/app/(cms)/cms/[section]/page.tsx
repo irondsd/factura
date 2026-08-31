@@ -7,8 +7,15 @@ import { ContentColumnSettings } from "@/cms/components/ContentColumnSettings";
 import { CmsShell } from "@/cms/components/CmsShell";
 import { CategoryManager } from "@/cms/categories/components/CategoryManager";
 import { cmsCategoryService } from "@/cms/categories/server/service";
+import { ActiveListFilters } from "@/cms/components/ActiveListFilters";
+import { ListFilterDialog } from "@/cms/components/ListFilterDialog";
 import { ListFilters } from "@/cms/components/ListFilters";
-import { parseCmsListQuery } from "@/cms/listQuery";
+import { buildCmsFilterOptions } from "@/cms/listFilterOptions";
+import {
+  countActiveCmsFilters,
+  filterContentRows,
+  parseCmsListQuery,
+} from "@/cms/listQuery";
 import { cmsPageMetadata } from "@/cms/metadata";
 import { CmsIcon } from "@/cms/icons";
 import {
@@ -17,6 +24,7 @@ import {
   findEditableSection,
   publicSectionPath,
 } from "@/cms/sections";
+import { cmsLocationService } from "@/cms/locations/server/service";
 import { cmsPageHistoryStore } from "@/cms/server/historyStore";
 import { cmsPageStore } from "@/cms/server/store";
 import { resolveAuthorRefs } from "@/content-system/authors/repository";
@@ -31,6 +39,11 @@ type Props = {
   params: Promise<{ section: string }>;
   searchParams: Promise<{
     estado?: string;
+    autor?: string;
+    verificador?: string;
+    categoria?: string;
+    ubicacion?: string;
+    cambios?: string;
     orden?: string;
     dir?: string;
   }>;
@@ -52,15 +65,18 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
   if (!section) notFound();
 
   const query = parseCmsListQuery(await searchParams);
-  const { status } = query;
+  const activeFilters = countActiveCmsFilters(query);
 
-  // Counts come from the unfiltered set so the tabs keep saying how many pages
-  // are in each state while you are looking at one of them.
-  const [all, categories] = await Promise.all([
+  // Filtering happens here rather than in SQL: the section is already read
+  // whole — the status counts and the filter dialog's options both describe the
+  // *unfiltered* section, so narrowing the query would mean a second read to
+  // put back what it removed. Sections are a few dozen pages.
+  const [all, categories, locations] = await Promise.all([
     cmsPageStore.list({ section: section.id }),
     cmsCategoryService.list(actor, section.id),
+    cmsLocationService.options(actor),
   ]);
-  const pages = status ? all.filter((page) => page.status === status) : all;
+  const pages = filterContentRows(all, query);
 
   const counts = Object.fromEntries(
     CONTENT_STATUSES.map((s) => [s, all.filter((p) => p.status === s).length]),
@@ -69,14 +85,26 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
   // One lookup each for the whole list, rather than per row: the accounts
   // behind the two timestamp columns, and the people the credits column names.
   // Both de-duplicate, and across a section's pages both are a handful of ids.
+  //
+  // Credits resolve across the *whole* section, not the rows that survived the
+  // filters: they name the filter dialog's choices too, and a list of authors
+  // that shrank to whoever is already selected could never be changed to
+  // anybody else.
   const [actors, authors] = await Promise.all([
     cmsPageHistoryStore.actorsById(
       pages.flatMap((page) =>
         [page.createdBy, page.updatedBy].filter((id): id is string => !!id),
       ),
     ),
-    resolveAuthorRefs(pages.flatMap((page) => authorIdsIn(page.metadata))),
+    resolveAuthorRefs(all.flatMap((page) => authorIdsIn(page.metadata))),
   ]);
+
+  const filterOptions = buildCmsFilterOptions({
+    pages: all,
+    categories,
+    locations,
+    authors,
+  });
 
   return (
     <CmsShell actor={actor}>
@@ -117,7 +145,21 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
             total={all.length}
           />
         }
+        actions={
+          <ListFilterDialog
+            basePath={cmsSectionPath(section.id)}
+            query={query}
+            options={filterOptions}
+            statusCounts={counts}
+            total={all.length}
+          />
+        }
       >
+        <ActiveListFilters
+          basePath={cmsSectionPath(section.id)}
+          query={query}
+          options={filterOptions}
+        />
         <ContentList
           section={section}
           pages={pages}
@@ -126,8 +168,10 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
           basePath={cmsSectionPath(section.id)}
           query={query}
           emptyMessage={
-            status
-              ? "Ninguna página coincide con este filtro."
+            activeFilters > 0
+              ? activeFilters > 1
+                ? "Ninguna página cumple con todos estos filtros."
+                : "Ninguna página coincide con este filtro."
               : "Todavía no hay páginas en esta sección."
           }
         />
