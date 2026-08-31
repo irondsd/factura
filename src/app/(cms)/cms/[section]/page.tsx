@@ -94,7 +94,7 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
           />
           <Link
             href={cmsNewPath(section.id)}
-            className="inline-flex min-h-11 items-center gap-2 border border-ink bg-ink px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper no-underline transition-colors hover:border-accent hover:bg-accent"
+            className="inline-flex min-h-8 items-center gap-2 border border-ink bg-ink px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-paper no-underline transition-colors hover:border-accent hover:bg-accent"
           >
             <CmsIcon name="add" size="sm" />
             Nueva página

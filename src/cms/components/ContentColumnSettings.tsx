@@ -61,7 +61,7 @@ export function ContentColumnSettings({
           onClick={() => setOpen(true)}
           aria-label="Elegir columnas"
           title="Elegir columnas"
-          className="inline-flex size-11 shrink-0 cursor-pointer items-center justify-center border border-line bg-paper text-muted transition-colors hover:border-accent hover:text-accent focus-visible:border-accent focus-visible:text-accent focus-visible:outline-none"
+          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center border border-line bg-paper text-muted transition-colors hover:border-accent hover:text-accent focus-visible:border-accent focus-visible:text-accent focus-visible:outline-none"
         >
           <CmsIcon name="settings" size="sm" />
         </button>
