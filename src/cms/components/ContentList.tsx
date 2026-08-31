@@ -57,6 +57,14 @@ export function ContentList({
   const visibleColumnIds = resolveColumnOrder(section.id, preferences).filter(
     (columnId) => !preferences.hidden.includes(columnId),
   );
+  const tableMinWidth = visibleColumnIds.reduce(
+    (width, columnId) =>
+      width +
+      ({ page: 260, status: 150, credits: 190, created: 170, updated: 170 }[
+        columnId
+      ] ?? 0),
+    0,
+  );
 
   if (pages.length === 0) {
     return (
@@ -109,7 +117,7 @@ export function ContentList({
         return (
           <Th
             key={columnId}
-            className="cms-column-credits w-[190px] hidden lg:table-cell"
+            className="cms-column-credits w-[190px]"
           >
             Créditos
           </Th>
@@ -181,18 +189,28 @@ export function ContentList({
     // truncated at all: an auto-laid-out table sizes each column to its widest
     // content, so `truncate` on the title would just widen the column instead
     // of clipping — which is how the titles came to wrap onto three lines.
-    <table className="w-full table-fixed border-collapse font-mono text-[13px]">
-      <thead>
-        <tr>{visibleColumnIds.map(renderHeader)}</tr>
-      </thead>
-      <tbody>
-        {ordered.map((page) => (
-          <tr key={page.id} className="border-b border-line/60">
-            {visibleColumnIds.map((columnId) => renderCell(page, columnId))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div
+      role="region"
+      aria-label={`Páginas de ${section.label}`}
+      tabIndex={0}
+      className="max-w-full overflow-x-auto overscroll-x-contain focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent [scrollbar-gutter:stable] [-webkit-overflow-scrolling:touch]"
+    >
+      <table
+        className="w-full table-fixed border-collapse font-mono text-[13px]"
+        style={{ minWidth: `${tableMinWidth}px` }}
+      >
+        <thead>
+          <tr>{visibleColumnIds.map(renderHeader)}</tr>
+        </thead>
+        <tbody>
+          {ordered.map((page) => (
+            <tr key={page.id} className="border-b border-line/60">
+              {visibleColumnIds.map((columnId) => renderCell(page, columnId))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -262,7 +280,7 @@ function Credits({
     : null;
 
   return (
-    <td className="cms-column-credits py-3 pr-4 align-top text-muted hidden lg:table-cell">
+    <td className="cms-column-credits py-3 pr-4 align-top text-muted">
       {/* Both credits are optional and most older pages have neither, so the
           empty cell says so with a dash rather than leaving a hole that reads
           as a rendering fault. */}
@@ -331,7 +349,7 @@ function Stamp({
   return (
     <td
       className={cn(
-        "py-3 align-top text-muted hidden md:table-cell whitespace-nowrap",
+        "py-3 align-top text-muted whitespace-nowrap",
         !last && "pr-4",
         className,
       )}
@@ -385,7 +403,7 @@ function SortableTh({
         active ? (direction === "asc" ? "ascending" : "descending") : undefined
       }
       className={cn(
-        "w-[170px] text-left font-medium uppercase text-micro tracking-label-wide text-muted border-b border-line py-2 pr-4 hidden md:table-cell whitespace-nowrap",
+        "w-[170px] text-left font-medium uppercase text-micro tracking-label-wide text-muted border-b border-line py-2 pr-4 whitespace-nowrap",
         className,
       )}
     >

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { CmsActor } from "../types";
 import { CMS_SECTIONS, cmsSectionPath } from "../sections";
 import { CmsSearch } from "./CmsSearch";
+import { CmsIcon } from "../icons";
 
 // The CMS chrome. Deliberately its own thing rather than a reuse of `AppShell`:
 // the bill app's shell carries the property switcher, the tRPC providers and the
@@ -50,14 +51,14 @@ export function CmsShell({
           edits the live public site; a tab that looks like the app is exactly
           the confusion worth spending a header on. */}
       <header className="border-b border-line">
-        <div className="mx-auto w-full max-w-[1100px] px-5 py-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+        <div className="relative mx-auto flex w-full max-w-[1100px] items-center gap-2 px-4 py-3 sm:px-5 lg:gap-6 lg:py-4">
           <Link
             href="/cms"
-            className="font-display font-semibold text-[19px] tracking-[-0.02em] no-underline text-ink"
+            className="shrink-0 font-display font-semibold text-[19px] tracking-[-0.02em] no-underline text-ink"
           >
             Factura<span className="text-accent">.</span>CMS
           </Link>
-          <nav className="flex items-center gap-4">
+          <nav className="hidden items-center gap-4 lg:flex" aria-label="CMS">
             {NAV.map((l) => (
               <Link
                 key={l.href}
@@ -68,8 +69,10 @@ export function CmsShell({
               </Link>
             ))}
           </nav>
-          <CmsSearch />
-          <div className="ml-auto flex flex-col gap-0">
+          <div className="ml-auto lg:ml-0">
+            <CmsSearch />
+          </div>
+          <div className="ml-auto hidden flex-col gap-0 lg:flex">
             <span className="ml-auto text-micro uppercase tracking-label-wide text-muted">
               {actor.name || actor.email || actor.userId}
             </span>
@@ -77,10 +80,43 @@ export function CmsShell({
               {actor.role}
             </span>
           </div>
+
+          <details className="group lg:hidden">
+            <summary
+              aria-label="Menú del CMS"
+              className="flex size-11 cursor-pointer list-none items-center justify-center border border-line text-muted transition-colors hover:border-accent hover:text-accent focus-visible:border-accent focus-visible:text-accent focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+            >
+              <CmsIcon name="menu" size="md" className="group-open:hidden" />
+              <CmsIcon
+                name="close"
+                size="md"
+                className="hidden group-open:block"
+              />
+            </summary>
+            <div className="absolute inset-x-0 top-full z-40 border-y border-line bg-paper px-4 py-3 shadow-pop sm:px-5">
+              <nav className="flex flex-col" aria-label="CMS móvil">
+                {NAV.map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    className="flex min-h-11 items-center border-b border-line/70 font-mono text-micro uppercase tracking-label-wide text-ink no-underline transition-colors last:border-b-0 hover:text-accent focus-visible:text-accent focus-visible:outline-none"
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+              </nav>
+              <div className="mt-3 flex items-center justify-between border-t border-line pt-3 font-mono text-micro uppercase tracking-label-wide">
+                <span className="min-w-0 truncate text-muted">
+                  {actor.name || actor.email || actor.userId}
+                </span>
+                <span className="ml-4 shrink-0 text-accent">{actor.role}</span>
+              </div>
+            </div>
+          </details>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1100px] flex-1 px-5 py-10">
+      <main className="mx-auto w-full min-w-0 max-w-[1100px] flex-1 px-4 py-7 sm:px-5 md:py-10">
         {children}
       </main>
 
@@ -89,7 +125,7 @@ export function CmsShell({
           what prove both). This line is here so nobody reads a link's presence
           or absence as the security boundary. */}
       <footer className="border-t border-line">
-        <div className="mx-auto w-full max-w-[1100px] px-5 py-4 font-mono text-micro text-muted">
+        <div className="mx-auto w-full max-w-[1100px] px-4 py-4 font-mono text-micro leading-relaxed text-muted sm:px-5">
           Herramienta interna. Los cambios en páginas publicadas se ven en el
           sitio público en la siguiente visita.
         </div>
