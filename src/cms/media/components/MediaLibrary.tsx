@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { CmsIcon } from "@/cms/icons";
 import { CmsConfirmDialog, CmsPromptDialog } from "../../components/CmsDialog";
 import {
@@ -17,8 +24,14 @@ import type {
   MediaAssetWithUsage,
   MediaCollection,
   MediaListFilter,
-  MediaUsageFilter,
 } from "../types";
+import {
+  MEDIA_COLLECTION_PARAM,
+  mediaLibraryFilter,
+  mediaLibraryHref,
+  mediaLibraryViewFromParam,
+  type MediaLibraryView,
+} from "../query";
 import {
   formatBytes,
   MAX_BATCH_FILES,
@@ -31,11 +44,6 @@ import {
 // files updates the grid, filtering updates the grid, and a collection is a
 // filter. The server component above it does the first read so the page is
 // useful before any JavaScript runs.
-
-type View =
-  | { kind: "collection"; id: string | null }
-  | { kind: "usage"; usage: MediaUsageFilter }
-  | { kind: "trash" };
 
 type Counts = {
   all: number;
@@ -61,12 +69,14 @@ const ACCEPT = SUPPORTED_MIME_TYPES.join(",");
 
 export function MediaLibrary({
   initial,
+  initialView,
   collections: initialCollections,
   counts: initialCounts,
   graceDays,
   maxBytes,
 }: {
   initial: MediaAssetWithUsage[];
+  initialView: MediaLibraryView;
   collections: (MediaCollection & { count: number })[];
   counts: Counts;
   graceDays: number;
@@ -75,7 +85,7 @@ export function MediaLibrary({
   const [assets, setAssets] = useState(initial);
   const [collections, setCollections] = useState(initialCollections);
   const [counts, setCounts] = useState(initialCounts);
-  const [view, setView] = useState<View>({ kind: "usage", usage: "all" });
+  const [view, setView] = useState<MediaLibraryView>(initialView);
   const [search, setSearch] = useState("");
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -91,12 +101,10 @@ export function MediaLibrary({
   const [pending, start] = useTransition();
   const input = useRef<HTMLInputElement>(null);
 
-  const filter = useMemo<MediaListFilter>(() => {
-    const base: MediaListFilter = { search: search || undefined };
-    if (view.kind === "trash") return { ...base, statuses: ["trashed"] };
-    if (view.kind === "usage") return { ...base, usage: view.usage };
-    return { ...base, collectionId: view.id };
-  }, [view, search]);
+  const filter = useMemo(
+    () => mediaLibraryFilter(view, search),
+    [view, search],
+  );
 
   const refresh = useCallback(
     (next: MediaListFilter = filter) =>
@@ -111,17 +119,35 @@ export function MediaLibrary({
     [filter],
   );
 
-  const show = (next: View) => {
+  const updateUrl = useCallback((next: MediaLibraryView) => {
+    const href = mediaLibraryHref(next, window.location.pathname);
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (current !== href) window.history.pushState(null, "", href);
+  }, []);
+
+  const show = (next: MediaLibraryView) => {
     setView(next);
-    const base: MediaListFilter = { search: search || undefined };
-    refresh(
-      next.kind === "trash"
-        ? { ...base, statuses: ["trashed"] }
-        : next.kind === "usage"
-          ? { ...base, usage: next.usage }
-          : { ...base, collectionId: next.id },
-    );
+    updateUrl(next);
+    refresh(mediaLibraryFilter(next, search));
   };
+
+  // Collection selection is also a history state, so browser back/forward
+  // should move the grid with the URL instead of leaving the address and the
+  // highlighted sidebar item disagreeing.
+  useEffect(() => {
+    const onPopState = () => {
+      const next = mediaLibraryViewFromParam(
+        new URLSearchParams(window.location.search).get(
+          MEDIA_COLLECTION_PARAM,
+        ) ?? undefined,
+        collections,
+      );
+      setView(next);
+      refresh(mediaLibraryFilter(next, search));
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [collections, refresh, search]);
 
   /** Upload one file: reserve, PUT the bytes straight to object storage, then
    * finalize. `XMLHttpRequest` rather than `fetch` for the one reason it still
@@ -604,7 +630,7 @@ function usageLabel(asset: MediaAssetWithUsage): string {
     : "nunca usada";
 }
 
-function emptyMessage(view: View): string {
+function emptyMessage(view: MediaLibraryView): string {
   if (view.kind === "trash") return "La papelera está vacía.";
   if (view.kind === "usage" && view.usage === "never-used") {
     return "Todas las imágenes se usaron alguna vez.";
