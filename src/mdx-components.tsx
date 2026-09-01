@@ -8,6 +8,7 @@ import {
   ProbarCta,
   SignupCta,
 } from "@/components/guides/cta";
+import { Resumen } from "@/components/article/Resumen";
 import { PaginaRelacionada } from "@/components/section/PaginaRelacionada";
 import { TrustBlock } from "@/components/landing/TrustBlock";
 import { cn } from "@/lib/cn";
@@ -144,6 +145,10 @@ const components: MDXComponents = {
   // card works in both directions between /estadisticas and /investigaciones.
   PaginaRelacionada,
   ProbarCta,
+  // The page summary block. No props and no article context: it is the
+  // author's own prose, wrapped, so it renders the same from a .mdx file as it
+  // does from the database.
+  Resumen,
   SignupCta,
   // The landing page's trust block, unchanged — it sizes itself off its own box,
   // so an article column gets the ledger-row form and the landing band gets the

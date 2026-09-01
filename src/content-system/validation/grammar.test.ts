@@ -63,6 +63,7 @@ describe("allowed components", () => {
       '<ClosingCta title="Tu factura, no el promedio">\n\nDos frases.\n\n</ClosingCta>',
     ProbarCta:
       '<ProbarCta vendor="Edesur" noun="factura">\n\nTexto.\n\n</ProbarCta>',
+    Resumen: "<Resumen>\n\nLa respuesta en dos frases.\n\n</Resumen>",
     CtaButton:
       '<CtaButton href="/demo" variant="invert">Ver la demo</CtaButton>',
     CtaRow: "<CtaRow>\n\n<DemoCta />\n\n</CtaRow>",

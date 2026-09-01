@@ -7,6 +7,7 @@ import {
   ProbarCta,
   SignupCta,
 } from "@/components/guides/cta";
+import { Resumen } from "@/components/article/Resumen";
 import { InflacionChart } from "@/components/guides/InflacionChart";
 import { TrustBlock } from "@/components/landing/TrustBlock";
 import { SECTION_COMPONENT_BINDINGS } from "./sectionBindings";
@@ -65,6 +66,7 @@ const DATA_BINDINGS = Object.fromEntries(
 const BINDINGS: Record<string, ComponentType<never>> = {
   ClosingCta,
   ProbarCta,
+  Resumen,
   CtaButton,
   CtaRow,
   DemoCta,

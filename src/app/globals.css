@@ -34,6 +34,14 @@
   --bone: #e6dfcd;
   --bone-hi: #f1ead9;
 
+  /* A tint one step *deeper* than the page, for a block of prose that is set
+     apart without being a card. --card goes the other way — lighter than the
+     paper — and reads as a raised surface; this one reads as paper that was
+     highlighted, which is what a page summary sitting inside the article
+     column should look like. Warmer than a plain --paper/--line mix so the
+     block stays sand rather than drifting grey. */
+  --paper-tint: #f0e8d6;
+
   /* Vendor palette — warm/muted earthy hues. Vendors store a color by *name*
      (see lib/vendorColors); these vars and the .vbg-* utilities below are the
      single source for the actual hex. Keep the name list in lib/vendorColors in
@@ -132,6 +140,7 @@
 
 @theme inline {
   --color-paper: var(--paper);
+  --color-paper-tint: var(--paper-tint);
   --color-card: var(--card);
   --color-ink: var(--ink);
   --color-muted: var(--muted);

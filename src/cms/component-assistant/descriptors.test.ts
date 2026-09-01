@@ -150,6 +150,23 @@ describe("component completion descriptors", () => {
     }
   });
 
+  it("offers the page summary in every section, as a container", () => {
+    // `<Resumen>` is the one block registered for all four sections that wraps
+    // the author's own prose rather than binding page data, so the palette has
+    // to reach it everywhere and insert it with a body — a self-closing
+    // completion would produce a tag the grammar rejects.
+    for (const section of CONTENT_SECTIONS) {
+      const resumen = componentCompletionDescriptors(section).find(
+        (descriptor) => descriptor.name === "Resumen",
+      );
+      expect(resumen, section).toBeDefined();
+      expect(resumen!.props).toEqual([]);
+      expect(expandSnippet(resumen!.template.snippet), section).toBe(
+        "<Resumen>\n\nDos o tres frases que respondan la pregunta de la página.\n\n</Resumen>",
+      );
+    }
+  });
+
   it("gives a multi-line child placeholder one tab stop per line", () => {
     // `CtaRow` is the case that proves the split: a single `${0:…}` spanning
     // blank lines is not a field CodeMirror can parse.

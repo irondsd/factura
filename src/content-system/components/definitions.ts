@@ -607,6 +607,26 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
       ],
     },
   },
+  Resumen: {
+    // Every section: the block answers "is this the page I needed?", and that
+    // question is asked of a guide, a noticia and a data page alike.
+    sections: ["guias", "noticias", "estadisticas", "investigaciones"],
+    kind: "container",
+    props: noProps,
+    description:
+      "The page summary: two or three sentences on a tinted block that give the reader the answer before the article argues it. Write it near the top, around prose — not around a figure, a list or another component.",
+    authoring: {
+      label: "Resumen de la página",
+      group: "article-structure",
+      rank: 5,
+      childPlaceholder:
+        "Dos o tres frases que respondan la pregunta de la página.",
+      notes: [
+        "Va cerca del comienzo, después del párrafo de introducción, y una sola vez por página.",
+        "Es para el lector, no para el buscador: `summary` y `description` siguen siendo campos aparte.",
+      ],
+    },
+  },
   RelatedGuides: {
     sections: ["guias"],
     kind: "leaf",

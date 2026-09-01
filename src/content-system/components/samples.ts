@@ -23,6 +23,8 @@ const WRITTEN: Partial<Record<ContentComponentName, string>> = {
   ClosingCta:
     '<ClosingCta title="Título">\n\nCopia de cierre.\n\n</ClosingCta>',
   ProbarCta: '<ProbarCta vendor="Edesur">\n\nCopia.\n\n</ProbarCta>',
+  Resumen:
+    "<Resumen>\n\nLa respuesta de la página en dos frases.\n\n</Resumen>",
   CtaButton: '<CtaButton href="/demo">Ver la demo</CtaButton>',
   CtaRow: "<CtaRow>\n\n<DemoCta />\n\n<SignupCta />\n\n</CtaRow>",
   InflacionChart: '<InflacionChart chart="luz-y-gas" />',
