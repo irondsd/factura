@@ -202,21 +202,21 @@ them flat; `update_content` takes the same names inside `patch`.
 
 ### Columns — every section
 
-| Field           | Used for                                            | Rules                                                                         |
-| --------------- | --------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `section`       | Which section this belongs to                       | `guias`, `noticias`, `estadisticas` or `investigaciones`. Set at create only. |
-| `slug`          | **The URL.** `/guias/<slug>`                        | lowercase, hyphens, **no accents or ñ**. Set at create only.                  |
-| `title`         | `<h1>`, `<title>`, OG/Twitter, JSON-LD              | **≤60 chars**, or add `titleTag` — see below.                                 |
-| `titleTag`      | `<title>` only, when `title` is too long to be one  | ≤60, keyword first. Optional.                                                 |
-| `description`   | `<meta name="description">`, OG/Twitter             | ~150–160 chars. One sentence; this is the search snippet.                     |
-| `summary`       | Index cards, homepage, `llms.txt`                   | One short sentence (~90–120 chars). May differ from `description`.            |
-| `cta`           | The one-line CTA banner above the article           | Optional; blank uses the default line. **≤110 chars.** A hook, not a summary. |
-| `canonicalSlug` | Points this page's canonical at another page's slug | Optional. The cannibalisation lever — see below.                              |
-| `body`          | The MDX body                                        | See §6. No frontmatter, no `<h1>`.                                            |
-| `metadata`      | The JSONB half — see the two schemas below          | Required.                                                                     |
-| `parentId`      | The editorial tree; null is top level               | Optional. A child's slug must be its parent's slug plus a segment.            |
-| `sortOrder`     | Order among siblings in the CMS tree                | Optional integer. Ties break on slug. Only meaningful with a parent.          |
-| `crumb`         | Short label for breadcrumbs and index rows          | Optional. "GBA" for "Inflación de vivienda en el Gran Buenos Aires".          |
+| Field           | Used for                                            | Rules                                                                                                                     |
+| --------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `section`       | Which section this belongs to                       | `guias`, `noticias`, `estadisticas` or `investigaciones`. Set at create only.                                             |
+| `slug`          | **The URL.** `/guias/<slug>`                        | lowercase, hyphens, **no accents or ñ**. Set at create only.                                                              |
+| `title`         | `<h1>`, `<title>`, OG/Twitter, JSON-LD              | **≤60 chars**, or add `titleTag` — see below.                                                                             |
+| `titleTag`      | `<title>` only, when `title` is too long to be one  | ≤60, keyword first. Optional.                                                                                             |
+| `description`   | `<meta name="description">`, OG/Twitter             | ~150–160 chars. One sentence; this is the search snippet.                                                                 |
+| `summary`       | Index cards, homepage, `llms.txt`                   | One short sentence (~90–120 chars). May differ from `description`.                                                        |
+| `cta`           | The one-line CTA banner above the article           | Optional; blank uses the default line. **≤110 chars.** A hook, not a summary — and only ever about what the app does: §5. |
+| `canonicalSlug` | Points this page's canonical at another page's slug | Optional. The cannibalisation lever — see below.                                                                          |
+| `body`          | The MDX body                                        | See §6. No frontmatter, no `<h1>`.                                                                                        |
+| `metadata`      | The JSONB half — see the two schemas below          | Required.                                                                                                                 |
+| `parentId`      | The editorial tree; null is top level               | Optional. A child's slug must be its parent's slug plus a segment.                                                        |
+| `sortOrder`     | Order among siblings in the CMS tree                | Optional integer. Ties break on slug. Only meaningful with a parent.                                                      |
+| `crumb`         | Short label for breadcrumbs and index rows          | Optional. "GBA" for "Inflación de vivienda en el Gran Buenos Aires".                                                      |
 
 **Slugs are set once.** Changing one changes the URL and breaks every inbound
 link; the CMS will let you, and you should not without being asked.
@@ -445,11 +445,102 @@ intelligent and busy. It does not write the way a friend texts.
 - Never promise an outcome the product does not deliver. "Mirá qué datos
   extrae", never "la procesamos correctamente"; "guardamos la serie", never
   "dejá de pagar de más". Most vendors have no parser yet, and a bill that fails
-  to parse is a normal outcome.
+  to parse is a normal outcome. This is the rule this site breaks most often and
+  it has its own subsection below.
 
 Numbers carry the same honesty rule. If you quote a figure in prose, it must be
 a figure the page's own data supports, and it must survive the next data
 refresh — see §6 on charts.
+
+### What Factura does, and what it must never claim
+
+Every CTA on the site is an advertisement, and the article around it is what
+makes a stranger believe it. That is `cta`, `<ClosingCta />`, `<ProbarCta />`
+and the "Léelo automáticamente" section — and inventing a capability in any of
+them is the most damaging thing you can write here. The reader clicks through to
+an app that does not do the thing you promised, and the article that earned the
+click is what taught them the site lies.
+
+You do not get to infer the product from the article's subject. **Read this list
+and write from it.**
+
+**Factura is a record of your household bills.** Everything it does follows from
+that:
+
+- You upload a bill as a PDF and it extracts the importe, the período, the
+  vencimiento, the consumo and the provider.
+- It builds the history of each service, month by month, out of those bills.
+- It charts that history: total spending over time, by provider, by service.
+- It compares periods — this winter against last winter, this summer against the
+  last — which is what separates a tariff increase from a colder month.
+- It shows the same spending in pesos and in dollars, so a rise splits into
+  tariff and inflation.
+- It sums up what the household spends across every service, and projects the
+  next months from that history.
+- It sets your own bills beside the official statistics published in these
+  sections.
+- `/demo` shows all of it with sample data; `/probar` reads a single bill you
+  drop, with no account.
+
+**Factura never touches the bill itself.** It is not connected to a distributor,
+a bank or the state, and it has no way to be. So no line of copy may say or
+imply that Factura:
+
+- pays a bill, processes a payment, or takes you to somewhere you can pay;
+- applies for, obtains, checks or protects a subsidy or a discount — Tarifa
+  Social, ReSEF, the gas zona fría, any of them;
+- finds, looks up or holds an account number (NIS, ID, unidad de facturación,
+  número de cliente) for you to pay with;
+- warns you about a vencimiento, sends a reminder, or keeps a due date in view;
+- lowers a bill, disputes a charge, claims a refund, or detects an error the
+  provider made.
+
+Two ways this gets broken by accident, both worth checking for by name:
+
+- **The imperative.** "Pagá ENERSA con el ID a mano" claims nothing outright, but
+  it is written as an instruction the product is there to help you carry out, and
+  a reader takes the offer beside the button as the thing that helps. If the verb
+  is an action Factura cannot perform, the line is wrong however it is phrased.
+- **Borrowing the article's subject.** A guide about the Tarifa Social makes
+  "Revisá tu subsidio antes de pagar" feel like the obvious hook. It is the
+  article's subject, not the product's, and the CTA is the one place on the page
+  that has to be about the product.
+
+Real lines that must never have shipped, and what they do wrong:
+
+- "Pagá ENERSA con el ID a mano." — we do not pay anything.
+- "Pagá EDESA con el NIS a mano." — same, and we do not hold your NIS.
+- "Pagá ABSA con la unidad de facturación, sin la boleta." — same again; nothing
+  here replaces the boleta at a payment counter.
+- "Pagá EDET sin vueltas." — same.
+- "Solicitá la Tarifa Social de Agua." — we do not apply for anything.
+- "Revisá tu subsidio de EDESA antes de pagar." — we neither check subsidies nor
+  pay.
+- "¿Te la aprobaron? Controlá que siga en la boleta." — a compliance check we do
+  not perform.
+- "Mirá tu código de tarifa antes de pagar." — a lookup service we are not.
+- "Encontrá el ID y entendé cada rubro." — the guide finds the ID; the app does
+  not.
+- "Un solo vencimiento y sin aviso. Tenelo a la vista." — promises a reminder
+  that does not exist.
+
+Real lines that are right:
+
+- "¿Subió el agua? Mira si fue tarifa o pérdida."
+- "¿Se disparó el gas? Compara invierno con invierno."
+- "¿Cuánto del aumento de gas fue tarifa? Míralo."
+- "¿Cuánto subió tu abono? Míralo con tus facturas."
+
+The shape is the same every time: **a question the reader already has about
+their own bills, and then the app looking at it with them.** The verb is `mirar`,
+`comparar`, `seguir` — never `pagar`, `solicitar`, `gestionar`, `avisar`. If you
+cannot find that question for a page, leave `cta` empty and take the default
+line; a generic honest banner beats a specific false one, and that is what the
+field being optional is for.
+
+(Those examples are quoted exactly as they were written, and the second group is
+in `tú`. §5's voseo rule still stands — what makes them good is what they claim,
+not how they conjugate.)
 
 ---
 
@@ -527,7 +618,9 @@ abandoned. The reader who finished has one question left — _an account for
 what?_ — and the headline plus two sentences are the answer. Be concrete about
 this article's topic: "Factura guarda los m³ y el importe de cada boleta de
 MetroGAS" is an argument; "Organiza todos tus servicios" is filler that could
-sit under any of the forty.
+sit under any of the forty. Concrete about the _product_, though: this is the
+longest CTA on the page and the easiest one to fill with a capability we do not
+have, so write it against the list in §5.
 
 `<Fuentes />`, when the guide has sources, goes **after the closing section and
 before `<Faq />`** — the same place it sits on a data page, so a reader who
@@ -690,6 +783,10 @@ it unused.
 - [ ] At least one internal link to another article, `/docs` or `/demo`.
 - [ ] `cta` is a hook for this page, one line, ≤110 chars — or left empty, in
       which case the banner shows the site's default line.
+- [ ] Every CTA on the page — `cta`, `<ClosingCta />`, `<ProbarCta />`, the
+      "Léelo automáticamente" section — offers only what §5 says the app does.
+      No paying, no subsidies, no account-number lookup, no due-date alerts, in
+      any phrasing, including the imperative.
 - [ ] `<ClosingCta />` present with its own `title` and copy; `<RelatedGuides />`
       just above it in guides.
 - [ ] Statistics and research: `sources` filled, `<Fuentes />` in the body, and a
