@@ -23,7 +23,7 @@ import type { ContentSection } from "@/content/section";
 // are read by the build.
 //
 // `dynamicParams` must stay TRUE on all of them, though, and that is not a
-// detail. Publishing through the CMS has no build step (AUTHORING.md §3), so a
+// detail. Publishing through the CMS has no build step (cms.md, "Caching"), so a
 // page published after the last deploy is never in `generateStaticParams` —
 // and with `dynamicParams = false` its card 404s until someone happens to
 // redeploy, which is how the first /noticias article shipped with a broken

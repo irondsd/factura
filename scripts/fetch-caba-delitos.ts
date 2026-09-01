@@ -28,7 +28,7 @@
  * commit the diff.
  *
  * ── Why a script and not a hand-append ────────────────────────────────────
- * The house rule for this directory (`AUTHORING.md` §6) is that a data file is
+ * The house rule for this directory (`AUTHORING.md` §7) is that a data file is
  * "the thing a human appends to each month". That rule assumes a published
  * table someone can retype. There is no published table here: the source ships
  * raw incidents, and every number on the page — 48 barrios × 9 offence types ×

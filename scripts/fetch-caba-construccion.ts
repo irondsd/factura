@@ -19,7 +19,7 @@
  * runs roughly monthly. Run it, read the summary it prints, and commit the diff.
  *
  * ── Why a script and not a hand-append ────────────────────────────────────
- * The house rule for this directory (`AUTHORING.md` §6) is that a data file is
+ * The house rule for this directory (`AUTHORING.md` §7) is that a data file is
  * "the thing a human appends to each month", and for a single national series
  * that is right. These two are nine series over 138 months spread across 24
  * sheets — one sheet per year per file, newest first — and the append is not the

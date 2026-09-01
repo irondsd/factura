@@ -20,7 +20,7 @@
  * prints, and commit the diff.
  *
  * ── Why a script and not a hand-append ────────────────────────────────────
- * The house rule for this directory (see `AUTHORING.md` §6) is that a data
+ * The house rule for this directory (see `AUTHORING.md` §7) is that a data
  * file is "the thing a human appends to each month", and for INDEC's seven
  * regions that is the right call. These two are 378 numbers a quarter spread
  * over twelve spreadsheets whose barrio labels disagree with the city's own
