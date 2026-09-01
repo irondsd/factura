@@ -468,7 +468,10 @@ and write from it.**
 that:
 
 - You upload a bill as a PDF and it extracts the importe, the período, the
-  vencimiento, the consumo and the provider.
+  vencimiento, the consumo and the provider, and shows all of it — the
+  vencimiento of each bill included.
+- It reads whether a subsidy was applied to a bill, and can often work out how
+  many pesos it took off.
 - It builds the history of each service, month by month, out of those bills.
 - It charts that history: total spending over time, by provider, by service.
 - It compares periods — this winter against last winter, this summer against the
@@ -487,11 +490,17 @@ a bank or the state, and it has no way to be. So no line of copy may say or
 imply that Factura:
 
 - pays a bill, processes a payment, or takes you to somewhere you can pay;
-- applies for, obtains, checks or protects a subsidy or a discount — Tarifa
-  Social, ReSEF, the gas zona fría, any of them;
+- applies for, obtains, chases or protects a subsidy or a discount — Tarifa
+  Social, ReSEF, the gas zona fría, any of them — or tells you whether you
+  qualify for one. Reading a subsidy off a bill is not the same as getting you
+  one, and only the first is ours;
 - finds, looks up or holds an account number (NIS, ID, unidad de facturación,
   número de cliente) for you to pay with;
-- warns you about a vencimiento, sends a reminder, or keeps a due date in view;
+- warns you that a vencimiento is coming, sends a reminder, or keeps you from
+  missing one. **The date itself is fair game** — it is parsed and displayed
+  like every other field. What does not exist is the notification, and Factura
+  never learns whether a bill was actually paid, so any line whose value is "you
+  won't miss it" is promising something it cannot know;
 - lowers a bill, disputes a charge, claims a refund, or detects an error the
   provider made.
 
@@ -516,13 +525,13 @@ Real lines that must never have shipped, and what they do wrong:
 - "Solicitá la Tarifa Social de Agua." — we do not apply for anything.
 - "Revisá tu subsidio de EDESA antes de pagar." — we neither check subsidies nor
   pay.
-- "¿Te la aprobaron? Controlá que siga en la boleta." — a compliance check we do
-  not perform.
+- "¿Te la aprobaron? Controlá que siga en la boleta." — we read the subsidy off
+  the bill, but "controlá que siga" sells a watch that nothing performs.
 - "Mirá tu código de tarifa antes de pagar." — a lookup service we are not.
 - "Encontrá el ID y entendé cada rubro." — the guide finds the ID; the app does
   not.
-- "Un solo vencimiento y sin aviso. Tenelo a la vista." — promises a reminder
-  that does not exist.
+- "Un solo vencimiento y sin aviso. Tenelo a la vista." — the date is real and we
+  show it, but "sin aviso" offers to be the aviso, and there is none.
 
 Real lines that are right:
 
