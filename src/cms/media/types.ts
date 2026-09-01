@@ -64,10 +64,13 @@ export type MediaAsset = {
   src: string | null;
 };
 
-/** A media row plus how many pages currently reference it. The library grid and
- * the trash gate both need the count, and it is one join. */
+/** A media row plus its current page and author-portrait references. The counts
+ * stay separate because the library can describe each kind accurately. */
 export type MediaAssetWithUsage = MediaAsset & {
+  /** Distinct pages whose retained revisions reference the asset. */
   usageCount: number;
+  /** Authors whose profile portrait points at the asset. */
+  portraitCount: number;
 };
 
 /** The minimum a renderer needs: a resolved source, intrinsic dimensions, and
