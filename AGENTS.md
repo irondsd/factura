@@ -85,13 +85,30 @@ Don't let Spanish content to confuse you to respond in Spanish to a question ask
 
 # Writing articles
 
-Public content for `/guias`, `/estadisticas` and `/investigaciones` lives in
-PostgreSQL, not in `src/content/**`. Editing an `.mdx` file there changes nothing
-a reader sees. Articles are written through the `factura-cms` MCP server (or by
-hand at `/cms`), and **`src/content/AUTHORING.md` is the spec — read it before
-writing or editing any article.**
+Public content for `/guias`, `/noticias`, `/estadisticas` and
+`/investigaciones` lives in PostgreSQL, not in `src/content/**`. Editing an
+`.mdx` file there changes nothing a reader sees. Articles are written through
+the `factura-cms` MCP server, or by hand at `/cms`.
 
-The three rules that matter most, so they are never a surprise:
+**`src/content/AUTHORING.md` is the spec, and reading it is a standing
+instruction — the person does not have to ask for it, and nothing summarised
+here replaces it.** Read it in full *before* you start, planning included, if
+the request is to:
+
+- write, draft, outline or plan a guía, noticia, estadística or investigación —
+  or "an article", "a page", "a post", "something about X" for the public site;
+- change anything on a page that already exists: body copy, title, `titleTag`,
+  description, summary, CTA, slug, keywords, categories, locations, FAQ,
+  sources, images, author, the editorial tree;
+- publish, unpublish, preview, or restore a version;
+- or anything else that ends up calling a `factura-cms` tool.
+
+The trigger is what the request *does*, not the words it uses. A one-line typo
+fix counts: the field limits, keyword rules, dedupe check and voice in that file
+are what make an edit valid, and the validator rejects work that ignores them.
+
+The three rules that matter most, so they are never a surprise. They are §0 of
+the spec — knowing them is not a reason to skip the rest:
 
 - **You cannot delete content, and should not look for a way.** The MCP has no
   delete tool. A page that should go away goes back to `draft`.
