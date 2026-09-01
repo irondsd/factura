@@ -7,6 +7,7 @@ import {
   CmsConflictError,
   CmsForbiddenError,
   CmsMediaInUseError,
+  CmsMediaPortraitInUseError,
   CmsMediaUnavailableError,
   CmsNotFoundError,
   CmsValidationError,
@@ -41,9 +42,10 @@ export type MediaActionResult<T> =
   | CmsActionResult<T>
   | {
       ok: false;
-      kind: "media_in_use" | "media_unavailable";
+      kind: "media_in_use" | "media_portrait_in_use" | "media_unavailable";
       message: string;
       usage?: { section: string; slug: string; title: string }[];
+      portraitOf?: { id: string; name: string }[];
     };
 
 function toResult(error: unknown): MediaActionResult<never> {
@@ -53,6 +55,14 @@ function toResult(error: unknown): MediaActionResult<never> {
       kind: "media_in_use",
       message: error.message,
       usage: error.usage,
+    };
+  }
+  if (error instanceof CmsMediaPortraitInUseError) {
+    return {
+      ok: false,
+      kind: "media_portrait_in_use",
+      message: error.message,
+      portraitOf: error.authors,
     };
   }
   if (error instanceof CmsMediaUnavailableError) {
