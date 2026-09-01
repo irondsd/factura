@@ -9,6 +9,7 @@ import { Counter, inputClass, TagsInput } from "./controls";
 import { CmsSelect } from "../CmsSelect";
 import { FaqField } from "./FaqField";
 import { KeywordsField } from "./KeywordsField";
+import { MethodologyField } from "./MethodologyField";
 import { LocationsField } from "./LocationsField";
 import { SourcesField } from "./SourcesField";
 import { asDataset, asOgImage, type Dataset, type OgImage } from "./values";
@@ -21,7 +22,7 @@ import { asDataset, asOgImage, type Dataset, type OgImage } from "./values";
 // pairs of boxes. Assembling the JSONB object is `toPatch`'s job, not the
 // editor's.
 //
-// Three kinds bring their own heading, because their heading is a fold and has
+// Four kinds bring their own heading, because their heading is a fold and has
 // to say what is folded away — see `CollapsibleField`. Everything else is a
 // label, a control and a line of help, laid out here.
 
@@ -33,6 +34,7 @@ export type ParentOption = { value: string; label: string; slug: string };
 const SELF_HEADING: ReadonlySet<FieldDescriptor["kind"]> = new Set([
   "tags",
   "faq",
+  "methodology",
   "sources",
 ]);
 
@@ -65,6 +67,8 @@ export function MetadataField({
         return <KeywordsField {...props} />;
       case "faq":
         return <FaqField {...props} />;
+      case "methodology":
+        return <MethodologyField {...props} />;
       default:
         return <SourcesField {...props} />;
     }

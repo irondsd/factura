@@ -49,6 +49,55 @@ export type DatasetMetadata = {
   license?: string;
 };
 
+/** The «Metodología» block: the questions a reader asks before trusting a
+ * figure, answered in a line each.
+ *
+ * Ordered, because the block reads as a sequence — whose numbers, from when,
+ * covering what, measuring what, and what they cannot be used for. The order
+ * is fixed here rather than in the component so the editor's form, the
+ * rendered block and the validator all present the same five in the same
+ * sequence.
+ *
+ * `sources` is *not* `ContentMetadata.sources`. That one is the list of links
+ * `<Fuentes />` renders; this one is the sentence naming whose data it is, in
+ * the reader's language, where the block reads best. A page usually carries
+ * both and they say the same thing at different lengths. */
+export const METHODOLOGY_FIELDS = [
+  { key: "sources", label: "Fuentes" },
+  { key: "period", label: "Período" },
+  { key: "coverage", label: "Cobertura" },
+  { key: "metrics", label: "Métricas" },
+  { key: "limitations", label: "Limitaciones" },
+] as const;
+
+export type MethodologyKey = (typeof METHODOLOGY_FIELDS)[number]["key"];
+
+/** Every field optional, and a page says as much of it as it can honestly say:
+ * a research page crossing four datasets fills all five, a statistics page
+ * reading one series may only have a period and a caveat. All five empty is
+ * the one state that means nothing — the block renders nothing, the contents
+ * column lists nothing, and the validator says so. */
+export type MethodologyMetadata = Partial<Record<MethodologyKey, string>>;
+
+/** The fields a methodology value actually holds, in render order.
+ *
+ * One implementation, because four places ask the same question and have to
+ * agree: the block decides what to draw, `documentHeadings` decides whether the
+ * contents column lists it, the validator decides whether to warn, and the CMS
+ * field decides whether to open folded. Total, like the `as*` readers in the
+ * editor — the JSONB column is whatever was last written to it. */
+export function methodologyEntries(
+  value: unknown,
+): { key: MethodologyKey; label: string; text: string }[] {
+  if (!value || typeof value !== "object") return [];
+  const record = value as Record<string, unknown>;
+  return METHODOLOGY_FIELDS.flatMap(({ key, label }) => {
+    const text = record[key];
+    if (typeof text !== "string" || text.trim() === "") return [];
+    return [{ key, label, text: text.trim() }];
+  });
+}
+
 export type ContentMetadata = {
   keywords: string[];
   categories: string[];
@@ -71,6 +120,9 @@ export type ContentMetadata = {
   factCheckerId?: string;
   /** Primary sources, rendered wherever the body places `<Fuentes />`. */
   sources?: DataSource[];
+  /** How the page's numbers were put together, rendered wherever the body
+   * places `<Metodologia />`. */
+  methodology?: MethodologyMetadata;
   dataset?: DatasetMetadata;
 };
 

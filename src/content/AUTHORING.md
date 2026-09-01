@@ -163,6 +163,12 @@ and `ogStat`, `guias` adds `vendor`.
   and nowhere else, so: place the tag and the list is required; omit both and
   nothing is said. Required in practice on every data page (§7); on a guide,
   only when there is something a reader could go and check.
+- **`methodology`** — the five lines behind `<Metodologia />` (§4): `sources`,
+  `period`, `coverage`, `metrics`, `limitations`. Every one of them optional,
+  and the page fills the ones it can answer honestly; all five empty is the one
+  state that means nothing, and the block then draws nothing. `sources` here is
+  a sentence naming the organisms ("OVS, IDECBA y Datos Abiertos PBA"), not the
+  list of links — that is `sources` above, and a page usually carries both.
 - **`authorId` / `factCheckerId`** — ids from `list_authors`, different people.
   Omit rather than invent: a page with no author is published by Factura. You
   cannot create an author; if the name is missing, say so.
@@ -193,8 +199,9 @@ schema. Read it before writing a body. An unregistered name or an unknown prop
 is a validation error, not a no-op.
 
 Context-bound tags take **no props**; the route supplies the data:
-`<Faq />`, `<Fuentes />`, `<RelatedGuides />`, `<Subpaginas />`, and every
-data figure (`<VentaCabaMapa />`, `<ResumenRegion />`, …).
+`<Faq />`, `<Fuentes />`, `<Metodologia />`, `<RelatedGuides />`,
+`<Subpaginas />`, and every data figure (`<VentaCabaMapa />`,
+`<ResumenRegion />`, …).
 
 ### Restricted MDX
 
@@ -262,13 +269,32 @@ The published pages that work share one shape; keep it:
    barrios, the cost of a whole flat, the zones).
 6. `<PaginaRelacionada href="/estadisticas/…">` to the neighbouring pages,
    each with a sentence saying how its data differs.
-7. `<ClosingCta title="…">`, `<Faq />`, `<Fuentes />`, in that order.
+7. `<ClosingCta title="…">`, `<Metodologia />`, `<Faq />`, `<Fuentes />`, in
+   that order.
 
 Sibling pages cutting one series by region are the one shape that goes wrong:
 six documents differing in a proper noun read as a doorway. Each sibling needs
 its own intro about that region, its own figures from a component that reads
 the data, its own `faq` and metadata. Shared methodology lives on the hub,
 linked, and the hub places `<Subpaginas />` where its prose introduces them.
+
+### The methodology block
+
+`<Metodologia />` renders `metadata.methodology` as five labelled lines —
+sources, period, coverage, metrics, limitations — and draws only the ones that
+are filled in. It goes before `<Faq />` and `<Fuentes />`, and that is also
+where the contents column lists it, whatever order the body uses.
+
+It is the short answer to "can I trust this number?", so write it in one
+sentence per field and keep it specific: which organism published the series,
+which months it covers and to what date, what territory or universe, what
+exactly is measured and in what unit, and — the field worth the most — what the
+page does *not* support. `## Cómo se mide` is still where the long version
+goes; this is the version a reader takes in at a glance before scrolling back
+up to the figure.
+
+Not a data-section block by rule: a guide that computes anything owes the same
+account. Most guides compute nothing and leave both the tag and the field out.
 
 ### The FAQ
 
@@ -386,6 +412,12 @@ plus its data, and it is unusable until deployed.
 taken and how it was transformed. Put `<Fuentes />` in the body; with the tag
 the list is required. A statistics page without sources is an opinion piece
 with charts.
+
+**Methodology.** `<Metodologia />` and `metadata.methodology` (§4) are how a
+data page says, in five lines, what its numbers are and what they cannot show.
+Expected on every `estadisticas` and `investigaciones` page: a reader deciding
+whether to quote a figure should not have to reconstruct its coverage from the
+prose.
 
 **`dataset.license`** covers Factura's compilation, not the official figures
 underneath. The sources decide it:

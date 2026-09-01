@@ -5,7 +5,7 @@ import {
   contentMetadataSchema,
 } from "../metadata/sections";
 import type { ContentDocument, Diagnostic, ValidationResult } from "../types";
-import { validationResult } from "../types";
+import { methodologyEntries, validationResult } from "../types";
 import { extractBodyReferences } from "../media/references";
 import { AUTHOR_ROLE_FIELDS, type AuthorRoleField } from "../authors/types";
 import { missingKeywordWords } from "./text";
@@ -71,6 +71,8 @@ export const DOCUMENT_CODES = {
   faqCount: "doc.faq-count",
   faqNotPlaced: "doc.faq-not-placed",
   faqPlacedWithoutData: "doc.faq-placed-without-data",
+  methodologyEmpty: "doc.methodology-empty",
+  methodologyNotPlaced: "doc.methodology-not-placed",
   sourcesMissing: "doc.sources-missing",
   sourcesNotPlaced: "doc.sources-not-placed",
   sourcesPlacedWithoutData: "doc.sources-placed-without-data",
@@ -493,6 +495,9 @@ export function validateDocument(
   // ── credits ───────────────────────────────────────────────────────────────
   out.push(...validateCredits(document.metadata, context));
 
+  // ── methodology ───────────────────────────────────────────────────────────
+  out.push(...validateMethodology(body, raw));
+
   // ── sources ───────────────────────────────────────────────────────────────
   // Optional on a guide: only the placement rules apply, so a guide with
   // nothing to cite says nothing about it.
@@ -563,6 +568,12 @@ function validateNewsDocument(
       document.body,
       (document.metadata ?? {}) as Record<string, unknown>,
       { expected: false },
+    ),
+  );
+  out.push(
+    ...validateMethodology(
+      document.body,
+      (document.metadata ?? {}) as Record<string, unknown>,
     ),
   );
   out.push(
@@ -671,6 +682,53 @@ function validateSources(
         DOCUMENT_CODES.sourcesNotPlaced,
         "meta.sources is set but the body never places <Fuentes /> — the sources are not shown to readers",
         "sources",
+      ),
+    );
+  }
+  return out;
+}
+
+/** The `<Metodologia />` rules, shared by every section.
+ *
+ * Same placement logic as the sources above, one step softer. The block's five
+ * fields are individually optional and collectively optional — a page that can
+ * honestly answer two of them should say the two — so the only state worth a
+ * word is the one that renders nothing: the tag placed over a methodology that
+ * names not one field.
+ *
+ * A warning rather than an error, unlike `<Faq />` and `<Fuentes />` over empty
+ * data. Those two are the page promising something it does not deliver: an
+ * `FAQPage` with no questions, a claim of provenance with no links. An empty
+ * methodology block promises nothing and simply does not draw — the page below
+ * it is the page the reader gets, and refusing to publish over a tag somebody
+ * left in while drafting would be paperwork. It is still worth saying, because
+ * the author who typed the tag meant to fill it in.
+ *
+ * The mirror case gets the same treatment as the sources': five lines nobody
+ * can read are five lines nobody wrote for the database. */
+function validateMethodology(
+  body: string,
+  raw: Record<string, unknown>,
+): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  const places = /<Metodologia\b/.test(body);
+  const named = methodologyEntries(raw.methodology).length > 0;
+
+  if (places && !named) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.methodologyEmpty,
+        "body places <Metodologia /> but meta.methodology fills none of its five fields — the block renders nothing",
+        "methodology",
+      ),
+    );
+  }
+  if (named && !places) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.methodologyNotPlaced,
+        "meta.methodology is set but the body never places <Metodologia /> — the methodology is not shown to readers",
+        "methodology",
       ),
     );
   }
@@ -883,6 +941,7 @@ function validateDataSectionDocument(
   // advisory when the page does not place the tag, as an error when it does —
   // and the mirror case, sources typed but never placed, is worth saying too.
   out.push(...validateSources(document.body, raw, { expected: true }));
+  out.push(...validateMethodology(document.body, raw));
   const dataset = datasetMetadataSchema.safeParse(raw.dataset);
   if (!dataset.success && raw.dataset === undefined) {
     out.push(

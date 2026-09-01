@@ -6,6 +6,7 @@ import type {
   ContentDocument,
   ContentSection as ContentSectionId,
   ContentSummary,
+  MethodologyMetadata,
 } from "@/content-system/types";
 
 /** Metadata adapted for the existing section layouts and SEO helpers. */
@@ -36,6 +37,11 @@ export type SectionMeta = {
     license?: string;
   };
   faq?: { q: string; a: string }[];
+  /** The five methodology lines, whichever of them the page fills in. Travels
+   * with the meta block rather than being read off the document, like the
+   * sources and the FAQ: it is article furniture the route places, not markup
+   * the page emits. */
+  methodology?: MethodologyMetadata;
   noindex?: true;
 };
 
@@ -107,6 +113,9 @@ function metaFromDatabase(document: ContentSummary): SectionMeta {
       ? { previewMediaId: document.metadata.previewMediaId }
       : {}),
     ...(document.metadata.faq ? { faq: document.metadata.faq } : {}),
+    ...(document.metadata.methodology
+      ? { methodology: document.metadata.methodology }
+      : {}),
     ...(document.status !== "published" ? { noindex: true } : {}),
   };
 }

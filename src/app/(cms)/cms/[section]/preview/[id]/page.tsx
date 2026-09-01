@@ -6,6 +6,7 @@ import { cmsPageStore } from "@/cms/server/store";
 import { ContentArticle } from "@/components/article/ContentArticle";
 import { Faq } from "@/components/article/Faq";
 import { Fuentes } from "@/components/section/Fuentes";
+import { Metodologia } from "@/components/section/Metodologia";
 import { SectionList } from "@/components/section/SectionList";
 import { estadisticas, investigaciones } from "@/content/sections";
 import { dataLicense, licenseName } from "@/config/urls";
@@ -236,6 +237,9 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
               />
             ),
             Faq: () => <Faq items={faq} />,
+            Metodologia: () => (
+              <Metodologia value={page.metadata.methodology} />
+            ),
             // The preview is the public page or it is not a preview. A data
             // page states its own licence; a guide or a news article publishes
             // no table and gets the list alone.

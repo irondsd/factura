@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ContentArticle } from "@/components/article/ContentArticle";
 import { Faq } from "@/components/article/Faq";
 import { Fuentes } from "@/components/section/Fuentes";
+import { Metodologia } from "@/components/section/Metodologia";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { noticias } from "@/content/sections";
 import { documentHeadings, documentStats } from "@/content-system/document";
@@ -87,6 +88,9 @@ export default async function NoticiaPage({ params }: Props) {
         components={contentComponents({
           ...(await mediaComponents(document.body)),
           Faq: () => <Faq items={faq} />,
+          Metodologia: () => (
+            <Metodologia value={document.metadata.methodology} />
+          ),
           // As in guides, and unlike the data sections: the list, without the
           // licence paragraph — an article publishes no table of its own.
           Fuentes: () => <Fuentes items={document.metadata.sources ?? []} />,

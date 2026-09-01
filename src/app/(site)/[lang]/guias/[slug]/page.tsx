@@ -4,6 +4,7 @@ import { ContentArticle } from "@/components/article/ContentArticle";
 import { Faq } from "@/components/article/Faq";
 import { RelatedGuides } from "@/components/guides/RelatedGuides";
 import { Fuentes } from "@/components/section/Fuentes";
+import { Metodologia } from "@/components/section/Metodologia";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { categoriesByKeys } from "@/content-system/repository/categories";
 import { documentHeadings, documentStats } from "@/content-system/document";
@@ -123,6 +124,9 @@ export default async function GuidePage({ params }: Props) {
             />
           ),
           Faq: () => <Faq items={faq} />,
+          Metodologia: () => (
+            <Metodologia value={guide.metadata.methodology} />
+          ),
           // No licence passed, unlike the data sections: a guide cites its
           // sources but publishes no table of its own, so the block is the list
           // and nothing else.

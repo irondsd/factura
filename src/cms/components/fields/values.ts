@@ -5,6 +5,8 @@
 // whole editor away. `MetadataDamageNotice` is what tells the editor that
 // happened.
 
+import type { MethodologyMetadata } from "@/content-system/types";
+
 export type FaqEntry = { q: string; a: string };
 export type Source = { label: string; href: string; note?: string };
 export type OgImage = { eyebrow?: string; stat?: string };
@@ -27,6 +29,11 @@ export const asFaq = (value: unknown): FaqEntry[] =>
 
 export const asOgImage = (value: unknown): OgImage =>
   value && typeof value === "object" ? (value as OgImage) : {};
+
+export const asMethodology = (value: unknown): MethodologyMetadata =>
+  value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as MethodologyMetadata)
+    : {};
 
 export const asSources = (value: unknown): Source[] =>
   Array.isArray(value)

@@ -110,15 +110,51 @@ describe("documentHeadings", () => {
     ).toEqual(["uno"]);
   });
 
-  it("lists both blocks in the order the page renders them", () => {
+  it("appends the methodology section when the body places it", () => {
     const headings = documentHeadings(
       doc({
         section: "estadisticas",
-        body: "## Uno\n\n<Faq />\n\n<Fuentes />\n",
+        body: "## Uno\n\n<Metodologia />\n",
         metadata: {
           keywords: [],
           categories: [],
           locations: [],
+          methodology: { period: "2021–2024." },
+        },
+      }),
+    );
+    expect(headings.at(-1)).toEqual({ id: "metodologia", text: "Metodología" });
+  });
+
+  it("does not append the methodology section when none of its fields are filled", () => {
+    // One field is enough to draw the block; none is a tag over nothing, and an
+    // entry linking to a section that is not there is worse than no entry.
+    expect(
+      documentHeadings(
+        doc({
+          section: "estadisticas",
+          body: "## Uno\n\n<Metodologia />\n",
+          metadata: {
+            keywords: [],
+            categories: [],
+            locations: [],
+            methodology: { coverage: "  " },
+          },
+        }),
+      ).map((h) => h.id),
+    ).toEqual(["uno"]);
+  });
+
+  it("lists the three blocks in the order the page renders them", () => {
+    const headings = documentHeadings(
+      doc({
+        section: "estadisticas",
+        body: "## Uno\n\n<Metodologia />\n\n<Faq />\n\n<Fuentes />\n",
+        metadata: {
+          keywords: [],
+          categories: [],
+          locations: [],
+          methodology: { sources: "INDEC." },
           faq: [{ q: "¿?", a: "." }],
           sources: [{ label: "INDEC", href: "https://indec.gob.ar" }],
         },
@@ -126,6 +162,7 @@ describe("documentHeadings", () => {
     );
     expect(headings.map((h) => h.id)).toEqual([
       "uno",
+      "metodologia",
       "preguntas-frecuentes",
       "fuentes",
     ]);

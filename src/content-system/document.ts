@@ -2,9 +2,14 @@ import {
   extractHeadings,
   FAQ_SECTION,
   type Heading,
+  METHODOLOGY_SECTION,
   SOURCES_SECTION,
 } from "@/content/headings";
-import type { ContentDocument, ContentSummary } from "./types";
+import {
+  type ContentDocument,
+  type ContentSummary,
+  methodologyEntries,
+} from "./types";
 
 const WORDS_PER_MINUTE = 200;
 
@@ -32,7 +37,7 @@ function countWords(body: string): number {
 // content without a second source of truth.
 
 /** The sections of a page, for its contents column: every `##` in the body, in
- * order, with the id `rehype-slug` gives the rendered heading, plus the two
+ * order, with the id `rehype-slug` gives the rendered heading, plus the three
  * blocks whose heading lives in metadata rather than in the body.
  *
  * The same rule the filesystem registry applies (`ContentSection.headings`),
@@ -44,12 +49,23 @@ export function documentHeadings(
 ): Heading[] {
   const headings = extractHeadings(document.body);
 
-  // Two blocks whose heading is not in the body: the author drops in a bare tag
-  // and the route feeds it from metadata. Each is listed only when the page
-  // both *places* the tag and *has* the content — `<Faq />` and `<Fuentes />`
-  // each render nothing when their list is empty, and a contents entry linking
-  // to a section that isn't there is worse than no entry.
+  // Three blocks whose heading is not in the body: the author drops in a bare
+  // tag and the route feeds it from metadata. Each is listed only when the page
+  // both *places* the tag and *has* the content — `<Metodologia />`, `<Faq />`
+  // and `<Fuentes />` each render nothing when their data is empty, and a
+  // contents entry linking to a section that isn't there is worse than no
+  // entry.
+  //
+  // In this order because it is the order the three belong in: how the numbers
+  // were made, then the questions about them, then where to go and check. A
+  // body that places them in another order gets these three entries in this
+  // one, which is the same simplification that has always applied to the pair.
   const appended: [boolean, Heading][] = [
+    [
+      methodologyEntries(document.metadata?.methodology).length > 0 &&
+        /<Metodologia[\s/>]/.test(document.body),
+      METHODOLOGY_SECTION,
+    ],
     [
       (document.metadata?.faq?.length ?? 0) > 0 &&
         /<Faq[\s/>]/.test(document.body),
@@ -75,7 +91,8 @@ export function documentHeadings(
 
 /** Words of real prose and the reading time in whole minutes. The FAQ counts:
  * it is metadata rather than body, but it renders on the page like any other
- * prose and six questions are a couple of minutes of reading. */
+ * prose and six questions are a couple of minutes of reading. The methodology
+ * block counts for the same reason, and comes to a paragraph at most. */
 export function documentStats(
   document: Pick<ContentDocument, "body" | "metadata">,
 ): { words: number; minutes: number } {
@@ -83,6 +100,10 @@ export function documentStats(
     countWords(document.body) +
     (document.metadata?.faq ?? []).reduce(
       (total, { q, a }) => total + countWords(`${q} ${a}`),
+      0,
+    ) +
+    methodologyEntries(document.metadata?.methodology).reduce(
+      (total, { text }) => total + countWords(text),
       0,
     );
   return { words, minutes: Math.max(1, Math.round(words / WORDS_PER_MINUTE)) };

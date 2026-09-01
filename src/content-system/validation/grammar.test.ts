@@ -74,6 +74,7 @@ describe("allowed components", () => {
     Faq: "<Faq />",
     RelatedGuides: "<RelatedGuides />",
     Fuentes: "<Fuentes />",
+    Metodologia: "<Metodologia />",
     Subpaginas: "<Subpaginas />",
     PaginaRelacionada:
       '<PaginaRelacionada href="/estadisticas/alquiler-caba">Copia.</PaginaRelacionada>',

@@ -52,6 +52,7 @@ export const CONTEXT_BOUND_COMPONENT_NAMES = [
   "Faq",
   "RelatedGuides",
   "Fuentes",
+  "Metodologia",
   "Subpaginas",
 ] as const;
 

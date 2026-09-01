@@ -7,6 +7,7 @@ import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { Faq } from "@/components/article/Faq";
 import { TocInline, TocSidebar } from "@/components/article/Toc";
 import { Fuentes } from "@/components/section/Fuentes";
+import { Metodologia } from "@/components/section/Metodologia";
 import { SectionList } from "@/components/section/SectionList";
 import { CategoryChips } from "@/components/guides/CategoryChips";
 import { AsideCta, TopCta } from "@/components/guides/cta";
@@ -176,6 +177,9 @@ export async function SectionArticle({
                 components={contentComponents({
                   ...media,
                   Faq: () => <Faq items={meta.faq ?? []} />,
+                  Metodologia: () => (
+                    <Metodologia value={meta.methodology} />
+                  ),
                   // The same licence the `Dataset` markup declares — a page
                   // that overrides it says so on screen too.
                   Fuentes: () => (

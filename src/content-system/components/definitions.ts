@@ -663,6 +663,28 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
       ],
     },
   },
+  Metodologia: {
+    // Every section, like the FAQ. A guide that computes anything — a
+    // comparison table, a "cuánto pagarías" figure — owes the reader the same
+    // account of how, and most guides compute nothing and never place the tag.
+    sections: ["guias", "noticias", ...DATA_SECTIONS],
+    kind: "leaf",
+    props: CONTEXT_BOUND,
+    description:
+      "Renders this page's `methodology` metadata: sources, period, coverage, metrics and limitations, one line each, whichever of the five are filled in. Write a bare <Metodologia />, before <Faq /> and <Fuentes />.",
+    authoring: {
+      label: "Metodología",
+      group: "article-structure",
+      // Before the FAQ (20) and the sources (30): how the numbers were made,
+      // then the questions about them, then where to check them.
+      rank: 15,
+      notes: [
+        "Al insertarlo aparecen en la barra lateral los cinco campos de metodología; el contenido viene de metadata.",
+        "Los cinco campos son opcionales, pero al menos uno tiene que estar completo o el bloque no se dibuja.",
+        "Escribe el componente bare, sin propiedades.",
+      ],
+    },
+  },
   Subpaginas: {
     sections: DATA_SECTIONS,
     kind: "leaf",

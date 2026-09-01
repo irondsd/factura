@@ -232,6 +232,29 @@ describe("fieldState", () => {
     ).toEqual({ visible: true, required: true });
   });
 
+  it("asks for a methodology only where the body places <Metodologia />", () => {
+    // Same bargain as the FAQ: the tag is where the five lines render, so a
+    // body without it has nothing to fill in. What is optional is *which* of
+    // the five the page answers, not whether it answers any.
+    expect(state("estadisticas", "metadata.methodology")).toEqual({
+      visible: false,
+      required: false,
+    });
+    expect(
+      state("estadisticas", "metadata.methodology", {
+        body: "<Metodologia />",
+      }),
+    ).toEqual({ visible: true, required: true });
+  });
+
+  it("keeps a methodology on screen after the tag is deleted, so it can be emptied", () => {
+    expect(
+      state("estadisticas", "metadata.methodology", {
+        values: { "metadata.methodology": { period: "2021–2024." } },
+      }),
+    ).toEqual({ visible: true, required: false });
+  });
+
   it("leaves unconditional fields alone", () => {
     expect(state("guias", "title")).toEqual({ visible: true, required: true });
     expect(state("guias", "crumb")).toEqual({ visible: true, required: false });

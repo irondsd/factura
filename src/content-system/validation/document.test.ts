@@ -147,6 +147,43 @@ describe("sources on a guide", () => {
   });
 });
 
+describe("the methodology block", () => {
+  // Five optional fields, and the only state worth a word is the one that
+  // draws nothing. Both rules are advisory on purpose: an empty block does not
+  // make the page claim anything it fails to deliver, which is what the FAQ's
+  // and the sources' errors are about.
+  const methodology = { period: "2021–2024, con corte en junio de 2026." };
+
+  it("says nothing about a page with no methodology and no block", () => {
+    expect(codes()).not.toContain(DOCUMENT_CODES.methodologyEmpty);
+    expect(codes()).not.toContain(DOCUMENT_CODES.methodologyNotPlaced);
+  });
+
+  it("accepts a page that fills one field and places the block", () => {
+    expect(
+      check({
+        ...meta({ methodology }),
+        body: `${base.body}\n<Metodologia />\n`,
+      }).diagnostics,
+    ).toEqual([]);
+  });
+
+  it("advises when the block is placed over five empty fields", () => {
+    const result = check({ body: `${base.body}\n<Metodologia />\n` });
+    const placed = result.diagnostics.find(
+      (d) => d.code === DOCUMENT_CODES.methodologyEmpty,
+    );
+    expect(placed?.severity).toBe("warning");
+  });
+
+  it("advises when a page writes a methodology it never shows", () => {
+    const notPlaced = check(meta({ methodology })).diagnostics.find(
+      (d) => d.code === DOCUMENT_CODES.methodologyNotPlaced,
+    );
+    expect(notPlaced?.severity).toBe("warning");
+  });
+});
+
 describe("statistics and research documents", () => {
   const dataPage = (): ContentDocument => ({
     ...base,

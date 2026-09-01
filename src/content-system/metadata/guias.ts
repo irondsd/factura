@@ -111,6 +111,28 @@ export const dataSourceSchema = z
   .object({ label: filled, href: contentUrl, note: filled.optional() })
   .strict();
 
+/** The `<Metodologia />` block: five lines about how the page's figures were
+ * put together, every one of them optional.
+ *
+ * Optional individually *and* collectively, on purpose. This schema answers
+ * "is this the right shape to store?", and a page that can honestly say two of
+ * the five should be able to save the two. Whether it says enough to be worth
+ * a block is an editorial question, and the document validator asks it: an
+ * object with nothing filled in renders nothing, so it warns rather than
+ * refusing the save.
+ *
+ * `.strict()` like every other object here — `periodo` instead of `period`
+ * would otherwise store a field the block never draws. */
+export const methodologySchema = z
+  .object({
+    sources: filled.optional(),
+    period: filled.optional(),
+    coverage: filled.optional(),
+    metrics: filled.optional(),
+    limitations: filled.optional(),
+  })
+  .strict();
+
 /** The JSONB half of a guide's metadata — everything that does not get its own
  * column (cms.md). `.strict()` throughout: unknown keys are how a renamed
  * field turns into data nothing reads. */
@@ -158,6 +180,11 @@ export const guideMetadataSchema = z
      * without provenance is an opinion piece with charts, whereas most guides
      * explain a thing rather than measure it and have nothing to cite. */
     sources: z.array(dataSourceSchema).optional(),
+    /** How the numbers were arrived at, rendered by `<Metodologia />`. Every
+     * section may carry it: a guide that computes anything owes the reader the
+     * same account a statistics page does, and most guides compute nothing and
+     * leave it out. */
+    methodology: methodologySchema.optional(),
   })
   .strict()
   .refine((m) => new Set(m.categories).size === m.categories.length, {

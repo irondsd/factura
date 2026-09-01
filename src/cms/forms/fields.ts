@@ -37,6 +37,8 @@ export type FieldKind =
   | "ogImage"
   /** Provenance links for a data-backed page. */
   | "sources"
+  /** The five methodology lines, each of them optional. */
+  | "methodology"
   /** The Dataset JSON-LD payload, shown as named fields rather than JSON. */
   | "dataset"
   /** Another page in this section, or none. */
@@ -275,6 +277,15 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     softMax: TOP_CTA_MAX_CHARS,
     group: "contenido",
     help: `Opcional. La línea que acompaña al botón al principio del artículo. Si la dejas vacía se muestra la frase por defecto: «${DEFAULT_TOP_CTA}»`,
+  },
+  {
+    path: "metadata.methodology",
+    label: "Metodología",
+    kind: "methodology",
+    placedBy: "Metodologia",
+    collapseFrom: 1,
+    group: "bloques",
+    help: "Los cinco campos son opcionales por separado: completa los que la página pueda responder honestamente y deja el resto vacío. Al menos uno tiene que decir algo, o el bloque no se dibuja. Se muestra donde el cuerpo escribe <Metodologia />, y solo ahí. «Fuentes» aquí es una frase que nombra los organismos; la lista de enlaces es el campo «Fuentes» de más abajo.",
   },
   {
     path: "metadata.faq",

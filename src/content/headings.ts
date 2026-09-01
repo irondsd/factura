@@ -39,6 +39,16 @@ export const SOURCES_SECTION = {
   text: "Fuentes",
 } as const;
 
+/** The methodology block — the third of these, and the one a reader reaches
+ * for first when they want to know whether to trust the figures. Same
+ * arrangement: a bare `<Metodologia />` in the body, the five lines fed from
+ * `meta.methodology` by the route. Listed before the FAQ and the sources in a
+ * page's contents, which is also where it belongs in the body. */
+export const METHODOLOGY_SECTION = {
+  id: "metodologia",
+  text: "Metodología",
+} as const;
+
 /** ATX heading: `## Text`, with markdown's optional closing run of `#`. */
 const HEADING_RE = /^(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$/;
 

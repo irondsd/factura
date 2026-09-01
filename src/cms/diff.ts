@@ -166,6 +166,7 @@ const METADATA_LABELS: Record<string, string> = {
   authorId: "Autor",
   factCheckerId: "Verificado por",
   sources: "Fuentes",
+  methodology: "Metodología",
   dataset: "Conjunto de datos",
 };
 
