@@ -15,7 +15,7 @@ id or metadata key that is not in production yet is rejected as
 `cms.md` explains how the system works. This file explains how to write for it.
 `/normativa` is a hand-built page and not part of either.
 
-## 0. Three rules that are not negotiable
+## 0. Four rules that are not negotiable
 
 - **Nothing deletes.** There is no delete tool, for pages or images, and you
   should not look for a way. A page that should go away goes back to `draft`.
@@ -25,6 +25,12 @@ id or metadata key that is not in production yet is rejected as
 - **Editing a published page needs no confirmation.** `update_content` saves a
   working copy nobody can see until the next publish. Edit freely, publish
   deliberately.
+- **The brief can be wrong, and you are expected to say so.** Nobody keeps the
+  whole site in their head. A request to write a page that already exists, a
+  keyword list that misfits the page, a CTA that claims something the app does
+  not do, a figure the data does not support — these are ordinary mistakes,
+  not instructions. Point the problem out, propose the better version, and do
+  what the person then decides. Silently doing as asked is the failure mode.
 
 ## 1. Connect
 
@@ -60,8 +66,13 @@ first). Then:
 | Real overlap on the same query      | Create it, then `canonicalSlug` the weaker at the stronger. |
 | Related but distinct                | New page, linked both ways.                                 |
 
-Say what you found before writing. Extending an existing page is a better
-outcome than a second one, and overruling that is the person's call.
+**When the page already exists, push back before writing.** The request was
+made without seeing the whole site, so the right answer is usually not the one
+asked for: name the existing page and its URL, say what it already covers, and
+propose editing it with the new information instead of adding a second one.
+Only create the new page if the person, having seen that, still wants it. A
+duplicate written on request is still a duplicate, and it still costs both
+pages their ranking.
 
 Which section: a **guía** answers one practical question. An **estadística** is
 a read-out of one dataset the reader can go and check. An **investigación**
@@ -131,10 +142,14 @@ and `ogStat`, `guias` adds `vendor`.
 - **`keywords`** — real Spanish search phrases, lowercase, the primary one
   first and present in the title or description. Every phrase must be one this
   page answers; a phrase from a neighbouring topic drags the page towards a
-  query it cannot satisfy and competes with the page that can. When you are
-  handed a list, keep what fits and **say which ones you dropped and why** — no
-  permission needed, but never silently. 3–6 is the norm the validator warns
-  around; a data page that honestly answers more phrasings may carry more.
+  query it cannot satisfy and competes with the page that can. **A keyword list
+  you are handed is a suggestion, not a spec.** It may be too long, or carry
+  phrases that belong to another page or to no page at all. Drop what does not
+  fit rather than stretching the article to cover it, and **say which ones you
+  dropped and why** — no permission needed, but never silently. When a dropped
+  phrase deserves a page of its own, say that too. 3–6 is the norm the
+  validator warns around; a data page that honestly answers more phrasings may
+  carry more.
 - **`categories`** — 1–3 keys from `list_categories` for _this_ section (the
   same key in another section is a different record). The first is the primary:
   it sets the index grouping and the breadcrumb. Usually one for the topic, one
