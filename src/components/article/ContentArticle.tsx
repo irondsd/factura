@@ -38,8 +38,9 @@ export type ContentArticleProps = {
    * published, in which case the dateline shows only the update. */
   published: string | null;
   updated: string;
-  /** Copy for the `<TopCta />` banner between the header and the prose. */
-  cta: string;
+  /** Copy for the `<TopCta />` banner between the header and the prose.
+   * Optional: a page that writes nothing gets the banner's default line. */
+  cta?: string | null;
   /** Optional 16:9 illustration from the media library. */
   previewMedia?: MediaRef | null;
   categories?: readonly ContentCategory[];
@@ -171,7 +172,8 @@ export function ContentArticle({
                 intro never reaches the closing <ClosingCta />, and this is the
                 only offer they'll see. Copy comes from the page's `cta` so
                 placement stays the site's call and the wording stays the
-                page's. */}
+                page's — and when the page hasn't written one, the banner's own
+                default line stands in. */}
             <TopCta>{cta}</TopCta>
 
             {/* The phone's copy of the contents. Above the prose, where a reader

@@ -10,6 +10,7 @@ import { extractBodyReferences } from "../media/references";
 import { AUTHOR_ROLE_FIELDS, type AuthorRoleField } from "../authors/types";
 import { missingKeywordWords } from "./text";
 import { sectionProfile } from "../sectionProfiles";
+import { TOP_CTA_MAX_CHARS } from "../cta";
 
 // Layer 2 of cms.md: document validation. Everything that can be decided
 // about one page — its metadata, its dates, its headings, its links, its
@@ -475,11 +476,15 @@ export function validateDocument(
       ),
     );
   }
-  if (document.cta && document.cta.length > 54) {
+  // `cta` is optional — an empty one renders the banner's default line, which
+  // is a finished page, not a missing field. Only an over-long custom line is
+  // worth a word, and only ever as a warning: it lays out, it just stops being
+  // a one-glance hook.
+  if (document.cta && document.cta.trim().length > TOP_CTA_MAX_CHARS) {
     out.push(
       warn(
         DOCUMENT_CODES.ctaLength,
-        `meta.cta is ${document.cta.length} chars — over ~54 it wraps to a second line beside the button`,
+        `meta.cta is ${document.cta.trim().length} chars — over ~${TOP_CTA_MAX_CHARS} it stops reading as a one-line hook beside the button`,
         "cta",
       ),
     );

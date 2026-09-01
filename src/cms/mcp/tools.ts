@@ -264,7 +264,7 @@ export const CMS_TOOLS: Tool[] = [
       titleTag: z.string().nullable().optional(),
       description: z.string(),
       summary: z.string(),
-      cta: z.string(),
+      cta: z.string().optional(),
       canonicalSlug: z.string().nullable().optional(),
       body: z.string(),
       metadata,

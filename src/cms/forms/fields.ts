@@ -2,6 +2,7 @@ import type { ContentCategory } from "@/content-system/categories/types";
 import type { ContentLocation } from "@/content-system/locations/types";
 import type { ContentSection } from "@/content-system/types";
 import { sectionHasMetadataAddon } from "@/content-system/sectionProfiles";
+import { DEFAULT_TOP_CTA, TOP_CTA_MAX_CHARS } from "@/content-system/cta";
 
 // The metadata form, described as data.
 //
@@ -271,10 +272,9 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     path: "cta",
     label: "Frase de invitación",
     kind: "text",
-    required: true,
-    softMax: 54,
+    softMax: TOP_CTA_MAX_CHARS,
     group: "contenido",
-    help: "La línea que acompaña al botón al principio del artículo. Por encima de 54 caracteres se parte en dos líneas.",
+    help: `Opcional. La línea que acompaña al botón al principio del artículo. Si la dejas vacía se muestra la frase por defecto: «${DEFAULT_TOP_CTA}»`,
   },
   {
     path: "metadata.faq",

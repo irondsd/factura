@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ContentDocument } from "../types";
 import { buildContentIndex } from "./collection";
 import { DOCUMENT_CODES, validateDocument } from "./document";
+import { TOP_CTA_MAX_CHARS } from "../cta";
 
 // Deterministic validator tests over in-memory documents (cms.md Phase 4). No
 // filesystem, no database, no fixtures on disk — a rule and the document that
@@ -490,6 +491,27 @@ describe("title", () => {
     expect(codes({ titleTag: `${base.title} y más` })).toContain(
       DOCUMENT_CODES.titleTagNotShorter,
     );
+  });
+});
+
+describe("cta", () => {
+  it("is optional — an empty one renders the banner's default line", () => {
+    const result = check({ cta: "" });
+    expect(result.diagnostics).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it(`warns past ${TOP_CTA_MAX_CHARS} characters, without blocking`, () => {
+    const result = check({ cta: "x".repeat(TOP_CTA_MAX_CHARS + 1) });
+    expect(result.diagnostics.map((d) => d.code)).toContain(
+      DOCUMENT_CODES.ctaLength,
+    );
+    // A hook that is too long is still a page that publishes.
+    expect(result.ok).toBe(true);
+  });
+
+  it("stays quiet at the limit", () => {
+    expect(codes({ cta: "x".repeat(TOP_CTA_MAX_CHARS) })).toEqual([]);
   });
 });
 

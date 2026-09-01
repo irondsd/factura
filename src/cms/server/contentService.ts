@@ -139,7 +139,10 @@ export type CreateContentInput = {
   titleTag?: string | null;
   description: string;
   summary: string;
-  cta: string;
+  /** The `<TopCta />` line. Optional: a page that omits it shows the banner's
+   * default copy, and the column stores the empty string the same way an
+   * unfinished draft's does. */
+  cta?: string;
   canonicalSlug?: string | null;
   body: string;
   metadata: unknown;
@@ -401,7 +404,7 @@ export class CmsContentService {
             titleTag: input.titleTag ?? null,
             description: input.description,
             summary: input.summary,
-            cta: input.cta,
+            cta: input.cta ?? "",
             canonicalSlug: input.canonicalSlug ?? null,
             metadata,
             parentId: input.parentId ?? null,

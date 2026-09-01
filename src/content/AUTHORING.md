@@ -210,7 +210,7 @@ them flat; `update_content` takes the same names inside `patch`.
 | `titleTag`      | `<title>` only, when `title` is too long to be one  | ≤60, keyword first. Optional.                                                 |
 | `description`   | `<meta name="description">`, OG/Twitter             | ~150–160 chars. One sentence; this is the search snippet.                     |
 | `summary`       | Index cards, homepage, `llms.txt`                   | One short sentence (~90–120 chars). May differ from `description`.            |
-| `cta`           | The one-line CTA banner above the article           | **≤54 chars.** A hook, not a summary. See §7.                                 |
+| `cta`           | The one-line CTA banner above the article           | Optional; blank uses the default line. **≤110 chars.** A hook, not a summary. |
 | `canonicalSlug` | Points this page's canonical at another page's slug | Optional. The cannibalisation lever — see below.                              |
 | `body`          | The MDX body                                        | See §6. No frontmatter, no `<h1>`.                                            |
 | `metadata`      | The JSONB half — see the two schemas below          | Required.                                                                     |
@@ -688,7 +688,8 @@ it unused.
 - [ ] One or more exact global `locations` from `list_locations`; no automatic
       Argentina/province ancestor and no inference from `spatialCoverage`.
 - [ ] At least one internal link to another article, `/docs` or `/demo`.
-- [ ] `cta` is a hook for this page, one line, ≤54 chars.
+- [ ] `cta` is a hook for this page, one line, ≤110 chars — or left empty, in
+      which case the banner shows the site's default line.
 - [ ] `<ClosingCta />` present with its own `title` and copy; `<RelatedGuides />`
       just above it in guides.
 - [ ] Statistics and research: `sources` filled, `<Fuentes />` in the body, and a

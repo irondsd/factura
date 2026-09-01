@@ -1,5 +1,6 @@
 import { Eyebrow, NEW_TAB } from "@/components/landing/parts";
 import { Button } from "@/components/ui";
+import { DEFAULT_TOP_CTA } from "@/content-system/cta";
 
 // CTA pieces used inside guide MDX (Spanish-only section, so labels are inline
 // Spanish — no dictionary lookup). Registered globally in `mdx-components.tsx`
@@ -49,22 +50,31 @@ export function CtaRow({ children }: { children: React.ReactNode }) {
  * ad in front of the article.
  *
  * The copy is `meta.cta`, not a child, so the *page* places it: an author can't
- * accidentally push it below the fold, and a guide can't ship without one (the
- * validator requires the field). It's a hook, not a summary — the question the
- * guide's reader already has, and what an account does about it.
+ * accidentally push it below the fold. It's a hook, not a summary — the question
+ * the guide's reader already has, and what an account does about it.
+ *
+ * The field is optional, and a page that leaves it empty gets DEFAULT_TOP_CTA
+ * rather than an empty strip. Blank is checked, not just `undefined`: `cta` is
+ * a NOT NULL column and the CMS writes an unfilled one as `""`, so absent
+ * reaches this component as an empty string about as often as it does as
+ * nothing at all.
  *
  * The button is `accent` rather than the landing page's `solid` — the two fills
  * swapped, accent at rest and ink on hover. This one sits inside a bordered,
  * card-coloured strip that a skimmer's eye reads as one grey block, and an ink
  * fill in there is another rectangle; the orange is the only thing in the band
  * that isn't. Row on a desktop, stacked on a phone. */
-export function TopCta({ children }: { children: React.ReactNode }) {
+export function TopCta({ children }: { children?: React.ReactNode }) {
+  const blank =
+    children == null ||
+    children === false ||
+    (typeof children === "string" && children.trim() === "");
   return (
     <aside className="mt-7 flex flex-col gap-3 border border-line bg-card px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
       {/* `text-pretty` because the copy is one or two lines at the article's
           column width, and the second line is otherwise a two-word orphan. */}
       <p className="font-mono text-[13.5px] leading-[1.55] text-pretty text-ink/90 m-0">
-        {children}
+        {blank ? DEFAULT_TOP_CTA : children}
       </p>
       {/* `self-start` so the stacked phone layout doesn't hand the button the
           full width of the block — it's a button, not a banner. */}

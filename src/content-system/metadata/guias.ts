@@ -174,7 +174,9 @@ export const guideFieldsSchema = z.object({
   titleTag: filled.optional(),
   description: filled,
   summary: filled,
-  cta: filled,
+  /** Optional: a page with no line of its own gets the banner's default copy
+   * (`DEFAULT_TOP_CTA`), so an empty banner is not a state that can ship. */
+  cta: filled.optional(),
   canonicalSlug: guideSlug.optional(),
 });
 
