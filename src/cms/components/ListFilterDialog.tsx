@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { CONTENT_STATUSES, type ContentStatus } from "@/content-system/types";
 import { cn } from "@/lib/cn";
 import { CmsIcon } from "../icons";
@@ -13,7 +13,7 @@ import {
   type CmsListQuery,
 } from "../listQuery";
 import { CmsModal, DialogButton, DialogCancel } from "./CmsDialog";
-import { CmsSelect } from "./fields/controls";
+import { CmsSelect } from "./CmsSelect";
 import { statusLabel } from "./StatusChip";
 
 // Every way of narrowing a section's list, in one dialog.
@@ -147,24 +147,22 @@ function FilterForm({
             confusion. */}
         <div className="sm:hidden">
           <FilterField label="Estado">
-            <CmsSelect
-              value={draft.status ?? ""}
-              onChange={(event) =>
-                set(
-                  "status",
-                  (event.target.value || undefined) as
-                    | ContentStatus
-                    | undefined,
-                )
-              }
-            >
-              <option value="">Todas ({total})</option>
-              {CONTENT_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {statusLabel(status)} ({statusCounts[status]})
-                </option>
-              ))}
-            </CmsSelect>
+            {(labelId) => (
+              <CmsSelect
+                aria-labelledby={labelId}
+                value={draft.status ?? ""}
+                onChange={(next) =>
+                  set("status", (next || undefined) as ContentStatus | undefined)
+                }
+                options={[
+                  { value: "", label: `Todas (${total})` },
+                  ...CONTENT_STATUSES.map((status) => ({
+                    value: status,
+                    label: `${statusLabel(status)} (${statusCounts[status]})`,
+                  })),
+                ]}
+              />
+            )}
           </FilterField>
         </div>
 
@@ -201,27 +199,29 @@ function FilterForm({
           label="Borrador guardado"
           help="Páginas ya publicadas con una versión más nueva sin publicar."
         >
-          <CmsSelect
-            value={
-              draft.unpublishedChanges === undefined
-                ? ""
-                : draft.unpublishedChanges
-                  ? "si"
-                  : "no"
-            }
-            onChange={(event) =>
-              set(
-                "unpublishedChanges",
-                event.target.value === ""
-                  ? undefined
-                  : event.target.value === "si",
-              )
-            }
-          >
-            <option value="">Indistinto</option>
-            <option value="si">Con cambios sin publicar</option>
-            <option value="no">Sin cambios pendientes</option>
-          </CmsSelect>
+          {(labelId) => (
+            <CmsSelect
+              aria-labelledby={labelId}
+              value={
+                draft.unpublishedChanges === undefined
+                  ? ""
+                  : draft.unpublishedChanges
+                    ? "si"
+                    : "no"
+              }
+              onChange={(next) =>
+                set(
+                  "unpublishedChanges",
+                  next === "" ? undefined : next === "si",
+                )
+              }
+              options={[
+                { value: "", label: "Indistinto" },
+                { value: "si", label: "Con cambios sin publicar" },
+                { value: "no", label: "Sin cambios pendientes" },
+              ]}
+            />
+          )}
         </FilterField>
 
         <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -276,22 +276,31 @@ function OptionField({
 
   return (
     <FilterField label={label}>
-      <CmsSelect
-        value={value ?? ""}
-        onChange={(event) => onChange(event.target.value || undefined)}
-      >
-        <option value="">{anyLabel}</option>
-        {orphan && <option value={value}>{value}</option>}
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label} ({option.count})
-          </option>
-        ))}
-      </CmsSelect>
+      {(labelId) => (
+        <CmsSelect
+          aria-labelledby={labelId}
+          value={value ?? ""}
+          onChange={(next) => onChange(next || undefined)}
+          options={[
+            { value: "", label: anyLabel },
+            ...(orphan ? [{ value, label: value }] : []),
+            ...options.map((option) => ({
+              value: option.value,
+              label: `${option.label} (${option.count})`,
+            })),
+          ]}
+        />
+      )}
     </FilterField>
   );
 }
 
+/** A labelled row in the dialog.
+ *
+ * The label is an addressable `<span>` rather than a `<label>` wrapping the
+ * control: the control is a button now, and a `<label>` around a button hands
+ * every click inside it — the help text included — to that button. The id goes
+ * to the child instead, which is why this takes a function. */
 function FilterField({
   label,
   help,
@@ -299,19 +308,23 @@ function FilterField({
 }: {
   label: string;
   help?: string;
-  children: React.ReactNode;
+  children: (labelId: string) => React.ReactNode;
 }) {
+  const labelId = useId();
   return (
-    <label className="mt-5 block">
-      <span className="mb-1 block font-mono text-micro uppercase tracking-label-wide text-muted">
+    <div className="mt-5">
+      <span
+        id={labelId}
+        className="mb-1 block font-mono text-micro uppercase tracking-label-wide text-muted"
+      >
         {label}
       </span>
-      {children}
+      {children(labelId)}
       {help && (
-        <span className="mt-1 block font-mono text-[12px] leading-[1.5] text-muted">
+        <p className="mt-1 mb-0 font-mono text-[12px] leading-[1.5] text-muted">
           {help}
-        </span>
+        </p>
       )}
-    </label>
+    </div>
   );
 }

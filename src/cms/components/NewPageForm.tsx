@@ -6,7 +6,8 @@ import { createContentAction } from "@/cms/server/actions";
 import type { CmsSection } from "@/cms/sections";
 import { cmsEditPath, publicSectionPath } from "@/cms/sections";
 import { CmsIcon } from "@/cms/icons";
-import { CmsSelect, inputClass } from "./fields/controls";
+import { CmsSelect } from "./CmsSelect";
+import { inputClass } from "./fields/controls";
 import type { ParentOption } from "./fields/MetadataField";
 import { sectionProfile } from "@/content-system/sectionProfiles";
 
@@ -155,16 +156,17 @@ export function NewPageForm({
           help="Deja «Ninguna» para una página de primer nivel."
         >
           <CmsSelect
+            aria-label="Página madre"
             value={parentId}
-            onChange={(event) => setParentId(event.target.value)}
-          >
-            <option value="">Ninguna (primer nivel)</option>
-            {parentOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </CmsSelect>
+            onChange={setParentId}
+            options={[
+              { value: "", label: "Ninguna (primer nivel)" },
+              ...parentOptions.map((option) => ({
+                value: option.value,
+                label: option.label,
+              })),
+            ]}
+          />
         </Field>
       )}
 

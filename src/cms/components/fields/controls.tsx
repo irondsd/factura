@@ -1,70 +1,20 @@
 "use client";
 
-import { useState, type SelectHTMLAttributes } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { CmsIcon } from "../../icons";
 
 // The primitives the console's forms are built out of. Extracted so the four
 // metadata fields that grew their own file — keywords, categories, the FAQ, the
 // sources — share one input, one counter and one chip list with the plain text
-// boxes instead of each restating them, and since `CmsSelect` so that every
-// dropdown in the console is the same dropdown.
+// boxes instead of each restating them.
+//
+// `inputClass` is the field chrome itself, and it is what `../CmsSelect` wears
+// too — a dropdown and the text box above it should be the same field with
+// different contents.
 
 export const inputClass =
   "w-full border border-line bg-paper px-3 py-2 font-mono text-[13.5px] text-ink placeholder:text-muted focus:border-accent focus:outline-none";
-
-/**
- * The console's dropdown.
- *
- * A bare `<select>` styled with a border was the shape every one of these had,
- * and the browser draws its own arrow hard against the right edge of the box —
- * inside the hairline, ignoring the padding the text gets. Next to the CMS's
- * square, generously-padded fields it read as a rendering fault rather than a
- * control.
- *
- * So the native arrow goes (`appearance-none`) and the chevron is drawn where
- * the rest of the console draws its icons: `CmsIcon`, at the same 12px inset
- * the text sits at, in the same muted tone, following the theme. The select
- * keeps enough right padding that a long option ends before the chevron begins
- * rather than sliding underneath it.
- *
- * `min-h-11` only below `sm`: 44px is the touch target a dropdown on a phone
- * needs, and on a pointer screen the field would be taller than every input
- * beside it for no reason — the same split the status filters use.
- *
- * Everything else is the shared `inputClass`, so a dropdown and the text box
- * above it are the same field with different contents. `className` is appended
- * for the things a caller genuinely varies — an invalid border, a width — and
- * `cn` here is a plain join, so pass additions, not contradictions.
- */
-export function CmsSelect({
-  className,
-  children,
-  ...props
-}: SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    // The wrapper is what the chevron is positioned against, and it is
-    // `block w-full` so the control occupies exactly the box the bare `<select>`
-    // used to — including as a flex item next to an «Añadir» button.
-    <span className="relative block w-full">
-      <select
-        {...props}
-        className={cn(
-          inputClass,
-          "min-h-11 cursor-pointer appearance-none pr-9 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0",
-          className,
-        )}
-      >
-        {children}
-      </select>
-      <CmsIcon
-        name="chevronDown"
-        size="sm"
-        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted"
-      />
-    </span>
-  );
-}
 
 /** A live character count against the length the guidance is written around.
  * Advisory, not enforcement — the validator owns the rules, and an editor who

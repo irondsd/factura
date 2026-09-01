@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { FieldDescriptor } from "@/cms/forms/fields";
 import { cn } from "@/lib/cn";
 import { CmsIcon } from "../../icons";
-import { CmsSelect } from "./controls";
+import { CmsSelect } from "../CmsSelect";
 import { asStrings } from "./values";
 
 // «Categorías»: the one to three shelves a page sits on, the first of which
@@ -132,18 +132,20 @@ export function CategoriesField({
             aria-describedby={describedBy}
             aria-label="Categoría a añadir"
             aria-invalid={invalid || undefined}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={setDraft}
             className={cn(invalid && "border-[var(--vendor-ochre)]")}
-          >
-            <option value="">
-              {chosen.length === 0 ? "Elige una categoría" : "Añadir otra…"}
-            </option>
-            {available.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </CmsSelect>
+            options={[
+              {
+                value: "",
+                label:
+                  chosen.length === 0 ? "Elige una categoría" : "Añadir otra…",
+              },
+              ...available.map((option) => ({
+                value: option.value,
+                label: option.label,
+              })),
+            ]}
+          />
           <button
             type="button"
             onClick={add}

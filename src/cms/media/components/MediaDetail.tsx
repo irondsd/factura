@@ -11,7 +11,8 @@ import {
   DialogButton,
   DialogCancel,
 } from "../../components/CmsDialog";
-import { CmsSelect, inputClass } from "../../components/fields/controls";
+import { CmsSelect } from "../../components/CmsSelect";
+import { inputClass } from "../../components/fields/controls";
 import { cmsEditPath } from "../../sections";
 import type { ContentSection } from "@/content-system/types";
 import {
@@ -366,16 +367,17 @@ export function MediaDetail({
 
         <Field label="Colección">
           <CmsSelect
+            aria-label="Colección"
             value={collectionId}
-            onChange={(event) => setCollectionId(event.target.value)}
-          >
-            <option value="">Sin colección</option>
-            {collections.map((collection) => (
-              <option key={collection.id} value={collection.id}>
-                {collection.name}
-              </option>
-            ))}
-          </CmsSelect>
+            onChange={setCollectionId}
+            options={[
+              { value: "", label: "Sin colección" },
+              ...collections.map((collection) => ({
+                value: collection.id,
+                label: collection.name,
+              })),
+            ]}
+          />
         </Field>
 
         <Field label="Crédito (opcional)">

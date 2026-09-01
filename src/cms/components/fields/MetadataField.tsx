@@ -5,7 +5,8 @@ import type { FieldDescriptor } from "@/cms/forms/fields";
 import { MediaPicker } from "@/cms/media/components/MediaPicker";
 import { cn } from "@/lib/cn";
 import { CategoriesField } from "./CategoriesField";
-import { CmsSelect, Counter, inputClass, TagsInput } from "./controls";
+import { Counter, inputClass, TagsInput } from "./controls";
+import { CmsSelect } from "../CmsSelect";
 import { FaqField } from "./FaqField";
 import { KeywordsField } from "./KeywordsField";
 import { LocationsField } from "./LocationsField";
@@ -182,15 +183,15 @@ function Control({
         <CmsSelect
           {...shared}
           value={(value as string) ?? ""}
-          onChange={(e) => onChange(e.target.value || null)}
-        >
-          <option value="">Ninguna (primer nivel)</option>
-          {parentOptions?.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </CmsSelect>
+          onChange={(next) => onChange(next || null)}
+          options={[
+            { value: "", label: "Ninguna (primer nivel)" },
+            ...(parentOptions ?? []).map((option) => ({
+              value: option.value,
+              label: option.label,
+            })),
+          ]}
+        />
       );
 
     case "multiselect":
@@ -224,15 +225,15 @@ function Control({
         <CmsSelect
           {...shared}
           value={(value as string) ?? ""}
-          onChange={(e) => onChange(e.target.value || undefined)}
-        >
-          <option value="">{field.emptyLabel ?? "Ninguno"}</option>
-          {field.options?.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </CmsSelect>
+          onChange={(next) => onChange(next || undefined)}
+          options={[
+            { value: "", label: field.emptyLabel ?? "Ninguno" },
+            ...(field.options ?? []).map((option) => ({
+              value: option.value,
+              label: option.label,
+            })),
+          ]}
+        />
       );
 
     case "media":
