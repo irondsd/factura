@@ -337,6 +337,9 @@ automatically, and nothing trusts the browser.**
   and purge gates therefore test two predicates, both inside the removing
   statement, and the detail screen names the author so a refusal has a visible
   cause.
+- The library's usage views and counts include both page references and current
+  author portraits. The grid keeps their counts separate so a portrait is not
+  described as being used on a page.
 - The library grid is built from PostgreSQL, never by listing the bucket.
   Bucket reconciliation is a separate sweep (`scripts/mediaSweep.ts`).
 

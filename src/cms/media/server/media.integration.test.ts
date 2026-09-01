@@ -5,6 +5,7 @@ import { createTestDb, hasTestDatabase } from "../../server/testDb";
 import {
   CmsConflictError,
   CmsMediaInUseError,
+  CmsMediaPortraitInUseError,
   CmsValidationError,
 } from "../../server/errors";
 import type { CmsActor } from "../../types";
@@ -92,6 +93,9 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
         .from(schema.cmsMedia)
         .where(like(schema.cmsMedia.originalFilename, `${TEST_PREFIX}%`));
       const ids = [...new Set([...created, ...rows.map((r) => r.id)])];
+      await db
+        .delete(schema.cmsAuthors)
+        .where(like(schema.cmsAuthors.name, `${TEST_PREFIX}%`));
       if (ids.length) {
         await db
           .delete(schema.cmsMediaUsage)
@@ -432,6 +436,44 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
         await reconcileMediaUsage(db);
         const usage = await store.usageOf(asset.id);
         expect(usage.map((u) => u.placement)).toEqual(["preview"]);
+      });
+
+      it("counts author portraits as usage and keeps them out of unused views", async () => {
+        const asset = await upload(`${TEST_PREFIX}portrait.png`);
+        created.add(asset.id);
+        const before = await store.counts();
+
+        await db.insert(schema.cmsAuthors).values({
+          name: `${TEST_PREFIX}Author`,
+          imageMediaId: asset.id,
+          createdBy: actor.userId,
+          updatedBy: actor.userId,
+        });
+
+        const after = await store.counts();
+        expect(after.used).toBe(before.used + 1);
+        expect(after.neverUsed).toBe(before.neverUsed - 1);
+
+        const listed = await store.list({ search: TEST_PREFIX });
+        expect(listed.find((row) => row.id === asset.id)).toMatchObject({
+          usageCount: 0,
+          portraitCount: 1,
+        });
+        expect(
+          (await store.list({ usage: "used", search: TEST_PREFIX })).map(
+            (row) => row.id,
+          ),
+        ).toContain(asset.id);
+        expect(
+          (await store.list({ usage: "never-used", search: TEST_PREFIX })).map(
+            (row) => row.id,
+          ),
+        ).not.toContain(asset.id);
+
+        await expect(service.trash(actor, { id: asset.id })).rejects.toThrow(
+          CmsMediaPortraitInUseError,
+        );
+        expect((await store.findById(asset.id))?.status).toBe("ready");
       });
 
       it("rebuilds to exactly what the incremental writer would have produced", async () => {

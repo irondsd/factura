@@ -109,6 +109,14 @@ const usageCountSql = sql<number>`(
   where usage.media_id = cms_media.id
 )`;
 
+/** How many author profiles use an asset as their portrait. Kept separate from
+ * `usageCountSql`: a portrait is a real usage, but it is not a page. */
+const portraitCountSql = sql<number>`(
+  select count(*)::int
+  from cms_author author
+  where author.image_media_id = cms_media.id
+)`;
+
 /** "At least one page points at this row."
  *
  * A raw fragment rather than a builder-made subquery, because it is embedded in
@@ -396,7 +404,11 @@ export class CmsMediaStore {
     ].filter((c) => c !== undefined);
 
     const rows = await this.db
-      .select({ media: cmsMedia, usageCount: usageCountSql })
+      .select({
+        media: cmsMedia,
+        usageCount: usageCountSql,
+        portraitCount: portraitCountSql,
+      })
       .from(cmsMedia)
       .where(and(...conditions))
       .orderBy(...orderFor(filter.sort))
@@ -406,6 +418,7 @@ export class CmsMediaStore {
     return rows.map((row) => ({
       ...toAsset(row.media),
       usageCount: Number(row.usageCount ?? 0),
+      portraitCount: Number(row.portraitCount ?? 0),
     }));
   }
 
@@ -422,9 +435,9 @@ export class CmsMediaStore {
     const [row] = await this.db
       .select({
         all: sql<number>`count(*) filter (where cms_media.status = 'ready')::int`,
-        used: sql<number>`count(*) filter (where cms_media.status = 'ready' and ${referencedByAnyPage()})::int`,
-        neverUsed: sql<number>`count(*) filter (where cms_media.status = 'ready' and cms_media.first_used_at is null and not ${referencedByAnyPage()})::int`,
-        noLongerUsed: sql<number>`count(*) filter (where cms_media.status = 'ready' and cms_media.first_used_at is not null and not ${referencedByAnyPage()})::int`,
+        used: sql<number>`count(*) filter (where cms_media.status = 'ready' and ${stillInUse()})::int`,
+        neverUsed: sql<number>`count(*) filter (where cms_media.status = 'ready' and cms_media.first_used_at is null and not ${stillInUse()})::int`,
+        noLongerUsed: sql<number>`count(*) filter (where cms_media.status = 'ready' and cms_media.first_used_at is not null and not ${stillInUse()})::int`,
         trashed: sql<number>`count(*) filter (where cms_media.status = 'trashed')::int`,
         uncollected: sql<number>`count(*) filter (where cms_media.status = 'ready' and cms_media.collection_id is null)::int`,
       })
@@ -916,11 +929,11 @@ export class CmsMediaStore {
 function usageCondition(usage: MediaListFilter["usage"]) {
   switch (usage) {
     case "used":
-      return referencedByAnyPage();
+      return stillInUse();
     case "never-used":
-      return and(not(referencedByAnyPage()), isNull(cmsMedia.firstUsedAt));
+      return and(not(stillInUse()), isNull(cmsMedia.firstUsedAt));
     case "no-longer-used":
-      return and(not(referencedByAnyPage()), not(isNull(cmsMedia.firstUsedAt)));
+      return and(not(stillInUse()), not(isNull(cmsMedia.firstUsedAt)));
     default:
       return undefined;
   }

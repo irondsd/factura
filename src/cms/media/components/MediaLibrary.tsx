@@ -608,8 +608,22 @@ function usageLabel(asset: MediaAssetWithUsage): string {
       ? `en papelera desde ${asset.trashedAt.slice(0, 10)}`
       : "en papelera";
   }
-  if (asset.usageCount > 0) {
-    return `usada en ${asset.usageCount} página${asset.usageCount === 1 ? "" : "s"}`;
+  const pageLabel =
+    asset.usageCount > 0
+      ? `usada en ${asset.usageCount} página${asset.usageCount === 1 ? "" : "s"}`
+      : null;
+  const portraitLabel =
+    asset.portraitCount > 0
+      ? `como retrato de ${asset.portraitCount} autor${asset.portraitCount === 1 ? "" : "es"}`
+      : null;
+  if (pageLabel && portraitLabel) {
+    return `${pageLabel} y ${portraitLabel}`;
+  }
+  if (pageLabel) {
+    return pageLabel;
+  }
+  if (portraitLabel) {
+    return `usada ${portraitLabel}`;
   }
   return asset.lastReferencedAt
     ? `sin uso desde ${asset.lastReferencedAt.slice(0, 10)}`
