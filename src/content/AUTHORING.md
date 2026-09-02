@@ -240,8 +240,7 @@ Cierre que conecta el tema con lo que Factura hace con esa boleta.
 <RelatedGuides />
 
 <ClosingCta title="Titular corto, sobre el tema de esta guía">
-  Dos oraciones: la parte tediosa que el lector acaba de conocer, y qué hace
-  Factura con ella.
+  Dos oraciones: la parte tediosa que el lector acaba de conocer, y qué hace Factura con ella.
 </ClosingCta>
 ```
 
@@ -252,6 +251,9 @@ topic and honest about the product: "Factura guarda los m³ y el importe de
 cada boleta de MetroGAS" is an argument; "Organiza todos tus servicios" is
 filler. `<InflacionChart chart="…" />` ids come from
 [`guias/data/inflacion.ts`](./guias/data/inflacion.ts).
+`<Resumen>content</Resumen>` is a Summary component could be used for large pages.
+It's made to answer the main intent of the page in the very beginning of the page
+content.
 
 ### A data page
 
@@ -289,7 +291,7 @@ It is the short answer to "can I trust this number?", so write it in one
 sentence per field and keep it specific: which organism published the series,
 which months it covers and to what date, what territory or universe, what
 exactly is measured and in what unit, and — the field worth the most — what the
-page does *not* support. `## Cómo se mide` is still where the long version
+page does _not_ support. `## Cómo se mide` is still where the long version
 goes; this is the version a reader takes in at a glance before scrolling back
 up to the figure.
 
