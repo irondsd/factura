@@ -42,15 +42,46 @@ const LANDING: {
   { path: "/security", changeFrequency: "monthly", priority: 0.5 },
 ];
 
+// How long a generated sitemap may stand before it is rebuilt regardless of
+// tags. Everything this file reads is cached with `revalidate: false` and
+// expires only on `revalidateTag` (`@/cms/server/invalidation`), and so, until
+// this line, was the sitemap's own entry — which made one bad render permanent.
+//
+// It is worth being precise about what "bad render" means, because the tags are
+// not the part that is broken. A route does inherit the tags of the cached
+// reads it ran — `unstable_cache` pushes them onto the work unit, so this entry
+// genuinely carries `content:guias` and the rest. What a tag cannot express is
+// an *order*: expiring one buys no promise that the route re-renders after the
+// entries it reads have been expired, only that it re-renders. Publishing a
+// guide on 2026-09-02 purged this route and re-rendered it 25 seconds later
+// against a `publishedGuides` entry that had not caught up, and the result — a
+// sitemap missing the page that triggered it — was then served as a fresh
+// `HIT` until the next unrelated publish. /llms.txt and /guias, which happened
+// to re-render later in the same minute, were correct throughout.
+//
+// So this is a repair floor, not the update path: a publish still reaches the
+// sitemap in seconds through the tag, and this only bounds how long a render
+// that lost the race can survive. An hour, which is what the section reads
+// themselves used to carry (`repository/sections.ts`) before on-demand
+// invalidation replaced it. The cost is one rewrite of a ~35 KB file per hour,
+// and no database work at all: on a plain TTL expiry every read below is still
+// a valid cache entry, so the re-render is a re-serialisation.
+export const revalidate = 3600;
+
 // The newest of a set of content timestamps, or `undefined` when there is
 // nothing to date. Every listing page below takes its `lastModified` from the
 // pages it lists, and that list can come back empty even for a category the
-// category query just called non-empty: the two queries are separately cached,
-// so tag invalidation landing out of order is enough to make them disagree.
-// `Math.max()` of nothing is `-Infinity`, and a `Date` built from that throws
-// `RangeError: Invalid time value` when the sitemap is serialised — aborting
-// `next build` with a message that names neither the section nor the category.
-// Omitting the date is the honest answer anyway, by the rule below.
+// category query just called non-empty. `Math.max()` of nothing is `-Infinity`,
+// and a `Date` built from that throws `RangeError: Invalid time value` when the
+// sitemap is serialised — aborting `next build` with a message that names
+// neither the section nor the category.
+//
+// The disagreement that produced it is fixed at the source: the page list
+// behind `nonEmptyCategories()` used to be an *uncached* query run beside the
+// cached one this route reads, so the two saw different moments by
+// construction. Both now come from one cache entry (`repository/categories.ts`).
+// The guard stays because omitting the date is the honest answer anyway, by the
+// rule below, and a crash in a sitemap is a poor way to learn otherwise.
 function newestDate(timestamps: readonly string[]): Date | undefined {
   const newest = Math.max(...timestamps.map((t) => Date.parse(t)));
   return Number.isFinite(newest) ? new Date(newest) : undefined;
