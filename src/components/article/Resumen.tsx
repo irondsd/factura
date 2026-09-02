@@ -46,10 +46,7 @@ export function Resumen({ children }: { children?: React.ReactNode }) {
     // a screen reader should be able to find it as a landmark and skip it once
     // they have heard it. The sections that render this are Spanish-only (see
     // the note in `components/guides/cta.tsx`), so the label is inline Spanish.
-    <aside
-      aria-label="Resumen"
-      className="my-7 bg-paper-tint px-6 py-[22px]"
-    >
+    <aside aria-label="Resumen" className="my-7 bg-paper-tint px-6 py-[22px]">
       {/* A div, not a p: MDX wraps the child prose in its own <p>, and a <p>
           inside a <p> is invalid HTML that React reports as a hydration
           failure. The child selectors give that wrapper the block's type —

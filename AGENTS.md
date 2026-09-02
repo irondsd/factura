@@ -92,7 +92,7 @@ the `factura-cms` MCP server, or by hand at `/cms`.
 
 **`src/content/AUTHORING.md` is the spec, and reading it is a standing
 instruction — the person does not have to ask for it, and nothing summarised
-here replaces it.** Read it in full *before* you start, planning included, if
+here replaces it.** Read it in full _before_ you start, planning included, if
 the request is to:
 
 - write, draft, outline or plan a guía, noticia, estadística or investigación —
@@ -103,7 +103,7 @@ the request is to:
 - publish, unpublish, preview, or restore a version;
 - or anything else that ends up calling a `factura-cms` tool.
 
-The trigger is what the request *does*, not the words it uses. A one-line typo
+The trigger is what the request _does_, not the words it uses. A one-line typo
 fix counts: the field limits, keyword rules, dedupe check and voice in that file
 are what make an edit valid, and the validator rejects work that ignores them.
 

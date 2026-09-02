@@ -152,7 +152,10 @@ function FilterForm({
                 aria-labelledby={labelId}
                 value={draft.status ?? ""}
                 onChange={(next) =>
-                  set("status", (next || undefined) as ContentStatus | undefined)
+                  set(
+                    "status",
+                    (next || undefined) as ContentStatus | undefined,
+                  )
                 }
                 options={[
                   { value: "", label: `Todas (${total})` },

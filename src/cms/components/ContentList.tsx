@@ -115,10 +115,7 @@ export function ContentList({
         // Not sortable: grouping a section around one credited person is a
         // filter someone would want, not an order the header should offer.
         return (
-          <Th
-            key={columnId}
-            className="cms-column-credits w-[190px]"
-          >
+          <Th key={columnId} className="cms-column-credits w-[190px]">
             Créditos
           </Th>
         );

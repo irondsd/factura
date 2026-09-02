@@ -2,10 +2,7 @@ import Link from "next/link";
 import type { ContentStatus } from "@/content-system/types";
 import { cn } from "@/lib/cn";
 import { CmsIcon } from "../icons";
-import {
-  filterOptionLabel,
-  type CmsFilterOptions,
-} from "../listFilterOptions";
+import { filterOptionLabel, type CmsFilterOptions } from "../listFilterOptions";
 import {
   activeCmsFilterKeys,
   clearedCmsFilters,
@@ -50,9 +47,7 @@ export function ActiveListFilters({
   // credit, so those chips need naming. A chip whose value already says what it
   // is gets none — «Borrador guardado: Con cambios sin publicar» is the same
   // sentence twice, and on a phone it is the one that wraps.
-  const describe = (
-    facet: CmsFilterKey,
-  ): { label?: string; value: string } => {
+  const describe = (facet: CmsFilterKey): { label?: string; value: string } => {
     switch (facet) {
       case "status":
         return {

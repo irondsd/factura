@@ -207,7 +207,9 @@ describe("parseCmsListQuery filters", () => {
   });
 
   it("treats a blank or unknown `cambios` as no opinion", () => {
-    expect(parseCmsListQuery({ cambios: "" }).unpublishedChanges).toBeUndefined();
+    expect(
+      parseCmsListQuery({ cambios: "" }).unpublishedChanges,
+    ).toBeUndefined();
     expect(
       parseCmsListQuery({ cambios: "quizás" }).unpublishedChanges,
     ).toBeUndefined();
@@ -349,7 +351,9 @@ describe("filterContentRows", () => {
 describe("active filters", () => {
   it("names the facets in play, and false counts as one", () => {
     expect(
-      activeCmsFilterKeys(parseCmsListQuery({ estado: "draft", cambios: "no" })),
+      activeCmsFilterKeys(
+        parseCmsListQuery({ estado: "draft", cambios: "no" }),
+      ),
     ).toEqual(["status", "unpublishedChanges"]);
   });
 

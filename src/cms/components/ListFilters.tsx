@@ -43,7 +43,9 @@ export function ListFilters({
     cmsListHref(basePath, { ...query, status });
 
   return (
-    <nav className={cn("hidden flex-wrap items-center gap-1 sm:flex", className)}>
+    <nav
+      className={cn("hidden flex-wrap items-center gap-1 sm:flex", className)}
+    >
       <FilterLink
         href={href()}
         active={!query.status}

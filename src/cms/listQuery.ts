@@ -194,7 +194,8 @@ export function matchesCmsListQuery(
   query: CmsListQuery,
 ): boolean {
   if (query.status && page.status !== query.status) return false;
-  if (query.authorId && page.metadata?.authorId !== query.authorId) return false;
+  if (query.authorId && page.metadata?.authorId !== query.authorId)
+    return false;
   if (
     query.factCheckerId &&
     page.metadata?.factCheckerId !== query.factCheckerId

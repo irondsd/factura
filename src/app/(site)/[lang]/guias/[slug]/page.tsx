@@ -124,9 +124,7 @@ export default async function GuidePage({ params }: Props) {
             />
           ),
           Faq: () => <Faq items={faq} />,
-          Metodologia: () => (
-            <Metodologia value={guide.metadata.methodology} />
-          ),
+          Metodologia: () => <Metodologia value={guide.metadata.methodology} />,
           // No licence passed, unlike the data sections: a guide cites its
           // sources but publishes no table of its own, so the block is the list
           // and nothing else.

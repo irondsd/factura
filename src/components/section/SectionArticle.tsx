@@ -177,9 +177,7 @@ export async function SectionArticle({
                 components={contentComponents({
                   ...media,
                   Faq: () => <Faq items={meta.faq ?? []} />,
-                  Metodologia: () => (
-                    <Metodologia value={meta.methodology} />
-                  ),
+                  Metodologia: () => <Metodologia value={meta.methodology} />,
                   // The same licence the `Dataset` markup declares — a page
                   // that overrides it says so on screen too.
                   Fuentes: () => (

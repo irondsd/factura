@@ -18,11 +18,7 @@ const page = (slug: string, categoryKeys: string[], updated: string) => ({
   meta: { categoryKeys, updated },
 });
 
-const location = (
-  slug: string,
-  updatedAt: string,
-  pageUpdates: string[],
-) =>
+const location = (slug: string, updatedAt: string, pageUpdates: string[]) =>
   ({
     slug,
     updatedAt,

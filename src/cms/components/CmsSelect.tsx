@@ -135,7 +135,9 @@ export function CmsSelect({
       const enabled = enabledIndexes(options);
       if (enabled.length === 0) return;
       const from =
-        start === "selected" && selectedIndex >= 0 && !options[selectedIndex].disabled
+        start === "selected" &&
+        selectedIndex >= 0 &&
+        !options[selectedIndex].disabled
           ? selectedIndex
           : start === "last"
             ? enabled[enabled.length - 1]
@@ -175,7 +177,9 @@ export function CmsSelect({
     let frame = requestAnimationFrame(function tick() {
       if (trigger.current) {
         const next = measure(trigger.current);
-        setPlacement((current) => (samePlacement(current, next) ? current : next));
+        setPlacement((current) =>
+          samePlacement(current, next) ? current : next,
+        );
       }
       frame = requestAnimationFrame(tick);
     });
@@ -260,7 +264,8 @@ export function CmsSelect({
     const enabled = enabledIndexes(options);
     if (enabled.length === 0) return;
     const at = enabled.indexOf(activeIndex);
-    const next = at < 0 ? 0 : Math.min(Math.max(at + delta, 0), enabled.length - 1);
+    const next =
+      at < 0 ? 0 : Math.min(Math.max(at + delta, 0), enabled.length - 1);
     setActiveIndex(enabled[next]);
   };
 
@@ -371,7 +376,9 @@ export function CmsSelect({
         />
       </button>
 
-      {open && placement && typeof document !== "undefined" &&
+      {open &&
+        placement &&
+        typeof document !== "undefined" &&
         createPortal(
           <ul
             ref={list}
@@ -404,9 +411,7 @@ export function CmsSelect({
                   // `aria-activedescendant` requires and what makes the
                   // keyboard keep working after a click.
                   onMouseDown={(event) => event.preventDefault()}
-                  onMouseEnter={() =>
-                    !option.disabled && setActiveIndex(index)
-                  }
+                  onMouseEnter={() => !option.disabled && setActiveIndex(index)}
                   onClick={() => !option.disabled && commit(index)}
                   className={cn(
                     "flex h-7 cursor-pointer items-center gap-2 px-3 py-2 font-mono text-[13.5px] leading-[1.4] sm:min-h-0 transition-colors",
@@ -423,7 +428,9 @@ export function CmsSelect({
                   <span className="w-3.5 shrink-0">
                     {isSelected && <CmsIcon name="check" size="xs" />}
                   </span>
-                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {option.label}
+                  </span>
                 </li>
               );
             })}

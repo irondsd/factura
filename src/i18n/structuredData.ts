@@ -746,10 +746,7 @@ export function locationHubLd({
   location,
   pages,
 }: {
-  location: Pick<
-    ContentLocation,
-    "slug" | "label" | "title" | "description"
-  >;
+  location: Pick<ContentLocation, "slug" | "label" | "title" | "description">;
   pages: readonly { section: ContentSection; slug: string; title: string }[];
 }) {
   const url = locationUrl(location.slug);

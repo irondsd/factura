@@ -1,6 +1,9 @@
 import { METHODOLOGY_SECTION } from "@/content/headings";
 import { cn } from "@/lib/cn";
-import { type MethodologyMetadata, methodologyEntries } from "@/content-system/types";
+import {
+  type MethodologyMetadata,
+  methodologyEntries,
+} from "@/content-system/types";
 
 // The "Metodología" block a page drops in with a bare <Metodologia />. Same
 // contract as <Faq /> and <Fuentes />: the tag takes no props, the route

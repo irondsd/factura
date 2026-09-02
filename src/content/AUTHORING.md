@@ -199,7 +199,7 @@ block, the tl;dr. Two rules, and both get broken the same way:
 
 - **It is the first thing in the body.** Above the intro paragraph, not after
   it. A `<Resumen>` with a paragraph over it has been placed wrong — the block
-  exists so a reader gets the answer *before* the article starts, and a
+  exists so a reader gets the answer _before_ the article starts, and a
   paragraph above it has already started the article.
 - **It is for long pages.** It was built for `estadisticas` and
   `investigaciones`, where the answer is otherwise a scroll away. A guía is
@@ -262,7 +262,8 @@ Cierre que conecta el tema con lo que Factura hace con esa boleta.
 <RelatedGuides />
 
 <ClosingCta title="Titular corto, sobre el tema de esta guía">
-  Dos oraciones: la parte tediosa que el lector acaba de conocer, y qué hace Factura con ella.
+  Dos oraciones: la parte tediosa que el lector acaba de conocer, y qué hace
+  Factura con ella.
 </ClosingCta>
 ```
 
