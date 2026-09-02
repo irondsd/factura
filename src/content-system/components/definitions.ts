@@ -608,13 +608,16 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     },
   },
   Resumen: {
-    // Every section: the block answers "is this the page I needed?", and that
-    // question is asked of a guide, a noticia and a data page alike.
+    // Registered for every section, but it is a *long page* block: it exists so
+    // a reader landing on an estadística or an investigación gets the answer
+    // before scrolling through the argument. A guide is already the short
+    // version of itself, so on `guias` and `noticias` it usually adds a second
+    // opening to a page that only needed one.
     sections: ["guias", "noticias", "estadisticas", "investigaciones"],
     kind: "container",
     props: noProps,
     description:
-      "The page summary: two or three sentences on a tinted block that give the reader the answer before the article argues it. Write it near the top, around prose — not around a figure, a list or another component.",
+      "The page's answer up front — two or three sentences on a tinted block, the tl;dr. It is the FIRST thing in the body: above the intro paragraph, never after it. Built for long pages (estadísticas, investigaciones); on a guide or a noticia it rarely earns its place, and leaving it out is the normal choice. Wrap prose only — not a figure, a list or another component.",
     authoring: {
       label: "Resumen de la página",
       group: "article-structure",
@@ -622,7 +625,9 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
       childPlaceholder:
         "Dos o tres frases que respondan la pregunta de la página.",
       notes: [
-        "Va cerca del comienzo, después del párrafo de introducción, y una sola vez por página.",
+        "Va PRIMERO, arriba de todo, antes del párrafo de introducción. Si tiene un párrafo por encima, está mal puesto.",
+        "Es para páginas largas: estadísticas e investigaciones. En una guía o una noticia casi nunca hace falta; omitirlo es lo normal.",
+        "Una sola vez por página.",
         "Es para el lector, no para el buscador: `summary` y `description` siguen siendo campos aparte.",
       ],
     },

@@ -189,6 +189,28 @@ sections (they get anchor ids), `###` inside them. GFM works and is styled;
 you never need a class. Internal links are site paths (`/guias/otro-slug`),
 and every page links to at least one other.
 
+The one thing that may come before that intro paragraph is `<Resumen>`, and
+only on a long page — see below.
+
+### `<Resumen>`, and where it goes
+
+`<Resumen>` is the page's answer up front: two or three sentences on a tinted
+block, the tl;dr. Two rules, and both get broken the same way:
+
+- **It is the first thing in the body.** Above the intro paragraph, not after
+  it. A `<Resumen>` with a paragraph over it has been placed wrong — the block
+  exists so a reader gets the answer *before* the article starts, and a
+  paragraph above it has already started the article.
+- **It is for long pages.** It was built for `estadisticas` and
+  `investigaciones`, where the answer is otherwise a scroll away. A guía is
+  already the short version of itself, and a noticia is shorter still: on
+  those, **leaving it out is the normal choice**, and adding one usually gives
+  the page two openings that say the same thing.
+
+It wraps prose, once per page, and never a figure, a list or another
+component. It is for the reader, not the crawler: `summary` and `description`
+are separate fields and stay as they are.
+
 ### Components
 
 The manifest is the source of truth, not this file:
@@ -250,28 +272,29 @@ before the closing section. `<Fuentes />` only if there are sources.
 topic and honest about the product: "Factura guarda los m³ y el importe de
 cada boleta de MetroGAS" is an argument; "Organiza todos tus servicios" is
 filler. `<InflacionChart chart="…" />` ids come from
-[`guias/data/inflacion.ts`](./guias/data/inflacion.ts).
-`<Resumen>content</Resumen>` is a Summary component could be used for large pages.
-It's made to answer the main intent of the page in the very beginning of the page
-content.
+[`guias/data/inflacion.ts`](./guias/data/inflacion.ts). A guide normally has
+**no `<Resumen>`**: the skeleton above is the whole shape, and the block is
+for the long data pages.
 
 ### A data page
 
 The published pages that work share one shape; keep it:
 
-1. Intro: what the number is, what it is not (asking price vs. deed price,
+1. `<Resumen>` — the answer in two or three sentences, before anything else on
+   the page. This is the section the block was built for.
+2. Intro: what the number is, what it is not (asking price vs. deed price,
    registered vs. actual), who publishes it.
-2. `## Qué vas a encontrar en esta página` — a short list, in reading order.
-3. The main figure, with a paragraph before it that tells the reader how to
+3. `## Qué vas a encontrar en esta página` — a short list, in reading order.
+4. The main figure, with a paragraph before it that tells the reader how to
    read it and one after it that says what it shows.
-4. `## Cómo se mide` — the producer, the unit, the cadence, the gaps (missing
+5. `## Cómo se mide` — the producer, the unit, the cadence, the gaps (missing
    barrios, provisional quarters, series breaks) and why the series starts where
    it does.
-5. Derived tables and the questions people actually search (the popular
+6. Derived tables and the questions people actually search (the popular
    barrios, the cost of a whole flat, the zones).
-6. `<PaginaRelacionada href="/estadisticas/…">` to the neighbouring pages,
+7. `<PaginaRelacionada href="/estadisticas/…">` to the neighbouring pages,
    each with a sentence saying how its data differs.
-7. `<ClosingCta title="…">`, `<Metodologia />`, `<Faq />`, `<Fuentes />`, in
+8. `<ClosingCta title="…">`, `<Metodologia />`, `<Faq />`, `<Fuentes />`, in
    that order.
 
 Sibling pages cutting one series by region are the one shape that goes wrong:
