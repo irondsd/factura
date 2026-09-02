@@ -20,6 +20,15 @@ import { guideUrl, sectionUrl } from "@/i18n/metadata";
 // `force-static` prerenders it once per build, like /llms.txt and the rest of
 // the static site.
 export const dynamic = "force-static";
+// A repair floor for the same reason the sitemap has one, and the comment there
+// is the long version: every read below is cached with `revalidate: false`, so
+// a render that ran while one of those entries was purged but not yet refreshed
+// would otherwise be served as a fresh `HIT` until the next unrelated publish.
+// The tag is still the update path — this only bounds how long a lost race can
+// survive. `force-static` above and a TTL are not in conflict: one says the
+// route is prerendered rather than per-request, the other says how long a
+// prerender stands.
+export const revalidate = 3600;
 
 /** Everything a feed item needs, flattened out of the two content registries so
  * the rendering below doesn't care which section an entry came from. */

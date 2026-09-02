@@ -61,6 +61,15 @@ const ESTADO_EN = {
 // guides are added. `force-static` prerenders it once at build, like the rest of
 // the static site — no per-request work.
 export const dynamic = "force-static";
+// A repair floor for the same reason the sitemap has one, and the comment there
+// is the long version: every read below is cached with `revalidate: false`, so
+// a render that ran while one of those entries was purged but not yet refreshed
+// would otherwise be served as a fresh `HIT` until the next unrelated publish.
+// The tag is still the update path — this only bounds how long a lost race can
+// survive. `force-static` above and a TTL are not in conflict: one says the
+// route is prerendered rather than per-request, the other says how long a
+// prerender stands.
+export const revalidate = 3600;
 
 const PREAMBLE = `# Factura
 

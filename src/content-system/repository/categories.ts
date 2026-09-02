@@ -5,7 +5,7 @@ import { cmsCategories, cmsCategoryRedirects } from "@/db/schema";
 import type { ContentCategory } from "../categories/types";
 import type { ContentSection, ContentSummary } from "../types";
 import { CI_CONTENT_CATEGORIES } from "./ci-fixtures";
-import { publicContentRepository } from "./public";
+import { sectionRepository } from "./sections";
 import { contentTag } from "./tags";
 
 const mapCategory = (
@@ -88,8 +88,24 @@ function cached(section: ContentSection): CachedCategories {
   return value;
 }
 
+/** The section's published pages — read through the *cached* section
+ * repository, which is the same `unstable_cache` entry `publishedGuides()` and
+ * `section.listed()` read, not a second query standing beside it.
+ *
+ * This called `publicContentRepository` directly until it was the bug in
+ * `src/app/sitemap.ts`. Every helper below pairs this list with the cached
+ * category list, so an uncached read here meant the two were never reading the
+ * same moment: a page published a second ago was already in `pages` while the
+ * caller's own cached list still had the old set. That is how a category came
+ * back "non-empty" with nothing in the caller's list carrying its key.
+ *
+ * The tag matters as much as the freshness. `./sections` states the rule — a
+ * read without a tag is a read the CMS cannot expire, and a route inherits only
+ * the tags of the cached reads it ran. Untagged, this contributed nothing, and
+ * every surface built on these helpers was relying on some *other* read in the
+ * same route to carry `content:<section>` on its behalf. */
 export const publishedContent = (section: ContentSection) =>
-  publicContentRepository.listPublished(section);
+  sectionRepository(section)!.listPublished();
 
 export const contentCategories = (section: ContentSection) =>
   cached(section).list();
