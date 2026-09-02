@@ -18,6 +18,18 @@ import type { ContentSection } from "../types";
 // what makes one `revalidateTag` reach the article, the indexes, the category
 // hubs, the sitemap, the feed, `llms.txt` — and the cached 404 of a path that
 // had no page yet.
+//
+// What inheritance does *not* buy is an order. Expiring a tag promises that
+// every entry carrying it will be rebuilt, not that the routes are rebuilt
+// after the reads they depend on. A route purged from the CDN and re-rendered
+// before a data-cache entry it reads has caught up produces a wrong page, and —
+// with no TTL anywhere in this scheme — that page is then correct-looking and
+// permanent. So the surfaces that aggregate several of these reads at once
+// (`sitemap.ts`, `feed.xml`, `llms.txt`) carry an hourly `revalidate` as a
+// repair floor. Two things follow for anything added here. A read that skips
+// the cache contributes no tag and is not simply "fresher" — it makes the route
+// disagree with itself, which is what it did in `repository/categories.ts`. And
+// a new site-wide surface built on several of these reads wants the same floor.
 
 /** Everything the public site reads out of one CMS section. */
 export const contentTag = (section: ContentSection): string =>
