@@ -39,7 +39,14 @@ is a hand-built page and not part of either.
   an untouched value is clearly mistaken, show the person the current value,
   the proposed replacement and the reason, then wait for their agreement
   before changing it. While creating a page or editing one that has never been
-  published, set and revise these fields normally.
+  published, set and revise these fields normally. The same boundary applies
+  inside the body: preserve every reader-facing occurrence of the existing
+  target keywords (`metadata.keywords` as written for readers, with their
+  accents and capitalisation), along with keyword-bearing headings, bold text
+  and internal-link anchor text. You may rewrite the words around them, but do
+  not remove, replace, rephrase or relocate a protected phrase unless the brief
+  explicitly asks for an SEO change. If you are unsure whether a phrase is
+  intentional SEO, preserve it.
 - **The brief can be wrong, and you are expected to say so.** Nobody keeps the
   whole site in their head. A request to write a page that already exists, a
   keyword list that misfits the page, a CTA that claims something the app does
@@ -499,6 +506,9 @@ warnings. What it cannot check is yours:
 - [ ] Rewrite of a previously published page: every SEO and editorial field
       outside the explicit brief is unchanged; any proposed correction was
       approved before it was saved.
+- [ ] Rewrite of a previously published page: comparison with the original
+      confirms every target-keyword occurrence, keyword-bearing heading, bold
+      term and internal-link anchor in the body keeps its wording and location.
 - [ ] **You asked before `set_content_status`.**
 
 ## 9. Automatic — do not do these by hand
