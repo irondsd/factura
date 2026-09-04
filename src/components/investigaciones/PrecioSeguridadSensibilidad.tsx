@@ -78,22 +78,36 @@ export function PrecioSeguridadSensibilidad() {
         </>
       }
     >
-      <div className="overflow-x-auto">
+      <div className="min-w-0">
         <DataTable
           rows={combinations}
           rowKey={(c) => `${c.size}-${c.category}`}
+          className="table-fixed"
           columns={[
             {
-              header: "Departamento",
-              cellClassName: "whitespace-nowrap",
+              header: "Supuesto",
+              headClassName: "w-[10rem] pr-4 align-bottom",
+              cellClassName: "align-top pr-4",
               cell: (c) => (
                 <>
-                  <span
-                    className={
-                      c.size === DEFAULT_SIZE ? "text-ink" : "text-ink/90"
-                    }
-                  >
-                    {c.sizeLabel}
+                  <span className="block leading-[1.5]">
+                    <span
+                      className={
+                        c.size === DEFAULT_SIZE ? "text-ink" : "text-ink/90"
+                      }
+                    >
+                      {c.sizeLabel}
+                    </span>
+                    <span className="text-muted"> · </span>
+                    <span
+                      className={
+                        c.category === DEFAULT_CATEGORY
+                          ? "text-ink"
+                          : "text-ink/90"
+                      }
+                    >
+                      {c.categoryLabel}
+                    </span>
                   </span>
                   <span className="block text-muted tabular-nums">
                     {c.n} barrios
@@ -102,21 +116,9 @@ export function PrecioSeguridadSensibilidad() {
               ),
             },
             {
-              header: "Delitos",
-              cellClassName: "whitespace-nowrap",
-              cell: (c) => (
-                <span
-                  className={
-                    c.category === DEFAULT_CATEGORY ? "text-ink" : "text-ink/90"
-                  }
-                >
-                  {c.categoryLabel}
-                </span>
-              ),
-            },
-            {
               header: "Los cinco mejores, en orden",
-              cellClassName: "text-ink/90",
+              headClassName: "align-bottom",
+              cellClassName: "align-top text-ink/90 leading-[1.5]",
               cell: (c) => c.top.map((r) => r.label).join(" · "),
             },
           ]}
