@@ -37,7 +37,7 @@ import { cn } from "@/lib/cn";
 // falls back to, at the wrong weight and width. Measure a replacement before
 // using it: in a monospace font a covered glyph has exactly the advance width
 // of `M`, and a fallback almost never does.
-const GLYPHS = ["¶", "»", "%", "~", "±"];
+// const GLYPHS = ["¶", "»", "%", "~", "±"];
 
 // Divider between entries. The 70%-of-line hairline is the landing page's own
 // rule weight, one step softer than a --line border, so the entries read as
