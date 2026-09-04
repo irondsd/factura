@@ -127,14 +127,14 @@ export async function TrustBlock({
                     semibold and full-strength — three differences at once, so
                     it reads as a mark placed before the title and never as its
                     first character. */}
-                {GLYPHS[i] && (
+                {/*GLYPHS[i] && (
                   <span
                     aria-hidden="true"
                     className="font-mono font-normal text-[0.9em] text-muted mr-[0.5em]"
                   >
                     {GLYPHS[i]}
                   </span>
-                )}
+                )*/}
                 {item.title}
               </h3>
               <p className="font-mono text-[12.5px] @lg:text-[13px] @4xl:text-[12.5px] leading-[1.65] text-muted text-pretty m-0">
