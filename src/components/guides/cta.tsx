@@ -242,8 +242,8 @@ export function ProbarCta({
         </span>
         <h3 className="font-display text-xl leading-tight sm:text-2xl">
           {vendor
-            ? `¿Tienes tu ${noun} de ${vendor} a mano?`
-            : `¿Tienes tu ${noun} a mano?`}
+            ? `¿Tenés tu ${noun} de ${vendor} a mano?`
+            : `¿Tenés tu ${noun} a mano?`}
         </h3>
         {/* A div, not a <p>: MDX wraps block children in their own paragraph,
             and a <p> inside a <p> is invalid HTML that React re-nests at
