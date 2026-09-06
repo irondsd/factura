@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
+  ASSUMED_PROTOCOL_VERSION,
+  checkLegacyHeaders,
   checkRequestHeaders,
   decodeHeaderValue,
+  detectEra,
   httpStatusFor,
   isNotification,
   type JsonRpcMessage,
+  LEGACY_LATEST_VERSION,
+  LEGACY_PROTOCOL_VERSIONS,
+  legacyResponseVersion,
   mcpNameFor,
   META_PROTOCOL_VERSION,
+  MODERN_PROTOCOL_VERSIONS,
+  negotiateVersion,
   parseMessage,
   PROTOCOL_VERSION,
   requestMeta,
@@ -34,6 +42,14 @@ const headersFor = (method: string, name: string | null = null) => ({
   protocolVersion: PROTOCOL_VERSION,
   method,
   name,
+});
+
+/** What a 2025-era client puts on the wire: no mirrored headers at all, and a
+ * protocol version only if it is new enough to have learned the header. */
+const legacyHeaders = (protocolVersion: string | null = null) => ({
+  protocolVersion,
+  method: null,
+  name: null,
 });
 
 describe("parseMessage", () => {
@@ -257,19 +273,142 @@ describe("checkRequestHeaders", () => {
 
   it("refuses a version we do not speak, and says which we do", () => {
     const agreed = message("tools/list", {
-      _meta: { [META_PROTOCOL_VERSION]: "2025-06-18" },
+      _meta: { [META_PROTOCOL_VERSION]: "1900-01-01" },
     });
     const fault = checkRequestHeaders(agreed, {
       ...headersFor("tools/list"),
-      protocolVersion: "2025-06-18",
+      protocolVersion: "1900-01-01",
     });
     expect(fault).toMatchObject({
       code: RPC.UNSUPPORTED_PROTOCOL_VERSION,
       data: {
-        supported: [...SUPPORTED_PROTOCOL_VERSIONS],
-        requested: "2025-06-18",
+        supported: [...MODERN_PROTOCOL_VERSIONS],
+        requested: "1900-01-01",
       },
     });
+  });
+
+  it("offers only the modern version to a request in modern framing", () => {
+    // `2025-06-18` is a version this server speaks — over the handshake, in the
+    // other era. Naming it here would tell a client with `_meta` framing to
+    // retry with a revision that has no `_meta`, which is not a retry, it is a
+    // rewrite. The full list belongs to server/discover.
+    const agreed = message("tools/list", {
+      _meta: { [META_PROTOCOL_VERSION]: LEGACY_LATEST_VERSION },
+    });
+    const fault = checkRequestHeaders(agreed, {
+      ...headersFor("tools/list"),
+      protocolVersion: LEGACY_LATEST_VERSION,
+    });
+    expect(fault).toMatchObject({
+      code: RPC.UNSUPPORTED_PROTOCOL_VERSION,
+      data: { supported: [PROTOCOL_VERSION] },
+    });
+  });
+});
+
+describe("checkLegacyHeaders", () => {
+  it("accepts a request with no version header, which the spec allows", () => {
+    expect(checkLegacyHeaders(legacyHeaders())).toBe(null);
+  });
+
+  it("accepts every handshake-era version", () => {
+    for (const version of LEGACY_PROTOCOL_VERSIONS)
+      expect(checkLegacyHeaders(legacyHeaders(version)), version).toBe(null);
+  });
+
+  it("refuses a version it does not speak, naming the handshake era", () => {
+    expect(checkLegacyHeaders(legacyHeaders("1900-01-01"))).toMatchObject({
+      code: RPC.UNSUPPORTED_PROTOCOL_VERSION,
+      data: { supported: [...LEGACY_PROTOCOL_VERSIONS] },
+    });
+  });
+
+  it("requires nothing to be mirrored, because nothing is", () => {
+    // The whole 2025 header contract is the one optional version header. A
+    // legacy client sends no Mcp-Method and no Mcp-Name, and asking for them
+    // would refuse every request it makes.
+    expect(checkLegacyHeaders(legacyHeaders(LEGACY_LATEST_VERSION))).toBe(null);
+  });
+});
+
+describe("detectEra", () => {
+  it("reads initialize as the handshake era, whatever else is on it", () => {
+    // The method exists in one era only, so it is the strongest tell there is.
+    expect(detectEra(message("initialize"), legacyHeaders())).toBe("legacy");
+    expect(detectEra(modern("initialize"), headersFor("initialize"))).toBe(
+      "legacy",
+    );
+  });
+
+  it("reads a conforming modern request as modern", () => {
+    expect(detectEra(modern("tools/list"), headersFor("tools/list"))).toBe(
+      "modern",
+    );
+  });
+
+  it("reads a bare request as legacy", () => {
+    for (const method of ["tools/list", "tools/call", "ping"])
+      expect(detectEra(message(method), legacyHeaders()), method).toBe(
+        "legacy",
+      );
+  });
+
+  it("holds a client to the era it claims, on any one marker", () => {
+    // THE one that matters. Each of these is a marker only a modern client
+    // emits, and any of them alone keeps the request in the strict path — so a
+    // modern client that drops a header gets the loud -32020 rather than being
+    // quietly demoted to an era with no header checks at all.
+    const claims = [
+      [modern("tools/list"), legacyHeaders()],
+      [
+        message("tools/list"),
+        { protocolVersion: null, method: "tools/list", name: null },
+      ],
+      [
+        message("tools/call"),
+        { protocolVersion: null, method: null, name: "list_content" },
+      ],
+      [message("tools/list"), legacyHeaders(PROTOCOL_VERSION)],
+    ] as const;
+    for (const [msg, headers] of claims)
+      expect(detectEra(msg, headers)).toBe("modern");
+  });
+
+  it("does not read a legacy version header as a modern claim", () => {
+    expect(
+      detectEra(message("tools/list"), legacyHeaders(LEGACY_LATEST_VERSION)),
+    ).toBe("legacy");
+  });
+});
+
+describe("negotiateVersion", () => {
+  it("agrees to a handshake-era version the client asked for", () => {
+    for (const version of LEGACY_PROTOCOL_VERSIONS)
+      expect(negotiateVersion(version)).toBe(version);
+  });
+
+  it("answers anything else with the newest handshake revision", () => {
+    // Including `2026-07-28`: a client that names it while sending `initialize`
+    // is asking for a revision in which the method it just used does not exist.
+    for (const requested of [PROTOCOL_VERSION, "1900-01-01", undefined, 7])
+      expect(negotiateVersion(requested), String(requested)).toBe(
+        LEGACY_LATEST_VERSION,
+      );
+  });
+});
+
+describe("legacyResponseVersion", () => {
+  it("echoes the version the client declared", () => {
+    expect(legacyResponseVersion(legacyHeaders("2025-03-26"))).toBe(
+      "2025-03-26",
+    );
+  });
+
+  it("falls back to the assumed version when the header is absent", () => {
+    expect(legacyResponseVersion(legacyHeaders())).toBe(
+      ASSUMED_PROTOCOL_VERSION,
+    );
   });
 });
 
@@ -313,6 +452,44 @@ describe("httpStatusFor", () => {
     // A tool failure is data for the model, not a transport fault.
     expect(httpStatusFor(rpcResult(1, { isError: true }))).toBe(200);
     expect(httpStatusFor(rpcResult(1, { ok: true }))).toBe(200);
+  });
+
+  it("keeps a legacy client's JSON-RPC errors on a 200", () => {
+    // The 2025 era reserved non-2xx for failures of the HTTP exchange itself. A
+    // legacy client reading a 404 for an unknown method concludes the endpoint
+    // is gone rather than the method, and some treat a 4xx as a transport fault
+    // worth retrying — so the era it asked in decides the status.
+    for (const code of [
+      RPC.METHOD_NOT_FOUND,
+      RPC.INVALID_PARAMS,
+      RPC.INTERNAL_ERROR,
+      RPC.HEADER_MISMATCH,
+    ]) {
+      expect(
+        httpStatusFor(rpcError(1, code, "x"), "legacy"),
+        String(code),
+      ).toBe(200);
+    }
+  });
+
+  it("still delivers a malformed legacy request as 400", () => {
+    // These are the cases the 2025 era did answer with a 400: the request never
+    // became a JSON-RPC message at all, so there is no era-specific contract to
+    // honour.
+    for (const code of [
+      RPC.PARSE_ERROR,
+      RPC.INVALID_REQUEST,
+      RPC.UNSUPPORTED_PROTOCOL_VERSION,
+    ]) {
+      expect(
+        httpStatusFor(rpcError(1, code, "x"), "legacy"),
+        String(code),
+      ).toBe(400);
+    }
+  });
+
+  it("defaults to the modern mapping when no era is given", () => {
+    expect(httpStatusFor(rpcError(1, RPC.METHOD_NOT_FOUND, "x"))).toBe(404);
   });
 });
 

@@ -283,15 +283,26 @@ membership re-checked per call, its own rate-limit bucket and metadata-only
 audit rows. Reads need `cms:read`, mutations `cms:write`; the ordinary Factura
 MCP endpoint stays read-only and never gets these tools.
 
-It speaks MCP `2026-07-28` and nothing older. That revision dropped the
-`initialize` handshake, so a client declares its protocol version on every
-request — in `_meta` and mirrored into the `MCP-Protocol-Version` header,
-alongside `Mcp-Method` and, for `tools/call`, `Mcp-Name`; the server rejects a
-header that disagrees with the body. `server/discover` reports the versions,
-capabilities and instructions. A client old enough to send `initialize` gets an
-error naming the version to upgrade to, because a legacy client has no way to
-discover a newer one on its own. Tokens are untouched by any of this: the
-bearer is resolved per request, exactly as before.
+It prefers MCP `2026-07-28` and also serves the handshake era, `2025-06-18` and
+`2025-03-26`. `2026-07-28` dropped the `initialize` handshake, so a modern
+client declares its protocol version on every request — in `_meta` and mirrored
+into the `MCP-Protocol-Version` header, alongside `Mcp-Method` and, for
+`tools/call`, `Mcp-Name`; the server rejects a header that disagrees with the
+body. `server/discover` reports the versions, capabilities and instructions.
+
+A 2025-era client gets the `initialize` handshake it expects, plus `ping`, and
+results with none of the newer envelope on them. The era is decided per request
+from the framing the client used and never remembered: `initialize` means
+legacy, any modern marker (`_meta` version, `Mcp-Method`, `Mcp-Name`, or a
+`MCP-Protocol-Version` naming `2026-07-28`) means modern and is held to the
+full header contract, and a request carrying none of them is served as legacy.
+The cost of that last rule is the only real one here: a modern client that
+sends none of its required headers is served rather than corrected. Two things
+follow the era rather than the tool — `structuredContent`, which `2025-06-18`
+typed as an object and so is withheld for array payloads, and the HTTP status
+of a JSON-RPC error, which the handshake era carried on a `200`. Batching is
+refused in both eras. Tokens are untouched by any of this: the bearer is
+resolved per request, exactly as before.
 
 ```text
 list_content  get_content  create_content  update_content  validate_content

@@ -1,17 +1,15 @@
 import { and, eq, inArray, isNull, like } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import {
+  LEGACY_LATEST_VERSION,
   META_SERVER_INFO,
   parseMessage,
   PROTOCOL_VERSION,
+  SUPPORTED_PROTOCOL_VERSIONS,
 } from "@/server/mcp/protocol";
 import { limitKey, MCP_CALL, take } from "@/server/rateLimit";
 import { createTestDb, hasTestDatabase } from "@/cms/server/testDb";
-import {
-  handleCmsMessage,
-  legacyInitializeFault,
-  toolSuccess,
-} from "./handler";
+import { handleCmsMessage, toolSuccess } from "./handler";
 import {
   CMS_SCOPES,
   type CmsScope,
@@ -63,6 +61,11 @@ type ToolResult = {
 
 const resultOf = (response: unknown): ToolResult =>
   (response as { result: ToolResult }).result;
+
+/** The same dispatch, asked in the handshake era. Everything a 2025-era client
+ * sees goes through here, so the two eras can be compared side by side. */
+const legacy = (method: string, params?: Record<string, unknown>) =>
+  handleCmsMessage(request(method, params), caller(["cms:read"]), "legacy");
 
 describe("token shape", () => {
   it("mints a prefixed token and stores only its hash", () => {
@@ -252,33 +255,94 @@ describe("protocol", () => {
       id: 1,
       result: {
         resultType: "complete",
-        supportedVersions: [PROTOCOL_VERSION],
+        // Every version the server speaks, both eras — this is the one place
+        // the full list is published, and the only way a client can learn that
+        // the handshake era is still an option here.
+        supportedVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
         capabilities: { tools: {} },
         _meta: { [META_SERVER_INFO]: { name: "factura-cms" } },
       },
     });
+    expect(
+      (response as { result: { supportedVersions: string[] } }).result
+        .supportedVersions[0],
+    ).toBe(PROTOCOL_VERSION);
     // The instructions are what an agent reads before its first call, and the
     // ask-before-publishing rule lives there and nowhere else on the wire.
     const result = (response as { result: { instructions: string } }).result;
     expect(result.instructions).toContain("set_content_status");
   });
 
-  it("names the versions it speaks when a legacy client sends initialize", () => {
-    // A legacy client cannot fall forward — it has no way to discover that a
-    // newer revision exists — so this text is the only diagnostic its user will
-    // ever see. It has to say what to upgrade to, not just what broke.
-    const fault = legacyInitializeFault();
-    expect(fault.code).toBe(-32601);
-    expect(fault.message).toContain(PROTOCOL_VERSION);
-    expect(fault.message).toContain("initialize");
+  it("completes the handshake for a legacy client", async () => {
+    const response = await legacy("initialize", {
+      protocolVersion: LEGACY_LATEST_VERSION,
+      capabilities: {},
+      clientInfo: { name: "codex", version: "1" },
+    });
+    expect(response).toMatchObject({
+      id: 1,
+      result: {
+        protocolVersion: LEGACY_LATEST_VERSION,
+        capabilities: { tools: { listChanged: false } },
+        serverInfo: { name: "factura-cms" },
+      },
+    });
   });
 
-  it("no longer answers ping, which this revision removed", async () => {
+  it("gives a legacy client the same instructions a modern one gets", async () => {
+    // The ask-before-publishing rule lives in the instructions and nowhere else
+    // on the wire, so an era that lost them would be an era whose agents
+    // publish without asking.
+    const handshake = (await legacy("initialize", {})) as {
+      result: { instructions: string };
+    };
+    const discovered = (await handleCmsMessage(
+      request("server/discover"),
+      caller(["cms:read"]),
+    )) as { result: { instructions: string } };
+    expect(handshake.result.instructions).toBe(discovered.result.instructions);
+    expect(handshake.result.instructions).toContain("set_content_status");
+  });
+
+  it("agrees to the older handshake revision when asked for it", async () => {
+    const response = await legacy("initialize", {
+      protocolVersion: "2025-03-26",
+    });
+    expect(response).toMatchObject({
+      result: { protocolVersion: "2025-03-26" },
+    });
+  });
+
+  it("refuses initialize in modern framing, pointing at server/discover", async () => {
+    // Unreachable from the wire — `detectEra` sorts `initialize` into the
+    // handshake era before dispatch — but the branch is what makes that true,
+    // so it is pinned rather than assumed.
     const response = await handleCmsMessage(
-      request("ping"),
+      request("initialize"),
       caller(["cms:read"]),
     );
     expect(response).toMatchObject({ error: { code: -32601 } });
+    expect(
+      (response as { error: { message: string } }).error.message,
+    ).toContain("server/discover");
+  });
+
+  it("answers ping for a legacy client and not for a modern one", async () => {
+    // `ping` left the protocol in 2026-07-28, and legacy clients use it as a
+    // keepalive. Serving it to whoever is entitled to it is the whole shape of
+    // this change in one method.
+    expect(await legacy("ping")).toMatchObject({ id: 1, result: {} });
+    expect(
+      await handleCmsMessage(request("ping"), caller(["cms:read"])),
+    ).toMatchObject({ error: { code: -32601 } });
+  });
+
+  it("does not offer discovery to a legacy client", async () => {
+    // The mirror image: `server/discover` replaced the handshake, and a client
+    // that completed the handshake has no business mixing the two.
+    expect(await legacy("server/discover")).toMatchObject({
+      error: { code: -32601 },
+    });
   });
 
   it("stamps every result as complete, with the server's identity", async () => {
@@ -374,6 +438,54 @@ describe("caching hints", () => {
   });
 });
 
+describe("legacy envelope", () => {
+  // The rule the whole dual-era split rests on: a 2025-era client gets the
+  // payload and nothing else. Every field `2026-07-28` added is a field a
+  // strict older client may reject, and it has no way to tell an extension
+  // from a violation.
+  it("gives a legacy tools/list the bare payload, with no modern fields", async () => {
+    const result = (
+      (await legacy("tools/list")) as { result: Record<string, unknown> }
+    ).result;
+    expect(Object.keys(result)).toEqual(["tools"]);
+  });
+
+  it("gives a legacy tool result no resultType and no _meta", async () => {
+    const result = (
+      (await legacy("tools/call", { name: "nope" })) as {
+        result: Record<string, unknown>;
+      }
+    ).result;
+    expect(result).not.toHaveProperty("resultType");
+    expect(result).not.toHaveProperty("_meta");
+    expect(result).toMatchObject({ isError: true });
+  });
+
+  it("still stamps the modern era's results", async () => {
+    // The other half of the same rule: nothing above may be achieved by
+    // quietly dropping the fields the modern era requires.
+    const result = (
+      (await handleCmsMessage(request("tools/list"), caller(["cms:read"]))) as {
+        result: Record<string, unknown>;
+      }
+    ).result;
+    expect(result).toMatchObject({
+      resultType: "complete",
+      cacheScope: "private",
+      _meta: { [META_SERVER_INFO]: { name: "factura-cms" } },
+    });
+  });
+
+  it("shows both eras the same tools", async () => {
+    // The envelope is era-specific; the catalogue is not. If these ever
+    // diverge, a legacy client is being served a different CMS.
+    const bare = (
+      (await legacy("tools/list")) as { result: { tools: { name: string }[] } }
+    ).result.tools.map((tool) => tool.name);
+    expect(bare).toEqual(cmsToolListing(["cms:read"]).map((tool) => tool.name));
+  });
+});
+
 describe("tool result envelope", () => {
   // `2025-06-18` typed `structuredContent` as a JSON object. `list_content`
   // returns a bare array, and sending it made strict clients reject the whole
@@ -384,6 +496,29 @@ describe("tool result envelope", () => {
   it("carries structuredContent for an array payload", () => {
     const rows = [{ id: "a" }, { id: "b" }];
     expect(toolSuccess(rows).structuredContent).toEqual(rows);
+  });
+
+  it("withholds an array from a legacy client, which would reject it", () => {
+    // THE regression this dual-era support could reintroduce, on exactly the
+    // client it exists to serve: `2025-06-18` typed structuredContent as an
+    // object, and a strict client rejects the whole response rather than the
+    // field — every list_content call, unusable.
+    const rows = [{ id: "a" }, { id: "b" }];
+    expect(toolSuccess(rows, "legacy")).not.toHaveProperty("structuredContent");
+  });
+
+  it("still gives a legacy client the array as JSON text", () => {
+    // Withholding the structured half costs nothing, because the text half is
+    // the contract and always was.
+    const rows = [{ id: "a" }, { id: "b" }];
+    expect(JSON.parse(toolSuccess(rows, "legacy").content[0].text)).toEqual(
+      rows,
+    );
+  });
+
+  it("keeps structuredContent for an object payload in both eras", () => {
+    const page = { id: "a", lockVersion: 1 };
+    expect(toolSuccess(page, "legacy").structuredContent).toEqual(page);
   });
 
   it("still carries an array payload as JSON text", () => {

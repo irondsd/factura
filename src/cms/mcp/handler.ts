@@ -4,7 +4,8 @@ import {
   type JsonRpcMessage,
   type JsonRpcResponse,
   META_SERVER_INFO,
-  PROTOCOL_VERSION,
+  negotiateVersion,
+  type ProtocolEra,
   RPC,
   rpcError,
   rpcResult,
@@ -25,6 +26,12 @@ const SERVER_INFO = {
   version: "2.0.0",
 } as const;
 
+/** What the handshake era is told about capabilities. `listChanged: false` is
+ * the same claim the modern era makes by omitting it: neither list is pushed,
+ * and `ttlMs` — which the 2025 era has no field for — is the only freshness
+ * hint a modern client gets. */
+const LEGACY_CAPABILITIES = { tools: { listChanged: false } } as const;
+
 const INSTRUCTIONS = [
   "Use get_content before update_content. Every mutation requires the current lockVersion.",
   "Editing is always safe: update_content saves a shared working copy that no reader can see, so a page that is already published keeps serving its last publication while you work. Save it normally, without asking.",
@@ -44,16 +51,29 @@ const INSTRUCTIONS = [
 const DISCOVER_TTL_MS = 3_600_000;
 const TOOLS_TTL_MS = 300_000;
 
-/** Wrap a payload as a finished result.
+/** Wrap a payload as a finished result, in the shape the asking era expects.
  *
- * `resultType` is required on every result in this revision — `"complete"` here
+ * `resultType` is required on every result in `2026-07-28` — `"complete"` here
  * always, since the alternative (`"input_required"`) belongs to the
  * multi-round-trip pattern, and no tool on this server asks the client for
- * anything mid-call. */
-function complete<T extends Record<string, unknown>>(payload: T) {
+ * anything mid-call. The handshake era has no such field, no `_meta` on
+ * results, and no caching hints, so `extra` — where those hints are passed —
+ * is dropped for it rather than sent and ignored.
+ *
+ * Strictness runs one way here on purpose: an unknown field is something a
+ * 2025-era client may reject outright, while a modern client is specified to
+ * tolerate the absence of nothing it needs. So legacy gets exactly the payload
+ * and no more. */
+function complete<T extends Record<string, unknown>>(
+  era: ProtocolEra,
+  payload: T,
+  extra: Record<string, unknown> = {},
+) {
+  if (era === "legacy") return payload;
   return {
     resultType: "complete" as const,
     ...payload,
+    ...extra,
     _meta: { [META_SERVER_INFO]: SERVER_INFO },
   };
 }
@@ -61,42 +81,77 @@ function complete<T extends Record<string, unknown>>(payload: T) {
 export async function handleCmsMessage(
   message: JsonRpcMessage,
   caller: CmsTokenCaller,
+  era: ProtocolEra = "modern",
 ): Promise<JsonRpcResponse | null> {
   if (isNotification(message)) return null;
   const id = message.id as string | number;
 
-  if (message.method === "server/discover")
+  // The handshake. Legacy-only by definition: `2026-07-28` deleted the method,
+  // and `detectEra` reads it as the era tell it is, so reaching this branch in
+  // the modern era is not possible from the wire.
+  if (message.method === "initialize")
+    return era === "legacy"
+      ? rpcResult(id, {
+          protocolVersion: negotiateVersion(message.params?.protocolVersion),
+          capabilities: LEGACY_CAPABILITIES,
+          serverInfo: SERVER_INFO,
+          instructions: INSTRUCTIONS,
+        })
+      : rpcError(
+          id,
+          RPC.METHOD_NOT_FOUND,
+          "This request used per-request '_meta' framing, which has no 'initialize' handshake. Send 'server/discover' instead.",
+        );
+
+  // Keepalive, and the mirror image of the above: `ping` left the protocol in
+  // `2026-07-28`, so a modern client asking for it gets the unknown-method
+  // error while a legacy one gets the empty result it expects.
+  if (message.method === "ping" && era === "legacy") return rpcResult(id, {});
+
+  // Discovery replaced the handshake, so it is modern-only for the same reason
+  // in reverse: a legacy client has no code path that would ever send it, and
+  // answering it would only invite a client to mix eras.
+  if (message.method === "server/discover" && era === "modern")
     return rpcResult(
       id,
-      complete({
-        supportedVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
-        // No `listChanged`: pushing one would mean implementing
-        // `subscriptions/listen`, and this list only moves on deploy. `ttlMs`
-        // below is the whole freshness story.
-        capabilities: { tools: {} },
-        instructions: INSTRUCTIONS,
-        ttlMs: DISCOVER_TTL_MS,
-        // Nothing here varies by caller — same versions, same capabilities,
-        // same instructions for every token.
-        cacheScope: "public" as const,
-      }),
+      complete(
+        era,
+        {
+          supportedVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
+          // No `listChanged`: pushing one would mean implementing
+          // `subscriptions/listen`, and this list only moves on deploy. `ttlMs`
+          // below is the whole freshness story.
+          capabilities: { tools: {} },
+          instructions: INSTRUCTIONS,
+        },
+        {
+          ttlMs: DISCOVER_TTL_MS,
+          // Nothing here varies by caller — same versions, same capabilities,
+          // same instructions for every token.
+          cacheScope: "public" as const,
+        },
+      ),
     );
 
   if (message.method === "tools/list")
     return rpcResult(
       id,
-      complete({
-        tools: cmsToolListing(caller.scopes),
-        ttlMs: TOOLS_TTL_MS,
-        // PRIVATE, and not negotiable: this listing is filtered by the calling
-        // token's scopes, so a read-only token sees strictly fewer tools than a
-        // write token. `"public"` invites a shared proxy to serve one caller's
-        // listing to another, which here means handing a read-only agent the
-        // names and schemas of every mutation. The scope check in `tools/call`
-        // would still refuse the call, but the spec is direct that cacheScope
-        // must reflect real visibility rather than lean on that.
-        cacheScope: "private" as const,
-      }),
+      complete(
+        era,
+        { tools: cmsToolListing(caller.scopes) },
+        {
+          ttlMs: TOOLS_TTL_MS,
+          // PRIVATE, and not negotiable: this listing is filtered by the
+          // calling token's scopes, so a read-only token sees strictly fewer
+          // tools than a write token. `"public"` invites a shared proxy to
+          // serve one caller's listing to another, which here means handing a
+          // read-only agent the names and schemas of every mutation. The scope
+          // check in `tools/call` would still refuse the call, but the spec is
+          // direct that cacheScope must reflect real visibility rather than
+          // lean on that.
+          cacheScope: "private" as const,
+        },
+      ),
     );
 
   if (message.method !== "tools/call")
@@ -112,14 +167,20 @@ export async function handleCmsMessage(
   if (!tool || !hasScope(caller.scopes, tool.scope))
     return rpcResult(
       id,
-      complete(toolError("This token does not have access to that tool.")),
+      complete(
+        era,
+        toolError(era, "This token does not have access to that tool."),
+      ),
     );
   const parsed = tool.schema.safeParse(params.arguments ?? {});
   if (!parsed.success)
     return rpcResult(
       id,
       complete(
-        toolError("Invalid arguments.", { diagnostics: parsed.error.issues }),
+        era,
+        toolError(era, "Invalid arguments.", {
+          diagnostics: parsed.error.issues,
+        }),
       ),
     );
   try {
@@ -131,7 +192,7 @@ export async function handleCmsMessage(
         tool.name,
         "ok",
       );
-    return rpcResult(id, complete(toolSuccess(output)));
+    return rpcResult(id, complete(era, toolSuccess(output, era)));
   } catch (error) {
     if (tool.scope === "cms:write")
       await audit(
@@ -143,31 +204,23 @@ export async function handleCmsMessage(
     if (error instanceof CmsValidationError)
       return rpcResult(
         id,
-        complete(toolError(error.message, { diagnostics: error.diagnostics })),
+        complete(
+          era,
+          toolError(era, error.message, { diagnostics: error.diagnostics }),
+        ),
       );
     return rpcResult(
       id,
       complete(
+        era,
         toolError(
+          era,
           error instanceof Error ? error.message : "CMS operation failed.",
         ),
       ),
     );
   }
 }
-
-/** The diagnostic a client stuck on the `initialize` handshake gets.
- *
- * `2026-07-28` has no `initialize`, so strictly this is just an unknown method.
- * But a legacy client has no way to fall *forward* — it cannot discover that a
- * newer revision exists — so this error text is very likely the only thing its
- * user will ever see about why the server stopped answering. The spec asks a
- * modern-only server to name its versions here for exactly that reason, so the
- * message says what to upgrade to rather than only what went wrong. */
-export const legacyInitializeFault = () => ({
-  code: RPC.METHOD_NOT_FOUND,
-  message: `This server speaks MCP ${PROTOCOL_VERSION} only, which has no 'initialize' handshake. Supported protocol versions: ${SUPPORTED_PROTOCOL_VERSIONS.join(", ")}. Upgrade the client to one that sends per-request '_meta' metadata.`,
-});
 
 function pageId(input: unknown): string | null {
   return typeof input === "object" &&
@@ -233,10 +286,10 @@ async function audit(
   }
 }
 
-function toolError(message: string, details?: unknown) {
+function toolError(era: ProtocolEra, message: string, details?: unknown) {
   return {
     content: [{ type: "text" as const, text: message }],
-    ...structured(details),
+    ...structured(details, era),
     isError: true,
   };
 }
@@ -247,28 +300,32 @@ function toolError(message: string, details?: unknown) {
  * Exported for the test that pins this — the array case cannot be reached from
  * `handleCmsMessage` without a database, and it is the case that once broke.
  *
- * History worth keeping: MCP `2025-06-18` typed `structuredContent` as a JSON
- * *object*, and `list_content` returns a bare array, so setting it
- * unconditionally produced a response strict clients rejected outright
- * ("expected record, received array") — the whole tool was unusable from them.
- * `2026-07-28` loosened the field to any JSON value, so arrays are legal again
- * and `list_content` gets structured output back.
+ * The era is load-bearing, and this is the one place in the dual-era support
+ * where getting it wrong breaks a tool rather than a handshake. MCP
+ * `2025-06-18` typed `structuredContent` as a JSON *object*, and `list_content`
+ * returns a bare array, so sending it to a 2025-era client produced a response
+ * strict ones rejected outright ("expected record, received array") — the whole
+ * tool was unusable from them, on every call. `2026-07-28` loosened the field
+ * to any JSON value. So arrays get structured output in the modern era and are
+ * withheld in the handshake era, where the text half carries them exactly as it
+ * always did.
  *
- * Primitives are still skipped. No tool here advertises an `outputSchema`, so
+ * Primitives are skipped in both. No tool here advertises an `outputSchema`, so
  * `structuredContent` is a convenience rather than a contract, and
  * `structuredContent: 42` next to a `content[0].text` of "42" tells a client
  * nothing it did not already have. */
-export function toolSuccess(output: unknown) {
+export function toolSuccess(output: unknown, era: ProtocolEra = "modern") {
   return {
     content: [{ type: "text" as const, text: JSON.stringify(output, null, 2) }],
-    ...structured(output),
+    ...structured(output, era),
     isError: false,
   };
 }
 
-/** `structuredContent` if `value` is a JSON object or array, nothing otherwise. */
-function structured(value: unknown) {
-  return typeof value === "object" && value !== null
-    ? { structuredContent: value }
-    : {};
+/** `structuredContent` if `value` is a JSON object — or, in the modern era
+ * only, an array. Nothing otherwise. */
+function structured(value: unknown, era: ProtocolEra) {
+  if (typeof value !== "object" || value === null) return {};
+  if (Array.isArray(value) && era === "legacy") return {};
+  return { structuredContent: value };
 }
