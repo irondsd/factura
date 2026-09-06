@@ -1,9 +1,17 @@
 import { and, eq, inArray, isNull, like } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { parseMessage } from "@/server/mcp/protocol";
+import {
+  META_SERVER_INFO,
+  parseMessage,
+  PROTOCOL_VERSION,
+} from "@/server/mcp/protocol";
 import { limitKey, MCP_CALL, take } from "@/server/rateLimit";
 import { createTestDb, hasTestDatabase } from "@/cms/server/testDb";
-import { handleCmsMessage, toolSuccess } from "./handler";
+import {
+  handleCmsMessage,
+  legacyInitializeFault,
+  toolSuccess,
+} from "./handler";
 import {
   CMS_SCOPES,
   type CmsScope,
@@ -235,23 +243,57 @@ describe("rate limiting", () => {
 });
 
 describe("protocol", () => {
-  it("answers initialize with a protocol version and instructions", async () => {
+  it("advertises its versions, capabilities and instructions on server/discover", async () => {
     const response = await handleCmsMessage(
-      request("initialize"),
+      request("server/discover"),
       caller(["cms:read"]),
     );
     expect(response).toMatchObject({
       id: 1,
-      result: { serverInfo: { name: "factura-cms" } },
+      result: {
+        resultType: "complete",
+        supportedVersions: [PROTOCOL_VERSION],
+        capabilities: { tools: {} },
+        _meta: { [META_SERVER_INFO]: { name: "factura-cms" } },
+      },
     });
+    // The instructions are what an agent reads before its first call, and the
+    // ask-before-publishing rule lives there and nowhere else on the wire.
+    const result = (response as { result: { instructions: string } }).result;
+    expect(result.instructions).toContain("set_content_status");
   });
 
-  it("answers ping", async () => {
+  it("names the versions it speaks when a legacy client sends initialize", () => {
+    // A legacy client cannot fall forward — it has no way to discover that a
+    // newer revision exists — so this text is the only diagnostic its user will
+    // ever see. It has to say what to upgrade to, not just what broke.
+    const fault = legacyInitializeFault();
+    expect(fault.code).toBe(-32601);
+    expect(fault.message).toContain(PROTOCOL_VERSION);
+    expect(fault.message).toContain("initialize");
+  });
+
+  it("no longer answers ping, which this revision removed", async () => {
     const response = await handleCmsMessage(
       request("ping"),
       caller(["cms:read"]),
     );
-    expect(response).toMatchObject({ result: {} });
+    expect(response).toMatchObject({ error: { code: -32601 } });
+  });
+
+  it("stamps every result as complete, with the server's identity", async () => {
+    for (const method of ["server/discover", "tools/list"]) {
+      const response = await handleCmsMessage(
+        request(method),
+        caller(["cms:read"]),
+      );
+      expect(response, method).toMatchObject({
+        result: {
+          resultType: "complete",
+          _meta: { [META_SERVER_INFO]: { name: "factura-cms" } },
+        },
+      });
+    }
   });
 
   it("refuses an unknown method as a protocol error", async () => {
@@ -279,19 +321,74 @@ describe("protocol", () => {
   });
 });
 
+describe("caching hints", () => {
+  const hintsFor = async (method: string, scopes: CmsScope[]) =>
+    (
+      (await handleCmsMessage(request(method), caller(scopes))) as {
+        result: { ttlMs: number; cacheScope: string };
+      }
+    ).result;
+
+  it("marks the tool listing private, because it is filtered per token", async () => {
+    // THE one that matters. `cmsToolListing` hides every mutation from a
+    // read-only token, so the response is caller-specific. Marking it "public"
+    // invites a shared proxy to serve a write token's listing — every mutation,
+    // with schemas — to a read-only agent. The scope check in `tools/call`
+    // would still refuse the call, but the spec is direct that cacheScope must
+    // reflect real visibility rather than lean on a downstream check.
+    const read = await hintsFor("tools/list", ["cms:read"]);
+    const write = await hintsFor("tools/list", ["cms:read", "cms:write"]);
+    expect(read.cacheScope).toBe("private");
+    expect(write.cacheScope).toBe("private");
+  });
+
+  it("has something to hide: the two listings really do differ", async () => {
+    // Guards the reasoning above rather than the field. If the listing ever
+    // stopped varying by scope this test fails, and "private" becomes a
+    // deliberate choice again instead of an inherited one.
+    const read = cmsToolListing(["cms:read"]).map((tool) => tool.name);
+    const write = cmsToolListing(["cms:read", "cms:write"]).map(
+      (tool) => tool.name,
+    );
+    expect(write.length).toBeGreaterThan(read.length);
+  });
+
+  it("marks discovery public, because nothing in it varies by caller", async () => {
+    expect((await hintsFor("server/discover", ["cms:read"])).cacheScope).toBe(
+      "public",
+    );
+  });
+
+  it("gives both a non-negative ttl, which the spec requires", async () => {
+    for (const method of ["server/discover", "tools/list"]) {
+      const hints = await hintsFor(method, ["cms:read"]);
+      expect(hints.ttlMs, method).toBeGreaterThanOrEqual(0);
+      expect(Number.isInteger(hints.ttlMs), method).toBe(true);
+    }
+  });
+
+  it("lists tools in a stable order, so a client can cache the list", async () => {
+    const once = cmsToolListing(["cms:read", "cms:write"]).map((t) => t.name);
+    const again = cmsToolListing(["cms:read", "cms:write"]).map((t) => t.name);
+    expect(again).toEqual(once);
+  });
+});
+
 describe("tool result envelope", () => {
-  // `structuredContent` is typed as a JSON object by the spec. `list_content`
-  // returns a bare array, and sending it as `structuredContent` made strict
-  // clients reject the whole response ("expected record, received array") —
-  // the tool was uncallable from them, on every call, regardless of arguments.
-  it("omits structuredContent for an array payload", () => {
-    const result = toolSuccess([{ id: "a" }, { id: "b" }]);
-    expect(result).not.toHaveProperty("structuredContent");
+  // `2025-06-18` typed `structuredContent` as a JSON object. `list_content`
+  // returns a bare array, and sending it made strict clients reject the whole
+  // response ("expected record, received array") — the tool was uncallable from
+  // them, on every call. `2026-07-28` loosened the field to any JSON value, so
+  // the array case is legal again; these pin the new behaviour, not the old
+  // workaround.
+  it("carries structuredContent for an array payload", () => {
+    const rows = [{ id: "a" }, { id: "b" }];
+    expect(toolSuccess(rows).structuredContent).toEqual(rows);
   });
 
   it("still carries an array payload as JSON text", () => {
-    // The text half is what every client reads, so dropping the structured
-    // half must not drop the data.
+    // The text half is what every client reads, and it stays the contract:
+    // no tool advertises an outputSchema, so structuredContent is a bonus.
     const rows = [{ id: "a" }, { id: "b" }];
     expect(JSON.parse(toolSuccess(rows).content[0].text)).toEqual(rows);
   });
@@ -301,15 +398,11 @@ describe("tool result envelope", () => {
     expect(toolSuccess(page).structuredContent).toEqual(page);
   });
 
-  it("never sets structuredContent to a non-object", () => {
-    for (const payload of [[], "text", 3, true, null, undefined]) {
-      const result = toolSuccess(payload) as { structuredContent?: unknown };
-      if ("structuredContent" in result) {
-        expect(Array.isArray(result.structuredContent), String(payload)).toBe(
-          false,
-        );
-        expect(typeof result.structuredContent, String(payload)).toBe("object");
-      }
+  it("omits structuredContent for a primitive, which it would only repeat", () => {
+    for (const payload of ["text", 3, true, null, undefined]) {
+      expect(toolSuccess(payload), String(payload)).not.toHaveProperty(
+        "structuredContent",
+      );
     }
   });
 });

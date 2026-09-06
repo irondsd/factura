@@ -283,6 +283,16 @@ membership re-checked per call, its own rate-limit bucket and metadata-only
 audit rows. Reads need `cms:read`, mutations `cms:write`; the ordinary Factura
 MCP endpoint stays read-only and never gets these tools.
 
+It speaks MCP `2026-07-28` and nothing older. That revision dropped the
+`initialize` handshake, so a client declares its protocol version on every
+request — in `_meta` and mirrored into the `MCP-Protocol-Version` header,
+alongside `Mcp-Method` and, for `tools/call`, `Mcp-Name`; the server rejects a
+header that disagrees with the body. `server/discover` reports the versions,
+capabilities and instructions. A client old enough to send `initialize` gets an
+error naming the version to upgrade to, because a legacy client has no way to
+discover a newer one on its own. Tokens are untouched by any of this: the
+bearer is resolved per request, exactly as before.
+
 ```text
 list_content  get_content  create_content  update_content  validate_content
 set_content_status
