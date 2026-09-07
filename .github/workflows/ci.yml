@@ -79,6 +79,10 @@ jobs:
       - name: Build
         if: ${{ !cancelled() }}
         run: bun run build
+        env:
+          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
+          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
+          POSTHOG_HOST: ${{ secrets.POSTHOG_HOST }}
 
       # Audits repository-owned pages plus the four fixture articles over the
       # real serving path, and proves each fixture reaches every discovery file.

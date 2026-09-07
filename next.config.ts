@@ -1,5 +1,10 @@
 import type { NextConfig } from "next";
+import { withPostHogConfig } from "@posthog/nextjs-config";
+import { config } from "dotenv";
 import { publicOrigins } from "./src/config/origins";
+
+const postHogBuildEnv: Record<string, string> = {};
+config({ path: ".env.prod", processEnv: postHogBuildEnv, quiet: true });
 
 /** The one host remote images may come from: the CMS media bucket's public
  * origin (cms.md §9.11).
@@ -220,4 +225,18 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
 };
 
-export default nextConfig;
+const postHogApiKey =
+  process.env.POSTHOG_API_KEY ?? postHogBuildEnv.POSTHOG_API_KEY;
+
+export default postHogApiKey
+  ? withPostHogConfig(nextConfig, {
+      personalApiKey: postHogApiKey,
+      projectId:
+        process.env.POSTHOG_PROJECT_ID ?? postHogBuildEnv.POSTHOG_PROJECT_ID,
+      host: process.env.POSTHOG_HOST ?? postHogBuildEnv.POSTHOG_HOST,
+      sourcemaps: {
+        enabled: true,
+        deleteAfterUpload: true,
+      },
+    })
+  : nextConfig;
