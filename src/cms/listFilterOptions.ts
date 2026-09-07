@@ -1,4 +1,10 @@
 import type { CmsContentSummary } from "./types";
+import {
+  CMS_MISSING_AUTHOR,
+  CMS_MISSING_CATEGORY,
+  CMS_MISSING_FACT_CHECKER,
+  CMS_MISSING_LOCATION,
+} from "./listQuery";
 
 // What the filter dialog offers, derived from the section that is on screen.
 //
@@ -46,29 +52,57 @@ export function buildCmsFilterOptions({
   authors: ReadonlyMap<string, { name: string }>;
 }): CmsFilterOptions {
   const authorLabel = (id: string) => authors.get(id)?.name ?? id;
+  const authorOptions = byUsage(
+    pages,
+    (page) => (page.metadata?.authorId ? [page.metadata.authorId] : []),
+    authorLabel,
+  ).sort(byLabel);
+  const factCheckerOptions = byUsage(
+    pages,
+    (page) =>
+      page.metadata?.factCheckerId ? [page.metadata.factCheckerId] : [],
+    authorLabel,
+  ).sort(byLabel);
+  const categoryOptions = inRegistryOrder(
+    categories,
+    countKeys(pages, (page) => page.metadata?.categories ?? []),
+  );
+  const locationOptions = inRegistryOrder(
+    locations,
+    countKeys(pages, (page) => page.metadata?.locations ?? []),
+  );
 
   return {
-    authors: byUsage(
-      pages,
-      (page) => (page.metadata?.authorId ? [page.metadata.authorId] : []),
-      authorLabel,
-    ).sort(byLabel),
-    factCheckers: byUsage(
-      pages,
-      (page) =>
-        page.metadata?.factCheckerId ? [page.metadata.factCheckerId] : [],
-      authorLabel,
-    ).sort(byLabel),
+    // Empty is a real choice, not the same thing as «any»: it narrows the list
+    // to pages whose metadata leaves this optional field unset.
+    authors: withMissingOption(
+      authorOptions,
+      countMissingScalar(pages, "authorId"),
+      CMS_MISSING_AUTHOR,
+      "Sin autor",
+    ),
+    factCheckers: withMissingOption(
+      factCheckerOptions,
+      countMissingScalar(pages, "factCheckerId"),
+      CMS_MISSING_FACT_CHECKER,
+      "Sin verificador",
+    ),
     // Registry order, not usage order: the categories dialog is the same list
     // an editor arranges in the category manager, and a second ordering of the
-    // same words invites the question of which one is real.
-    categories: inRegistryOrder(
-      categories,
-      countKeys(pages, (page) => page.metadata?.categories ?? []),
+    // same words invites the question of which one is real. «Sin categoría»
+    // and «Sin ubicación» lead each list because they are the empty state, not
+    // registry entries.
+    categories: withMissingOption(
+      categoryOptions,
+      countEmptyList(pages, "categories"),
+      CMS_MISSING_CATEGORY,
+      "Sin categoría",
     ),
-    locations: inRegistryOrder(
-      locations,
-      countKeys(pages, (page) => page.metadata?.locations ?? []),
+    locations: withMissingOption(
+      locationOptions,
+      countEmptyList(pages, "locations"),
+      CMS_MISSING_LOCATION,
+      "Sin ubicación",
     ),
   };
 }
@@ -103,6 +137,43 @@ function byUsage(
   }));
 }
 
+function withMissingOption(
+  options: CmsFilterOption[],
+  count: number,
+  value: string,
+  label: string,
+): CmsFilterOption[] {
+  // Keep the empty state discoverable even when this section currently has no
+  // matching pages. Once a facet has any readable value, a zero-count option
+  // is still a valid question an editor can ask about future or newly imported
+  // content. Truly empty or unreadable facets still stay hidden.
+  return options.length > 0 || count > 0
+    ? [{ value, label, count }, ...options]
+    : options;
+}
+
+function countMissingScalar(
+  pages: readonly CmsContentSummary[],
+  field: "authorId" | "factCheckerId",
+): number {
+  return pages.filter(
+    (page) =>
+      !page.metadataError &&
+      page.metadata !== undefined &&
+      !page.metadata[field],
+  ).length;
+}
+
+function countEmptyList(
+  pages: readonly CmsContentSummary[],
+  field: "categories" | "locations",
+): number {
+  return pages.filter((page) => {
+    const values = page.metadata?.[field];
+    return !page.metadataError && Array.isArray(values) && values.length === 0;
+  }).length;
+}
+
 /** The registry entries that are actually in use, in the registry's own order.
  * A key on a page that the registry no longer knows is dropped: it cannot be
  * labelled, and offering a raw key as a choice explains nothing. */
@@ -129,5 +200,16 @@ export function filterOptionLabel(
   options: readonly CmsFilterOption[],
   value: string,
 ): string {
-  return options.find((option) => option.value === value)?.label ?? value;
+  return (
+    options.find((option) => option.value === value)?.label ??
+    MISSING_FILTER_LABELS[value] ??
+    value
+  );
 }
+
+const MISSING_FILTER_LABELS: Record<string, string> = {
+  [CMS_MISSING_AUTHOR]: "Sin autor",
+  [CMS_MISSING_FACT_CHECKER]: "Sin verificador",
+  [CMS_MISSING_CATEGORY]: "Sin categoría",
+  [CMS_MISSING_LOCATION]: "Sin ubicación",
+};

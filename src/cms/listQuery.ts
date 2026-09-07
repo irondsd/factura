@@ -33,6 +33,14 @@ export type CmsListSort = {
   direction: CmsSortDirection;
 };
 
+/** Reserved query values for the meaningful empty state of each optional
+ * metadata facet. They are deliberately field-specific so a hand-edited URL
+ * cannot make «sin autor» read as «sin categoría». */
+export const CMS_MISSING_AUTHOR = "__missing_author__";
+export const CMS_MISSING_FACT_CHECKER = "__missing_fact_checker__";
+export const CMS_MISSING_CATEGORY = "__missing_category__";
+export const CMS_MISSING_LOCATION = "__missing_location__";
+
 /** Most recently edited first: an editor's list opens on what they were last
  * working on. */
 export const DEFAULT_CMS_SORT: CmsListSort = {
@@ -194,9 +202,17 @@ export function matchesCmsListQuery(
   query: CmsListQuery,
 ): boolean {
   if (query.status && page.status !== query.status) return false;
-  if (query.authorId && page.metadata?.authorId !== query.authorId)
+  if (query.authorId === CMS_MISSING_AUTHOR) {
+    if (page.metadataError || !page.metadata || page.metadata.authorId)
+      return false;
+  } else if (query.authorId && page.metadata?.authorId !== query.authorId) {
     return false;
-  if (
+  }
+  if (query.factCheckerId === CMS_MISSING_FACT_CHECKER) {
+    if (page.metadataError || !page.metadata || page.metadata.factCheckerId) {
+      return false;
+    }
+  } else if (
     query.factCheckerId &&
     page.metadata?.factCheckerId !== query.factCheckerId
   ) {
@@ -205,13 +221,31 @@ export function matchesCmsListQuery(
   // A row whose stored metadata failed to parse carries no categories and no
   // locations at all, so it drops out of either filter rather than being
   // guessed at — it is still listed unfiltered, saying what is wrong with it.
-  if (
+  if (query.category === CMS_MISSING_CATEGORY) {
+    if (
+      page.metadataError ||
+      !page.metadata ||
+      !Array.isArray(page.metadata.categories) ||
+      page.metadata.categories.length > 0
+    ) {
+      return false;
+    }
+  } else if (
     query.category &&
     !(page.metadata?.categories ?? []).includes(query.category)
   ) {
     return false;
   }
-  if (
+  if (query.location === CMS_MISSING_LOCATION) {
+    if (
+      page.metadataError ||
+      !page.metadata ||
+      !Array.isArray(page.metadata.locations) ||
+      page.metadata.locations.length > 0
+    ) {
+      return false;
+    }
+  } else if (
     query.location &&
     !(page.metadata?.locations ?? []).includes(query.location)
   ) {

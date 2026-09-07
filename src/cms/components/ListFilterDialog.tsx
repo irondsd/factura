@@ -6,6 +6,7 @@ import { CONTENT_STATUSES, type ContentStatus } from "@/content-system/types";
 import { cn } from "@/lib/cn";
 import { CmsIcon } from "../icons";
 import type { CmsFilterOption, CmsFilterOptions } from "../listFilterOptions";
+import { filterOptionLabel } from "../listFilterOptions";
 import {
   clearedCmsFilters,
   cmsListHref,
@@ -286,7 +287,9 @@ function OptionField({
           onChange={(next) => onChange(next || undefined)}
           options={[
             { value: "", label: anyLabel },
-            ...(orphan ? [{ value, label: value }] : []),
+            ...(orphan
+              ? [{ value, label: filterOptionLabel(options, value) }]
+              : []),
             ...options.map((option) => ({
               value: option.value,
               label: `${option.label} (${option.count})`,

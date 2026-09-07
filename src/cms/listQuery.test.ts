@@ -4,6 +4,10 @@ import {
   activeCmsFilterKeys,
   clearedCmsFilters,
   cmsListHref,
+  CMS_MISSING_AUTHOR,
+  CMS_MISSING_CATEGORY,
+  CMS_MISSING_FACT_CHECKER,
+  CMS_MISSING_LOCATION,
   DEFAULT_CMS_SORT,
   filterContentRows,
   hasUnpublishedChanges,
@@ -222,6 +226,22 @@ describe("parseCmsListQuery filters", () => {
       parseCmsListQuery({ categoria: "x".repeat(200) }).category,
     ).toBeUndefined();
   });
+
+  it("keeps the explicit empty-state filter values", () => {
+    expect(
+      parseCmsListQuery({
+        autor: CMS_MISSING_AUTHOR,
+        verificador: CMS_MISSING_FACT_CHECKER,
+        categoria: CMS_MISSING_CATEGORY,
+        ubicacion: CMS_MISSING_LOCATION,
+      }),
+    ).toMatchObject({
+      authorId: CMS_MISSING_AUTHOR,
+      factCheckerId: CMS_MISSING_FACT_CHECKER,
+      category: CMS_MISSING_CATEGORY,
+      location: CMS_MISSING_LOCATION,
+    });
+  });
 });
 
 describe("cmsListHref", () => {
@@ -310,6 +330,63 @@ describe("filterContentRows", () => {
         (p) => p.id,
       ),
     ).toEqual(["caba"]);
+  });
+
+  it("matches pages with each optional metadata field unset", () => {
+    const empty = row("empty");
+    const filled = row("filled", {
+      metadata: {
+        keywords: [],
+        categories: ["tarifas"],
+        locations: ["caba"],
+        authorId: "daria",
+        factCheckerId: "julian",
+      },
+    });
+
+    expect(
+      filterContentRows(
+        [empty, filled],
+        parseCmsListQuery({ autor: CMS_MISSING_AUTHOR }),
+      ).map((p) => p.id),
+    ).toEqual(["empty"]);
+    expect(
+      filterContentRows(
+        [empty, filled],
+        parseCmsListQuery({ verificador: CMS_MISSING_FACT_CHECKER }),
+      ).map((p) => p.id),
+    ).toEqual(["empty"]);
+    expect(
+      filterContentRows(
+        [empty, filled],
+        parseCmsListQuery({ categoria: CMS_MISSING_CATEGORY }),
+      ).map((p) => p.id),
+    ).toEqual(["empty"]);
+    expect(
+      filterContentRows(
+        [empty, filled],
+        parseCmsListQuery({ ubicacion: CMS_MISSING_LOCATION }),
+      ).map((p) => p.id),
+    ).toEqual(["empty"]);
+  });
+
+  it("does not treat unreadable metadata as a meaningful empty value", () => {
+    const broken = row("broken", {
+      metadata: {} as never,
+      metadataError: "no anda",
+    });
+    expect(
+      filterContentRows(
+        [broken],
+        parseCmsListQuery({ autor: CMS_MISSING_AUTHOR }),
+      ),
+    ).toEqual([]);
+    expect(
+      filterContentRows(
+        [broken],
+        parseCmsListQuery({ categoria: CMS_MISSING_CATEGORY }),
+      ),
+    ).toEqual([]);
   });
 
   it("counts a draft as having nothing pending", () => {
