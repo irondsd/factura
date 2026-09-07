@@ -21,6 +21,13 @@ Always compile first: `build`, `lint`, `typecheck`, and `test`. That is the
 floor, not the finish line — if a change is observable in a browser, run it and
 look at it rather than handing the user a diff and a promise.
 
+Exception: do not run `build`, `lint`, `typecheck`, or `test` for CMS-only work,
+such as creating or editing articles through the `factura-cms` MCP server or
+`/cms`. CMS content changes do not change the codebase, so use the CMS's own
+validation and preview workflow instead. If the task also changes code,
+configuration, or repository files, the normal verification requirements above
+still apply.
+
 Public / unauthenticated pages you can just open. `/app/*` needs a session, and
 you can sign yourself in — see below — so "it's behind auth" is not a reason to
 skip runtime verification. Hand off to the user only for what the sign-in below
