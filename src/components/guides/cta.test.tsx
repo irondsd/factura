@@ -32,6 +32,6 @@ describe("TopCta", () => {
 
   it("keeps the button whatever the copy is", async () => {
     const html = await renderToHtml(createElement(TopCta, null, ""));
-    expect(html).toContain("Crear una cuenta");
+    expect(html).toContain("Empezar gratis");
   });
 });

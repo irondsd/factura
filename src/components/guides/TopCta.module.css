@@ -1,0 +1,95 @@
+/* The motion and the one colour override behind <TopCta />.
+   Three loops that all say the same thing — this strip is live, and the button
+   is the way out of it — kept here rather than in globals.css because none of
+   them is a motif any other screen reuses. */
+
+/* The accent rule down the left edge, breathing. It is the only thing in the
+   block that moves while the reader is still reading the line, so it stays a
+   slow opacity ramp: enough to catch the eye returning to the paragraph, not
+   enough to compete with the sentence itself. */
+.rail {
+  animation: rail 2.6s ease-in-out infinite;
+}
+
+@keyframes rail {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* The chevron leaning forward once every four seconds. Long pause, short
+   nudge — a chevron that slides continuously reads as a loading state. */
+.nudge {
+  animation: nudge 4s ease-in-out infinite;
+}
+
+@keyframes nudge {
+  0%,
+  88%,
+  100% {
+    transform: translateX(0);
+  }
+  92% {
+    transform: translateX(4px);
+  }
+  96% {
+    transform: translateX(0);
+  }
+}
+
+/* The light travelling across the button's fill. The band is 40% of the button
+   wide and crosses in the first half of the cycle, then waits offscreen for the
+   rest — same reasoning as the chevron. White at 42% rather than a palette
+   colour: this is a highlight *on* the accent, not a second hue. */
+.sweep {
+  background-image: linear-gradient(
+    100deg,
+    transparent,
+    rgb(255 255 255 / 0.42),
+    transparent
+  );
+  animation: sweep 3.6s ease-in-out infinite;
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateX(-140%);
+  }
+  55%,
+  100% {
+    transform: translateX(240%);
+  }
+}
+
+/* <Button variant="accent"> fills with ink on hover; here it lifts to a
+   brighter orange instead, because the sweep above has to survive the hover.
+   A rule rather than a `hover:bg-*` utility on purpose: two utilities for one
+   property are settled by stylesheet order and not by which was passed last
+   (see the note in ui/Button), whereas an unlayered module rule beats
+   Tailwind's utility layer outright. */
+.lift:hover {
+  background-color: var(--accent-lift);
+  border-color: var(--accent-lift);
+}
+
+/* Three infinite loops in a strip a reader is trying to read past is exactly
+   what this setting exists to switch off. Everything keeps its resting look:
+   the rail dims to its own mid-point rather than vanishing, and the sweep band
+   goes away entirely instead of parking a bright streak across the button. */
+@media (prefers-reduced-motion: reduce) {
+  .rail {
+    animation: none;
+    opacity: 0.7;
+  }
+  .nudge {
+    animation: none;
+  }
+  .sweep {
+    animation: none;
+    background-image: none;
+  }
+}

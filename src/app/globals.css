@@ -26,6 +26,13 @@
      glance (so not --muted, which is ordinary secondary text). */
   --muted-faint: #c9bfa8;
   --accent: #d9480f;
+  /* One step brighter than --accent, for a hover that has to stay orange. The
+     usual accent hover fills with ink, which is right everywhere the button
+     sits alone; the <TopCta /> button carries a light sweeping across its fill,
+     and an ink hover would swallow the thing the button is being looked at for.
+     Lifted in saturation as well as in lightness, so it reads as the same paint
+     under a brighter lamp rather than as orange going pale. */
+  --accent-lift: #ef5b1d;
   --ok: #6f7d52; /* muted olive — positive/valid state, pairs with --accent */
 
   /* Skeleton fill. One step lighter than --line so a bone reads as a soft

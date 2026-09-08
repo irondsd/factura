@@ -1,6 +1,8 @@
 import { Eyebrow, NEW_TAB } from "@/components/landing/parts";
 import { Button } from "@/components/ui";
 import { DEFAULT_TOP_CTA } from "@/content-system/cta";
+import { cn } from "@/lib/cn";
+import styles from "./TopCta.module.css";
 
 // CTA pieces used inside guide MDX (Spanish-only section, so labels are inline
 // Spanish — no dictionary lookup). Registered globally in `mdx-components.tsx`
@@ -41,43 +43,123 @@ export function CtaRow({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-wrap gap-3 my-8">{children}</div>;
 }
 
+/** Whether a page wrote a `<TopCta />` line at all.
+ *
+ * Blank is checked, not just `undefined`: `cta` is a NOT NULL column and the CMS
+ * writes an unfilled one as `""`, so absent reaches the banner as an empty
+ * string about as often as it does as nothing at all. */
+function blankCopy(children: React.ReactNode): boolean {
+  return (
+    children == null ||
+    children === false ||
+    (typeof children === "string" && children.trim() === "")
+  );
+}
+
 /** The one-line CTA between the article header and the first paragraph.
  *
  * The closing block only reaches the readers who finish; this one is for the
- * ones who skim the intro and bounce. It stays deliberately thin — one line of
- * copy and a single button — because at this point in the page the visitor came
- * for an answer and hasn't been given it yet, and a card here would read as an
- * ad in front of the article.
+ * ones who skim the intro and bounce. It stays a strip rather than a card —
+ * one line of copy and a single button — because at this point in the page the
+ * visitor came for an answer and hasn't been given it yet, and a block with a
+ * headline of its own would read as an ad in front of the article.
  *
  * The copy is `meta.cta`, not a child, so the *page* places it: an author can't
  * accidentally push it below the fold. It's a hook, not a summary — the question
- * the guide's reader already has, and what an account does about it.
+ * the guide's reader already has, and what an account does about it. A page that
+ * leaves the field empty gets DEFAULT_TOP_CTA rather than an empty strip.
  *
- * The field is optional, and a page that leaves it empty gets DEFAULT_TOP_CTA
- * rather than an empty strip. Blank is checked, not just `undefined`: `cta` is
- * a NOT NULL column and the CMS writes an unfilled one as `""`, so absent
- * reaches this component as an empty string about as often as it does as
- * nothing at all.
+ * The look is the receipt the whole site is built on, turned up: torn bottom
+ * edge, an accent rule breathing down the left, an olive stamp and the one
+ * caveat a reader hesitating over a signup actually wants ("sin tarjeta"). The
+ * previous version wore the site's ordinary `--line` border, which is also what
+ * every figure, table and related-guides block wears, so it read as one more
+ * grey rectangle in the scroll and got skipped. This one is bordered in accent
+ * and is the only torn edge above the fold.
  *
- * The button is `accent` rather than the landing page's `solid` — the two fills
- * swapped, accent at rest and ink on hover. This one sits inside a bordered,
- * card-coloured strip that a skimmer's eye reads as one grey block, and an ink
- * fill in there is another rectangle; the orange is the only thing in the band
- * that isn't. Row on a desktop, stacked on a phone. */
+ * The button is `accent` rather than the landing page's `solid`: the two fills
+ * swapped, orange at rest, because in a card-coloured strip an ink fill is just
+ * another dark rectangle. Its hover lifts to a brighter orange instead of
+ * filling with ink — see TopCta.module.css — so the light sweeping across it
+ * survives the pointer landing on it. Row on a desktop, stacked on a phone,
+ * with the rail running the full height of either. */
 export function TopCta({ children }: { children?: React.ReactNode }) {
-  const blank =
-    children == null ||
-    children === false ||
-    (typeof children === "string" && children.trim() === "");
+  return (
+    <aside className="receipt-edge mt-7 flex gap-4 border border-accent bg-card px-6 pt-[22px] pb-[30px] sm:gap-6">
+      {/* Decorative: the rail says "live", and a screen reader gets that from
+          the copy and the link instead. */}
+      <span
+        aria-hidden
+        className={cn(styles.rail, "w-[3px] flex-none self-stretch bg-accent")}
+      />
+      <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          {/* The two-part price tag. Olive rather than accent on the stamp so
+              the block has exactly one orange call to action in it, and the
+              free/no-card pair reads as fine print rather than as a second
+              button. `flex-wrap` because at 320px the pair is wider than the
+              column once the rail and the padding are taken out. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="bg-ok px-[7px] py-[3px] font-mono text-[9.5px] tracking-label text-card uppercase">
+              Gratis
+            </span>
+            <span className="font-mono text-[10px] tracking-[0.14em] text-muted uppercase">
+              Sin tarjeta
+            </span>
+          </div>
+          {/* `text-pretty` because the copy is one or two lines at the
+              article's column width, and the second line is otherwise a
+              two-word orphan. */}
+          <p className="m-0 font-mono text-[14px] leading-[1.55] text-pretty text-ink">
+            {blankCopy(children) ? DEFAULT_TOP_CTA : children}
+          </p>
+        </div>
+        {/* `self-start` so the stacked phone layout doesn't hand the button the
+            full width of the block — it's a button, not a banner. */}
+        <Button
+          href="/login"
+          variant="accent"
+          size="xl"
+          className={cn(
+            styles.lift,
+            "relative self-start overflow-hidden sm:flex-none sm:self-auto",
+          )}
+          {...NEW_TAB}
+        >
+          {/* Both label parts are lifted above the sweep band, which is painted
+              last and would otherwise cross in front of the text. */}
+          <span className="relative z-10">Empezar gratis</span>
+          <span aria-hidden className={cn(styles.nudge, "relative z-10")}>
+            ›
+          </span>
+          <span
+            aria-hidden
+            className={cn(
+              styles.sweep,
+              "pointer-events-none absolute inset-y-0 left-0 w-2/5",
+            )}
+          />
+        </Button>
+      </div>
+    </aside>
+  );
+}
+
+/** The previous <TopCta />, kept for reference while the one above is on trial.
+ *
+ * Unused and unimported on purpose — the two are here side by side so the
+ * experiment can be read as a diff, and so backing it out is a rename rather
+ * than an archaeology exercise. Delete this once the question is settled.
+ *
+ * It is the same offer in the site's ordinary furniture: `--line` border, card
+ * fill, no motion, no stamp, one line of copy and an `accent` button that fills
+ * with ink on hover. */
+export function TopCtaOld({ children }: { children?: React.ReactNode }) {
   return (
     <aside className="mt-7 flex flex-col gap-3 border border-line bg-card px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-      {/* `text-pretty` because the copy is one or two lines at the article's
-          column width, and the second line is otherwise a two-word orphan. */}
       <p className="font-mono text-[13.5px] leading-[1.55] text-pretty text-ink/90 m-0">
-        {blank ? DEFAULT_TOP_CTA : children}
+        {blankCopy(children) ? DEFAULT_TOP_CTA : children}
       </p>
-      {/* `self-start` so the stacked phone layout doesn't hand the button the
-          full width of the block — it's a button, not a banner. */}
       <Button
         href="/login"
         variant="accent"
