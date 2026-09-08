@@ -1,5 +1,6 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
+import { AddToPreferredSources } from "@/components/article/AddToPreferredSources";
 import { ArticleByline } from "@/components/article/ArticleByline";
 import { ArticleDateline } from "@/components/article/ArticleDateline";
 import { ArticlePreview } from "@/components/article/ArticlePreview";
@@ -215,11 +216,12 @@ export async function SectionArticle({
               label={`Ubicación de ${section.label.toLowerCase()}`}
             />
 
-            <nav
-              className={
-                locations.length ? "mt-8" : "mt-14 border-t border-line pt-6"
-              }
-            >
+            {/* The one ask on the page that isn't for an account. It goes below
+                the article and above the way out, because a reader who got to
+                here is the only one worth asking. */}
+            <AddToPreferredSources section={section.id} />
+
+            <nav className="mt-8">
               <Link
                 href={section.base}
                 className="font-mono text-micro uppercase tracking-label-wide text-muted no-underline transition-colors hover:text-accent"
