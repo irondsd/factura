@@ -6,6 +6,7 @@ import { mediaIdsIn } from "./references";
 import { parseMediaPermalink } from "./permalink";
 import { resolveMediaRefs } from "./repository";
 import { MediaImage } from "./MediaImage";
+import { Galeria } from "@/components/article/Galeria";
 
 // Turning `![alt](/media/<id>/name.jpg)` in a stored body into a real image.
 //
@@ -15,14 +16,22 @@ import { MediaImage } from "./MediaImage";
 // image — the cost of a page would scale with how illustrated it is, which is
 // exactly the wrong way round.
 
-/** Build the `img` override for one body. Call once per rendered document and
- * pass the result into `contentComponents()`. */
+/** Build the media overrides for one body — the `img` binding and the gallery
+ * that groups several of them. Call once per rendered document and pass the
+ * result into `contentComponents()`.
+ *
+ * `<Galeria>` is bound here rather than in the manifest for the same reason the
+ * query is here: it needs its pictures’ bytes and sizes, and this is where the
+ * one resolution of the whole body already lives. */
 export async function mediaComponents(
   body: string,
   database?: Database,
 ): Promise<MDXComponents> {
   const media = await resolveMediaRefs(mediaIdsIn(body), database);
   return {
+    Galeria: (props: { title?: string; children?: React.ReactNode }) => (
+      <Galeria {...props} media={media} />
+    ),
     img: ({ src, alt }) => {
       const url = typeof src === "string" ? src : "";
       const parsed = parseMediaPermalink(url);

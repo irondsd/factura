@@ -365,6 +365,28 @@ storage or external URL is rejected. Alt text says what the image means _here_;
 an empty alt is a deliberate claim, made by marking the image decorative in the
 library.
 
+Two or more pictures a reader compares — the steps of a payment screen, two
+versions of a form — go in a `<Galeria>` instead of one under the other. It
+draws them as matching tiles that open full-screen, zoomable, with arrows:
+
+```mdx
+<Galeria title="Pantallas · Pago Rápido">
+
+![El buscador de suministro](/media/<id>/edersa-1.png "Ingresá el DNI, el CUIT o el NIS.")
+![El resumen del período a pagar](/media/<id>/edersa-2.png)
+![Los medios de pago disponibles](/media/<id>/edersa-3.png)
+
+</Galeria>
+```
+
+Between the tags go **markdown images and nothing else**, one per line —
+a paragraph, a link or another component there is a validation error, not
+something dropped quietly. Two to six of them; a single illustration is
+written loose in the prose, without the tags. The quoted text after a URL is
+the optional caption printed under the tile, and the alt is still the alt.
+`title` is an optional label above the row. Tiles are cropped to 4:3 so the
+row stays even whatever sizes were uploaded; the whole image is what opens.
+
 `previewMediaId` is the page's 16:9 thumbnail (export at 960×540). Optional on
 guides, and genuinely so — do not add filler to make a list uniform. Vendor
 guides ("Cómo leer / pagar la factura de X", tarifa social) have a generator:

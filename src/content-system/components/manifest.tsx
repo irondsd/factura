@@ -7,6 +7,7 @@ import {
   ProbarCta,
   SignupCta,
 } from "@/components/guides/cta";
+import { Galeria } from "@/components/article/Galeria";
 import { Resumen } from "@/components/article/Resumen";
 import { InflacionChart } from "@/components/guides/InflacionChart";
 import { TrustBlock } from "@/components/landing/TrustBlock";
@@ -68,6 +69,12 @@ const BINDINGS: Record<string, ComponentType<never>> = {
   ClosingCta,
   ProbarCta,
   Resumen,
+  // Bound without a resolved media map, so it falls back to rendering its
+  // images as the markdown wrote them. The real binding is
+  // `mediaComponents()`, which every route that renders a body installs: the
+  // gallery needs the library, and the library is resolved once per document
+  // rather than once per figure.
+  Galeria,
   CtaButton,
   CtaRow,
   DemoCta,

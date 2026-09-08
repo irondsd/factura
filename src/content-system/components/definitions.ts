@@ -19,6 +19,19 @@ import { SECTION_COMPONENT_NAMES } from "./sectionDefinitions";
  * something silently dropped. */
 export type ComponentKind = "leaf" | "container";
 
+/** What a container may hold, for the containers whose body is not prose.
+ *
+ * `<Galeria>` is the reason this exists: its children are markdown images and
+ * nothing else, and "nothing else" has to be a rule the validator enforces
+ * rather than a convention the component hopes for. A paragraph of prose
+ * dropped between two pictures would otherwise vanish at render with nobody
+ * told — which is exactly what cms.md forbids. */
+export type ContainerChildrenRule = {
+  only: "image";
+  min: number;
+  max: number;
+};
+
 /** Presentation metadata for source-editor completion. This is deliberately
  * kept beside the component definition: a new component should teach the CMS
  * how to insert and explain itself at the same place that defines its allowed
@@ -66,6 +79,9 @@ export type ContentComponentDefinition = {
    * the palette, or that lands in the wrong bucket, is a component that does
    * not exist as far as an author is concerned. */
   authoring: ComponentAuthoringMetadata;
+  /** Restricts what a `container` may hold. Absent means prose: whatever an
+   * author can write anywhere else in the body. */
+  children?: ContainerChildrenRule;
 };
 
 const noProps = z.object({}).strict();
@@ -629,6 +645,36 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
         "Es para páginas largas: estadísticas e investigaciones. En una guía o una noticia casi nunca hace falta; omitirlo es lo normal.",
         "Una sola vez por página.",
         "Es para el lector, no para el buscador: `summary` y `description` siguen siendo campos aparte.",
+      ],
+    },
+  },
+  Galeria: {
+    // Every authored section. It was built for the vendor guides — "cómo pagar
+    // la factura de X" is three screenshots of somebody else's checkout — but a
+    // noticia showing two versions of a resolution, or an estadística showing
+    // the source's own table beside the chart, wants exactly the same block.
+    sections: ["guias", "noticias", "estadisticas", "investigaciones"],
+    kind: "container",
+    children: { only: "image", min: 2, max: 6 },
+    props: z.object({ title: z.string().min(1).max(60).optional() }).strict(),
+    description:
+      'Two to six images as a row of matching tiles that open full-screen, zoomable, with arrows. The images are written between the tags as ordinary markdown — `![alt](/media/…/archivo.png "pie de foto")`, one per line, and nothing else goes inside. Reach for it when the pictures are a sequence a reader compares (the steps of a payment screen, two versions of a form); a single illustration is written loose in the prose, not wrapped in a gallery.',
+    authoring: {
+      label: "Galería de imágenes",
+      group: "article-structure",
+      rank: 12,
+      propertyDescriptions: {
+        title:
+          "Rótulo opcional encima de la galería, p. ej. «Pantallas · Pago Rápido».",
+      },
+      propertyPlaceholders: { title: "Pantallas · Pago Rápido" },
+      childPlaceholder:
+        '![Qué muestra la primera imagen](/media/<id>/archivo-1.png "Pie de foto opcional.")\n![Qué muestra la segunda imagen](/media/<id>/archivo-2.png)',
+      notes: [
+        "Adentro van solo imágenes de la biblioteca, una por línea. Un párrafo, un enlace o un componente entre las etiquetas es un error de validación.",
+        "Entre dos y seis. Una imagen sola se escribe suelta en el texto.",
+        "El texto entre comillas después de la URL es el pie de foto, y es opcional; el texto alternativo sigue siendo el texto alternativo.",
+        "Las miniaturas se recortan a 4:3 para que la fila quede pareja; la imagen entera se ve al ampliarla.",
       ],
     },
   },

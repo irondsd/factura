@@ -64,6 +64,8 @@ describe("allowed components", () => {
     ProbarCta:
       '<ProbarCta vendor="Edesur" noun="factura">\n\nTexto.\n\n</ProbarCta>',
     Resumen: "<Resumen>\n\nLa respuesta en dos frases.\n\n</Resumen>",
+    Galeria:
+      "<Galeria>\n\n![La primera pantalla](/media/00000000-0000-4000-8000-000000000001/uno.png)\n![La segunda pantalla](/media/00000000-0000-4000-8000-000000000002/dos.png)\n\n</Galeria>",
     CtaButton:
       '<CtaButton href="/demo" variant="invert">Ver la demo</CtaButton>',
     CtaRow: "<CtaRow>\n\n<DemoCta />\n\n</CtaRow>",
@@ -135,6 +137,106 @@ describe("allowed components", () => {
     expect(
       check("<ProbarCta>\n\nTexto.\n\n</ProbarCta>\n").diagnostics,
     ).toEqual([]);
+  });
+});
+
+describe("a gallery holds images and nothing else", () => {
+  // `<Galeria>` is the one container whose children are not prose: the pictures
+  // are markdown images because an array property cannot be written in this
+  // dialect at all. That makes the shape a rule rather than a convention —
+  // anything else typed between the tags would compile and then vanish at
+  // render, with nobody told.
+  const gallery = (inner: string) => `<Galeria>\n\n${inner}\n\n</Galeria>\n`;
+  const image = (n: number) =>
+    `![Pantalla ${n}](/media/00000000-0000-4000-8000-00000000000${n}/p${n}.png)`;
+
+  it("accepts two images on consecutive lines", () => {
+    expect(check(gallery(`${image(1)}\n${image(2)}`)).diagnostics).toEqual([]);
+  });
+
+  it("accepts images separated by blank lines, which is a paragraph each", () => {
+    expect(check(gallery(`${image(1)}\n\n${image(2)}`)).diagnostics).toEqual(
+      [],
+    );
+  });
+
+  it("accepts an optional caption written as the markdown title", () => {
+    expect(
+      check(
+        gallery(
+          `![Pantalla](/media/00000000-0000-4000-8000-000000000001/p.png "Ingresá el NIS.")\n${image(2)}`,
+        ),
+      ).diagnostics,
+    ).toEqual([]);
+  });
+
+  it("accepts a title on the tag", () => {
+    expect(
+      check(
+        `<Galeria title="Pantallas · Pago Rápido">\n\n${image(1)}\n${image(2)}\n\n</Galeria>\n`,
+      ).diagnostics,
+    ).toEqual([]);
+  });
+
+  it("refuses prose between the images", () => {
+    const result = check(gallery(`${image(1)}\n\nUn párrafo.\n\n${image(2)}`));
+    expect(result.diagnostics.map((d) => d.code)).toEqual([
+      GRAMMAR_CODES.invalidChildren,
+    ]);
+    expect(result.diagnostics[0].component).toBe("Galeria");
+  });
+
+  it("refuses a heading, a list or a component inside", () => {
+    for (const inner of ["## Sección", "- uno\n- dos", "<DemoCta />"]) {
+      expect(
+        codes(gallery(`${image(1)}\n\n${inner}\n\n${image(2)}`)),
+      ).toContain(GRAMMAR_CODES.invalidChildren);
+    }
+  });
+
+  it("refuses a single image — that one is written loose in the text", () => {
+    const result = check(gallery(image(1)));
+    expect(result.diagnostics.map((d) => d.code)).toEqual([
+      GRAMMAR_CODES.invalidChildren,
+    ]);
+    expect(result.diagnostics[0].message).toContain("loose in the text");
+  });
+
+  it("refuses an empty gallery", () => {
+    expect(codes("<Galeria>\n\n</Galeria>\n")).toContain(
+      GRAMMAR_CODES.invalidChildren,
+    );
+  });
+
+  it("refuses more than six", () => {
+    const seven = [1, 2, 3, 4, 5, 6, 7]
+      .map(
+        (n) =>
+          `![Pantalla ${n}](/media/00000000-0000-4000-8000-00000000000${n}/p.png)`,
+      )
+      .join("\n");
+    expect(codes(gallery(seven))).toContain(GRAMMAR_CODES.invalidChildren);
+  });
+
+  it("still refuses an expression hidden between the tags", () => {
+    // The children rule must not become a way past the security layer: an
+    // expression is reported as an expression, whatever container holds it.
+    expect(
+      codes(gallery(`${image(1)}\n\n{alert(1)}\n\n${image(2)}`)),
+    ).toContain(GRAMMAR_CODES.expression);
+  });
+
+  it("is available in every authored section", () => {
+    for (const section of [
+      "guias",
+      "noticias",
+      "estadisticas",
+      "investigaciones",
+    ] as const) {
+      expect(
+        check(gallery(`${image(1)}\n${image(2)}`), section).diagnostics,
+      ).toEqual([]);
+    }
   });
 });
 

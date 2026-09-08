@@ -25,6 +25,11 @@ const WRITTEN: Partial<Record<ContentComponentName, string>> = {
   ProbarCta: '<ProbarCta vendor="Edesur">\n\nCopia.\n\n</ProbarCta>',
   Resumen:
     "<Resumen>\n\nLa respuesta de la página en dos frases.\n\n</Resumen>",
+  // A real permalink shape, because the gallery reads the id out of it. The
+  // uuid resolves to nothing in a test, which is the point: the sample proves
+  // the block renders, not that the library has this asset.
+  Galeria:
+    '<Galeria title="Pantallas">\n\n![Qué muestra la primera imagen](/media/00000000-0000-4000-8000-000000000001/pantalla-1.png "Pie de foto opcional.")\n![Qué muestra la segunda imagen](/media/00000000-0000-4000-8000-000000000002/pantalla-2.png)\n\n</Galeria>',
   CtaButton: '<CtaButton href="/demo">Ver la demo</CtaButton>',
   CtaRow: "<CtaRow>\n\n<DemoCta />\n\n<SignupCta />\n\n</CtaRow>",
   InflacionChart: '<InflacionChart chart="luz-y-gas" />',

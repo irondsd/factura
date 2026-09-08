@@ -1,4 +1,5 @@
 import {
+  type ContainerChildrenRule,
   componentDefinition,
   componentsForSection,
   isContentComponentName,
@@ -36,6 +37,7 @@ export const GRAMMAR_CODES = {
   unknownComponent: "mdx.unknown-component",
   wrongSection: "mdx.component-not-in-section",
   unexpectedChildren: "mdx.unexpected-children",
+  invalidChildren: "mdx.invalid-children",
   invalidProps: "mdx.invalid-props",
   unclosed: "mdx.unclosed-element",
   unsafeUrl: "mdx.unsafe-url",
@@ -280,9 +282,81 @@ function checkJsx(
     );
   }
 
+  if (definition.children) {
+    checkImageChildren(node, name, definition.children, out);
+  }
+
   // Children are not walked here: `walk` recurses into every node's children
   // after the switch, and doing it in both places reported each nested finding
   // twice.
+}
+
+/** Enforce a container whose body is images and nothing else — `<Galeria>`.
+ *
+ * The pictures are markdown children rather than properties because that is the
+ * only shape this dialect can express (an array property would be an expression
+ * attribute, which is refused above) and the only one the alt-text and
+ * media-usage rules already understand. The price of that shape is that a
+ * paragraph typed between two images would compile fine and then disappear at
+ * render, so the shape is checked here instead of hoped for. */
+function checkImageChildren(
+  node: Node,
+  name: string,
+  rule: ContainerChildrenRule,
+  out: Diagnostic[],
+): void {
+  const images: Node[] = [];
+  let foreign: Node | undefined;
+
+  const visit = (child: Node) => {
+    switch (child.type) {
+      case "image":
+        images.push(child);
+        return;
+      // The wrappers markdown puts around a line of images, which carry no
+      // content of their own: a run of `![…](…)` on consecutive lines is one
+      // paragraph joined by soft breaks, and blank lines between them make one
+      // paragraph each.
+      case "paragraph":
+        for (const grandchild of child.children ?? []) visit(grandchild);
+        return;
+      case "break":
+        return;
+      case "text":
+        if ((child.value ?? "").trim() !== "") foreign ??= child;
+        return;
+      default:
+        foreign ??= child;
+    }
+  };
+  for (const child of node.children ?? []) visit(child);
+
+  if (foreign) {
+    out.push({
+      ...error(
+        GRAMMAR_CODES.invalidChildren,
+        `<${name}> holds images and nothing else. Write one \`![alt](/media/…/archivo.png)\` per line between the tags, and move anything else outside them.`,
+        at(foreign),
+      ),
+      component: name,
+    });
+    return;
+  }
+
+  if (images.length < rule.min || images.length > rule.max) {
+    out.push({
+      ...error(
+        GRAMMAR_CODES.invalidChildren,
+        `<${name}> takes between ${rule.min} and ${rule.max} images; this one has ${images.length}. ${
+          images.length < rule.min
+            ? "A single image is written loose in the text, without the tags."
+            : "Split it into more than one."
+        }`,
+        at(node),
+      ),
+      component: name,
+    });
+  }
 }
 
 /** Attributes whose value is a URL wherever they appear. Named rather than

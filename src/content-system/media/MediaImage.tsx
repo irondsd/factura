@@ -24,6 +24,26 @@ const SIZES: Record<MediaPlacement, string> = {
  * cache, and the master is served as-is. */
 const UNOPTIMIZED_PIXELS = 24_000_000;
 
+/** Whether this asset has to be served as its master.
+ *
+ * Animated GIFs must not be optimized: the optimizer would turn one into its
+ * first frame, which is a different asset rather than a smaller one. Very large
+ * masters skip it too. Neither is something an author can ask for.
+ *
+ * Exported because `<Galeria>` renders its own `next/image` — a tile is cropped
+ * and a full-screen view is zoomable, neither of which is this component's
+ * article placement — and the rule must not be decided twice. */
+export function unoptimizedMedia(media: {
+  mimeType: string;
+  width: number;
+  height: number;
+}): boolean {
+  return (
+    media.mimeType === "image/gif" ||
+    media.width * media.height > UNOPTIMIZED_PIXELS
+  );
+}
+
 export function MediaImage({
   media,
   alt,
@@ -44,12 +64,7 @@ export function MediaImage({
 }) {
   const resolved = alt ?? (media.decorative ? "" : media.defaultAlt);
 
-  // Animated GIFs must not be optimized: the optimizer would turn one into its
-  // first frame, which is a different asset rather than a smaller one. Very
-  // large masters skip it too. Neither is something an author can ask for.
-  const unoptimized =
-    media.mimeType === "image/gif" ||
-    media.width * media.height > UNOPTIMIZED_PIXELS;
+  const unoptimized = unoptimizedMedia(media);
 
   return (
     <Image
