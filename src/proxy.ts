@@ -17,7 +17,8 @@ import { isSpanishOnlyPath, stripEnPrefix } from "@/i18n/routing";
 //     (set via the in-app switch, mirrored to the DB) must win over passive
 //     browsing, and is never silently overridden.
 // The matcher excludes /app, /login, /logout, /delete-account, /api, /share-target,
-// /_next, and files, so the app keeps its cookie-driven locale untouched.
+// /embed, /_next, and files, so the app keeps its cookie-driven locale untouched
+// and standalone visualizations keep their own chrome-free root layout.
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
@@ -97,11 +98,12 @@ export const config = {
   // localized landing tree), the PostHog reverse proxy (/ingest/*, rewritten in
   // next.config), the media permalink route (/media/<id>/<name>.jpg — the
   // extension rule below already excludes it, and naming it here means the
-  // route does not silently depend on a filename convention), Next internals,
-  // and any file with an extension (favicon,
+  // route does not silently depend on a filename convention), standalone embed
+  // routes (their own Spanish-only root layout), Next internals, and any file
+  // with an extension (favicon,
   // sitemap.xml, robots.txt, og images…). The OAuth discovery documents live
   // under /.well-known/, which the extension rule already excludes.
   matcher: [
-    "/((?!api|ingest|_next/static|_next/image|app|cms|login|logout|oauth|delete-account|share-target|media|.*\\..*).*)",
+    "/((?!api|ingest|_next/static|_next/image|app|cms|embed|login|logout|oauth|delete-account|share-target|media|.*\\..*).*)",
   ],
 };

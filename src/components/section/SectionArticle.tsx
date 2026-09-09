@@ -25,6 +25,7 @@ import { documentHeadings, documentStats } from "@/content-system/document";
 import { categoriesByKeys } from "@/content-system/repository/categories";
 import { locationsByKeys } from "@/content-system/repository/locations";
 import { LocationLinks } from "@/components/article/LocationLinks";
+import { embeddableContentComponents } from "@/content-system/components/embeds";
 
 // One page of a registry section, at any depth: /estadisticas/delitos-caba,
 // /investigaciones/barrios-seguros-baratos-caba, and
@@ -176,6 +177,10 @@ export async function SectionArticle({
                   author wants it. */}
               <Content
                 components={contentComponents({
+                  ...embeddableContentComponents({
+                    sourceHref: section.href(slug),
+                    section: section.id as "estadisticas" | "investigaciones",
+                  }),
                   ...media,
                   Faq: () => <Faq items={meta.faq ?? []} />,
                   Metodologia: () => <Metodologia value={meta.methodology} />,
