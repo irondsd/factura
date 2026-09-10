@@ -8,6 +8,8 @@ import { canManageTokens } from "@/cms/auth/policy";
 import { requireCmsMember } from "@/cms/auth/requireCmsMember";
 import { CmsShell } from "@/cms/components/CmsShell";
 import { cmsPageMetadata } from "@/cms/metadata";
+import { UserCollectionCard } from "@/cms/users/components/UserDirectory";
+import { cmsUserService } from "@/cms/users/server/service";
 import {
   CMS_SECTIONS,
   cmsSectionPath,
@@ -30,9 +32,10 @@ export function generateMetadata(): Metadata {
 
 export default async function CmsHomePage() {
   const actor = await requireCmsMember("/cms");
-  const [authors, locations] = await Promise.all([
+  const [authors, locations, userMetrics] = await Promise.all([
     cmsAuthorService.list(),
     cmsLocationService.list(actor),
+    cmsUserService.metrics(),
   ]);
 
   return (
@@ -74,13 +77,14 @@ export default async function CmsHomePage() {
 
       <section className="mt-10 border-t border-line pt-8">
         <h2 className="m-0 font-display text-[24px] font-semibold tracking-[-0.02em]">
-          Colecciones globales
+          Administración
         </h2>
         <p className="mt-2 mb-6 max-w-[62ch] font-mono text-[13px] leading-[1.6] text-muted">
-          Datos compartidos por todas las secciones de contenido.
+          Datos y herramientas compartidos por el contenido y el producto.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <AuthorManager initialAuthors={authors} />
+          <UserCollectionCard metrics={userMetrics} />
           <LocationManager initialLocations={locations} />
         </div>
       </section>

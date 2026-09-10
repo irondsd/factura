@@ -35,8 +35,8 @@ describe("the section registry", () => {
   });
 
   it("never collides with a reserved CMS segment", () => {
-    // `/cms/tokens` is top-level, and `new`/`preview` sit inside a section.
-    for (const reserved of ["tokens", "new", "preview"]) {
+    // These are top-level tools, while `new`/`preview` sit inside a section.
+    for (const reserved of ["tokens", "media", "users", "new", "preview"]) {
       expect(CMS_SECTIONS.map((s) => s.id)).not.toContain(reserved);
     }
   });
