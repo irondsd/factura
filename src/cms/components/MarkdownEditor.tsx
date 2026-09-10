@@ -17,7 +17,7 @@ import {
   search,
   searchKeymap,
 } from "@codemirror/search";
-import { EditorState } from "@codemirror/state";
+import { EditorState, Prec } from "@codemirror/state";
 import {
   drawSelection,
   EditorView,
@@ -27,7 +27,7 @@ import {
   lineNumbers,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Diagnostic } from "@/content-system/types";
 import styles from "./MarkdownEditor.module.css";
 import { componentAssistantExtension } from "../component-assistant/extension";
@@ -35,6 +35,13 @@ import type {
   ComponentCompletionDescriptor,
   ComponentRecipeDescriptor,
 } from "../component-assistant/types";
+import { MarkdownToolbar } from "./MarkdownToolbar";
+import {
+  applyTransaction,
+  currentBlockFormat,
+  inlineFormatTransaction,
+  type BlockFormat,
+} from "./markdownFormatting";
 
 // The Markdown source editor (cms.md): a GitHub-like source workflow, not
 // WYSIWYG. Custom components stay visible as source — an editor who writes
@@ -160,6 +167,8 @@ export function MarkdownEditor({
 }) {
   const host = useRef<HTMLDivElement | null>(null);
   const view = useRef<EditorView | null>(null);
+  const [blockFormat, setBlockFormat] = useState<BlockFormat>("paragraph");
+  const getView = useCallback(() => view.current, []);
   // Held in a ref so changing the handler does not tear down the editor and
   // lose the cursor. Written in an effect rather than during render: a ref
   // mutated while rendering is a value React may not have committed yet.
@@ -190,10 +199,38 @@ export function MarkdownEditor({
           syntaxHighlighting(highlightStyle),
           theme,
           componentAssistantExtension(componentDescriptors, recipes),
+          Prec.highest(
+            keymap.of([
+              {
+                key: "Mod-b",
+                run: (editor) =>
+                  applyTransaction(editor, (state) =>
+                    inlineFormatTransaction(state, "bold"),
+                  ),
+              },
+              {
+                key: "Mod-i",
+                run: (editor) =>
+                  applyTransaction(editor, (state) =>
+                    inlineFormatTransaction(state, "italic"),
+                  ),
+              },
+              {
+                key: "Mod-k",
+                run: (editor) =>
+                  applyTransaction(editor, (state) =>
+                    inlineFormatTransaction(state, "link"),
+                  ),
+              },
+            ]),
+          ),
           keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChangeRef.current(update.state.doc.toString());
+            }
+            if (update.docChanged || update.selectionSet) {
+              setBlockFormat(currentBlockFormat(update.state));
             }
           }),
           EditorView.contentAttributes.of({
@@ -205,6 +242,7 @@ export function MarkdownEditor({
       }),
     });
     view.current = instance;
+    setBlockFormat(currentBlockFormat(instance.state));
     return () => {
       instance.destroy();
       view.current = null;
@@ -224,5 +262,10 @@ export function MarkdownEditor({
     );
   }, [diagnostics]);
 
-  return <div ref={host} className={styles.editor} />;
+  return (
+    <div className={styles.editor}>
+      <MarkdownToolbar getView={getView} blockFormat={blockFormat} />
+      <div ref={host} className={styles.host} />
+    </div>
+  );
 }

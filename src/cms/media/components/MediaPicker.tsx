@@ -14,10 +14,14 @@ import type { MediaAsset, MediaAssetWithUsage } from "../types";
 export function MediaPicker({
   value,
   onChange,
+  onAssetChange,
   describedBy,
 }: {
   value: string | null;
   onChange: (id: string | null) => void;
+  /** Optional richer callback for callers that need the permalink and alt
+   * decision as well as the stored id, such as the Markdown body toolbar. */
+  onAssetChange?: (asset: MediaAsset | null) => void;
   describedBy?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -83,7 +87,11 @@ export function MediaPicker({
               <button
                 type="button"
                 className="text-muted underline"
-                onClick={() => onChange(null)}
+                onClick={() => {
+                  setSelected(null);
+                  onChange(null);
+                  onAssetChange?.(null);
+                }}
               >
                 Quitar
               </button>
@@ -140,6 +148,7 @@ export function MediaPicker({
                     onClick={() => {
                       setSelected(asset);
                       onChange(asset.id);
+                      onAssetChange?.(asset);
                       setOpen(false);
                     }}
                     className="block w-full border border-line hover:border-accent"

@@ -5,3 +5,14 @@
   position: relative;
   min-width: 0;
 }
+
+.host {
+  min-width: 0;
+}
+
+/* The CodeMirror content is the focus target. Its top already begins below the
+   in-flow toolbar, and the margin gives browser scroll-to-focus enough room
+   when that toolbar has become sticky. */
+.host :global(.cm-content) {
+  scroll-margin-top: 56px;
+}
