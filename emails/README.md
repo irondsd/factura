@@ -15,11 +15,22 @@ bun run email      # live preview at http://localhost:3001
   `eyebrow` / `title` / `headerTag` / `children`. Exports `styles`, tokens (`C`)
   and a `<DetailRow>` helper. New emails compose through this shell — only the
   content swaps.
+- **`components/inline.tsx`** — `<Inline>` plus the pure `tokenizeInline`. Two
+  inline markers for campaign copy, `**bold**` and `[label](url)`, with no
+  nesting and no unsafe schemes. Everything it doesn't recognise stays literal.
 - **`welcome.tsx`** — `WelcomeEmail`, registration / welcome.
 - **`opt.tsx`** — `OtpEmail`, the six-digit email sign-in code.
+- **`campaign.tsx`** — `CampaignEmail`, one-off broadcasts. The exception to the
+  rule below: it reads no dictionary at all. Every string comes from one
+  `CampaignContent` object — the body blocks _and_ the brand chrome — because a
+  broadcast is write-once copy that would sit in the dictionaries forever,
+  unread after the send. `CHROME` in that file holds a per-locale default for
+  each chrome field so a send needn't retype the footer every time.
 
 Each template file has a default export (picked up by the preview server) and a
-`PreviewProps` for sample data.
+`PreviewProps` for sample data. Transactional copy lives in
+`src/i18n/dictionaries/{es,en}.json` under `emails`, resolved per recipient from
+`users.locale` — `campaign.tsx` is the one template that opts out of this.
 
 ## Brand fidelity / email caveats
 
