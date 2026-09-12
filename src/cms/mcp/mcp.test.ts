@@ -5,6 +5,7 @@ import {
   META_SERVER_INFO,
   parseMessage,
   PROTOCOL_VERSION,
+  type ProtocolEra,
   SUPPORTED_PROTOCOL_VERSIONS,
 } from "@/server/mcp/protocol";
 import { limitKey, MCP_CALL, take } from "@/server/rateLimit";
@@ -794,8 +795,16 @@ if (!hasTestDatabase()) {
      * direction and made these assertions flaky. */
     let baseline: Set<string>;
 
-    const call = (name: string, args: Record<string, unknown>) =>
-      handleCmsMessage(request("tools/call", { name, arguments: args }), agent);
+    const call = (
+      name: string,
+      args: Record<string, unknown>,
+      era: ProtocolEra = "modern",
+    ) =>
+      handleCmsMessage(
+        request("tools/call", { name, arguments: args }),
+        agent,
+        era,
+      );
 
     /** Pointers, then revisions, then pages — the order the `restrict` foreign
      * keys allow. See the note on the same helper in
@@ -1340,11 +1349,27 @@ if (!hasTestDatabase()) {
       });
     });
 
-    it("answers list_content with an object-shaped structuredContent or none", async () => {
-      // The real path, against real rows: whatever the service returns, the
-      // envelope has to stay something a strict MCP client will accept.
+    it("answers list_content with the rows as structuredContent in the modern era", async () => {
+      // The real path, against real rows. `2026-07-28` types structuredContent
+      // as any JSON value, so the bare array `list_content` returns is allowed
+      // to ride along — see `toolSuccess`.
       await call("create_content", newPage("list-shape"));
       const result = resultOf(await call("list_content", { section: "guias" }));
+
+      expect(result.isError).toBe(false);
+      const rows = JSON.parse(result.content[0].text) as { slug: string }[];
+      expect(rows.some((row) => row.slug === `${SLUG}list-shape`)).toBe(true);
+      expect(result.structuredContent).toEqual(rows);
+    });
+
+    it("answers list_content with an object-shaped structuredContent or none in the legacy era", async () => {
+      // `2025-06-18` typed structuredContent as a JSON object, and strict
+      // clients of that era reject an array outright — the envelope has to
+      // stay something they will accept, whatever the service returns.
+      await call("create_content", newPage("list-shape-legacy"));
+      const result = resultOf(
+        await call("list_content", { section: "guias" }, "legacy"),
+      );
 
       expect(result.isError).toBe(false);
       expect(Array.isArray(result.structuredContent)).toBe(false);
@@ -1353,7 +1378,9 @@ if (!hasTestDatabase()) {
 
       // And the listing itself still arrives, in the text content.
       const rows = JSON.parse(result.content[0].text) as { slug: string }[];
-      expect(rows.some((row) => row.slug === `${SLUG}list-shape`)).toBe(true);
+      expect(rows.some((row) => row.slug === `${SLUG}list-shape-legacy`)).toBe(
+        true,
+      );
     });
 
     it("does not audit a read", async () => {
