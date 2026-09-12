@@ -126,10 +126,37 @@ export function createFakeCms(
         const row = revisions.get(id);
         return row ? [clone(row)] : [];
       }),
-    listForPage: async (pageId: string) =>
+    summariesForPage: async (pageId: string) =>
       [...revisions.values()]
         .filter((revision) => revision.pageId === pageId)
-        .map(clone),
+        .map(
+          ({
+            id,
+            pageId,
+            kind,
+            basedOnRevisionId,
+            publicationNumber,
+            createdBy,
+            updatedBy,
+            createdAt,
+            updatedAt,
+            publishedAt,
+            title,
+          }) =>
+            clone({
+              id,
+              pageId,
+              kind,
+              basedOnRevisionId,
+              publicationNumber,
+              createdBy,
+              updatedBy,
+              createdAt,
+              updatedAt,
+              publishedAt,
+              title,
+            }),
+        ),
     publications: async (pageId: string) =>
       [...revisions.values()]
         .filter(
@@ -269,6 +296,37 @@ export function createFakeCms(
         .sort(
           (a, b) => a.sortOrder - b.sortOrder || a.slug.localeCompare(b.slug),
         ),
+
+    outline: async (section: ContentSection) =>
+      [...pages.values()]
+        .filter((page) => page.section === section)
+        .flatMap((page) => {
+          const summary = summaryOf(page);
+          return summary
+            ? [
+                {
+                  id: summary.id,
+                  section: summary.section,
+                  slug: summary.slug,
+                  status: summary.status,
+                  publishedAt: summary.publishedAt,
+                  title: summary.title,
+                  description: summary.description,
+                  canonicalSlug: summary.canonicalSlug,
+                  parentId: summary.parentId,
+                  sortOrder: summary.sortOrder,
+                },
+              ]
+            : [];
+        })
+        .sort(
+          (a, b) => a.sortOrder - b.sortOrder || a.slug.localeCompare(b.slug),
+        ),
+
+    findTitle: async (id: string) => {
+      const page = pages.get(id);
+      return (page && cmsRevisionOf(page)?.title) ?? null;
+    },
 
     documentsForSection: async (section: ContentSection) =>
       [...pages.values()]

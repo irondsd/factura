@@ -63,6 +63,7 @@ import {
   CmsRevisionStore,
   cmsRevisionStore as defaultRevisionStore,
   type RevisionRecord,
+  type RevisionSummary,
 } from "./revisionStore";
 import {
   type CmsListFilter,
@@ -332,14 +333,22 @@ export class CmsContentService {
   async getState(_actor: CmsActor, id: string): Promise<CmsPageState> {
     const page = await this.store.findPage(id);
     if (!page) throw new CmsNotFoundError(`Page ${id}`);
-    const revision = await this.selectedRevision(page);
-    const [wip, preview, publications] = await Promise.all([
-      page.wipRevisionId ? this.revisions.byId(page.wipRevisionId) : null,
-      page.previewRevisionId
-        ? this.revisions.byId(page.previewRevisionId)
-        : null,
-      this.revisions.publications(id),
+    // The selected revision is the one body this needs. Everything around it —
+    // which copies exist and when they last moved — comes from one read that
+    // leaves the prose behind, where it used to load the WIP, the preview and
+    // every publication whole on each editor render and `get_content`.
+    const [revision, summaries] = await Promise.all([
+      this.selectedRevision(page),
+      this.revisions.summariesForPage(id),
     ]);
+    const wip =
+      summaries.find((summary) => summary.id === page.wipRevisionId) ?? null;
+    const preview =
+      summaries.find((summary) => summary.id === page.previewRevisionId) ??
+      null;
+    const publications = summaries.filter(
+      (summary) => summary.kind === "published",
+    );
 
     return {
       document: documentOf(page, revision),
@@ -1057,14 +1066,16 @@ export class CmsContentService {
     const page = await this.store.findPage(id);
     if (!page) throw new CmsNotFoundError(`Page ${id}`);
 
-    const revisions = await this.revisions.listForPage(id);
+    // Summaries, not records: the panel lists versions and shows none of their
+    // prose. A comparison asks for the one revision it needs.
+    const revisions = await this.revisions.summariesForPage(id);
     const actors = await this.history.actorsById(
       revisions.flatMap((revision) =>
         revision.updatedBy ? [revision.updatedBy] : [],
       ),
     );
 
-    const entry = (revision: RevisionRecord): VersionEntry => ({
+    const entry = (revision: RevisionSummary): VersionEntry => ({
       revisionId: revision.id,
       kind: revision.kind,
       publicationNumber: revision.publicationNumber,
@@ -1221,7 +1232,7 @@ export class CmsContentService {
     }
 
     const section = page.section as ContentSection;
-    const siblings = await this.store.list({ section });
+    const siblings = await this.store.outline(section);
     const planned = planRename(
       { id: page.id, slug: page.slug, publishedAt: pageIso(page.publishedAt) },
       input.slug,
@@ -1248,17 +1259,18 @@ export class CmsContentService {
 
     // The tree, checked against the section as it would be *after* the move:
     // a page whose parent is set still has to sit under that parent's path, and
-    // the parent may itself be moving in this same plan.
+    // the parent may itself be moving in this same plan. The page's own place
+    // in the tree is already in the outline; its body is not needed for this.
     const moved = new Map(plan.moves.map((move) => [move.id, move.to]));
-    const document = await this.store.findById(page.id);
-    if (!document) throw new CmsNotFoundError(`Page ${input.id}`);
+    const self = siblings.find((s) => s.id === page.id);
+    if (!self) throw new CmsNotFoundError(`Page ${input.id}`);
     await this.assertHierarchyAmong(
       {
         id: page.id,
         section,
         slug: target,
-        parentId: document.parentId,
-        sortOrder: document.sortOrder,
+        parentId: self.parentId,
+        sortOrder: self.sortOrder,
       },
       siblings
         .filter((s) => s.id !== page.id)
@@ -1597,9 +1609,9 @@ export class CmsContentService {
    * intermediate paths). Uniform for every section — this is the alternative to
    * a per-section branch in the editor, the list and the breadcrumb. */
   private async assertHierarchy(node: HierarchyNode): Promise<void> {
-    const siblings = await this.store.list({
-      section: node.section as ContentSection,
-    });
+    // The outline: this runs on every save, and the tree rules need nothing
+    // past identity, parent and order.
+    const siblings = await this.store.outline(node.section as ContentSection);
     await this.assertHierarchyAmong(
       node,
       siblings
@@ -1689,8 +1701,8 @@ export class CmsContentService {
  * exist: without a preview there is no stale link, and without a WIP nothing
  * has moved since it was promoted. */
 function previewIsStale(
-  preview: RevisionRecord | null,
-  wip: RevisionRecord | null,
+  preview: Pick<RevisionSummary, "createdAt"> | null,
+  wip: Pick<RevisionSummary, "updatedAt"> | null,
 ): boolean {
   if (!preview || !wip) return false;
   return wip.updatedAt.getTime() > preview.createdAt.getTime();

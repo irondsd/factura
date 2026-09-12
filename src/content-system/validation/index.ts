@@ -8,6 +8,7 @@ import { validationResult } from "../types";
 import {
   buildContentIndex,
   type CollectionDiagnostic,
+  type CollectionEntry,
   validateCollection,
 } from "./collection";
 import {
@@ -33,7 +34,11 @@ import { validateGrammar } from "./grammar";
 // path pays that cost. `validateForPublish` in `src/cms/server/validation.ts`
 // is what strings the two together.
 
-export { buildContentIndex, validateCollection } from "./collection";
+export {
+  buildContentIndex,
+  type CollectionEntry,
+  validateCollection,
+} from "./collection";
 export {
   type ContentIndex,
   type DocumentValidationContext,
@@ -60,8 +65,9 @@ export type ContentValidationLevel = keyof typeof LEVEL_LAYERS;
 export type ValidateDocumentOptions = {
   index?: ContentIndex;
   context?: DocumentValidationContext;
-  /** The rest of the collection, needed only at `publish`. */
-  collection?: readonly ContentDocument[];
+  /** The rest of the collection, needed only at `publish`. Only the fields the
+   * collection rules compare — see `CollectionEntry`. */
+  collection?: readonly CollectionEntry[];
 };
 
 /** Validate one document to a given level. The single call the CMS service,

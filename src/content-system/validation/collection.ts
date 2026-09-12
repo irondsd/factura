@@ -19,6 +19,24 @@ export const COLLECTION_CODES = {
   canonicalChain: "collection.canonical-chain",
 } as const;
 
+/** The fields the rules below compare — every one of them, and nothing else.
+ *
+ * A subset rather than a whole `ContentDocument` because the CMS runs these
+ * rules against every other page in a section on each publish-level check, and
+ * reading every body in the section to compare titles is what drained the
+ * database's transfer allowance. A whole document still satisfies it, so the
+ * importer and the tests pass documents as they are. */
+export type CollectionEntry = Pick<
+  ContentDocument,
+  | "id"
+  | "section"
+  | "slug"
+  | "status"
+  | "title"
+  | "description"
+  | "canonicalSlug"
+>;
+
 /** One finding, attributed to the document it belongs to. Collection findings
  * are inherently about more than one page, so each is reported against every
  * page involved — the same way the old script pushed the collision onto both
@@ -59,7 +77,7 @@ export type CollectionValidationResult = {
 };
 
 export function validateCollection(
-  documents: readonly ContentDocument[],
+  documents: readonly CollectionEntry[],
 ): CollectionValidationResult {
   const out: CollectionDiagnostic[] = [];
 
@@ -67,7 +85,7 @@ export function validateCollection(
   // The database has a unique index on (section, slug), so this cannot happen
   // there — but the importer validates *before* writing, and the filesystem
   // adapter reads a directory where two sections could collide.
-  const bySlug = new Map<string, ContentDocument[]>();
+  const bySlug = new Map<string, CollectionEntry[]>();
   for (const document of documents) {
     const id = `${document.section}/${document.slug}`;
     bySlug.set(id, [...(bySlug.get(id) ?? []), document]);
@@ -144,11 +162,11 @@ export function validateCollection(
 }
 
 function collide(
-  documents: readonly ContentDocument[],
+  documents: readonly CollectionEntry[],
   out: CollectionDiagnostic[],
   field: "title" | "description",
 ): void {
-  const seen = new Map<string, ContentDocument[]>();
+  const seen = new Map<string, CollectionEntry[]>();
   for (const document of documents) {
     const value = document[field];
     if (!value) continue;

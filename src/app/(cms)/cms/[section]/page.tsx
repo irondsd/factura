@@ -72,7 +72,7 @@ export default async function CmsSectionPage({ params, searchParams }: Props) {
   // *unfiltered* section, so narrowing the query would mean a second read to
   // put back what it removed. Sections are a few dozen pages.
   const [all, categories, locations] = await Promise.all([
-    cmsPageStore.list({ section: section.id }),
+    cmsPageStore.list({ section: section.id, withoutLongMetadata: true }),
     cmsCategoryService.list(actor, section.id),
     cmsLocationService.options(actor),
   ]);

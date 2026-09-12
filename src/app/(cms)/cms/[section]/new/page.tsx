@@ -25,7 +25,7 @@ export default async function CmsNewPage({ params }: Props) {
   const section = findEditableSection(segment);
   if (!section) notFound();
 
-  const parentOptions = (await cmsPageStore.list({ section: section.id })).map(
+  const parentOptions = (await cmsPageStore.outline(section.id)).map(
     (candidate) => ({
       value: candidate.id,
       label: `${candidate.title || candidate.slug} — /${candidate.slug}`,

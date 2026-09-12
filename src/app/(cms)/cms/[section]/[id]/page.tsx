@@ -35,8 +35,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (access.kind !== "member") return cmsPageMetadata("Editar");
 
   const { id } = await params;
-  const page = await cmsPageStore.findById(id);
-  return cmsPageMetadata(page?.title || "Editar");
+  const title = await cmsPageStore.findTitle(id);
+  return cmsPageMetadata(title || "Editar");
 }
 
 export default async function CmsEditPage({ params }: Props) {
@@ -75,7 +75,7 @@ export default async function CmsEditPage({ params }: Props) {
     authors,
     locations,
   ] = await Promise.all([
-    cmsPageStore.list({ section: section.id }),
+    cmsPageStore.outline(section.id),
     loadPageHistory(page),
     cmsContentService.getState(actor, id),
     cmsContentService.listVersions(actor, id),

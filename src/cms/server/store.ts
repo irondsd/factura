@@ -36,6 +36,12 @@ export type CmsListFilter = {
   statuses?: ContentStatus[];
   /** Substring match on title or slug, case-insensitive. */
   search?: string;
+  /** Leave the long-form metadata — the FAQ and the sources — out of each
+   * row. For the section list, which renders credits, categories and
+   * locations and nothing longer: those two keys are most of a guide's
+   * metadata, and the list is read whole on every visit. Both are optional in
+   * every section's schema, so a trimmed row still parses. */
+  withoutLongMetadata?: boolean;
 };
 
 /** What the console-wide search asks for (`src/cms/search.ts`). Separate from
@@ -63,6 +69,21 @@ export type CmsSearchHit = CmsContentSummary & {
   /** Whether that slice starts at the beginning of the body, so the caller
    * knows whether to open it with an ellipsis. */
   excerptAtStart: boolean;
+};
+
+/** One page as `CmsPageStore.outline` reads it. `publishedAt` is ISO, the shape
+ * a summary carries, so rename planning takes either. */
+export type CmsPageOutline = {
+  id: string;
+  section: ContentSection;
+  slug: string;
+  status: ContentStatus;
+  publishedAt: string | null;
+  title: string;
+  description: string;
+  canonicalSlug: string | null;
+  parentId: string | null;
+  sortOrder: number;
 };
 
 /** The page row itself: identity, lifecycle and the four revision pointers.
@@ -289,7 +310,17 @@ export class CmsPageStore {
     ].filter((c) => c !== undefined);
 
     const rows = await this.db
-      .select({ page: PAGE_COLUMNS, revision: REVISION_SUMMARY_COLUMNS })
+      .select({
+        page: PAGE_COLUMNS,
+        revision: {
+          ...REVISION_SUMMARY_COLUMNS,
+          // `jsonb - key` drops the key in SQL, so the long values never leave
+          // the database.
+          metadata: filter.withoutLongMetadata
+            ? sql<unknown>`${cmsPageRevisions.metadata} - 'faq' - 'sources'`
+            : cmsPageRevisions.metadata,
+        },
+      })
       .from(cmsPages)
       .innerJoin(cmsPageRevisions, eq(cmsPageRevisions.id, CMS_REVISION_ID))
       .where(conditions.length ? and(...conditions) : undefined)
@@ -302,6 +333,51 @@ export class CmsPageStore {
       ...cmsRowToSummary(row.page, row.revision),
       hasWip: row.page.wipRevisionId !== null,
     }));
+  }
+
+  /** One section as the page tree and the collection rules see it: identity,
+   * lifecycle and the few authored fields they compare — no body, no metadata.
+   *
+   * What the hierarchy and rename checks, publish-level collection validation
+   * and the editor's parent picker read. All of them run on every editor render
+   * or save, and `list` carries each page's whole metadata (FAQ and sources
+   * included), which none of them look at. */
+  async outline(section: ContentSection): Promise<CmsPageOutline[]> {
+    const rows = await this.db
+      .select({
+        id: cmsPages.id,
+        section: cmsPages.section,
+        slug: cmsPages.slug,
+        status: cmsPages.status,
+        publishedAt: cmsPages.publishedAt,
+        title: cmsPageRevisions.title,
+        description: cmsPageRevisions.description,
+        canonicalSlug: cmsPageRevisions.canonicalSlug,
+        parentId: cmsPageRevisions.parentId,
+        sortOrder: cmsPageRevisions.sortOrder,
+      })
+      .from(cmsPages)
+      .innerJoin(cmsPageRevisions, eq(cmsPageRevisions.id, CMS_REVISION_ID))
+      .where(eq(cmsPages.section, section))
+      .orderBy(asc(cmsPageRevisions.sortOrder), asc(cmsPages.slug));
+    return rows.map((row) => ({
+      ...row,
+      section: row.section as ContentSection,
+      status: row.status as ContentStatus,
+      publishedAt: row.publishedAt ? row.publishedAt.toISOString() : null,
+    }));
+  }
+
+  /** A page's title at the CMS revision, for the browser tab, without reading
+   * the document it belongs to. */
+  async findTitle(id: string): Promise<string | null> {
+    const [row] = await this.db
+      .select({ title: cmsPageRevisions.title })
+      .from(cmsPages)
+      .innerJoin(cmsPageRevisions, eq(cmsPageRevisions.id, CMS_REVISION_ID))
+      .where(eq(cmsPages.id, id))
+      .limit(1);
+    return row?.title ?? null;
   }
 
   /** The console-wide search: one term, across sections, through the body.

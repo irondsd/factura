@@ -2,6 +2,7 @@ import "server-only";
 import { assertContentRenders } from "@/content-system/render/renderContent";
 import {
   buildContentIndex,
+  type CollectionEntry,
   type ContentValidationLevel,
   validateContentDocument,
 } from "@/content-system/validation";
@@ -131,29 +132,30 @@ async function mediaStatusesFor(
 
 /** Every other page in this document's section, plus the document itself as the
  * caller has it — so an unsaved edit is validated against the collection it
- * would join, not against its own stored version. */
+ * would join, not against its own stored version.
+ *
+ * The section's outline, not its documents. The collection rules compare
+ * slugs, statuses, titles, descriptions and canonicals, and this runs on every
+ * publish-level check: when the editor opens, after every save, on «Validar»
+ * and on publish. Reading every page whole to compare those fields cost about
+ * 1.5 MB of database transfer per check on the guides section. */
 async function collectionFor(
   store: CmsPageStore,
   document: ContentDocument,
-): Promise<ContentDocument[]> {
-  const summaries = await store.list({ section: document.section });
-  const others = await Promise.all(
-    summaries
-      .filter((s) => s.id !== document.id)
-      .map((s) => store.findById(s.id)),
-  );
-  return [...others.filter((d): d is ContentDocument => d !== null), document];
+): Promise<CollectionEntry[]> {
+  const outline = await store.outline(document.section);
+  return [...outline.filter((entry) => entry.id !== document.id), document];
 }
 
 /** The cheap index: slugs and statuses only, for the link and canonical checks
  * at preview level, where the full collection is not needed. */
 async function indexFor(store: CmsPageStore, document: ContentDocument) {
-  const summaries = await store.list({ section: document.section });
+  const outline = await store.outline(document.section);
   return buildContentIndex(
-    summaries.map((s) =>
-      s.id === document.id
+    outline.map((entry) =>
+      entry.id === document.id
         ? { slug: document.slug, status: document.status }
-        : { slug: s.slug, status: s.status },
+        : { slug: entry.slug, status: entry.status },
     ),
   );
 }

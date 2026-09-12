@@ -46,6 +46,14 @@ export type RevisionRecord = AuthoredDocument & {
   publishedAt: Date | null;
 };
 
+/** A revision without its prose: lifecycle and provenance, plus the title the
+ * version list labels it with. What the editor's version panel and the
+ * lifecycle state are built from — neither shows a body, and loading up to
+ * seven of them on every editor render was database transfer for nothing. */
+export type RevisionSummary = Omit<RevisionRecord, keyof AuthoredDocument> & {
+  title: string;
+};
+
 export type RevisionInsert = {
   pageId: string;
   kind: RevisionKind;
@@ -61,6 +69,24 @@ export type RevisionInsert = {
 };
 
 type Row = typeof cmsPageRevisions.$inferSelect;
+
+/** Every column that is not authored content. What a write reads back: the
+ * caller already holds the document it just wrote, so returning the body too
+ * would send it back over the wire a second time. */
+const LIFECYCLE_COLUMNS = {
+  id: cmsPageRevisions.id,
+  pageId: cmsPageRevisions.pageId,
+  kind: cmsPageRevisions.kind,
+  basedOnRevisionId: cmsPageRevisions.basedOnRevisionId,
+  publicationNumber: cmsPageRevisions.publicationNumber,
+  createdBy: cmsPageRevisions.createdBy,
+  updatedBy: cmsPageRevisions.updatedBy,
+  createdAt: cmsPageRevisions.createdAt,
+  updatedAt: cmsPageRevisions.updatedAt,
+  publishedAt: cmsPageRevisions.publishedAt,
+} as const;
+
+type LifecycleRow = Pick<Row, keyof typeof LIFECYCLE_COLUMNS>;
 
 export class CmsRevisionStore {
   constructor(private readonly db: Database = defaultDb) {}
@@ -87,17 +113,18 @@ export class CmsRevisionStore {
   }
 
   /** Every revision a page holds — at most seven rows: one WIP, one
-   * checkpoint, one preview and four publications. Bodies included, because
-   * the only caller is the editor's own history and comparison. */
-  async listForPage(pageId: string): Promise<RevisionRecord[]> {
-    const rows = await this.db.query.cmsPageRevisions.findMany({
-      where: eq(cmsPageRevisions.pageId, pageId),
-      orderBy: [
+   * checkpoint, one preview and four publications — without their prose. A
+   * comparison or a preview that needs a body asks for that one revision by id. */
+  async summariesForPage(pageId: string): Promise<RevisionSummary[]> {
+    const rows = await this.db
+      .select({ ...LIFECYCLE_COLUMNS, title: cmsPageRevisions.title })
+      .from(cmsPageRevisions)
+      .where(eq(cmsPageRevisions.pageId, pageId))
+      .orderBy(
         desc(cmsPageRevisions.publicationNumber),
         desc(cmsPageRevisions.updatedAt),
-      ],
-    });
-    return rows.map(toRecord);
+      );
+    return rows.map((row) => ({ ...lifecycleOf(row), title: row.title }));
   }
 
   /** This page's publications, newest first. The retention sweep's input. */
@@ -155,8 +182,11 @@ export class CmsRevisionStore {
         updatedAt: input.now,
         publishedAt: input.publishedAt ?? null,
       })
-      .returning();
-    return toRecord(row);
+      .returning(LIFECYCLE_COLUMNS);
+    return {
+      ...lifecycleOf(row),
+      ...authoredFrom(input.document, input.document.contentUpdatedAt),
+    };
   }
 
   /** Update the working copy in place. The only in-place update in this table,
@@ -197,8 +227,13 @@ export class CmsRevisionStore {
           eq(cmsPageRevisions.kind, "wip"),
         ),
       )
-      .returning();
-    return row ? toRecord(row) : null;
+      .returning(LIFECYCLE_COLUMNS);
+    return row
+      ? {
+          ...lifecycleOf(row),
+          ...authoredFrom(input.document, input.document.contentUpdatedAt),
+        }
+      : null;
   }
 
   /** Delete revisions by id. The caller has already moved or cleared every
@@ -223,16 +258,30 @@ export class CmsRevisionStore {
   }
 }
 
-/** A row, with `kind` narrowed. An unknown kind is a row from a newer deploy;
- * refusing to read it would take the editor down, so it is reported as a
- * checkpoint — the one kind that is neither public nor editable. */
-function toRecord(row: Row): RevisionRecord {
+/** The lifecycle half of a row, with `kind` narrowed. An unknown kind is a row
+ * from a newer deploy; refusing to read it would take the editor down, so it is
+ * reported as a checkpoint — the one kind that is neither public nor editable. */
+function lifecycleOf(
+  row: LifecycleRow,
+): Omit<RevisionRecord, keyof AuthoredDocument> {
   return {
     id: row.id,
     pageId: row.pageId,
     kind: isRevisionKind(row.kind) ? row.kind : "checkpoint",
     basedOnRevisionId: row.basedOnRevisionId,
     publicationNumber: row.publicationNumber,
+    createdBy: row.createdBy,
+    updatedBy: row.updatedBy,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    publishedAt: row.publishedAt,
+  };
+}
+
+/** A whole row as a record. */
+function toRecord(row: Row): RevisionRecord {
+  return {
+    ...lifecycleOf(row),
     body: row.bodyMdx,
     title: row.title,
     titleTag: row.titleTag,
@@ -245,11 +294,6 @@ function toRecord(row: Row): RevisionRecord {
     sortOrder: row.sortOrder,
     crumb: row.crumb,
     contentUpdatedAt: row.contentUpdatedAt,
-    createdBy: row.createdBy,
-    updatedBy: row.updatedBy,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    publishedAt: row.publishedAt,
   };
 }
 
