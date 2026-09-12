@@ -2,6 +2,7 @@ import "../../globals.css";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LangSuggestBanner } from "@/components/landing/LangSuggestBanner";
+import { AhrefsAnalytics } from "@/components/seo/AhrefsAnalytics";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { fraunces, plexMono } from "@/config/fonts";
 import { baseMetadata, viewport } from "@/config/meta";
@@ -80,6 +81,9 @@ export default async function LandingRootLayout({
             <LangSuggestBanner />
           </ToastProvider>
         </I18nProvider>
+        {/* Public pages only. The sign-in route and /cms have their own root
+            layouts and stay out of the site's traffic numbers. */}
+        <AhrefsAnalytics />
       </body>
     </html>
   );

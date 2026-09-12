@@ -81,6 +81,7 @@ Copy `env.example` to `.env.local`.
 | `TELEGRAM_NOTIFY_SIGNINS`                                                                         | `new` by default, `all`, or `off`.                             |
 | `CMS_MEDIA_S3_BUCKET` / `CMS_MEDIA_PUBLIC_ORIGIN`                                                 | Public CMS media bucket and browser origin.                    |
 | `S3_ENDPOINT` / `S3_REGION` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_FORCE_PATH_STYLE` | S3-compatible connection used by CMS media.                    |
+| `NEXT_PUBLIC_AHREFS_ANALYTICS_KEY`                                                                | Ahrefs Web Analytics site key; the tag loads only where it is set. |
 
 The two public origin variables are deliberately distinct: one names this site
 and one names the app. Server-only and browser-visible code derive from the same
