@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { MobileMenu } from "@/components/landing/MobileMenu";
 import { NAV_LINK } from "@/components/landing/parts";
-import { githubUrl } from "@/config/urls";
 import type { Dictionary, Locale } from "@/i18n/config";
 import { localizedHref } from "@/i18n/routing";
 import { getI18n } from "@/i18n/server";
@@ -107,7 +106,6 @@ export function siteFooterColumns(
         { label: t.nav.privacy, href: "/privacy" },
         { label: t.nav.security, href: "/security" },
         { label: t.nav.terms, href: "/terms" },
-        { label: t.nav.github, href: githubUrl },
       ],
     },
   ];

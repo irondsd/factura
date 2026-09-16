@@ -1,5 +1,6 @@
 import "server-only";
-import { dataLicense, githubUrl, siteUrl } from "@/config/urls";
+import { socialProfiles } from "@/config/social";
+import { dataLicense, siteUrl } from "@/config/urls";
 import type { Locale } from "./config";
 import {
   contentCategoryUrl,
@@ -125,7 +126,7 @@ export function siteLd(locale: Locale) {
         // The app icon is only 32px. Google's Organization guidance requires
         // at least 112x112; this public brand mark has a 512x512 viewBox.
         logo: `${siteUrl}/logo.svg`,
-        sameAs: [githubUrl],
+        sameAs: socialProfiles.map((profile) => profile.url),
       },
       {
         "@type": "WebSite",

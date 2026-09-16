@@ -1,5 +1,7 @@
+import { cn } from "@/lib/cn";
 import { Eyebrow, NAV_LINK, SHELL, Wordmark } from "@/components/landing/parts";
 import { siteFooterColumns } from "@/components/landing/SiteNav";
+import { socialProfiles } from "@/config/social";
 import type { Locale } from "@/i18n/config";
 import { LandingLanguageSwitch } from "@/i18n/LandingLanguageSwitch";
 import { localizedHref } from "@/i18n/routing";
@@ -11,8 +13,8 @@ import { getI18n } from "@/i18n/server";
 //
 // The site outgrew a single wrapped row of links, so this is a directory: the
 // brand block, then three titled columns from `siteFooterColumns` (product /
-// learn / company). Three columns from `sm:` up, stacked in order below it —
-// a link list that reads as one column per group either way.
+// learn / company) and a fourth for the social profiles in
+// `src/config/social.ts`.
 //
 // `showLanguageSwitch` defaults to true; the Spanish-only guides pass `false`,
 // since there is no English page to switch to.
@@ -35,14 +37,14 @@ export async function SiteFooter({
             <Eyebrow>{t.siteChrome.footerLeft}</Eyebrow>
           </div>
 
-          {/* Two across on phones, three from `md:`. Nav labels don't wrap, and
+          {/* Two across on phones, four from `md:`. Nav labels don't wrap, and
               "Estadísticas" is wider than a third of a 640px column once the
               brand block is beside it — so below `md:` the three groups fall
               into a 2-up grid (producto / aprender, then factura on its own
               row) rather than colliding or running down one long column. The
               x-gap stays tighter than the y-gap so the widest label
               ("Investigaciónes") still clears a 320px viewport. */}
-          <nav className="grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 md:gap-10 lg:gap-16">
+          <nav className="grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-4 md:gap-10 lg:gap-16">
             {columns.map((column) => (
               <div key={column.label} className="flex flex-col gap-3">
                 {/* A label, not a link — see siteFooterColumns. */}
@@ -63,6 +65,35 @@ export async function SiteFooter({
                 </ul>
               </div>
             ))}
+
+            <div className="flex flex-col gap-3">
+              <span className="font-mono text-micro uppercase tracking-label-wide text-ink">
+                {t.siteChrome.footerFollow}
+              </span>
+              <ul className="flex list-none flex-col gap-2.5 p-0 m-0">
+                {socialProfiles.map((profile) => (
+                  <li key={profile.url}>
+                    <a
+                      href={profile.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        NAV_LINK,
+                        "group inline-flex items-center gap-2.5",
+                      )}
+                    >
+                      <span
+                        aria-hidden
+                        className="inline-flex size-[22px] items-center justify-center border border-line font-mono text-[10px] font-semibold normal-case tracking-normal text-ink transition-colors group-hover:border-accent group-hover:text-accent"
+                      >
+                        {profile.mark}
+                      </span>
+                      {profile.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </nav>
         </div>
 
