@@ -794,6 +794,26 @@
       "noroeste": 2.2,
       "cuyo": 1.5,
       "patagonia": 2.9
+    },
+    {
+      "period": "202607",
+      "nacional": 2.2,
+      "gba": 1.5,
+      "pampeana": 2.6,
+      "noreste": 3.9,
+      "noroeste": 3.3,
+      "cuyo": 2.2,
+      "patagonia": 2.5
+    },
+    {
+      "period": "202608",
+      "nacional": 2.8,
+      "gba": 2.6,
+      "pampeana": 3.5,
+      "noreste": 4,
+      "noroeste": 2.3,
+      "cuyo": 2,
+      "patagonia": 1.3
     }
   ]
 }

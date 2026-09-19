@@ -13,17 +13,12 @@ import raw from "./ipc-vivienda.json";
 // for every region, because these pages compare regions against each other.
 //
 // ── Refreshing ─────────────────────────────────────────────────────────────
-// INDEC publishes the IPC around the 13th of the following month, at
-// https://www.indec.gob.ar/ (Índice de precios al consumidor → "Cuadros y
-// gráficos", cuadro of variación mensual por región y división). To extend the
-// series, append one object to `points` in `ipc-vivienda.json`:
-//
-//   { "period": "202607", "nacional": 0.0, "gba": 0.0, … }
-//
-// Periods are `YYYYMM`, values are percentages with one decimal, all seven
-// regions required. Months must be consecutive — `assertConsecutive` below
-// fails the build if a period is skipped, duplicated or out of order, which is
-// the mistake this format invites.
+// INDEC publishes the IPC around the 13th of the following month. Run
+// `bun run data:ipc` to fetch `serie_ipc_divisiones.csv`, verify the complete
+// stored history and append every new month. Pass `--dry-run` to report without
+// writing. The updater refuses missing regions, gaps, duplicates and historical
+// changes; the latter need a human to confirm an official revision before the
+// published series is rewritten.
 //
 // Nothing else needs editing: every figure on the page (the last month, the
 // interannual rates, the chart footnotes) is derived from this array.
