@@ -32,7 +32,7 @@
       "description": "Explora Factura con datos de muestra: una demo en vivo del resumen del registro de facturas —totales del mes, facturas pendientes, participación por proveedor y gasto mensual—, sin iniciar sesión."
     },
     "demoInsights": {
-      "title": "Demo: analizá tus gastos y tendencias mes a mes",
+      "title": "Demo: analizá tus gastos mes por mes",
       "description": "Demo en vivo de los análisis de Factura: gasto en el tiempo, participación por proveedor, pesos frente al dólar y consumo, con datos de muestra."
     },
     "demoBills": {
@@ -146,14 +146,7 @@
     },
     "drivers": {
       "label": "Qué influye en tus gastos",
-      "items": [
-        "Consumo",
-        "Tarifas",
-        "Inflación",
-        "Período",
-        "Proveedor",
-        "Datos del mercado"
-      ]
+      "items": ["Consumo", "Tarifas", "Inflación", "Período", "Proveedor", "Datos del mercado"]
     },
     "promises": [
       "Una propiedad gratis para siempre",
