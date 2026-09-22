@@ -8,6 +8,12 @@ import { sectionIndexMetadata } from "@/i18n/metadata";
 import { sectionIndexLd } from "@/i18n/structuredData";
 import { CategoryChips } from "@/components/guides/CategoryChips";
 import { nonEmptyContentCategories } from "@/content-system/repository/categories";
+import { spanishIndexParams } from "@/i18n/routing";
+
+// Spanish-only: prerender /es alone, never an English 404 (see
+// `spanishIndexParams`).
+export const dynamicParams = false;
+export const generateStaticParams = spanishIndexParams;
 
 const TITLE = "Noticias sobre facturas y costo de vida";
 const DESCRIPTION =

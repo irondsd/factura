@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import { SectionIndex } from "@/components/section/SectionIndex";
 import { estadisticas } from "@/content/sections";
 import { sectionIndexMetadata } from "@/i18n/metadata";
+import { spanishIndexParams } from "@/i18n/routing";
+
+// Spanish-only: prerender /es alone, never an English 404 (see
+// `spanishIndexParams`).
+export const dynamicParams = false;
+export const generateStaticParams = spanishIndexParams;
 
 // The /estadisticas index. Everything structural — the breadcrumb, the row
 // list, the CollectionPage markup — is `<SectionIndex />`, shared with

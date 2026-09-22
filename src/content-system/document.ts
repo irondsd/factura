@@ -112,8 +112,17 @@ export function documentStats(
 /** Pages to suggest at the foot of `document`, best match first.
  *
  * Ranked by shared categories, with a tiebreak bonus for sharing the primary
- * one, then most recently updated first; topped up with the freshest others so the block is
- * never awkwardly short. The same ranking `relatedGuides` applies on the
+ * one; topped up with unrelated pages so the block is never awkwardly short.
+ * Equal scores — the common case, most guides share `servicios` — are ordered
+ * by `pairOrder`, a hash of the two slugs, and never by date.
+ *
+ * That tiebreak is a cost decision. It used to be "most recently updated
+ * first", which put whatever was published or edited last into the rail of
+ * every guide it tied with — ~35 pages on average, 53 at worst — and each of
+ * those is a changed page Vercel bills as an ISR write (8 KB units, identical
+ * regenerations free). With a pair hash an edit moves no other rail at all, a
+ * new guide lands in ~3, and links spread across the whole section instead of
+ * piling onto the newest few (123 of 167 guides were in nobody's rail). The same ranking `relatedGuides` applies on the
  * filesystem, over whatever set the caller passes — which is how the CMS
  * preview shows a real block instead of an empty one, and how the public page
  * will after the cutover.
@@ -140,16 +149,31 @@ export function relatedDocuments(
         shared(page) +
         ((page.metadata?.categories ?? [])[0] === categories[0] ? 0.5 : 0),
     }))
-    .sort(
-      (a, b) => b.score - a.score || updatedTime(b.page) - updatedTime(a.page),
-    )
+    .sort((a, b) => b.score - a.score || tiebreak(a.page) - tiebreak(b.page))
     .map((entry) => entry.page);
 
   if (ranked.length >= limit) return ranked.slice(0, limit);
 
-  const filler = others.filter((page) => !ranked.includes(page));
+  const filler = others
+    .filter((page) => !ranked.includes(page))
+    .sort((a, b) => tiebreak(a) - tiebreak(b));
   return [...ranked, ...filler].slice(0, limit);
+
+  function tiebreak(page: ContentSummary): number {
+    return pairOrder(document.slug, page.slug);
+  }
 }
 
-const updatedTime = (page: ContentSummary): number =>
-  Date.parse(page.contentUpdatedAt);
+/** A stable pseudo-random rank for `candidate` as seen from `from` (32-bit
+ * FNV-1a). Stable, so a rail only changes when its own inputs do; per pair
+ * rather than per candidate, so each page gets a different pick from the same
+ * tied pool. */
+function pairOrder(from: string, candidate: string): number {
+  let hash = 0x811c9dc5;
+  const key = `${from}\u0000${candidate}`;
+  for (let i = 0; i < key.length; i++) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}

@@ -8,6 +8,12 @@ import { publishedGuides } from "@/content-system/repository/guias";
 import { GRUPOS, NORMAS, normasDeGrupo } from "@/content/normativa/normas";
 import { normativaMetadata } from "@/i18n/metadata";
 import { normativaLd } from "@/i18n/structuredData";
+import { spanishIndexParams } from "@/i18n/routing";
+
+// Spanish-only: prerender /es alone, never an English 404 (see
+// `spanishIndexParams`).
+export const dynamicParams = false;
+export const generateStaticParams = spanishIndexParams;
 
 // Spanish-only reference page: the norms that produce the lines on an Argentine
 // household's bills and contracts. Copy is inlined in Spanish, like /guias and

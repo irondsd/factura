@@ -15,32 +15,31 @@ import type { ContentSection } from "@/content/section";
 // shape — but a page's path has a variable number of segments, and Next requires
 // a catch-all to be the LAST part of a route. So "card.png" is not a route
 // segment here: it's the final element of the catch-all, appended by
-// `generateStaticParams` and popped back off below. `sectionCardUrl` in
+// `sectionCardUrl` and popped back off below. `sectionCardUrl` in
 // i18n/metadata.ts builds the matching URL.
 //
-// Every route that uses this is `force-static` + `generateStaticParams`, so the
-// pages that exist at build time get their card prerendered and the fonts below
-// are read by the build.
+// None of the card routes is prerendered or stored in the ISR cache any more.
+// They render on request and the CDN keeps the result (`CARD_CACHE_CONTROL`).
+// Prerendering used to write ~5 ISR units per page (PNGs barely gzip) on every
+// deploy, about a fifth of what a deploy cost, for images that are requested
+// rarely: a social preview fetches one when someone shares a link. The CDN
+// cache is free, and a miss costs one function render.
 //
-// `dynamicParams` must stay TRUE on all of them, though, and that is not a
-// detail. Publishing through the CMS has no build step (cms.md, "Caching"), so a
-// page published after the last deploy is never in `generateStaticParams` —
-// and with `dynamicParams = false` its card 404s until someone happens to
-// redeploy, which is how the first /noticias article shipped with a broken
-// og:image. True means that card is rendered on demand the first time it is
-// requested and then cached. Nothing unbounded gets through: `sectionCard`
-// below 404s for a path that does not end in card.png, and again for a slug the
-// section cannot load, so only real published pages ever reach the renderer.
+// Nothing unbounded gets through: `sectionCard` below 404s for a path that does
+// not end in card.png, and again for a slug the section cannot load, so only
+// real published pages ever reach the renderer.
+
+/** Cache policy for every social card response.
+ *
+ * The URL carries `?v=<yyyymmdd>` of the page's last content change
+ * (`guideCardUrl` / `sectionCardUrl`), so a changed card is usually a new URL.
+ * A day on the CDN bounds the one case the stamp misses: a same-day retitle.
+ * `ImageResponse`'s own default is a year and `immutable`, which would pin
+ * that miss for good. */
+export const CARD_CACHE_CONTROL =
+  "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
 
 export const CARD = "card.png";
-
-/** The slugs the `/og/<section>/[...slug]` route prerenders: every page's path
- * with "card.png" appended. */
-export async function cardParams(
-  section: ContentSection,
-): Promise<{ slug: string[] }[]> {
-  return (await section.slugs()).map((slug) => ({ slug: [...slug, CARD] }));
-}
 
 const SIZE = { width: 1200, height: 630 };
 
@@ -186,6 +185,7 @@ export async function sectionCard(
     </div>,
     {
       ...SIZE,
+      headers: { "cache-control": CARD_CACHE_CONTROL },
       fonts: [
         { name: "Fraunces", data: fraunces, style: "normal", weight: 600 },
         { name: "IBM Plex Mono", data: plexMono, style: "normal", weight: 500 },

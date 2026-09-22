@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import { SectionIndex } from "@/components/section/SectionIndex";
 import { investigaciones } from "@/content/sections";
 import { sectionIndexMetadata } from "@/i18n/metadata";
+import { spanishIndexParams } from "@/i18n/routing";
+
+// Spanish-only: prerender /es alone, never an English 404 (see
+// `spanishIndexParams`).
+export const dynamicParams = false;
+export const generateStaticParams = spanishIndexParams;
 
 // The /investigaciones index. Everything structural is `<SectionIndex />`, shared
 // with /estadisticas; what is here is the copy.

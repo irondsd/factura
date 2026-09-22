@@ -68,6 +68,10 @@ const nextConfig: NextConfig = {
     "/cms/media": SHARP_RUNTIME_FILES,
     "/cms/media/**": SHARP_RUNTIME_FILES,
     "/api/cms/mcp": SHARP_RUNTIME_FILES,
+    // The social cards render at request time now, not at build, and read
+    // their fonts with `readFile` under `process.cwd()`, which the tracer
+    // cannot see through.
+    "/og/**": ["./src/assets/fonts/**/*"],
   },
   images: {
     remotePatterns: mediaRemotePatterns(),

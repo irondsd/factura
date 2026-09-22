@@ -84,6 +84,19 @@ export async function spanishOnly<T extends object>(
   return (await paths()).map((params) => ({ ...params, lang: defaultLocale }));
 }
 
+/** `generateStaticParams` for a Spanish-only section's *index* page — the
+ * one route in the section with no dynamic segment of its own, so it inherits
+ * both locales from the `[lang]` layout and `spanishOnly` has nothing to wrap.
+ *
+ * Without it the build prerenders `/en/<section>` as a 404, and that 404 is
+ * stored under the section's cache tag. `/en/guias` came out different after
+ * every guide publish, so each one rewrote it: ~9 ISR units nobody could see. Pair it with
+ * `dynamicParams = false` so the English path is never generated on demand
+ * either (the proxy already redirects visitors away from it). */
+export function spanishIndexParams(): { lang: Locale }[] {
+  return [{ lang: defaultLocale }];
+}
+
 /** The same page in the other language, given the current pathname + locale.
  * Used by the landing language switch. */
 export function oppositePath(pathname: string, locale: Locale): string {

@@ -12,6 +12,12 @@ import {
 } from "@/content-system/repository/guias";
 import { guidesIndexMetadata } from "@/i18n/metadata";
 import { guideListLd } from "@/i18n/structuredData";
+import { spanishIndexParams } from "@/i18n/routing";
+
+// Spanish-only: prerender /es alone, never an English 404 (see
+// `spanishIndexParams`).
+export const dynamicParams = false;
+export const generateStaticParams = spanishIndexParams;
 
 // Spanish-only guides index. Copy is inlined in Spanish (no dictionary lookup):
 // the section never renders in English, so there's no translation to maintain.

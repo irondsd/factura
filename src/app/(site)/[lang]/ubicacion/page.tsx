@@ -8,6 +8,12 @@ import { groupLocationsByInitial } from "@/content-system/locations/alphabetize"
 import { nonEmptyContentLocations } from "@/content-system/repository/locations";
 import { locationsIndexMetadata } from "@/i18n/metadata";
 import { locationsIndexLd } from "@/i18n/structuredData";
+import { spanishIndexParams } from "@/i18n/routing";
+
+// Spanish-only: prerender /es alone, never an English 404 (see
+// `spanishIndexParams`).
+export const dynamicParams = false;
+export const generateStaticParams = spanishIndexParams;
 
 const TITLE = "Contenido por ubicación";
 const DESCRIPTION =

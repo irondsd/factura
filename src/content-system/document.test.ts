@@ -226,21 +226,34 @@ describe("relatedDocuments", () => {
     expect(relatedDocuments(current, candidates)[0].slug).toBe("dos");
   });
 
-  it("breaks ties on editorial update date, freshest first", () => {
+  it("never lets a date decide a tie", () => {
+    // Recency used to break ties, so every publish or edit moved the guide into
+    // dozens of other rails, and each of those pages is a billed ISR write.
     const candidates = [
-      {
-        ...summary("antes", ["servicios"], "2026-06-01T00:00:00-03:00"),
-        contentUpdatedAt: "2026-06-01T00:00:00-03:00",
-      },
-      {
-        ...summary("actualizada", ["servicios"], "2025-01-01T00:00:00-03:00"),
-        contentUpdatedAt: "2026-08-01T00:00:00-03:00",
-      },
+      summary("antes", ["servicios"], "2026-06-01T00:00:00-03:00"),
+      summary("despues", ["servicios"], "2025-01-01T00:00:00-03:00"),
+      summary("otra", ["servicios"], "2025-03-01T00:00:00-03:00"),
+      summary("mas", ["servicios"], "2025-05-01T00:00:00-03:00"),
     ];
-    expect(relatedDocuments(current, candidates).map((c) => c.slug)).toEqual([
-      "actualizada",
-      "antes",
-    ]);
+    const before = relatedDocuments(current, candidates).map((c) => c.slug);
+    const touched = candidates.map((c) => ({
+      ...c,
+      publishedAt: "2026-09-01T00:00:00-03:00",
+      contentUpdatedAt: "2026-09-01T00:00:00-03:00",
+    }));
+    expect(
+      relatedDocuments(current, touched.reverse()).map((c) => c.slug),
+    ).toEqual(before);
+  });
+
+  it("spreads a tied pool across pages instead of repeating one pick", () => {
+    const pool = Array.from({ length: 30 }, (_, i) =>
+      summary(`g${i}`, ["servicios"], "2026-01-01T00:00:00-03:00"),
+    );
+    const picks = new Set(
+      pool.flatMap((page) => relatedDocuments(page, pool).map((c) => c.slug)),
+    );
+    expect(picks.size).toBeGreaterThan(15);
   });
 
   it("tops up with unrelated pages so the block is never short", () => {

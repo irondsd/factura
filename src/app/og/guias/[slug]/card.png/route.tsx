@@ -2,10 +2,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ImageResponse } from "next/og";
 import { categoryByKey } from "@/content-system/repository/categories";
-import {
-  publicGuideBySlug,
-  publiclyRenderableGuides,
-} from "@/content-system/repository/guias";
+import { publicGuideBySlug } from "@/content-system/repository/guias";
+import { CARD_CACHE_CONTROL } from "@/components/section/card";
 
 // The social card for a guide — the image WhatsApp, X, Slack and LinkedIn show
 // when someone shares the article. Every guide had been sharing the one static
@@ -24,17 +22,9 @@ import {
 //  3. `.png` in the path keeps the proxy off it: the matcher skips anything with
 //     a file extension, so this is served directly.
 //
-// Prerendered at build (`force-static` + `generateStaticParams`), so there is no
-// runtime image rendering and the font files below are only ever read by the
-// build.
-
-export const dynamicParams = true;
-
-export async function generateStaticParams() {
-  return (await publiclyRenderableGuides()).map((guide) => ({
-    slug: guide.slug,
-  }));
-}
+// Rendered on request and cached by the CDN, never prerendered or stored in the
+// ISR cache: see `CARD_CACHE_CONTROL` in `components/section/card.tsx`.
+export const dynamic = "force-dynamic";
 
 const SIZE = { width: 1200, height: 630 };
 
@@ -186,6 +176,7 @@ export async function GET(
     </div>,
     {
       ...SIZE,
+      headers: { "cache-control": CARD_CACHE_CONTROL },
       fonts: [
         { name: "Fraunces", data: fraunces, style: "normal", weight: 600 },
         { name: "IBM Plex Mono", data: plexMono, style: "normal", weight: 500 },
