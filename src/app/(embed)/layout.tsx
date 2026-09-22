@@ -1,12 +1,13 @@
 import "../globals.css";
 import type { Metadata } from "next";
 import { fraunces, plexMono } from "@/config/fonts";
+import { siteName } from "@/config/meta";
 import { getDictionary } from "@/i18n/dictionaries";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { pickNamespaces } from "@/i18n/namespaces";
 
 export const metadata: Metadata = {
-  title: "Visualización — Factura",
+  title: `Visualización — ${siteName}`,
   robots: { index: false, follow: false },
 };
 

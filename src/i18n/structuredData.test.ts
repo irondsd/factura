@@ -253,4 +253,14 @@ describe("organization", () => {
     const organization = nodeOfType(siteLd("es"), "Organization");
     expect(organization?.logo).toBe(`${siteUrl}/logo.svg`);
   });
+
+  // "Factura" alone is a common noun Google can't tie to this site; the domain
+  // is the distinctive name, and the spoken forms ride along as alternates.
+  it("names the site by its domain and lists the spoken forms as alternates", () => {
+    for (const type of ["Organization", "WebSite"]) {
+      const node = nodeOfType(siteLd("es"), type);
+      expect(node?.name).toBe("factura.uno");
+      expect(node?.alternateName).toEqual(["Factura Uno", "Factura"]);
+    }
+  });
 });

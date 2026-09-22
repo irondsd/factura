@@ -1,4 +1,5 @@
 import "server-only";
+import { siteAlternateNames, siteName } from "@/config/meta";
 import { socialProfiles } from "@/config/social";
 import { dataLicense, siteUrl } from "@/config/urls";
 import type { Locale } from "./config";
@@ -25,7 +26,7 @@ import type { ContentLocation } from "@/content-system/locations/types";
 // one shared Organization node across pages. `description`/`inLanguage` come from
 // the per-locale dictionary so the /es and /en pages emit language-matched data.
 
-const ORG_NAME = "Factura";
+const ORG_NAME = siteName;
 const ORG_ID = `${siteUrl}/#organization`;
 
 /** Who an article credits. Both optional, and an article with neither emits
@@ -122,6 +123,7 @@ export function siteLd(locale: Locale) {
         "@type": "Organization",
         "@id": ORG_ID,
         name: ORG_NAME,
+        alternateName: siteAlternateNames,
         url: siteUrl,
         // The app icon is only 32px. Google's Organization guidance requires
         // at least 112x112; this public brand mark has a 512x512 viewBox.
@@ -132,6 +134,7 @@ export function siteLd(locale: Locale) {
         "@type": "WebSite",
         "@id": `${siteUrl}/#website`,
         name: ORG_NAME,
+        alternateName: siteAlternateNames,
         url: siteUrl,
         inLanguage: locale,
         publisher: { "@id": ORG_ID },

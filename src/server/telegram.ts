@@ -1,5 +1,6 @@
 /**
- * Telegram delivery for the public contact form and identity sign-in notices.
+ * Telegram delivery for the public contact form, the article suggestion box
+ * and identity sign-in notices.
  *
  * Mail on @factura.uno is forwarded to a real inbox, so the addressed channels
  * on /contacto need nothing from us. The form is the one thing that had no
@@ -15,6 +16,7 @@
  * is still visible in the server console.
  */
 
+import { siteUrl } from "@/config/urls";
 import type { Locale } from "@/i18n/config";
 import { parseUserAgent } from "@/lib/userAgent";
 
@@ -82,6 +84,29 @@ export function buildContactMessage(contact: ContactMessage): string {
   lines.push(`*Email:* \`${escapeCode(contact.email)}\``);
   if (contact.locale) lines.push(`*Language:* ${contact.locale}`);
   lines.push("", clipEscaped(escapeMarkdownV2(contact.message), BODY_BUDGET));
+
+  return clipEscaped(lines.join("\n"), MESSAGE_LIMIT);
+}
+
+export type SuggestionMessage = {
+  message: string;
+  /** Optional: the box asks for it, but a suggestion is worth reading without
+   * a way to answer it. */
+  email: string | null;
+  /** Site-relative path of the page it was sent from — what the suggestion is
+   * usually about. */
+  path: string | null;
+};
+
+/** The channel post for one suggestion from an article page.
+ *
+ * The page goes first and as a full URL, so the post opens straight onto what
+ * the reader was looking at. */
+export function buildSuggestionMessage(s: SuggestionMessage): string {
+  const lines = ["💡 *Suggestion*", ""];
+  if (s.path) lines.push(`*Page:* ${escapeMarkdownV2(`${siteUrl}${s.path}`)}`);
+  if (s.email) lines.push(`*Email:* \`${escapeCode(s.email)}\``);
+  lines.push("", clipEscaped(escapeMarkdownV2(s.message), BODY_BUDGET));
 
   return clipEscaped(lines.join("\n"), MESSAGE_LIMIT);
 }
@@ -243,6 +268,13 @@ export async function sendContactMessage(
   contact: ContactMessage,
 ): Promise<{ ok: boolean; skipped: boolean }> {
   return sendTelegramMessage(buildContactMessage(contact));
+}
+
+/** One suggestion, formatted and posted. */
+export async function sendSuggestionMessage(
+  suggestion: SuggestionMessage,
+): Promise<{ ok: boolean; skipped: boolean }> {
+  return sendTelegramMessage(buildSuggestionMessage(suggestion));
 }
 
 /** One sign-in, formatted and posted. */

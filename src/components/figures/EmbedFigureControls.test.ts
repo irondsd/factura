@@ -33,7 +33,7 @@ describe("buildEmbedCode", () => {
     });
 
     expect(code).toContain(
-      'title="Mapa de &quot;precio&quot; &lt; seguridad — Factura"',
+      'title="Mapa de &quot;precio&quot; &lt; seguridad — factura.uno"',
     );
   });
 });

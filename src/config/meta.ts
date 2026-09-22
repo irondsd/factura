@@ -2,7 +2,13 @@ import type { Metadata, Viewport } from "next";
 import type { Locale } from "@/i18n/config";
 import { siteUrl } from "./urls";
 
-export const siteName = "Factura";
+// The domain, not the bare word: "Factura" is a common noun thousands of sites
+// share, and Google couldn't tie it to this one ("factura uno" ranked ~30th).
+export const siteName = "factura.uno";
+
+/** Other names people search the brand by. Emitted as `alternateName` on the
+ * Organization and WebSite nodes so Google can map them to this site. */
+export const siteAlternateNames = ["Factura Uno", "Factura"];
 
 /** `og:locale` code for each site language. */
 export const ogLocale: Record<Locale, string> = { es: "es_AR", en: "en_US" };

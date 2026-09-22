@@ -8,6 +8,7 @@ import type { MediaRef } from "@/content-system/media/repository";
 import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { CategoryChips } from "@/components/guides/CategoryChips";
 import { TopCta } from "@/components/guides/cta";
+import { SuggestionAside, SuggestionFab } from "@/components/article/Suggestion";
 import { TocInline, TocSidebar } from "@/components/article/Toc";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import type { ContentCategory } from "@/content-system/categories/types";
@@ -217,8 +218,10 @@ export function ContentArticle({
             above={
               previewMedia ? <ArticlePreview media={previewMedia} /> : undefined
             }
+            below={<SuggestionAside />}
           />
         </div>
+        <SuggestionFab />
       </main>
     </>
   );

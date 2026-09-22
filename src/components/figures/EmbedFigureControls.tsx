@@ -3,6 +3,7 @@
 import { Check, Copy, X } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { siteName } from "@/config/meta";
 import { FigureAttribution } from "./FigureAttribution";
 import { embedPath } from "./embedPaths";
 
@@ -54,7 +55,7 @@ export function buildEmbedCode({
     url.searchParams.set("props", JSON.stringify(props));
   }
 
-  return `<iframe title="${htmlAttribute(title)} — Factura" src="${htmlAttribute(url.toString())}" width="100%" height="${height}" style="border:0" loading="lazy"></iframe>`;
+  return `<iframe title="${htmlAttribute(title)} — ${htmlAttribute(siteName)}" src="${htmlAttribute(url.toString())}" width="100%" height="${height}" style="border:0" loading="lazy"></iframe>`;
 }
 
 export function EmbedFigureControls({

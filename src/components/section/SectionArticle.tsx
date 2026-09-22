@@ -6,6 +6,7 @@ import { ArticleDateline } from "@/components/article/ArticleDateline";
 import { ArticlePreview } from "@/components/article/ArticlePreview";
 import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { Faq } from "@/components/article/Faq";
+import { SuggestionAside, SuggestionFab } from "@/components/article/Suggestion";
 import { TocInline, TocSidebar } from "@/components/article/Toc";
 import { Fuentes } from "@/components/section/Fuentes";
 import { Metodologia } from "@/components/section/Metodologia";
@@ -243,9 +244,19 @@ export async function SectionArticle({
             headings={headings}
             label="En esta página"
             above={previewMedia && <ArticlePreview media={previewMedia} />}
-            below={<AsideCta />}
+            below={
+              <>
+                <AsideCta />
+                {/* Last in the column: the standing offer is the page's ask,
+                    this one is ours. */}
+                <div className="pt-4">
+                  <SuggestionAside />
+                </div>
+              </>
+            }
           />
         </div>
+        <SuggestionFab />
       </main>
     </>
   );

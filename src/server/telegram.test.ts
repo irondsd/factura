@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildContactMessage,
   buildSignInMessage,
+  buildSuggestionMessage,
   escapeMarkdownV2,
   shouldNotifySignIn,
   signInNoticeMode,
@@ -88,6 +89,33 @@ describe("buildContactMessage", () => {
   it("escapes an address that would otherwise close its code span", () => {
     const text = buildContactMessage({ ...base, email: "we`ird@example.com" });
     expect(text).toContain("`we\\`ird@example.com`");
+  });
+});
+
+describe("buildSuggestionMessage", () => {
+  const base = {
+    message: "Falta la tarifa social en esta guía.",
+    email: "ana@example.com",
+    path: "/guias/tarifa-edesur",
+  };
+
+  it("links the page, quotes the address and escapes the body", () => {
+    const text = buildSuggestionMessage(base);
+    expect(text).toContain("💡 *Suggestion*");
+    expect(text).toContain("*Page:* https://factura\\.uno/guias/tarifa\\-edesur");
+    expect(text).toContain("*Email:* `ana@example.com`");
+    expect(text).toContain("Falta la tarifa social en esta guía\\.");
+  });
+
+  it("omits the page and email lines when there are none", () => {
+    const text = buildSuggestionMessage({ ...base, email: null, path: null });
+    expect(text).not.toContain("*Page:*");
+    expect(text).not.toContain("*Email:*");
+  });
+
+  it("keeps a long suggestion under Telegram's ceiling", () => {
+    const text = buildSuggestionMessage({ ...base, message: ".".repeat(4000) });
+    expect(text.length).toBeLessThanOrEqual(4096);
   });
 });
 

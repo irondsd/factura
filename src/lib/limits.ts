@@ -25,6 +25,17 @@ export const CONTACT_NAME_MAX = 120;
 /** Ceiling on the reply address, matching the rest of the app's email fields. */
 export const CONTACT_EMAIL_MAX = 255;
 
+// ── Suggestion box (article pages) ───────────────────────────────────────────
+// Same exposure as the contact form, smaller ask: one idea about the page the
+// reader is on. The reply address reuses CONTACT_EMAIL_MAX.
+
+/** Longest suggestion the box accepts. A paragraph or two; anything longer
+ * belongs on /contacto. */
+export const SUGGESTION_MESSAGE_MAX = 2000;
+
+/** Shortest suggestion worth sending — "falta X" is a real one. */
+export const SUGGESTION_MESSAGE_MIN = 5;
+
 // ── Public bill drop (/probar) ───────────────────────────────────────────────
 // Everything below bounds the one surface anyone on the internet can hand bytes
 // to. The authenticated ingest route is deliberately more generous: there, an
