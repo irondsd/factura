@@ -89,7 +89,7 @@ export default async function GuiasIndexPage() {
 
         <SectionInsights
           section="guias"
-          title="Claves de las guías"
+          title="Datos clave de nuestras guías | 2026"
           className="mt-14"
         />
 

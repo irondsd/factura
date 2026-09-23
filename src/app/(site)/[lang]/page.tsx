@@ -264,7 +264,7 @@ export default async function LandingPage({ params }: Props) {
           to is. Renders nothing when none is marked. */}
       {locale === "es" && (
         <HomepageInsights
-          title="Datos destacados"
+          title="Datos clave de Factura Uno | 2026"
           className={cn(BAND, "pb-16")}
         />
       )}

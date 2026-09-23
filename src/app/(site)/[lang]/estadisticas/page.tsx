@@ -35,7 +35,7 @@ export default function EstadisticasIndexPage() {
       title={TITLE}
       description={DESCRIPTION}
       intro={INTRO}
-      insightsTitle="Datos destacados"
+      insightsTitle="Datos clave de las estadísticas de Argentina | 2026"
       closing={{
         // The pitch this section earns: every page above is somebody else's
         // series, and the account turns your own bills into one.
