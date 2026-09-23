@@ -113,7 +113,13 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
   // no block at all when there are none, which is also what the public page
   // will do.
   const published = (
-    await cmsPageStore.list({ section: section.id, statuses: ["published"] })
+    await cmsPageStore.list({
+      section: section.id,
+      statuses: ["published"],
+      // The rail reads categories and locations; the FAQ and sources are most
+      // of every candidate's metadata and never leave the database for it.
+      withoutLongMetadata: true,
+    })
   ).filter((candidate) => candidate.id !== page.id);
   const related = relatedDocuments(page, published);
 

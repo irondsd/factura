@@ -73,18 +73,21 @@ export const CMS_TOOLS: Tool[] = [
     name: "list_content",
     scope: "cms:read",
     description:
-      "List CMS content, optionally filtered by section, status, or title/slug search.",
+      "List CMS content, optionally filtered by section, status, or title/slug search. Each row's metadata leaves out the FAQ and the sources; get_content returns them.",
     annotations: readOnly("Listar contenido"),
     schema: z.object({
       section: section.optional(),
       statuses: z.array(status).optional(),
       search: z.string().optional(),
     }),
+    // Trimmed like the CMS section list: the FAQ and the sources are most of a
+    // guide's metadata, and a whole-section listing is the single most
+    // expensive read the MCP makes on a byte-metered database.
     run: (a, input) =>
-      cmsContentService.list(
-        a,
-        input as { section?: never; statuses?: never; search?: string },
-      ),
+      cmsContentService.list(a, {
+        ...(input as { section?: never; statuses?: never; search?: string }),
+        withoutLongMetadata: true,
+      }),
   },
   {
     name: "get_content",

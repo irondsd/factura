@@ -159,6 +159,30 @@ export class CmsAuthorStore {
   }
 
   /** Which pages credit this author, in either role. */
+  /** How many pages name each author, in any role, in one query — for the
+   * list, which shows a count per author and used to run `usage` per author. */
+  async usageCounts(): Promise<Map<string, number>> {
+    const rows = await this.database.execute<{
+      author_id: string;
+      pages: number;
+    }>(
+      sql`select role.author_id, count(distinct ${cmsPages.id})::int as pages
+        from ${cmsPages}
+        inner join ${cmsPageRevisions}
+          on ${cmsPageRevisions.pageId} = ${cmsPages.id}
+          and ${cmsPageRevisions.id} in (${cmsPages.wipRevisionId}, ${cmsPages.publishedRevisionId}, ${cmsPages.previewRevisionId})
+        cross join lateral (values ${sql.join(
+          AUTHOR_ROLE_FIELDS.map(
+            (field) => sql`(${cmsPageRevisions.metadata}->>${field})`,
+          ),
+          sql`, `,
+        )}) as role(author_id)
+        where role.author_id is not null
+        group by role.author_id`,
+    );
+    return new Map(rows.map((row) => [row.author_id, Number(row.pages)]));
+  }
+
   async usage(id: string): Promise<AuthorUsage[]> {
     const rows = await this.database
       .select({

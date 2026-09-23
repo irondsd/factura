@@ -47,6 +47,9 @@ export type FakeCms = {
   revisions: CmsRevisionStore;
   /** Sections whose public cache the service asked to expire, in order. */
   expired: ContentSection[];
+  /** Per expiry above, the document slugs it named, or `"all"` when it expired
+   * every document in the section. */
+  expiredDocuments: (readonly string[] | "all")[];
   /** Activity rows the service recorded, in order. */
   events: CmsPageEventInsert[];
   /** Revision ids whose media usage was rewritten, in order. */
@@ -83,6 +86,7 @@ export function createFakeCms(
    * the real one carries, so a test can catch a rename that would collide. */
   const redirects = new Map<string, string>();
   const expired: ContentSection[] = [];
+  const expiredDocuments: (readonly string[] | "all")[] = [];
   const events: CmsPageEventInsert[] = [];
   const usageWrites: string[] = [];
   let now = options.now ?? new Date("2026-02-01T12:00:00.000Z");
@@ -323,6 +327,18 @@ export function createFakeCms(
           (a, b) => a.sortOrder - b.sortOrder || a.slug.localeCompare(b.slug),
         ),
 
+    tree: async (section: ContentSection) =>
+      (await pageStore.outline(section)).map(
+        ({ id, section, slug, status, parentId, sortOrder }) => ({
+          id,
+          section,
+          slug,
+          status,
+          parentId,
+          sortOrder,
+        }),
+      ),
+
     findTitle: async (id: string) => {
       const page = pages.get(id);
       return (page && cmsRevisionOf(page)?.title) ?? null;
@@ -501,7 +517,10 @@ export function createFakeCms(
     revisionStore as unknown as CmsRevisionStore,
     historyStore as unknown as CmsPageHistoryStore,
     () => now,
-    (section) => expired.push(section),
+    (section, slugs) => {
+      expired.push(section);
+      expiredDocuments.push(slugs ?? "all");
+    },
     recordMediaUsage,
   );
 
@@ -510,6 +529,7 @@ export function createFakeCms(
     store: pageStore as unknown as CmsPageStore,
     revisions: revisionStore as unknown as CmsRevisionStore,
     expired,
+    expiredDocuments,
     events,
     usageWrites,
     setNow: (next: Date) => {

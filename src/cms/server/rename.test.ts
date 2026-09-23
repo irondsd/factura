@@ -190,6 +190,8 @@ describe("renaming a page", () => {
     await rename(fake, page.id, "nueva");
 
     expect(fake.expired).toEqual(["guias"]);
+    // A rename can move a whole subtree, so it does not try to name pages.
+    expect(fake.expiredDocuments.at(-1)).toBe("all");
   });
 
   it("expires nothing for a draft", async () => {

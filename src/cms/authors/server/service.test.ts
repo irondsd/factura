@@ -80,6 +80,8 @@ function fakeAuthors() {
       return saved;
     },
     usage: async (id: string) => usage.get(id) ?? [],
+    usageCounts: async () =>
+      new Map([...usage].map(([id, pages]) => [id, pages.length])),
     byPortrait: async () => [],
   };
 

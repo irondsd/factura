@@ -749,7 +749,7 @@ export class CmsContentService {
       toStatus: "published",
       now,
     });
-    this.expirePublicCache(page.section as ContentSection);
+    this.expirePublicCache(page.section as ContentSection, [page.slug]);
     return published;
   }
 
@@ -822,7 +822,7 @@ export class CmsContentService {
       toStatus: "preview",
       now,
     });
-    this.expirePublicCache(page.section as ContentSection);
+    this.expirePublicCache(page.section as ContentSection, [page.slug]);
     return promoted as ContentDocument;
   }
 
@@ -879,7 +879,7 @@ export class CmsContentService {
       now,
     });
     if (statusChangeAffectsPublicCache(page.status, "draft")) {
-      this.expirePublicCache(page.section as ContentSection);
+      this.expirePublicCache(page.section as ContentSection, [page.slug]);
     }
     return result as ContentDocument;
   }
@@ -1530,7 +1530,7 @@ export class CmsContentService {
       toStatus: "published",
       now,
     });
-    this.expirePublicCache(page.section as ContentSection);
+    this.expirePublicCache(page.section as ContentSection, [page.slug]);
     return result as PublishResult;
   }
 
@@ -1596,9 +1596,12 @@ export class CmsContentService {
    * already committed, and telling an editor their publication failed because a
    * cache tag could not be expired would be a lie about what is in the
    * database. */
-  private expirePublicCache(section: ContentSection): void {
+  private expirePublicCache(
+    section: ContentSection,
+    slugs?: readonly string[],
+  ): void {
     try {
-      this.invalidate(section);
+      this.invalidate(section, slugs);
     } catch (cause) {
       console.error("[cms] public cache invalidation failed:", cause);
     }
@@ -1609,9 +1612,9 @@ export class CmsContentService {
    * intermediate paths). Uniform for every section — this is the alternative to
    * a per-section branch in the editor, the list and the breadcrumb. */
   private async assertHierarchy(node: HierarchyNode): Promise<void> {
-    // The outline: this runs on every save, and the tree rules need nothing
-    // past identity, parent and order.
-    const siblings = await this.store.outline(node.section as ContentSection);
+    // The tree, not the outline: this runs on every save, and the tree rules
+    // need nothing past identity, parent and order.
+    const siblings = await this.store.tree(node.section as ContentSection);
     await this.assertHierarchyAmong(
       node,
       siblings

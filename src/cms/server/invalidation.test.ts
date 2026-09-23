@@ -221,6 +221,46 @@ describe("public preview and unpublication", () => {
   });
 });
 
+describe("which documents expire", () => {
+  // The section's listings expire on every public write; its documents do not.
+  // A document read depends on nothing but its own row, so publishing one page
+  // must leave every other page's cached body alone — each of those is a body
+  // re-read from the database on the next crawl otherwise.
+  it("names only the published page", async () => {
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor, { slug: "una-guia" });
+    await seedPage(fake, actor, { slug: "otra-guia" });
+    fake.expiredDocuments.length = 0;
+    await fake.service.publish(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+    expect(fake.expiredDocuments).toEqual([["una-guia"]]);
+  });
+
+  it("names only the page taken down", async () => {
+    const fake = createFakeCms();
+    const id = await publishedPage(fake);
+    fake.expiredDocuments.length = 0;
+    await fake.service.unpublish(actor, {
+      id,
+      expectedLockVersion: await lockOf(fake, id),
+    });
+    expect(fake.expiredDocuments).toEqual([["una-guia"]]);
+  });
+
+  it("names only the page whose public preview moved", async () => {
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
+    fake.expiredDocuments.length = 0;
+    await fake.service.promotePreview(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+    expect(fake.expiredDocuments).toEqual([["una-guia"]]);
+  });
+});
+
 describe("private operations", () => {
   it("expire nothing: create, restore and discard", async () => {
     // None of the three moves a public pointer. Restore in particular: it

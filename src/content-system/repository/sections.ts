@@ -8,7 +8,11 @@ import {
 } from "../types";
 import { slugToPath } from "./contract";
 import { publicContentRepository } from "./public";
-import { contentTag } from "./tags";
+import {
+  contentDocumentsTag,
+  contentDocumentTag,
+  contentTag,
+} from "./tags";
 
 // The cached public read model for every CMS-backed content section.
 //
@@ -55,12 +59,23 @@ function cachedSection(section: ContentSection): CachedSection {
       ["content", section, "renderable"],
       { revalidate: false, tags },
     ),
-    getByPath: unstable_cache(
-      (slug: string) =>
-        publicContentRepository.getByPath(section, slugToPath(slug)),
-      ["content", section, "path"],
-      { revalidate: false, tags },
-    ),
+    // Not the section tag: a document is tagged by its own path (`./tags`), so
+    // publishing one page leaves every other body in the section cached. Built
+    // per call because the tag names the slug; the cache key is the same one
+    // the section-wide wrapper produced.
+    getByPath: (slug: string) =>
+      unstable_cache(
+        (path: string) =>
+          publicContentRepository.getByPath(section, slugToPath(path)),
+        ["content", section, "path"],
+        {
+          revalidate: false,
+          tags: [
+            contentDocumentsTag(section),
+            contentDocumentTag(section, slug),
+          ],
+        },
+      )(slug),
     // Same tag as the rest: a rename expires the section, so an old path stops
     // being a cached 404 and becomes a cached redirect on the next request.
     redirectFor: unstable_cache(

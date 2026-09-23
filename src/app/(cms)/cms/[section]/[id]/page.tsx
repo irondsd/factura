@@ -8,6 +8,7 @@ import { sectionFields } from "@/cms/forms/fields";
 import { cmsPageMetadata } from "@/cms/metadata";
 import { CmsIcon } from "@/cms/icons";
 import { cmsSectionPath, findEditableSection } from "@/cms/sections";
+import { CmsNotFoundError } from "@/cms/server/errors";
 import { loadPageHistory } from "@/cms/server/pageHistory";
 import { cmsContentService } from "@/cms/server/service";
 import { cmsPageStore } from "@/cms/server/store";
@@ -46,11 +47,20 @@ export default async function CmsEditPage({ params }: Props) {
   const section = findEditableSection(segment);
   if (!section) notFound();
 
-  const page = await cmsPageStore.findById(id);
+  // `state.document` is the copy the editor opens — the same CMS pointer
+  // `findById` follows — so it is read once, here, rather than once for the
+  // page and again for its state.
+  const state = await cmsContentService
+    .getState(actor, id)
+    .catch((error: unknown) => {
+      if (error instanceof CmsNotFoundError) return null;
+      throw error;
+    });
+  const page = state?.document;
   // A page opened under the wrong section's URL is a 404, not a redirect: the
   // form is section-shaped, and rendering a statistics page in the guides form
   // would offer fields it does not have.
-  if (!page || page.section !== section.id) notFound();
+  if (!state || !page || page.section !== section.id) notFound();
 
   // Project only this section's manifest entries across the server/client
   // boundary. Zod schemas stay server-side; the editor receives plain data.
@@ -61,14 +71,13 @@ export default async function CmsEditPage({ params }: Props) {
   // its own descendants, which `checkHierarchy` refuses on save. Offering them
   // here and rejecting on save would be worse than not offering them.
   //
-  // `state` and `versions` come from the service rather than from a second
+  // `state` (above) and `versions` come from the service rather than from a second
   // store read: which copy exists and what it means is a lifecycle question,
   // and a route that answered it itself would be a second implementation of
   // the rule (cms.md).
   const [
     siblings,
     history,
-    state,
     versions,
     redirects,
     categories,
@@ -77,7 +86,6 @@ export default async function CmsEditPage({ params }: Props) {
   ] = await Promise.all([
     cmsPageStore.outline(section.id),
     loadPageHistory(page),
-    cmsContentService.getState(actor, id),
     cmsContentService.listVersions(actor, id),
     // Old addresses that still answer for this page. Read here so «Dirección»
     // can show them without the editor asking for them after every rename.

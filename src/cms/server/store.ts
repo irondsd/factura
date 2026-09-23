@@ -86,6 +86,22 @@ export type CmsPageOutline = {
   sortOrder: number;
 };
 
+/** One row of `CmsPageStore.tree`. */
+export type CmsPageTreeNode = Pick<
+  CmsPageOutline,
+  "id" | "section" | "slug" | "status" | "parentId" | "sortOrder"
+>;
+
+/** One row of `CmsPageStore.pickerRows`. */
+export type CmsPagePickerRow = {
+  id: string;
+  section: ContentSection;
+  slug: string;
+  status: ContentStatus;
+  title: string;
+  primaryCategory: string | null;
+};
+
 /** The page row itself: identity, lifecycle and the four revision pointers.
  * What the service reasons about before it decides which revision to touch. */
 export type CmsPageRecord = PageIdentity & {
@@ -365,6 +381,55 @@ export class CmsPageStore {
       section: row.section as ContentSection,
       status: row.status as ContentStatus,
       publishedAt: row.publishedAt ? row.publishedAt.toISOString() : null,
+    }));
+  }
+
+  /** One section as a tree: identity, status, parent and order — the outline
+   * without its prose. What the save path's hierarchy check and the link index
+   * read, twice per save; the titles and descriptions the outline adds are most
+   * of its bytes and neither check looks at them. */
+  async tree(section: ContentSection): Promise<CmsPageTreeNode[]> {
+    const rows = await this.db
+      .select({
+        id: cmsPages.id,
+        section: cmsPages.section,
+        slug: cmsPages.slug,
+        status: cmsPages.status,
+        parentId: cmsPageRevisions.parentId,
+        sortOrder: cmsPageRevisions.sortOrder,
+      })
+      .from(cmsPages)
+      .innerJoin(cmsPageRevisions, eq(cmsPageRevisions.id, CMS_REVISION_ID))
+      .where(eq(cmsPages.section, section));
+    return rows.map((row) => ({
+      ...row,
+      section: row.section as ContentSection,
+      status: row.status as ContentStatus,
+    }));
+  }
+
+  /** Every page in every section as a picker names it: identity, status,
+   * title and the primary category key. For the «destacados» page picker,
+   * which used to read `list` — the whole summary of every page in the CMS —
+   * to show five fields. */
+  async pickerRows(): Promise<CmsPagePickerRow[]> {
+    const rows = await this.db
+      .select({
+        id: cmsPages.id,
+        section: cmsPages.section,
+        slug: cmsPages.slug,
+        status: cmsPages.status,
+        title: cmsPageRevisions.title,
+        primaryCategory: sql<
+          string | null
+        >`${cmsPageRevisions.metadata}->'categories'->>0`,
+      })
+      .from(cmsPages)
+      .innerJoin(cmsPageRevisions, eq(cmsPageRevisions.id, CMS_REVISION_ID));
+    return rows.map((row) => ({
+      ...row,
+      section: row.section as ContentSection,
+      status: row.status as ContentStatus,
     }));
   }
 

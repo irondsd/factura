@@ -173,6 +173,49 @@ export class CmsLocationStore {
       .orderBy(asc(cmsLocationRedirects.createdAt));
     return rows.map((row) => row.slug);
   }
+  /** `usage` for every location key at once: one scan of the current
+   * revisions instead of one per location. For the registry list, which shows
+   * each location's pages and used to ask per location. */
+  async usageByKey(): Promise<Map<string, LocationUsage[]>> {
+    const rows = await this.database.execute<{
+      key: string;
+      id: string;
+      section: string;
+      slug: string;
+      status: string;
+      title: string;
+    }>(
+      sql`select distinct location.key, ${cmsPages.id} as id, ${cmsPages.section} as section,
+          ${cmsPages.slug} as slug, ${cmsPages.status} as status, ${cmsPageRevisions.title} as title
+        from ${cmsPages}
+        inner join ${cmsPageRevisions}
+          on ${cmsPageRevisions.pageId} = ${cmsPages.id}
+          and ${cmsPageRevisions.id} in (${cmsPages.wipRevisionId}, ${cmsPages.publishedRevisionId}, ${cmsPages.previewRevisionId})
+        cross join lateral jsonb_array_elements_text(
+          case when jsonb_typeof(${cmsPageRevisions.metadata}->'locations') = 'array'
+            then ${cmsPageRevisions.metadata}->'locations' else '[]'::jsonb end
+        ) as location(key)`,
+    );
+    // `distinct` folds identical rows, but two pointers of one page can carry
+    // different titles; keep the first per page, as `usage` does.
+    const byKey = new Map<string, Map<string, LocationUsage>>();
+    for (const row of rows) {
+      const pages = byKey.get(row.key) ?? new Map<string, LocationUsage>();
+      if (!pages.has(row.id))
+        pages.set(row.id, {
+          id: row.id,
+          section: row.section as ContentSection,
+          slug: row.slug,
+          title: row.title,
+          status: row.status as ContentStatus,
+        });
+      byKey.set(row.key, pages);
+    }
+    return new Map(
+      [...byKey].map(([key, pages]) => [key, [...pages.values()]]),
+    );
+  }
+
   async usage(key: string): Promise<LocationUsage[]> {
     const rows = await this.database
       .select({

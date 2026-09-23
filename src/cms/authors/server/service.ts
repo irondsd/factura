@@ -64,13 +64,14 @@ export class CmsAuthorService {
 
   /** The list the picker and the manager both read. */
   async list(): Promise<ContentAuthorWithUsage[]> {
-    const authors = await this.store.list();
-    return Promise.all(
-      authors.map(async (author) => ({
-        ...author,
-        usageCount: (await this.store.usage(author.id)).length,
-      })),
-    );
+    const [authors, counts] = await Promise.all([
+      this.store.list(),
+      this.store.usageCounts(),
+    ]);
+    return authors.map((author) => ({
+      ...author,
+      usageCount: counts.get(author.id) ?? 0,
+    }));
   }
 
   async get(id: string): Promise<AuthorDetail> {

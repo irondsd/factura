@@ -62,13 +62,14 @@ export class CmsCategoryService {
     _actor: CmsActor,
     section: ContentSection,
   ): Promise<ContentCategoryWithUsage[]> {
-    const categories = await this.store.list(section);
-    return Promise.all(
-      categories.map(async (category) => ({
-        ...category,
-        usageCount: (await this.store.usage(section, category.key)).length,
-      })),
-    );
+    const [categories, counts] = await Promise.all([
+      this.store.list(section),
+      this.store.usageCounts(section),
+    ]);
+    return categories.map((category) => ({
+      ...category,
+      usageCount: counts.get(category.key) ?? 0,
+    }));
   }
 
   async get(_actor: CmsActor, id: string): Promise<CategoryDetail> {

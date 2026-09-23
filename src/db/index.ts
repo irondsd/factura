@@ -12,9 +12,18 @@ const globalForDb = globalThis as unknown as {
 // named prepared statements fail intermittently ("prepared statement ... does
 // not exist"). `max: 1` because every serverless instance has its own pool —
 // keep per-instance connections low so concurrent lambdas don't exhaust Neon.
+// `fetch_types: false` skips the `pg_type` lookup postgres.js otherwise runs on
+// every new connection — ~8 KB of Neon egress per serverless cold start, only
+// to learn array OIDs. Drizzle parses array columns from their text form
+// itself (`PgArray.mapFromDriverValue`); a raw `sql` query that selects an
+// array gets the `{a,b}` string back.
 const client =
   globalForDb.client ??
-  postgres(process.env.DATABASE_URL!, { max: 1, prepare: false });
+  postgres(process.env.DATABASE_URL!, {
+    max: 1,
+    prepare: false,
+    fetch_types: false,
+  });
 globalForDb.client = client;
 
 export const db = drizzle(client, { schema });

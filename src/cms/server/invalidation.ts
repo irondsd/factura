@@ -1,6 +1,8 @@
 import "server-only";
 import { revalidateTag } from "next/cache";
 import {
+  contentDocumentsTag,
+  contentDocumentTag,
   contentTag,
   insightsTag,
   locationsTag,
@@ -26,7 +28,10 @@ import { CONTENT_SECTIONS, type ContentSection } from "@/content-system/types";
  * imported by the service so a test can watch the decision without a Next.js
  * request context, which `revalidateTag` requires and a unit test has not
  * got. */
-export type PublicCacheInvalidator = (section: ContentSection) => void;
+export type PublicCacheInvalidator = (
+  section: ContentSection,
+  slugs?: readonly string[],
+) => void;
 
 /** Expire everything the public site has cached for one section.
  *
@@ -41,16 +46,32 @@ export type PublicCacheInvalidator = (section: ContentSection) => void;
  * Section-wide because a page is never the only thing that changed: its
  * section index, the category hubs, the related rail, the sitemap, the feed and
  * `llms.txt` all carry the same tag, and so does the cached 404 of a slug that
- * did not resolve until this write. */
-export function revalidatePublicContent(section: ContentSection): void {
+ * did not resolve until this write.
+ *
+ * Documents are the exception (`@/content-system/repository/tags`). Given the
+ * `slugs` whose public copy changed, only those documents expire, and every
+ * other page re-renders its listings from the cache without re-reading its
+ * body. Without them — a category, author or media edit, a rename that moved a
+ * subtree — every document in the section goes too. */
+export function revalidatePublicContent(
+  section: ContentSection,
+  slugs?: readonly string[],
+): void {
   revalidateTag(contentTag(section), { expire: 0 });
+  if (!slugs) {
+    revalidateTag(contentDocumentsTag(section), { expire: 0 });
+    return;
+  }
+  for (const slug of slugs) {
+    revalidateTag(contentDocumentTag(section, slug), { expire: 0 });
+  }
 }
 
 /** Registry copy appears across every section and all global location hubs. */
 export function revalidatePublicLocations(): void {
   revalidateTag(locationsTag, { expire: 0 });
   for (const section of CONTENT_SECTIONS) {
-    revalidateTag(contentTag(section), { expire: 0 });
+    revalidatePublicContent(section);
   }
 }
 

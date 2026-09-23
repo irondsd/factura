@@ -6,7 +6,6 @@ import {
 import { CONTENT_SECTIONS } from "@/content-system/types";
 import { canAuthor } from "@/cms/auth/policy";
 import { cmsCategoryStore } from "@/cms/categories/server/store";
-import { cmsContentService } from "@/cms/server/service";
 import { revalidatePublicInsights } from "@/cms/server/invalidation";
 import { cmsPageStore } from "@/cms/server/store";
 import {
@@ -60,9 +59,10 @@ export class CmsInsightService {
   /** Every page an insight may name, in every status, with its primary
    * category already resolved to a label. Drafts are included on purpose —
    * see `pageExists`. */
-  async pageOptions(actor: CmsActor): Promise<InsightPageOption[]> {
+  async pageOptions(_actor: CmsActor): Promise<InsightPageOption[]> {
+    void _actor;
     const [pages, categories] = await Promise.all([
-      cmsContentService.list(actor, { withoutLongMetadata: true }),
+      cmsPageStore.pickerRows(),
       Promise.all(CONTENT_SECTIONS.map((s) => cmsCategoryStore.list(s))),
     ]);
     const labels = new Map(
@@ -70,7 +70,7 @@ export class CmsInsightService {
     );
     return pages
       .map((page) => {
-        const primary = page.metadata.categories[0];
+        const primary = page.primaryCategory;
         return {
           id: page.id,
           section: page.section,

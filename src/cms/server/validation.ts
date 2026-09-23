@@ -150,7 +150,7 @@ async function collectionFor(
 /** The cheap index: slugs and statuses only, for the link and canonical checks
  * at preview level, where the full collection is not needed. */
 async function indexFor(store: CmsPageStore, document: ContentDocument) {
-  const outline = await store.outline(document.section);
+  const outline = await store.tree(document.section);
   return buildContentIndex(
     outline.map((entry) =>
       entry.id === document.id

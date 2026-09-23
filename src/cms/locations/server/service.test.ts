@@ -101,6 +101,7 @@ function fakeLocations() {
         .filter(([, locationId]) => locationId === id)
         .map(([slug]) => slug),
     usage: async (key: string) => usage.get(key) ?? [],
+    usageByKey: async () => new Map(usage),
     lockVersionOf: async (id: string) => locations.get(id)?.lockVersion ?? null,
   };
 

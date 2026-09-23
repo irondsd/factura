@@ -112,6 +112,12 @@ function fakeCategories() {
         .map(([address]) => address.split(":").slice(1).join(":")),
     usage: async (section: ContentSection, key: string) =>
       usage.get(`${section}:${key}`) ?? [],
+    usageCounts: async (section: ContentSection) =>
+      new Map(
+        [...usage]
+          .filter(([id]) => id.startsWith(`${section}:`))
+          .map(([id, pages]) => [id.slice(section.length + 1), pages.length]),
+      ),
     lockVersionOf: async (id: string) =>
       categories.get(id)?.lockVersion ?? null,
   };

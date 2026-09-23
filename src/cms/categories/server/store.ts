@@ -222,6 +222,27 @@ export class CmsCategoryStore {
     return rows.map((row) => row.slug);
   }
 
+  /** How many pages use each category key of one section, in one query. The
+   * same pages `usage` would list — current pointers only, counted once per
+   * page — for the list views, which show a number per category and used to
+   * run `usage` once per category to get it. */
+  async usageCounts(section: ContentSection): Promise<Map<string, number>> {
+    const rows = await this.database.execute<{ key: string; pages: number }>(
+      sql`select category.key, count(distinct ${cmsPages.id})::int as pages
+        from ${cmsPages}
+        inner join ${cmsPageRevisions}
+          on ${cmsPageRevisions.pageId} = ${cmsPages.id}
+          and ${cmsPageRevisions.id} in (${cmsPages.wipRevisionId}, ${cmsPages.publishedRevisionId}, ${cmsPages.previewRevisionId})
+        cross join lateral jsonb_array_elements_text(
+          case when jsonb_typeof(${cmsPageRevisions.metadata}->'categories') = 'array'
+            then ${cmsPageRevisions.metadata}->'categories' else '[]'::jsonb end
+        ) as category(key)
+        where ${cmsPages.section} = ${section}
+        group by category.key`,
+    );
+    return new Map(rows.map((row) => [row.key, Number(row.pages)]));
+  }
+
   /** Current editable/public pointers only. Superseded historical revisions may
    * retain the key; the retired category tombstone keeps those understandable. */
   async usage(section: ContentSection, key: string): Promise<CategoryUsage[]> {

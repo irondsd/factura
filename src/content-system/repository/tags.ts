@@ -7,11 +7,16 @@ import type { ContentSection } from "../types";
 // one who can guarantee the tag is on it, and `src/content-system` may not
 // import `src/cms` anyway (cms.md).
 //
-// One tag per section, not one per page. Every published save can move a
-// section's listings too — a title or summary shows up in the index, the
-// category hub, the related-articles rail, the feed and `llms.txt` — so a
-// page-level tag would have to be invalidated together with the section tag on
-// essentially every write, and would only add a second thing to keep in sync.
+// Listings are tagged per section: every published save can move them — a
+// title or summary shows up in the index, the category hub, the related-articles
+// rail, the feed and `llms.txt` — so the section tag is expired on every public
+// write. Single documents are the exception, tagged per page as well as per
+// section (`contentDocumentTag`, `contentDocumentsTag`). A document read is the
+// one read whose answer depends on nothing but its own row, and under the
+// section tag one publish expired every document in the section: each page's
+// next render then re-read its full body from the database even though only
+// its related rail had moved. That was a whole section's worth of bodies of
+// database egress per publish, on a plan metered by the byte.
 //
 // Nothing else has to be tagged by hand: a route that renders while one of
 // these cached reads runs inherits its tags on its own cache entry, which is
@@ -34,6 +39,19 @@ import type { ContentSection } from "../types";
 /** Everything the public site reads out of one CMS section. */
 export const contentTag = (section: ContentSection): string =>
   `content:${section}`;
+
+/** One document's cached read, by its path. Expired with the section tag when
+ * that page's public copy changes — including the cached `null` of a path that
+ * did not resolve until now. */
+export const contentDocumentTag = (
+  section: ContentSection,
+  slug: string,
+): string => `content:${section}:doc:${slug}`;
+
+/** Every document read of one section, for the writes that cannot name the
+ * pages they touched: a rename that moves a subtree, a registry change. */
+export const contentDocumentsTag = (section: ContentSection): string =>
+  `content:${section}:docs`;
 
 /** The one global registry read by articles, hubs and discovery surfaces. */
 export const locationsTag = "content:locations";
