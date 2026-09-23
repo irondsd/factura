@@ -108,9 +108,10 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
   }
 
   // Related pages come from the *published* set, which is what the public page
-  // will see. A brand-new draft therefore shows the fallback — the newest other
-  // guides — exactly as it would once published, rather than an empty block
-  // that hides how the page will actually look.
+  // will see. A brand-new draft therefore shows the guides from its own
+  // location (then nationwide ones) exactly as it would once published — and
+  // no block at all when there are none, which is also what the public page
+  // will do.
   const published = (
     await cmsPageStore.list({ section: section.id, statuses: ["published"] })
   ).filter((candidate) => candidate.id !== page.id);

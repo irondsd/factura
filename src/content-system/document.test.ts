@@ -196,12 +196,13 @@ describe("relatedDocuments", () => {
     slug: string,
     categories: string[],
     published: string,
+    locations: string[] = ["mendoza"],
   ): ContentSummary => {
     // `relatedDocuments` ranks summaries, which are documents without a body.
     const { body, ...rest } = doc({
       id: slug,
       slug,
-      metadata: { keywords: [], categories, locations: [] },
+      metadata: { keywords: [], categories, locations },
       publishedAt: published,
     });
     void body;
@@ -256,15 +257,65 @@ describe("relatedDocuments", () => {
     expect(picks.size).toBeGreaterThan(15);
   });
 
-  it("tops up with unrelated pages so the block is never short", () => {
-    // A page alone in its category would otherwise render an empty block where
-    // the author placed <RelatedGuides />.
+  it("keeps to the page's own location before anything else", () => {
+    // A Mendoza reader gets Mendoza guides, even ones in another category, ahead
+    // of a better category match from a province they do not live in.
     const candidates = [
-      summary("a", ["impuestos"], "2026-01-01T00:00:00-03:00"),
-      summary("b", ["mercado-y-precios"], "2026-01-02T00:00:00-03:00"),
-      summary("c", ["expensas"], "2026-01-03T00:00:00-03:00"),
+      summary("lejos", current.metadata.categories, "2026-01-01", ["salta"]),
+      summary("nacional", current.metadata.categories, "2026-01-01", [
+        "argentina",
+      ]),
+      summary("local-otro-tema", ["impuestos"], "2026-01-01"),
+      summary("local", ["servicios"], "2026-01-01"),
     ];
-    expect(relatedDocuments(current, candidates)).toHaveLength(3);
+    expect(relatedDocuments(current, candidates).map((c) => c.slug)).toEqual([
+      "local",
+      "local-otro-tema",
+      "nacional",
+    ]);
+  });
+
+  it("matches on any of the page's locations", () => {
+    const amba = summary("amba", ["servicios"], "2026-01-01", [
+      "caba",
+      "gran-buenos-aires",
+    ]);
+    const candidates = [
+      summary("gba", ["servicios"], "2026-01-01", ["gran-buenos-aires"]),
+      summary("pba", ["servicios"], "2026-01-01", [
+        "provincia-de-buenos-aires",
+      ]),
+    ];
+    expect(relatedDocuments(amba, candidates).map((c) => c.slug)).toEqual([
+      "gba",
+    ]);
+  });
+
+  it("shows a short list rather than pages from other provinces", () => {
+    // No neighbours and no unrelated filler: a short rail is fine, and with no
+    // match at all <RelatedGuides /> renders nothing.
+    const candidates = [
+      summary("local", ["impuestos"], "2026-01-01"),
+      summary("a", ["servicios"], "2026-01-01", ["salta"]),
+      summary("b", ["servicios"], "2026-01-01", ["chaco"]),
+    ];
+    expect(relatedDocuments(current, candidates).map((c) => c.slug)).toEqual([
+      "local",
+    ]);
+    expect(relatedDocuments(current, candidates.slice(1))).toEqual([]);
+  });
+
+  it("gives a nationwide page other nationwide pages", () => {
+    const nacional = summary("nacional", ["servicios"], "2026-01-01", [
+      "argentina",
+    ]);
+    const candidates = [
+      summary("otra-nacional", ["expensas"], "2026-01-01", ["argentina"]),
+      summary("provincial", ["servicios"], "2026-01-01"),
+    ];
+    expect(relatedDocuments(nacional, candidates).map((c) => c.slug)).toEqual(
+      ["otra-nacional"],
+    );
   });
 
   it("never suggests the page itself", () => {

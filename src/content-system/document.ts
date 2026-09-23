@@ -109,23 +109,31 @@ export function documentStats(
   return { words, minutes: Math.max(1, Math.round(words / WORDS_PER_MINUTE)) };
 }
 
+/** The location key for content that applies to the whole country. */
+const NATIONWIDE = "argentina";
+
 /** Pages to suggest at the foot of `document`, best match first.
  *
- * Ranked by shared categories, with a tiebreak bonus for sharing the primary
- * one; topped up with unrelated pages so the block is never awkwardly short.
- * Equal scores — the common case, most guides share `servicios` — are ordered
- * by `pairOrder`, a hash of the two slugs, and never by date.
+ * Location first: a reader of a Mendoza water guide cares about Mendoza's
+ * electricity company, not three random distributors from across the country.
+ * So a candidate qualifies only if it shares one of the page's locations, and
+ * after those come nationwide (`argentina`) pages, which apply to everyone.
+ * Nothing else qualifies. A province with too few guides gets a short list,
+ * and a page with no match gets none, which hides the block. Neighbouring
+ * provinces are deliberately not a tier.
+ *
+ * Within each tier, pages sharing more categories come first, with a bonus for
+ * sharing the primary one. Equal scores are ordered by `pairOrder`, a hash of
+ * the two slugs, and never by date.
  *
  * That tiebreak is a cost decision. It used to be "most recently updated
  * first", which put whatever was published or edited last into the rail of
  * every guide it tied with — ~35 pages on average, 53 at worst — and each of
  * those is a changed page Vercel bills as an ISR write (8 KB units, identical
- * regenerations free). With a pair hash an edit moves no other rail at all, a
- * new guide lands in ~3, and links spread across the whole section instead of
- * piling onto the newest few (123 of 167 guides were in nobody's rail). The same ranking `relatedGuides` applies on the
- * filesystem, over whatever set the caller passes — which is how the CMS
- * preview shows a real block instead of an empty one, and how the public page
- * will after the cutover.
+ * regenerations free). With a pair hash an edit moves no other rail at all, and
+ * a new guide lands in ~3. Scoping by location keeps it there: a new Mendoza
+ * guide can only enter Mendoza rails, plus the rare short one that tops up
+ * with nationwide pages.
  *
  * The caller decides what `candidates` contains, and that is where the
  * lifecycle rule lives: a public page passes published pages only. */
@@ -135,33 +143,38 @@ export function relatedDocuments(
   limit = 3,
 ): ContentSummary[] {
   const categories = document.metadata?.categories ?? [];
-  const others = candidates.filter((page) => page.slug !== document.slug);
+  const locations = document.metadata?.locations ?? [];
 
-  const shared = (page: ContentSummary) =>
-    (page.metadata?.categories ?? []).filter((c) => categories.includes(c))
-      .length;
+  const tier = (page: ContentSummary): number | null => {
+    const theirs = page.metadata?.locations ?? [];
+    if (theirs.some((l) => locations.includes(l))) return 0;
+    if (theirs.includes(NATIONWIDE)) return 1;
+    return null;
+  };
 
-  const ranked = others
-    .filter((page) => shared(page) > 0)
-    .map((page) => ({
-      page,
-      score:
-        shared(page) +
-        ((page.metadata?.categories ?? [])[0] === categories[0] ? 0.5 : 0),
-    }))
-    .sort((a, b) => b.score - a.score || tiebreak(a.page) - tiebreak(b.page))
+  const score = (page: ContentSummary): number => {
+    const theirs = page.metadata?.categories ?? [];
+    return (
+      theirs.filter((c) => categories.includes(c)).length +
+      (theirs[0] === categories[0] ? 0.5 : 0)
+    );
+  };
+
+  return candidates
+    .filter((page) => page.slug !== document.slug)
+    .flatMap((page) => {
+      const t = tier(page);
+      return t === null ? [] : [{ page, tier: t, score: score(page) }];
+    })
+    .sort(
+      (a, b) =>
+        a.tier - b.tier ||
+        b.score - a.score ||
+        pairOrder(document.slug, a.page.slug) -
+          pairOrder(document.slug, b.page.slug),
+    )
+    .slice(0, limit)
     .map((entry) => entry.page);
-
-  if (ranked.length >= limit) return ranked.slice(0, limit);
-
-  const filler = others
-    .filter((page) => !ranked.includes(page))
-    .sort((a, b) => tiebreak(a) - tiebreak(b));
-  return [...ranked, ...filler].slice(0, limit);
-
-  function tiebreak(page: ContentSummary): number {
-    return pairOrder(document.slug, page.slug);
-  }
 }
 
 /** A stable pseudo-random rank for `candidate` as seen from `from` (32-bit
