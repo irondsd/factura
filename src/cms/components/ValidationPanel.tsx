@@ -24,10 +24,14 @@ const REQUIREMENT: Record<ValidationLevel, string> = {
 export function ValidationPanel({
   diagnostics,
   level,
+  onOpenComponents,
 }: {
   diagnostics: readonly Diagnostic[];
   /** Null until something has actually been checked. */
   level: ValidationLevel | null;
+  /** Set when some errors are a component's, which are fixed in «Componentes»
+   * rather than here. */
+  onOpenComponents?: () => void;
 }) {
   const errors = diagnostics.filter((d) => d.severity === "error");
   const warnings = diagnostics.filter((d) => d.severity === "warning");
@@ -58,6 +62,20 @@ export function ValidationPanel({
         {errors.length > 0
           ? "Los errores impiden publicar; los avisos no. Guardar funciona igual."
           : "Los avisos no impiden publicar."}
+        {onOpenComponents && (
+          <>
+            {" "}
+            Algunos son de componentes sin completar:{" "}
+            <button
+              type="button"
+              onClick={onOpenComponents}
+              className="cursor-pointer underline text-ink hover:text-accent"
+            >
+              abrir Componentes
+            </button>
+            .
+          </>
+        )}
       </p>
       <ul className="list-none p-0 m-0">
         {[...errors, ...warnings].map((diagnostic, index) => (

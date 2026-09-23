@@ -7,11 +7,8 @@ import { cn } from "@/lib/cn";
 import { CategoriesField } from "./CategoriesField";
 import { Counter, inputClass, TagsInput } from "./controls";
 import { CmsSelect } from "../CmsSelect";
-import { FaqField } from "./FaqField";
 import { KeywordsField } from "./KeywordsField";
-import { MethodologyField } from "./MethodologyField";
 import { LocationsField } from "./LocationsField";
-import { SourcesField } from "./SourcesField";
 import { asDataset, asOgImage, type Dataset, type OgImage } from "./values";
 
 // One metadata field, rendered from its descriptor. Every section's form is
@@ -22,21 +19,18 @@ import { asDataset, asOgImage, type Dataset, type OgImage } from "./values";
 // pairs of boxes. Assembling the JSONB object is `toPatch`'s job, not the
 // editor's.
 //
-// Four kinds bring their own heading, because their heading is a fold and has
-// to say what is folded away — see `CollapsibleField`. Everything else is a
-// label, a control and a line of help, laid out here.
+// Keywords bring their own heading, because their heading is a fold and has to
+// say what is folded away — see `CollapsibleField`. Everything else is a label,
+// a control and a line of help, laid out here. The FAQ, the sources and the
+// methodology are not rendered here at all: they are the data behind tags in
+// the body, and live in the editor's «Componentes» tab.
 
 /** A page that may be chosen as a parent. `slug` is carried alongside the
  * label because the create form has to build the child's full path from it. */
 export type ParentOption = { value: string; label: string; slug: string };
 
 /** The kinds that render their own label, because it doubles as the fold. */
-const SELF_HEADING: ReadonlySet<FieldDescriptor["kind"]> = new Set([
-  "tags",
-  "faq",
-  "methodology",
-  "sources",
-]);
+const SELF_HEADING: ReadonlySet<FieldDescriptor["kind"]> = new Set(["tags"]);
 
 export function MetadataField({
   field,
@@ -61,17 +55,15 @@ export function MetadataField({
   const describedBy = field.help ? `${id}-help` : undefined;
 
   if (SELF_HEADING.has(field.kind)) {
-    const props = { field, value, onChange, required: isRequired, invalid };
-    switch (field.kind) {
-      case "tags":
-        return <KeywordsField {...props} />;
-      case "faq":
-        return <FaqField {...props} />;
-      case "methodology":
-        return <MethodologyField {...props} />;
-      default:
-        return <SourcesField {...props} />;
-    }
+    return (
+      <KeywordsField
+        field={field}
+        value={value}
+        onChange={onChange}
+        required={isRequired}
+        invalid={invalid}
+      />
+    );
   }
 
   // A read-only field renders as text, and there is no form control for a

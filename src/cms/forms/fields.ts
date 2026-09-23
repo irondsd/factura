@@ -60,8 +60,9 @@ export type FieldDescriptor = {
    * SEO jargon — see the Phase 5 gate. */
   help?: string;
   required?: boolean;
-  /** The body component this field feeds. Such a field is shown while the body
-   * places that component — and required exactly then. `<Faq />` is where the
+  /** The body component this field feeds. Such a field is edited in the
+   * editor's «Componentes» tab rather than the sidebar, shown there while the
+   * body places that component — and required exactly then. `<Faq />` is where the
    * questions render and `<Fuentes />` is where the sources render, so a body
    * without the tag has nothing to fill in and nothing worth demanding.
    *
@@ -100,15 +101,10 @@ export type FieldDescriptor = {
    * denominator in the collapsed summary's «5 / 6», and nothing else — the
    * validator owns the rule, this is the hint, exactly like `softMax`. */
   softMaxItems?: number;
-  /** For a list field: the entry count from which it opens collapsed.
-   *
-   * A filled FAQ is six question/answer boxes and a filled «Fuentes» is three
-   * triples of inputs, and both sit between the editor and the fields below
-   * them for the whole life of the page after the one afternoon they were
-   * written. Collapsed they are a heading and a count — «Preguntas frecuentes ·
-   * 6 preguntas» — which is what somebody scanning the form actually wants to
-   * know. `1` means "as soon as it holds anything"; keywords use `4`, because
-   * three chips are shorter than the sentence explaining them. */
+  /** For a list field in the sidebar: the entry count from which it opens
+   * collapsed. Keywords use `4`, because three chips are shorter than the
+   * sentence explaining them. (Component fields fold by a different rule —
+   * finished or not — in «Componentes»; see `cms/forms/components.ts`.) */
   collapseFrom?: number;
   /** Fields in the same group render together under one heading. */
   group:
@@ -124,8 +120,8 @@ export type FieldDescriptor = {
 // Author credit, identical in every section: who wrote the page and who checked
 // its numbers, both chosen from the same list of people.
 //
-// Their own heading, directly under «Bloques», because this is the credibility
-// block — it belongs beside «Fuentes», not beside the URL. Both are optional: a
+// Their own heading, directly under «Datos», because this is the credibility
+// block — it belongs beside the provenance, not beside the URL. Both are optional: a
 // page with no byline is published by the organization, which is exactly what
 // the structured data said before authors existed.
 const CREDIT_FIELDS: readonly FieldDescriptor[] = [
@@ -153,10 +149,10 @@ const CREDIT_FIELDS: readonly FieldDescriptor[] = [
 // the editor groups by `group`, so this list *is* the layout. The rule it
 // follows is that a heading answers one question. «Búsqueda» is the page as a
 // search result and nothing else — the two lines Google prints, then what the
-// page is filed under; the FAQ and the sources moved out of «Contenido» into
-// «Bloques del artículo», because those two are not copy an editor writes into
-// the sidebar, they are the data behind a tag in the body, and they were the
-// long things standing between the short ones.
+// page is filed under. The `placedBy` fields — FAQ, sources, methodology — are
+// declared here but not shown in the sidebar at all: they are not copy an
+// editor writes beside the title, they are the data behind a tag in the body,
+// and the editor's «Componentes» tab is where they are edited.
 const GUIDE_FIELDS: readonly FieldDescriptor[] = [
   {
     path: "title",
@@ -283,9 +279,8 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     label: "Metodología",
     kind: "methodology",
     placedBy: "Metodologia",
-    collapseFrom: 1,
     group: "bloques",
-    help: "Los cinco campos son opcionales por separado: completa los que la página pueda responder honestamente y deja el resto vacío. Al menos uno tiene que decir algo, o el bloque no se dibuja. Se muestra donde el cuerpo escribe <Metodologia />, y solo ahí. «Fuentes» aquí es una frase que nombra los organismos; la lista de enlaces es el campo «Fuentes» de más abajo.",
+    help: "Los cinco campos son opcionales por separado: completa los que la página pueda responder honestamente y deja el resto vacío. Al menos uno tiene que decir algo, o el bloque no se dibuja. Se muestra donde el cuerpo escribe <Metodologia />, y solo ahí. «Fuentes» aquí es una frase que nombra los organismos; la lista de enlaces es el componente <Fuentes />.",
   },
   {
     path: "metadata.faq",
@@ -293,7 +288,6 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     kind: "faq",
     placedBy: "Faq",
     softMaxItems: 6,
-    collapseFrom: 1,
     group: "bloques",
     help: "De 4 a 6 preguntas reales de búsqueda. Se muestran donde el cuerpo escribe <Faq />, y solo ahí. Las respuestas son texto plano: los enlaces van en el cuerpo.",
   },
@@ -302,7 +296,6 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     label: "Fuentes",
     kind: "sources",
     placedBy: "Fuentes",
-    collapseFrom: 1,
     group: "bloques",
     help: "Opcional. Las fuentes primarias en las que se apoya la guía — la documentación de la empresa, la resolución que fija un cargo. Se muestran donde el cuerpo escribe <Fuentes />, y solo ahí.",
   },
@@ -421,14 +414,14 @@ export const FIELD_GROUPS: readonly {
   { id: "estructura", label: "Estructura" },
   { id: "busqueda", label: "Búsqueda" },
   { id: "contenido", label: "Contenido" },
-  { id: "bloques", label: "Bloques del artículo" },
+  { id: "bloques", label: "Datos" },
   { id: "creditos", label: "Créditos" },
   { id: "social", label: "Redes" },
 ];
 
 /** Whether the body places a content component, by the same test the validator
  * uses. `\b` after the name so `<Faq />` matches and `<FaqLista />` does not. */
-function bodyPlaces(body: string, component: string): boolean {
+export function bodyPlaces(body: string, component: string): boolean {
   return new RegExp(`<${component}\\b`).test(body);
 }
 
@@ -518,7 +511,7 @@ const NULLABLE_COLUMNS = new Set([
   "parentId",
 ]);
 
-function isBlank(value: unknown): boolean {
+export function isBlank(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (Array.isArray(value)) return value.length === 0;

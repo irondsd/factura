@@ -23,6 +23,11 @@ import {
   readField,
   toPatch,
 } from "@/cms/forms/fields";
+import {
+  componentEntries,
+  componentTally,
+  isComponentDiagnostic,
+} from "@/cms/forms/components";
 import type { CmsSection } from "@/cms/sections";
 import {
   cmsPreviewPath,
@@ -40,6 +45,7 @@ import { ownSegment, pathSegments } from "@/content-system/hierarchy";
 import { cn } from "@/lib/cn";
 import { CmsConfirmDialog, type DialogTone } from "./CmsDialog";
 import { CmsIcon, type CmsIconName } from "../icons";
+import { ComponentsPanel } from "./ComponentsPanel";
 import { HistoryPanel } from "./HistoryPanel";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { STATUS_MARK, StatusChip, statusLabel } from "./StatusChip";
@@ -63,7 +69,7 @@ import type {
 // could be called "the page", and the header's whole job is to keep them apart:
 // what is public, what is saved, and what is in this browser tab.
 
-type Tab = "markdown" | "preview" | "validation" | "history";
+type Tab = "markdown" | "components" | "preview" | "validation" | "history";
 
 /** An action the editor has asked for and not yet confirmed.
  *
@@ -287,14 +293,15 @@ export function PageEditor({
       if (result.kind === "invalid") {
         const diagnostics = result.diagnostics ?? [];
         const errors = diagnostics.filter((d) => d.severity === "error").length;
+        const inComponents = blockedByComponents(diagnostics, fields);
         setDiagnostics(diagnostics);
         setCheckedLevel(options.level);
-        setTab("validation");
+        setTab(inComponents ? "components" : "validation");
         // The service's own message is developer-facing English; the console is
         // Spanish, and the detail is in the panel below anyway.
         setNotice({
           kind: "error",
-          text: `${options.failLead ?? "No se completó"}: ${errors} ${errors === 1 ? "problema" : "problemas"} que hay que resolver primero. Están abajo, en Validación.`,
+          text: `${options.failLead ?? "No se completó"}: ${errors} ${errors === 1 ? "problema" : "problemas"} que hay que resolver primero. ${inComponents ? "Empieza por Componentes; la lista completa está en Validación." : "Están abajo, en Validación."}`,
         });
         return;
       }
@@ -302,7 +309,7 @@ export function PageEditor({
       // showing: they name the slug, the permission or the page.
       setNotice({ kind: "error", text: result.message });
     },
-    [],
+    [fields],
   );
 
   /** Ask the server what this page still needs in order to be **published**,
@@ -342,12 +349,21 @@ export function PageEditor({
         setDiagnostics(diagnostics);
         setCheckedLevel("publish");
         if (focus) {
+          // A component the body places and nobody filled in is the one
+          // problem with a place of its own to fix it, so it wins the tab.
+          const unfinished = componentEntries(fields, {
+            body,
+            values,
+            diagnostics,
+          }).some((entry) => entry.state !== "ok");
           setTab((current) =>
-            diagnostics.length > 0
-              ? "validation"
-              : current === "validation"
-                ? "markdown"
-                : current,
+            unfinished
+              ? "components"
+              : diagnostics.length > 0
+                ? "validation"
+                : current === "validation"
+                  ? "markdown"
+                  : current,
           );
         }
         return diagnostics;
@@ -356,7 +372,7 @@ export function PageEditor({
         return null;
       }
     },
-    [page.id, patch],
+    [body, fields, page.id, patch, values],
   );
 
   // Saving never asks whether the page is finished. A working copy is checked
@@ -395,9 +411,14 @@ export function PageEditor({
       if (result.ok) {
         const diagnostics = await runCheck({ focus: true });
         if (diagnostics && diagnostics.length > 0) {
+          const unfinished = componentEntries(fields, {
+            body,
+            values,
+            diagnostics,
+          }).some((entry) => entry.state !== "ok");
           setNotice({
             kind: "warn",
-            text: `${saveText} ${pendingForPublish(diagnostics)}`,
+            text: `${saveText} ${pendingForPublish(diagnostics, unfinished)}`,
           });
         }
       }
@@ -406,6 +427,7 @@ export function PageEditor({
     }
     setBusy(false);
   }, [
+    fields,
     handle,
     lockVersion,
     page.id,
@@ -704,37 +726,34 @@ export function PageEditor({
   // The sidebar, resolved against the document as it stands. A field whose
   // condition the page does not meet is dropped here rather than rendered
   // disabled, and a group left with nothing loses its heading too — an empty
-  // «Ubicación» would be as much noise as the field was. Depends on `body`, so
-  // typing `<Faq />` into the Markdown brings its questions into the form
-  // without a save.
+  // «Ubicación» would be as much noise as the field was. Component fields are
+  // not the sidebar's at all: they are the data behind a tag in the body, and
+  // «Componentes» is where they are edited.
   const grouped = useMemo(
     () =>
-      FIELD_GROUPS.map((group) => {
-        const entries = fields
-          .filter((field) => field.group === group.id)
-          .map((field) => ({ field, ...fieldState(field, { body, values }) }));
-        return {
-          ...group,
-          fields: entries.filter((entry) => entry.visible),
-          // A field only a tag in the body can bring back leaves one line
-          // behind saying which tag. Without it "where did the FAQ go" is a
-          // fair question with no answer anywhere on screen — this editor has
-          // no component palette to discover `<Faq />` from.
-          hints: entries.flatMap((entry) =>
-            !entry.visible && entry.field.placedBy
-              ? [
-                  {
-                    path: entry.field.path,
-                    label: entry.field.label,
-                    component: entry.field.placedBy,
-                  },
-                ]
-              : [],
-          ),
-        };
-      }).filter((group) => group.fields.length > 0 || group.hints.length > 0),
+      FIELD_GROUPS.map((group) => ({
+        ...group,
+        fields: fields
+          .filter((field) => field.group === group.id && !field.placedBy)
+          .map((field) => ({ field, ...fieldState(field, { body, values }) }))
+          .filter((entry) => entry.visible),
+      })).filter((group) => group.fields.length > 0),
     [fields, body, values],
   );
+
+  // «Componentes», live. The last check's diagnostics count only while the tab
+  // holds nothing unsaved — past that they describe a document that is no
+  // longer on screen, and the local checks are the better answer.
+  const components = useMemo(
+    () =>
+      componentEntries(fields, {
+        body,
+        values,
+        diagnostics: dirty ? [] : diagnostics,
+      }),
+    [fields, body, values, dirty, diagnostics],
+  );
+  const componentCount = componentTally(components);
 
   const invalidFields = useMemo(
     () => new Set(diagnostics.map((d) => d.field).filter(Boolean) as string[]),
@@ -839,7 +858,7 @@ export function PageEditor({
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
         <section className="min-w-0">
-          <Tabs tab={tab} onChange={setTab} />
+          <Tabs tab={tab} onChange={setTab} components={componentCount} />
 
           <div className={tab === "markdown" ? "" : "hidden"}>
             <MarkdownEditor
@@ -852,6 +871,17 @@ export function PageEditor({
             />
           </div>
 
+          {tab === "components" && (
+            <ComponentsPanel
+              entries={components}
+              fields={fields}
+              values={values}
+              onChange={(path, next) =>
+                setValues((current) => ({ ...current, [path]: next }))
+              }
+            />
+          )}
+
           {tab === "preview" && (
             <PreviewPane
               src={cmsPreviewPath(section.id, page.id)}
@@ -860,7 +890,15 @@ export function PageEditor({
           )}
 
           {tab === "validation" && (
-            <ValidationPanel diagnostics={diagnostics} level={checkedLevel} />
+            <ValidationPanel
+              diagnostics={diagnostics}
+              level={checkedLevel}
+              onOpenComponents={
+                blockedByComponents(diagnostics, fields)
+                  ? () => setTab("components")
+                  : undefined
+              }
+            />
           )}
 
           {tab === "history" && (
@@ -916,7 +954,9 @@ export function PageEditor({
             busy={busy}
             dirty={dirty}
             blockers={publishBlockers}
+            componentBlockers={blockedByComponents(diagnostics, fields)}
             onShowValidation={() => setTab("validation")}
+            onShowComponents={() => setTab("components")}
             onPublish={() => request({ kind: "publish" })}
             onPromotePreview={() => request({ kind: "preview" })}
             onUnpublish={() => request({ kind: "unpublish" })}
@@ -942,16 +982,6 @@ export function PageEditor({
                     setValues((current) => ({ ...current, [field.path]: next }))
                   }
                 />
-              ))}
-              {group.hints.map((hint) => (
-                <p
-                  key={hint.path}
-                  className="font-mono text-[12px] leading-[1.6] text-muted mt-0 mb-6"
-                >
-                  Escribe{" "}
-                  <span className="text-ink">{`<${hint.component} />`}</span> en
-                  el cuerpo para completar «{hint.label}».
-                </p>
               ))}
             </section>
           ))}
@@ -1043,34 +1073,64 @@ function ActionConfirmDialog({
   );
 }
 
-function Tabs({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
-  const items: { id: Tab; label: string }[] = [
-    { id: "markdown", label: "Markdown" },
-    { id: "preview", label: "Vista previa" },
-    { id: "validation", label: "Validación" },
-    { id: "history", label: "Historial" },
+function Tabs({
+  tab,
+  onChange,
+  components,
+}: {
+  tab: Tab;
+  onChange: (t: Tab) => void;
+  /** «Componentes»' counter: how many cards, and whether all are finished. */
+  components: { count: number; ok: boolean };
+}) {
+  const items: { id: Tab; label: string; icon: CmsIconName }[] = [
+    { id: "markdown", label: "Markdown", icon: "markdown" },
+    { id: "components", label: "Componentes", icon: "component" },
+    { id: "preview", label: "Vista previa", icon: "preview" },
+    { id: "validation", label: "Validación", icon: "checkAll" },
+    { id: "history", label: "Historial", icon: "history" },
   ];
   return (
-    // The labels shrink rather than the strip scrolling: four of them do not fit
-    // a phone at full width, and the alternative — an `overflow-x-auto` strip —
+    // The labels drop out rather than the strip scrolling: five of them do not
+    // fit a narrow column, and the alternative — an `overflow-x-auto` strip —
     // put a scrollbar under the tabs on every screen to solve a problem only
-    // the narrowest ones have.
-    <div role="tablist" className="flex gap-1 border-b border-line mb-5">
+    // the narrowest ones have. Measured against the column, not the viewport,
+    // because the sidebar beside it is what takes the width away. Iconless, a
+    // tab's name is still what a screen reader and a hover say.
+    <div role="tablist" className="@container flex border-b border-line mb-5">
       {items.map((item) => (
         <button
           key={item.id}
           type="button"
           role="tab"
           aria-selected={tab === item.id}
+          aria-label={
+            item.id === "components" && components.count > 0
+              ? `${item.label}: ${components.count}, ${components.ok ? "completos" : "hay que completarlos"}`
+              : item.label
+          }
+          title={item.label}
           onClick={() => onChange(item.id)}
           className={cn(
-            "px-4 py-2 font-mono text-micro uppercase tracking-label-wide border-b-2 -mb-px transition-colors",
+            "inline-flex items-center gap-1.5 whitespace-nowrap px-3 @min-[680px]:px-2.5 py-2 font-mono text-micro uppercase tracking-label-wide border-b-2 -mb-px transition-colors",
             tab === item.id
               ? "border-accent text-accent"
               : "border-transparent text-muted hover:text-accent",
           )}
         >
-          {item.label}
+          <CmsIcon name={item.icon} size="sm" />
+          <span className="hidden @min-[680px]:inline">{item.label}</span>
+          {item.id === "components" && components.count > 0 && (
+            <span
+              aria-hidden="true"
+              className={cn(
+                "inline-flex min-w-[18px] items-center justify-center px-1 py-px text-[10px] leading-[1.4] tracking-normal text-paper",
+                components.ok ? "bg-ok" : "bg-accent",
+              )}
+            >
+              {components.count}
+            </span>
+          )}
         </button>
       ))}
     </div>
@@ -1117,7 +1177,9 @@ function StatusControls({
   busy,
   dirty,
   blockers,
+  componentBlockers,
   onShowValidation,
+  onShowComponents,
   onPublish,
   onPromotePreview,
   onUnpublish,
@@ -1134,7 +1196,11 @@ function StatusControls({
    * «Publicar» without stopping «Guardar»: everything in this editor saves, and
    * only this decides what may be put in front of readers. */
   blockers: number;
+  /** Whether some of those errors are a component's — and so fixed in
+   * «Componentes» rather than read about in «Validación». */
+  componentBlockers: boolean;
   onShowValidation: () => void;
+  onShowComponents: () => void;
   onPublish: () => void;
   onPromotePreview: () => void;
   onUnpublish: () => void;
@@ -1217,10 +1283,10 @@ function StatusControls({
           antes de publicar.{" "}
           <button
             type="button"
-            onClick={onShowValidation}
+            onClick={componentBlockers ? onShowComponents : onShowValidation}
             className="cursor-pointer underline hover:text-accent"
           >
-            Ver en Validación
+            {componentBlockers ? "Completar componentes" : "Ver en Validación"}
           </button>
           . Guardar sigue funcionando.
         </p>
@@ -1714,14 +1780,33 @@ function copyState(
 /** The tail of the notice after a save that landed on a page which is not
  * publishable yet. Said in the same breath as «Guardado», because the two
  * halves are the point: the work is safe, and it is not finished. */
-function pendingForPublish(diagnostics: readonly Diagnostic[]): string {
+function pendingForPublish(
+  diagnostics: readonly Diagnostic[],
+  /** The editor was sent to «Componentes», so that is where to say to look. */
+  inComponents: boolean,
+): string {
   const errors = diagnostics.filter((d) => d.severity === "error").length;
   const warnings = diagnostics.length - errors;
   const parts = [
     errors > 0 && `${errors} ${errors === 1 ? "error" : "errores"}`,
     warnings > 0 && `${warnings} ${warnings === 1 ? "aviso" : "avisos"}`,
   ].filter(Boolean);
+  const where = inComponents
+    ? "Empieza por Componentes; la lista completa está en Validación"
+    : "Están en Validación";
   return errors > 0
-    ? `Quedan ${parts.join(" y ")} antes de poder publicar: están en Validación.`
-    : `Quedan ${parts.join(" y ")} en Validación; no impiden publicar.`;
+    ? `Quedan ${parts.join(" y ")} antes de poder publicar. ${where}.`
+    : `Quedan ${parts.join(" y ")}, que no impiden publicar. ${where}.`;
+}
+
+/** Whether a refusal is, at least in part, about a component's data — which is
+ * what decides that the editor lands on «Componentes» rather than on the list
+ * in «Validación». */
+function blockedByComponents(
+  diagnostics: readonly Diagnostic[],
+  fields: readonly FieldDescriptor[],
+): boolean {
+  return diagnostics.some(
+    (d) => d.severity === "error" && isComponentDiagnostic(d, fields),
+  );
 }
