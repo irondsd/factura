@@ -3,6 +3,7 @@ import { ClosingCta } from "@/components/guides/cta";
 import { SHELL } from "@/components/landing/parts";
 import { SectionList } from "@/components/section/SectionList";
 import { CategoryChips } from "@/components/guides/CategoryChips";
+import { SectionInsights } from "@/components/insights/Insights";
 import { JsonLd } from "@/components/seo/JsonLd";
 import type { ContentSection } from "@/content/section";
 import { sectionIndexLd } from "@/i18n/structuredData";
@@ -22,6 +23,7 @@ export async function SectionIndex({
   title,
   description,
   intro,
+  insightsTitle,
   closing,
 }: {
   section: ContentSection;
@@ -31,6 +33,9 @@ export async function SectionIndex({
   description: string;
   /** The paragraph under the headline. */
   intro: string;
+  /** Heading of the «destacados» rail, which renders only when the section has
+   * insights pointing at published pages. */
+  insightsTitle: string;
   /** The index had no offer of any kind: a visitor who arrived here from search
    * read five titles and left. The pitch is the section's own to make, so each
    * one writes it. */
@@ -75,6 +80,12 @@ export async function SectionIndex({
           section={section.id}
           label={`Temas de ${section.label.toLowerCase()}`}
           className="mt-8"
+        />
+
+        <SectionInsights
+          section={section.id}
+          title={insightsTitle}
+          className="mt-12"
         />
 
         <div className="mt-12 border-t border-line">

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fragment } from "react";
+import { HomepageInsights } from "@/components/insights/Insights";
 import { SiteFooter } from "@/components/landing/Footer";
 import { LedgerPeek } from "@/components/landing/LedgerPeek";
 import { Eyebrow, Perforation, Wordmark } from "@/components/landing/parts";
@@ -256,6 +257,17 @@ export default async function LandingPage({ params }: Props) {
           </div>
         </section>
       </div>
+
+      {/* ── Destacados (Spanish-only) ────────────────────────── */}
+      {/* The insights marked «página principal» in the CMS. Spanish-only for
+          the same reason as the editorial blocks below: every page they link
+          to is. Renders nothing when none is marked. */}
+      {locale === "es" && (
+        <HomepageInsights
+          title="Datos destacados"
+          className={cn(BAND, "pb-16")}
+        />
+      )}
 
       {/* ── Editorial sections (Spanish-only) ────────────────── */}
       {/* Outside the receipt column, like the two bands above: these are

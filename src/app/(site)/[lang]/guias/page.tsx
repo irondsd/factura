@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { CategoryChips } from "@/components/guides/CategoryChips";
 import { GuideList } from "@/components/guides/GuideList";
+import { SectionInsights } from "@/components/insights/Insights";
 import { Eyebrow, SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Button } from "@/components/ui";
@@ -84,6 +85,12 @@ export default async function GuiasIndexPage() {
           categories={categories}
           label="Temas de las guías"
           className="mt-8"
+        />
+
+        <SectionInsights
+          section="guias"
+          title="Claves de las guías"
+          className="mt-14"
         />
 
         <div className="mt-14 mb-16 flex flex-col gap-14">

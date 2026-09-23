@@ -1421,6 +1421,57 @@ export const cmsLocationRedirects = pgTable(
   ],
 );
 
+/** One «destacado»: a headline-sized finding pinned to the page that backs it,
+ * shown in the insight rails on the section indexes and, when `on_homepage` is
+ * set, on the homepage.
+ *
+ * The page is a foreign key to `cms_page`, not a path and not one column per
+ * section. Every section's pages already live in that one table, so a single
+ * reference covers all four — and any future section — without a nullable
+ * column per kind. Everything else the card shows is *derived* from the page
+ * at render time rather than copied here: the section (fixed per page), the
+ * current slug (renames move `cms_page.slug` and this row never notices), and
+ * the category (the first key in the published revision's metadata). Copying
+ * any of them would be one more thing a rename or a recategorisation left
+ * stale.
+ *
+ * Cascades with the page. Only a draft can be deleted, a draft's insight is
+ * already invisible, and an insight pointing at nothing has no card to render. */
+export const cmsInsights = pgTable(
+  "cms_insight",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pageId: uuid("page_id")
+      .notNull()
+      .references(() => cmsPages.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    /** The date the finding is about or was stated — editorial, and what the
+     * card shows. A calendar day, so `date` rather than a timestamp: there is
+     * no hour to get wrong across time zones. */
+    date: date("insight_date", { mode: "string" }).notNull(),
+    /** «Página principal»: also shown on the homepage. The section rails show
+     * every insight of their section regardless. */
+    onHomepage: boolean("on_homepage").notNull().default(false),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: uuid("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("cms_insight_page_idx").on(t.pageId),
+    index("cms_insight_date_idx").on(t.date),
+  ],
+);
+
 /** A CMS-scoped bearer token for an agent. Unlike ordinary Factura API tokens,
  * this can never read bills and is invalid the instant its owner loses CMS
  * membership. The cleartext value exists only at creation time. */

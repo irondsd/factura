@@ -35,6 +35,7 @@ export default function EstadisticasIndexPage() {
       title={TITLE}
       description={DESCRIPTION}
       intro={INTRO}
+      insightsTitle="Datos destacados"
       closing={{
         // The pitch this section earns: every page above is somebody else's
         // series, and the account turns your own bills into one.

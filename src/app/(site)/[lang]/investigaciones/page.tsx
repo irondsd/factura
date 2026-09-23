@@ -38,6 +38,7 @@ export default function InvestigacionIndexPage() {
       title={TITLE}
       description={DESCRIPTION}
       intro={INTRO}
+      insightsTitle="Hallazgos de las investigaciones"
       closing={{
         // The bridge this section earns: it is about choosing where to live, and
         // the bill arrives after the decision.

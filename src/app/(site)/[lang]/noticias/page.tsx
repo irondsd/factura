@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/article/Breadcrumbs";
 import { ContentList } from "@/components/article/ContentList";
+import { SectionInsights } from "@/components/insights/Insights";
 import { SHELL } from "@/components/landing/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { noticias } from "@/content/sections";
@@ -65,6 +66,11 @@ export default async function NoticiasIndexPage() {
           section="noticias"
           label="Temas de las noticias"
           className="mt-8"
+        />
+        <SectionInsights
+          section="noticias"
+          title="Noticias en breve"
+          className="mt-12"
         />
         <div className="mt-12 mb-16 border-t border-line">
           <ContentList

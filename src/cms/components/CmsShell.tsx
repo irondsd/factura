@@ -36,6 +36,8 @@ const NAV: readonly NavLink[] = [
   ),
   // After the authored sections: media is a thing every editor touches.
   { href: "/cms/media", label: "Medios" },
+  // The rails on the homepage and the section indexes.
+  { href: "/cms/insights", label: "Destacados" },
 ];
 
 export function CmsShell({

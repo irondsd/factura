@@ -37,3 +37,11 @@ export const contentTag = (section: ContentSection): string =>
 
 /** The one global registry read by articles, hubs and discovery surfaces. */
 export const locationsTag = "content:locations";
+
+/** The «destacados» list. Its own tag rather than a section's: one insight can
+ * surface on the homepage and its section index, and editing it should not
+ * rebuild every article in that section. What an insight *derives* from its
+ * page (address, category, whether it is published) is read through the
+ * section's own cached reads, so a route rendering insights also carries
+ * those sections' tags. */
+export const insightsTag = "content:insights";

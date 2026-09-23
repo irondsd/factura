@@ -1,6 +1,10 @@
 import "server-only";
 import { revalidateTag } from "next/cache";
-import { contentTag, locationsTag } from "@/content-system/repository/tags";
+import {
+  contentTag,
+  insightsTag,
+  locationsTag,
+} from "@/content-system/repository/tags";
 import { CONTENT_SECTIONS, type ContentSection } from "@/content-system/types";
 
 // On-demand invalidation of the public content cache (cms.md).
@@ -48,4 +52,10 @@ export function revalidatePublicLocations(): void {
   for (const section of CONTENT_SECTIONS) {
     revalidateTag(contentTag(section), { expire: 0 });
   }
+}
+
+/** The «destacados» rails — the homepage and the four section indexes. The
+ * pages an insight points at keep their own tags; only the list moved. */
+export function revalidatePublicInsights(): void {
+  revalidateTag(insightsTag, { expire: 0 });
 }
