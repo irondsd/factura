@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CmsToolCard } from "@/cms/components/CmsToolCard";
 import { CmsIcon } from "@/cms/icons";
 import { formatContentDateTimeShort } from "@/lib/content-date";
 import { formatRelativeTime, initials } from "@/lib/format";
@@ -17,22 +18,13 @@ import type {
 
 export function UserCollectionCard({ metrics }: { metrics: CmsUserMetrics }) {
   return (
-    <Link
+    <CmsToolCard
       href="/cms/users"
-      className="block border border-line bg-card px-5 py-5 text-ink no-underline transition-colors hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-    >
-      <span className="flex items-baseline gap-3">
-        <span className="font-display text-[21px] font-semibold tracking-[-0.015em]">
-          Usuarios
-        </span>
-        <span className="font-mono text-micro tracking-label-wide text-muted uppercase">
-          {metrics.totalUsers.toLocaleString("es-AR")} cuentas
-        </span>
-      </span>
-      <span className="mt-2 block font-mono text-[13px] leading-[1.6] text-muted">
-        Consulta altas, actividad y facturas cargadas. Solo lectura.
-      </span>
-    </Link>
+      icon="users"
+      label="Usuarios"
+      meta={`${metrics.totalUsers.toLocaleString("es-AR")} cuentas`}
+      description="Consulta altas, actividad y facturas cargadas. Solo lectura."
+    />
   );
 }
 

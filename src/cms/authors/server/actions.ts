@@ -14,7 +14,6 @@ import {
 import {
   cmsAuthorService as service,
   type AuthorInput,
-  type ContentAuthorWithUsage,
   type UpdateAuthorInput,
 } from "./service";
 
@@ -55,21 +54,14 @@ function failure(error: unknown): AuthorActionResult<never> {
   throw error;
 }
 
-// Authors are managed from the CMS home, so that is the screen whose server
-// render goes stale when one changes.
-const refresh = () => revalidatePath("/cms");
-
-export async function listAuthorsAction(): Promise<ContentAuthorWithUsage[]> {
-  // The membership check is the whole point of the call — the service takes no
-  // actor for reads, so this is what stops a non-member from reading the list.
-  await requireCmsMember("/cms");
-  return service.list();
-}
+// Authors are managed under `/cms/authors`, and the CMS home counts them — the
+// whole `/cms` tree is the server render that goes stale when one changes.
+const refresh = () => revalidatePath("/cms", "layout");
 
 export async function createAuthorAction(
   input: AuthorInput,
 ): Promise<AuthorActionResult<ContentAuthor>> {
-  const actor = await requireCmsMember("/cms");
+  const actor = await requireCmsMember("/cms/authors");
   try {
     const author = await service.create(actor, input);
     refresh();
@@ -82,7 +74,7 @@ export async function createAuthorAction(
 export async function updateAuthorAction(
   input: UpdateAuthorInput,
 ): Promise<AuthorActionResult<ContentAuthor>> {
-  const actor = await requireCmsMember("/cms");
+  const actor = await requireCmsMember("/cms/authors");
   try {
     const author = await service.update(actor, input);
     refresh();

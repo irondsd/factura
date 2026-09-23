@@ -1,9 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import type {
-  ContentLocation,
-  ContentLocationWithUsage,
-} from "@/content-system/locations/types";
+import type { ContentLocation } from "@/content-system/locations/types";
 import type { Diagnostic } from "@/content-system/types";
 import { requireCmsMember } from "@/cms/auth/requireCmsMember";
 import {
@@ -72,17 +69,11 @@ function failure(error: unknown): LocationActionResult<never> {
     return { ok: false, kind: "not_found", message: error.message };
   throw error;
 }
-const refresh = () => revalidatePath("/cms");
-export async function listLocationsAction(): Promise<
-  ContentLocationWithUsage[]
-> {
-  const actor = await requireCmsMember("/cms");
-  return service.list(actor);
-}
+const refresh = () => revalidatePath("/cms", "layout");
 export async function createLocationAction(
   input: CreateLocationInput,
 ): Promise<LocationActionResult<ContentLocation>> {
-  const actor = await requireCmsMember("/cms");
+  const actor = await requireCmsMember("/cms/locations");
   try {
     const data = await service.create(actor, input);
     refresh();
@@ -94,7 +85,7 @@ export async function createLocationAction(
 export async function updateLocationAction(
   input: UpdateLocationInput,
 ): Promise<LocationActionResult<ContentLocation>> {
-  const actor = await requireCmsMember("/cms");
+  const actor = await requireCmsMember("/cms/locations");
   try {
     const data = await service.update(actor, input);
     refresh();
@@ -108,7 +99,7 @@ export async function renameLocationAction(input: {
   expectedLockVersion: number;
   slug: string;
 }): Promise<LocationActionResult<ContentLocation & { redirects: string[] }>> {
-  const actor = await requireCmsMember("/cms");
+  const actor = await requireCmsMember("/cms/locations");
   try {
     const data = await service.rename(actor, input);
     refresh();
@@ -121,7 +112,7 @@ export async function retireLocationAction(input: {
   id: string;
   expectedLockVersion: number;
 }): Promise<LocationActionResult<{ id: string }>> {
-  const actor = await requireCmsMember("/cms");
+  const actor = await requireCmsMember("/cms/locations");
   try {
     await service.retire(actor, input);
     refresh();

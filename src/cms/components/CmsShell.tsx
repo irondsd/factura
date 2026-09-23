@@ -35,9 +35,9 @@ const NAV: readonly NavLink[] = [
     }),
   ),
   // After the authored sections: media is a thing every editor touches.
+  // «Destacados» is not here for the same reason «Tokens» is not: it is opened
+  // now and then, and lives in the CMS home's sidebar with the other tools.
   { href: "/cms/media", label: "Medios" },
-  // The rails on the homepage and the section indexes.
-  { href: "/cms/insights", label: "Destacados" },
 ];
 
 export function CmsShell({

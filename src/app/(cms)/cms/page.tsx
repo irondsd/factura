@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AuthorManager } from "@/cms/authors/components/AuthorManager";
 import { cmsAuthorService } from "@/cms/authors/server/service";
-import { LocationManager } from "@/cms/locations/components/LocationManager";
 import { cmsLocationService } from "@/cms/locations/server/service";
 import { canManageTokens } from "@/cms/auth/policy";
 import { requireCmsMember } from "@/cms/auth/requireCmsMember";
 import { CmsShell } from "@/cms/components/CmsShell";
+import { CmsToolCard } from "@/cms/components/CmsToolCard";
 import { cmsPageMetadata } from "@/cms/metadata";
 import { UserCollectionCard } from "@/cms/users/components/UserDirectory";
 import { cmsUserService } from "@/cms/users/server/service";
@@ -34,60 +33,106 @@ export default async function CmsHomePage() {
   const actor = await requireCmsMember("/cms");
   const [authors, locations, userMetrics] = await Promise.all([
     cmsAuthorService.list(),
-    cmsLocationService.list(actor),
+    // `options`, not `list`: the home only counts them, and `list` runs a
+    // usage query per location to find out who blocks a retirement.
+    cmsLocationService.options(actor),
     cmsUserService.metrics(),
   ]);
 
   return (
     <CmsShell actor={actor}>
-      <div className="flex flex-wrap items-baseline justify-between gap-4 mb-3">
-        <h1 className="font-display font-semibold text-[30px] tracking-[-0.025em] leading-[1.1] m-0">
-          Secciones
-        </h1>
-        {/* Tokens stays a link rather than a collection card because minting one shows a secret
-            exactly once — that belongs on a page you can read without a modal
-            over the console, and the page checks `canManageTokens` itself. */}
-        <div className="flex flex-wrap items-center gap-2">
-          {canManageTokens(actor) && (
-            <Link
-              href="/cms/tokens"
-              className="inline-flex items-center gap-2 border border-line bg-paper px-4 py-2 font-mono text-micro uppercase tracking-label-wide text-ink no-underline transition-colors hover:border-accent hover:text-accent"
-            >
-              Tokens
-            </Link>
-          )}
-        </div>
-      </div>
-      <p className="font-mono text-[15px] leading-[1.7] text-ink/90 max-w-[62ch] mb-9">
-        Elige qué contenido quieres editar.
-      </p>
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-8">
+        <div className="min-w-0">
+          <h1 className="font-display font-semibold text-[30px] tracking-[-0.025em] leading-[1.1] m-0 mb-3">
+            Secciones
+          </h1>
+          <p className="font-mono text-[15px] leading-[1.7] text-ink/90 max-w-[62ch] mb-9">
+            Elige qué contenido quieres editar.
+          </p>
 
-      <ul className="grid gap-4 sm:grid-cols-2 list-none p-0 m-0">
-        {CMS_SECTIONS.map((section) => {
-          const planned = section.status === "planned";
-          return (
-            <li key={section.id}>
-              {/* A planned section is shown but not linked: it says what is
-                  coming without offering an editor that does not exist yet. */}
-              <SectionCard section={section} disabled={planned} />
+          <ul className="grid gap-4 sm:grid-cols-2 list-none p-0 m-0">
+            {CMS_SECTIONS.map((section) => {
+              const planned = section.status === "planned";
+              return (
+                <li key={section.id}>
+                  {/* A planned section is shown but not linked: it says what is
+                      coming without offering an editor that does not exist yet. */}
+                  <SectionCard section={section} disabled={planned} />
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        {/* Everything that is not a section: shared data and the tools around
+            the content. Compact on purpose — these are opened a few times a
+            month, the sections every day, and the weight should say so. On
+            narrow screens it simply follows the sections. */}
+        <aside aria-labelledby="cms-admin-heading" className="min-w-0">
+          <h2
+            id="cms-admin-heading"
+            className="m-0 mb-4 border-b border-line pb-2 font-mono text-micro font-normal uppercase tracking-label-wide text-muted lg:mt-[11px]"
+          >
+            Administración
+          </h2>
+          <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2 lg:grid-cols-1">
+            <li>
+              <CmsToolCard
+                href="/cms/media"
+                icon="image"
+                label="Medios"
+                meta="Imágenes"
+                description="Imágenes de las páginas públicas: sube, busca y revisa dónde se usa cada una."
+              />
             </li>
-          );
-        })}
-      </ul>
-
-      <section className="mt-10 border-t border-line pt-8">
-        <h2 className="m-0 font-display text-[24px] font-semibold tracking-[-0.02em]">
-          Administración
-        </h2>
-        <p className="mt-2 mb-6 max-w-[62ch] font-mono text-[13px] leading-[1.6] text-muted">
-          Datos y herramientas compartidos por el contenido y el producto.
-        </p>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <AuthorManager initialAuthors={authors} />
-          <UserCollectionCard metrics={userMetrics} />
-          <LocationManager initialLocations={locations} />
-        </div>
-      </section>
+            <li>
+              <CmsToolCard
+                href="/cms/insights"
+                icon="insight"
+                label="Destacados"
+                meta="Portada e índices"
+                description="Datos breves que apuntan a una página y aparecen en la portada y en el índice de cada sección."
+              />
+            </li>
+            <li>
+              <CmsToolCard
+                href="/cms/authors"
+                icon="author"
+                label="Autores"
+                meta={`${authors.length} ${authors.length === 1 ? "persona" : "personas"}`}
+                description="Administra quién firma y verifica el contenido del sitio."
+              />
+            </li>
+            <li>
+              <CmsToolCard
+                href="/cms/locations"
+                icon="location"
+                label="Ubicaciones"
+                meta={`${locations.length} ${locations.length === 1 ? "lugar" : "lugares"}`}
+                description="Administra los lugares que conectan contenido de todas las secciones."
+              />
+            </li>
+            <li>
+              <UserCollectionCard metrics={userMetrics} />
+            </li>
+            {/* Tokens is a page rather than a modal because minting one shows a
+                secret exactly once — that belongs somewhere you can read it
+                without a dialog over the console. The page checks
+                `canManageTokens` itself; hiding the card is only courtesy. */}
+            {canManageTokens(actor) && (
+              <li>
+                <CmsToolCard
+                  href="/cms/tokens"
+                  icon="key"
+                  label="Tokens"
+                  meta="Acceso MCP"
+                  description="Crea y revoca los tokens con los que un agente edita el CMS por MCP."
+                />
+              </li>
+            )}
+          </ul>
+        </aside>
+      </div>
     </CmsShell>
   );
 }
