@@ -131,7 +131,10 @@ function main(): void {
       `  ${bold("pagar")}   phone + pay button "Cómo pagar la factura de X"`,
     );
     console.log(
-      `  ${bold("tarifa")}  discount tag       tarifa social, subsidios, descuentos\n`,
+      `  ${bold("tarifa")}  discount tag       tarifa social, subsidios, descuentos`,
+    );
+    console.log(
+      `  ${bold("titularidad")} ID card + pen  "Cómo hacer el cambio de titularidad de X"\n`,
     );
     console.log(
       dim(

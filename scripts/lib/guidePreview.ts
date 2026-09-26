@@ -84,6 +84,25 @@ export const MOTIFS = {
         <circle cx="28" cy="28" r="14" fill="none" stroke="${PALE}" stroke-width="14"/>
       </g>
     </g>`,
+
+  /** "Cambio de titularidad" — an ID card and the pen that puts a new name on
+   * the account; the accent is the pen. */
+  titularidad: `
+    <g transform="translate(736 232) rotate(-6)">
+      <rect x="-130" y="-88" width="260" height="176" rx="22" fill="${PAPER}" stroke="${INK}" stroke-width="14"/>
+      <circle cx="-68" cy="-22" r="24" fill="none" stroke="${INK}" stroke-width="11"/>
+      <path d="M-110 46 a42 38 0 0 1 84 0" fill="none" stroke="${INK}" stroke-width="11" stroke-linecap="round"/>
+      <rect x="-8" y="-46" width="104" height="14" rx="7" fill="${GREY}"/>
+      <rect x="-8" y="-16" width="80" height="14" rx="7" fill="${GREY}"/>
+      <rect x="-8" y="16" width="104" height="18" rx="9" fill="${PALE}"/>
+    </g>
+    <path d="M626 400 c18 -26 30 -26 30 -6 s14 20 32 -4 s22 -16 26 4 s18 10 34 -6"
+          fill="none" stroke="${INK}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="translate(760 396) rotate(-38)">
+      <path d="M0 0 L22 -11 L22 11 Z" fill="${INK}"/>
+      <rect x="22" y="-15" width="150" height="30" rx="10" fill="${ACCENT}" stroke="${INK}" stroke-width="10"/>
+      <line x1="150" y1="-15" x2="150" y2="15" stroke="${INK}" stroke-width="8"/>
+    </g>`,
 } as const;
 
 export type Motif = keyof typeof MOTIFS;
