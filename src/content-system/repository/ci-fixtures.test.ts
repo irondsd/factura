@@ -41,6 +41,7 @@ describe("CI content fixtures", () => {
       noticias: "noticias",
       estadisticas: "estadisticas",
       investigaciones: "investigaciones",
+      proveedores: "proveedores",
     } as const;
 
     for (const pathname of CI_CONTENT_FIXTURE_PATHS) {

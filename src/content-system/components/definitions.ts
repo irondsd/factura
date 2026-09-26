@@ -471,7 +471,13 @@ const DATA_LEAF_COMPONENTS: Record<DataFigureName, ContentComponentDefinition> =
 export const CONTENT_COMPONENT_DEFINITIONS = {
   // ── guides ────────────────────────────────────────────────────────────────
   ClosingCta: {
-    sections: ["guias", "noticias", "estadisticas", "investigaciones"],
+    sections: [
+      "guias",
+      "proveedores",
+      "noticias",
+      "estadisticas",
+      "investigaciones",
+    ],
     kind: "container",
     props: z
       .object({
@@ -492,7 +498,7 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     },
   },
   ProbarCta: {
-    sections: ["guias"],
+    sections: ["guias", "proveedores"],
     kind: "container",
     props: z
       .object({
@@ -510,7 +516,7 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     },
   },
   CtaButton: {
-    sections: ["guias"],
+    sections: ["guias", "proveedores"],
     kind: "container",
     props: z
       .object({
@@ -543,7 +549,7 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     },
   },
   CtaRow: {
-    sections: ["guias"],
+    sections: ["guias", "proveedores"],
     kind: "container",
     props: noProps,
     description: "Places a couple of CTA buttons side by side.",
@@ -555,7 +561,7 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     },
   },
   DemoCta: {
-    sections: ["guias"],
+    sections: ["guias", "proveedores"],
     kind: "container",
     props: noProps,
     description:
@@ -568,7 +574,7 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     },
   },
   SignupCta: {
-    sections: ["guias"],
+    sections: ["guias", "proveedores"],
     kind: "container",
     props: noProps,
     description: "Button to sign-up. Children replace the label.",
@@ -580,7 +586,7 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     },
   },
   InflacionChart: {
-    sections: ["guias"],
+    sections: ["guias", "proveedores"],
     kind: "leaf",
     props: z.object({ chart: chartIdSchema }).strict(),
     description:
@@ -595,7 +601,7 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     },
   },
   TrustBlock: {
-    sections: ["guias"],
+    sections: ["guias", "proveedores"],
     kind: "leaf",
     props: noProps,
     description:
@@ -608,7 +614,13 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     },
   },
   Faq: {
-    sections: ["guias", "noticias", "estadisticas", "investigaciones"],
+    sections: [
+      "guias",
+      "proveedores",
+      "noticias",
+      "estadisticas",
+      "investigaciones",
+    ],
     kind: "leaf",
     props: CONTEXT_BOUND,
     description:
@@ -629,7 +641,13 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     // before scrolling through the argument. A guide is already the short
     // version of itself, so on `guias` and `noticias` it usually adds a second
     // opening to a page that only needed one.
-    sections: ["guias", "noticias", "estadisticas", "investigaciones"],
+    sections: [
+      "guias",
+      "proveedores",
+      "noticias",
+      "estadisticas",
+      "investigaciones",
+    ],
     kind: "container",
     props: noProps,
     description:
@@ -653,7 +671,13 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     // la factura de X" is three screenshots of somebody else's checkout — but a
     // noticia showing two versions of a resolution, or an estadística showing
     // the source's own table beside the chart, wants exactly the same block.
-    sections: ["guias", "noticias", "estadisticas", "investigaciones"],
+    sections: [
+      "guias",
+      "proveedores",
+      "noticias",
+      "estadisticas",
+      "investigaciones",
+    ],
     kind: "container",
     children: { only: "image", min: 2, max: 6 },
     props: z.object({ title: z.string().min(1).max(60).optional() }).strict(),
@@ -679,16 +703,19 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     },
   },
   RelatedGuides: {
-    sections: ["guias"],
+    sections: ["guias", "proveedores"],
     kind: "leaf",
     props: CONTEXT_BOUND,
     description:
-      "The related-guides block. The page computes the list; write a bare <RelatedGuides /> where it should appear.",
+      "The related-guides block. The page computes the list; write a bare <RelatedGuides /> where it should appear. On a guide it is guides sharing its categories and place; on a proveedores page it is every published guide whose `vendor` is this page's `vendor`.",
     authoring: {
       label: "Guías relacionadas",
       group: "article-structure",
       rank: 40,
-      notes: ["La página calcula la lista; no agregues propiedades."],
+      notes: [
+        "La página calcula la lista; no agregues propiedades.",
+        "En una página de proveedor lista las guías cuyo `vendor` coincide con el de la página.",
+      ],
     },
   },
   // Shared statistics/research article furniture. The author writes bare tags;
@@ -700,7 +727,7 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     // charge — and a reader who wants to check a claim deserves the link in the
     // article rather than nowhere. Noticias gets the tag for the same reason
     // and reads it from the same shared metadata key.
-    sections: ["guias", "noticias", ...DATA_SECTIONS],
+    sections: ["guias", "proveedores", "noticias", ...DATA_SECTIONS],
     kind: "leaf",
     props: CONTEXT_BOUND,
     description: "Renders this page's source metadata.",
@@ -718,7 +745,7 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     // Every section, like the FAQ. A guide that computes anything — a
     // comparison table, a "cuánto pagarías" figure — owes the reader the same
     // account of how, and most guides compute nothing and never place the tag.
-    sections: ["guias", "noticias", ...DATA_SECTIONS],
+    sections: ["guias", "proveedores", "noticias", ...DATA_SECTIONS],
     kind: "leaf",
     props: CONTEXT_BOUND,
     description:
@@ -748,10 +775,48 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
       notes: ["La página calcula las hijas directas; no agregues propiedades."],
     },
   },
+  // ── proveedores ───────────────────────────────────────────────────────────
+  ProviderSummary: {
+    // Only a company page has a company to summarise.
+    sections: ["proveedores"],
+    kind: "leaf",
+    props: CONTEXT_BOUND,
+    description:
+      "The company card that opens a proveedores page: logo, «¿Qué es X?», the services as badges and the website, up to four figures (clientes, desde, tipo, sede), then CUIT, razón social, regulator and, when it differs from the razón social, the name printed on the bill. Write a bare <ProviderSummary /> first in the body; the data is `metadata.provider` (logo as `logoMediaId`, a media-library id; `services` a list of strings) and the name is `metadata.vendor`.",
+    authoring: {
+      label: "Ficha del proveedor",
+      group: "article-structure",
+      rank: 1,
+      notes: [
+        "Va primero en el cuerpo, antes del párrafo de introducción.",
+        "Al insertarlo aparece en la pestaña Componentes: el logo se elige de la biblioteca y los textos se completan ahí. El nombre sale del campo «Proveedor».",
+        "Cada campo es opcional; uno vacío no se dibuja.",
+        "Escribe el componente bare, sin propiedades.",
+      ],
+    },
+  },
+  Opiniones: {
+    // Ratings are about a company, and only a company page has one.
+    sections: ["proveedores"],
+    kind: "leaf",
+    props: CONTEXT_BOUND,
+    description:
+      "The public ratings of the company: one row per platform (Google Play, App Store, Trustpilot, Defensa del Consumidor…) with its score out of 5 as a five-cell bar, the review count, and the date the numbers were read. Write a bare <Opiniones />; the data is `metadata.reviews` — `updated` (YYYY-MM-DD) and `sources`, each `{ name, score, count?, url? }`. Renders nothing while `sources` is empty.",
+    authoring: {
+      label: "Opiniones",
+      group: "tables-comparisons",
+      rank: 10,
+      notes: [
+        "Al insertarlo aparece en la pestaña Componentes: una fila por plataforma, con su nota sobre 5, la cantidad de reseñas y el enlace a la página de la empresa ahí.",
+        "Las notas se copian a mano de cada plataforma: completa la fecha en que las leíste, porque el bloque la muestra.",
+        "Escribe el componente bare, sin propiedades.",
+      ],
+    },
+  },
   PaginaRelacionada: {
     // Guides can point readers to a related statistics or research page too;
     // the href schema below keeps the card from becoming a generic escape hatch.
-    sections: ["guias", ...DATA_SECTIONS],
+    sections: ["guias", "proveedores", ...DATA_SECTIONS],
     kind: "container",
     props: z
       .object({ href: z.string().regex(/^\/(estadisticas|investigaciones)\//) })

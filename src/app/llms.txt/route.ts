@@ -45,6 +45,13 @@ const SECTION_LLMS: Record<
       "Spanish-only research pages: analyses that join several of the official series above to answer a question none of them answers alone — which barrio to rent in, what the market charges for safety. Each page publishes the derived dataset, states the arithmetic that produced it, and names what the join cannot see.",
     index: "Every analysis Factura publishes, and the series each one joins.",
   },
+  proveedores: {
+    heading: "Proveedores",
+    blurb:
+      "Spanish-only pages about the companies that bill Argentine households — electricity, gas and water distributors, internet and phone carriers. One page per company: which services it sells and where, and links to every Factura guide about its bills.",
+    index:
+      "Every company Factura has a page for, grouped by the service it leads with.",
+  },
 };
 
 // The file is English prose, so the Spanish `estado` values are spelled out for
@@ -75,7 +82,7 @@ const PREAMBLE = `# Factura
 
 > Factura is a bill ledger that turns uploaded PDF bills into spending, utility, and consumption insights for households.
 
-The product and trust pages are available in Spanish (default, at the canonical URLs below) and English (under the /en prefix, e.g. https://factura.uno/en, https://factura.uno/en/docs), with translations linked via hreflang. The editorial sections — Noticias, Guías, Estadísticas, Investigación, Normativa and Ubicaciones — are Spanish-only.
+The product and trust pages are available in Spanish (default, at the canonical URLs below) and English (under the /en prefix, e.g. https://factura.uno/en, https://factura.uno/en/docs), with translations linked via hreflang. The editorial sections — Noticias, Guías, Estadísticas, Investigación, Proveedores, Normativa and Ubicaciones — are Spanish-only.
 
 Factura helps users store, parse, and understand recurring bills such as electricity, gas, water, building expenses, internet, and other home costs.
 

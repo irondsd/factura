@@ -21,6 +21,58 @@ export const datasetMetadataSchema = z
   })
   .strict();
 
+const cardText = (max: number) => text.max(max).optional();
+
+/** The company card behind `<ProviderSummary />`. Lengths are what fits the
+ * card at a phone's width — a figure is a number or a word, not a sentence.
+ * Whether a page may carry it at all is the validator's question (only
+ * /proveedores), like every other section rule. */
+export const providerMetadataSchema = z
+  .object({
+    logoMediaId: z.uuid().optional(),
+    services: z.array(text.max(40)).max(6).optional(),
+    website: contentUrl
+      .refine((url) => url.startsWith("https://"), "must be an https:// URL")
+      .optional(),
+    customers: cardText(20),
+    customersNote: cardText(40),
+    since: cardText(20),
+    sinceNote: cardText(40),
+    kind: cardText(20),
+    kindNote: cardText(40),
+    headquarters: cardText(20),
+    headquartersNote: cardText(40),
+    cuit: z
+      .string()
+      .trim()
+      .regex(/^\d{2}-\d{8}-\d$/, "must be written 30-12345678-9")
+      .optional(),
+    legalName: cardText(80),
+    regulator: cardText(40),
+    billName: cardText(80),
+  })
+  .strict();
+
+/** The ratings behind `<Opiniones />`: what each platform shows, copied by
+ * hand, and the day it was copied. */
+export const reviewsMetadataSchema = z
+  .object({
+    updated: z.iso.date().optional(),
+    sources: z
+      .array(
+        z
+          .object({
+            name: text.max(40),
+            score: z.number().min(0).max(5),
+            count: z.number().int().min(0).optional(),
+            url: contentUrl.optional(),
+          })
+          .strict(),
+      )
+      .max(8),
+  })
+  .strict();
+
 /** The JSONB contract for every CMS-backed page.
  *
  * Data pages are not a different kind of document: they use the article
@@ -31,4 +83,6 @@ export const datasetMetadataSchema = z
 export const contentMetadataSchema = guideMetadataSchema.safeExtend({
   ogStat: text.optional(),
   dataset: datasetMetadataSchema.optional(),
+  provider: providerMetadataSchema.optional(),
+  reviews: reviewsMetadataSchema.optional(),
 });

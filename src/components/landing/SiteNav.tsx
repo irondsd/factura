@@ -85,6 +85,9 @@ export function siteFooterColumns(
               // the section.
               { label: t.nav.research, href: "/investigaciones" },
               { label: t.nav.guides, href: "/guias" },
+              // The companies the guides are about. Footer and homepage only:
+              // the top bar has no room left (see Investigaciones above).
+              { label: t.nav.providers, href: "/proveedores" },
               { label: t.nav.noticias, href: "/noticias" },
               // Spanish-only for the same reason as the three above — the page
               // is Argentine law and exists only in Spanish.

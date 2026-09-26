@@ -169,4 +169,5 @@ export const VALIDATED_SECTIONS: readonly ContentSection[] = [
   "noticias",
   "estadisticas",
   "investigaciones",
+  "proveedores",
 ];

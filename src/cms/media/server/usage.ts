@@ -65,6 +65,9 @@ export function usageEntriesFor(revision: RevisionContent): UsageEntry[] {
   const previewId = previewMediaIdOf(revision.metadata);
   if (previewId) add(previewId, "preview", { field: PREVIEW_FIELD });
 
+  const logoId = providerLogoIdOf(revision.metadata);
+  if (logoId) add(logoId, "logo", { field: "provider.logoMediaId" });
+
   for (const reference of extractBodyReferences(revision.bodyMdx).media) {
     add(reference.mediaId, "body", {
       kind: reference.kind,
@@ -80,6 +83,15 @@ export function usageEntriesFor(revision: RevisionContent): UsageEntry[] {
 export function previewMediaIdOf(metadata: unknown): string | null {
   if (!metadata || typeof metadata !== "object") return null;
   const value = (metadata as Record<string, unknown>)[PREVIEW_FIELD];
+  return typeof value === "string" && value ? value.toLowerCase() : null;
+}
+
+/** The company card's logo id in a metadata blob, or null. */
+export function providerLogoIdOf(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object") return null;
+  const provider = (metadata as Record<string, unknown>).provider;
+  if (!provider || typeof provider !== "object") return null;
+  const value = (provider as Record<string, unknown>).logoMediaId;
   return typeof value === "string" && value ? value.toLowerCase() : null;
 }
 

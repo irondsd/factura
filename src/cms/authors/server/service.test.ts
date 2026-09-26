@@ -195,6 +195,7 @@ describe("CmsAuthorService", () => {
       "guias",
       "investigaciones",
       "noticias",
+      "proveedores",
     ]);
   });
 

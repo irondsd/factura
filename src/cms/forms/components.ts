@@ -1,9 +1,11 @@
 import {
   METHODOLOGY_FIELDS,
   methodologyEntries,
+  PROVIDER_FIELD_COUNT,
+  providerFilledCount,
   type Diagnostic,
 } from "@/content-system/types";
-import { asFaq, asSources } from "@/cms/components/fields/values";
+import { asFaq, asReviews, asSources } from "@/cms/components/fields/values";
 import { bodyPlaces, type FieldDescriptor, isBlank } from "./fields";
 
 // «Componentes»: the data behind the tags in the body.
@@ -151,6 +153,52 @@ function assess(
           );
         }
       });
+      break;
+    }
+    case "provider": {
+      const filled = providerFilledCount(value);
+      if (filled > 0) {
+        summary = `${filled} / ${PROVIDER_FIELD_COUNT} campos`;
+      }
+      if (placed && filled === 0) {
+        // The card still draws the company's name, so an empty one is not
+        // broken — but a tag somebody placed and never filled is unfinished.
+        warnings.push(
+          "Completa al menos el logo o una cifra: sin datos la ficha es solo el nombre.",
+        );
+      }
+      break;
+    }
+    case "reviews": {
+      const reviews = asReviews(value);
+      const count = reviews.sources.length;
+      if (count > 0) {
+        summary = `${count} ${count === 1 ? "plataforma" : "plataformas"}`;
+      }
+      if (placed && count === 0) {
+        errors.push(
+          "Añade al menos una plataforma: el bloque no se dibuja vacío.",
+        );
+      }
+      reviews.sources.forEach((source, index) => {
+        if (isBlank(source?.name)) {
+          errors.push(`A la plataforma ${index + 1} le falta el nombre.`);
+        }
+        if (
+          typeof source?.score !== "number" ||
+          source.score < 0 ||
+          source.score > 5
+        ) {
+          errors.push(
+            `La nota de la plataforma ${index + 1} tiene que ser un número entre 0 y 5.`,
+          );
+        }
+      });
+      if (count > 0 && !reviews.updated) {
+        warnings.push(
+          "Falta la fecha de los datos: el lector no sabe de cuándo son las notas.",
+        );
+      }
       break;
     }
     case "methodology": {

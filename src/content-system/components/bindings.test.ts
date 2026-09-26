@@ -45,6 +45,10 @@ const RENDERERS: { file: string; sections: readonly ContentSection[] }[] = [
     sections: ["noticias"],
   },
   {
+    file: "src/app/(site)/[lang]/proveedores/[slug]/page.tsx",
+    sections: ["proveedores"],
+  },
+  {
     file: "src/components/section/SectionArticle.tsx",
     sections: ["estadisticas", "investigaciones"],
   },

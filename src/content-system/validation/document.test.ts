@@ -967,3 +967,191 @@ describe("author credits", () => {
     expect(withCredits({}).map((d) => d.code)).toEqual([]);
   });
 });
+
+describe("a proveedores page", () => {
+  // Validated like a guide, against its own section's slugs.
+  const company: Partial<ContentDocument> = {
+    section: "proveedores",
+    slug: "edesur",
+    body: [
+      "## Qué servicios presta",
+      "",
+      "Cómo leer [su factura](/guias/como-leer-la-factura-de-edesur).",
+      "",
+      "<RelatedGuides />",
+      "",
+      '<ClosingCta title="Tus facturas de Edesur">',
+      "",
+      "Dos frases de cierre.",
+      "",
+      "</ClosingCta>",
+      "",
+    ].join("\n"),
+    metadata: { ...base.metadata, vendor: "Edesur" },
+  };
+  const companyIndex = buildContentIndex([
+    { slug: "edesur", status: "published" },
+    { slug: "metrogas", status: "published" },
+  ]);
+  const run = (patch: Partial<ContentDocument> = {}) =>
+    validateDocument({ ...base, ...company, ...patch }, companyIndex)
+      .diagnostics;
+  const companyMeta = (extra: Record<string, unknown>) => ({
+    metadata: {
+      ...base.metadata,
+      vendor: "Edesur",
+      ...extra,
+    } as ContentDocument["metadata"],
+  });
+
+  it("is clean with the guide shape and a link to one of its guides", () => {
+    expect(run()).toEqual([]);
+  });
+
+  it("allows five categories and refuses a sixth", () => {
+    const five = ["luz", "gas", "agua", "internet", "television"];
+    expect(
+      run(companyMeta({ categories: five })).map((d) => d.code),
+    ).not.toContain(DOCUMENT_CODES.categoryCount);
+    expect(
+      run(companyMeta({ categories: [...five, "telefonia-fija"] })).map(
+        (d) => d.code,
+      ),
+    ).toContain(DOCUMENT_CODES.categoryCount);
+  });
+
+  it("keeps guides at three categories", () => {
+    expect(
+      codes(
+        meta({ categories: ["servicios", "impuestos", "finanzas", "estafas"] }),
+      ),
+    ).toContain(DOCUMENT_CODES.categoryCount);
+  });
+
+  it("warns when it names no company", () => {
+    const found = run({ metadata: base.metadata });
+    expect(found.map((d) => d.code)).toContain(DOCUMENT_CODES.vendorMissing);
+    expect(found.every((d) => d.severity === "warning")).toBe(true);
+  });
+
+  it("resolves its own links within /proveedores", () => {
+    const body = (target: string) =>
+      `## Sección\n\nVer [otra](${target}).\n\n<RelatedGuides />\n\n<ClosingCta title="T">\n\nCopia.\n\n</ClosingCta>\n`;
+    expect(run({ body: body("/proveedores/metrogas") })).toEqual([]);
+    expect(
+      run({ body: body("/proveedores/no-existe") }).map((d) => d.code),
+    ).toContain(DOCUMENT_CODES.linkBroken);
+  });
+
+  it("reserves the categoria slug in its own section", () => {
+    const found = run({ slug: "categoria" });
+    expect(
+      found.find((d) => d.code === DOCUMENT_CODES.slugReserved)?.message,
+    ).toContain("/proveedores");
+  });
+});
+
+describe("the company card's data", () => {
+  const company = {
+    section: "proveedores" as const,
+    slug: "edesur",
+    metadata: { ...base.metadata, vendor: "Edesur" },
+  };
+  const run = (patch: Partial<ContentDocument>) =>
+    validateDocument({ ...base, ...company, ...patch }).diagnostics.map(
+      (d) => d.code,
+    );
+  const withCard = (provider: unknown) => ({
+    metadata: {
+      ...base.metadata,
+      vendor: "Edesur",
+      provider,
+    } as ContentDocument["metadata"],
+  });
+
+  it("is refused outside /proveedores", () => {
+    expect(codes(meta({ provider: { since: "1992" } }))).toContain(
+      DOCUMENT_CODES.providerWrongSection,
+    );
+  });
+
+  it("warns about a placed empty card, and about data nothing shows", () => {
+    expect(run({ body: `<ProviderSummary />\n\n${base.body}` })).toContain(
+      DOCUMENT_CODES.providerEmpty,
+    );
+    expect(run(withCard({ since: "1992" }))).toContain(
+      DOCUMENT_CODES.providerNotPlaced,
+    );
+  });
+
+  it("holds the logo to the media library's rules", () => {
+    const logo = "00000000-0000-4000-8000-000000000009";
+    const diagnostics = validateDocument(
+      {
+        ...base,
+        ...company,
+        body: `<ProviderSummary />\n\n${base.body}`,
+        ...withCard({ logoMediaId: logo }),
+      },
+      undefined,
+      { media: new Map([[logo, { status: "trashed", decorative: false }]]) },
+    ).diagnostics;
+    expect(diagnostics.map((d) => d.code)).toContain(
+      DOCUMENT_CODES.mediaNotReady,
+    );
+  });
+});
+
+describe("the ratings block's data", () => {
+  const company = {
+    section: "proveedores" as const,
+    slug: "edesur",
+  };
+  const reviews = {
+    updated: "2026-09-26",
+    sources: [{ name: "Google Play", score: 3.4, count: 48210 }],
+  };
+  const run = (patch: Partial<ContentDocument>) =>
+    validateDocument({ ...base, ...company, ...patch }).diagnostics.map(
+      (d) => d.code,
+    );
+  const withReviews = (value: unknown) => ({
+    metadata: {
+      ...base.metadata,
+      vendor: "Edesur",
+      reviews: value,
+    } as ContentDocument["metadata"],
+  });
+
+  it("is refused outside /proveedores", () => {
+    expect(codes(meta({ reviews }))).toContain(
+      DOCUMENT_CODES.reviewsWrongSection,
+    );
+  });
+
+  it("is clean when placed and dated", () => {
+    const found = run({
+      body: `<Opiniones />\n\n${base.body}`,
+      ...withReviews(reviews),
+    });
+    expect(found.filter((code) => code.startsWith("doc.reviews"))).toEqual([]);
+  });
+
+  it("warns about an empty block, stranded data and a missing date", () => {
+    expect(
+      run({
+        body: `<Opiniones />\n\n${base.body}`,
+        ...withReviews({ sources: [] }),
+      }),
+    ).toContain(DOCUMENT_CODES.reviewsEmpty);
+    expect(run(withReviews(reviews))).toContain(
+      DOCUMENT_CODES.reviewsNotPlaced,
+    );
+    expect(
+      run({
+        body: `<Opiniones />\n\n${base.body}`,
+        ...withReviews({ sources: reviews.sources }),
+      }),
+    ).toContain(DOCUMENT_CODES.reviewsUndated);
+  });
+});

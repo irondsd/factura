@@ -2,6 +2,7 @@ import "server-only";
 import type { ContentCategory } from "../categories/types";
 import { relatedDocuments } from "../document";
 import type { ContentDocument, ContentSummary } from "../types";
+import { fold } from "../validation/text";
 import { sectionRepository } from "./sections";
 import {
   contentByPrimaryCategory,
@@ -56,4 +57,22 @@ export async function relatedGuides(
   limit = 3,
 ): Promise<ContentSummary[]> {
   return relatedDocuments(guide, await publishedGuides(), limit);
+}
+
+/** Every published guide about one company: those whose `vendor` names it.
+ * What `<RelatedGuides />` lists on a /proveedores page. Case and accents are
+ * folded, so "MetroGAS" and "Metrogas" are one company; anything looser (Telecom
+ * vs Personal) is an editorial choice the `vendor` values have to make. */
+export async function guidesForVendor(
+  vendor: string | undefined,
+): Promise<ContentSummary[]> {
+  const wanted = vendor ? fold(vendor.trim()) : "";
+  if (!wanted) return [];
+  return (await publishedGuides())
+    .filter(
+      (guide) =>
+        !guide.canonicalSlug &&
+        fold(guide.metadata.vendor?.trim() ?? "") === wanted,
+    )
+    .sort((a, b) => a.title.localeCompare(b.title, "es"));
 }

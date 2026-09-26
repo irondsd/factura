@@ -39,6 +39,11 @@ export type FieldKind =
   | "sources"
   /** The five methodology lines, each of them optional. */
   | "methodology"
+  /** The company card on a /proveedores page: logo, services, figures,
+   * identifiers. */
+  | "provider"
+  /** Platform ratings on a /proveedores page: a dated list of scores. */
+  | "reviews"
   /** The Dataset JSON-LD payload, shown as named fields rather than JSON. */
   | "dataset"
   /** Another page in this section, or none. */
@@ -352,6 +357,31 @@ const DATA_ADDON_FIELDS: readonly FieldDescriptor[] = [
   },
 ];
 
+// A /proveedores page adds the company card, edited in «Componentes» while the
+// body places `<ProviderSummary />`.
+const PROVIDER_ADDON_FIELDS: readonly FieldDescriptor[] = [
+  {
+    path: "metadata.provider",
+    label: "Ficha del proveedor",
+    kind: "provider",
+    placedBy: "ProviderSummary",
+    group: "bloques",
+    help: "La ficha que abre la página: logo, servicios, cifras y los datos que figuran en la factura. Todo es opcional; un campo vacío no se dibuja. El nombre sale del campo «Proveedor».",
+  },
+];
+
+// …and the platform ratings, while the body places `<Opiniones />`.
+const REVIEWS_ADDON_FIELDS: readonly FieldDescriptor[] = [
+  {
+    path: "metadata.reviews",
+    label: "Opiniones",
+    kind: "reviews",
+    placedBy: "Opiniones",
+    group: "bloques",
+    help: "Una fila por plataforma, con la nota sobre 5 tal como la muestra, la cantidad de reseñas si la dice y el enlace a la página de la empresa ahí. Completa la fecha en que copiaste los datos: el bloque la muestra.",
+  },
+];
+
 /** The form for one section, with its database-owned option lists filled in.
  *
  * Categories and authors are both rows rather than constants, so the descriptors
@@ -376,6 +406,12 @@ export function sectionFields(
         sectionHasMetadataAddon(section, "vendor"),
     ),
     ...(sectionHasMetadataAddon(section, "dataset") ? DATA_ADDON_FIELDS : []),
+    ...(sectionHasMetadataAddon(section, "provider")
+      ? PROVIDER_ADDON_FIELDS
+      : []),
+    ...(sectionHasMetadataAddon(section, "reviews")
+      ? REVIEWS_ADDON_FIELDS
+      : []),
   ];
 
   return fields.map((field) => {

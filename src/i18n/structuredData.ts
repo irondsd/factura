@@ -388,6 +388,9 @@ export function editorialPageLd({
   minutes,
   credits,
   locations,
+  type = "NewsArticle",
+  vendor,
+  section,
 }: {
   id: string;
   slug: string[];
@@ -400,6 +403,13 @@ export function editorialPageLd({
   minutes: number;
   credits?: ArticleCredits;
   locations?: readonly Pick<ContentLocation, "label" | "slug">[];
+  /** `NewsArticle` for Noticias. A proveedores page is not news — it is an
+   * evergreen page about one company — so it passes `Article`. */
+  type?: "NewsArticle" | "Article";
+  /** The company the page is about, as the guides' `about` node names it. */
+  vendor?: string;
+  /** Label of the primary category, for `articleSection`. */
+  section?: string;
 }) {
   const url = sectionUrl(id, slug);
   const articleId = `${url}#article`;
@@ -407,7 +417,7 @@ export function editorialPageLd({
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "NewsArticle",
+        "@type": type,
         "@id": articleId,
         headline: title,
         description,
@@ -417,6 +427,8 @@ export function editorialPageLd({
         mainEntityOfPage: url,
         image: sectionCardUrl(id, slug, updated),
         keywords: keywords.join(", "),
+        ...(section ? { articleSection: section } : {}),
+        ...(vendor ? { about: { "@type": "Organization", name: vendor } } : {}),
         wordCount: words,
         timeRequired: `PT${minutes}M`,
         author: authorNode(credits),

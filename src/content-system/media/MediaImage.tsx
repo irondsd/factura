@@ -12,12 +12,14 @@ import type { MediaRef } from "./repository";
 /** Where the image sits, which is what `sizes` needs to know. The article
  * column is 680 px at its widest; a preview card and a sidebar are smaller and
  * should not download a full-width variant. */
-export type MediaPlacement = "article" | "preview" | "sidebar";
+export type MediaPlacement = "article" | "preview" | "sidebar" | "logo";
 
 const SIZES: Record<MediaPlacement, string> = {
   article: "(max-width: 719px) 100vw, 680px",
   preview: "(max-width: 719px) 100vw, (max-width: 1023px) 50vw, 360px",
   sidebar: "(max-width: 1023px) 100vw, 300px",
+  // The fixed 140px box of a company card, at every width.
+  logo: "140px",
 };
 
 /** Beyond this the optimizer's work stops being worth its latency on a cold

@@ -5,11 +5,15 @@ import {
   contentMetadataSchema,
 } from "../metadata/sections";
 import type { ContentDocument, Diagnostic, ValidationResult } from "../types";
-import { methodologyEntries, validationResult } from "../types";
+import {
+  methodologyEntries,
+  providerFilledCount,
+  validationResult,
+} from "../types";
 import { extractBodyReferences } from "../media/references";
 import { AUTHOR_ROLE_FIELDS, type AuthorRoleField } from "../authors/types";
 import { missingKeywordWords } from "./text";
-import { sectionProfile } from "../sectionProfiles";
+import { sectionHasMetadataAddon, sectionProfile } from "../sectionProfiles";
 import { TOP_CTA_MAX_CHARS } from "../cta";
 
 // Layer 2 of cms.md: document validation. Everything that can be decided
@@ -28,7 +32,8 @@ import { TOP_CTA_MAX_CHARS } from "../cta";
 // prefix, even though the CMS calls them fields, because that is the wording
 // the authoring guide uses.
 
-/** Path segments under /guias that are real routes, not guides. */
+/** Path segments under a guide-profile section (/guias, /proveedores) that are
+ * real routes, not pages. */
 const RESERVED_SLUGS = new Set(["categoria"]);
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -93,6 +98,14 @@ export const DOCUMENT_CODES = {
   closingCtaNoCopy: "doc.closing-cta-no-copy",
   noRelatedGuides: "doc.no-related-guides",
   noInterlinks: "doc.no-interlinks",
+  vendorMissing: "doc.vendor-missing",
+  providerWrongSection: "doc.provider-wrong-section",
+  providerEmpty: "doc.provider-empty",
+  providerNotPlaced: "doc.provider-not-placed",
+  reviewsWrongSection: "doc.reviews-wrong-section",
+  reviewsEmpty: "doc.reviews-empty",
+  reviewsNotPlaced: "doc.reviews-not-placed",
+  reviewsUndated: "doc.reviews-undated",
   mediaUnknown: "doc.media-unknown",
   mediaNotReady: "doc.media-not-ready",
   mediaNoAlt: "doc.media-no-alt",
@@ -178,6 +191,149 @@ export function validateDocument(
   index: ContentIndex = EMPTY_INDEX,
   context: DocumentValidationContext = {},
 ): ValidationResult {
+  const result = validateForProfile(document, index, context);
+  const extra = [
+    ...validateProvider(document, context),
+    ...validateReviews(document),
+  ];
+  return extra.length > 0
+    ? validationResult([...result.diagnostics, ...extra])
+    : result;
+}
+
+/** The ratings block, `<Opiniones />` over `metadata.reviews`. Asked of every
+ * section for the reason `validateProvider` is. */
+function validateReviews(document: ContentDocument): Diagnostic[] {
+  const raw = (document.metadata ?? {}) as Record<string, unknown>;
+  const value = raw.reviews as
+    | { updated?: unknown; sources?: unknown }
+    | undefined;
+  const placed = /<Opiniones\b/.test(document.body);
+  const count = Array.isArray(value?.sources) ? value.sources.length : 0;
+  const out: Diagnostic[] = [];
+
+  if (!sectionHasMetadataAddon(document.section, "reviews")) {
+    if (value !== undefined) {
+      out.push(
+        error(
+          DOCUMENT_CODES.reviewsWrongSection,
+          `meta.reviews is only for /proveedores pages, not /${document.section}`,
+          "reviews",
+        ),
+      );
+    }
+    return out;
+  }
+
+  if (placed && count === 0) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.reviewsEmpty,
+        "body places <Opiniones /> but meta.reviews has no sources — the block renders nothing",
+        "reviews",
+      ),
+    );
+  }
+  if (count > 0 && !placed) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.reviewsNotPlaced,
+        "meta.reviews is set but the body never places <Opiniones /> — the ratings are not shown to readers",
+        "reviews",
+      ),
+    );
+  }
+  if (count > 0 && !value?.updated) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.reviewsUndated,
+        "meta.reviews has no `updated` date — a rating is a snapshot, and the block cannot say how old it is",
+        "reviews.updated",
+      ),
+    );
+  }
+  return out;
+}
+
+/** The company card, `<ProviderSummary />` over `metadata.provider`.
+ *
+ * Checked outside the profile switch because the storage shape is shared by
+ * every section — so "only /proveedores may carry it" has to be asked of all
+ * of them, not only of the guide-profile pages where the card belongs. */
+function validateProvider(
+  document: ContentDocument,
+  context: DocumentValidationContext,
+): Diagnostic[] {
+  const raw = (document.metadata ?? {}) as Record<string, unknown>;
+  const value = raw.provider;
+  const placed = /<ProviderSummary\b/.test(document.body);
+  const filled = providerFilledCount(value);
+  const out: Diagnostic[] = [];
+
+  if (!sectionHasMetadataAddon(document.section, "provider")) {
+    if (value !== undefined) {
+      out.push(
+        error(
+          DOCUMENT_CODES.providerWrongSection,
+          `meta.provider is only for /proveedores pages, not /${document.section}`,
+          "provider",
+        ),
+      );
+    }
+    return out;
+  }
+
+  if (placed && filled === 0) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.providerEmpty,
+        "body places <ProviderSummary /> but meta.provider is empty — the card shows only the company name",
+        "provider",
+      ),
+    );
+  }
+  if (filled > 0 && !placed) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.providerNotPlaced,
+        "meta.provider is set but the body never places <ProviderSummary /> — the card is not shown to readers",
+        "provider",
+      ),
+    );
+  }
+
+  // The logo is a library id like the cover image, and held to the same two
+  // rules: it exists, and it is not on its way out.
+  const logoId =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>).logoMediaId
+      : undefined;
+  if (typeof logoId === "string" && logoId && context.media) {
+    const asset = context.media.get(logoId.toLowerCase());
+    if (!asset) {
+      out.push({
+        code: DOCUMENT_CODES.mediaUnknown,
+        severity: "error",
+        message: `No hay ninguna imagen con el id ${logoId} en la biblioteca de medios (logo de la ficha).`,
+        field: "provider.logoMediaId",
+      });
+    } else if (asset.status !== "ready") {
+      out.push({
+        code: DOCUMENT_CODES.mediaNotReady,
+        severity: "error",
+        message: `El logo de la ficha (${logoId}) ya no está disponible. Elige otro desde la biblioteca.`,
+        field: "provider.logoMediaId",
+      });
+    }
+  }
+  return out;
+}
+
+function validateForProfile(
+  document: ContentDocument,
+  index: ContentIndex,
+  context: DocumentValidationContext,
+): ValidationResult {
   switch (sectionProfile(document.section).validation) {
     case "news":
       return validateNewsDocument(document, context);
@@ -203,7 +359,7 @@ export function validateDocument(
     out.push(
       error(
         DOCUMENT_CODES.slugReserved,
-        `slug "${slug}" is a reserved /guias route — rename it`,
+        `slug "${slug}" is a reserved /${document.section} route — rename it`,
         "slug",
       ),
     );
@@ -369,8 +525,31 @@ export function validateDocument(
     }
   }
 
-  out.push(...validateCategories(raw.categories, context));
+  out.push(
+    ...validateCategories(
+      raw.categories,
+      context,
+      sectionProfile(document.section).maxCategories,
+    ),
+  );
   out.push(...validateLocations(raw.locations, context));
+
+  // ── vendor ────────────────────────────────────────────────────────────────
+  // Optional on a guide, which is only sometimes about one company. A
+  // proveedores page is always about one, and `vendor` is how it finds that
+  // company's guides — so a page without it has an empty guides block.
+  if (
+    document.section === "proveedores" &&
+    (typeof raw.vendor !== "string" || raw.vendor.trim() === "")
+  ) {
+    out.push(
+      warn(
+        DOCUMENT_CODES.vendorMissing,
+        "meta.vendor is empty — name the company exactly as its guides do, or <RelatedGuides /> lists nothing",
+        "vendor",
+      ),
+    );
+  }
 
   // ── faq ───────────────────────────────────────────────────────────────────
   const rawFaq = raw.faq;
@@ -554,6 +733,7 @@ function validateNewsDocument(
     ...validateCategories(
       (document.metadata as Record<string, unknown> | undefined)?.categories,
       context,
+      sectionProfile(document.section).maxCategories,
     ),
   );
   out.push(
@@ -928,7 +1108,13 @@ function validateDataSectionDocument(
     document.metadata && typeof document.metadata === "object"
       ? (document.metadata as Record<string, unknown>)
       : {};
-  out.push(...validateCategories(raw.categories, context));
+  out.push(
+    ...validateCategories(
+      raw.categories,
+      context,
+      sectionProfile(document.section).maxCategories,
+    ),
+  );
   out.push(...validateLocations(raw.locations, context));
   out.push(...validateCredits(document.metadata, context));
   out.push(...validateMedia(document, metadata ?? undefined, context));
@@ -999,6 +1185,7 @@ function validateDataSectionDocument(
 function validateCategories(
   value: unknown,
   context: DocumentValidationContext,
+  max: number,
 ): Diagnostic[] {
   if (
     !Array.isArray(value) ||
@@ -1008,7 +1195,7 @@ function validateCategories(
     return [
       error(
         DOCUMENT_CODES.metadataShape,
-        "meta.categories must contain 1–3 category keys",
+        `meta.categories must contain 1–${max} category keys`,
         "categories",
       ),
     ];
@@ -1025,11 +1212,11 @@ function validateCategories(
       ),
     );
   }
-  if (categories.length > 3) {
+  if (categories.length > max) {
     out.push(
       error(
         DOCUMENT_CODES.categoryCount,
-        `meta.categories has ${categories.length}; use 1–3 and put the primary first`,
+        `meta.categories has ${categories.length}; use 1–${max} and put the primary first`,
         "categories",
       ),
     );
@@ -1143,16 +1330,27 @@ function validateBody(
   }
 
   // ── internal links ────────────────────────────────────────────────────────
+  // Checked against `index`, which holds this document's own section — so
+  // links are resolved within `/${section}/` and nowhere else. A proveedores
+  // page linking to /guias/… is not checked here (the index cannot see guides),
+  // but it is the interlinking that page exists for, so it counts below.
+  const base = `/${document.section}/`;
   const interlinks = new Set<string>();
-  for (const match of body.matchAll(/\]\((\/guias\/[^)\s#]+)/g)) {
+  for (const match of body.matchAll(/\]\((\/[a-z]+\/[^)\s#]+)/g)) {
     const target = match[1].replace(/\/$/, "");
-    const targetSlug = target.slice("/guias/".length);
+    if (!target.startsWith(base)) {
+      if (document.section !== "guias" && target.startsWith("/guias/")) {
+        interlinks.add(target);
+      }
+      continue;
+    }
+    const targetSlug = target.slice(base.length);
     if (targetSlug === "") continue; // the index page
     if (index.slugs.size > 0 && !index.slugs.has(targetSlug)) {
       out.push(
         error(
           DOCUMENT_CODES.linkBroken,
-          `broken internal link → ${target} (no such guide)`,
+          `broken internal link → ${target} (no such ${document.section === "guias" ? "guide" : "page"})`,
         ),
       );
     } else if (targetSlug === slug) {
@@ -1170,7 +1368,7 @@ function validateBody(
         out.push(
           warn(
             DOCUMENT_CODES.linkUnpublished,
-            `links to /guias/${targetSlug}, which is not published`,
+            `links to ${base}${targetSlug}, which is not published`,
           ),
         );
       }

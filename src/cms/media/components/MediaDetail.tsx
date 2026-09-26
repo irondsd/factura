@@ -277,7 +277,9 @@ export function MediaDetail({
                     · {reference.section} · {referenceKindLabel(reference)} ·{" "}
                     {reference.placement === "preview"
                       ? "portada"
-                      : `en el cuerpo${reference.occurrences > 1 ? ` (${reference.occurrences}×)` : ""}`}
+                      : reference.placement === "logo"
+                        ? "logo de la ficha"
+                        : `en el cuerpo${reference.occurrences > 1 ? ` (${reference.occurrences}×)` : ""}`}
                   </span>
                 </li>
               ))}

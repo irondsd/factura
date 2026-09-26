@@ -30,10 +30,20 @@ export const investigaciones = createSection({
   relatedLabel: "Investigación relacionada",
 });
 
+// One page per company that bills a household. Written like a guide and read
+// beside the guides: its `vendor` is the one the company's guides carry.
+export const proveedores = createSection({
+  id: "proveedores",
+  label: "Proveedores",
+  backLabel: "← Todos los proveedores",
+  relatedLabel: "Proveedor relacionado",
+});
+
 export const SECTIONS: readonly ContentSection[] = [
   noticias,
   estadisticas,
   investigaciones,
+  proveedores,
 ];
 
 /** Resolve a section by its id, for the shared routes and the MDX components

@@ -15,7 +15,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { Button } from "@/components/ui";
 import { estadisticas } from "@/content/sections";
 import { publishedGuides } from "@/content-system/repository/guias";
-import { investigaciones } from "@/content/sections";
+import { investigaciones, proveedores } from "@/content/sections";
 import type { ContentSection, SectionPage } from "@/content/section";
 import { toLocale } from "@/i18n/config";
 import { pageMetadata } from "@/i18n/metadata";
@@ -309,12 +309,12 @@ export default async function LandingPage({ params }: Props) {
   );
 }
 
-// ── The three editorial blocks ───────────────────────────────────────────────
+// ── The editorial blocks ─────────────────────────────────────────────────────
 // Estadísticas first, then Investigaciones, then Guías. That is the order they
 // deserve the homepage's attention in, and it is the reverse of how much of the
 // Argentine web already covers them: the statistics are series nobody else
 // publishes, the research is arithmetic only this site does, and the guides are
-// the part anyone could write.
+// the part anyone could write. Proveedores comes after the guides it indexes.
 
 /** How many cards a block shows. Three, so a block is one grid row. */
 const PER_BLOCK = 3;
@@ -347,10 +347,11 @@ async function teaserBlocks(): Promise<TeaserBlock[]> {
   // listing "GBA", "Cuyo", "Patagonia" as peers of the sections they belong to
   // reads as a sitemap. This is the top level only — one card per subject.
   // Research has no hierarchy yet, so its own `listed()` is already that.
-  const [stats, research, guides] = await Promise.all([
+  const [stats, research, guides, companies] = await Promise.all([
     estadisticas.children([]),
     investigaciones.listed(),
     publishedGuides(),
+    proveedores.children([]),
   ]);
 
   return [
@@ -393,6 +394,17 @@ async function teaserBlocks(): Promise<TeaserBlock[]> {
         })),
       allHref: "/guias",
       allLabel: "Ver todas las guías",
+    },
+    {
+      // Last: a directory of companies is the reference shelf behind the
+      // guides, not news. Top level only, like the statistics block, so a
+      // future /proveedores/edesur/reclamos never shows up as a peer of Edesur.
+      label: "Proveedores",
+      blurb:
+        "Qué ofrece cada empresa de servicios, dónde presta el servicio y cómo leer sus facturas.",
+      cards: sectionCards(proveedores, newest(companies)),
+      allHref: "/proveedores",
+      allLabel: "Ver todos los proveedores",
     },
   ].filter((block) => block.cards.length > 0);
 }

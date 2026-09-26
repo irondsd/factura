@@ -12,7 +12,12 @@ import { GRAMMAR_CODES, validateGrammar } from "./grammar";
 
 const check = (
   body: string,
-  section: "guias" | "noticias" | "estadisticas" | "investigaciones" = "guias",
+  section:
+    | "guias"
+    | "noticias"
+    | "estadisticas"
+    | "investigaciones"
+    | "proveedores" = "guias",
 ) => validateGrammar(body, section);
 const codes = (body: string) => check(body).diagnostics.map((d) => d.code);
 
@@ -82,6 +87,8 @@ describe("allowed components", () => {
       '<PaginaRelacionada href="/estadisticas/alquiler-caba">Copia.</PaginaRelacionada>',
     IpcViviendaChart: '<IpcViviendaChart region="gba" variacion="mensual" />',
     ResumenRegion: '<ResumenRegion region="gba" />',
+    ProviderSummary: "<ProviderSummary />",
+    Opiniones: "<Opiniones />",
     ...Object.fromEntries(
       SECTION_COMPONENT_NAMES.filter(
         (name) =>
@@ -111,11 +118,25 @@ describe("allowed components", () => {
           [...SECTION_COMPONENT_NAMES, "Fuentes", "Subpaginas"] as string[]
         ).includes(name)
           ? "estadisticas"
-          : "guias",
+          : name === "ProviderSummary" || name === "Opiniones"
+            ? "proveedores"
+            : "guias",
       );
       expect(result.diagnostics).toEqual([]);
     });
   }
+
+  it("keeps <ProviderSummary> to company pages", () => {
+    const source = "<ProviderSummary />\n";
+    expect(check(source, "proveedores").diagnostics).toEqual([]);
+    expect(check(source, "guias").ok).toBe(false);
+  });
+
+  it("refuses attributes on <ProviderSummary>: its data is metadata", () => {
+    expect(check('<ProviderSummary name="Edesur" />\n', "proveedores").ok).toBe(
+      false,
+    );
+  });
 
   it("accepts a related statistics card in a guide", () => {
     const result = check(

@@ -92,3 +92,67 @@ describe("componentTally", () => {
     ).toEqual({ count: 2, ok: false });
   });
 });
+
+describe("the company card", () => {
+  const providerFields = sectionFields("proveedores");
+  const card = (body: string, provider?: unknown) =>
+    componentEntries(providerFields, {
+      body,
+      values: provider === undefined ? {} : { "metadata.provider": provider },
+      diagnostics: [],
+    });
+
+  it("is offered only on /proveedores", () => {
+    expect(
+      sectionFields("guias").some((f) => f.path === "metadata.provider"),
+    ).toBe(false);
+    expect(card("<ProviderSummary />").map((e) => e.component)).toEqual([
+      "ProviderSummary",
+    ]);
+  });
+
+  it("asks for data when placed empty, and counts what is filled", () => {
+    const [empty] = card("<ProviderSummary />");
+    expect(empty.state).toBe("warning");
+    const [filled] = card("<ProviderSummary />", {
+      logoMediaId: "00000000-0000-4000-8000-000000000003",
+      services: ["Luz"],
+      since: "1992",
+    });
+    expect(filled.state).toBe("ok");
+    expect(filled.summary).toBe("3 / 15 campos");
+  });
+
+  it("keeps stranded card data on screen so it can be cleared", () => {
+    const [stranded] = card("Sin etiqueta.", { since: "1992" });
+    expect(stranded.placed).toBe(false);
+    expect(stranded.state).toBe("error");
+  });
+});
+
+describe("the ratings card", () => {
+  const card = (body: string, reviews?: unknown) =>
+    componentEntries(sectionFields("proveedores"), {
+      body,
+      values: reviews === undefined ? {} : { "metadata.reviews": reviews },
+      diagnostics: [],
+    });
+
+  it("asks for a platform, a valid score and a date", () => {
+    expect(card("<Opiniones />")[0].state).toBe("error");
+    expect(
+      card("<Opiniones />", { sources: [{ name: "Trustpilot", score: 7 }] })[0]
+        .state,
+    ).toBe("error");
+    expect(
+      card("<Opiniones />", { sources: [{ name: "Trustpilot", score: 2 }] })[0]
+        .state,
+    ).toBe("warning");
+    const [done] = card("<Opiniones />", {
+      updated: "2026-09-26",
+      sources: [{ name: "Trustpilot", score: 2 }],
+    });
+    expect(done.state).toBe("ok");
+    expect(done.summary).toBe("1 plataforma");
+  });
+});

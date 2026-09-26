@@ -82,6 +82,7 @@
     "stats": "Estadísticas",
     "research": "Investigaciónes",
     "noticias": "Noticias",
+    "providers": "Proveedores",
     "regulations": "Normativa",
     "privacy": "Privacidad",
     "security": "Seguridad",
@@ -146,7 +147,14 @@
     },
     "drivers": {
       "label": "Qué influye en tus gastos",
-      "items": ["Consumo", "Tarifas", "Inflación", "Período", "Proveedor", "Datos del mercado"]
+      "items": [
+        "Consumo",
+        "Tarifas",
+        "Inflación",
+        "Período",
+        "Proveedor",
+        "Datos del mercado"
+      ]
     },
     "promises": [
       "Una propiedad gratis para siempre",

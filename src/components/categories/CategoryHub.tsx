@@ -14,7 +14,7 @@ import { contentCategoryLd } from "@/i18n/structuredData";
 
 const SECTION_COPY: Record<
   Exclude<ContentSection, "guias">,
-  { label: string; backLabel: string }
+  { label: string; backLabel: string; eyebrow?: string }
 > = {
   noticias: { label: "Noticias", backLabel: "Todas las noticias" },
   estadisticas: {
@@ -24,6 +24,12 @@ const SECTION_COPY: Record<
   investigaciones: {
     label: "Investigaciones",
     backLabel: "Todas las investigaciones",
+  },
+  // A proveedores category is a service the company sells, not a topic.
+  proveedores: {
+    label: "Proveedores",
+    backLabel: "Todos los proveedores",
+    eyebrow: "Servicio",
   },
 };
 
@@ -74,7 +80,7 @@ export async function CategoryHub({
         />
 
         <header className="max-w-[640px] pt-7 pb-2">
-          <Eyebrow tone="accent">Tema</Eyebrow>
+          <Eyebrow tone="accent">{copy.eyebrow ?? "Tema"}</Eyebrow>
           <h1 className="mt-[18px] mb-0 font-display text-[34px] leading-[1.06] font-semibold tracking-[-0.025em] sm:text-[44px]">
             {category.title}
           </h1>

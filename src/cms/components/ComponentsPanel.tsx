@@ -7,8 +7,16 @@ import { cn } from "@/lib/cn";
 import { CmsIcon } from "../icons";
 import { FaqInput } from "./fields/FaqField";
 import { MethodologyInput } from "./fields/MethodologyField";
+import { ProviderInput } from "./fields/ProviderField";
+import { ReviewsInput } from "./fields/ReviewsField";
 import { SourcesInput } from "./fields/SourcesField";
-import { asFaq, asMethodology, asSources } from "./fields/values";
+import {
+  asFaq,
+  asMethodology,
+  asProvider,
+  asReviews,
+  asSources,
+} from "./fields/values";
 
 // The «Componentes» tab: one card per tag the body places that needs data to
 // draw — the FAQ's questions, the sources' links, the methodology's lines.
@@ -226,6 +234,10 @@ function ComponentInput({
       return (
         <MethodologyInput value={asMethodology(value)} onChange={onChange} />
       );
+    case "provider":
+      return <ProviderInput value={asProvider(value)} onChange={onChange} />;
+    case "reviews":
+      return <ReviewsInput value={asReviews(value)} onChange={onChange} />;
     default:
       return null;
   }

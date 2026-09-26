@@ -1,7 +1,7 @@
 # Authoring for Factura
 
-How to write a page for `/guias`, `/noticias`, `/estadisticas` or
-`/investigaciones`. The section id is the last URL segment, always plural, and
+How to write a page for `/guias`, `/noticias`, `/estadisticas`,
+`/investigaciones` or `/proveedores`. The section id is the last URL segment, always plural, and
 it is what every tool takes.
 
 Content lives in PostgreSQL. You write it through the `factura-cms` MCP server
@@ -99,7 +99,9 @@ pages their ranking.
 Which section: a **guía** answers one practical question. An **estadística** is
 a read-out of one dataset the reader can go and check. An **investigación**
 answers a question by crossing datasets and says so. A **noticia** reports a
-change and dates itself.
+change and dates itself. A **proveedor** is one company that bills a
+household (Edesur, Metrogas, AySA, Personal): what it sells and where, and the
+way into every guide about its bills.
 
 ## 3. The fields
 
@@ -127,7 +129,7 @@ Dates are not fields: `publishedAt` is set on first publish and
 ### `metadata`
 
 One shape for every section; `estadisticas` and `investigaciones` add `dataset`
-and `ogStat`, `guias` adds `vendor`.
+and `ogStat`, `guias` and `proveedores` add `vendor`.
 
 ```json
 {
@@ -178,7 +180,10 @@ and `ogStat`, `guias` adds `vendor`.
 - **`categories`** — 1–3 keys from `list_categories` for _this_ section (the
   same key in another section is a different record). The first is the primary:
   it sets the index grouping and the breadcrumb. Usually one for the topic, one
-  for the task.
+  for the task. On `proveedores` a category is a **service the company sells**
+  (`luz`, `gas`, `agua`, `internet`, `telefonia-movil`, `telefonia-fija`,
+  `television`) and the limit is 1–5; the primary is the service it is best
+  known for.
 - **`locations`** — keys from `list_locations`. The narrow place the page
   covers: a Córdoba page is `cordoba`, not `cordoba` and `argentina`. Matching
   is exact, nothing is inherited. `argentina` only for nationwide content.
@@ -201,9 +206,17 @@ and `ogStat`, `guias` adds `vendor`.
   expected on a data page.
 - **`ogImage`** — steers the generated social card. `eyebrow` ≤42 chars;
   `stat` ≤28 and only when the answer _is_ a number the article states.
-- **`vendor`** — only when a guide is about one company's bill.
+- **`vendor`** — only when a guide is about one company's bill. On a
+  `proveedores` page it is expected (the validator warns without it): the
+  company's name **exactly as its guides write it**, because that is how
+  `<RelatedGuides />` finds them. Case and accents are ignored; anything else
+  ("Telecom" vs "Personal") is not.
 - **`dataset`** — provenance for the `Dataset` JSON-LD; fill it when the page
   is a dataset read-out. `license` is decided by the sources (§7).
+- **`provider`** — `proveedores` only: the company card behind
+  `<ProviderSummary />` (§4, A company page). Anywhere else it is an error.
+- **`reviews`** — `proveedores` only: the platform ratings behind
+  `<Opiniones />` (§4, A company page). Anywhere else it is an error.
 
 ## 4. The body
 
@@ -301,6 +314,71 @@ filler. `<InflacionChart chart="…" />` ids come from
 [`guias/data/inflacion.ts`](./guias/data/inflacion.ts). A guide normally has
 **no `<Resumen>`**: the skeleton above is the whole shape, and the block is
 for the long data pages.
+
+### A company page (`proveedores`)
+
+One page per brand, at `/proveedores/<marca>` (`edesur`, `personal`). Same
+components and validation as a guide, so the guide skeleton above is the
+starting point, with two differences:
+
+- **It is the hub, not the answer.** "Cómo leer la factura de Edesur" is a
+  guide and stays one. The company page says what the company is, what it
+  sells, where, and who regulates it, then **links** to the guides instead of
+  repeating them — or it competes with them for the same search.
+- **`<RelatedGuides />` lists the company's guides**, every published guide
+  whose `vendor` matches this page's `vendor`, not the category neighbours a
+  guide gets.
+- **`<ProviderSummary />` opens the body**, before the intro paragraph: the
+  company card. Only this section has it. Write the tag bare, like `<Faq />`;
+  its data is `metadata.provider` and the name on it is `vendor`. In `/cms`
+  the card appears in «Componentes» as soon as the body places the tag, with
+  the logo picked from the library. Through the MCP it is an object — every
+  key optional, an empty one not drawn:
+
+  ```json
+  "provider": {
+    "logoMediaId": "<uuid de la biblioteca>",
+    "services": ["Agua potable", "Cloacas"],
+    "website": "https://www.aguasdecorrientes.com",
+    "customers": "≈ 189 mil", "customersNote": "hogares",
+    "since": "1991", "sinceNote": "1 de septiembre",
+    "kind": "Privada", "kindNote": "concesión provincial",
+    "headquarters": "Corrientes", "headquartersNote": "Capital",
+    "cuit": "30-12345678-9",
+    "legalName": "Aguas de Corrientes S.A.",
+    "regulator": "AOSC",
+    "billName": "AGUAS DE CORRIENTES SA"
+  }
+  ```
+
+  A figure is a number or a word (20 characters), the line under it 40.
+  `billName` only when the bill prints something other than `legalName`. A
+  customer count goes stale: write it approximate and cite it in `sources`.
+
+- **`<Opiniones />` is the company's public ratings**: one row per platform
+  (Google Play, App Store, Trustpilot, Defensa del Consumidor…) with its
+  score out of 5, the review count and a link to the company's page there.
+  Bare tag, `proveedores` only, edited in «Componentes»; through the MCP it is
+  `metadata.reviews`:
+
+  ```json
+  "reviews": {
+    "updated": "2026-09-26",
+    "sources": [
+      { "name": "Google Play", "score": 3.4, "count": 48210, "url": "https://play.google.com/…" }
+    ]
+  }
+  ```
+
+  Copy each score as the platform shows it, on the day in `updated` — the
+  block prints that date, because a rating is a snapshot. Do not average or
+  round across platforms, and do not describe the scores in prose: prose
+  outlives the numbers (§7). No review markup is emitted; these are other
+  sites' ratings.
+
+A brand that absorbed others (Personal: Flow, Fibertel, Movistar) gets one
+page with a `##` section for each, not a page each. The section is flat for
+now: no child pages.
 
 ### A data page
 
@@ -525,6 +603,8 @@ warnings. What it cannot check is yours:
 - [ ] Data page: `sources` name what was taken, licence follows §7,
       `previewMediaId` set, methodology section present.
 - [ ] Locations are the narrow place, categories are this section's keys.
+- [ ] Company page: `vendor` matches its guides' `vendor`; it links to them
+      instead of answering them.
 - [ ] Rewrite of a previously published page: every SEO and editorial field
       outside the explicit brief is unchanged; any proposed correction was
       approved before it was saved.

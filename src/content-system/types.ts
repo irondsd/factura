@@ -10,6 +10,7 @@ export const CONTENT_SECTIONS = [
   "noticias",
   "estadisticas",
   "investigaciones",
+  "proveedores",
 ] as const;
 
 export type ContentSection = (typeof CONTENT_SECTIONS)[number];
@@ -98,6 +99,139 @@ export function methodologyEntries(
   });
 }
 
+/** The company card behind `<ProviderSummary />`, on a /proveedores page.
+ *
+ * Every text is optional and an empty one is simply not drawn. The company's
+ * name is not here: it is `metadata.vendor`, the same value its guides carry,
+ * so the card and the guides list cannot name the company two ways. The logo
+ * is a media-library id, like the cover image. */
+export type ProviderMetadata = {
+  logoMediaId?: string;
+  /** What it sells, one badge each: «Agua potable», «Cloacas». */
+  services?: string[];
+  website?: string;
+  customers?: string;
+  customersNote?: string;
+  since?: string;
+  sinceNote?: string;
+  kind?: string;
+  kindNote?: string;
+  headquarters?: string;
+  headquartersNote?: string;
+  cuit?: string;
+  legalName?: string;
+  regulator?: string;
+  /** The issuer's name as the bill prints it — only when it is not
+   * `legalName`. */
+  billName?: string;
+};
+
+/** The card's text fields, in the order the editor shows them. One list for
+ * the form, the validator and the "3 / 14 campos" counter. `figure` groups the
+ * four big numbers with the line under each. */
+export const PROVIDER_TEXT_FIELDS = [
+  {
+    key: "website",
+    label: "Sitio web",
+    placeholder: "https://www.empresa.com.ar",
+    group: "masthead",
+  },
+  {
+    key: "customers",
+    label: "Clientes",
+    placeholder: "≈ 189 mil",
+    group: "figure",
+  },
+  {
+    key: "customersNote",
+    label: "Debajo de clientes",
+    placeholder: "hogares",
+    group: "figure",
+  },
+  { key: "since", label: "Desde", placeholder: "1991", group: "figure" },
+  {
+    key: "sinceNote",
+    label: "Debajo de desde",
+    placeholder: "1 de septiembre",
+    group: "figure",
+  },
+  { key: "kind", label: "Tipo", placeholder: "Privada", group: "figure" },
+  {
+    key: "kindNote",
+    label: "Debajo de tipo",
+    placeholder: "concesión provincial",
+    group: "figure",
+  },
+  {
+    key: "headquarters",
+    label: "Sede",
+    placeholder: "Corrientes",
+    group: "figure",
+  },
+  {
+    key: "headquartersNote",
+    label: "Debajo de sede",
+    placeholder: "Capital",
+    group: "figure",
+  },
+  { key: "cuit", label: "CUIT", placeholder: "30-12345678-9", group: "ids" },
+  {
+    key: "legalName",
+    label: "Razón social",
+    placeholder: "Aguas de Corrientes S.A.",
+    group: "ids",
+  },
+  { key: "regulator", label: "Regulador", placeholder: "AOSC", group: "ids" },
+  {
+    key: "billName",
+    label: "Nombre en la factura",
+    placeholder: "Solo si difiere de la razón social",
+    group: "ids",
+  },
+] as const;
+
+export type ProviderTextKey = (typeof PROVIDER_TEXT_FIELDS)[number]["key"];
+
+/** How many of the card's fields hold something — logo and services count
+ * as one each. Total, like `methodologyEntries`: the JSONB column is whatever
+ * was last written to it. */
+export function providerFilledCount(value: unknown): number {
+  if (!value || typeof value !== "object") return 0;
+  const record = value as Record<string, unknown>;
+  const text = PROVIDER_TEXT_FIELDS.filter(({ key }) => {
+    const entry = record[key];
+    return typeof entry === "string" && entry.trim() !== "";
+  }).length;
+  const logo =
+    typeof record.logoMediaId === "string" && record.logoMediaId ? 1 : 0;
+  const services =
+    Array.isArray(record.services) && record.services.length > 0 ? 1 : 0;
+  return text + logo + services;
+}
+
+/** Everything the card can hold: the text fields, the logo and the services. */
+export const PROVIDER_FIELD_COUNT = PROVIDER_TEXT_FIELDS.length + 2;
+
+/** One platform's public rating of a company, for `<Opiniones />`. */
+export type ReviewSource = {
+  /** «Google Play», «Trustpilot», «Defensa del Consumidor». */
+  name: string;
+  /** Out of 5, as the platform shows it. */
+  score: number;
+  /** How many reviews the score averages, when the platform says. */
+  count?: number;
+  /** The company's page on that platform. */
+  url?: string;
+};
+
+/** The ratings block behind `<Opiniones />`, on a /proveedores page. */
+export type ReviewsMetadata = {
+  /** When the numbers were read off the platforms, `YYYY-MM-DD`. The block
+   * prints it: a rating is a snapshot, and the reader should know how old. */
+  updated?: string;
+  sources: ReviewSource[];
+};
+
 export type ContentMetadata = {
   keywords: string[];
   categories: string[];
@@ -124,6 +258,10 @@ export type ContentMetadata = {
    * places `<Metodologia />`. */
   methodology?: MethodologyMetadata;
   dataset?: DatasetMetadata;
+  /** The company card a /proveedores page places with `<ProviderSummary />`. */
+  provider?: ProviderMetadata;
+  /** The platform ratings a /proveedores page places with `<Opiniones />`. */
+  reviews?: ReviewsMetadata;
 };
 
 /** A complete page: everything needed to render it and everything needed to

@@ -34,6 +34,7 @@ const SPANISH_ONLY_PREFIXES = [
   "/noticias",
   "/estadisticas",
   "/investigaciones",
+  "/proveedores",
   "/normativa",
   "/ubicacion",
 ];

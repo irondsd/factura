@@ -119,6 +119,12 @@ async function mediaStatusesFor(
   const preview = (document.metadata as Record<string, unknown> | undefined)
     ?.previewMediaId;
   if (typeof preview === "string" && preview) ids.add(preview.toLowerCase());
+  // The company card's logo, on a /proveedores page. In metadata rather than
+  // the body, so the body scan above cannot see it.
+  const provider = (document.metadata as Record<string, unknown> | undefined)
+    ?.provider as Record<string, unknown> | undefined;
+  const logo = provider?.logoMediaId;
+  if (typeof logo === "string" && logo) ids.add(logo.toLowerCase());
   if (ids.size === 0) return new Map();
 
   const assets = await cmsMediaStore.findManyByIds([...ids]);

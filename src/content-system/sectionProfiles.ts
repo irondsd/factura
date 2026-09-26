@@ -9,7 +9,11 @@ import type { ContentSection } from "./types";
 export type SectionProfile = {
   validation: "guide" | "news" | "data";
   newPageTemplate: "article" | "data";
-  metadataAddons: readonly ("vendor" | "dataset")[];
+  metadataAddons: readonly ("vendor" | "dataset" | "provider" | "reviews")[];
+  /** Upper bound on `metadata.categories`. Three everywhere a category is a
+   * topic; higher where it is a service a company sells, because one company
+   * can honestly sell four or five of them. */
+  maxCategories: number;
 };
 
 export const SECTION_PROFILES = {
@@ -17,21 +21,35 @@ export const SECTION_PROFILES = {
     validation: "guide",
     newPageTemplate: "article",
     metadataAddons: ["vendor"],
+    maxCategories: 3,
   },
   noticias: {
     validation: "news",
     newPageTemplate: "article",
     metadataAddons: [],
+    maxCategories: 3,
   },
   estadisticas: {
     validation: "data",
     newPageTemplate: "data",
     metadataAddons: ["dataset"],
+    maxCategories: 3,
   },
   investigaciones: {
     validation: "data",
     newPageTemplate: "data",
     metadataAddons: ["dataset"],
+    maxCategories: 3,
+  },
+  // One page per company. Written and validated like a guide, and `vendor`
+  // names the company the page is about — the same value its guides carry, so
+  // the page can list them. Categories are the services it sells (luz, gas,
+  // internet…): Telecentro alone sells four.
+  proveedores: {
+    validation: "guide",
+    newPageTemplate: "article",
+    metadataAddons: ["vendor", "provider", "reviews"],
+    maxCategories: 5,
   },
 } as const satisfies Record<ContentSection, SectionProfile>;
 

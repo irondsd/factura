@@ -31,6 +31,8 @@ import { StatusChip } from "@/cms/components/StatusChip";
 import { faqPageLd, guideLd } from "@/i18n/structuredData";
 import { sectionHasMetadataAddon } from "@/content-system/sectionProfiles";
 import { locationsByKeys } from "@/content-system/repository/locations";
+import { guidesForVendor } from "@/content-system/repository/guias";
+import { bindProviderComponents } from "@/components/proveedores/bindProviderComponents";
 
 // The exact private preview (cms.md): the last *saved* working
 // copy — or one named stored version — rendered through the same
@@ -112,16 +114,24 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
   // location (then nationwide ones) exactly as it would once published — and
   // no block at all when there are none, which is also what the public page
   // will do.
-  const published = (
-    await cmsPageStore.list({
-      section: section.id,
-      statuses: ["published"],
-      // The rail reads categories and locations; the FAQ and sources are most
-      // of every candidate's metadata and never leave the database for it.
-      withoutLongMetadata: true,
-    })
-  ).filter((candidate) => candidate.id !== page.id);
-  const related = relatedDocuments(page, published);
+  // A proveedores page lists the company's guides instead, matched on
+  // `vendor` — the same read its public page makes.
+  const related =
+    page.section === "proveedores"
+      ? await guidesForVendor(page.metadata.vendor)
+      : relatedDocuments(
+          page,
+          (
+            await cmsPageStore.list({
+              section: section.id,
+              statuses: ["published"],
+              // The rail reads categories and locations; the FAQ and sources
+              // are most of every candidate's metadata and never leave the
+              // database for it.
+              withoutLongMetadata: true,
+            })
+          ).filter((candidate) => candidate.id !== page.id),
+        );
 
   // A hub page's children, for `<Subpaginas />`. Read through the public
   // section registry rather than the CMS store so the preview lists exactly
@@ -148,6 +158,9 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
     .filter((category) => category !== undefined);
   const locations = await locationsByKeys(page.metadata.locations ?? []);
 
+  // Bound for every section, like the FAQ: the manifest only offers the tags
+  // on /proveedores, and elsewhere they are never reached.
+  const providerComponents = await bindProviderComponents(page);
   const { words, minutes } = documentStats(page);
   const headings = documentHeadings(page);
   const faq = page.metadata.faq ?? [];
@@ -235,6 +248,8 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
             // The preview resolves media exactly as the public page does, or
             // it would be a preview of a different document.
             ...(await mediaComponents(page.body)),
+            ProviderSummary: providerComponents.ProviderSummary,
+            Opiniones: providerComponents.Opiniones,
             RelatedGuides: () => (
               <RelatedGuides
                 guides={related.map((candidate) => ({

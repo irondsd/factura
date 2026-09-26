@@ -31,8 +31,10 @@ export const isMediaStatus = (value: string): value is MediaStatus =>
   (MEDIA_STATUSES as readonly string[]).includes(value);
 
 /** Where a page refers to an image. `preview` is structured page metadata and
- * can occur at most once; `body` is a Markdown image in the prose. */
-export type MediaPlacement = "preview" | "body";
+ * can occur at most once; `body` is a Markdown image in the prose; `logo` is
+ * the company card's logo on a /proveedores page, also metadata and also at
+ * most once. */
+export type MediaPlacement = "preview" | "body" | "logo";
 
 /** One image, as every caller above the store sees it. `objectKey` is
  * deliberately absent: it is internal, and nothing outside

@@ -66,6 +66,14 @@ export const CMS_SECTIONS: readonly CmsSection[] = [
     description: "Análisis propios a partir de los datos publicados.",
     status: "live",
   },
+  {
+    id: "proveedores",
+    label: "Proveedores",
+    singular: "Proveedor",
+    description:
+      "Una página por empresa de servicios: Edesur, Metrogas, AySA, Personal…",
+    status: "live",
+  },
 ];
 
 /** Resolve a `cms_page.section` value — equivalently, a URL segment — to its

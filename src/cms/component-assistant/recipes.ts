@@ -15,14 +15,14 @@ const RECIPE_DEFINITIONS: readonly Omit<
     label: "Cierre de guía",
     description:
       "Añade FAQ, guías relacionadas y un cierre con título y copy específicos.",
-    sections: ["guias"],
+    sections: ["guias", "proveedores"],
     components: ["Faq", "RelatedGuides", "ClosingCta"],
   },
   {
     id: "cta-button-row",
     label: "Fila de botones",
     description: "Inserta una fila con los botones de demo y registro.",
-    sections: ["guias"],
+    sections: ["guias", "proveedores"],
     components: ["CtaRow", "DemoCta", "SignupCta"],
   },
   {

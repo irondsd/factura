@@ -5,7 +5,7 @@ import { type ContentRepository, pathToSlug } from "./contract";
 
 // A tiny, deterministic corpus for CI production builds. This is deliberately
 // not a snapshot of editorial data: publishing in the CMS must never create a
-// repository change. These four documents exercise the same public rendering
+// repository change. These documents, one per section, exercise the same public rendering
 // and discovery paths as production while remaining code-owned test fixtures.
 const DATE = "2026-01-15T12:00:00.000Z";
 
@@ -108,6 +108,23 @@ export const CI_CONTENT_CATEGORIES: readonly ContentCategory[] = [
     createdAt: DATE,
     updatedAt: DATE,
   },
+  {
+    id: "00000000-0000-4000-8000-000000000015",
+    section: "proveedores",
+    key: "ci-ejemplo",
+    slug: "ci-ejemplo",
+    label: "Ejemplo CI",
+    title: "Categoría de proveedores para CI",
+    description:
+      "Categoría determinista de proveedores usada para comprobar las superficies de categorías durante el build.",
+    sortOrder: 0,
+    lockVersion: 1,
+    createdBy: null,
+    updatedBy: null,
+    retiredAt: null,
+    createdAt: DATE,
+    updatedAt: DATE,
+  },
 ];
 
 export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
@@ -131,6 +148,9 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
       keywords: ["facturas", "prueba", "ci"],
       categories: ["facturas-y-conceptos"],
       locations: ["argentina"],
+      // Matches the proveedores fixture, so the build renders a company page
+      // that lists its guides rather than an empty block.
+      vendor: "Proveedor CI",
     },
     publishedAt: DATE,
     contentUpdatedAt: DATE,
@@ -246,6 +266,84 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
     updatedBy: null,
     lockVersion: 1,
   },
+  {
+    id: "00000000-0000-4000-8000-000000000005",
+    section: "proveedores",
+    slug: "ci-proveedor",
+    status: "published",
+    body: '<ProviderSummary />\n\n## Un proveedor de CI\n\nEsta página mínima comprueba que un proveedor del CMS compila y se renderiza durante el build, con sus [guías](/guias/ci-guia).\n\n<Opiniones />\n\n<RelatedGuides />\n\n<ClosingCta title="Tus facturas de Proveedor CI">\n\nFactura guarda el importe y el período de cada boleta.\n\n</ClosingCta>\n',
+    title: "Proveedor de prueba para CI",
+    titleTag: null,
+    description:
+      "Página mínima de prueba que verifica el renderizado de un proveedor del CMS durante el build de integración continua.",
+    summary: "Un proveedor mínimo usado exclusivamente por el build de CI.",
+    cta: "Seguí tus facturas con Factura.",
+    canonicalSlug: null,
+    parentId: null,
+    sortOrder: 0,
+    crumb: "Proveedor CI",
+    metadata: {
+      keywords: ["proveedores", "prueba", "ci"],
+      categories: ["ci-ejemplo"],
+      locations: ["argentina"],
+      vendor: "Proveedor CI",
+      // Every text of the card, and no logo: a CI build has no media library,
+      // and a logo id would make the build query one.
+      provider: {
+        services: ["Agua potable", "Cloacas"],
+        website: "https://factura.uno",
+        customers: "≈ 189 mil",
+        customersNote: "hogares",
+        since: "1991",
+        sinceNote: "1 de septiembre",
+        kind: "Privada",
+        kindNote: "concesión provincial",
+        headquarters: "Buenos Aires",
+        headquartersNote: "Capital",
+        cuit: "30-12345678-9",
+        legalName: "Proveedor CI S.A.",
+        regulator: "AOSC",
+        billName: "PROVEEDOR CI SA",
+      },
+      reviews: {
+        updated: "2026-09-26",
+        sources: [
+          {
+            name: "Google Play",
+            score: 3.4,
+            count: 48210,
+            url: "https://play.google.com",
+          },
+          {
+            name: "App Store",
+            score: 3.2,
+            count: 6120,
+            url: "https://apps.apple.com",
+          },
+          {
+            name: "Trustpilot",
+            score: 2,
+            count: 312,
+            url: "https://www.trustpilot.com",
+          },
+          { name: "Google Maps", score: 2.3, count: 1874 },
+          {
+            name: "Defensa del Consumidor",
+            score: 1.6,
+            count: 940,
+            url: "https://www.argentina.gob.ar",
+          },
+        ],
+      },
+    },
+    publishedAt: DATE,
+    contentUpdatedAt: DATE,
+    createdAt: DATE,
+    updatedAt: DATE,
+    createdBy: null,
+    updatedBy: null,
+    lockVersion: 1,
+  },
 ];
 
 function withoutBody(document: ContentDocument): ContentSummary {
@@ -311,4 +409,5 @@ export const CI_CONTENT_FIXTURE_PATHS = [
   "/noticias/ci-noticia",
   "/estadisticas/ci-estadistica",
   "/investigaciones/ci-investigaciones",
+  "/proveedores/ci-proveedor",
 ] as const;

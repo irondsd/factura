@@ -126,5 +126,7 @@ function plural(section: ContentSection): string {
       ? "noticias"
       : section === "estadisticas"
         ? "estadísticas"
-        : "investigaciones";
+        : section === "proveedores"
+          ? "proveedores"
+          : "investigaciones";
 }
