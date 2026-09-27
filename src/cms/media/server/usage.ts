@@ -1,6 +1,7 @@
 import "server-only";
 import { db as defaultDb, type Database } from "@/db";
 import { cmsPageRevisions } from "@/db/schema";
+import { MEDIA_PERMALINK_PREFIX } from "@/content-system/media/permalink";
 import {
   extractBodyReferences,
   metadataMediaReferences,
@@ -66,7 +67,14 @@ export function usageEntriesFor(revision: RevisionContent): UsageEntry[] {
     add(reference.mediaId, reference.placement, { field: reference.field });
   }
 
-  for (const reference of extractBodyReferences(revision.bodyMdx).media) {
+  // Parsing MDX is most of what a usage rebuild costs — about 6 ms a body,
+  // against well under one to read it — and a body that never mentions the
+  // permalink prefix cannot hold a permalink. Skipping the parser for those
+  // changes no answer; it only stops paying for a tree with nothing in it.
+  const body = revision.bodyMdx.includes(`${MEDIA_PERMALINK_PREFIX}/`)
+    ? extractBodyReferences(revision.bodyMdx).media
+    : [];
+  for (const reference of body) {
     add(reference.mediaId, "body", {
       kind: reference.kind,
       line: reference.line ?? null,
@@ -77,7 +85,6 @@ export function usageEntriesFor(revision: RevisionContent): UsageEntry[] {
   return [...byKey.values()];
 }
 
-/** The preview media id in a metadata blob, or null. */
 /** Rewrite one revision's usage rows. Called with a transaction-bound store
  * from the content service, so the copy and its usage move together or not at
  * all. */

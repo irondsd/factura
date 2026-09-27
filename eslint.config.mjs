@@ -21,6 +21,13 @@ const eslintConfig = defineConfig([
     // .gitignore, so it has to be said again here. Same reason it's excluded in
     // tsconfig.json and vitest.config.ts.
     ".claude/**",
+    // Other agents' scratch space, git-ignored for the same reason. `.work`
+    // holds whole agent runs (gigabytes of logs, screenshots and generated
+    // bundles); linting it made ESLint's report too large to print and crash
+    // with "Invalid string length".
+    ".work/**",
+    ".codex/**",
+    ".playwright-mcp/**",
   ]),
 ]);
 

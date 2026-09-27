@@ -47,7 +47,11 @@ if (!hasTestDatabase() || !isMediaStorageConfigured()) {
     it("needs a local database and media bucket — run `bun run test:db`", () => {});
   });
 } else {
-  describe("CMS media library", () => {
+  // Several of these rebuild usage for the *whole* local database
+  // (`reconcileMediaUsage`), which costs a few milliseconds of MDX parsing per
+  // stored revision — seconds on a database with a real content history, and
+  // growing with it. Vitest's 5 s default measured the database, not the code.
+  describe("CMS media library", { timeout: 60_000 }, () => {
     const { db, client } = createTestDb();
     const store = new CmsMediaStore(db);
     const service = new CmsMediaService(store, undefined, undefined, () => {});
