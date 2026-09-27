@@ -1,7 +1,10 @@
 import "server-only";
 import { db as defaultDb, type Database } from "@/db";
 import { cmsPageRevisions } from "@/db/schema";
-import { extractBodyReferences } from "@/content-system/media/references";
+import {
+  extractBodyReferences,
+  metadataMediaReferences,
+} from "@/content-system/media/references";
 import type { MediaPlacement } from "../types";
 import { CmsMediaStore, cmsMediaStore, type UsageEntry } from "./store";
 
@@ -27,9 +30,6 @@ import { CmsMediaStore, cmsMediaStore, type UsageEntry } from "./store";
 // key's cascade releases the reference in the same transaction. "A retained
 // version keeps its images" is then a property of the schema, not a sweep that
 // has to remember to run.
-
-/** The metadata field holding a page's preview image. */
-const PREVIEW_FIELD = "previewMediaId";
 
 type RevisionContent = {
   id: string;
@@ -62,11 +62,9 @@ export function usageEntriesFor(revision: RevisionContent): UsageEntry[] {
     });
   };
 
-  const previewId = previewMediaIdOf(revision.metadata);
-  if (previewId) add(previewId, "preview", { field: PREVIEW_FIELD });
-
-  const logoId = providerLogoIdOf(revision.metadata);
-  if (logoId) add(logoId, "logo", { field: "provider.logoMediaId" });
+  for (const reference of metadataMediaReferences(revision.metadata)) {
+    add(reference.mediaId, reference.placement, { field: reference.field });
+  }
 
   for (const reference of extractBodyReferences(revision.bodyMdx).media) {
     add(reference.mediaId, "body", {
@@ -80,21 +78,6 @@ export function usageEntriesFor(revision: RevisionContent): UsageEntry[] {
 }
 
 /** The preview media id in a metadata blob, or null. */
-export function previewMediaIdOf(metadata: unknown): string | null {
-  if (!metadata || typeof metadata !== "object") return null;
-  const value = (metadata as Record<string, unknown>)[PREVIEW_FIELD];
-  return typeof value === "string" && value ? value.toLowerCase() : null;
-}
-
-/** The company card's logo id in a metadata blob, or null. */
-export function providerLogoIdOf(metadata: unknown): string | null {
-  if (!metadata || typeof metadata !== "object") return null;
-  const provider = (metadata as Record<string, unknown>).provider;
-  if (!provider || typeof provider !== "object") return null;
-  const value = (provider as Record<string, unknown>).logoMediaId;
-  return typeof value === "string" && value ? value.toLowerCase() : null;
-}
-
 /** Rewrite one revision's usage rows. Called with a transaction-bound store
  * from the content service, so the copy and its usage move together or not at
  * all. */
@@ -103,9 +86,18 @@ export async function writeRevisionUsage(input: {
   revision: RevisionContent;
   now: Date;
 }): Promise<void> {
+  // An id with no library row is left out rather than inserted: the foreign
+  // key would refuse it, and that refusal used to surface as a raw constraint
+  // error that failed the whole save — for a mistyped permalink, or one copied
+  // from another environment's library. Nothing is lost by skipping it: there
+  // are no bytes to keep alive, and the preview and publish gates report the
+  // unknown image by name (`doc.media-unknown`), which is where it gets fixed.
+  // `reconcileMediaUsage` makes the same cut.
+  const entries = usageEntriesFor(input.revision);
+  const known = await input.store.knownIds(entries.map((e) => e.mediaId));
   await input.store.replaceRevisionUsage({
     revisionId: input.revision.id,
-    entries: usageEntriesFor(input.revision),
+    entries: entries.filter((entry) => known.has(entry.mediaId)),
     now: input.now,
   });
 }

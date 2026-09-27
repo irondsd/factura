@@ -40,6 +40,18 @@ function mediaRemotePatterns(): NonNullable<
   ];
 }
 
+/** Whether the media bucket is this machine (local MinIO). Decided by the
+ * origin, not by NODE_ENV, so a local production build can still show images
+ * while a real deployment, whose origin is public, never lifts the guard. */
+function mediaOriginIsLocal(): boolean {
+  try {
+    const { hostname } = new URL(process.env.CMS_MEDIA_PUBLIC_ORIGIN ?? "");
+    return ["localhost", "127.0.0.1", "[::1]"].includes(hostname);
+  } catch {
+    return false;
+  }
+}
+
 /** Files the media routes need at runtime that Next's tracer cannot discover.
  *
  * sharp loads libvips through `dlopen`, not through `require`, so the file
@@ -87,12 +99,13 @@ const nextConfig: NextConfig = {
     // than that. Lower than the 50 MB default because the limit is really about
     // how much a request may allocate.
     maximumResponseBody: 21_000_000,
-    // Development only, and never in production. The optimizer refuses hosts
+    // Only when the media bucket itself is local. The optimizer refuses hosts
     // that resolve to a private IP — an SSRF guard worth keeping — but the
     // local media bucket *is* MinIO on localhost, so without this every image
-    // in `bun run dev` is a 400 and the whole library is unverifiable locally.
-    // Production serves from a public custom domain and keeps the guard.
-    dangerouslyAllowLocalIP: process.env.NODE_ENV !== "production",
+    // in `bun run dev` (or a local `next start`) is a 400 and the whole library
+    // is unverifiable locally. Production serves from a public custom domain
+    // and keeps the guard.
+    dangerouslyAllowLocalIP: mediaOriginIsLocal(),
   },
   experimental: {
     // Turns on `src/app/global-not-found.tsx` — the only way to give an

@@ -109,6 +109,20 @@ way into every guide about its bills.
 The validator (`validate_content`, `level: "publish"`) enforces every limit
 below, so the numbers are for planning, not memorising.
 
+**`patch.metadata` is merged into the stored metadata, not swapped for it.**
+Send only the keys you are changing; every key you leave out keeps its stored
+value. To remove a key, send it as `null` — `{ "vendor": null }`. Each key you
+send replaces that key's whole value: lists and objects (`faq`, `sources`,
+`keywords`, `locations`, `provider`, `methodology`) are never merged item by
+item, so changing one FAQ answer means sending the whole `faq` with that one
+answer changed. This is what makes a one-key edit safe even when your copy of
+the page came from `list_content`, which leaves `faq` and `sources` out.
+`create_content` takes the whole object, as there is nothing to merge into.
+
+`parentId` is set at create only. A page's parent is fixed by its address — a
+child's slug is its parent's slug plus one segment — so moving a page under
+another one, or to the top level, is a rename, which a person does at `/cms`.
+
 | Field                            | What it feeds                                | Rule                                                                     |
 | -------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------ |
 | `section`                        | Which section                                | Set at create only.                                                      |
@@ -121,7 +135,7 @@ below, so the numbers are for planning, not memorising.
 | `canonicalSlug`                  | `<link rel="canonical">`, drops from sitemap | Only to resolve two pages competing for one query.                       |
 | `body`                           | The MDX                                      | §4. No `<h1>`, no frontmatter.                                           |
 | `metadata`                       | Everything else, one JSON object             | Below. Unknown keys are errors.                                          |
-| `parentId`, `sortOrder`, `crumb` | The editorial tree and breadcrumbs           | Child slug = parent slug + one segment. `crumb` is the short label.      |
+| `parentId`, `sortOrder`, `crumb` | The editorial tree and breadcrumbs           | Child slug = parent slug + one segment; `parentId` at create only.       |
 
 Dates are not fields: `publishedAt` is set on first publish and
 `contentUpdatedAt` moves when content changes. Do not look for one.

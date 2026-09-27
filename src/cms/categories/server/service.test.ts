@@ -25,8 +25,21 @@ function fakeCategories() {
   const now = new Date("2026-08-23T12:00:00.000Z");
 
   const store = {
-    transaction: async <T>(body: (bound: CmsCategoryStore) => Promise<T>) =>
-      body(store as unknown as CmsCategoryStore),
+    // Rolls back like the real one: a body that throws leaves the rows and
+    // redirects as they were.
+    transaction: async <T>(body: (bound: CmsCategoryStore) => Promise<T>) => {
+      const savedRows = structuredClone(categories);
+      const savedRedirects = structuredClone(redirects);
+      try {
+        return await body(store as unknown as CmsCategoryStore);
+      } catch (error) {
+        categories.clear();
+        redirects.clear();
+        for (const [k, v] of savedRows) categories.set(k, v);
+        for (const [k, v] of savedRedirects) redirects.set(k, v);
+        throw error;
+      }
+    },
     list: async (section: ContentSection) =>
       [...categories.values()].filter(
         (category) => category.section === section && !category.retiredAt,

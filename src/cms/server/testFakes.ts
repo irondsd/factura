@@ -250,6 +250,12 @@ export function createFakeCms(
         revisions.delete(id);
       }
     },
+    setParentForPage: async (pageId: string, parentId: string | null) => {
+      for (const [id, revision] of revisions) {
+        if (revision.pageId === pageId)
+          revisions.set(id, { ...revision, parentId });
+      }
+    },
     allRevisions: async () => [...revisions.values()].map(clone),
   };
 
@@ -344,21 +350,70 @@ export function createFakeCms(
       return (page && cmsRevisionOf(page)?.title) ?? null;
     },
 
-    documentsForSection: async (section: ContentSection) =>
-      [...pages.values()]
-        .filter((page) => page.section === section)
-        .flatMap((page) => {
-          const revision = cmsRevisionOf(page);
-          return revision ? [documentOf(page, revision)] : [];
-        }),
+    pageIndex: async () =>
+      [...pages.values()].map(({ id, section, slug, status }) => ({
+        id,
+        section,
+        slug,
+        status,
+      })),
 
-    publicDocumentsForSection: async (section: ContentSection) =>
+    publishedOutline: async (section: ContentSection) =>
       [...pages.values()]
-        .filter((page) => page.section === section)
+        .filter(
+          (page) => page.section === section && page.status === "published",
+        )
         .flatMap((page) => {
           const revision = publicRevisionOf(page);
-          return revision ? [documentOf(page, revision)] : [];
+          return revision
+            ? [
+                {
+                  id: page.id,
+                  section: page.section,
+                  slug: page.slug,
+                  status: page.status,
+                  title: revision.title,
+                  description: revision.description,
+                  canonicalSlug: revision.canonicalSlug,
+                },
+              ]
+            : [];
         }),
+
+    referenceCandidates: async (input: {
+      pageId: string;
+      section: ContentSection;
+      slug: string;
+    }) => {
+      const needle = `/${input.section}/${input.slug}`;
+      return [...pages.values()]
+        .filter((page) => page.id !== input.pageId)
+        .flatMap((page) =>
+          [page.wipRevisionId, page.publishedRevisionId, page.previewRevisionId]
+            .map((id) => (id ? revisions.get(id) : undefined))
+            .filter((revision): revision is RevisionRecord => !!revision)
+            .filter(
+              (revision) =>
+                revision.body.includes(needle) ||
+                (page.section === input.section &&
+                  revision.canonicalSlug === input.slug),
+            )
+            .map((revision) => ({
+              pageId: page.id,
+              section: page.section,
+              slug: page.slug,
+              status: page.status,
+              revisionId: revision.id,
+              kind: revision.kind,
+              title: revision.title,
+              canonicalSlug: revision.canonicalSlug,
+              body: revision.body.includes(needle) ? revision.body : null,
+              publicCopy: publicRevisionOf(page)?.id === revision.id,
+            })),
+        );
+    },
+
+    insightCount: async () => 0,
 
     insertPage: async (input: CmsPageInsert) => {
       const row: CmsPageRecord = {
@@ -511,18 +566,17 @@ export function createFakeCms(
     diagnostics: [],
   });
 
-  const service = new CmsContentService(
-    options.validate ?? permissive,
-    pageStore as unknown as CmsPageStore,
-    revisionStore as unknown as CmsRevisionStore,
-    historyStore as unknown as CmsPageHistoryStore,
-    () => now,
-    (section, slugs) => {
+  const service = new CmsContentService(options.validate ?? permissive, {
+    store: pageStore as unknown as CmsPageStore,
+    revisions: revisionStore as unknown as CmsRevisionStore,
+    history: historyStore as unknown as CmsPageHistoryStore,
+    clock: () => now,
+    invalidate: (section, slugs) => {
       expired.push(section);
       expiredDocuments.push(slugs ?? "all");
     },
     recordMediaUsage,
-  );
+  });
 
   return {
     service,

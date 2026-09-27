@@ -1,33 +1,49 @@
 import "server-only";
 import { toJSONSchema, z } from "zod";
-import { isContentSection, isContentStatus } from "@/content-system/types";
 import { contentMetadataSchema } from "@/content-system/metadata/sections";
+import type { ContentPatch } from "@/cms/server/contentService";
 import { cmsContentService } from "@/cms/server/service";
+import {
+  createContentSchema,
+  lockedPageSchema,
+  patchFieldsSchema,
+  sectionSchema,
+  setStatusSchema,
+  statusSchema,
+  validationLevelSchema,
+} from "@/cms/server/inputs";
 import { cmsMediaService } from "@/cms/media/server/service";
 import { cmsCategoryService } from "@/cms/categories/server/service";
 import { cmsAuthorService } from "@/cms/authors/server/service";
 import { cmsLocationService } from "@/cms/locations/server/service";
 import { hasScope, type CmsTokenCaller, type CmsScope } from "./tokens";
 
-const section = z.string().refine(isContentSection, "Unknown content section.");
-const status = z.string().refine(isContentStatus, "Unknown content status.");
+const section = sectionSchema;
+const status = statusSchema;
 // One metadata contract for every section. Editorial validation decides which
 // optional capabilities (for example dataset provenance) a page must fill in.
 const metadata = contentMetadataSchema;
 
-const patch = z.object({
-  title: z.string().optional(),
-  titleTag: z.string().nullable().optional(),
-  description: z.string().optional(),
-  summary: z.string().optional(),
-  cta: z.string().optional(),
-  canonicalSlug: z.string().nullable().optional(),
-  body: z.string().optional(),
-  metadata: metadata.optional(),
-  parentId: z.string().uuid().nullable().optional(),
-  sortOrder: z.number().int().optional(),
-  crumb: z.string().nullable().optional(),
+/** An agent's save. Everything but `metadata` means what it means in the
+ * browser (`@/cms/server/inputs`); `metadata` is a *patch*
+ * (`@/cms/metadataPatch`): keys it names are set, `null` removes one, keys it
+ * leaves out are kept. `agentPatch` hands it to the service as
+ * `metadataPatch`. */
+const patch = patchFieldsSchema.extend({
+  metadata: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe(
+      "A patch, merged into the stored metadata: each key given replaces that key's whole value, a key set to null is removed, and every key left out is kept. Nested objects and lists (faq, sources, provider, methodology, locations) are replaced whole, never merged.",
+    ),
 });
+
+/** The MCP's patch as the service takes it: `metadata` moved to
+ * `metadataPatch`, so it merges rather than replaces. */
+function agentPatch(input: z.infer<typeof patch>): ContentPatch {
+  const { metadata: metadataPatch, ...rest } = input;
+  return metadataPatch === undefined ? rest : { ...rest, metadataPatch };
+}
 
 /** MCP tool annotations (spec `2025-06-18`). Hints, not enforcement — the
  * server's real guarantee is the tool list itself, which has no delete. What
@@ -260,21 +276,7 @@ export const CMS_TOOLS: Tool[] = [
     description:
       "Create a new draft. Publication always requires a separate set_content_status call.",
     annotations: writes("Crear un borrador"),
-    schema: z.object({
-      section,
-      slug: z.string(),
-      title: z.string(),
-      titleTag: z.string().nullable().optional(),
-      description: z.string(),
-      summary: z.string(),
-      cta: z.string().optional(),
-      canonicalSlug: z.string().nullable().optional(),
-      body: z.string(),
-      metadata,
-      parentId: z.string().uuid().nullable().optional(),
-      sortOrder: z.number().int().optional(),
-      crumb: z.string().nullable().optional(),
-    }),
+    schema: createContentSchema.extend({ metadata }),
     run: (a, input) =>
       cmsContentService.create(
         a,
@@ -285,35 +287,41 @@ export const CMS_TOOLS: Tool[] = [
     name: "update_content",
     scope: "cms:write",
     description:
-      "Save the page's shared working copy. This never changes what the public sees: the live article keeps serving its last publication until set_content_status publishes the working copy. expectedLockVersion must equal get_content's lockVersion.",
+      "Save the page's shared working copy. This never changes what the public sees: the live article keeps serving its last publication until set_content_status publishes the working copy. expectedLockVersion must equal get_content's lockVersion. patch.metadata is merged, not replaced: send only the keys you change and set a key to null to remove it; keys you leave out keep their stored value. parentId cannot change here — a page's parent follows its address, which a person changes at /cms.",
     annotations: writes("Guardar el borrador"),
-    schema: z.object({
-      id: z.string().uuid(),
-      expectedLockVersion: z.number().int().positive(),
-      patch,
-    }),
-    run: (a, input) =>
-      cmsContentService.update(
-        a,
-        input as Parameters<typeof cmsContentService.update>[1],
-      ),
+    schema: lockedPageSchema.extend({ patch }),
+    run: (a, input) => {
+      const args = input as z.infer<typeof lockedPageSchema> & {
+        patch: z.infer<typeof patch>;
+      };
+      return cmsContentService.update(a, {
+        ...args,
+        patch: agentPatch(args.patch),
+      });
+    },
   },
   {
     name: "validate_content",
     scope: "cms:read",
     description:
-      "Return structured validation diagnostics for a saved page, optionally with a proposed patch.",
+      "Return structured validation diagnostics for a saved page, optionally with a proposed patch — the same patch update_content takes, metadata merged the same way.",
     annotations: readOnly("Validar"),
     schema: z.object({
-      id: z.string().uuid(),
+      id: z.uuid(),
       patch: patch.optional(),
-      level: z.enum(["draft", "preview", "publish"]).optional(),
+      level: validationLevelSchema.optional(),
     }),
-    run: (a, input) =>
-      cmsContentService.validateOnly(
-        a,
-        input as Parameters<typeof cmsContentService.validateOnly>[1],
-      ),
+    run: (a, input) => {
+      const args = input as {
+        id: string;
+        patch?: z.infer<typeof patch>;
+        level?: z.infer<typeof validationLevelSchema>;
+      };
+      return cmsContentService.validateOnly(a, {
+        ...args,
+        patch: args.patch ? agentPatch(args.patch) : undefined,
+      });
+    },
   },
   {
     name: "set_content_status",
@@ -321,11 +329,7 @@ export const CMS_TOOLS: Tool[] = [
     description:
       "Change what the public sees. 'published' publishes the saved working copy as a new immutable publication and clears the working copy; 'preview' freezes it into the shareable, noindexed public preview; 'draft' takes the page off the public site and keeps the last publication for restoring. Ask the human before every call, in both directions.",
     annotations: writes("Cambiar el estado de publicación", true),
-    schema: z.object({
-      id: z.string().uuid(),
-      status,
-      expectedLockVersion: z.number().int().positive(),
-    }),
+    schema: setStatusSchema,
     run: (a, input) =>
       cmsContentService.setStatus(
         a,

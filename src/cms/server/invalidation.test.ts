@@ -301,12 +301,13 @@ describe("a failing invalidation", () => {
     const page = await seedPage(fake, actor);
     const broken = new CmsContentService(
       () => ({ ok: true, diagnostics: [] }),
-      fake.store,
-      fake.revisions,
-      undefined,
-      () => fake.now(),
-      () => {
-        throw new Error("no request context");
+      {
+        store: fake.store,
+        revisions: fake.revisions,
+        clock: () => fake.now(),
+        invalidate: () => {
+          throw new Error("no request context");
+        },
       },
     );
 

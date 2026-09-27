@@ -179,15 +179,21 @@ export class CmsLocationService {
   ): Promise<void> {
     this.assertHuman(actor, "eliminar una ubicación");
     const current = await this.required(input.id);
-    const usage = await this.store.usage(current.key);
-    if (usage.length) throw new CmsLocationInUseError(usage);
+    // Claim, then check, in one transaction — see the category service's
+    // `retire` for why, and for the one race this leaves and why it is benign.
     const now = this.clock();
-    const retired = await this.store.updateWithLock({
-      id: current.id,
-      expectedLockVersion: input.expectedLockVersion,
-      patch: { retiredAt: now, retiredBy: actor.userId },
-      actorId: actor.userId,
-      now,
+    const retired = await this.store.transaction(async (store) => {
+      const claimed = await store.updateWithLock({
+        id: current.id,
+        expectedLockVersion: input.expectedLockVersion,
+        patch: { retiredAt: now, retiredBy: actor.userId },
+        actorId: actor.userId,
+        now,
+      });
+      if (!claimed) return null;
+      const usage = await store.usage(current.key);
+      if (usage.length) throw new CmsLocationInUseError(usage);
+      return claimed;
     });
     if (!retired) await this.conflict(input.id, input.expectedLockVersion);
     this.expire();

@@ -126,3 +126,15 @@ describe("extractBodyReferences", () => {
     expect(() => extractBodyReferences("<Unclosed")).not.toThrow();
   });
 });
+
+describe("a body the parser cannot read", () => {
+  it("still reports the images it points at", () => {
+    // An unclosed JSX tag: `parseContentBody` throws on it. Reporting nothing
+    // here would release images a retained version still shows.
+    const id = "8f2c1b9e-4a3d-4c5b-9e7f-1a2b3c4d5e6f";
+    const body = `<Figura>\n\n![Medidor](/media/${id}/medidor.jpg)\n`;
+    const found = extractBodyReferences(body);
+    expect(found.media.map((reference) => reference.mediaId)).toEqual([id]);
+    expect(found.media[0]).toMatchObject({ line: 3 });
+  });
+});

@@ -308,11 +308,15 @@ export function CmsConfirmDialog({
   busy = false,
   onConfirm,
   onCancel,
+  children,
 }: {
   eyebrow?: string;
   title: string;
   description?: ReactNode;
   details?: readonly string[];
+  /** Anything the confirmation should show below the details and above the
+   * buttons — what else the action will affect, read when the dialog opens. */
+  children?: ReactNode;
   confirmLabel: string;
   confirmMark?: string;
   confirmIcon?: CmsIconName;
@@ -341,6 +345,7 @@ export function CmsConfirmDialog({
           ))}
         </ul>
       )}
+      {children}
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <DialogButton
           tone={tone}

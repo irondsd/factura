@@ -314,23 +314,6 @@ describe("publishing", () => {
     expect(fake.revisionRows(page.id)).toHaveLength(1);
   });
 
-  it("refuses to publish a page that has neither a working copy nor a publication", async () => {
-    const fake = createFakeCms();
-    const page = await seedPage(fake, actor);
-    await fake.service.promotePreview(actor, {
-      id: page.id,
-      expectedLockVersion: await lockOf(fake, page.id),
-    });
-    await fake.service.discardWip(actor, {
-      id: page.id,
-      expectedLockVersion: await lockOf(fake, page.id),
-    });
-
-    await expect(publish(fake, page.id)).rejects.toBeInstanceOf(
-      CmsNoWorkingCopyError,
-    );
-  });
-
   it("keeps the page's first publication date across a republication", async () => {
     const fake = createFakeCms({ now: new Date("2026-01-01T12:00:00.000Z") });
     const page = await published(fake);
@@ -710,5 +693,107 @@ describe("comparison", () => {
 
     expect(JSON.stringify(fake.revisionRows(page.id))).toEqual(before);
     expect(fake.events).toHaveLength(events);
+  });
+});
+
+describe("a preview that is the page's only copy", () => {
+  // Promote a draft to the public preview, then discard its working copy: the
+  // preview is now all the page has. Both ways out of that state used to lose
+  // it — unpublishing refused outright, and publishing fell back to nothing.
+  async function previewOnly(fake: FakeCms, body = "Versión revisada.\n") {
+    const page = await seedPage(fake, actor);
+    await save(fake, page.id, body);
+    await fake.service.promotePreview(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+    await fake.service.discardWip(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+    expect(kindsOf(fake, page.id)).toEqual(["preview"]);
+    return page;
+  }
+
+  it("returns to draft by turning the preview into the working copy", async () => {
+    const fake = createFakeCms();
+    const page = await previewOnly(fake);
+
+    const down = await fake.service.unpublish(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+
+    expect(down.status).toBe("draft");
+    expect(down.body).toBe("Versión revisada.\n");
+    expect(kindsOf(fake, page.id)).toEqual(["wip"]);
+    expect(fake.pageRow(page.id)?.previewRevisionId).toBeNull();
+  });
+
+  it("publishes the preview rather than throwing it away", async () => {
+    const fake = createFakeCms();
+    const page = await previewOnly(fake);
+
+    const result = await publish(fake, page.id);
+
+    expect(result.noChange).toBe(false);
+    expect(result.publicationNumber).toBe(1);
+    expect(result.document.body).toBe("Versión revisada.\n");
+    expect(kindsOf(fake, page.id)).toEqual(["published"]);
+  });
+
+  it("publishes a preview that moved past the live copy", async () => {
+    const fake = createFakeCms();
+    const page = await published(fake);
+    await save(fake, page.id, "Segunda versión.\n");
+    await fake.service.promotePreview(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+    await fake.service.discardWip(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+
+    const result = await publish(fake, page.id);
+
+    expect(result.publicationNumber).toBe(2);
+    expect(result.document.body).toBe("Segunda versión.\n");
+    expect(kindsOf(fake, page.id)).toEqual(["published", "published"]);
+  });
+});
+
+describe("a metadata patch", () => {
+  it("merges into the copy the save builds on", async () => {
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
+
+    const saved = await fake.service.update(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+      patch: { metadataPatch: { vendor: "Edesur" } },
+    });
+
+    expect(saved.document.metadata).toMatchObject({
+      keywords: ["prueba"],
+      categories: ["servicios"],
+      vendor: "Edesur",
+    });
+  });
+
+  it("refuses a save that sends both forms", async () => {
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
+
+    await expect(
+      fake.service.update(actor, {
+        id: page.id,
+        expectedLockVersion: await lockOf(fake, page.id),
+        patch: {
+          metadata: { keywords: ["a"], categories: ["servicios"] },
+          metadataPatch: { vendor: "Edesur" },
+        },
+      }),
+    ).rejects.toThrow();
   });
 });

@@ -257,3 +257,27 @@ export class CmsMediaPortraitInUseError extends Error {
     this.name = "CmsMediaPortraitInUseError";
   }
 }
+
+/** A Postgres constraint the database refused a write on, read through the
+ * layers that wrap it — drizzle's `DrizzleQueryError` carries the driver's
+ * error as `cause`. Null when the error is anything else.
+ *
+ * For the races a check before a transaction cannot close: two creates at one
+ * address, a child created while its parent is being deleted. The check still
+ * runs first, because it can say what is wrong in words; this is what lets the
+ * loser of the race get the same words instead of a constraint name. */
+export function constraintViolation(
+  error: unknown,
+): { kind: "unique" | "foreign_key"; constraint: string | null } | null {
+  for (let e = error, depth = 0; e && depth < 5; depth += 1) {
+    const candidate = e as { code?: unknown; constraint_name?: unknown };
+    const constraint =
+      typeof candidate.constraint_name === "string"
+        ? candidate.constraint_name
+        : null;
+    if (candidate.code === "23505") return { kind: "unique", constraint };
+    if (candidate.code === "23503") return { kind: "foreign_key", constraint };
+    e = (e as { cause?: unknown }).cause;
+  }
+  return null;
+}

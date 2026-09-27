@@ -27,8 +27,21 @@ function fakeLocations() {
   const now = new Date("2026-08-29T12:00:00.000Z");
 
   const store = {
-    transaction: async <T>(body: (bound: CmsLocationStore) => Promise<T>) =>
-      body(store as unknown as CmsLocationStore),
+    // Rolls back like the real one: a body that throws leaves the rows and
+    // redirects as they were.
+    transaction: async <T>(body: (bound: CmsLocationStore) => Promise<T>) => {
+      const savedRows = structuredClone(locations);
+      const savedRedirects = structuredClone(redirects);
+      try {
+        return await body(store as unknown as CmsLocationStore);
+      } catch (error) {
+        locations.clear();
+        redirects.clear();
+        for (const [k, v] of savedRows) locations.set(k, v);
+        for (const [k, v] of savedRedirects) redirects.set(k, v);
+        throw error;
+      }
+    },
     list: async () =>
       [...locations.values()].filter((value) => !value.retiredAt),
     findById: async (id: string) => locations.get(id) ?? null,

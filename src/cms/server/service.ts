@@ -15,12 +15,6 @@ const recordMediaUsage: MediaUsageRecorder = ({ revision, now, tx }) =>
   writeRevisionUsage({ store: cmsMediaStore.bind(tx), revision, now });
 
 /** The one content service instance shared by browser actions and CMS MCP. */
-export const cmsContentService = new CmsContentService(
-  createCmsValidator(),
-  undefined,
-  undefined,
-  undefined,
-  undefined,
-  undefined,
+export const cmsContentService = new CmsContentService(createCmsValidator(), {
   recordMediaUsage,
-);
+});

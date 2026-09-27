@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { internalLinksIn } from "./links";
 import {
   dataSourceSchema,
   datasetMetadataSchema,
@@ -10,7 +11,10 @@ import {
   providerFilledCount,
   validationResult,
 } from "../types";
-import { extractBodyReferences } from "../media/references";
+import {
+  extractBodyReferences,
+  metadataMediaReferences,
+} from "../media/references";
 import { AUTHOR_ROLE_FIELDS, type AuthorRoleField } from "../authors/types";
 import { missingKeywordWords } from "./text";
 import { sectionHasMetadataAddon, sectionProfile } from "../sectionProfiles";
@@ -91,6 +95,7 @@ export const DOCUMENT_CODES = {
   linkBroken: "doc.link-broken",
   linkSelf: "doc.link-self",
   linkUnpublished: "doc.link-unpublished",
+  canonicalUnpublished: "doc.canonical-unpublished",
   noHeadings: "doc.no-headings",
   noClosingCta: "doc.no-closing-cta",
   closingCtaBare: "doc.closing-cta-bare",
@@ -118,16 +123,27 @@ export const DOCUMENT_CODES = {
  * by `buildContentIndex` and passed in, so the validator itself stays pure and
  * a caller can validate against a hypothetical collection. */
 export type ContentIndex = {
-  /** Every slug in the section, whatever its status. */
-  slugs: ReadonlySet<string>;
+  /** The sections this index describes. A link into a section it does not
+   * cover is not checked at all: the caller has not said what is there, and
+   * guessing "nothing" would call every such link broken. */
+  sections: ReadonlySet<string>;
+  /** Every page in those sections, whatever its status, as `section/slug`
+   * (`pathKey`). Keyed across sections because links are: a guide pointing at
+   * `/estadisticas/…` is as broken as one pointing at a missing guide. */
+  paths: ReadonlySet<string>;
   /** The publicly listed subset. A link into anything else is a link to a page
    * no listing shows. */
-  publishedSlugs: ReadonlySet<string>;
+  publishedPaths: ReadonlySet<string>;
 };
 
+/** The key a page has in a `ContentIndex`. */
+export const pathKey = (section: string, slug: string): string =>
+  `${section}/${slug}`;
+
 export const EMPTY_INDEX: ContentIndex = {
-  slugs: new Set(),
-  publishedSlugs: new Set(),
+  sections: new Set(),
+  paths: new Set(),
+  publishedPaths: new Set(),
 };
 
 /** Optional capabilities a caller can supply. */
@@ -192,10 +208,7 @@ export function validateDocument(
   context: DocumentValidationContext = {},
 ): ValidationResult {
   const result = validateForProfile(document, index, context);
-  const extra = [
-    ...validateProvider(document, context),
-    ...validateReviews(document),
-  ];
+  const extra = [...validateProvider(document), ...validateReviews(document)];
   return extra.length > 0
     ? validationResult([...result.diagnostics, ...extra])
     : result;
@@ -260,10 +273,7 @@ function validateReviews(document: ContentDocument): Diagnostic[] {
  * Checked outside the profile switch because the storage shape is shared by
  * every section — so "only /proveedores may carry it" has to be asked of all
  * of them, not only of the guide-profile pages where the card belongs. */
-function validateProvider(
-  document: ContentDocument,
-  context: DocumentValidationContext,
-): Diagnostic[] {
+function validateProvider(document: ContentDocument): Diagnostic[] {
   const raw = (document.metadata ?? {}) as Record<string, unknown>;
   const value = raw.provider;
   const placed = /<ProviderSummary\b/.test(document.body);
@@ -302,30 +312,9 @@ function validateProvider(
     );
   }
 
-  // The logo is a library id like the cover image, and held to the same two
-  // rules: it exists, and it is not on its way out.
-  const logoId =
-    value && typeof value === "object"
-      ? (value as Record<string, unknown>).logoMediaId
-      : undefined;
-  if (typeof logoId === "string" && logoId && context.media) {
-    const asset = context.media.get(logoId.toLowerCase());
-    if (!asset) {
-      out.push({
-        code: DOCUMENT_CODES.mediaUnknown,
-        severity: "error",
-        message: `No hay ninguna imagen con el id ${logoId} en la biblioteca de medios (logo de la ficha).`,
-        field: "provider.logoMediaId",
-      });
-    } else if (asset.status !== "ready") {
-      out.push({
-        code: DOCUMENT_CODES.mediaNotReady,
-        severity: "error",
-        message: `El logo de la ficha (${logoId}) ya no está disponible. Elige otro desde la biblioteca.`,
-        field: "provider.logoMediaId",
-      });
-    }
-  }
+  // The logo's library rules — it exists, it is not on its way out — are
+  // `validateMedia`'s, which reads every metadata image field from the list in
+  // `../media/references`.
   return out;
 }
 
@@ -470,11 +459,30 @@ function validateForProfile(
           "canonicalSlug",
         ),
       );
-    } else if (index.slugs.size > 0 && !index.slugs.has(canonical)) {
+    } else if (
+      index.sections.has(document.section) &&
+      !index.paths.has(pathKey(document.section, canonical))
+    ) {
       out.push(
         error(
           DOCUMENT_CODES.canonicalUnknown,
           `meta.canonical is "${canonical}", which is not a guide slug`,
+          "canonicalSlug",
+        ),
+      );
+    } else if (
+      index.sections.has(document.section) &&
+      document.status === "published" &&
+      !index.publishedPaths.has(pathKey(document.section, canonical))
+    ) {
+      // Consolidating ranking onto a page that is not public sends the signal
+      // to a URL search engines are told to skip, which loses both pages.
+      // Asked of the index rather than the collection: the collection holds
+      // only published pages, so a draft target is simply absent from it.
+      out.push(
+        error(
+          DOCUMENT_CODES.canonicalUnpublished,
+          `meta.canonical points at "${canonical}", which is not published — a published page cannot canonicalize to one search engines are told to skip`,
           "canonicalSlug",
         ),
       );
@@ -991,13 +999,15 @@ function validateMedia(
   const check = (
     id: string,
     where: { field?: string; line?: number; column?: number },
+    label?: string,
   ) => {
     const asset = known.get(id);
+    const what = label ? ` (${label})` : "";
     if (!asset) {
       out.push({
         code: DOCUMENT_CODES.mediaUnknown,
         severity: "error",
-        message: `No hay ninguna imagen con el id ${id} en la biblioteca de medios.`,
+        message: `No hay ninguna imagen con el id ${id} en la biblioteca de medios${what}.`,
         ...where,
       });
       return null;
@@ -1008,8 +1018,8 @@ function validateMedia(
         severity: "error",
         message:
           asset.status === "trashed" || asset.status === "purging"
-            ? `La imagen ${id} está en la papelera. Restáurala desde /cms/media o elige otra.`
-            : `La imagen ${id} ya no existe. Elige otra.`,
+            ? `La imagen ${id}${what} está en la papelera. Restáurala desde /cms/media o elige otra.`
+            : `La imagen ${id}${what} ya no existe. Elige otra.`,
         ...where,
       });
       return null;
@@ -1017,9 +1027,10 @@ function validateMedia(
     return asset;
   };
 
-  const previewId = metadata?.previewMediaId;
-  if (typeof previewId === "string" && previewId) {
-    check(previewId, { field: "previewMediaId" });
+  // Every image field in the metadata — the cover, a company card's logo —
+  // from the one list that also decides which images stay out of the purge.
+  for (const reference of metadataMediaReferences(metadata)) {
+    check(reference.mediaId, { field: reference.field }, reference.label);
   }
 
   const { media, external } = extractBodyReferences(document.body);
@@ -1330,48 +1341,53 @@ function validateBody(
   }
 
   // ── internal links ────────────────────────────────────────────────────────
-  // Checked against `index`, which holds this document's own section — so
-  // links are resolved within `/${section}/` and nowhere else. A proveedores
-  // page linking to /guias/… is not checked here (the index cannot see guides),
-  // but it is the interlinking that page exists for, so it counts below.
-  const base = `/${document.section}/`;
+  // Markdown links and component `href`s alike (`./links`), into any section
+  // the index covers — a guide's link to `/estadisticas/…` is checked exactly
+  // like one to another guide. A link to a page that exists but is not
+  // published is a warning, not an error: two drafts that link to each other
+  // must still be publishable one after the other.
   const interlinks = new Set<string>();
-  for (const match of body.matchAll(/\]\((\/[a-z]+\/[^)\s#]+)/g)) {
-    const target = match[1].replace(/\/$/, "");
-    if (!target.startsWith(base)) {
-      if (document.section !== "guias" && target.startsWith("/guias/")) {
-        interlinks.add(target);
-      }
+  for (const link of internalLinksIn(body)) {
+    if (link.slug === "") continue; // a section index
+    const key = pathKey(link.section, link.slug);
+    const at = {
+      ...(link.line !== undefined ? { line: link.line } : {}),
+      ...(link.column !== undefined ? { column: link.column } : {}),
+    };
+    const own = link.section === document.section;
+    const checked = index.sections.has(link.section);
+
+    if (checked && !index.paths.has(key)) {
+      out.push({
+        ...error(
+          DOCUMENT_CODES.linkBroken,
+          `broken internal link → ${link.target} (no such ${link.section === "guias" ? "guide" : "page"})`,
+        ),
+        ...at,
+      });
       continue;
     }
-    const targetSlug = target.slice(base.length);
-    if (targetSlug === "") continue; // the index page
-    if (index.slugs.size > 0 && !index.slugs.has(targetSlug)) {
-      out.push(
-        error(
-          DOCUMENT_CODES.linkBroken,
-          `broken internal link → ${target} (no such ${document.section === "guias" ? "guide" : "page"})`,
+    if (own && link.slug === slug) {
+      out.push({ ...warn(DOCUMENT_CODES.linkSelf, "links to itself"), ...at });
+      continue;
+    }
+    // What counts toward interlinking: pages of this section, and — for every
+    // other section — the guides, which is the interlinking those pages exist
+    // for.
+    if (own || (document.section !== "guias" && link.section === "guias")) {
+      interlinks.add(key);
+    }
+    // The old script's "links to a noindex guide" check, restated in
+    // lifecycle terms: a link into anything not published is a link to a page
+    // no listing shows and search engines are told to skip.
+    if (checked && !index.publishedPaths.has(key)) {
+      out.push({
+        ...warn(
+          DOCUMENT_CODES.linkUnpublished,
+          `links to ${link.target}, which is not published`,
         ),
-      );
-    } else if (targetSlug === slug) {
-      out.push(warn(DOCUMENT_CODES.linkSelf, "links to itself"));
-    } else {
-      interlinks.add(targetSlug);
-      // The old script's "links to a noindex guide" check, restated in
-      // lifecycle terms: a link into anything not published is a link to a page
-      // no listing shows and search engines are told to skip.
-      if (
-        index.publishedSlugs.size > 0 &&
-        index.slugs.has(targetSlug) &&
-        !index.publishedSlugs.has(targetSlug)
-      ) {
-        out.push(
-          warn(
-            DOCUMENT_CODES.linkUnpublished,
-            `links to ${base}${targetSlug}, which is not published`,
-          ),
-        );
-      }
+        ...at,
+      });
     }
   }
 

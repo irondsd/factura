@@ -81,10 +81,17 @@ What that implies day to day:
 - **Publishing** validates the working copy, files an immutable publication,
   repoints the page, deletes the working copy and checkpoint, and prunes to
   three previous publications. Publishing a working copy identical to what is
-  live is refused rather than filing a duplicate.
+  live is refused rather than filing a duplicate. With no working copy but a
+  public preview that differs from the live copy — a working copy that was
+  promoted and then discarded — the preview is what gets published: it is the
+  newest content the page has.
 - **Unpublishing** sets the page to `draft`, keeps the last published pointer,
   and drops the preview snapshot. Republishing with nothing new re-exposes the
-  retained publication rather than copying it.
+  retained publication rather than copying it. When the preview is the page's
+  only copy, it becomes the working copy instead of being dropped, so a page
+  can always be taken down.
+- **Moving a live page into preview** takes it out of the index and every
+  listing, so it needs the same authority as unpublishing (`canPublish`).
 - **Restoring** copies a retained version into the working copy. It publishes
   nothing and changes no status.
 - **Discarding** throws the working copy away, and is refused when it is the
@@ -146,10 +153,20 @@ comment there, because filtering type checks and silently prerenders nothing.
 
 `cms_page.slug` holds the **full path** — `inflacion-de-vivienda/gba` — so a
 public read is one indexed equality lookup. `parent_id` carries the editorial
-tree an author reorders. The invariant between them, checked on every write in
-`checkHierarchy`: a child's slug is its parent's slug plus one segment. The
-rules also refuse cross-section parents, cycles, and a nested path with no
-parent row.
+tree the breadcrumbs and indexes are built from. The invariant between them,
+checked on every write in `checkHierarchy`: a child's slug is its parent's slug
+plus one segment. The rules also refuse cross-section parents, cycles, and a
+nested path with no parent row.
+
+That invariant means the address _determines_ the parent, and the parent
+follows the address, never the other way round. A save cannot change
+`parent_id` (it is refused with `hierarchy.parent-by-address`, and the editor
+shows «Página madre» read-only); a rename sets it to the page at the new
+address's parent path — or to none for a top-level address. Because
+`parent_id` is stored per revision, a rename rewrites it on **every** stored
+copy of the page, publications included: that is the one edit an immutable
+publication accepts, since it is placement rather than prose, and a stale one
+would keep the live copy under the wrong hub and the old hub undeletable.
 
 Hierarchy is universal across sections. Guides all sit at the top level today;
 that is a fact about the content, not a limitation of the model. The same
@@ -159,15 +176,18 @@ entries, metadata schemas, component availability — never in branches.**
 or a validator is the thing this design exists to prevent.
 
 **Renaming.** A page's address can change, from «Dirección» in the editor
-sidebar. It is not a field in the metadata form, because the slug is on the page
-row: a rename moves the _live_ URL the moment it commits, while everything else
-in that form waits for a publish. One transaction does three things:
+sidebar — its last segment and, by choosing another «Página madre» there, the
+hub it hangs from. It is not a field in the metadata form, because the slug is
+on the page row: a rename moves the _live_ URL the moment it commits, while
+everything else in that form waits for a publish. One transaction does four
+things:
 
 - the page moves, and every descendant moves with it — the slug is the full
   path, so a hub's children are part of its address;
 - every vacated path that was ever public becomes a row in `cms_page_redirect`,
   and the public routes answer it with a 308 to the page's current address;
-- any redirect standing where a page now lives is dropped.
+- any redirect standing where a page now lives is dropped;
+- the page's parent is set to what the new address implies, on every copy.
 
 The redirect row points at the **page**, not at a path, so the destination is
 resolved live: three renames later every old address is still one hop, chains
@@ -178,6 +198,15 @@ reader from one 404 to another. Rules in `src/cms/rename.ts`, execution in
 `CmsContentService.rename`, the read in `PostgresContentRepository.redirectFor`.
 
 Renaming is browser-only, like deleting: the MCP has no tool for it.
+
+**What points at a page.** Unpublishing, renaming and deleting break pointers
+that live in _other_ pages: body links (Markdown or a component `href`, in any
+section), canonicals naming this page, and «destacados» pinned to it. The
+confirmation for each lists those pages (`CmsContentService.references`), says
+which ones readers actually see, and what happens to each kind of pointer — a
+rename's redirect keeps links working but never a canonical, which is emitted
+as written. A warning, never a gate: the fix is in those other pages, and the
+editor decides the order.
 
 ## What is in a page
 
@@ -233,9 +262,17 @@ Four pure layers, in `src/content-system/validation`:
 1. **grammar** — parse MDX without evaluating it; reject everything in the list
    above.
 2. **document** — metadata schema, dates, titles and lengths, headings, links,
-   FAQ placement, CTA conventions, read time.
+   FAQ placement, CTA conventions, read time. Links are every Markdown link and
+   every component `href` into any CMS section, resolved against an index of
+   every page in every section: a link to a page that does not exist is an
+   error, a link to one that is not published is a warning — two drafts that
+   link to each other must still be publishable one after the other. A
+   published page's canonical must name a published page.
 3. **collection** — unique slugs, cannibalising titles and descriptions,
-   canonical targets, links to missing or unpublished pages.
+   canonical chains. Measured against the section's **published** pages only:
+   two pages compete in search results once both are there, so a draft, or
+   another page's unpublished working copy, never blocks a publication — it is
+   measured when it is published itself.
 4. **render** — compile against the real registry, because "the grammar is
    fine" and "React can render this" are different claims.
 
@@ -323,7 +360,20 @@ The rules an agent must know:
   are browser-only actions.
 - `create_content` always creates a `draft`. Every mutation carries
   `expectedLockVersion`, so `get_content` first.
+- **`update_content` merges `patch.metadata`** into what is stored
+  (`src/cms/metadataPatch.ts`): keys sent are set, a key sent as `null` is
+  removed, keys left out are kept, and each key's value is replaced whole —
+  lists are never merged item by item. The browser form still sends the whole
+  object and replaces it, because it renders every field and a blank one is a
+  cleared one. Sending both forms in one save is refused.
+- `parentId` is set at create only; the parent follows the address, which is
+  browser-only to change.
 - Tools return structured diagnostics, not only prose.
+
+Both callers parse their input with the same schemas
+(`src/cms/server/inputs.ts`) — the browser's server actions included, since a
+server action's argument is whatever the request carried. A malformed call is
+a validation refusal, not a database error halfway through a write.
 
 ## Media library
 
@@ -350,7 +400,13 @@ automatically, and nothing trusts the browser.**
   retained publication keep its images alive. It is a cache of a pure function
   of the stored revisions, so `reconcileMediaUsage()` is a first-class operation
   and extraction is deliberately generous — a missed reference eventually
-  deletes bytes a live page points at.
+  deletes bytes a live page points at. A body the MDX parser cannot read falls
+  back to a plain scan for permalinks rather than reporting none, and every
+  image field in metadata is listed once, in `metadataMediaReferences`
+  (`src/content-system/media/references.ts`), which the usage rows, the
+  library lookup and the validation rules all read. An id with no library row
+  is left out of the usage rows (the foreign key would refuse the whole save)
+  and reported by preview and publish validation as `doc.media-unknown`.
 - The only path out is the trash: zero references required, 30-day grace, purge
   re-checks usage in the transaction that claims the row. Browser only.
 - An author's portrait is the one reference `cms_media_usage` cannot hold — that
@@ -393,6 +449,11 @@ automatically, and nothing trusts the browser.**
 
 ## Known gaps
 
+- **The MCP rate limit is per instance.** `src/server/rateLimit.ts` keeps its
+  buckets in memory, so with several warm instances the ceiling multiplies and
+  a cold start resets it. Every CMS call is authenticated, which bounds the
+  damage to a runaway agent; a limit that survives instance churn needs shared
+  state (a WAF, or a store the app does not meter by the byte), not this module.
 - **The audit trail is incomplete.** `cms_audit_log` records MCP mutations only.
   Browser mutations write to `cms_page_event`, which covers content changes from
   either caller but not token mints, revocations or refused attempts, and is

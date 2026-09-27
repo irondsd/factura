@@ -153,11 +153,13 @@ describe("recording page history", () => {
 
     const service = new CmsContentService(
       () => ({ ok: true, diagnostics: [] }),
-      fake.store,
-      fake.revisions,
-      brokenHistory,
-      () => fake.now(),
-      () => {},
+      {
+        store: fake.store,
+        revisions: fake.revisions,
+        history: brokenHistory,
+        clock: () => fake.now(),
+        invalidate: () => {},
+      },
     );
 
     await expect(

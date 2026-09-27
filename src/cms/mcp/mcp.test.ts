@@ -960,6 +960,36 @@ if (!hasTestDatabase()) {
       });
     });
 
+    it("merges a metadata patch, and removes a key only when told to", async () => {
+      // An agent edits one key and must not wipe the ones it did not repeat —
+      // least of all the FAQ, which `list_content` leaves out of every row.
+      const page = created(
+        await call("create_content", {
+          ...newPage("merge"),
+          metadata: {
+            ...newPage("merge").metadata,
+            vendor: "Edesur",
+            faq: [{ q: "¿Pregunta?", a: "Respuesta." }],
+          },
+        }),
+      );
+      const merged = await call("update_content", {
+        id: page.id,
+        expectedLockVersion: page.lockVersion,
+        patch: { metadata: { keywords: ["otra"], vendor: null } },
+      });
+      expect(resultOf(merged).isError).toBe(false);
+
+      const stored = (await storedDocument(page.id))?.metadata as Record<
+        string,
+        unknown
+      >;
+      expect(stored.keywords).toEqual(["otra"]);
+      expect(stored.faq).toEqual([{ q: "¿Pregunta?", a: "Respuesta." }]);
+      expect(stored.categories).toEqual(["servicios"]);
+      expect(stored).not.toHaveProperty("vendor");
+    });
+
     it("reports a stale update as a conflict rather than overwriting", async () => {
       const page = created(await call("create_content", newPage("conflict")));
       await call("update_content", {

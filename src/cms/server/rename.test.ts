@@ -5,6 +5,7 @@ import {
   CmsSlugTakenError,
   CmsValidationError,
 } from "./errors";
+import { PARENT_BY_ADDRESS } from "./contentService";
 import { actionsOf, createFakeCms, seedPage, type FakeCms } from "./testFakes";
 
 // Moving a page's address (cms.md).
@@ -128,18 +129,83 @@ describe("renaming a page", () => {
     );
   });
 
-  it("refuses to move a child out from under its mother", async () => {
+  it("moves a child to the top level, and its parent with it", async () => {
     // `slug` and `parent_id` are two representations of one placement, and the
-    // invariant between them is what every breadcrumb and index trusts. Moving
-    // a child to a top-level path would break it silently.
+    // address is the one an editor changes. The parent follows it — keeping the
+    // old one is what used to make this refuse.
     const fake = createFakeCms();
     const hub = await seedPage(fake, actor, { slug: "hub" });
     const child = await seedChild(fake, hub.id, "hub/uno");
 
-    await expect(rename(fake, child.id, "suelta")).rejects.toBeInstanceOf(
+    const result = await rename(fake, child.id, "suelta");
+
+    expect(result.document.slug).toBe("suelta");
+    expect(result.document.parentId).toBeNull();
+  });
+
+  it("moves a child under another hub, in every stored copy", async () => {
+    // A publication is immutable prose, but its place in the tree is fixed by
+    // an address it does not own. Left behind, the live copy would still hang
+    // off the old hub — and that hub could never be deleted.
+    const fake = createFakeCms();
+    const a = await seedPage(fake, actor, { slug: "a" });
+    const b = await seedPage(fake, actor, { slug: "b" });
+    const child = await seedChild(fake, a.id, "a/uno");
+    await publish(fake, child.id);
+    await fake.service.update(actor, {
+      id: child.id,
+      expectedLockVersion: await lockOf(fake, child.id),
+      patch: { body: "Otra versión.\n" },
+    });
+
+    const result = await rename(fake, child.id, "b/uno");
+
+    expect(result.document.parentId).toBe(b.id);
+    expect(
+      fake.revisionRows(child.id).map((revision) => revision.parentId),
+    ).toEqual([b.id, b.id]);
+    expect(await fake.store.pagesWithParent(a.id)).toEqual([]);
+  });
+
+  it("refuses an address whose parent path has no page", async () => {
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor, { slug: "sola" });
+
+    await expect(
+      rename(fake, page.id, "no-existe/sola"),
+    ).rejects.toBeInstanceOf(CmsValidationError);
+    expect(fake.pageRow(page.id)?.slug).toBe("sola");
+  });
+
+  it("refuses a move under one of its own descendants", async () => {
+    const fake = createFakeCms();
+    const hub = await seedPage(fake, actor, { slug: "hub" });
+    await seedChild(fake, hub.id, "hub/uno");
+
+    await expect(rename(fake, hub.id, "hub/uno/hub")).rejects.toBeInstanceOf(
       CmsValidationError,
     );
-    expect(fake.pageRow(child.id)?.slug).toBe("hub/uno");
+    expect(fake.pageRow(hub.id)?.slug).toBe("hub");
+  });
+
+  it("refuses to change the parent through a save", async () => {
+    const fake = createFakeCms();
+    const a = await seedPage(fake, actor, { slug: "a" });
+    const b = await seedPage(fake, actor, { slug: "b" });
+    const child = await seedChild(fake, a.id, "a/uno");
+
+    const refused = await fake.service
+      .update(actor, {
+        id: child.id,
+        expectedLockVersion: await lockOf(fake, child.id),
+        patch: { parentId: b.id },
+      })
+      .catch((error: unknown) => error);
+
+    expect(refused).toBeInstanceOf(CmsValidationError);
+    expect((refused as CmsValidationError).diagnostics[0].code).toBe(
+      PARENT_BY_ADDRESS,
+    );
   });
 
   it("refuses a version the editor no longer holds", async () => {

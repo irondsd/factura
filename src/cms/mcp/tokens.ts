@@ -9,6 +9,9 @@ export const CMS_SCOPES = ["cms:read", "cms:write"] as const;
 export type CmsScope = (typeof CMS_SCOPES)[number];
 const PREFIX = "fct_cms_";
 
+/** How stale `last_used_at` may get before a call refreshes it. */
+export const LAST_USED_RESOLUTION_MS = 5 * 60 * 1000;
+
 export const hashCmsToken = (token: string): string =>
   createHash("sha256").update(token).digest("hex");
 
@@ -137,6 +140,7 @@ export async function resolveCmsToken(
       userId: cmsApiTokens.userId,
       scopes: cmsApiTokens.scopes,
       expiresAt: cmsApiTokens.expiresAt,
+      lastUsedAt: cmsApiTokens.lastUsedAt,
       role: cmsMembers.role,
     })
     .from(cmsApiTokens)
@@ -151,10 +155,20 @@ export async function resolveCmsToken(
   const scopes = row.scopes.filter((scope): scope is CmsScope =>
     (CMS_SCOPES as readonly string[]).includes(scope),
   );
-  await database
-    .update(cmsApiTokens)
-    .set({ lastUsedAt: new Date() })
-    .where(eq(cmsApiTokens.id, row.tokenId));
+  // «Último uso» is shown to the minute at best, and an agent session makes
+  // dozens of calls a minute. Writing it on every one was a database write per
+  // request for a value nobody reads that precisely; now it moves at most once
+  // per interval.
+  const now = new Date();
+  if (
+    !row.lastUsedAt ||
+    now.getTime() - row.lastUsedAt.getTime() >= LAST_USED_RESOLUTION_MS
+  ) {
+    await database
+      .update(cmsApiTokens)
+      .set({ lastUsedAt: now })
+      .where(eq(cmsApiTokens.id, row.tokenId));
+  }
   return {
     userId: row.userId,
     // No display identity: this caller is resolved from a token, and nothing

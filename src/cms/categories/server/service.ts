@@ -203,16 +203,25 @@ export class CmsCategoryService {
   ): Promise<void> {
     this.assertHuman(actor, "eliminar una categoría");
     const current = await this.required(input.id);
-    const usage = await this.store.usage(current.section, current.key);
-    if (usage.length > 0) throw new CmsCategoryInUseError(usage);
 
+    // Claim, then check, in one transaction: the usage read is then about the
+    // state the retirement commits against, and a refusal rolls the claim back.
+    // A page save can still add the key concurrently — saves do not touch the
+    // category row — but that save is a working copy, and the preview and
+    // publish gates refuse a retired key, so it cannot reach a reader.
     const now = this.clock();
-    const retired = await this.store.updateWithLock({
-      id: current.id,
-      expectedLockVersion: input.expectedLockVersion,
-      patch: { retiredAt: now, retiredBy: actor.userId },
-      actorId: actor.userId,
-      now,
+    const retired = await this.store.transaction(async (store) => {
+      const claimed = await store.updateWithLock({
+        id: current.id,
+        expectedLockVersion: input.expectedLockVersion,
+        patch: { retiredAt: now, retiredBy: actor.userId },
+        actorId: actor.userId,
+        now,
+      });
+      if (!claimed) return null;
+      const usage = await store.usage(current.section, current.key);
+      if (usage.length > 0) throw new CmsCategoryInUseError(usage);
+      return claimed;
     });
     if (!retired) await this.conflict(input.id, input.expectedLockVersion);
     this.expirePublicCache(current.section);

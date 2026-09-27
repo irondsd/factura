@@ -50,7 +50,9 @@ import { HistoryPanel } from "./HistoryPanel";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { STATUS_MARK, StatusChip, statusLabel } from "./StatusChip";
 import { MetadataField, type ParentOption } from "./fields/MetadataField";
+import { ReferencesWarning } from "./ReferencesWarning";
 import { ValidationPanel } from "./ValidationPanel";
+import { CmsSelect } from "./CmsSelect";
 import Link from "next/link";
 import type {
   ComponentCompletionDescriptor,
@@ -987,22 +989,31 @@ export function PageEditor({
           ))}
 
           <RenamePanel
+            pageId={page.id}
             section={section}
             slug={(values.slug as string) ?? page.slug}
             redirects={redirects}
             descendants={descendants}
             published={state.publishedAt !== null}
+            parentOptions={parentOptions}
             busy={busy}
             onRename={rename}
           />
 
-          <DeletePanel status={status} busy={busy} onDelete={remove} />
+          <DeletePanel
+            pageId={page.id}
+            status={status}
+            published={state.publishedAt !== null}
+            busy={busy}
+            onDelete={remove}
+          />
         </aside>
       </div>
 
       {pending && (
         <ActionConfirmDialog
           action={pending}
+          pageId={page.id}
           status={status}
           hasWip={hasWip}
           previewIsStale={state.previewIsStale}
@@ -1033,6 +1044,7 @@ export function PageEditor({
  * so the copy table and the dialog stay next to each other. */
 function ActionConfirmDialog({
   action,
+  pageId,
   status,
   hasWip,
   previewIsStale,
@@ -1042,6 +1054,7 @@ function ActionConfirmDialog({
   onCancel,
 }: {
   action: PendingAction;
+  pageId: string;
   status: ContentStatus;
   hasWip: boolean;
   previewIsStale: boolean;
@@ -1069,7 +1082,17 @@ function ActionConfirmDialog({
       busy={busy}
       onConfirm={onConfirm}
       onCancel={onCancel}
-    />
+    >
+      {/* Taking a page down breaks whatever points at it; nothing else in
+          this dialog changes what readers of *other* pages see. */}
+      {action.kind === "unpublish" && status !== "draft" && (
+        <ReferencesWarning
+          pageId={pageId}
+          consequence="unpublish"
+          published={status === "published"}
+        />
+      )}
+    </CmsConfirmDialog>
   );
 }
 
@@ -1350,19 +1373,24 @@ function Action({
  * identical, which is why this is a panel with its own button, its own
  * confirmation and its own account of what it is about to do.
  *
- * The input is the last segment alone. A child page's path is its parent's plus
- * one segment (`checkHierarchy`), so offering the whole path would only offer
- * ways to break that invariant — moving a page to another parent is the
- * «Página madre» field's job. */
+ * A mother page and a last segment rather than one free-text path. A child's
+ * path is its mother's plus one segment (`checkHierarchy`), so choosing the
+ * mother *is* choosing the address prefix — which is also the only way a page
+ * moves under another one, or out to the top level: the parent follows the
+ * address, never a save. Offering the whole path as text would only offer ways
+ * to name a prefix no page lives at. */
 function RenamePanel({
+  pageId,
   section,
   slug,
   redirects,
   descendants,
   published,
+  parentOptions,
   busy,
   onRename,
 }: {
+  pageId: string;
   section: CmsSection;
   slug: string;
   redirects: readonly string[];
@@ -1370,19 +1398,24 @@ function RenamePanel({
   /** Whether the page has ever been public — which is what decides whether the
    * address being vacated is worth preserving. */
   published: boolean;
+  /** Pages this one may move under — never itself or its own descendants. */
+  parentOptions: readonly ParentOption[];
   busy: boolean;
   onRename: (slug: string) => Promise<boolean>;
 }) {
-  const prefix = pathSegments(slug).slice(0, -1).join("/");
+  const currentPrefix = pathSegments(slug).slice(0, -1).join("/");
   const [armed, setArmed] = useState(false);
   const [segment, setSegment] = useState(() => ownSegment(slug));
+  const [prefix, setPrefix] = useState(currentPrefix);
 
   const base = publicSectionPath(section.id);
   const next = prefix ? `${prefix}/${segment}` : segment;
   const changed = segment.trim() !== "" && next !== slug;
+  const reparented = prefix !== currentPrefix;
 
   const open = () => {
     setSegment(ownSegment(slug));
+    setPrefix(currentPrefix);
     setArmed(true);
   };
 
@@ -1417,6 +1450,29 @@ function RenamePanel({
 
       {armed && (
         <div className="border border-line px-4 py-4">
+          {parentOptions.length > 0 && (
+            <>
+              <label
+                htmlFor="cms-rename-parent"
+                className="block font-mono text-[12px] leading-[1.6] text-ink mb-2"
+              >
+                Página madre
+              </label>
+              <CmsSelect
+                id="cms-rename-parent"
+                value={prefix}
+                onChange={setPrefix}
+                className="mb-4"
+                options={[
+                  { value: "", label: "Ninguna (primer nivel)" },
+                  ...parentOptions.map((option) => ({
+                    value: option.slug,
+                    label: option.label,
+                  })),
+                ]}
+              />
+            </>
+          )}
           <label
             htmlFor="cms-rename"
             className="block font-mono text-[12px] leading-[1.6] text-ink mb-2"
@@ -1442,6 +1498,14 @@ function RenamePanel({
               ? "La página cambia de dirección en el sitio público apenas confirmes. La dirección anterior queda redirigiendo a la nueva, así que los enlaces que ya existen siguen funcionando."
               : "Esta página nunca fue pública, así que la dirección anterior no queda redirigiendo: no había nada que enlazara a ella."}
           </p>
+          {reparented && (
+            <p className="font-mono text-[12px] leading-[1.6] text-muted mt-2 mb-0">
+              {prefix
+                ? `La página pasa a colgar de /${prefix}.`
+                : "La página pasa a primer nivel."}{" "}
+              Ya no aparece entre las hijas de su madre actual.
+            </p>
+          )}
           {descendants.length > 0 && (
             <p className="font-mono text-[12px] leading-[1.6] text-muted mt-2 mb-0">
               Se mueven con ella {descendants.length}{" "}
@@ -1451,6 +1515,11 @@ function RenamePanel({
               de esta.
             </p>
           )}
+          <ReferencesWarning
+            pageId={pageId}
+            consequence="rename"
+            published={published}
+          />
 
           <div className="flex flex-wrap gap-2 mt-3">
             <button
@@ -1480,11 +1549,15 @@ function RenamePanel({
 }
 
 function DeletePanel({
+  pageId,
   status,
+  published,
   busy,
   onDelete,
 }: {
+  pageId: string;
   status: ContentStatus;
+  published: boolean;
   busy: boolean;
   onDelete: () => void;
 }) {
@@ -1541,6 +1614,11 @@ function DeletePanel({
             onChange={(event) => setTyped(event.target.value)}
             autoComplete="off"
             className="w-full border border-line bg-paper px-3 py-2 font-mono text-[13px] text-ink focus:border-accent focus:outline-none"
+          />
+          <ReferencesWarning
+            pageId={pageId}
+            consequence="delete"
+            published={published}
           />
           <div className="flex flex-wrap gap-2 mt-3">
             <button

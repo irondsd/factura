@@ -1,7 +1,12 @@
 import "server-only";
 import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db as defaultDb, type Database } from "@/db";
-import { cmsPageRedirects, cmsPageRevisions, cmsPages } from "@/db/schema";
+import {
+  cmsInsights,
+  cmsPageRedirects,
+  cmsPageRevisions,
+  cmsPages,
+} from "@/db/schema";
 import {
   cmsRowToDocument,
   cmsRowToSummary,
@@ -84,6 +89,37 @@ export type CmsPageOutline = {
   canonicalSlug: string | null;
   parentId: string | null;
   sortOrder: number;
+};
+
+/** One row of `CmsPageStore.pageIndex`. */
+export type CmsPageIndexEntry = {
+  id: string;
+  section: ContentSection;
+  slug: string;
+  status: ContentStatus;
+};
+
+/** One row of `CmsPageStore.publishedOutline`. */
+export type CmsPublishedOutlineEntry = CmsPageIndexEntry & {
+  title: string;
+  description: string;
+  canonicalSlug: string | null;
+};
+
+/** One row of `CmsPageStore.referenceCandidates`. */
+export type CmsReferenceCandidate = {
+  pageId: string;
+  section: ContentSection;
+  slug: string;
+  status: ContentStatus;
+  revisionId: string;
+  kind: string;
+  title: string;
+  canonicalSlug: string | null;
+  /** The body, only when it mentions the path at all. */
+  body: string | null;
+  /** Whether this copy is the one a public visitor is served. */
+  publicCopy: boolean;
 };
 
 /** One row of `CmsPageStore.tree`. */
@@ -523,44 +559,134 @@ export class CmsPageStore {
     }));
   }
 
-  /** Whole documents for a section, at the CMS-selected revision. The
-   * collection validator's input: it has to see drafts, because "this
-   * published page links to a draft" is exactly the finding it exists to
-   * produce. */
-  async documentsForSection(
-    section: ContentSection,
-  ): Promise<ContentDocument[]> {
+  /** Every page in every section, as the link index needs it: identity,
+   * address and status, all three on the page row — no revision join, no
+   * prose. What internal links and canonicals are resolved against, across
+   * sections, on every check above draft level. */
+  async pageIndex(): Promise<CmsPageIndexEntry[]> {
     const rows = await this.db
-      .select({ page: PAGE_COLUMNS, revision: REVISION_COLUMNS })
-      .from(cmsPages)
-      .innerJoin(cmsPageRevisions, eq(cmsPageRevisions.id, CMS_REVISION_ID))
-      .where(eq(cmsPages.section, section))
-      .orderBy(asc(cmsPages.slug));
-    return rows.map((row) =>
-      cmsRowToDocument(row.page, row.revision as CmsRevisionRow),
-    );
+      .select({
+        id: cmsPages.id,
+        section: cmsPages.section,
+        slug: cmsPages.slug,
+        status: cmsPages.status,
+      })
+      .from(cmsPages);
+    return rows.map((row) => ({
+      ...row,
+      section: row.section as ContentSection,
+      status: row.status as ContentStatus,
+    }));
   }
 
-  /** The documents a *public* read would see, per page, for the section — the
-   * live publication of every published page and the promoted snapshot of
-   * every previewed one. What collection validation measures a publication
-   * candidate against (cms.md). */
-  async publicDocumentsForSection(
+  /** The section's *published* pages, as the collection rules compare them:
+   * their live publication's title, description and canonical.
+   *
+   * What a publication candidate is measured against. Two pages cannibalize
+   * each other in search results only once both are there, so neither a
+   * draft nor another page's unpublished working copy may block a
+   * publication — they are compared when they are published themselves. */
+  async publishedOutline(
     section: ContentSection,
-  ): Promise<ContentDocument[]> {
-    const selected = sql`case ${cmsPages.status}
-      when 'published' then ${cmsPages.publishedRevisionId}
-      when 'preview' then ${cmsPages.previewRevisionId}
-      else null end`;
+  ): Promise<CmsPublishedOutlineEntry[]> {
     const rows = await this.db
-      .select({ page: PAGE_COLUMNS, revision: REVISION_COLUMNS })
+      .select({
+        id: cmsPages.id,
+        section: cmsPages.section,
+        slug: cmsPages.slug,
+        status: cmsPages.status,
+        title: cmsPageRevisions.title,
+        description: cmsPageRevisions.description,
+        canonicalSlug: cmsPageRevisions.canonicalSlug,
+      })
       .from(cmsPages)
-      .innerJoin(cmsPageRevisions, eq(cmsPageRevisions.id, selected))
-      .where(eq(cmsPages.section, section))
-      .orderBy(asc(cmsPages.slug));
-    return rows.map((row) =>
-      cmsRowToDocument(row.page, row.revision as CmsRevisionRow),
-    );
+      .innerJoin(
+        cmsPageRevisions,
+        eq(cmsPageRevisions.id, cmsPages.publishedRevisionId),
+      )
+      .where(
+        and(eq(cmsPages.section, section), eq(cmsPages.status, "published")),
+      );
+    return rows.map((row) => ({
+      ...row,
+      section: row.section as ContentSection,
+      status: row.status as ContentStatus,
+    }));
+  }
+
+  /** Other pages whose current copies might point at `section/slug`: their
+   * body mentions the path, or — in the same section — their canonical names
+   * it. A prefilter, not the answer: `/guias/luz` also matches
+   * `/guias/luz-y-gas`, so the service reads the returned bodies with the link
+   * extractor and keeps only real links. Bodies come back only for rows whose
+   * body mentions the path, which on any real page is a handful.
+   *
+   * Every current copy — working copy, publication and public preview — each
+   * as its own row, so the caller can say whether what a *reader* sees links
+   * here or only an unpublished edit does. */
+  async referenceCandidates(input: {
+    pageId: string;
+    section: ContentSection;
+    slug: string;
+  }): Promise<CmsReferenceCandidate[]> {
+    const needle = `/${input.section}/${input.slug}`;
+    const mentions = sql<boolean>`strpos(${cmsPageRevisions.bodyMdx}, ${needle}) > 0`;
+    const rows = await this.db
+      .select({
+        pageId: cmsPages.id,
+        section: cmsPages.section,
+        slug: cmsPages.slug,
+        status: cmsPages.status,
+        revisionId: cmsPageRevisions.id,
+        kind: cmsPageRevisions.kind,
+        title: cmsPageRevisions.title,
+        canonicalSlug: cmsPageRevisions.canonicalSlug,
+        body: sql<
+          string | null
+        >`case when ${mentions} then ${cmsPageRevisions.bodyMdx} else null end`,
+      })
+      .from(cmsPages)
+      .innerJoin(
+        cmsPageRevisions,
+        and(
+          eq(cmsPageRevisions.pageId, cmsPages.id),
+          or(
+            eq(cmsPageRevisions.id, cmsPages.wipRevisionId),
+            eq(cmsPageRevisions.id, cmsPages.publishedRevisionId),
+            eq(cmsPageRevisions.id, cmsPages.previewRevisionId),
+          ),
+        ),
+      )
+      .where(
+        and(
+          sql`${cmsPages.id} <> ${input.pageId}`,
+          or(
+            mentions,
+            and(
+              eq(cmsPages.section, input.section),
+              eq(cmsPageRevisions.canonicalSlug, input.slug),
+            ),
+          ),
+        ),
+      );
+    return rows.map((row) => ({
+      ...row,
+      section: row.section as ContentSection,
+      status: row.status as ContentStatus,
+      publicCopy:
+        (row.status === "published" && row.kind === "published") ||
+        (row.status === "preview" && row.kind === "preview"),
+    }));
+  }
+
+  /** How many «destacados» point at a page — they vanish from the rails when
+   * it stops being published. */
+  async insightCount(pageId: string): Promise<number> {
+    const [row] = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(cmsInsights)
+      .where(eq(cmsInsights.pageId, pageId));
+    return Number(row?.count ?? 0);
   }
 
   /** Insert the page row. Prose is not among its arguments: the caller inserts

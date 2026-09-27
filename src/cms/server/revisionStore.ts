@@ -246,6 +246,30 @@ export class CmsRevisionStore {
       .where(inArray(cmsPageRevisions.id, [...ids]));
   }
 
+  /** Point every stored copy of a page at a new parent.
+   *
+   * The one edit an immutable publication accepts, because a parent is not
+   * prose: it is fixed by the page's address (`checkHierarchy` — a child's
+   * path is its parent's plus one segment), and the address lives on the page
+   * row. A rename that moves a page under another hub has therefore already
+   * moved every copy of it; a publication still naming the old parent would
+   * put the live page in the wrong place in the tree and keep that parent
+   * undeletable. Only rows that disagree are touched. */
+  async setParentForPage(
+    pageId: string,
+    parentId: string | null,
+  ): Promise<void> {
+    await this.db
+      .update(cmsPageRevisions)
+      .set({ parentId })
+      .where(
+        and(
+          eq(cmsPageRevisions.pageId, pageId),
+          sql`${cmsPageRevisions.parentId} is distinct from ${parentId}`,
+        ),
+      );
+  }
+
   /** Every revision of a set of pages, ordered by page then publication.
    * Used by the migration's verification pass and by the media reconciler,
    * which has to derive usage from *every* retained revision rather than from

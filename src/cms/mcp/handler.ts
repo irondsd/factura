@@ -34,6 +34,7 @@ const LEGACY_CAPABILITIES = { tools: { listChanged: false } } as const;
 
 const INSTRUCTIONS = [
   "Use get_content before update_content. Every mutation requires the current lockVersion.",
+  "update_content merges patch.metadata into the stored metadata: send only the keys you change, set a key to null to remove it, and every key you leave out is kept. Each key you send replaces that key's whole value — lists such as faq and sources are not merged item by item. parentId is set at create only; a page's parent follows its address.",
   "Editing is always safe: update_content saves a shared working copy that no reader can see, so a page that is already published keeps serving its last publication while you work. Save it normally, without asking.",
   "set_content_status is the only tool that changes what the public sees, and it needs the human's explicit go-ahead each time, in both directions. 'published' publishes the working copy as a new immutable publication; 'draft' takes the page down.",
   "A page keeps its working copy, a temporary checkpoint, the public preview snapshot, and the current publication plus three previous ones — list_content_versions shows exactly those. restore_content_version copies one back into the working copy without publishing anything.",

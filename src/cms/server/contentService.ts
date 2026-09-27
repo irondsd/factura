@@ -7,8 +7,13 @@ import {
   type ContentSummary,
   type ValidationResult,
 } from "@/content-system/types";
-import { checkHierarchy, type HierarchyNode } from "@/content-system/hierarchy";
+import {
+  checkHierarchy,
+  type HierarchyNode,
+  parentSlugFromPath,
+} from "@/content-system/hierarchy";
 import { canRender } from "@/content-system/repository/visibility";
+import { internalLinksIn } from "@/content-system/validation/links";
 import { parseMetadata } from "@/content-system/metadata/schema";
 import { canAuthor, canPublish } from "../auth/policy";
 import {
@@ -26,6 +31,7 @@ import {
 } from "../revisions";
 import { actorLabel } from "../history";
 import { type CmsSearchHitView, tidyExcerpt } from "../search";
+import { applyMetadataPatch, type MetadataPatch } from "../metadataPatch";
 import { planRename, RENAME_CODES } from "../rename";
 import type { CmsActor } from "../types";
 import { documentOf } from "./documents";
@@ -38,6 +44,7 @@ import {
   CmsRevisionNotFoundError,
   CmsSlugTakenError,
   CmsValidationError,
+  constraintViolation,
 } from "./errors";
 import {
   isContentEdit,
@@ -156,6 +163,11 @@ export type CreateContentInput = {
 
 export type ContentPatch = {
   title?: string;
+  /** A partial metadata edit, merged into the stored object: a value sets the
+   * key, `null` removes it, an absent key is kept (`../metadataPatch`). What
+   * the MCP sends. Not together with `metadata`, which replaces the whole
+   * object and is what the browser form sends. */
+  metadataPatch?: MetadataPatch;
   titleTag?: string | null;
   description?: string;
   summary?: string;
@@ -227,6 +239,28 @@ export type RenameResult = {
   redirects: string[];
 };
 
+/** One page that points at another (`CmsContentService.references`). */
+export type InboundReference = {
+  pageId: string;
+  section: ContentSection;
+  slug: string;
+  status: ContentStatus;
+  title: string;
+  /** Its body links here. */
+  links: boolean;
+  /** Its canonical names this page. */
+  canonical: boolean;
+  /** The copy a public visitor is served points here — not only a working
+   * copy nobody can read yet. */
+  live: boolean;
+};
+
+export type PageReferences = {
+  pages: InboundReference[];
+  /** «Destacados» pinned to the page. */
+  insights: number;
+};
+
 export type VersionComparison = {
   /** Null when the page has never been published — there is nothing to compare
    * against, and the tab says so rather than diffing against emptiness. */
@@ -250,30 +284,54 @@ export type VersionComparison = {
  * real row: ids are UUIDs. */
 const PENDING_ID = "pending";
 
+/** A save that tried to change the parent, which only a rename can. */
+export const PARENT_BY_ADDRESS = "hierarchy.parent-by-address";
+
 /** A page column's timestamp in the ISO form everything above the store speaks
  * (`mapping.ts`). Only the rename planner needs one straight off a page record,
  * which is why it is a line here rather than a shared helper. */
 const pageIso = (value: Date | null): string | null =>
   value ? value.toISOString() : null;
 
+/** Everything the service depends on besides its validator. Every entry has a
+ * production default, so a caller names only what it replaces — a test that
+ * swaps the clock does not have to spell out four stores to reach it. */
+export type CmsContentServiceDeps = {
+  store?: CmsPageStore;
+  /** Where every stored copy of a document lives. */
+  revisions?: CmsRevisionStore;
+  /** Where the «Historial» tab's activity rows come from. Injected like the
+   * stores so a test can watch what a mutation records without a database. */
+  history?: CmsPageHistoryStore;
+  /** Injected so tests can pin timestamps. */
+  clock?: () => Date;
+  /** How the public cache is expired after a write the public can see.
+   * Injected like the rest so a unit test can observe the decision without a
+   * Next.js request context. */
+  invalidate?: PublicCacheInvalidator;
+  /** See `MediaUsageRecorder`. */
+  recordMediaUsage?: MediaUsageRecorder;
+};
+
 export class CmsContentService {
+  private readonly store: CmsPageStore;
+  private readonly revisions: CmsRevisionStore;
+  private readonly history: CmsPageHistoryStore;
+  private readonly clock: () => Date;
+  private readonly invalidate: PublicCacheInvalidator;
+  private readonly recordMediaUsage: MediaUsageRecorder;
+
   constructor(
     private readonly validate: ContentValidator,
-    private readonly store: CmsPageStore = defaultStore,
-    /** Where every stored copy of a document lives. */
-    private readonly revisions: CmsRevisionStore = defaultRevisionStore,
-    /** Where the «Historial» tab's activity rows come from. Injected like the
-     * stores so a test can watch what a mutation records without a database. */
-    private readonly history: CmsPageHistoryStore = defaultHistoryStore,
-    /** Injected so tests can pin timestamps. */
-    private readonly clock: () => Date = () => new Date(),
-    /** How the public cache is expired after a write the public can see.
-     * Injected like the rest so a unit test can observe the decision without a
-     * Next.js request context. */
-    private readonly invalidate: PublicCacheInvalidator = revalidatePublicContent,
-    /** See `MediaUsageRecorder`. */
-    private readonly recordMediaUsage: MediaUsageRecorder = noMediaUsage,
-  ) {}
+    deps: CmsContentServiceDeps = {},
+  ) {
+    this.store = deps.store ?? defaultStore;
+    this.revisions = deps.revisions ?? defaultRevisionStore;
+    this.history = deps.history ?? defaultHistoryStore;
+    this.clock = deps.clock ?? (() => new Date());
+    this.invalidate = deps.invalidate ?? revalidatePublicContent;
+    this.recordMediaUsage = deps.recordMediaUsage ?? noMediaUsage;
+  }
 
   /** The CMS list — every status. Membership is the read grant; there is no
    * per-page ownership in iteration 1. */
@@ -394,53 +452,66 @@ export class CmsContentService {
     });
 
     const now = this.clock();
-    const draft = await this.store.transaction(async (store, tx) => {
-      const page = await store.insertPage({
-        section: input.section,
-        slug: input.slug,
-        status: "draft",
-        actorId: actor.userId,
-        now,
-      });
-      const revisions = this.revisions.bind(tx);
-      const wip = await revisions.insert({
-        pageId: page.id,
-        kind: "wip",
-        document: authoredFrom(
-          {
-            body: input.body,
-            title: input.title,
-            titleTag: input.titleTag ?? null,
-            description: input.description,
-            summary: input.summary,
-            cta: input.cta ?? "",
-            canonicalSlug: input.canonicalSlug ?? null,
-            metadata,
-            parentId: input.parentId ?? null,
-            sortOrder: input.sortOrder ?? 0,
-            crumb: input.crumb ?? null,
-          },
+    // The check above can lose a race to a second create at the same address;
+    // the unique index settles it, and the loser gets the same answer.
+    const draft = await this.store
+      .transaction(async (store, tx) => {
+        const page = await store.insertPage({
+          section: input.section,
+          slug: input.slug,
+          status: "draft",
+          actorId: actor.userId,
           now,
-        ),
-        actorId: actor.userId,
-        now,
+        });
+        const revisions = this.revisions.bind(tx);
+        const wip = await revisions.insert({
+          pageId: page.id,
+          kind: "wip",
+          document: authoredFrom(
+            {
+              body: input.body,
+              title: input.title,
+              titleTag: input.titleTag ?? null,
+              description: input.description,
+              summary: input.summary,
+              cta: input.cta ?? "",
+              canonicalSlug: input.canonicalSlug ?? null,
+              metadata,
+              parentId: input.parentId ?? null,
+              sortOrder: input.sortOrder ?? 0,
+              crumb: input.crumb ?? null,
+            },
+            now,
+          ),
+          actorId: actor.userId,
+          now,
+        });
+        // `setPointers`, not `updateWithLock`: the row was inserted by this same
+        // transaction and is already locked by that insert, so there is no
+        // version to check — and bumping it here would hand the editor a
+        // brand-new page already at version 2, which reads as "somebody has
+        // edited this" everywhere the number is shown.
+        await store.setPointers({
+          id: page.id,
+          patch: { wipRevisionId: wip.id },
+        });
+        // A page always wins over a redirect (`rename`). Creating one at an
+        // address something used to redirect away from is the other way that
+        // situation arises, and it is resolved the same way.
+        await store.dropRedirects(input.section, [input.slug]);
+        await this.recordUsage(tx, wip, now);
+        return documentOf({ ...page, wipRevisionId: wip.id }, wip);
+      })
+      .catch((error: unknown) => {
+        const violation = constraintViolation(error);
+        if (
+          violation?.kind === "unique" &&
+          violation.constraint === "cms_page_section_slug_idx"
+        ) {
+          throw new CmsSlugTakenError(input.section, input.slug);
+        }
+        throw error;
       });
-      // `setPointers`, not `updateWithLock`: the row was inserted by this same
-      // transaction and is already locked by that insert, so there is no
-      // version to check — and bumping it here would hand the editor a
-      // brand-new page already at version 2, which reads as "somebody has
-      // edited this" everywhere the number is shown.
-      await store.setPointers({
-        id: page.id,
-        patch: { wipRevisionId: wip.id },
-      });
-      // A page always wins over a redirect (`rename`). Creating one at an
-      // address something used to redirect away from is the other way that
-      // situation arises, and it is resolved the same way.
-      await store.dropRedirects(input.section, [input.slug]);
-      await this.recordUsage(tx, wip, now);
-      return documentOf({ ...page, wipRevisionId: wip.id }, wip);
-    });
 
     await this.record(actor, { pageId: draft.id, action: "created", now });
 
@@ -478,25 +549,42 @@ export class CmsContentService {
     const baseline = existingWip ?? (await this.baselineRevision(page));
     if (!baseline) throw new CmsNotFoundError(`Page ${input.id}`);
 
+    const current = documentOf(page, baseline);
+    // A metadata patch (`../metadataPatch`) is resolved against the copy this
+    // save builds on, so from here down there is one whole metadata object —
+    // exactly what a browser save carries.
+    const patch = resolvePatch(input.patch, current.metadata);
+
     // Before anything else that could write: a metadata blob the row → document
     // mapper cannot read back is not a validation failure the editor can see
     // later, it is a row that exists and cannot be loaded — by the list, by
     // this editor, or by the public repository. Checked here, on the way in,
     // where refusing is still cheap.
     const metadata =
-      input.patch.metadata !== undefined
-        ? this.checkedMetadata(
-            page.section as ContentSection,
-            input.patch.metadata,
-          )
+      patch.metadata !== undefined
+        ? this.checkedMetadata(page.section as ContentSection, patch.metadata)
         : undefined;
 
-    const current = documentOf(page, baseline);
     const next = {
       ...current,
-      ...input.patch,
+      ...patch,
       ...(metadata !== undefined ? { metadata } : {}),
     } as ContentDocument;
+
+    // The parent is fixed by the address (`rename`), so a save cannot move it:
+    // the page's path would no longer sit under the parent it names. Said as
+    // what to do instead, rather than as the slug-prefix rule it would break.
+    if (patch.parentId !== undefined && patch.parentId !== current.parentId) {
+      throw new CmsValidationError([
+        {
+          code: PARENT_BY_ADDRESS,
+          severity: "error",
+          message:
+            "La página madre la fija la dirección. Para mover la página bajo otra, o a primer nivel, cambia su dirección en «Dirección».",
+          field: "parentId",
+        },
+      ]);
+    }
 
     // Placement is checked before content: a page in the wrong place in the
     // tree is a broken URL and a broken breadcrumb whatever its prose says, and
@@ -516,9 +604,7 @@ export class CmsContentService {
       { ...next, metadata: next.metadata },
       // A content edit moves the editorial timestamp the reader will see once
       // this is published; a save that changed nothing leaves it alone.
-      isContentEdit(input.patch, current, next)
-        ? now
-        : baseline.contentUpdatedAt,
+      isContentEdit(patch, current, next) ? now : baseline.contentUpdatedAt,
     );
 
     const saved = await this.store.transaction(async (store, tx) => {
@@ -616,22 +702,36 @@ export class CmsContentService {
       ? await this.revisions.byId(page.publishedRevisionId)
       : null;
 
+    const preview =
+      !wip && page.previewRevisionId
+        ? await this.revisions.byId(page.previewRevisionId)
+        : null;
+
+    // What this publication promotes: the working copy — or, when there is
+    // none, a public preview that says something the live copy does not. That
+    // happens when a working copy was promoted and then discarded; the preview
+    // is then the newest content the page has, and falling back to the older
+    // publication would silently throw it away.
+    const source =
+      wip ??
+      (preview && (!live || !documentsEqual(live, preview)) ? preview : null);
+
     // Republishing a page that was taken down, with nothing new written since:
     // re-expose the retained publication rather than manufacture a copy of it
     // (cms.md). Editorial dates do not move — the article was not rewritten.
-    if (!wip) {
+    if (!source) {
       if (!live) throw new CmsNoWorkingCopyError("publicar");
       return this.reexpose(actor, page, live, input.expectedLockVersion);
     }
 
-    const candidate = documentOf(page, wip);
+    const candidate = documentOf(page, source);
     await this.assertValid({ ...candidate, status: "published" }, "publish");
 
     // Publishing a working copy identical to what is already live would file a
     // second publication saying nothing, consume a retention slot and move the
     // publication number. Refused, with the WIP left in place: removing it is
     // «Descartar borrador», a separate decision.
-    if (live && page.status === "published" && documentsEqual(live, wip)) {
+    if (live && page.status === "published" && documentsEqual(live, source)) {
       return {
         document: documentOf(page, live),
         status: page.status,
@@ -640,6 +740,17 @@ export class CmsContentService {
         noChange: true,
       };
     }
+
+    // The work a publication consumes: the source, the checkpoint, and a public
+    // preview that is now behind the live page. Deduplicated, because the
+    // source can be that preview.
+    const consumed = [
+      ...new Set(
+        [source.id, page.checkpointRevisionId, page.previewRevisionId].filter(
+          (id): id is string => id !== null,
+        ),
+      ),
+    ];
 
     const now = this.clock();
     const result = await this.store.transaction(async (store, tx) => {
@@ -664,12 +775,8 @@ export class CmsContentService {
       // A working copy identical to the last publication on a page that is not
       // currently published: re-expose that publication and consume the WIP,
       // rather than file a duplicate.
-      if (live && documentsEqual(live, wip)) {
-        await revisions.deleteMany(
-          [wip.id, page.checkpointRevisionId, page.previewRevisionId].filter(
-            (id): id is string => id !== null,
-          ),
-        );
+      if (live && documentsEqual(live, source)) {
+        await revisions.deleteMany(consumed);
         await store.setPointers({
           id: page.id,
           patch: { publishedRevisionId: live.id },
@@ -688,7 +795,7 @@ export class CmsContentService {
         pageId: page.id,
         kind: "published",
         document: authoredOf({
-          ...wip,
+          ...source,
           // At the moment of first publication the content is current by
           // definition, and a `contentUpdatedAt` earlier than `publishedAt`
           // reads as "updated before it existed". Only ever on the first.
@@ -697,12 +804,12 @@ export class CmsContentService {
             "published",
           )
             ? now
-            : wip.contentUpdatedAt,
+            : source.contentUpdatedAt,
         }),
-        basedOnRevisionId: wip.basedOnRevisionId,
+        basedOnRevisionId: source.basedOnRevisionId,
         publicationNumber,
         publishedAt: now,
-        createdBy: wip.createdBy,
+        createdBy: source.createdBy,
         actorId: actor.userId,
         now,
       });
@@ -714,11 +821,7 @@ export class CmsContentService {
 
       // The work this publication consumed, plus a public preview that is now
       // behind the live page.
-      await revisions.deleteMany(
-        [wip.id, page.checkpointRevisionId, page.previewRevisionId].filter(
-          (id): id is string => id !== null,
-        ),
-      );
+      await revisions.deleteMany(consumed);
 
       // Retention (cms.md): the new publication plus three previous. Never the
       // one the page now points at — checked rather than assumed, because a
@@ -767,6 +870,11 @@ export class CmsContentService {
     if (!page) throw new CmsNotFoundError(`Page ${input.id}`);
     if (page.lockVersion !== input.expectedLockVersion) {
       await this.reportConflict(input.id, input.expectedLockVersion);
+    }
+    // Moving a live page into preview takes it out of the index and every
+    // listing — an unpublish in all but name, so it needs the same authority.
+    if (page.status === "published" && !canPublish(actor)) {
+      throw new CmsForbiddenError("retirar contenido publicado");
     }
 
     // The working copy is what a promotion promotes. A published page with no
@@ -863,11 +971,44 @@ export class CmsContentService {
         patch: { status: "draft", previewRevisionId: null },
       });
       if (!claimed) return null;
+
+      // A preview can be the only copy a page has — promote, then discard the
+      // working copy. Deleting it would leave a page with nothing to read, and
+      // the transaction would refuse, so the one lever meant to take a page
+      // down would be the one that could not. Its content becomes the working
+      // copy instead: the page goes private with nothing lost.
+      let claimedWip: string | null = null;
+      if (
+        page.previewRevisionId &&
+        !page.wipRevisionId &&
+        !page.publishedRevisionId
+      ) {
+        const preview = await revisions.byId(page.previewRevisionId);
+        if (preview) {
+          const wip = await revisions.insert({
+            pageId: page.id,
+            kind: "wip",
+            document: authoredOf(preview),
+            basedOnRevisionId: preview.basedOnRevisionId,
+            createdBy: preview.createdBy,
+            actorId: actor.userId,
+            now,
+          });
+          await store.setPointers({
+            id: page.id,
+            patch: { wipRevisionId: wip.id },
+          });
+          await this.recordUsage(tx, wip, now);
+          claimedWip = wip.id;
+        }
+      }
       if (page.previewRevisionId) {
         await revisions.deleteMany([page.previewRevisionId]);
       }
-      const revision = await this.selectedRevision(claimed, revisions);
-      return documentOf(claimed, revision);
+      const after = claimedWip
+        ? { ...claimed, wipRevisionId: claimedWip }
+        : claimed;
+      return documentOf(after, await this.selectedRevision(after, revisions));
     });
     if (!result) await this.reportConflict(input.id, input.expectedLockVersion);
 
@@ -1200,6 +1341,67 @@ export class CmsContentService {
     };
   }
 
+  /** What else points at this page — for the confirmations of the three
+   * moves that break those pointers: unpublishing, renaming and deleting.
+   *
+   * A warning, never a gate. The pointers live in other pages' content, which
+   * this operation cannot rewrite, and refusing would only make the editor
+   * edit those pages first when a warning lets them decide the order. What it
+   * reports:
+   *
+   * - body links, Markdown or component `href`, in any section — read with the
+   *   same extractor the link validator uses, so a longer path sharing a
+   *   prefix is not mistaken for this one;
+   * - canonicals naming this page, which a reader never follows and a rename
+   *   never redirects: the canonical is emitted as written;
+   * - «destacados» pinned to it, which disappear with the publication.
+   *
+   * `live` says whether the copy a public visitor is served points here, as
+   * opposed to only an unpublished working copy. */
+  async references(_actor: CmsActor, id: string): Promise<PageReferences> {
+    const page = await this.store.findPage(id);
+    if (!page) throw new CmsNotFoundError(`Page ${id}`);
+    const section = page.section as ContentSection;
+
+    const [candidates, insights] = await Promise.all([
+      this.store.referenceCandidates({ pageId: id, section, slug: page.slug }),
+      this.store.insightCount(id),
+    ]);
+
+    const byPage = new Map<string, InboundReference>();
+    for (const candidate of candidates) {
+      const links =
+        candidate.body !== null &&
+        internalLinksIn(candidate.body).some(
+          (link) => link.section === section && link.slug === page.slug,
+        );
+      const canonical =
+        candidate.section === section && candidate.canonicalSlug === page.slug;
+      if (!links && !canonical) continue;
+
+      const seen = byPage.get(candidate.pageId);
+      byPage.set(candidate.pageId, {
+        pageId: candidate.pageId,
+        section: candidate.section,
+        slug: candidate.slug,
+        status: candidate.status,
+        // The title a reader knows the page by, when there is one.
+        title: seen && !candidate.publicCopy ? seen.title : candidate.title,
+        links: (seen?.links ?? false) || links,
+        canonical: (seen?.canonical ?? false) || canonical,
+        live: (seen?.live ?? false) || candidate.publicCopy,
+      });
+    }
+
+    const pages = [...byPage.values()].sort(
+      (a, b) =>
+        Number(b.live) - Number(a.live) ||
+        a.section.localeCompare(b.section) ||
+        a.slug.localeCompare(b.slug),
+    );
+    return { pages, insights };
+  }
+
   /** Move a page's public address, preserving the old one (cms.md).
    *
    * Not a content edit and not part of a save: the slug is on the page row
@@ -1257,34 +1459,44 @@ export class CmsContentService {
     const { plan } = planned;
     const target = plan.moves[0].to;
 
-    // The tree, checked against the section as it would be *after* the move:
-    // a page whose parent is set still has to sit under that parent's path, and
-    // the parent may itself be moving in this same plan. The page's own place
-    // in the tree is already in the outline; its body is not needed for this.
+    // The section as it would be *after* the move — the page's descendants
+    // shift with it, so a parent is looked up among the moved addresses.
     const moved = new Map(plan.moves.map((move) => [move.id, move.to]));
     const self = siblings.find((s) => s.id === page.id);
     if (!self) throw new CmsNotFoundError(`Page ${input.id}`);
+    const after = siblings
+      .filter((s) => s.id !== page.id)
+      .map((s) => ({
+        id: s.id,
+        section: s.section,
+        slug: moved.get(s.id) ?? s.slug,
+        parentId: s.parentId,
+        sortOrder: s.sortOrder,
+      }));
+
+    // The parent is whatever the new address implies, not whatever the page
+    // had. A child's path is its parent's plus one segment, so the address
+    // already *is* the placement: «hub-a/pagina» → «hub-b/pagina» moves the
+    // page under «hub-b», and «hub-a/pagina» → «pagina» makes it top level.
+    // Keeping the old parent is what used to make both refuse. A nested
+    // address with no page at its parent path still fails the check below.
+    const parentSlug = parentSlugFromPath(target);
+    const parentId = parentSlug
+      ? (after.find((s) => s.slug === parentSlug)?.id ?? null)
+      : null;
     await this.assertHierarchyAmong(
       {
         id: page.id,
         section,
         slug: target,
-        parentId: self.parentId,
+        parentId,
         sortOrder: self.sortOrder,
       },
-      siblings
-        .filter((s) => s.id !== page.id)
-        .map((s) => ({
-          id: s.id,
-          section: s.section,
-          slug: moved.get(s.id) ?? s.slug,
-          parentId: s.parentId,
-          sortOrder: s.sortOrder,
-        })),
+      after,
     );
 
     const now = this.clock();
-    const done = await this.store.transaction(async (store) => {
+    const done = await this.store.transaction(async (store, tx) => {
       const claimed = await store.updateWithLock({
         id: page.id,
         expectedLockVersion: input.expectedLockVersion,
@@ -1293,6 +1505,9 @@ export class CmsContentService {
         patch: { slug: target },
       });
       if (!claimed) return null;
+
+      // Every stored copy, publications included: see `setParentForPage`.
+      await this.revisions.bind(tx).setParentForPage(page.id, parentId);
 
       for (const move of plan.moves.slice(1)) {
         await store.moveSlug({
@@ -1380,41 +1595,43 @@ export class CmsContentService {
       );
     }
 
-    // Every *revision* that names this page as its parent, not only the
-    // documents the CMS currently shows. The foreign key is `restrict` and it
-    // is declared on the revision, so a retained publication from before a page
-    // was re-parented would refuse the delete at the database with a constraint
-    // name and nothing else. Asking the same question the constraint asks means
-    // the answer can name the pages instead.
-    const children = await this.store.pagesWithParent(page.id);
-    if (children.length > 0) {
-      throw new CmsNotDeletableError(
-        children.length === 1
-          ? "Otra página cuelga de esta, en su versión actual o en una guardada. Muévela o elimínala antes."
-          : `Hay ${children.length} páginas que cuelgan de esta, en su versión actual o en alguna guardada. Muévelas o elimínalas antes.`,
-      );
-    }
-
     const now = this.clock();
-    const deleted = await this.store.transaction(async (store) => {
-      // The four pointers are `restrict`, so they are released before the row
-      // that names them goes; the revisions themselves then cascade with it.
-      const claimed = await store.updateWithLock({
-        id: page.id,
-        expectedLockVersion: input.expectedLockVersion,
-        actorId: actor.userId,
-        now,
-        patch: {
-          publishedRevisionId: null,
-          previewRevisionId: null,
-          wipRevisionId: null,
-          checkpointRevisionId: null,
-        },
+    const deleted = await this.store
+      .transaction(async (store) => {
+        // The four pointers are `restrict`, so they are released before the row
+        // that names them goes; the revisions themselves then cascade with it.
+        const claimed = await store.updateWithLock({
+          id: page.id,
+          expectedLockVersion: input.expectedLockVersion,
+          actorId: actor.userId,
+          now,
+          patch: {
+            publishedRevisionId: null,
+            previewRevisionId: null,
+            wipRevisionId: null,
+            checkpointRevisionId: null,
+          },
+        });
+        if (!claimed) return false;
+
+        // Every *revision* that names this page as its parent, not only the
+        // documents the CMS currently shows — the foreign key is `restrict` and
+        // declared on the revision. Asked inside the transaction, after the claim,
+        // so the answer is about the rows the delete will meet; asking the
+        // constraint's question ourselves means the refusal can say what to do.
+        const children = await store.pagesWithParent(page.id);
+        if (children.length > 0) throw notDeletableForChildren(children.length);
+        await store.deleteById(page.id);
+        return true;
+      })
+      // A child created between that check and the commit: the constraint
+      // refuses, and the editor gets the same sentence.
+      .catch((error: unknown) => {
+        if (constraintViolation(error)?.kind === "foreign_key") {
+          throw notDeletableForChildren(1);
+        }
+        throw error;
       });
-      if (!claimed) return false;
-      await store.deleteById(page.id);
-      return true;
-    });
     if (!deleted)
       await this.reportConflict(input.id, input.expectedLockVersion);
   }
@@ -1435,7 +1652,7 @@ export class CmsContentService {
     const level = input.level ?? levelForSave(current.status);
     const document = {
       ...current,
-      ...input.patch,
+      ...(input.patch ? resolvePatch(input.patch, current.metadata) : {}),
       // At publish level the candidate is measured as the page's prospective
       // *public* document, so a page still in draft is checked against the
       // rules it will have to meet rather than the ones it has now (cms.md).
@@ -1698,6 +1915,37 @@ export class CmsContentService {
       await this.store.lockVersionOf(id),
     );
   }
+}
+
+/** A patch with its metadata patch, if any, applied to `stored` — so every
+ * caller below it handles one whole `metadata` object. Sending both forms at
+ * once is refused: which one wins would be a guess. */
+function resolvePatch(
+  patch: ContentPatch,
+  stored: unknown,
+): Omit<ContentPatch, "metadataPatch"> {
+  const { metadataPatch, ...rest } = patch;
+  if (metadataPatch === undefined) return rest;
+  if (rest.metadata !== undefined) {
+    throw new CmsValidationError([
+      {
+        code: "metadata.patch-conflict",
+        severity: "error",
+        message:
+          "Send either metadata (the whole object) or metadataPatch (the keys to change), not both.",
+        field: "metadata",
+      },
+    ]);
+  }
+  return { ...rest, metadata: applyMetadataPatch(stored, metadataPatch) };
+}
+
+function notDeletableForChildren(count: number): CmsNotDeletableError {
+  return new CmsNotDeletableError(
+    count === 1
+      ? "Otra página cuelga de esta, en su versión actual o en una guardada. Muévela o elimínala antes."
+      : `Hay ${count} páginas que cuelgan de esta, en su versión actual o en alguna guardada. Muévelas o elimínalas antes.`,
+  );
 }
 
 /** Is the shareable preview behind the working copy? Only meaningful when both

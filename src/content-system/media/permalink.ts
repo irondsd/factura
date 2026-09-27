@@ -42,6 +42,24 @@ export function parseMediaPermalink(url: string): ParsedPermalink | null {
   return { id: match[1].toLowerCase(), filename: match[2] };
 }
 
+/** Every permalink-shaped path anywhere in `text`, with where it starts. No
+ * parsing and no context — which is the point: it is the fallback for a body
+ * the MDX parser cannot read, where missing a reference would let the images
+ * a retained version still shows be purged. It over-reports rather than
+ * under-reports, which is the right way round for usage. */
+export function scanMediaPermalinks(
+  text: string,
+): { id: string; index: number }[] {
+  const re = new RegExp(
+    `${MEDIA_PERMALINK_PREFIX}/(${UUID})/[^/?#\\s)"'<>]+\\.[a-zA-Z0-9]+`,
+    "g",
+  );
+  return [...text.matchAll(re)].map((match) => ({
+    id: match[1].toLowerCase(),
+    index: match.index ?? 0,
+  }));
+}
+
 export const isMediaPermalink = (url: string): boolean =>
   parseMediaPermalink(url) !== null;
 

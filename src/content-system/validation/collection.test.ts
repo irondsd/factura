@@ -44,12 +44,22 @@ const codes = (documents: ContentDocument[]) =>
 describe("buildContentIndex", () => {
   it("separates every slug from the published ones", () => {
     const index = buildContentIndex([
-      { slug: "a", status: "published" },
-      { slug: "b", status: "preview" },
-      { slug: "c", status: "draft" },
+      { section: "guias", slug: "a", status: "published" },
+      { section: "guias", slug: "b", status: "preview" },
+      { section: "estadisticas", slug: "c", status: "draft" },
     ]);
-    expect([...index.slugs].sort()).toEqual(["a", "b", "c"]);
-    expect([...index.publishedSlugs]).toEqual(["a"]);
+    expect([...index.paths].sort()).toEqual([
+      "estadisticas/c",
+      "guias/a",
+      "guias/b",
+    ]);
+    expect([...index.publishedPaths]).toEqual(["guias/a"]);
+    expect([...index.sections].sort()).toEqual(["estadisticas", "guias"]);
+  });
+
+  it("covers the sections it is told to, pages or not", () => {
+    const index = buildContentIndex([], ["guias", "noticias"]);
+    expect([...index.sections].sort()).toEqual(["guias", "noticias"]);
   });
 });
 
@@ -93,15 +103,6 @@ describe("colliding copy", () => {
 });
 
 describe("canonicals across the collection", () => {
-  it("rejects a published page canonicalizing to an unpublished one", () => {
-    expect(
-      codes([
-        doc({ slug: "a", canonicalSlug: "b" }),
-        doc({ slug: "b", status: "draft" }),
-      ]),
-    ).toContain(COLLECTION_CODES.canonicalUnpublished);
-  });
-
   it("rejects a canonical chain", () => {
     // Search engines do not follow A → B → C reliably; the middle page's signal
     // is simply lost.

@@ -380,6 +380,18 @@ export class CmsMediaStore {
     return rows.map(toAsset);
   }
 
+  /** Which of these ids have a row, whatever its status. What a usage write
+   * filters by before inserting: `cms_media_usage.media_id` is a foreign key,
+   * and an id that names nothing is a typo, not a reference to keep alive. */
+  async knownIds(ids: readonly string[]): Promise<Set<string>> {
+    if (ids.length === 0) return new Set();
+    const rows = await this.db
+      .select({ id: cmsMedia.id })
+      .from(cmsMedia)
+      .where(inArray(cmsMedia.id, [...ids]));
+    return new Set(rows.map((row) => row.id));
+  }
+
   /** The library grid. */
   async list(filter: MediaListFilter = {}): Promise<MediaAssetWithUsage[]> {
     const statuses = filter.statuses ?? ["ready"];

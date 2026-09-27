@@ -1,5 +1,9 @@
 import { parseContentBody } from "../validation/parse";
-import { parseMediaPermalink, type ParsedPermalink } from "./permalink";
+import {
+  parseMediaPermalink,
+  type ParsedPermalink,
+  scanMediaPermalinks,
+} from "./permalink";
 
 // Which media a page refers to, derived from the page itself.
 //
@@ -88,7 +92,20 @@ export function extractBodyReferences(body: string): ExtractedReferences {
   try {
     tree = parseContentBody(body) as Node;
   } catch {
-    return { media: [], external: [] };
+    // A body the parser cannot read — one saved before a grammar change, say
+    // — still points at its images, and the retained version it belongs to
+    // still shows them. Reporting nothing would release those images to the
+    // purge. So fall back to the text: every permalink-shaped path counts,
+    // as a link-kind reference (no alt to check, nothing to render).
+    return {
+      media: scanMediaPermalinks(body).map(({ id, index }) => ({
+        mediaId: id,
+        kind: "link" as const,
+        alt: null,
+        ...lineColumnAt(body, index),
+      })),
+      external: [],
+    };
   }
 
   // Reference-style images (`![alt][key]`) resolve against definitions that may
@@ -169,4 +186,64 @@ export function mediaIdsIn(body: string): string[] {
     seen.add(reference.mediaId);
   }
   return [...seen];
+}
+
+/** 1-based line and column of an offset, like the parser's positions. */
+function lineColumnAt(
+  text: string,
+  index: number,
+): { line: number; column: number } {
+  const before = text.slice(0, index);
+  const line = before.split("\n").length;
+  return { line, column: index - before.lastIndexOf("\n") };
+}
+
+/** Where a media-library id can sit in page metadata. Everything that reads
+ * those ids — the usage rows that keep an image from being purged, the
+ * library lookup before validation, the validation rules themselves — walks
+ * this one list, so a new image field is one entry here rather than three
+ * edits of which forgetting any one lets a live page's image be deleted. */
+const METADATA_MEDIA_FIELDS = [
+  {
+    placement: "preview",
+    field: "previewMediaId",
+    label: "imagen de portada",
+    read: (metadata: Record<string, unknown>) => metadata.previewMediaId,
+  },
+  {
+    placement: "logo",
+    field: "provider.logoMediaId",
+    label: "logo de la ficha",
+    read: (metadata: Record<string, unknown>) => {
+      const provider = metadata.provider;
+      return provider && typeof provider === "object"
+        ? (provider as Record<string, unknown>).logoMediaId
+        : undefined;
+    },
+  },
+] as const;
+
+export type MetadataMediaReference = {
+  /** Lowercased, as PostgreSQL stores it. */
+  mediaId: string;
+  placement: (typeof METADATA_MEDIA_FIELDS)[number]["placement"];
+  /** The metadata path, for a diagnostic's `field` and a usage locator. */
+  field: string;
+  /** What an editor calls it, for a message. */
+  label: string;
+};
+
+/** Every media-library id a metadata object holds. */
+export function metadataMediaReferences(
+  metadata: unknown,
+): MetadataMediaReference[] {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return [];
+  }
+  return METADATA_MEDIA_FIELDS.flatMap(({ placement, field, label, read }) => {
+    const value = read(metadata as Record<string, unknown>);
+    return typeof value === "string" && value
+      ? [{ mediaId: value.toLowerCase(), placement, field, label }]
+      : [];
+  });
 }

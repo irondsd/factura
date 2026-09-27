@@ -16,6 +16,7 @@ import {
 import { cmsSectionPath } from "../sections";
 import type {
   CreateContentInput,
+  PageReferences,
   UpdateContentInput,
   VersionComparison,
 } from "./contentService";
@@ -29,6 +30,19 @@ import {
   CmsSlugTakenError,
   CmsValidationError,
 } from "./errors";
+import {
+  compareSchema,
+  createContentSchema,
+  lockedPageSchema,
+  pageIdSchema,
+  parseInput,
+  renameSchema,
+  restoreSchema,
+  sectionSchema,
+  setStatusSchema,
+  updateContentSchema,
+  validateSchema,
+} from "./inputs";
 import { cmsContentService as service } from "./service";
 
 // The browser's way into the CMS service. Thin on purpose (cms.md): these
@@ -111,8 +125,9 @@ export async function createContentAction(
 ): Promise<CmsActionResult<{ id: string }>> {
   const actor = await requireCmsMember();
   try {
-    const page = await service.create(actor, input);
-    refreshCms(input.section);
+    const args = parseInput(createContentSchema, input);
+    const page = await service.create(actor, args);
+    refreshCms(args.section);
     return { ok: true, data: { id: page.id } };
   } catch (error) {
     return toResult(error);
@@ -134,8 +149,10 @@ export async function saveContentAction(
 > {
   const actor = await requireCmsMember();
   try {
-    const saved = await service.update(actor, input);
-    refreshCms(section, saved.document.id);
+    const where = parseInput(sectionSchema, section);
+    const args = parseInput(updateContentSchema, input);
+    const saved = await service.update(actor, args);
+    refreshCms(where, saved.document.id);
     return {
       ok: true,
       data: {
@@ -166,8 +183,10 @@ export async function publishContentAction(
 > {
   const actor = await requireCmsMember();
   try {
-    const result = await service.publish(actor, input);
-    refreshCms(section, input.id);
+    const where = parseInput(sectionSchema, section);
+    const args = parseInput(lockedPageSchema, input);
+    const result = await service.publish(actor, args);
+    refreshCms(where, args.id);
     return {
       ok: true,
       data: {
@@ -190,8 +209,12 @@ export async function promotePreviewAction(
 ): Promise<CmsActionResult<{ status: ContentStatus; lockVersion: number }>> {
   const actor = await requireCmsMember();
   try {
-    const page = await service.promotePreview(actor, input);
-    refreshCms(section, page.id);
+    const where = parseInput(sectionSchema, section);
+    const page = await service.promotePreview(
+      actor,
+      parseInput(lockedPageSchema, input),
+    );
+    refreshCms(where, page.id);
     return {
       ok: true,
       data: { status: page.status, lockVersion: page.lockVersion },
@@ -209,8 +232,12 @@ export async function discardWipAction(
 ): Promise<CmsActionResult<{ lockVersion: number }>> {
   const actor = await requireCmsMember();
   try {
-    const page = await service.discardWip(actor, input);
-    refreshCms(section, page.id);
+    const where = parseInput(sectionSchema, section);
+    const page = await service.discardWip(
+      actor,
+      parseInput(lockedPageSchema, input),
+    );
+    refreshCms(where, page.id);
     return { ok: true, data: { lockVersion: page.lockVersion } };
   } catch (error) {
     return toResult(error);
@@ -224,8 +251,10 @@ export async function restoreVersionAction(
 ): Promise<CmsActionResult<{ lockVersion: number }>> {
   const actor = await requireCmsMember();
   try {
-    const restored = await service.restoreVersion(actor, input);
-    refreshCms(section, input.id);
+    const where = parseInput(sectionSchema, section);
+    const args = parseInput(restoreSchema, input);
+    const restored = await service.restoreVersion(actor, args);
+    refreshCms(where, args.id);
     return { ok: true, data: { lockVersion: restored.document.lockVersion } };
   } catch (error) {
     return toResult(error);
@@ -240,7 +269,13 @@ export async function compareVersionAction(input: {
 }): Promise<CmsActionResult<VersionComparison>> {
   const actor = await requireCmsMember();
   try {
-    return { ok: true, data: await service.compareVersion(actor, input) };
+    return {
+      ok: true,
+      data: await service.compareVersion(
+        actor,
+        parseInput(compareSchema, input),
+      ),
+    };
   } catch (error) {
     return toResult(error);
   }
@@ -252,8 +287,12 @@ export async function setContentStatusAction(
 ): Promise<CmsActionResult<{ status: ContentStatus; lockVersion: number }>> {
   const actor = await requireCmsMember();
   try {
-    const page = await service.setStatus(actor, input);
-    refreshCms(section, page.id);
+    const where = parseInput(sectionSchema, section);
+    const page = await service.setStatus(
+      actor,
+      parseInput(setStatusSchema, input),
+    );
+    refreshCms(where, page.id);
     return {
       ok: true,
       data: { status: page.status, lockVersion: page.lockVersion },
@@ -279,8 +318,10 @@ export async function renameContentAction(
 > {
   const actor = await requireCmsMember();
   try {
-    const result = await service.rename(actor, input);
-    refreshCms(section, input.id);
+    const where = parseInput(sectionSchema, section);
+    const args = parseInput(renameSchema, input);
+    const result = await service.rename(actor, args);
+    refreshCms(where, args.id);
     return {
       ok: true,
       data: {
@@ -306,8 +347,10 @@ export async function deleteContentAction(
 ): Promise<CmsActionResult<{ id: string }>> {
   const actor = await requireCmsMember();
   try {
-    await service.delete(actor, input);
-    refreshCms(section, input.id);
+    const where = parseInput(sectionSchema, section);
+    const args = parseInput(lockedPageSchema, input);
+    await service.delete(actor, args);
+    refreshCms(where, args.id);
     return { ok: true, data: { id: input.id } };
   } catch (error) {
     return toResult(error);
@@ -321,6 +364,20 @@ export async function deleteContentAction(
  * everything a result row draws. A short term or an empty section list comes
  * back as no hits rather than as an error — both are states the overlay lets an
  * editor reach by typing, and it says so itself. */
+/** What points at a page, for the unpublish, rename and delete confirmations
+ * (`CmsContentService.references`). A read: nothing to refresh. */
+export async function pageReferencesAction(input: {
+  id: string;
+}): Promise<CmsActionResult<PageReferences>> {
+  const actor = await requireCmsMember();
+  try {
+    const { id } = parseInput(pageIdSchema, input);
+    return { ok: true, data: await service.references(actor, id) };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
 export async function searchContentAction(input: {
   term: string;
   sections: string[];
@@ -356,7 +413,10 @@ export async function validateContentAction(input: {
 }): Promise<CmsActionResult<{ diagnostics: Diagnostic[] }>> {
   const actor = await requireCmsMember();
   try {
-    const result = await service.validateOnly(actor, input);
+    const result = await service.validateOnly(
+      actor,
+      parseInput(validateSchema, input),
+    );
     return { ok: true, data: { diagnostics: result.diagnostics } };
   } catch (error) {
     return toResult(error);

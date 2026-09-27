@@ -56,9 +56,15 @@ const base: ContentDocument = {
 };
 
 const index = buildContentIndex([
-  { slug: base.slug, status: "published" },
-  { slug: "como-leer-la-factura-de-aysa", status: "published" },
-  { slug: "borrador", status: "draft" },
+  { section: "guias", slug: base.slug, status: "published" },
+  {
+    section: "guias",
+    slug: "como-leer-la-factura-de-aysa",
+    status: "published",
+  },
+  { section: "guias", slug: "borrador", status: "draft" },
+  { section: "estadisticas", slug: "inflacion", status: "published" },
+  { section: "estadisticas", slug: "en-preparacion", status: "draft" },
 ]);
 
 const check = (patch: Partial<ContentDocument> = {}) =>
@@ -570,6 +576,18 @@ describe("canonical", () => {
       [],
     );
   });
+
+  it("rejects a published page canonicalizing to an unpublished one", () => {
+    expect(codes({ canonicalSlug: "borrador" })).toContain(
+      DOCUMENT_CODES.canonicalUnpublished,
+    );
+  });
+
+  it("lets a draft canonicalize to another draft", () => {
+    expect(codes({ status: "draft", canonicalSlug: "borrador" })).not.toContain(
+      DOCUMENT_CODES.canonicalUnpublished,
+    );
+  });
 });
 
 describe("keywords and categories", () => {
@@ -793,6 +811,49 @@ describe("body", () => {
     ).toContain(DOCUMENT_CODES.linkUnpublished);
   });
 
+  it("checks links into other sections too", () => {
+    expect(
+      codes({ body: `${base.body}\n[dato](/estadisticas/no-existe)\n` }),
+    ).toContain(DOCUMENT_CODES.linkBroken);
+    expect(
+      codes({ body: `${base.body}\n[dato](/estadisticas/inflacion)\n` }),
+    ).not.toContain(DOCUMENT_CODES.linkBroken);
+  });
+
+  it("only warns about a link into another section's draft", () => {
+    // Two drafts linking to each other must still be publishable one after
+    // the other, so an unpublished target is a warning, never a refusal.
+    const found = check({
+      body: `${base.body}\n[dato](/estadisticas/en-preparacion)\n`,
+    }).diagnostics.find((d) => d.code === DOCUMENT_CODES.linkUnpublished);
+    expect(found?.severity).toBe("warning");
+  });
+
+  it("checks a component's href, not only Markdown links", () => {
+    expect(
+      codes({
+        body: `${base.body}\n<CtaButton href="/guias/no-existe">Ver</CtaButton>\n`,
+      }),
+    ).toContain(DOCUMENT_CODES.linkBroken);
+  });
+
+  it("checks reference-style links, and ignores query and fragment", () => {
+    expect(
+      codes({ body: `${base.body}\n[roto][r]\n\n[r]: /guias/no-existe\n` }),
+    ).toContain(DOCUMENT_CODES.linkBroken);
+    expect(
+      codes({
+        body: `${base.body}\n[bien](/guias/como-leer-la-factura-de-aysa#cargos)\n`,
+      }),
+    ).not.toContain(DOCUMENT_CODES.linkBroken);
+  });
+
+  it("does not check a section the index does not cover", () => {
+    expect(
+      codes({ body: `${base.body}\n[x](/investigaciones/lo-que-sea)\n` }),
+    ).not.toContain(DOCUMENT_CODES.linkBroken);
+  });
+
   it("warns when there are no section headings", () => {
     expect(
       codes({ body: "Sólo un párrafo.\n\n<RelatedGuides />\n" }),
@@ -990,8 +1051,8 @@ describe("a proveedores page", () => {
     metadata: { ...base.metadata, vendor: "Edesur" },
   };
   const companyIndex = buildContentIndex([
-    { slug: "edesur", status: "published" },
-    { slug: "metrogas", status: "published" },
+    { section: "proveedores", slug: "edesur", status: "published" },
+    { section: "proveedores", slug: "metrogas", status: "published" },
   ]);
   const run = (patch: Partial<ContentDocument> = {}) =>
     validateDocument({ ...base, ...company, ...patch }, companyIndex)

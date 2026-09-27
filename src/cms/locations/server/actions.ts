@@ -1,4 +1,11 @@
 "use server";
+import {
+  createLocationSchema,
+  lockedPageSchema,
+  parseInput,
+  renameSchema,
+  updateLocationSchema,
+} from "@/cms/server/inputs";
 import { revalidatePath } from "next/cache";
 import type { ContentLocation } from "@/content-system/locations/types";
 import type { Diagnostic } from "@/content-system/types";
@@ -75,7 +82,10 @@ export async function createLocationAction(
 ): Promise<LocationActionResult<ContentLocation>> {
   const actor = await requireCmsMember("/cms/locations");
   try {
-    const data = await service.create(actor, input);
+    const data = await service.create(
+      actor,
+      parseInput(createLocationSchema, input),
+    );
     refresh();
     return { ok: true, data };
   } catch (error) {
@@ -87,7 +97,10 @@ export async function updateLocationAction(
 ): Promise<LocationActionResult<ContentLocation>> {
   const actor = await requireCmsMember("/cms/locations");
   try {
-    const data = await service.update(actor, input);
+    const data = await service.update(
+      actor,
+      parseInput(updateLocationSchema, input),
+    );
     refresh();
     return { ok: true, data };
   } catch (error) {
@@ -101,7 +114,7 @@ export async function renameLocationAction(input: {
 }): Promise<LocationActionResult<ContentLocation & { redirects: string[] }>> {
   const actor = await requireCmsMember("/cms/locations");
   try {
-    const data = await service.rename(actor, input);
+    const data = await service.rename(actor, parseInput(renameSchema, input));
     refresh();
     return { ok: true, data };
   } catch (error) {
@@ -114,9 +127,10 @@ export async function retireLocationAction(input: {
 }): Promise<LocationActionResult<{ id: string }>> {
   const actor = await requireCmsMember("/cms/locations");
   try {
-    await service.retire(actor, input);
+    const args = parseInput(lockedPageSchema, input);
+    await service.retire(actor, args);
     refresh();
-    return { ok: true, data: { id: input.id } };
+    return { ok: true, data: { id: args.id } };
   } catch (error) {
     return failure(error);
   }

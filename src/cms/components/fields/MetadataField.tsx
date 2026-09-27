@@ -144,7 +144,10 @@ function Control({
         aria-describedby={describedBy}
         className="m-0 border border-line bg-paper px-3 py-2 font-mono text-[13.5px] text-muted"
       >
-        {(value as string) || "—"}
+        {field.kind === "parent"
+          ? (parentOptions?.find((option) => option.value === value)?.label ??
+            "Ninguna (primer nivel)")
+          : (value as string) || "—"}
       </p>
     );
   }

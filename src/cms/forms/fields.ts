@@ -198,8 +198,11 @@ const GUIDE_FIELDS: readonly FieldDescriptor[] = [
     path: "parentId",
     label: "Página madre",
     kind: "parent",
+    // The address fixes it — a child's path is its mother's plus one segment —
+    // so it moves with a rename and never with a save (`CmsContentService`).
+    readOnly: true,
     group: "estructura",
-    help: "Deja «Ninguna» para una página de primer nivel. Si eliges una, esta página cuelga de ella y su dirección empieza por la de la madre.",
+    help: "La fija la dirección: una página cuelga de la que tiene su dirección sin el último tramo. Para moverla bajo otra, o a primer nivel, cambia la dirección en «Dirección».",
   },
   {
     path: "sortOrder",

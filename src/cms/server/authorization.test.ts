@@ -213,4 +213,38 @@ describe("publishing", () => {
       }),
     ).resolves.toMatchObject({ created: true });
   });
+
+  it("refuses to move a live page into preview when the actor may not publish", async () => {
+    // Preview is noindexed and unlisted: for a live page that is an unpublish
+    // in all but name, so it asks the same question unpublishing does.
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
+    await fake.service.publish(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+    const before = await snapshot(fake, page.id);
+
+    canPublish.mockReturnValue(false);
+    await expect(
+      fake.service.promotePreview(actor, {
+        id: page.id,
+        expectedLockVersion: await lockOf(fake, page.id),
+      }),
+    ).rejects.toBeInstanceOf(CmsForbiddenError);
+    expect(await snapshot(fake, page.id)).toEqual(before);
+  });
+
+  it("does not ask the publish policy to preview a draft", async () => {
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
+
+    canPublish.mockReturnValue(false);
+    await expect(
+      fake.service.promotePreview(actor, {
+        id: page.id,
+        expectedLockVersion: await lockOf(fake, page.id),
+      }),
+    ).resolves.toMatchObject({ status: "preview" });
+  });
 });

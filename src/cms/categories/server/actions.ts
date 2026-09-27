@@ -17,6 +17,14 @@ import {
   CmsValidationError,
 } from "@/cms/server/errors";
 import {
+  createCategorySchema,
+  lockedPageSchema,
+  parseInput,
+  renameSchema,
+  sectionSchema,
+  updateCategorySchema,
+} from "@/cms/server/inputs";
+import {
   cmsCategoryService as service,
   type CreateCategoryInput,
   type UpdateCategoryInput,
@@ -91,8 +99,9 @@ export async function createCategoryAction(
 ): Promise<CategoryActionResult<ContentCategory>> {
   const actor = await requireCmsMember(cmsSectionPath(input.section));
   try {
-    const category = await service.create(actor, input);
-    refresh(input.section);
+    const args = parseInput(createCategorySchema, input);
+    const category = await service.create(actor, args);
+    refresh(args.section);
     return { ok: true, data: category };
   } catch (error) {
     return failure(error);
@@ -105,8 +114,12 @@ export async function updateCategoryAction(
 ): Promise<CategoryActionResult<ContentCategory>> {
   const actor = await requireCmsMember(cmsSectionPath(section));
   try {
-    const category = await service.update(actor, input);
-    refresh(section);
+    const where = parseInput(sectionSchema, section);
+    const category = await service.update(
+      actor,
+      parseInput(updateCategorySchema, input),
+    );
+    refresh(where);
     return { ok: true, data: category };
   } catch (error) {
     return failure(error);
@@ -119,8 +132,12 @@ export async function renameCategoryAction(
 ): Promise<CategoryActionResult<ContentCategory & { redirects: string[] }>> {
   const actor = await requireCmsMember(cmsSectionPath(section));
   try {
-    const category = await service.rename(actor, input);
-    refresh(section);
+    const where = parseInput(sectionSchema, section);
+    const category = await service.rename(
+      actor,
+      parseInput(renameSchema, input),
+    );
+    refresh(where);
     return { ok: true, data: category };
   } catch (error) {
     return failure(error);
@@ -133,9 +150,11 @@ export async function retireCategoryAction(
 ): Promise<CategoryActionResult<{ id: string }>> {
   const actor = await requireCmsMember(cmsSectionPath(section));
   try {
-    await service.retire(actor, input);
-    refresh(section);
-    return { ok: true, data: { id: input.id } };
+    const where = parseInput(sectionSchema, section);
+    const args = parseInput(lockedPageSchema, input);
+    await service.retire(actor, args);
+    refresh(where);
+    return { ok: true, data: { id: args.id } };
   } catch (error) {
     return failure(error);
   }

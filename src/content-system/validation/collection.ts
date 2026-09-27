@@ -1,5 +1,5 @@
 import type { ContentDocument, Diagnostic } from "../types";
-import type { ContentIndex } from "./document";
+import { type ContentIndex, pathKey } from "./document";
 import { fold } from "./text";
 
 // Layer 3 of cms.md: collection validation — the rules no single page can
@@ -15,7 +15,6 @@ export const COLLECTION_CODES = {
   duplicateSlug: "collection.duplicate-slug",
   duplicateTitle: "collection.duplicate-title",
   duplicateDescription: "collection.duplicate-description",
-  canonicalUnpublished: "collection.canonical-unpublished",
   canonicalChain: "collection.canonical-chain",
 } as const;
 
@@ -54,14 +53,23 @@ export type CollectionDiagnostic = Diagnostic & {
 
 /** Build the index the document validator needs. The one place "which pages
  * exist and which are public" is derived, so a caller cannot accidentally
- * validate against a set that includes drafts. */
+ * validate against a set that includes drafts.
+ *
+ * `sections` names what the index covers; by default, every section a
+ * document is in. A caller holding every page passes every section, so a
+ * section with no pages yet still counts as known — and a link into it as
+ * broken. */
 export function buildContentIndex(
-  documents: readonly Pick<ContentDocument, "slug" | "status">[],
+  documents: readonly Pick<ContentDocument, "section" | "slug" | "status">[],
+  sections: Iterable<string> = documents.map((d) => d.section),
 ): ContentIndex {
   return {
-    slugs: new Set(documents.map((d) => d.slug)),
-    publishedSlugs: new Set(
-      documents.filter((d) => d.status === "published").map((d) => d.slug),
+    sections: new Set(sections),
+    paths: new Set(documents.map((d) => pathKey(d.section, d.slug))),
+    publishedPaths: new Set(
+      documents
+        .filter((d) => d.status === "published")
+        .map((d) => pathKey(d.section, d.slug)),
     ),
   };
 }
@@ -107,45 +115,21 @@ export function validateCollection(
   collide(documents, out, "title");
   collide(documents, out, "description");
 
-  // ── canonicals ────────────────────────────────────────────────────────────
-  const published = new Set(
-    documents.filter((d) => d.status === "published").map((d) => d.slug),
-  );
+  // ── canonical chains ──────────────────────────────────────────────────────
+  // A → B → C. Search engines do not follow a canonical chain reliably, so the
+  // middle page's signal is simply lost. Whether the target is *published* is
+  // the document layer's question (`doc.canonical-unpublished`): it has the
+  // index of every page, while this collection may hold only the public ones.
   const canonicalOf = new Map(
     documents
       .filter((d) => d.canonicalSlug)
-      .map((d) => [d.slug, d.canonicalSlug as string]),
+      .map((d) => [`${d.section}/${d.slug}`, d.canonicalSlug as string]),
   );
 
   for (const document of documents) {
     const target = document.canonicalSlug;
     if (!target) continue;
-
-    // Consolidating ranking onto a page that is not public sends the signal to
-    // a URL search engines are told to skip, which loses both pages.
-    //
-    // Only when the target actually exists: a canonical pointing at nothing is
-    // already reported by the document layer, and saying it is "not published"
-    // as well is two messages for one mistake.
-    const targetExists = documents.some((d) => d.slug === target);
-    if (
-      targetExists &&
-      document.status === "published" &&
-      !published.has(target)
-    ) {
-      out.push({
-        section: document.section,
-        slug: document.slug,
-        code: COLLECTION_CODES.canonicalUnpublished,
-        severity: "error",
-        message: `meta.canonical points at "${target}", which is not published — a published page cannot canonicalize to one search engines are told to skip`,
-        field: "canonicalSlug",
-      });
-    }
-
-    // A → B → C. Search engines do not follow a canonical chain reliably, so
-    // the middle page's signal is simply lost.
-    const next = canonicalOf.get(target);
+    const next = canonicalOf.get(`${document.section}/${target}`);
     if (next && next !== target) {
       out.push({
         section: document.section,
