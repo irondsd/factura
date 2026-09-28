@@ -132,7 +132,11 @@ export function ContentArticle({
                 `lg` up it's the sidebar's copy that shows instead, so this one
                 is hidden rather than duplicated on screen. */}
             {previewMedia && (
-              <ArticlePreview media={previewMedia} className="mb-7 lg:hidden" />
+              <ArticlePreview
+                media={previewMedia}
+                title={title}
+                className="mb-7 lg:hidden"
+              />
             )}
 
             <header className="pb-2">
@@ -216,7 +220,9 @@ export function ContentArticle({
             headings={headings as Heading[]}
             label={section.tocLabel}
             above={
-              previewMedia ? <ArticlePreview media={previewMedia} /> : undefined
+              previewMedia ? (
+                <ArticlePreview media={previewMedia} title={title} />
+              ) : undefined
             }
             below={<SuggestionAside />}
           />

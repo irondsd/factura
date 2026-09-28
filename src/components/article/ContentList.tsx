@@ -37,13 +37,14 @@ export async function ContentList({
     <ul className="list-none p-0 m-0">
       {items.map((item) => (
         <li key={item.key} className="border-b border-line">
-          <Link
-            href={item.href}
-            className="group flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-[22px] no-underline py-6"
-          >
+          {/* A stretched link: the row is clickable, but the anchor is only
+              the title (its `::after` covers the row), so the link's text is
+              the headline rather than the badge, date and summary with it. */}
+          <div className="group relative flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-[22px] py-6">
             {media.get(item.previewMediaId ?? "") && (
               <ArticlePreview
                 media={media.get(item.previewMediaId ?? "")}
+                title={item.title}
                 className="flex-none w-full sm:w-40"
               />
             )}
@@ -55,7 +56,12 @@ export async function ContentList({
               )}
               <div className="flex flex-col gap-y-1 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-x-4">
                 <Title className="min-w-0 font-display font-semibold text-[20px] sm:text-[23px] tracking-tight text-ink m-0 transition-colors group-hover:text-accent">
-                  {item.title}
+                  <Link
+                    href={item.href}
+                    className="text-inherit no-underline after:absolute after:inset-0 after:content-['']"
+                  >
+                    {item.title}
+                  </Link>
                 </Title>
                 <span className="flex-none font-mono text-micro uppercase tracking-label-wide text-muted">
                   {datePrefix}
@@ -66,7 +72,7 @@ export async function ContentList({
                 {item.summary}
               </p>
             </div>
-          </Link>
+          </div>
         </li>
       ))}
     </ul>

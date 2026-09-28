@@ -23,8 +23,7 @@ export type TeaserCard = {
   href: string;
   title: string;
   summary: string;
-  /** Media-library id of the card's 16:9 illustration. Decorative — the title
-   * beside it names the page — so it renders `alt=""`. Pages without one get
+  /** Media-library id of the card's 16:9 illustration. Pages without one get
    * the blank paper panel, which keeps the cards in a row the same height. */
   previewMediaId?: string;
   /** Full ISO 8601 publication timestamp — the badge and the visible stamp. */
@@ -103,14 +102,16 @@ function TeaserLink({
   media?: MediaRef;
   isNew: boolean;
 }) {
+  // The whole card is clickable, but the anchor is only the headline: a
+  // stretched link (the title's `::after` covers the card) rather than an <a>
+  // around everything, so the link's text is the title instead of the date,
+  // badge, title and summary run together.
   return (
-    <Link
-      href={card.href}
-      className="group flex flex-col border border-line bg-card no-underline transition-colors hover:border-accent"
-    >
+    <article className="group relative flex flex-col border border-line bg-card transition-colors hover:border-accent focus-within:border-accent">
       {media ? (
         <ArticlePreview
           media={media}
+          title={card.title}
           className="border-x-0 border-t-0 border-b border-line bg-paper"
         />
       ) : (
@@ -131,12 +132,17 @@ function TeaserLink({
           </span>
         </div>
         <h3 className="m-0 font-display font-semibold text-[18px] tracking-tight leading-tight text-ink transition-colors group-hover:text-accent">
-          {card.title}
+          <Link
+            href={card.href}
+            className="text-inherit no-underline after:absolute after:inset-0 after:content-['']"
+          >
+            {card.title}
+          </Link>
         </h3>
         <p className="m-0 font-mono text-[12.5px] leading-[1.65] text-muted text-pretty">
           {card.summary}
         </p>
       </div>
-    </Link>
+    </article>
   );
 }

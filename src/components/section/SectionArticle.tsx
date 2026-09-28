@@ -129,7 +129,11 @@ export async function SectionArticle({
                 headline. From `lg` up the sidebar's copy shows instead, so this
                 one is hidden rather than duplicated on screen. */}
             {previewMedia && (
-              <ArticlePreview media={previewMedia} className="mb-7 lg:hidden" />
+              <ArticlePreview
+                media={previewMedia}
+                title={meta.title}
+                className="mb-7 lg:hidden"
+              />
             )}
 
             <header className="pb-2">
@@ -243,7 +247,11 @@ export async function SectionArticle({
           <TocSidebar
             headings={headings}
             label="En esta página"
-            above={previewMedia && <ArticlePreview media={previewMedia} />}
+            above={
+              previewMedia && (
+                <ArticlePreview media={previewMedia} title={meta.title} />
+              )
+            }
             below={
               <>
                 <AsideCta />
