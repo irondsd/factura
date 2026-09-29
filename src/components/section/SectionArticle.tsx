@@ -1,6 +1,7 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { AddToPreferredSources } from "@/components/article/AddToPreferredSources";
+import { ShareMenu } from "@/components/article/ShareMenu";
 import { ArticleByline } from "@/components/article/ArticleByline";
 import { ArticleDateline } from "@/components/article/ArticleDateline";
 import { ArticlePreview } from "@/components/article/ArticlePreview";
@@ -226,6 +227,14 @@ export async function SectionArticle({
               label={`Ubicación de ${section.label.toLowerCase()}`}
             />
 
+            {/* The phone's copy; the sidebar carries it from `lg` up. */}
+            <ShareMenu
+              href={section.href(slug)}
+              title={meta.title}
+              section={section.id}
+              className="mt-10 lg:hidden"
+            />
+
             {/* The one ask on the page that isn't for an account. It goes below
                 the article and above the way out, because a reader who got to
                 here is the only one worth asking. */}
@@ -248,9 +257,20 @@ export async function SectionArticle({
             headings={headings}
             label="En esta página"
             above={
-              previewMedia && (
-                <ArticlePreview media={previewMedia} title={meta.title} />
-              )
+              <>
+                {previewMedia && (
+                  <ArticlePreview
+                    media={previewMedia}
+                    title={meta.title}
+                    className="mb-5"
+                  />
+                )}
+                <ShareMenu
+                  href={section.href(slug)}
+                  title={meta.title}
+                  section={section.id}
+                />
+              </>
             }
             below={
               <>

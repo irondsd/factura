@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AddToPreferredSources } from "@/components/article/AddToPreferredSources";
+import { ShareMenu } from "@/components/article/ShareMenu";
 import { ArticleByline } from "@/components/article/ArticleByline";
 import { ArticleDateline } from "@/components/article/ArticleDateline";
 import { ArticlePreview } from "@/components/article/ArticlePreview";
@@ -197,6 +198,16 @@ export function ContentArticle({
               label={`Ubicación de esta ${section.singular.toLowerCase()}`}
             />
 
+            {/* The phone's copy of the share button: after the article, where a
+                reader has decided it was worth passing on. From `lg` up the
+                sidebar's copy shows instead. */}
+            <ShareMenu
+              href={href}
+              title={title}
+              section={section.id}
+              className="mt-10 lg:hidden"
+            />
+
             {/* The one ask on the page that isn't for an account. It goes below
                 the article and above the way out, because a reader who got to
                 here is the only one worth asking. */}
@@ -214,15 +225,23 @@ export function ContentArticle({
 
           {/* The illustration heads the gutter, above the contents. It's the
               one place on the article where it costs the prose nothing: beside
-              the 680px column rather than in front of it. A guide with an image
-              but too few sections to list keeps the column for it. */}
+              the 680px column rather than in front of it. The share button
+              follows it, and since it's always there the column always is too,
+              even on a guide too short to list its sections. */}
           <TocSidebar
             headings={headings as Heading[]}
             label={section.tocLabel}
             above={
-              previewMedia ? (
-                <ArticlePreview media={previewMedia} title={title} />
-              ) : undefined
+              <>
+                {previewMedia && (
+                  <ArticlePreview
+                    media={previewMedia}
+                    title={title}
+                    className="mb-5"
+                  />
+                )}
+                <ShareMenu href={href} title={title} section={section.id} />
+              </>
             }
             below={<SuggestionAside />}
           />
