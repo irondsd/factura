@@ -8,6 +8,7 @@
  *   bun scripts/cms-local.ts upload <image> [collectionId]
  *   bun scripts/cms-local.ts patch <pageId> @ops.json [--dry-run]
  *   bun scripts/cms-local.ts screenshot <url> <out.png> [width] [height]
+ *   bun scripts/cms-local.ts text <url> [out.txt]   (rendered text of a JS page)
  *
  * Reads `CMS_LOCAL_URL` and `CMS_LOCAL_TOKEN` from `.env.cms-local` (gitignored).
  * Refuses any endpoint that is not localhost: this never talks to production.
@@ -31,7 +32,13 @@
  *   }
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findHeadlessShell } from "./lib/guidePreview";
@@ -249,6 +256,66 @@ function screenshot(
   console.log(`Wrote ${out}`);
 }
 
+// The visible text of a page after its scripts run, for sources that curl
+// only sees as an empty JavaScript shell. A throwaway headless profile: no
+// cookies, no saved logins, nothing clicked. The DOM comes back as HTML, so
+// the text is recovered here with a deliberately plain tag stripper.
+function pageText(url: string, out?: string): void {
+  const html = execFileSync(
+    findHeadlessShell(),
+    [
+      "--disable-gpu",
+      "--lang=es-AR",
+      "--accept-lang=es-AR",
+      "--virtual-time-budget=8000",
+      "--dump-dom",
+      url,
+    ],
+    {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+      timeout: 60_000,
+      // Chrome logs WebRTC and GPU chatter to stderr on every page.
+      stdio: ["ignore", "pipe", "ignore"],
+    },
+  );
+  const entities: Record<string, string> = {
+    amp: "&",
+    lt: "<",
+    gt: ">",
+    quot: '"',
+    apos: "'",
+    nbsp: " ",
+  };
+  const text = html
+    .replace(/<(script|style|noscript|svg|template)\b[\s\S]*?<\/\1>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|tr|h[1-6]|section|article|header|footer)>/gi, "\n")
+    .replace(/<(td|th)\b[^>]*>/gi, " | ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, code: string) => {
+      if (code[0] === "#") {
+        const n =
+          code[1] === "x" || code[1] === "X"
+            ? parseInt(code.slice(2), 16)
+            : parseInt(code.slice(1), 10);
+        return Number.isFinite(n) ? String.fromCodePoint(n) : match;
+      }
+      return entities[code.toLowerCase()] ?? match;
+    })
+    .replace(/[ \t]+/g, " ")
+    .replace(/ *\n */g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  if (out) {
+    mkdirSync(path.dirname(path.resolve(out)), { recursive: true });
+    writeFileSync(out, text + "\n");
+    console.log(`Wrote ${out} (${text.length} chars)`);
+  } else {
+    console.log(text);
+  }
+}
+
 async function main(): Promise<void> {
   const [command, ...rest] = process.argv.slice(2);
   switch (command) {
@@ -271,6 +338,9 @@ async function main(): Promise<void> {
       break;
     case "screenshot":
       screenshot(rest[0]!, rest[1]!, rest[2], rest[3]);
+      break;
+    case "text":
+      pageText(rest[0]!, rest[1]);
       break;
     default:
       console.log(
