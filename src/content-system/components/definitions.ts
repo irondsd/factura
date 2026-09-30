@@ -600,6 +600,22 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
       },
     },
   },
+  CalculadoraAlquiler: {
+    sections: ["guias"],
+    kind: "leaf",
+    props: noProps,
+    description:
+      "Interactive rent-update calculator: the reader enters the starting rent, the contract's start date, the index (IPC or ICL) and how often it adjusts, and gets every adjustment computed from the official INDEC and BCRA series.",
+    authoring: {
+      label: "Calculadora de alquiler",
+      group: "tables-comparisons",
+      rank: 20,
+      notes: [
+        "Escribe el componente bare, sin propiedades: <CalculadoraAlquiler />.",
+        "Una vez por página, donde el texto ya explicó qué es cada índice. Los números salen del ICL del BCRA y del IPC nacional del INDEC (`bun run data:alquiler`), así que la prosa no repite montos ni porcentajes del cálculo.",
+      ],
+    },
+  },
   TrustBlock: {
     sections: ["guias", "proveedores"],
     kind: "leaf",

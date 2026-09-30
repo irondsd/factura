@@ -11,6 +11,7 @@ import { db } from "@/db";
 import { authAccounts, sessions, users, verificationTokens } from "@/db/schema";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
 import { authRedirectTarget } from "@/lib/nextPath";
+import { devLanOrigin } from "@/config/devLanOrigins";
 import { notifySignIn } from "./authAlerts";
 import { sendOtpEmail, sendWelcomeEmail } from "./email";
 import { HEARTBEAT_MS, requestClientInfo } from "./sessions";
@@ -146,8 +147,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Auth.js's default only permits its own origin. The product now lives on a
     // second origin, so hand the final callback through the same exact-origin
     // boundary used by the login page. This also keeps CMS/site returns intact.
-    redirect({ url }) {
-      return authRedirectTarget(url);
+    redirect({ url, baseUrl }) {
+      const lanOrigin = devLanOrigin(url, baseUrl) ?? devLanOrigin(baseUrl, baseUrl);
+      return authRedirectTarget(url, undefined, lanOrigin);
     },
     // Guards the auto-linking enabled above: only let a Google sign-in proceed
     // when Google vouches for the email. Runs before any account linking, so a

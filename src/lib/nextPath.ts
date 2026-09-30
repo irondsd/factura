@@ -108,11 +108,12 @@ export function logoutTarget(
 export function authRedirectTarget(
   value: string,
   origins: OriginConfig = publicOrigins,
+  devOrigin?: string | null,
 ): string {
   if (value.startsWith("/")) {
     const path = safeNext(value, origins);
     return path
-      ? new URL(path, origins.siteOrigin).href
+      ? new URL(path, devOrigin ?? origins.siteOrigin).href
       : `${origins.siteOrigin}/`;
   }
 
@@ -125,7 +126,9 @@ export function authRedirectTarget(
     if (
       !url.username &&
       !url.password &&
-      (url.origin === origins.siteOrigin || url.origin === origins.appOrigin)
+      (url.origin === origins.siteOrigin ||
+        url.origin === origins.appOrigin ||
+        (devOrigin && url.origin === devOrigin))
     ) {
       return url.href;
     }

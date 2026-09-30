@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 import { config } from "dotenv";
 import { publicOrigins } from "./src/config/origins";
+import { devLanHosts } from "./src/config/devLanOrigins";
 
 const postHogBuildEnv: Record<string, string> = {};
 config({ path: ".env.prod", processEnv: postHogBuildEnv, quiet: true });
@@ -76,6 +77,9 @@ const SHARP_RUNTIME_FILES = [
 ];
 
 const nextConfig: NextConfig = {
+  // A browser on another device uses this machine's LAN address as its origin.
+  // Allow only addresses actually assigned to the dev host, not an entire subnet.
+  allowedDevOrigins: devLanHosts(),
   outputFileTracingIncludes: {
     "/cms/media": SHARP_RUNTIME_FILES,
     "/cms/media/**": SHARP_RUNTIME_FILES,

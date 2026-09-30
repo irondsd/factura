@@ -44,6 +44,22 @@ bun run dev
 The site runs at `http://localhost:4000`; the documented neighboring app runs at
 `http://localhost:4001`.
 
+For another device on the same local network, open `http://<this-machine's-LAN-IP>:4000/cms`.
+In development, Next.js allows the private IPv4 addresses currently assigned to
+this machine. Restart `bun run dev` if its LAN address changes. Email code
+sign-in works from this URL. Google OAuth cannot redirect to an arbitrary LAN IP:
+Google requires an exact registered callback URL and disallows private IP hosts.
+For Google sign-in from other devices, use a stable HTTPS development hostname
+with a registered Google callback, or forward port 4000 to this machine so the
+other device opens `http://localhost:4000/cms`.
+
+For the HTTPS option, route a development hostname you control to this server
+through LAN DNS and an HTTPS reverse proxy (or a named tunnel). In `.env.local`,
+set `AUTH_URL` and `NEXT_PUBLIC_SITE_URL` to that origin. Register
+`https://<development-host>/api/auth/callback/google` in a separate development
+Google OAuth client, and use that client's ID and secret locally. Production
+configuration stays separate.
+
 Email sign-in works locally without Resend: leave `RESEND_API_KEY` blank and the
 one-time code is printed to the server console. Add Google OAuth credentials to
 enable “Continue with Google.”

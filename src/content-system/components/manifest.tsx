@@ -9,6 +9,7 @@ import {
 } from "@/components/guides/cta";
 import { Galeria } from "@/components/article/Galeria";
 import { Resumen } from "@/components/article/Resumen";
+import { CalculadoraAlquiler } from "@/components/guides/CalculadoraAlquiler";
 import { InflacionChart } from "@/components/guides/InflacionChart";
 import { TrustBlock } from "@/components/landing/TrustBlock";
 import { SECTION_COMPONENT_BINDINGS } from "./sectionBindings";
@@ -82,6 +83,7 @@ const BINDINGS: Record<string, ComponentType<never>> = {
   DemoCta,
   SignupCta,
   InflacionChart,
+  CalculadoraAlquiler,
   TrustBlock: ArticleTrustBlock,
   ...Object.fromEntries(
     CONTEXT_BOUND_COMPONENT_NAMES.map((name) => [name, Unbound]),

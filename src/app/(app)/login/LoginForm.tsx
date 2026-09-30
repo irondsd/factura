@@ -100,7 +100,9 @@ export function LoginForm({
     const qs = new URLSearchParams({
       token: code.trim(),
       email,
-      callbackUrl,
+      // The server's canonical origin is localhost in dev. Keep the browser's
+      // LAN origin when this form was opened from another machine.
+      callbackUrl: new URL(callbackUrl, window.location.origin).href,
     });
     window.location.href = `/api/auth/callback/resend?${qs.toString()}`;
   }
@@ -137,7 +139,9 @@ export function LoginForm({
               size="lg"
               onClick={() => {
                 posthog.capture("sign_in_google_clicked");
-                signIn("google", { callbackUrl });
+                signIn("google", {
+                  callbackUrl: new URL(callbackUrl, window.location.origin).href,
+                });
               }}
               className="mt-7 w-full gap-3"
             >

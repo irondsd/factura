@@ -98,6 +98,15 @@ describe("manifest bindings render what the site renders", () => {
     expect(html).toContain("<svg");
   });
 
+  it("renders the rent calculator bare, with a worked example from the data", async () => {
+    const html = await render("<CalculadoraAlquiler />\n");
+    expect(html).toContain("Calculadora de alquiler");
+    // The default example starts a year before the last IPC month, so the
+    // static page already carries computed rows.
+    expect(html).toContain("IPC ");
+    expect(html).toMatch(/\$\s?\d{3}\.\d{3}/);
+  });
+
   it("keeps the article rhythm on the trust block", async () => {
     // `mdx-components.tsx` binds `className="my-10"`; a bare component here
     // would render the same content with different spacing.

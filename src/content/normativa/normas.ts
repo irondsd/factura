@@ -133,6 +133,7 @@ export const NORMAS: readonly Norma[] = [
       label: "Ley 27.551 (texto original)",
       href: "https://www.argentina.gob.ar/normativa/nacional/ley-27551-339378",
     },
+    guia: "ley-de-alquileres",
   },
   {
     id: "ley-27737",
@@ -140,7 +141,7 @@ export const NORMAS: readonly Norma[] = [
     numero: "Ley 27.737",
     titulo: "Reforma de la Ley de Alquileres",
     resumen:
-      "La reforma de octubre de 2023: bajaba el plazo mínimo a dos años y habilitaba ajustes cada seis meses por un coeficiente distinto. Duró dos meses y medio.",
+      "La reforma de octubre de 2023: mantenía el plazo mínimo de tres años y habilitaba ajustes cada seis meses por el Coeficiente Casa Propia. Duró dos meses y medio.",
     jurisdiccion: "nacional",
     estado: "derogada",
     estadoNota:
@@ -150,6 +151,7 @@ export const NORMAS: readonly Norma[] = [
       label: "Ley 27.737 (texto original)",
       href: "https://www.argentina.gob.ar/normativa/nacional/ley-27737-391456",
     },
+    guia: "ley-de-alquileres",
   },
   {
     id: "decreto-70-2023",
@@ -165,6 +167,7 @@ export const NORMAS: readonly Norma[] = [
       label: "Decreto 70/2023",
       href: "https://www.argentina.gob.ar/normativa/nacional/decreto-70-2023-395521",
     },
+    guia: "ley-de-alquileres",
   },
   {
     id: "ley-5859-caba",
@@ -449,7 +452,7 @@ export const NORMAS: readonly Norma[] = [
     numero: "Ley 27.742",
     titulo: "Ley Bases: emergencia energética y el nuevo ente",
     resumen:
-      "Entre muchas otras cosas, ratificó las derogaciones del DNU 70/2023 y creó el Ente Nacional Regulador del Gas y la Electricidad, que debe fusionar al ENARGAS y al ENRE en un solo organismo. La fusión todavía no se concretó: hasta que el nuevo ente se constituya, cada uno sigue funcionando por separado.",
+      "Entre muchas otras cosas, creó el Ente Nacional Regulador del Gas y la Electricidad, que debe fusionar al ENARGAS y al ENRE en un solo organismo. La fusión todavía no se concretó: hasta que el nuevo ente se constituya, cada uno sigue funcionando por separado.",
     jurisdiccion: "nacional",
     estado: "vigente",
     sancion: "2024",

@@ -77,6 +77,7 @@ describe("allowed components", () => {
     DemoCta: "<DemoCta />",
     SignupCta: "<SignupCta />",
     InflacionChart: '<InflacionChart chart="luz-y-gas" />',
+    CalculadoraAlquiler: "<CalculadoraAlquiler />",
     TrustBlock: "<TrustBlock />",
     Faq: "<Faq />",
     RelatedGuides: "<RelatedGuides />",

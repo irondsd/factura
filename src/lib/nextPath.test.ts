@@ -177,6 +177,18 @@ describe("logoutTarget", () => {
 });
 
 describe("authRedirectTarget", () => {
+  it("returns a LAN sign-in to the same dev server origin", () => {
+    const lanOrigin = "http://192.168.1.33:4000";
+    expect(authRedirectTarget("/cms", undefined, lanOrigin)).toBe(
+      `${lanOrigin}/cms`,
+    );
+    expect(authRedirectTarget(`${lanOrigin}/cms`, undefined, lanOrigin)).toBe(
+      `${lanOrigin}/cms`,
+    );
+    expect(
+      authRedirectTarget("https://evil.example/cms", undefined, lanOrigin),
+    ).toBe("http://localhost:4000/");
+  });
   it("lets Auth.js complete a login on the app origin", () => {
     expect(
       authRedirectTarget(
