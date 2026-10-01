@@ -14,6 +14,11 @@ describe("embeddable content components", () => {
     expect(EMBEDDABLE_COMPONENT_NAMES).not.toContain("ClosingCta");
   });
 
+  it("lets a tool opt in whatever its group", () => {
+    expect(EMBEDDABLE_COMPONENT_NAMES).toContain("AblCalculadora");
+    expect(EMBEDDABLE_COMPONENT_NAMES).not.toContain("AblCoeficientesTabla");
+  });
+
   it("resolves a public component slug back to its registered binding", () => {
     const registered = embeddableComponentForSlug("venta-pba-mapa");
     expect(registered?.name).toBe("VentaPbaMapa");

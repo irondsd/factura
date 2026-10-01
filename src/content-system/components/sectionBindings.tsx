@@ -1,6 +1,10 @@
 import type { ComponentType } from "react";
 import { ClosingCta } from "@/components/guides/cta";
 import { PaginaRelacionada } from "@/components/section/PaginaRelacionada";
+import { AblCalculadora } from "@/components/estadisticas/AblCalculadora";
+import { AblCoeficienteMapa } from "@/components/estadisticas/AblCoeficienteMapa";
+import { AblCoeficientesTabla } from "@/components/estadisticas/AblCoeficientesTabla";
+import { AblParametros } from "@/components/estadisticas/AblParametros";
 import { AbsaComercialCoeficiente } from "@/components/estadisticas/AbsaComercialCoeficiente";
 import { AbsaCuadroTarifario } from "@/components/estadisticas/AbsaCuadroTarifario";
 import { AbsaTarifaHistoria } from "@/components/estadisticas/AbsaTarifaHistoria";
@@ -77,6 +81,10 @@ import { SeguridadPorDelitoGanadores } from "@/components/investigaciones/Seguri
  * statistics/research MDX.  These are imported centrally so database MDX has
  * the identical client-component boundaries as the original modules. */
 export const SECTION_COMPONENT_BINDINGS = {
+  AblCalculadora,
+  AblCoeficienteMapa,
+  AblCoeficientesTabla,
+  AblParametros,
   AbsaComercialCoeficiente,
   AbsaCuadroTarifario,
   AbsaTarifaHistoria,

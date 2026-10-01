@@ -19,7 +19,8 @@ function isEmbeddableDefinition(
 ): boolean {
   return (
     (definition.authoring.group === "maps" ||
-      definition.authoring.group === "charts-summaries") &&
+      definition.authoring.group === "charts-summaries" ||
+      definition.embeddable === true) &&
     definition.sections.some(
       (section) => section === "estadisticas" || section === "investigaciones",
     )

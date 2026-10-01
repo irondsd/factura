@@ -82,6 +82,11 @@ export type ContentComponentDefinition = {
   /** Restricts what a `container` may hold. Absent means prose: whatever an
    * author can write anywhere else in the body. */
   children?: ContainerChildrenRule;
+  /** Offer this figure as an iframe even though its group is not one of the
+   * two that are embeddable by default (maps and charts). For the interactive
+   * tools — a calculator is a table by group and a figure worth sharing by
+   * nature. See `embeds.tsx`. */
+  embeddable?: true;
 };
 
 const noProps = z.object({}).strict();
@@ -131,6 +136,29 @@ type DataFigureName = Exclude<
 
 const DATA_LEAF_COMPONENTS: Record<DataFigureName, ContentComponentDefinition> =
   {
+    AblCalculadora: {
+      ...dataFigure(
+        "tables-comparisons",
+        "Calculadora de ABL en CABA",
+        "Interactive ABL calculator: the reader enters the Valuación Fiscal Homogénea, the barrio and subzona and the unit type, and gets the year's Impuesto Inmobiliario, tasa and surcharge as the Ley Impositiva determines them, per year and per month. Embeddable as an iframe.",
+      ),
+      embeddable: true,
+    },
+    AblCoeficienteMapa: dataFigure(
+      "maps",
+      "Mapa del coeficiente de ABL en CABA",
+      "Shaded map of the coeficiente geográfico of the tasa ABL by barrio, switchable between each barrio's highest and lowest subzona, with the coefficient range and the tasa per million of VFH in the table below.",
+    ),
+    AblCoeficientesTabla: dataFigure(
+      "tables-comparisons",
+      "Tabla de coeficientes del ABL por subzona",
+      "The Ley Impositiva's full table: every barrio and subzona with its boundary as the law writes it and its coefficient, grouped by the law's three zones.",
+    ),
+    AblParametros: dataFigure(
+      "tables-comparisons",
+      "Alícuotas y parámetros del ABL",
+      "This year's alícuota base, ponderación, USC, surcharge and minimum for the tasa, and the ten-segment scale of the Impuesto Inmobiliario. The values the page's formula takes, so the prose never types a rate.",
+    ),
     AbsaComercialCoeficiente: dataFigure(
       "tables-comparisons",
       "De dónde sale el aumento de los comercios",
@@ -498,7 +526,10 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     },
   },
   ProbarCta: {
-    sections: ["guias", "proveedores"],
+    // Data pages too, for the one whose figure takes an input off a real
+    // document: the ABL calculator asks for the VFH printed on the AGIP boleta,
+    // so its reader has the boleta open exactly as a guide's reader does.
+    sections: ["guias", "proveedores", ...DATA_SECTIONS],
     kind: "container",
     props: z
       .object({
