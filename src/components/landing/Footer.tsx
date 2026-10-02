@@ -1,6 +1,7 @@
 import { cn } from "@/lib/cn";
 import { Eyebrow, NAV_LINK, SHELL, Wordmark } from "@/components/landing/parts";
 import { siteFooterColumns } from "@/components/landing/SiteNav";
+import { TrustpilotReviewCollector } from "@/components/landing/TrustpilotReviewCollector";
 import { socialProfiles } from "@/config/social";
 import type { Locale } from "@/i18n/config";
 import { LandingLanguageSwitch } from "@/i18n/LandingLanguageSwitch";
@@ -14,7 +15,8 @@ import { getI18n } from "@/i18n/server";
 // The site outgrew a single wrapped row of links, so this is a directory: the
 // brand block, then three titled columns from `siteFooterColumns` (product /
 // learn / company) and a fourth for the social profiles in
-// `src/config/social.ts`.
+// `src/config/social.ts`. The Trustpilot review button sits under the brand
+// block.
 //
 // `showLanguageSwitch` defaults to true; the Spanish-only guides pass `false`,
 // since there is no English page to switch to.
@@ -35,6 +37,9 @@ export async function SiteFooter({
           <div className="flex flex-col gap-2">
             <Wordmark size={22} />
             <Eyebrow>{t.siteChrome.footerLeft}</Eyebrow>
+            <div className="mt-4">
+              <TrustpilotReviewCollector locale={locale} />
+            </div>
           </div>
 
           {/* Two across on phones, four from `md:`. Nav labels don't wrap, and
