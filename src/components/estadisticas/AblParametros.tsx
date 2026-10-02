@@ -57,11 +57,12 @@ export function AblParametros() {
       }}
       caption={
         <>
-          Los valores con los que se calculan los dos tributos de la boleta. La
-          tasa ABL multiplica la VFH por la alícuota base y por el factor del
-          coeficiente geográfico; el Impuesto Inmobiliario aplica una escala por
-          tramos, en la que cada alícuota recae solo sobre la parte de la VFH
-          que excede el límite inferior del tramo.
+          Los valores con los que se calculan los dos tributos, antes del tope
+          de aumento y los beneficios de AGIP. La tasa ABL multiplica la VFH por
+          la alícuota base y por el factor del coeficiente geográfico; el
+          Impuesto Inmobiliario aplica una escala por tramos, en la que cada
+          alícuota recae solo sobre la parte de la VFH que excede el límite
+          inferior del tramo.
         </>
       }
       note={

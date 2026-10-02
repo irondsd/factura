@@ -100,7 +100,7 @@ function view(extremo: Extremo): MapView {
     note:
       `Los ${BARRIOS.length} barrios tienen coeficiente. ${split.length} están divididos en subzonas por avenidas; ` +
       `en esos el color es el de la subzona ${noun} y la columna del coeficiente muestra el rango completo. ` +
-      `La última columna es la tasa ABL que pagan $ 1 millón de VFH en un año con ese coeficiente, sin el adicional del 1 %.`,
+      `La última columna es la tasa ABL anual por fórmula para $ 1 millón de VFH con ese coeficiente, antes del tope de aumento, los beneficios y el adicional del 1 %.`,
   };
 }
 

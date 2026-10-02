@@ -30,10 +30,9 @@ import { BARRIOS } from "@/content/shared/caba";
 // divided by twelve. It is not a forecast of a boleta. Art. 44 caps every
 // cuota at the previous one plus the IPCBA, so a property still catching up
 // with a revaluation is billed less than this, and the discounts AGIP stacks
-// on top (pago anual, débito, buen cumplimiento) come off the boleta after.
-// The note under the result says both, every time, because the reader who
-// compares this with their boleta and finds a gap needs the reason right
-// there.
+// on top come off the boleta after. Annual prepayment has a separate basis:
+// art. 44 annualizes Cuota 1, plus the applicable annual tasa surcharge.
+// The result labels and note distinguish the formula from both payment options.
 //
 // The first render is the same on server and client — no clock, no storage —
 // so the static page carries a worked example with real figures.
@@ -101,8 +100,8 @@ export function AblCalculadora() {
           Calculadora de ABL en CABA {LEY.year}
         </p>
         <p className="mt-1 font-mono text-xs leading-[1.6] text-muted opacity-85">
-          Cuánto fija la Ley Impositiva para tu partida según la valuación
-          fiscal y la ubicación del inmueble.
+          Tributo anual por fórmula según la valuación fiscal y la ubicación,
+          antes del tope de aumento y los beneficios de AGIP.
         </p>
       </figcaption>
 
@@ -169,12 +168,18 @@ export function AblCalculadora() {
         className="mt-6 min-h-[1.6em] text-[15px] leading-[1.6]"
       >
         {r ? (
-          <p>
-            Cuota mensual estimada{" "}
-            <strong className="font-mono">{formatPesos(r.cuota)}</strong>, o{" "}
-            <span className="font-mono">{formatPesos(r.total)}</span> en el año:
-            el {formatPct(r.total / vfh)} de la VFH.
-          </p>
+          <>
+            <p>
+              Importe anual por fórmula{" "}
+              <strong className="font-mono">{formatPesos(r.total)}</strong>: el{" "}
+              {formatPct(r.total / vfh)} de la VFH.
+            </p>
+            <p className="mt-2">
+              Dividido en doce:{" "}
+              <span className="font-mono">{formatPesos(r.cuota)}</span>. Este
+              valor no predice tu cuota mensual ni tu boleta anual.
+            </p>
+          </>
         ) : (
           <p className="text-muted">
             Ingresá la Valuación Fiscal Homogénea de la partida.
@@ -186,7 +191,7 @@ export function AblCalculadora() {
         <div className="mt-3 overflow-x-auto">
           <table className="w-full border-collapse">
             <caption className="sr-only">
-              Composición del ABL anual de la partida
+              Tributo anual por fórmula, antes del tope y los beneficios de AGIP
             </caption>
             <thead>
               <tr>
@@ -194,10 +199,10 @@ export function AblCalculadora() {
                   Concepto
                 </th>
                 <th scope="col" className="fd-th text-right">
-                  Por año
+                  Anual por fórmula
                 </th>
                 <th scope="col" className="fd-th text-right">
-                  Por mes
+                  Anual ÷ 12
                 </th>
               </tr>
             </thead>
@@ -241,10 +246,17 @@ export function AblCalculadora() {
           </p>
         )}
         <p>
-          Es el monto que determina la fórmula de la ley para{" "}
-          {barrioLabel(barrio)}. La boleta puede ser menor: cada cuota no puede
-          subir más que la anterior más la inflación porteña (IPCBA) de cinco
-          meses antes, y los descuentos de AGIP se restan después.
+          La fórmula corresponde a {barrioLabel(barrio)}. AGIP limita cada cuota
+          según la anterior y la inflación porteña (IPCBA) de cinco meses antes.
+          La boleta puede ser mucho menor y depende del historial de tu partida,
+          los descuentos y las exenciones.
+        </p>
+        <p>
+          El pago anual anticipado se calcula con la cuota de enero multiplicada
+          por doce, más el adicional anual sobre la tasa cuando corresponda;
+          después se aplican las bonificaciones y los saldos a favor. Con la VFH
+          y el barrio solos no podemos calcular ese importe ni prever el del año
+          siguiente.
         </p>
         <p>
           La VFH figura al pie de la boleta de AGIP y se consulta con la partida

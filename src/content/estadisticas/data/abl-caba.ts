@@ -604,10 +604,12 @@ export type Resultado = {
  *
  * What this is *not*: the amount on a given boleta. Art. 44 caps each cuota
  * at the previous one plus the IPCBA of five months earlier, so a property
- * whose formula figure jumped (a revaluation, the 2024 reform) is still
+ * whose formula figure jumped (a revaluation, the reform effective in 2025) is still
  * climbing toward it one capped month at a time, and its boleta is lower. The
  * cap depends on that partida's own history, which this cannot know. The page
- * says so next to every number this produces. */
+ * says so next to every number this produces. Annual prepayment is a separate
+ * calculation: art. 44 annualizes Cuota 1 and adds any applicable annual tasa
+ * surcharge. Neither that bill nor next year's liability is returned here. */
 export function calcular({
   vfh,
   cg,
