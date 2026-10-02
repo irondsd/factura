@@ -1,3 +1,4 @@
+import { HeadingLink } from "@/components/article/HeadingLink";
 import { METHODOLOGY_SECTION } from "@/content/headings";
 import { cn } from "@/lib/cn";
 import {
@@ -40,9 +41,10 @@ export function Metodologia({ value }: { value?: MethodologyMetadata }) {
     >
       <h2
         id={`${METHODOLOGY_SECTION.id}-title`}
-        className="font-display font-semibold text-[28px] sm:text-[32px] tracking-[-0.02em] leading-[1.15] mt-0 mb-5"
+        className="group font-display font-semibold text-[28px] sm:text-[32px] tracking-[-0.02em] leading-[1.15] mt-0 mb-5"
       >
         {METHODOLOGY_SECTION.text}
+        <HeadingLink id={METHODOLOGY_SECTION.id} />
       </h2>
 
       {/* The hairlines are the container's own background showing through a

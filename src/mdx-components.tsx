@@ -8,6 +8,7 @@ import {
   ProbarCta,
   SignupCta,
 } from "@/components/guides/cta";
+import { HeadingLink } from "@/components/article/HeadingLink";
 import { Resumen } from "@/components/article/Resumen";
 import { PaginaRelacionada } from "@/components/section/PaginaRelacionada";
 import { TrustBlock } from "@/components/landing/TrustBlock";
@@ -43,9 +44,12 @@ const components: MDXComponents = {
   h2: ({ children, ...p }) => (
     <h2
       {...p}
-      className="font-display font-semibold text-[28px] sm:text-[32px] tracking-[-0.02em] leading-[1.15] mt-12 mb-4 scroll-mt-24"
+      className="group font-display font-semibold text-[28px] sm:text-[32px] tracking-[-0.02em] leading-[1.15] mt-12 mb-4 scroll-mt-24"
     >
       {children}
+      {/* rehype-slug gives every h2 its id; these are the table of contents'
+          entries, so each one can hand out a link to itself. */}
+      {p.id && <HeadingLink id={p.id} />}
     </h2>
   ),
   h3: ({ children, ...p }) => (
