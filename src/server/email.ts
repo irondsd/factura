@@ -26,6 +26,46 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { OtpEmail } from "../../emails/opt";
 import { WelcomeEmail } from "../../emails/welcome";
 
+export class CampaignDeliveryError extends Error {}
+
+/** Manual campaigns fail visibly. Each entry has one recipient, so addresses
+ * are never disclosed to the other people in the campaign. Resend's strict
+ * batch validation rejects the entire batch if any entry is invalid. */
+export async function sendCampaignEmails(
+  messages: { to: string; subject: string; html: string }[],
+  idempotencyKey: string,
+): Promise<string[]> {
+  const r = resend();
+  if (!r)
+    throw new CampaignDeliveryError(
+      "Resend no está configurado. No se envió ningún correo.",
+    );
+  try {
+    const { data, error } = await r.batch.send(
+      messages.map((message) => ({ from: FROM, ...message })),
+      { idempotencyKey, batchValidation: "strict" },
+    );
+    if (error) {
+      console.error("[campaign] Resend rejected batch:", error);
+      throw new CampaignDeliveryError(
+        "Resend rechazó el envío. Revisa la configuración y vuelve a intentarlo.",
+      );
+    }
+    if (!data || data.data.length !== messages.length) {
+      throw new CampaignDeliveryError(
+        "No se pudo confirmar el envío completo. Puedes reintentar el mismo envío sin duplicarlo.",
+      );
+    }
+    return data.data.map((email) => email.id);
+  } catch (error) {
+    if (error instanceof CampaignDeliveryError) throw error;
+    console.error("[campaign] Resend request failed:", error);
+    throw new CampaignDeliveryError(
+      "No se pudo confirmar el envío. Puedes reintentar el mismo envío sin duplicarlo.",
+    );
+  }
+}
+
 const FROM = process.env.EMAIL_FROM ?? "Factura <onboarding@resend.dev>";
 
 /** The recipient's saved preference, or `null` when they have no account yet.

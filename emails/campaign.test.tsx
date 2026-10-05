@@ -139,4 +139,25 @@ describe("CampaignEmail", () => {
       expect(text).toContain(probe);
     }
   });
+
+  it("personalizes all editable header and footer fields", async () => {
+    const text = await renderText(
+      <CampaignEmail
+        content={{
+          ...content,
+          eyebrow: "Hola {name}",
+          headerTag: "Para {name}",
+          footerNote: "Cuenta {email}",
+          footerTagline: "Gracias {name}",
+        }}
+        vars={{ name: "Ada", email: "ada@example.com" }}
+      />,
+    );
+    expect(text).toContain("Hola Ada");
+    expect(text).toContain("Para Ada");
+    expect(text).toContain("Cuenta ada@example.com");
+    expect(text).toContain("Gracias Ada");
+    expect(text).not.toContain("{name}");
+    expect(text).not.toContain("{email}");
+  });
 });

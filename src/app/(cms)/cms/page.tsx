@@ -115,6 +115,15 @@ export default async function CmsHomePage() {
             <li>
               <UserCollectionCard metrics={userMetrics} />
             </li>
+            <li>
+              <CmsToolCard
+                href="/cms/campaigns"
+                icon="mail"
+                label="Campañas"
+                meta="Envío manual"
+                description="Redacta y envía correos de campaña a usuarios registrados."
+              />
+            </li>
             {/* Tokens is a page rather than a modal because minting one shows a
                 secret exactly once — that belongs somewhere you can read it
                 without a dialog over the console. The page checks

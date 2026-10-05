@@ -159,11 +159,11 @@ export function CampaignEmail({
     <FacturaEmail
       locale={locale}
       preheader={fill(content.preheader)}
-      headerTag={chrome.headerTag}
-      eyebrow={content.eyebrow}
+      headerTag={fill(chrome.headerTag)}
+      eyebrow={fill(content.eyebrow)}
       title={fill(content.title)}
-      footerNote={chrome.footerNote}
-      footerTagline={chrome.footerTagline}
+      footerNote={fill(chrome.footerNote)}
+      footerTagline={fill(chrome.footerTagline)}
     >
       {content.blocks.map((block, index) => (
         <CampaignBlockView
