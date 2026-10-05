@@ -1,3 +1,6 @@
+"use client";
+
+import { useId, useState } from "react";
 import { Eyebrow } from "@/components/landing/parts";
 import { SOURCES_SECTION } from "@/content/headings";
 import type { SectionMeta } from "@/content/section";
@@ -34,6 +37,9 @@ export function Fuentes({
    * paragraph is then left off rather than defaulted. */
   license?: { url: string; name?: string };
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const listId = useId();
+
   if (!items || items.length === 0) return null;
 
   return (
@@ -43,9 +49,13 @@ export function Fuentes({
     >
       <Eyebrow>{SOURCES_SECTION.text}</Eyebrow>
 
-      <ul className="mt-5 m-0 flex list-none flex-col gap-3 p-0">
-        {items.map(({ label, href, note }) => (
-          <li key={href} className="font-mono text-[14.5px] leading-[1.7]">
+      <ul id={listId} className="mt-5 m-0 flex list-none flex-col gap-3 p-0">
+        {items.map(({ label, href, note }, index) => (
+          <li
+            key={href}
+            hidden={!expanded && index >= 3}
+            className="font-mono text-[14.5px] leading-[1.7]"
+          >
             <a
               href={href}
               target="_blank"
@@ -58,6 +68,18 @@ export function Fuentes({
           </li>
         ))}
       </ul>
+
+      {items.length > 3 && (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={listId}
+          onClick={() => setExpanded((value) => !value)}
+          className="mt-3 inline-flex min-h-11 cursor-pointer items-center font-mono text-[14px] text-accent underline decoration-dotted underline-offset-[3px] hover:decoration-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+        >
+          {expanded ? "Mostrar menos" : "Mostrar más"}
+        </button>
+      )}
 
       {license && (
         <p className="mt-5 mb-0 font-mono text-[13px] leading-[1.7] text-muted">
