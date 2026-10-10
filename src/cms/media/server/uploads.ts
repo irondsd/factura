@@ -80,6 +80,10 @@ function sharp(): Promise<typeof import("sharp").default> {
   return sharpModule;
 }
 
+/** The same lazy loader, for task screenshots (`src/cms/tasks/server/images`),
+ * so the codec is resolved once per process whichever upload asks first. */
+export const loadSharp = sharp;
+
 export type ProcessedImage = {
   bytes: Buffer;
   mimeType: SupportedMimeType;

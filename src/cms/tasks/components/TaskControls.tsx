@@ -178,7 +178,7 @@ export function DescriptionEditor({
       />
       <span className="text-[11px] text-muted">
         Markdown: listas, casillas, enlaces y bloques de código. ⌘/Ctrl +
-        clic abre un enlace.
+        clic abre un enlace. Pega o arrastra una captura (hasta 2 MB).
       </span>
     </div>
   );

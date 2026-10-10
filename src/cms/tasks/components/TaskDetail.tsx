@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { Button, Field, Input, Select } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { isArchived, relativeAge, shortDate } from "../display";
+import { hasPendingUpload } from "../images";
 import type { TaskOrigin } from "../query";
 import { moveTaskAction, updateTaskAction } from "../server/actions";
 import type { CmsTask, TaskStatus, TaskTag } from "../types";
@@ -47,6 +48,7 @@ export function TaskDetail({
     description !== task.description ||
     !sameTags(tags, task.tags);
   const archived = isArchived(task, now);
+  const uploading = hasPendingUpload(description);
 
   async function move(
     status: TaskStatus,
@@ -127,7 +129,7 @@ export function TaskDetail({
           className="flex flex-col gap-6"
           onSubmit={(event) => {
             event.preventDefault();
-            if (dirty && title.trim() && !busy) void save();
+            if (dirty && title.trim() && !busy && !uploading) void save();
           }}
         >
           <Field label="Título">
@@ -150,9 +152,9 @@ export function TaskDetail({
               type="submit"
               variant="solid"
               size="lg"
-              disabled={busy || !dirty || !title.trim()}
+              disabled={busy || uploading || !dirty || !title.trim()}
             >
-              Guardar cambios
+              {uploading ? "Subiendo imagen…" : "Guardar cambios"}
             </Button>
             {dirty && (
               <Button

@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { useModalChrome } from "@/cms/components/CmsDialog";
 import { descriptionPreview } from "../descriptionPreview";
 import { COLUMN_RULE, matchesTask, relativeAge } from "../display";
+import { hasPendingUpload } from "../images";
 import { taskHref } from "../query";
 import { createTaskAction, moveTaskAction } from "../server/actions";
 import type { CmsTaskSummary, TaskStatus, TaskTag } from "../types";
@@ -438,7 +439,8 @@ function NewTaskDialog({
   const [busy, setBusy] = useState(false);
   const panel = useModalChrome({ busy, onClose });
   const titleField = useRef<HTMLInputElement>(null);
-  const canCreate = Boolean(title.trim()) && !busy;
+  const uploading = hasPendingUpload(description);
+  const canCreate = Boolean(title.trim()) && !busy && !uploading;
 
   // After `useModalChrome` has moved focus to the first control (the ✕).
   useEffect(() => titleField.current?.focus(), []);
@@ -547,7 +549,11 @@ function NewTaskDialog({
           )}
           <div className="flex flex-wrap items-center gap-2 pt-1.5">
             <Button type="submit" variant="solid" size="lg" disabled={!canCreate}>
-              {busy ? "Creando…" : "Crear tarea"}
+              {busy
+                ? "Creando…"
+                : uploading
+                  ? "Subiendo imagen…"
+                  : "Crear tarea"}
             </Button>
             <Button
               type="button"

@@ -14,12 +14,18 @@ import { styleTags, Tag, tags } from "@lezer/highlight";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/cn";
 import { markdownTagStyles } from "@/cms/components/markdownHighlight";
+import { taskEditorImages, uploadTaskImageFile } from "./taskEditorImages";
 import { taskEditorLinks } from "./taskEditorLinks";
+import { useTaskImageOrigin } from "./TaskImageOrigin";
+import { useTaskToast } from "./TaskToast";
 
 // The task description: Markdown source with the page editor's colours, so a
 // heading, a list or a checkbox reads as one while it is being written. No
 // preview — a brief is read in the same place it is written, and highlighted
 // source is legible enough that a second rendering of it only adds a toggle.
+//
+// Screenshots can be pasted or dropped in (`taskEditorImages`): they upload,
+// land as `![](url)`, and are drawn under that line.
 //
 // The page editor's furniture (gutters, toolbar, lint, component assistant) is
 // left out: a task is a few lines, not an article.
@@ -101,6 +107,12 @@ export function TaskDescriptionEditor({
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+  const origin = useTaskImageOrigin();
+  const toast = useTaskToast();
+  const toastRef = useRef(toast);
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   useEffect(() => {
     if (!host.current) return;
@@ -119,6 +131,11 @@ export function TaskDescriptionEditor({
           syntaxHighlighting(highlightStyle),
           theme,
           taskEditorLinks(),
+          taskEditorImages({
+            origin,
+            upload: uploadTaskImageFile,
+            notify: (message) => toastRef.current(message, "error"),
+          }),
           placeholder("Describe qué hay que hacer…"),
           editable.current.of(EditorView.editable.of(!disabled)),
           keymap.of([...keys, ...historyKeymap]),
@@ -169,8 +186,8 @@ export function TaskDescriptionEditor({
         // doesn't jump when CodeMirror arrives.
         "min-h-[calc(var(--task-editor-min-height)+2px)] min-w-0",
         compact
-          ? "bg-paper [--task-editor-min-height:196px]"
-          : "bg-card [--task-editor-min-height:260px] md:[--task-editor-min-height:336px]",
+          ? "bg-paper [--task-editor-bg:var(--paper)] [--task-editor-min-height:196px]"
+          : "bg-card [--task-editor-bg:var(--card)] [--task-editor-min-height:260px] md:[--task-editor-min-height:336px]",
         disabled && "opacity-60",
       )}
     />
