@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import {
   isNotification,
   type JsonRpcMessage,
@@ -33,7 +34,7 @@ const SERVER_INFO = {
 const LEGACY_CAPABILITIES = { tools: { listChanged: false } } as const;
 
 const INSTRUCTIONS = [
-  "Use get_content before update_content. Every mutation requires the current lockVersion.",
+  "Use get_content before update_content; mutations to an existing page require its current lockVersion.",
   "update_content merges patch.metadata into the stored metadata: send only the keys you change, set a key to null to remove it, and every key you leave out is kept. Each key you send replaces that key's whole value — lists such as faq and sources are not merged item by item. parentId is set at create only; a page's parent follows its address.",
   "Editing is always safe: update_content saves a shared working copy that no reader can see, so a page that is already published keeps serving its last publication while you work. Save it normally, without asking.",
   "set_content_status is the only tool that changes what the public sees, and it needs the human's explicit go-ahead each time, in both directions. 'published' publishes the working copy as a new immutable publication; 'draft' takes the page down.",
@@ -41,6 +42,8 @@ const INSTRUCTIONS = [
   "Categories are section-scoped: the same key in two sections means two independent records. list_categories returns the valid keys to put in page metadata. create_category derives the key and slug from the label; update_category can edit copy and order, and those category settings are live immediately.",
   "Locations are global across every authored section. Call list_locations and put one or more returned keys in metadata.locations before requesting preview or publication. Choose the narrow exact area the page directly covers; use argentina only for genuinely nationwide content, never as an automatic ancestor of a province or city.",
   "This endpoint cannot delete anything: there is no delete tool, and pages are retired by status, not removed. Deleting a category or changing any page or category address is a browser-only action a human performs at /cms; address changes leave redirects behind.",
+  "Tasks are the work board. list_tasks defaults to the active board; use its archive or dismissed views for the other tasks, and get_task accepts either a UUID or TASK-N reference. Create a task or edit its title, description or tags only when the human explicitly asked for that; ordinary agent use may read tasks and move their status as work progresses.",
+  "Agents may move work to done when a pull request exists or content exists, even as a draft; merge or publication is not required. completionNote is appended beneath ### Result, is allowed only when moving to done, and supports at most 300 visible Unicode characters excluding Markdown URL destinations. The input is not stored separately, so completion URLs go in the note. Reopening clears the completion time. Dismiss tasks instead of deleting them; task ids and references are never reused. Tasks have no owners, assignees, activity log or lock versions.",
 ].join(" ");
 
 /** How long a client may treat a list as fresh.
@@ -232,6 +235,10 @@ function pageId(input: unknown): string | null {
     : null;
 }
 
+function uuid(value: string | null): string | null {
+  return value && z.uuid().safeParse(value).success ? value : null;
+}
+
 type AuditTarget = {
   pageId: string | null;
   resourceType: string | null;
@@ -243,6 +250,14 @@ function auditTarget(
   input: unknown,
   output?: unknown,
 ): AuditTarget {
+  if (["create_task", "update_task", "move_task"].includes(operation)) {
+    // References such as TASK-42 are accepted by the task API, but the audit
+    // column is UUID typed. On success, use the task returned by the service
+    // so a reference can still be attributed to its actual row; on failure,
+    // retain an input id only when it is already a UUID.
+    const taskId = uuid(pageId(output)) ?? uuid(pageId(input));
+    return { pageId: null, resourceType: "task", resourceId: taskId };
+  }
   const id = pageId(input) ?? pageId(output);
   if (operation.endsWith("_category"))
     return { pageId: null, resourceType: "category", resourceId: id };

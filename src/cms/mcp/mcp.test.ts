@@ -93,6 +93,8 @@ describe("tool listing", () => {
   it("shows a read-only token only the read tools", () => {
     const names = cmsToolListing(["cms:read"]).map((tool) => tool.name);
     expect(names).toEqual([
+      "list_tasks",
+      "get_task",
       "list_content",
       "get_content",
       "list_categories",
@@ -114,6 +116,9 @@ describe("tool listing", () => {
     expect(names).toContain("create_content");
     expect(names).toContain("update_content");
     expect(names).toContain("set_content_status");
+    expect(names).toContain("create_task");
+    expect(names).toContain("update_task");
+    expect(names).toContain("move_task");
     expect(names).toContain("restore_content_version");
     expect(names).toContain("discard_content_wip");
     expect(names).toContain("create_media_upload");
@@ -208,6 +213,9 @@ describe("tool listing", () => {
       "create_content",
       "update_content",
       "set_content_status",
+      "create_task",
+      "update_task",
+      "move_task",
     ]) {
       expect(findCmsTool(name)?.scope).toBe("cms:write");
     }
@@ -573,6 +581,9 @@ describe("scope enforcement", () => {
       "create_content",
       "update_content",
       "set_content_status",
+      "create_task",
+      "update_task",
+      "move_task",
     ]) {
       const response = await call(name, {}, ["cms:read"]);
       expect(resultOf(response).isError, name).toBe(true);

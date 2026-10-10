@@ -78,6 +78,15 @@ export default async function CmsHomePage() {
           <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2 lg:grid-cols-1">
             <li>
               <CmsToolCard
+                href="/cms/tasks"
+                icon="list"
+                label="Tareas"
+                meta="Tablero compartido"
+                description="Organiza contenido, desarrollo e investigación, también con agentes."
+              />
+            </li>
+            <li>
+              <CmsToolCard
                 href="/cms/media"
                 icon="image"
                 label="Medios"

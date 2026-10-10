@@ -27,17 +27,8 @@ type NavLink = { href: string; label: string };
 // than the things you edit. The search took its place: reachable from every
 // screen is exactly what a search wants and what a token page never did.
 const NAV: readonly NavLink[] = [
-  // { href: "/cms", label: "Secciones" },
-  ...CMS_SECTIONS.filter((section) => section.status === "live").map(
-    (section) => ({
-      href: cmsSectionPath(section.id),
-      label: section.label,
-    }),
-  ),
-  // After the authored sections: media is a thing every editor touches.
-  // «Destacados» is not here for the same reason «Tokens» is not: it is opened
-  // now and then, and lives in the CMS home's sidebar with the other tools.
   { href: "/cms/media", label: "Medios" },
+  { href: "/cms/tasks", label: "Tareas" },
 ];
 
 export function CmsShell({

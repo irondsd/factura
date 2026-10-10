@@ -16,6 +16,14 @@ import { cmsMediaService } from "@/cms/media/server/service";
 import { cmsCategoryService } from "@/cms/categories/server/service";
 import { cmsAuthorService } from "@/cms/authors/server/service";
 import { cmsLocationService } from "@/cms/locations/server/service";
+import { cmsTaskService } from "@/cms/tasks/server/service";
+import {
+  createTaskSchema,
+  listTaskSchema,
+  moveTaskSchema,
+  taskIdentifierSchema,
+  updateTaskSchema,
+} from "@/cms/tasks/inputs";
 import { hasScope, type CmsTokenCaller, type CmsScope } from "./tokens";
 
 const section = sectionSchema;
@@ -85,6 +93,72 @@ const writes = (title: string, destructiveHint = false): ToolAnnotations => ({
   openWorldHint: false,
 });
 export const CMS_TOOLS: Tool[] = [
+  // ── tasks ───────────────────────────────────────────────────────────────
+  {
+    name: "list_tasks",
+    scope: "cms:read",
+    description:
+      "List CMS work tasks. The default view is the active board; choose archive for older completed tasks, dismissed for dismissed tasks, or all. Filter by status (backlog, todo, in_progress, done, dismissed), tag (content, dev, research) or search; each row includes a short plain-text descriptionPreview, while get_task returns the full Markdown description.",
+    annotations: readOnly("Listar tareas"),
+    schema: listTaskSchema,
+    run: (a, input) =>
+      cmsTaskService.list(
+        a,
+        input as Parameters<typeof cmsTaskService.list>[1],
+      ),
+  },
+  {
+    name: "get_task",
+    scope: "cms:read",
+    description:
+      "Get one task by its UUID or stable TASK-N reference, including its description, tags, status and timestamps.",
+    annotations: readOnly("Ver una tarea"),
+    schema: z.object({ id: taskIdentifierSchema }).strict(),
+    run: (a, input) =>
+      cmsTaskService.get(
+        a,
+        (input as { id: Parameters<typeof cmsTaskService.get>[1] }).id,
+      ),
+  },
+  {
+    name: "create_task",
+    scope: "cms:write",
+    description:
+      "Create a CMS work task in backlog. Only call this when the human explicitly asked you to create a task. Tasks cannot be deleted; dismiss a task to take it off the active board.",
+    annotations: writes("Crear una tarea"),
+    schema: createTaskSchema,
+    run: (a, input) =>
+      cmsTaskService.create(
+        a,
+        input as Parameters<typeof cmsTaskService.create>[1],
+      ),
+  },
+  {
+    name: "update_task",
+    scope: "cms:write",
+    description:
+      "Edit a task's title, description or tags. Only call this when the human explicitly asked you to change those details. Task edits do not use content lock versions.",
+    annotations: writes("Editar una tarea"),
+    schema: updateTaskSchema,
+    run: (a, input) =>
+      cmsTaskService.update(
+        a,
+        input as Parameters<typeof cmsTaskService.update>[1],
+      ),
+  },
+  {
+    name: "move_task",
+    scope: "cms:write",
+    description:
+      "Move a task to backlog, todo, in_progress, done or dismissed. For columns other than done, beforeId can place it before another task or null moves it to the end; done tasks sort by completion time. Agents may mark work done when a pull request exists or content exists, including as a draft; merging or publishing is not required. completionNote is appended under ### Result, only allowed when moving to done, and supports up to 300 visible Unicode characters excluding Markdown URL destinations. Completion URLs belong in this note; no separate note or URL field is stored.",
+    annotations: writes("Mover una tarea"),
+    schema: moveTaskSchema,
+    run: (a, input) =>
+      cmsTaskService.move(
+        a,
+        input as Parameters<typeof cmsTaskService.move>[1],
+      ),
+  },
   {
     name: "list_content",
     scope: "cms:read",
