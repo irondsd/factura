@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { CONTRACT_TYPES, contractPath } from "@/lib/rental-contract/model";
 import {
   nonEmptyCategories,
   publishedGuides,
@@ -247,6 +248,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // the reading order of anyone — or anything — walking the file top to bottom.
   return [
     ...landing,
+    ...CONTRACT_TYPES.map((type) => ({
+      url: localeUrl(contractPath(type), "es"),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
     ...sectionEntries,
     ...guidesEntries,
     ...locationEntries,

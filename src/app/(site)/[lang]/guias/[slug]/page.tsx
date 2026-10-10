@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ContentArticle } from "@/components/article/ContentArticle";
+import { GeneratorLink } from "@/components/rental-contract/GeneratorLink";
 import { Faq } from "@/components/article/Faq";
 import { RelatedGuides } from "@/components/guides/RelatedGuides";
 import { Fuentes } from "@/components/section/Fuentes";
@@ -109,6 +110,7 @@ export default async function GuidePage({ params }: Props) {
         </>
       }
     >
+      <GeneratorLink slug={guide.slug} />
       <Content
         components={contentComponents({
           // Resolved from the body in one query before this renders, so an

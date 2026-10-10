@@ -1,0 +1,346 @@
+.builder {
+  margin: 2.5rem 0 4rem;
+  min-width: 0;
+}
+.typeNav {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.typeNav a {
+  padding: 0.8rem 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+.typeNav a[aria-current] {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+.workspace {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 2.5rem;
+  align-items: start;
+}
+.sidebar {
+  position: sticky;
+  top: 90px;
+}
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+.steps button {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  text-align: left;
+  width: 100%;
+  padding: 0.65rem 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.steps button span {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.steps [aria-current] button {
+  color: var(--ink);
+}
+.steps [aria-current] span {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+.steps button:disabled {
+  cursor: default;
+}
+.privacy {
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--muted);
+  padding-top: 1.5rem;
+  border-top: 1px dashed var(--line);
+  margin-top: 1.5rem;
+}
+.guideLink {
+  font-size: 12px;
+  display: block;
+  color: var(--accent);
+  margin-top: 1rem;
+  text-underline-offset: 4px;
+}
+.panel {
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--line);
+  padding: 2rem;
+}
+.stepHeader {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+}
+.stepHeader p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+.stepHeader h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 29px;
+  line-height: 1.2;
+  outline: none;
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 1rem;
+}
+.field {
+  margin-bottom: 1.2rem;
+  min-width: 0;
+}
+.field label {
+  display: block;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 0.4rem;
+}
+.optional {
+  color: var(--muted);
+  font-size: 10px;
+}
+.input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  border-radius: 0;
+}
+textarea.input {
+  resize: vertical;
+  line-height: 1.6;
+}
+.input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.input[aria-invalid="true"] {
+  border-color: var(--accent);
+}
+.hint {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-top: 0.45rem;
+}
+.error {
+  font-size: 12px;
+  color: #9e3008;
+  line-height: 1.6;
+  margin-top: 0.4rem;
+}
+.errorSummary {
+  color: #9e3008;
+  border-left: 2px solid var(--accent);
+  padding-left: 0.8rem;
+  margin-bottom: 1.5rem;
+  font-size: 13px;
+}
+.people {
+  border: 0;
+  margin: 1.75rem 0;
+  padding: 0;
+  min-width: 0;
+}
+.people legend {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 21px;
+  margin-bottom: 1rem;
+}
+.person {
+  border-bottom: 1px dashed var(--line);
+  margin-bottom: 1rem;
+}
+.personTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 12px;
+  margin-bottom: 1rem;
+}
+.textButton {
+  color: var(--accent);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 1.25rem 0;
+}
+.checkbox input {
+  accent-color: var(--accent);
+  margin-top: 0.3rem;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.notice {
+  background: var(--paper);
+  border-left: 2px solid var(--line);
+  padding: 1rem;
+  font-size: 12px;
+  line-height: 1.8;
+  margin-bottom: 1.5rem;
+}
+.notice p + p {
+  margin-top: 0.6rem;
+}
+.notice .checkbox {
+  margin-bottom: 0;
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+}
+.review {
+  border: 1px solid var(--line);
+  margin-bottom: 1.5rem;
+}
+.review summary {
+  font-size: 13px;
+  padding: 1rem;
+  cursor: pointer;
+}
+.document {
+  padding: 1rem 1.25rem 1.5rem;
+  border-top: 1px solid var(--line);
+  max-height: 560px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+.document h3 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.3;
+  margin-bottom: 1rem;
+}
+.document h4 {
+  font-family: var(--font-display);
+  font-size: 17px;
+  margin: 1.25rem 0 0.5rem;
+}
+.document p {
+  font-size: 12px;
+  line-height: 1.85;
+  white-space: pre-line;
+}
+.download {
+  margin-top: 1.5rem;
+}
+.download > p:first-child {
+  font-family: var(--font-display);
+  font-size: 25px;
+  margin-bottom: 1rem;
+}
+.download > a + a {
+  display: inline-block;
+  margin: 0.8rem 1rem;
+}
+.pdfPreview {
+  width: 100%;
+  height: 600px;
+  border: 1px solid var(--line);
+  margin-top: 1rem;
+}
+.builder a:focus-visible,
+.builder button:focus-visible,
+.builder summary:focus-visible,
+.builder input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+@media (max-width: 760px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .sidebar {
+    position: static;
+  }
+  .steps {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .steps li {
+    flex: 1;
+  }
+  .steps button {
+    font-size: 10px;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.3rem 0;
+    line-height: 1.5;
+    align-items: flex-start;
+  }
+  .privacy {
+    padding-top: 0.8rem;
+    margin-top: 0.8rem;
+  }
+  .guideLink {
+    margin: 0.6rem 0 0.5rem;
+  }
+  .panel {
+    padding: 1.25rem;
+  }
+  .pdfPreview {
+    height: 430px;
+  }
+}
+@media (max-width: 480px) {
+  .fields {
+    grid-template-columns: 1fr;
+  }
+  .typeNav {
+    gap: 1rem;
+  }
+  .typeNav a {
+    font-size: 11px;
+  }
+  .panel {
+    padding: 1rem;
+  }
+  .actions {
+    justify-content: stretch;
+  }
+  .actions button {
+    flex: 1;
+  }
+}

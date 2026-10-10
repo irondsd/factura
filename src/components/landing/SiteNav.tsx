@@ -68,6 +68,12 @@ export function siteFooterColumns(
         { label: t.nav.demo, href: "/demo" },
         { label: t.nav.docs, href: "/docs" },
         { label: t.nav.signIn, href: "/login" },
+        ...(locale === "es"
+          ? [
+              { label: "Contrato de vivienda", href: "/contratos/vivienda" },
+              { label: "Contrato comercial", href: "/contratos/comercial" },
+            ]
+          : []),
       ],
     },
     {

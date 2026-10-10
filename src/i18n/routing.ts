@@ -30,6 +30,7 @@ export function localizedHref(path: string, locale: Locale): string {
 // there. One list rather than a check per section — the previous single
 // hardcoded `/guias` test is exactly what goes stale when a section is added.
 const SPANISH_ONLY_PREFIXES = [
+  "/contratos",
   "/guias",
   "/noticias",
   "/estadisticas",
