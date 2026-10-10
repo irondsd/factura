@@ -30,6 +30,7 @@ import { tags } from "@lezer/highlight";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Diagnostic } from "@/content-system/types";
 import styles from "./MarkdownEditor.module.css";
+import { markdownTagStyles } from "./markdownHighlight";
 import { componentAssistantExtension } from "../component-assistant/extension";
 import type {
   ComponentCompletionDescriptor,
@@ -50,20 +51,11 @@ import {
 // Assembled from CodeMirror's modules rather than the `codemirror` bundle, so
 // the editor page ships the six extensions it uses and not the whole kitchen.
 
-/** Syntax colours, in the site's own palette. Deliberately quiet: this is a
- * prose editor, and a rainbow makes an article harder to read than plain text
- * would be. Structure (headings, links, code) is what gets emphasis. */
+/** The shared Markdown colours, plus the JSX a page body can hold: the
+ * component tags, which are the one thing here that is not prose and worth
+ * being able to pick out at a glance. */
 const highlightStyle = HighlightStyle.define([
-  { tag: tags.heading, color: "var(--ink)", fontWeight: "600" },
-  { tag: tags.strong, fontWeight: "600", color: "var(--ink)" },
-  { tag: tags.emphasis, fontStyle: "italic" },
-  { tag: tags.link, color: "var(--accent)" },
-  { tag: tags.url, color: "var(--muted)" },
-  { tag: tags.monospace, color: "var(--accent)" },
-  { tag: tags.quote, color: "var(--muted)", fontStyle: "italic" },
-  { tag: tags.list, color: "var(--accent)" },
-  // JSX in the body: the component tags, which are the one thing here that is
-  // not prose and worth being able to pick out at a glance.
+  ...markdownTagStyles,
   { tag: tags.tagName, color: "var(--accent)" },
   { tag: tags.attributeName, color: "var(--muted)" },
   { tag: tags.attributeValue, color: "var(--ink)" },

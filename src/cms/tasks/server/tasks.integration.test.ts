@@ -170,6 +170,34 @@ if (!hasTestDatabase()) {
       });
     });
 
+    it("puts new tasks on top of the backlog and predicts the next number", async () => {
+      await isolated(async (service) => {
+        const older = await create(service, "older");
+        const predicted = await service.nextNumber();
+        const newer = await create(service, "newer");
+        expect(newer.number).toBe(predicted);
+
+        const backlog = await service.list(actor, {
+          statuses: ["backlog"],
+          search: PREFIX,
+        });
+        expect(backlog.tasks.map((task) => task.id)).toEqual([
+          newer.id,
+          older.id,
+        ]);
+      });
+    });
+
+    it("lists every task in a view across pages", async () => {
+      await isolated(async (service) => {
+        const first = await create(service, "list-all");
+        const all = await service.listAll(actor, "board");
+        expect(all.map((task) => task.id)).toContain(first.id);
+        const { total } = await service.list(actor, { view: "board" });
+        expect(all).toHaveLength(total);
+      });
+    });
+
     it("lists readable previews without returning the full description", async () => {
       await isolated(async (service) => {
         const task = await create(service, "description-preview", {

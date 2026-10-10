@@ -393,7 +393,7 @@ tag and text filters. A task can be found by UUID or its stable `TASK-N`
 reference.
 
 The statuses are `backlog`, `todo`, `in_progress`, `done` and `dismissed`.
-New tasks start in `backlog`; the available tags are `content`, `dev` and
+New tasks start at the top of `backlog`; the available tags are `content`, `dev` and
 `research`.
 Recently completed tasks stay on the board for seven days, then appear in the
 archive; dismissed tasks have their own view. Reopening a completed task clears

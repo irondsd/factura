@@ -228,14 +228,26 @@ export class CmsTaskStore {
     return rows.map((row) => row.id);
   }
 
-  async nextBacklogPosition(): Promise<number> {
-    const [row] = await this.database
-      .select({
-        value: sql<number>`coalesce(max(${cmsTasks.position}), -1) + 1`,
-      })
-      .from(cmsTasks)
+  /** Make room at the top of the backlog: new tasks go first, since the
+   * newest idea is the one somebody is about to triage. Only positions move —
+   * the shifted tasks keep their `updated_at`, which a card shows as its age. */
+  async shiftBacklogDown(): Promise<void> {
+    await this.database
+      .update(cmsTasks)
+      .set({ position: sql`${cmsTasks.position} + 1` })
       .where(eq(cmsTasks.status, "backlog"));
-    return row?.value ?? 0;
+  }
+
+  /** The number the next insert will receive, read from the identity sequence
+   * rather than `max(number) + 1`, which is wrong after a rolled-back insert
+   * consumed a value. A guess for display only — a concurrent create can still
+   * take it first. */
+  async nextNumber(): Promise<number> {
+    const rows = await this.database.execute<{ last: string | null }>(
+      sql`select pg_sequence_last_value(pg_get_serial_sequence('cms_task', 'task_number'))::text as last`,
+    );
+    const last = rows[0]?.last;
+    return last == null ? 1 : Number(last) + 1;
   }
 
   async insert(input: {

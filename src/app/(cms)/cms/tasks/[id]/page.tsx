@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { requireCmsMember } from "@/cms/auth/requireCmsMember";
-import { CmsPageHeader } from "@/cms/components/CmsPageHeader";
 import { CmsShell } from "@/cms/components/CmsShell";
 import { cmsPageMetadata } from "@/cms/metadata";
 import { CmsNotFoundError } from "@/cms/server/errors";
 import { TaskDetail } from "@/cms/tasks/components/TaskDetail";
 import { taskIdentifierSchema } from "@/cms/tasks/inputs";
+import { taskOrigin, type TaskSearchParams } from "@/cms/tasks/query";
 import { cmsTaskService } from "@/cms/tasks/server/service";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +15,10 @@ export function generateMetadata() {
 
 export default async function CmsTaskPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<TaskSearchParams>;
 }) {
   const actor = await requireCmsMember("/cms/tasks");
   const { id } = await params;
@@ -27,12 +29,14 @@ export default async function CmsTaskPage({
   });
   return (
     <CmsShell actor={actor}>
-      <CmsPageHeader
-        back={{ href: "/cms/tasks", label: "Tareas" }}
-        eyebrow={task.reference}
-        title={task.title}
+      {/* Keyed by task, so moving between tasks never carries one's unsaved
+          edits into the next. */}
+      <TaskDetail
+        key={task.id}
+        task={task}
+        from={taskOrigin(await searchParams)}
+        now={new Date().toISOString()}
       />
-      <TaskDetail task={task} />
     </CmsShell>
   );
 }

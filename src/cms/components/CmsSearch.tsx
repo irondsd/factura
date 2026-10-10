@@ -86,14 +86,13 @@ export function CmsSearch() {
         type="button"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
-        className="inline-flex min-h-11 cursor-pointer items-center gap-2 border border-line bg-paper px-2.5 py-1 font-mono text-micro uppercase tracking-label-wide text-muted transition-colors hover:border-accent hover:text-accent lg:min-h-0"
+        className="inline-flex min-h-11 cursor-pointer items-center gap-6 border border-line bg-transparent px-2.5 py-1.5 font-mono text-micro uppercase tracking-label text-muted transition-colors hover:border-ink hover:text-ink lg:min-h-0"
       >
-        <CmsIcon name="search" size="sm" />
-        Buscar
+        <span>Buscar</span>
         {/* The shortcut is shown where there is room for it and dropped where
             there is not — on a touch screen it is a label for a key that does
             not exist. */}
-        <kbd className="hidden font-mono text-[11px] opacity-60 sm:inline">
+        <kbd className="hidden font-mono text-micro tracking-normal sm:inline">
           ⌘K
         </kbd>
       </button>

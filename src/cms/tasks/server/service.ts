@@ -14,11 +14,15 @@ import {
   taskIdentifierSchema,
   updateTaskSchema,
 } from "../inputs";
-import type { CmsTask, CmsTaskSummary, TaskStatus } from "../types";
+import { ARCHIVE_AGE_MS } from "../display";
+import type {
+  CmsTask,
+  CmsTaskSummary,
+  TaskStatus,
+  TaskView,
+} from "../types";
 import type { EditableTaskFields } from "./store";
 import { CmsTaskStore, cmsTaskStore } from "./store";
-
-const ARCHIVE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 function taskIn(
   store: CmsTaskStore,
@@ -70,6 +74,29 @@ export class CmsTaskService {
     });
   }
 
+  /** Every task in a view, page by page. The board and the archive filter in
+   * the browser, so they need the whole set rather than one page of it. */
+  async listAll(
+    actor: CmsActor,
+    view: TaskView,
+  ): Promise<CmsTaskSummary[]> {
+    const tasks: CmsTaskSummary[] = [];
+    for (;;) {
+      const page = await this.list(actor, {
+        view,
+        limit: 200,
+        offset: tasks.length,
+      });
+      tasks.push(...page.tasks);
+      if (!page.tasks.length || tasks.length >= page.total) return tasks;
+    }
+  }
+
+  /** Display-only preview of the next task's reference. */
+  nextNumber(): Promise<number> {
+    return this.store.nextNumber();
+  }
+
   async get(_actor: CmsActor, rawIdentifier: unknown): Promise<CmsTask> {
     const identifier = parseInput(taskIdentifierSchema, rawIdentifier);
     const task = await taskIn(this.store, identifier);
@@ -83,11 +110,8 @@ export class CmsTaskService {
     const now = this.clock();
     return this.store.transaction(async (store) => {
       await store.lockOrdering();
-      return store.insert({
-        ...input,
-        position: await store.nextBacklogPosition(),
-        now,
-      });
+      await store.shiftBacklogDown();
+      return store.insert({ ...input, position: 0, now });
     });
   }
 

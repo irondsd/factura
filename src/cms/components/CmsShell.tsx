@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { CmsActor } from "../types";
-import { CMS_SECTIONS, cmsSectionPath } from "../sections";
+import { CmsNav } from "./CmsNav";
 import { CmsSearch } from "./CmsSearch";
 import { CmsIcon } from "../icons";
 
@@ -31,6 +31,22 @@ const NAV: readonly NavLink[] = [
   { href: "/cms/tasks", label: "Tareas" },
 ];
 
+/** Two letters for the account badge, from the words of a name only — «Claude
+ * (agent)» is «CA», not «C(». An email falls back to its letters too. */
+function initials(name: string): string {
+  const words = name.match(/\p{L}+/gu) ?? [];
+  return words
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+}
+
+const ROLE_LABELS: Record<CmsActor["role"], string> = {
+  admin: "Admin",
+  editor: "Editor",
+};
+
 export function CmsShell({
   actor,
   children,
@@ -38,39 +54,36 @@ export function CmsShell({
   actor: CmsActor;
   children: ReactNode;
 }) {
+  const displayName = actor.name || actor.email || actor.userId;
   return (
     <div className="min-h-full flex flex-col bg-paper text-ink">
       {/* The banner says what this is on every screen. There is one CMS and it
           edits the live public site; a tab that looks like the app is exactly
           the confusion worth spending a header on. */}
-      <header className="border-b border-line">
-        <div className="relative mx-auto flex w-full max-w-[1100px] items-center gap-2 px-4 py-3 sm:px-5 lg:gap-6 lg:py-4">
+      <header className="sticky top-0 z-20 border-b border-line bg-[color-mix(in_srgb,var(--card)_70%,transparent)] backdrop-blur-[4px]">
+        <div className="relative mx-auto flex w-full max-w-[1100px] items-center gap-2 px-4 py-3 sm:px-5 lg:gap-8 lg:py-3.5">
           <Link
             href="/cms"
-            className="shrink-0 font-display font-semibold text-[19px] tracking-[-0.02em] no-underline text-ink"
+            className="shrink-0 font-display font-semibold text-[20px] tracking-[-0.01em] no-underline text-ink"
           >
             Factura<span className="text-accent">.</span>CMS
           </Link>
-          <nav className="hidden items-center gap-4 lg:flex" aria-label="CMS">
-            {NAV.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="font-mono text-micro uppercase tracking-label-wide text-muted no-underline transition-colors hover:text-accent"
-              >
-                {l.label}
-              </Link>
-            ))}
-          </nav>
+          <CmsNav links={NAV} />
           <div className="ml-auto lg:ml-0">
             <CmsSearch />
           </div>
-          <div className="ml-auto hidden flex-col gap-0 lg:flex">
-            <span className="ml-auto text-micro uppercase tracking-label-wide text-muted">
-              {actor.name || actor.email || actor.userId}
-            </span>
-            <span className="ml-auto text-micro uppercase tracking-label-wide text-accent">
-              {actor.role}
+          <div className="ml-auto hidden items-center gap-2.5 lg:flex">
+            <div className="text-right leading-[1.3]">
+              <div className="font-mono text-xs text-ink">{displayName}</div>
+              <div className="fd-label text-[10px] text-accent">
+                {ROLE_LABELS[actor.role]}
+              </div>
+            </div>
+            <span
+              aria-hidden="true"
+              className="grid size-[30px] place-items-center bg-ink font-mono text-[11px] tracking-[0.08em] text-paper"
+            >
+              {initials(displayName)}
             </span>
           </div>
 
@@ -99,10 +112,20 @@ export function CmsShell({
                 ))}
               </nav>
               <div className="mt-3 flex items-center justify-between border-t border-line pt-3 font-mono text-micro uppercase tracking-label-wide">
-                <span className="min-w-0 truncate text-muted">
-                  {actor.name || actor.email || actor.userId}
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    aria-hidden="true"
+                    className="grid size-[30px] shrink-0 place-items-center bg-ink text-[11px] tracking-[0.08em] text-paper normal-case"
+                  >
+                    {initials(displayName)}
+                  </span>
+                  <span className="min-w-0 truncate text-muted">
+                    {displayName}
+                  </span>
                 </span>
-                <span className="ml-4 shrink-0 text-accent">{actor.role}</span>
+                <span className="ml-4 shrink-0 text-accent">
+                  {ROLE_LABELS[actor.role]}
+                </span>
               </div>
             </div>
           </details>

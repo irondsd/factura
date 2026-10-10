@@ -1,182 +1,268 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CmsIcon } from "@/cms/icons";
-import type { CmsTask, TaskStatus } from "../types";
+import { useState, type ReactNode } from "react";
+import { Button, Field, Input, Select } from "@/components/ui";
+import { cn } from "@/lib/cn";
+import { isArchived, relativeAge, shortDate } from "../display";
+import type { TaskOrigin } from "../query";
 import { moveTaskAction, updateTaskAction } from "../server/actions";
-import { DescriptionEditor, STATUS_LABELS, TagPicker } from "./TaskControls";
-import styles from "./Tasks.module.css";
+import type { CmsTask, TaskStatus, TaskTag } from "../types";
+import {
+  BOARD_STATUSES,
+  DescriptionEditor,
+  STATUS_LABELS,
+  TagPicker,
+  TaskHeading,
+} from "./TaskControls";
+import { useTaskToast } from "./TaskToast";
 
-export function TaskDetail({ task: initial }: { task: CmsTask }) {
+const BACK: Record<TaskOrigin, { href: string; label: string }> = {
+  board: { href: "/cms/tasks", label: "Tareas" },
+  archive: { href: "/cms/tasks/archive", label: "Archivo" },
+  dismissed: { href: "/cms/tasks/archive?view=dismissed", label: "Archivo" },
+};
+
+const sameTags = (a: TaskTag[], b: TaskTag[]) =>
+  [...a].sort().join() === [...b].sort().join();
+
+export function TaskDetail({
+  task: initial,
+  from,
+  now,
+}: {
+  task: CmsTask;
+  from: TaskOrigin;
+  now: string;
+}) {
   const router = useRouter();
+  const toast = useTaskToast();
   const [task, setTask] = useState(initial);
   const [title, setTitle] = useState(initial.title);
   const [description, setDescription] = useState(initial.description);
   const [tags, setTags] = useState(initial.tags);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [busy, startTransition] = useTransition();
+  const [busy, setBusy] = useState(false);
   const dirty =
     title !== task.title ||
     description !== task.description ||
-    JSON.stringify(tags) !== JSON.stringify(task.tags);
+    !sameTags(tags, task.tags);
+  const archived = isArchived(task, now);
 
-  function move(status: TaskStatus) {
-    setMessage("");
-    setError("");
-    startTransition(async () => {
-      try {
-        const result = await moveTaskAction({ id: task.id, status });
-        if (!result.ok) {
-          setError(result.message);
-          return;
-        }
-        setTask(result.data);
-        // Preserve an editor's unsaved text when only the task status changes.
-        if (title === task.title) setTitle(result.data.title);
-        if (description === task.description)
-          setDescription(result.data.description);
-        if (JSON.stringify(tags) === JSON.stringify(task.tags))
-          setTags(result.data.tags);
-        setMessage(`Estado: ${STATUS_LABELS[result.data.status]}.`);
-        router.refresh();
-      } catch {
-        setError("No se pudo cambiar el estado. Intenta de nuevo.");
-      }
+  async function move(
+    status: TaskStatus,
+    message: string,
+    kind: "ok" | "warn" = "ok",
+  ): Promise<boolean> {
+    const previous = task;
+    setTask({
+      ...task,
+      status,
+      completedAt:
+        status === "done"
+          ? task.status === "done"
+            ? task.completedAt
+            : new Date().toISOString()
+          : null,
     });
+    setBusy(true);
+    try {
+      const result = await moveTaskAction({ id: task.id, status });
+      if (!result.ok) {
+        setTask(previous);
+        toast(result.message, "error");
+        return false;
+      }
+      // Status only: unsaved edits in the form stay as they are.
+      setTask(result.data);
+      toast(message, kind);
+      router.refresh();
+      return true;
+    } catch {
+      setTask(previous);
+      toast("No se pudo cambiar el estado. Intenta de nuevo.", "error");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function save() {
+    // Send only edited fields. A status update from an agent never needs to
+    // overwrite the brief, and neither does an unchanged form field.
+    const patch = {
+      ...(title !== task.title ? { title } : {}),
+      ...(description !== task.description ? { description } : {}),
+      ...(!sameTags(tags, task.tags) ? { tags } : {}),
+    };
+    setBusy(true);
+    try {
+      const result = await updateTaskAction({ id: task.id, patch });
+      if (!result.ok) {
+        toast(result.message, "error");
+        return;
+      }
+      setTask(result.data);
+      setTitle(result.data.title);
+      setDescription(result.data.description);
+      setTags(result.data.tags);
+      toast(`Cambios guardados · ${result.data.reference}`);
+      router.refresh();
+    } catch {
+      toast("No se pudieron guardar los cambios. Intenta de nuevo.", "error");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <>
-      {error && (
-        <p className={styles.error} role="alert">
-          {error}
-        </p>
-      )}
-      {message && (
-        <p className={styles.message} role="status">
-          {message}
-        </p>
-      )}
-      <div className={styles.detail}>
+    <div className="mx-auto flex max-w-[60rem] flex-col gap-7">
+      <TaskHeading
+        back={BACK[from]}
+        eyebrow={task.reference}
+        title={title.trim() || "Sin título"}
+      />
+
+      <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,1fr)_260px] md:gap-10">
         <form
-          className={styles.form}
+          className="flex flex-col gap-6"
           onSubmit={(event) => {
             event.preventDefault();
-            setError("");
-            setMessage("");
-            // Send only edited fields. A status update from an agent never needs
-            // to overwrite the brief, and neither does an unchanged form field.
-            const patch = {
-              ...(title !== task.title ? { title } : {}),
-              ...(description !== task.description ? { description } : {}),
-              ...(JSON.stringify(tags) !== JSON.stringify(task.tags)
-                ? { tags }
-                : {}),
-            };
-            startTransition(async () => {
-              try {
-                const result = await updateTaskAction({ id: task.id, patch });
-                if (!result.ok) {
-                  setError(result.message);
-                  return;
-                }
-                setTask(result.data);
-                setTitle(result.data.title);
-                setDescription(result.data.description);
-                setTags(result.data.tags);
-                setMessage("Cambios guardados.");
-                router.refresh();
-              } catch {
-                setError(
-                  "No se pudieron guardar los cambios. Intenta de nuevo.",
-                );
-              }
-            });
+            if (dirty && title.trim() && !busy) void save();
           }}
         >
-          <label className={styles.field}>
-            Título
-            <input
-              className={styles.input}
+          <Field label="Título">
+            <Input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               maxLength={180}
-              required
               disabled={busy}
+              className="bg-card! py-2.5! text-[15px]!"
             />
-          </label>
+          </Field>
           <DescriptionEditor
             value={description}
             onChange={setDescription}
             disabled={busy}
           />
           <TagPicker value={tags} onChange={setTags} disabled={busy} />
-          <div className={styles.actions}>
-            <button
+          <div className="flex flex-wrap items-center gap-3 border-t border-line pt-5">
+            <Button
               type="submit"
-              className={styles.primary}
+              variant="solid"
+              size="lg"
               disabled={busy || !dirty || !title.trim()}
             >
-              <CmsIcon name="save" size="sm" />
-              {busy ? "Guardando…" : "Guardar cambios"}
-            </button>
-            {dirty && <span className={styles.hint}>Cambios sin guardar</span>}
+              Guardar cambios
+            </Button>
+            {dirty && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="lg"
+                disabled={busy}
+                onClick={() => {
+                  setTitle(task.title);
+                  setDescription(task.description);
+                  setTags(task.tags);
+                }}
+              >
+                Deshacer
+              </Button>
+            )}
+            <span
+              role="status"
+              className={cn("text-xs", dirty ? "text-accent" : "text-muted")}
+            >
+              {dirty ? "△ cambios sin guardar" : "Sin cambios"}
+            </span>
           </div>
         </form>
-        <aside className={styles.sidebar} aria-label="Estado de la tarea">
-          <label className={styles.field}>
-            Estado
-            <select
-              className={styles.select}
-              value={task.status}
-              disabled={busy}
-              onChange={(event) => move(event.target.value as TaskStatus)}
-            >
-              {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {task.completedAt && (
-            <p>
-              Completada el{" "}
-              {new Intl.DateTimeFormat("es-AR", {
-                dateStyle: "medium",
-                timeZone: "America/Argentina/Buenos_Aires",
-              }).format(new Date(task.completedAt))}
-              . Después de 7 días aparece en el archivo.
-            </p>
-          )}
-          {task.status === "dismissed" ? (
-            <>
-              <p>Esta tarea está descartada y conserva su referencia.</p>
-              <button
-                className={styles.button}
-                type="button"
-                disabled={busy}
-                onClick={() => move("backlog")}
-              >
-                <CmsIcon name="restore" size="sm" />
-                Volver a Backlog
-              </button>
-            </>
+
+        <aside
+          aria-label="Estado de la tarea"
+          className="receipt-edge row-start-1 flex flex-col gap-[18px] border border-line bg-card px-5 pt-5 pb-8 md:sticky md:top-24 md:row-start-auto"
+        >
+          {archived ? (
+            <div className="flex flex-col gap-[5px]">
+              <span className="font-mono text-[10px] tracking-[0.14em] text-muted uppercase">
+                Estado
+              </span>
+              <span className="text-sm">{STATUS_LABELS[task.status]}</span>
+            </div>
           ) : (
-            <button
-              className={styles.button}
-              type="button"
+            <Field label="Estado">
+              <Select
+                value={task.status}
+                disabled={busy}
+                onChange={(event) => {
+                  const status = event.target.value as TaskStatus;
+                  void move(
+                    status,
+                    `${task.reference} → ${STATUS_LABELS[status]}`,
+                  );
+                }}
+                className="w-full"
+              >
+                {BOARD_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {STATUS_LABELS[status]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
+          <dl className="m-0 flex flex-col">
+            <Meta label="Creada">{shortDate(task.createdAt)}</Meta>
+            <Meta label="Actualizada">
+              <span suppressHydrationWarning>
+                {relativeAge(task.updatedAt, now)}
+              </span>
+            </Meta>
+            {task.completedAt && (
+              <Meta label="Completada">{shortDate(task.completedAt)}</Meta>
+            )}
+          </dl>
+          {archived ? (
+            <Button
+              variant="outline"
+              size="lg"
               disabled={busy}
-              onClick={() => move("dismissed")}
+              className="w-full"
+              onClick={() =>
+                void move("backlog", `${task.reference} vuelve a Backlog`)
+              }
             >
-              <CmsIcon name="close" size="sm" />
-              Descartar tarea
-            </button>
+              Volver a Backlog
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="lg"
+              disabled={busy}
+              className="w-full"
+              onClick={async () => {
+                const ok = await move(
+                  "dismissed",
+                  `${task.reference} descartada · está en el archivo`,
+                  "warn",
+                );
+                if (ok) router.push("/cms/tasks");
+              }}
+            >
+              ✕ Descartar tarea
+            </Button>
           )}
         </aside>
       </div>
-    </>
+    </div>
+  );
+}
+
+function Meta({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex justify-between border-t border-[color-mix(in_srgb,var(--line)_60%,transparent)] py-[9px] text-xs last:border-b">
+      <dt className="text-muted">{label}</dt>
+      <dd className="m-0">{children}</dd>
+    </div>
   );
 }
