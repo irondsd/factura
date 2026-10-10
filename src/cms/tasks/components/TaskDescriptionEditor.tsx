@@ -14,6 +14,7 @@ import { styleTags, Tag, tags } from "@lezer/highlight";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/cn";
 import { markdownTagStyles } from "@/cms/components/markdownHighlight";
+import { taskEditorLinks } from "./taskEditorLinks";
 
 // The task description: Markdown source with the page editor's colours, so a
 // heading, a list or a checkbox reads as one while it is being written. No
@@ -117,6 +118,7 @@ export function TaskDescriptionEditor({
           }),
           syntaxHighlighting(highlightStyle),
           theme,
+          taskEditorLinks(),
           placeholder("Describe qué hay que hacer…"),
           editable.current.of(EditorView.editable.of(!disabled)),
           keymap.of([...keys, ...historyKeymap]),

@@ -177,7 +177,8 @@ export function DescriptionEditor({
         labelledBy={labelId}
       />
       <span className="text-[11px] text-muted">
-        Markdown: listas, casillas, enlaces y bloques de código.
+        Markdown: listas, casillas, enlaces y bloques de código. ⌘/Ctrl +
+        clic abre un enlace.
       </span>
     </div>
   );
