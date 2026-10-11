@@ -108,6 +108,7 @@ the request is to:
   description, summary, CTA, slug, keywords, categories, locations, FAQ,
   sources, images, author, the editorial tree;
 - publish, unpublish, preview, or restore a version;
+- work a CMS task tagged `content` («Contenido» on the board), see below;
 - or anything else that ends up calling a `factura-cms` tool.
 
 The trigger is what the request _does_, not the words it uses. A one-line typo
@@ -123,3 +124,25 @@ the spec — knowing them is not a reason to skip the rest:
   tool that changes what the public sees; it needs the user's explicit yes every
   time, in both directions.
 - **Editing an already-published page needs no confirmation.** Fix it and save.
+
+## CMS tasks
+
+The `/cms` task board (`list_tasks`, `get_task`, `move_task` on `factura-cms`)
+holds work items with a `TASK-N` reference. When you pick up a task tagged
+`content` («Contenido»):
+
+- **Read `src/content/AUTHORING.md` and `src/content/STYLE.md` in full before
+  you plan anything**, whether or not the task or the person mentions them.
+  The task description is a brief written earlier, possibly in another
+  language and before the site changed; where it disagrees with those files
+  or with what is on the site now, the spec wins and you say so (AUTHORING §0,
+  "the brief can be wrong").
+- **The content goes to production** through `factura-cms`, as drafts, unless
+  the task or the person asks for the local CMS (whose only purpose is saving
+  Neon egress; finished pages then go to prod with
+  `bun scripts/cms.ts transfer`). Tasks written before the move back to prod
+  (early October 2026) may say "local CMS" or `cms-local.ts` out of habit: if
+  one gives no reason for it, ask before writing locally.
+- Leave new pages in `draft`; publishing still needs the person's yes. A task
+  can move to `done` once the content exists as a draft, with the page URLs in
+  `completionNote`.
