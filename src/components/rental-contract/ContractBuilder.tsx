@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { NEW_TAB } from "@/components/landing/parts";
+import { fieldInfo, type FieldInfo } from "@/lib/rental-contract/content";
 import {
   buildContract,
   contractGuide,
@@ -70,13 +72,65 @@ type FieldOptions = {
   multiline?: boolean;
   options?: readonly (string | readonly [string, string])[];
   max?: number;
+  info?: FieldInfo;
 };
 const primary =
   "inline-flex items-center justify-center gap-2 bg-accent px-5 py-3 font-mono text-[13px] text-white transition-colors hover:bg-ink disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent";
 const secondary =
   "inline-flex items-center justify-center border border-line bg-card px-5 py-3 font-mono text-[13px] text-ink transition-colors hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent";
 
+/** Label plus an optional "?" that opens what the parties may agree on this
+ * point. A disclosure, not a hover tooltip: it has to work by tap and keyboard,
+ * and its link must open in a new tab because the form lives only in memory. */
+function FieldLabel({
+  htmlFor,
+  label,
+  optional,
+  info,
+}: {
+  htmlFor: string;
+  label: string;
+  optional?: boolean;
+  info?: FieldInfo;
+}) {
+  const [open, setOpen] = useState(false);
+  const panel = useId();
+  return (
+    <>
+      <div className={styles.labelRow}>
+        <label htmlFor={htmlFor}>
+          {label}
+          {optional && <span className={styles.optional}> (opcional)</span>}
+        </label>
+        {info && (
+          <button
+            type="button"
+            className={styles.infoButton}
+            aria-expanded={open}
+            aria-controls={panel}
+            aria-label={`Qué pueden acordar las partes: ${label}`}
+            onClick={() => setOpen((current) => !current)}
+          >
+            ?
+          </button>
+        )}
+      </div>
+      {info && open && (
+        <div id={panel} className={styles.infoPanel}>
+          <p>{info.text}</p>
+          {info.link && (
+            <Link href={info.link.href} {...NEW_TAB}>
+              {info.link.label} <span aria-hidden>↗</span>
+            </Link>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function ContractBuilder({ type }: { type: ContractType }) {
+  const info = fieldInfo(type);
   const [data, setData] = useState(() => initialContract(type));
   const [step, setStep] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -126,6 +180,7 @@ export function ContractBuilder({ type }: { type: ContractType }) {
       multiline,
       options: choices,
       max = 300,
+      info: help,
     } = options;
     const error = errors[key];
     const props = {
@@ -149,10 +204,12 @@ export function ContractBuilder({ type }: { type: ContractType }) {
     };
     return (
       <div className={styles.field} key={key}>
-        <label htmlFor={key}>
-          {label}
-          {optional && <span className={styles.optional}> (opcional)</span>}
-        </label>
+        <FieldLabel
+          htmlFor={key}
+          label={label}
+          optional={optional}
+          info={help}
+        />
         {choices ? (
           <select {...props}>
             {choices.map((choice) => {
@@ -562,16 +619,19 @@ export function ContractBuilder({ type }: { type: ContractType }) {
                   {field("startDate", "Inicio del alquiler", { type: "date" })}
                   {field("endDate", "Último día del alquiler (inclusive)", {
                     type: "date",
+                    info: info.term,
                   })}
                   {field("currency", "Moneda de pago", {
                     options: [
                       ["ARS", "Pesos argentinos (ARS)"],
                       ["USD", "Dólares estadounidenses (USD)"],
                     ],
+                    info: info.currency,
                   })}
                   {field("rent", "Alquiler mensual inicial", {
                     type: "number",
                     hint: "Sin separadores de miles. Podés ingresar centavos.",
+                    info: info.rent,
                   })}
                   {field("paymentDay", "Día límite de pago de cada mes", {
                     type: "number",
@@ -587,6 +647,7 @@ export function ContractBuilder({ type }: { type: ContractType }) {
                           ]
                         : [["ninguno", "Precio fijo en dólares"]],
                     hint: "En dólares, este modelo admite precio fijo.",
+                    info: info.adjustment,
                   })}
                   {data.adjustment !== "ninguno" &&
                     field("adjustmentMonths", "Meses entre actualizaciones", {
@@ -631,9 +692,11 @@ export function ContractBuilder({ type }: { type: ContractType }) {
                   max: 500,
                 })}
                 <div className={styles.field}>
-                  <label htmlFor="guarantee">
-                    Garantía adicional al depósito
-                  </label>
+                  <FieldLabel
+                    htmlFor="guarantee"
+                    label="Garantía adicional al depósito"
+                    info={info.guarantee}
+                  />
                   <select
                     id="guarantee"
                     className={styles.input}
@@ -804,6 +867,16 @@ export function ContractBuilder({ type }: { type: ContractType }) {
                       Incluye el contrato, el inventario y los espacios para
                       firmas. Si cambiás los datos, generá un nuevo PDF.
                     </p>
+                    <div className={styles.signup}>
+                      <p>
+                        Con una cuenta, subís las boletas de luz, gas y agua de
+                        este inmueble y Factura arma el historial de cada
+                        servicio, mes a mes.
+                      </p>
+                      <Link href="/login" {...NEW_TAB}>
+                        Crear una cuenta gratis <span aria-hidden>↗</span>
+                      </Link>
+                    </div>
                     <iframe
                       src={pdfUrl}
                       title="Vista previa del PDF generado"

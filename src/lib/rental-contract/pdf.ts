@@ -1,10 +1,17 @@
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import { buildContract, CONTRACT_VERSION, type ContractData } from "./model";
+import {
+  buildBlankContract,
+  buildContract,
+  CONTRACT_VERSION,
+  type ContractData,
+  type ContractDocument,
+  type ContractType,
+} from "./model";
 
 const PAGE = { width: 595.28, height: 841.89, margin: 54, bottom: 88 };
+// Plain white pages: the PDF is printed and signed, so no paper tint or dot grid.
 const palette = {
-  paper: rgb(244 / 255, 239 / 255, 227 / 255),
   line: rgb(221 / 255, 210 / 255, 187 / 255),
   ink: rgb(33 / 255, 29 / 255, 22 / 255),
   muted: rgb(100 / 255, 90 / 255, 71 / 255),
@@ -21,10 +28,29 @@ async function asset(path: string): Promise<ArrayBuffer> {
 }
 
 /** Real text and embedded fonts, not screenshots. Personal data never leaves the browser. */
-export async function generateContractPdf(
+export function generateContractPdf(
   data: ContractData,
 ): Promise<Uint8Array<ArrayBuffer>> {
-  const document = buildContract(data);
+  return renderContractPdf(
+    buildContract(data),
+    "Contrato generado a partir de los datos ingresados por el usuario. Documento para revisión y firma de las partes.",
+  );
+}
+
+/** The same clauses with blank lines, to print and complete by hand. */
+export function generateBlankContractPdf(
+  type: ContractType,
+): Promise<Uint8Array<ArrayBuffer>> {
+  return renderContractPdf(
+    buildBlankContract(type),
+    "Modelo de contrato en blanco para completar a mano. Documento para revisión y firma de las partes.",
+  );
+}
+
+async function renderContractPdf(
+  document: ContractDocument,
+  subject: string,
+): Promise<Uint8Array<ArrayBuffer>> {
   const [displayBytes, bodyBytes] = await Promise.all([
     asset("Fraunces-SemiBold.ttf"),
     asset("IBMPlexMono-Regular.ttf"),
@@ -36,9 +62,7 @@ export async function generateContractPdf(
   pdf.setTitle(document.title);
   pdf.setAuthor("Factura.uno");
   pdf.setCreator(`Factura.uno - modelo ${CONTRACT_VERSION}`);
-  pdf.setSubject(
-    "Contrato generado a partir de los datos ingresados por el usuario. Documento para revisión y firma de las partes.",
-  );
+  pdf.setSubject(subject);
   pdf.setLanguage("es-AR");
 
   let page: PDFPage;
@@ -91,19 +115,6 @@ export async function generateContractPdf(
 
   function newPage() {
     page = pdf.addPage([PAGE.width, PAGE.height]);
-    page.drawRectangle({
-      x: 0,
-      y: 0,
-      width: PAGE.width,
-      height: PAGE.height,
-      color: palette.paper,
-    });
-    // Same 22px pitch and 0.75px dot as .paper-grid, converted to PDF points.
-    for (let x = 8.25; x < PAGE.width; x += 16.5) {
-      for (let dotY = 8.25; dotY < PAGE.height; dotY += 16.5) {
-        page.drawCircle({ x, y: dotY, size: 0.5625, color: palette.line });
-      }
-    }
     if (pdf.getPageCount() > 1) {
       page.drawText(document.title, {
         x: PAGE.margin,

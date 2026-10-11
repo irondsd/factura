@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const CONTRACT_TYPES = ["vivienda", "comercial"] as const;
 export type ContractType = (typeof CONTRACT_TYPES)[number];
-export const CONTRACT_VERSION = "2026-10-10.1";
+export const CONTRACT_VERSION = "2026-10-11.1";
 export const CONTRACT_BASE_PATH = "/contratos";
 export const contractPath = (type: ContractType) =>
   `${CONTRACT_BASE_PATH}/${type}`;
@@ -280,9 +280,66 @@ export type ContractDocument = {
 const describePerson = (p: Person) =>
   `${p.name}, ${p.kind === "sociedad" ? "CUIT" : "DNI / CUIT / identificación"} ${p.id}, con domicilio en ${p.address} y domicilio electrónico en ${p.email}${p.kind === "sociedad" ? `, representada por ${p.representative}, en carácter de ${p.authority}, cuya documentación respaldatoria se acompaña al firmar` : ""}`;
 
+/** A line to fill in by hand. Underscores are in both embedded PDF fonts. */
+const gap = (length = 24) => "_".repeat(length);
+/** Several full-width lines, for the free-text parts of the annex. */
+const lines = (count: number) =>
+  Array.from({ length: count }, () => gap(78)).join("\n");
+const blankPerson = (): Person => ({
+  ...emptyPerson(),
+  name: gap(30),
+  id: gap(14),
+  address: gap(34),
+  email: gap(24),
+});
+
 /** The review and PDF use this same document; no clause is generated separately. */
 export function buildContract(input: ContractData): ContractDocument {
-  const d = contractSchema.parse(input);
+  return composeContract(contractSchema.parse(input), false);
+}
+
+/** The same clauses with lines in place of the data, to print and fill by hand.
+ * Choices the form would make become blanks or the form's default; the fianza
+ * clause is kept with an instruction to strike it when there is no surety. */
+export function buildBlankContract(type: ContractType): ContractDocument {
+  const data: ContractData = {
+    ...initialContract(type),
+    scopeAccepted: true,
+    landlords: [blankPerson()],
+    tenants: [blankPerson()],
+    propertyAddress: gap(40),
+    city: gap(20),
+    province: gap(20) as ContractData["province"],
+    propertyId: gap(20),
+    activity: type === "comercial" ? gap(60) : "",
+    occupants: type === "vivienda" ? gap(50) : "",
+    inventory: lines(4),
+    condition: lines(5),
+    keys: gap(6),
+    meters: lines(2),
+    signingCity: gap(20),
+    rent: "",
+    paymentDay: gap(4),
+    paymentDetails: gap(50),
+    deposit: "",
+    depositDays: gap(4),
+    services: gap(50),
+    guarantee: "personal",
+    guarantors: [blankPerson()],
+    works: type === "comercial" ? gap(60) : "",
+    insurance: type === "comercial" ? gap(50) : "",
+    jurisdiction: gap(30),
+  };
+  return composeContract(data, true);
+}
+
+function composeContract(d: ContractData, blank: boolean): ContractDocument {
+  const date = (value: string) =>
+    blank ? `${gap(4)} de ${gap(12)} de ${gap(6)}` : formatDate(value);
+  const amount = (value: string) =>
+    blank
+      ? `${gap(22)} (moneda e importe)`
+      : money(value, d.currency);
   const sections: ContractSection[] = [];
   const add = (title: string, text: string) =>
     sections.push({ title: `${sections.length + 1}. ${title}`, text });
@@ -292,23 +349,25 @@ export function buildContract(input: ContractData): ContractDocument {
   );
   add(
     "Plazo y entrega",
-    `La locación comienza el ${formatDate(d.startDate)} y finaliza el ${formatDate(d.endDate)}, inclusive. La entrega de la posesión y de las llaves se realiza en la fecha de inicio, dejando constancia del estado del inmueble en el Anexo I. La renovación requiere acuerdo expreso por escrito.`,
+    `La locación comienza el ${date(d.startDate)} y finaliza el ${date(d.endDate)}, inclusive. La entrega de la posesión y de las llaves se realiza en la fecha de inicio, dejando constancia del estado del inmueble en el Anexo I. La renovación requiere acuerdo expreso por escrito.`,
   );
   add(
     "Precio y pago",
-    `El alquiler mensual inicial es de ${money(d.rent, d.currency)}. Se paga por adelantado, del día 1 al día ${d.paymentDay} de cada mes, en la moneda pactada. Medio y datos de pago: ${d.paymentDetails}. La parte LOCADORA entrega el recibo o comprobante correspondiente. Si el inicio o la finalización no coinciden con un mes completo, el importe de ese mes se prorratea por los días de vigencia sobre la cantidad de días calendario del mes.`,
+    `El alquiler mensual inicial es de ${amount(d.rent)}. Se paga por adelantado, del día 1 al día ${d.paymentDay} de cada mes, en la moneda pactada. Medio y datos de pago: ${d.paymentDetails}. La parte LOCADORA entrega el recibo o comprobante correspondiente. Si el inicio o la finalización no coinciden con un mes completo, el importe de ese mes se prorratea por los días de vigencia sobre la cantidad de días calendario del mes.`,
   );
   add(
     "Actualización",
-    d.adjustment === "ninguno"
+    blank
+      ? `Si las partes pactan actualización, el alquiler se actualiza cada ${gap(4)} meses desde la fecha de inicio, según el índice ${gap(30)}, expresado en la misma moneda del alquiler. Para cada ajuste, el alquiler mensual inicial se multiplica por el cociente entre el último valor del índice publicado a la fecha del ajuste y el último valor publicado a la fecha de inicio. Las fechas de ajuste corresponden al mismo día del mes del inicio; si ese día no existe, se usa el último día del mes. Si el índice deja de publicarse, se aplica el sustituto previsto en el artículo 1199 del Código Civil y Comercial. Si estos datos quedan sin completar, el alquiler se mantiene fijo durante el plazo pactado.`
+      : d.adjustment === "ninguno"
       ? "El alquiler se mantiene fijo durante el plazo pactado. Cualquier modificación requiere un nuevo acuerdo escrito de las partes."
       : `El alquiler se actualiza cada ${d.adjustmentMonths} meses desde la fecha de inicio, según el ${d.adjustment === "IPC" ? "Índice de Precios al Consumidor (IPC), nivel general, total nacional, publicado por el INDEC" : "Índice para Contratos de Locación (ICL) publicado por el Banco Central de la República Argentina"}. Para cada ajuste, el alquiler mensual inicial se multiplica por el cociente entre el último valor del índice publicado a la fecha del ajuste y el último valor publicado a la fecha de inicio. Las fechas de ajuste corresponden al mismo día del mes del inicio; si ese día no existe, se usa el último día del mes. La parte LOCADORA comunica el cálculo y los valores utilizados. Si el índice deja de publicarse, se aplica un índice oficial de características similares publicado por el INDEC, conforme al artículo 1199 del Código Civil y Comercial.`,
   );
   add(
     "Depósito",
-    Number(d.deposit) === 0
+    !blank && Number(d.deposit) === 0
       ? "No se entrega depósito en garantía."
-      : `La parte LOCATARIA entrega al firmar ${money(d.deposit, d.currency)} como depósito en garantía, separado del alquiler. Se devuelve por su importe nominal, en la misma moneda, dentro de los ${d.depositDays} días corridos de la restitución del inmueble y entrega de llaves. Solo se deducen daños imputables a la parte LOCATARIA o deudas a su cargo, individualizados y acreditados con comprobantes. El desgaste por uso regular y el transcurso del tiempo no se descuenta.`,
+      : `La parte LOCATARIA entrega al firmar ${amount(d.deposit)} como depósito en garantía, separado del alquiler. Se devuelve por su importe nominal, en la misma moneda, dentro de los ${d.depositDays} días corridos de la restitución del inmueble y entrega de llaves. Solo se deducen daños imputables a la parte LOCATARIA o deudas a su cargo, individualizados y acreditados con comprobantes. El desgaste por uso regular y el transcurso del tiempo no se descuenta.`,
   );
   add(
     "Expensas, impuestos y servicios",
@@ -341,7 +400,7 @@ export function buildContract(input: ContractData): ContractDocument {
   if (d.guarantee === "personal")
     add(
       "Fianza personal",
-      `Intervienen como FIADORES: ${d.guarantors.map(describePerson).join("; ")}. Se constituyen en fiadores solidarios por las obligaciones de pago y restitución de este contrato. La fianza cesa al vencimiento, excepto por la obligación derivada de la falta de restitución en tiempo. Toda renovación o prórroga requiere el consentimiento expreso de los fiadores conforme al artículo 1225 del Código Civil y Comercial. Esta fianza no constituye hipoteca ni certifica solvencia.`,
+      `Intervienen como FIADORES: ${d.guarantors.map(describePerson).join("; ")}. Se constituyen en fiadores solidarios por las obligaciones de pago y restitución de este contrato. La fianza cesa al vencimiento, excepto por la obligación derivada de la falta de restitución en tiempo. Toda renovación o prórroga requiere el consentimiento expreso de los fiadores conforme al artículo 1225 del Código Civil y Comercial. Esta fianza no constituye hipoteca ni certifica solvencia.${blank ? " Si el contrato no lleva fianza, las partes tachan esta cláusula y las firmas de fiadores antes de firmar." : ""}`,
     );
   add(
     "Resolución e incumplimiento",
@@ -357,7 +416,7 @@ export function buildContract(input: ContractData): ContractDocument {
   );
   add(
     "Gastos y jurisdicción",
-    `El impuesto de sellos, si corresponde según la jurisdicción y las exenciones vigentes, y los gastos de certificación de firmas, si se acuerda certificarlas, se distribuyen ${d.contractCosts === "mitades" ? "por mitades entre las partes LOCADORA y LOCATARIA" : `a cargo de la parte ${d.contractCosts === "locador" ? "LOCADORA" : "LOCATARIA"}`}. Este reparto no modifica las obligaciones frente al fisco. Para controversias se acuerdan los tribunales ordinarios competentes de ${d.jurisdiction}, sin desplazar competencias legales improrrogables. Rigen el Código Civil y Comercial y las demás normas aplicables.`,
+    `El impuesto de sellos, si corresponde según la jurisdicción y las exenciones vigentes, y los gastos de certificación de firmas, si se acuerda certificarlas, se distribuyen ${blank ? `de la siguiente forma: ${gap(40)}` : d.contractCosts === "mitades" ? "por mitades entre las partes LOCADORA y LOCATARIA" : `a cargo de la parte ${d.contractCosts === "locador" ? "LOCADORA" : "LOCATARIA"}`}. Este reparto no modifica las obligaciones frente al fisco. Para controversias se acuerdan los tribunales ordinarios competentes de ${d.jurisdiction}, sin desplazar competencias legales improrrogables. Rigen el Código Civil y Comercial y las demás normas aplicables.`,
   );
   sections.push({
     title: "Anexo I. Estado e inventario",
@@ -368,8 +427,10 @@ export function buildContract(input: ContractData): ContractDocument {
       d.type === "vivienda"
         ? "Contrato de locación de vivienda"
         : "Contrato de locación comercial",
-    subtitle: `${d.city}, ${d.province}`,
-    introduction: `En ${d.signingCity}, el ${formatDate(d.signingDate)}, entre ${d.landlords.map(describePerson).join("; ")}, en adelante la parte LOCADORA, y ${d.tenants.map(describePerson).join("; ")}, en adelante la parte LOCATARIA, se celebra el presente contrato, sujeto a las siguientes cláusulas. Las partes manifiestan contar con capacidad y facultades suficientes para celebrarlo.`,
+    subtitle: blank
+      ? "Modelo en blanco para completar a mano"
+      : `${d.city}, ${d.province}`,
+    introduction: `En ${d.signingCity}, el ${date(d.signingDate)}, entre ${d.landlords.map(describePerson).join("; ")}, en adelante la parte LOCADORA, y ${d.tenants.map(describePerson).join("; ")}, en adelante la parte LOCATARIA, se celebra el presente contrato, sujeto a las siguientes cláusulas. Las partes manifiestan contar con capacidad y facultades suficientes para celebrarlo.`,
     sections,
     signatures: [
       ...d.landlords.map((person) => ({ role: "Parte locadora", person })),
@@ -377,6 +438,17 @@ export function buildContract(input: ContractData): ContractDocument {
       ...(d.guarantee === "personal"
         ? d.guarantors.map((person) => ({ role: "Fiador/a", person }))
         : []),
-    ],
+    ].map((signature) =>
+      blank
+        ? {
+            ...signature,
+            person: {
+              ...signature.person,
+              name: `Aclaración: ${gap(22)}`,
+              id: `DNI / CUIT: ${gap(22)}`,
+            },
+          }
+        : signature,
+    ),
   };
 }

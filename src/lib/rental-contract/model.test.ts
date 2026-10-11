@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildBlankContract,
   buildContract,
   contractSchema,
   initialContract,
@@ -191,5 +192,25 @@ describe("rental contracts", () => {
     expect(
       residential.sections.find((s) => s.title.includes("Precio y pago"))?.text,
     ).toContain("850.000,50");
+  });
+  it("builds a blank template with the same clauses and lines to fill", () => {
+    for (const type of ["vivienda", "comercial"] as const) {
+      const blank = buildBlankContract(type);
+      const filled = buildContract({
+        ...sampleContract(type),
+        guarantee: "personal",
+        guarantors: [{ ...sampleContract(type).landlords[0] }],
+      });
+      expect(blank.sections.map((s) => s.title)).toEqual(
+        filled.sections.map((s) => s.title),
+      );
+      const text = [blank.introduction, ...blank.sections.map((s) => s.text)]
+        .join(" ");
+      expect(text).not.toMatch(/undefined|NaN|null/);
+      expect(text).toContain("____");
+      expect(text).toContain("tachan esta cláusula");
+      expect(blank.signatures).toHaveLength(3);
+      expect(blank.signatures[0].person.name).toContain("Aclaración");
+    }
   });
 });

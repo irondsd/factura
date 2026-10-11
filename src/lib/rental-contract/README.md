@@ -2,7 +2,12 @@
 
 Public, Spanish-only routes: `/contratos/vivienda` and `/contratos/comercial`.
 The `/contratos` entry redirects to housing. Both routes render a shared client
-form. `buildContract` is the single source for the text review and PDF.
+form. `buildContract` is the single source for the text review and PDF;
+`buildBlankContract` runs the same clauses with lines in place of the data, for
+the "modelo en blanco" download. Page copy, field tooltips and the FAQ live in
+`content.ts`, with the article of the Código Civil y Comercial each legal
+statement rests on. These pages own the "pdf / para imprimir / gratis" searches;
+"modelo simple" and "nueva ley" belong to the guides they link to.
 
 Personal details stay in React state. There is no API, database persistence,
 local storage, or personal data in the URL. The form, review, and preview carry
@@ -48,10 +53,10 @@ Contextual tool links are rendered by the guide route with the code release.
 ## PDF identity and assets
 
 A4, selectable text, subset embedded Fraunces SemiBold and IBM Plex Mono Regular.
-Every page has the site's `#f4efe3` paper and `#ddd2bb` dot grid (22 CSS pixels
-converted to points), the full `Factura.` wordmark with its orange dot, the exact credit
-`Generado por Factura.uno`, and a page count. Keep palette/pattern in sync with
-`globals.css`. The wordmark is drawn as vector text with the embedded display
+Pages are plain white so the document prints cleanly; no paper tint or dot
+grid. Every page has the full `Factura.` wordmark with its orange dot, the exact
+credit `Generado por Factura.uno`, and a page count. Keep the ink, rule and
+accent colours in sync with `globals.css`. The wordmark is drawn as vector text with the embedded display
 font. Font assets are Google Fonts' OFL-licensed families; both
 licenses are shipped beside the files. Fraunces is a static instance at weight
 600, optical size 24, SOFT 0, WONK 1. It was generated with fontTools from:
