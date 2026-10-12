@@ -108,12 +108,12 @@ export function ProviderSummary({
         {/* ── Masthead ─────────────────────────────────────────────── */}
         <div className="flex flex-col gap-3.5 px-[18px] pt-5 pb-[18px] @xl:flex-row @xl:items-center @xl:gap-6 @xl:px-7 @xl:pt-7 @xl:pb-6">
           {logoMedia && (
-            <div className="flex h-[75px] w-[150px] flex-none items-center justify-center border border-line bg-white p-2">
+            <div className="flex w-fit flex-none items-center justify-center border border-line bg-white p-2">
               <MediaImage
                 media={logoMedia}
                 alt={`Logo de ${name}`}
                 placement="logo"
-                className="h-full w-full object-contain"
+                className="h-auto max-h-[57px] w-auto max-w-[132px] object-contain"
               />
             </div>
           )}
@@ -143,6 +143,7 @@ export function ProviderSummary({
                         the room; inline after the services when wide. */}
                     <a
                       href={website}
+                      target="_blank"
                       rel="noopener"
                       className={cn(
                         LINK,
@@ -150,6 +151,7 @@ export function ProviderSummary({
                       )}
                     >
                       {displayHost(website)}
+                      <span className="sr-only"> (abre en otra pestaña)</span>
                     </a>
                   </>
                 )}

@@ -18,8 +18,8 @@ const SIZES: Record<MediaPlacement, string> = {
   article: "(max-width: 719px) 100vw, 680px",
   preview: "(max-width: 719px) 100vw, (max-width: 1023px) 50vw, 360px",
   sidebar: "(max-width: 1023px) 100vw, 300px",
-  // The fixed 140px box of a company card, at every width.
-  logo: "140px",
+  // Company-card logos fit within 132px, at every width.
+  logo: "132px",
 };
 
 /** Beyond this the optimizer's work stops being worth its latency on a cold
