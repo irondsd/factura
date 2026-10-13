@@ -1,6 +1,12 @@
 import { publishedGuides } from "@/content-system/repository/guias";
 import { contentCategories } from "@/content-system/repository/categories";
 import { CONTENT_SECTIONS } from "@/content-system/types";
+import { contentTag } from "@/content-system/repository/tags";
+import {
+  cachedAtVersion,
+  everyVersion,
+  publicContentVersions,
+} from "@/content-system/repository/versions";
 import { SECTIONS } from "@/content/sections";
 import { siteName } from "@/config/meta";
 import { siteUrl } from "@/config/urls";
@@ -21,13 +27,14 @@ import { guideUrl, sectionUrl } from "@/i18n/metadata";
 // the static site.
 export const dynamic = "force-static";
 // A repair floor for the same reason the sitemap has one, and the comment there
-// is the long version: every read below is cached with `revalidate: false`, so
-// a render that ran while one of those entries was purged but not yet refreshed
-// would otherwise be served as a fresh `HIT` until the next unrelated publish.
-// The tag is still the update path — this only bounds how long a lost race can
-// survive. `force-static` above and a TTL are not in conflict: one says the
-// route is prerendered rather than per-request, the other says how long a
-// prerender stands.
+// is the long version: the tag is the update path, this bounds how long a render
+// that missed one can survive. It only repairs anything because the body is
+// cached at a fingerprint read fresh on every render (`cachedAtVersion` below):
+// the reads underneath are `revalidate: false` entries private to this route,
+// and a TTL re-render over them alone would re-serialise the same stale data.
+// `force-static` above and a TTL are not in conflict: one says the route is
+// prerendered rather than per-request, the other says how long a prerender
+// stands.
 export const revalidate = 3600;
 
 /** Everything a feed item needs, flattened out of the two content registries so
@@ -60,6 +67,18 @@ const xml = (s: string): string =>
 const rfc822 = (iso: string): string => new Date(iso).toUTCString();
 
 export async function GET(): Promise<Response> {
+  const body = await cachedAtVersion(
+    ["feed.xml"],
+    everyVersion(await publicContentVersions()),
+    CONTENT_SECTIONS.map(contentTag),
+    renderFeed,
+  );
+  return new Response(body, {
+    headers: { "content-type": "application/rss+xml; charset=utf-8" },
+  });
+}
+
+async function renderFeed(): Promise<string> {
   const [guides, sections, categoryLists] = await Promise.all([
     publishedGuides(),
     Promise.all(
@@ -127,7 +146,7 @@ export async function GET(): Promise<Response> {
     ? rfc822(items[0].updated)
     : rfc822(new Date().toISOString());
 
-  const body = `<?xml version="1.0" encoding="UTF-8"?>
+  return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>${xml(siteName)} — Noticias, Guías, Estadísticas e Investigación</title>
@@ -152,8 +171,4 @@ ${items
   </channel>
 </rss>
 `;
-
-  return new Response(body, {
-    headers: { "content-type": "application/rss+xml; charset=utf-8" },
-  });
 }

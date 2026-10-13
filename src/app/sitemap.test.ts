@@ -44,6 +44,34 @@ vi.mock("@/content-system/repository/locations", () => ({
   nonEmptyContentLocations: locations,
 }));
 
+// The versioned cache is a pass-through here: what it is keyed on is checked in
+// its own test below, and everything else in this file is about what the
+// pieces it wraps contain.
+const cachedAtVersion = vi.hoisted(() =>
+  vi.fn(
+    (
+      _keyParts: readonly string[],
+      _version: string,
+      _tags: readonly string[],
+      read: () => Promise<unknown>,
+    ) => read(),
+  ),
+);
+const versions = vi.hoisted(() => ({
+  guias: "g1",
+  noticias: "n1",
+  estadisticas: "e1",
+  investigaciones: "i1",
+  proveedores: "p1",
+  locations: "l1",
+}));
+
+vi.mock("@/content-system/repository/versions", () => ({
+  cachedAtVersion,
+  everyVersion: (v: typeof versions) => Object.values(v).join("|"),
+  publicContentVersions: async () => versions,
+}));
+
 vi.mock("@/content/sections", () => ({
   SECTIONS: [{ id: "estadisticas", listed }],
 }));
@@ -77,11 +105,11 @@ describe("sitemap", () => {
 
     expect(
       entry(entries, "https://factura.uno/guias/categoria/luz").lastModified,
-    ).toEqual(new Date("2026-05-02T00:00:00.000Z"));
+    ).toEqual("2026-05-02T00:00:00.000Z");
     expect(
       entry(entries, "https://factura.uno/estadisticas/categoria/caba")
         .lastModified,
-    ).toEqual(new Date("2026-07-20T00:00:00.000Z"));
+    ).toEqual("2026-07-20T00:00:00.000Z");
   });
 
   it("omits lastModified for a category with no listed pages", async () => {
@@ -154,12 +182,50 @@ describe("sitemap", () => {
 
     expect(
       entry(entries, "https://factura.uno/ubicacion").lastModified,
-    ).toEqual(new Date("2026-08-20T00:00:00.000Z"));
+    ).toEqual("2026-08-20T00:00:00.000Z");
     expect(
       entry(entries, "https://factura.uno/ubicacion/caba").lastModified,
-    ).toEqual(new Date("2026-08-20T00:00:00.000Z"));
+    ).toEqual("2026-08-20T00:00:00.000Z");
     expect(
       entry(entries, "https://factura.uno/ubicacion/mendoza").lastModified,
-    ).toEqual(new Date("2026-07-10T00:00:00.000Z"));
+    ).toEqual("2026-07-10T00:00:00.000Z");
+  });
+
+  it("caches each piece at its own section's fingerprint", async () => {
+    locations.mockResolvedValue([]);
+    guides.mockResolvedValue([]);
+    guideCategories.mockResolvedValue([]);
+    listed.mockResolvedValue([]);
+    contentCategories.mockResolvedValue([]);
+    cachedAtVersion.mockClear();
+
+    await sitemap();
+
+    const calls = cachedAtVersion.mock.calls.map(
+      ([keyParts, version, tags]) => ({
+        key: keyParts.join("/"),
+        version,
+        tags,
+      }),
+    );
+    // A proveedores publish moves `versions.proveedores`, and with it the
+    // proveedores piece and the location hubs — not the guides list.
+    expect(calls).toContainEqual({
+      key: "sitemap/guias",
+      version: "g1",
+      tags: ["content:guias"],
+    });
+    expect(calls).toContainEqual({
+      key: "sitemap/estadisticas",
+      version: "e1",
+      tags: ["content:estadisticas"],
+    });
+    const location = calls.find((call) => call.key === "sitemap/locations");
+    expect(location?.version.split("|")).toEqual(
+      expect.arrayContaining(["l1", "g1", "n1", "e1", "i1", "p1"]),
+    );
+    expect(location?.tags).toEqual(
+      expect.arrayContaining(["content:locations", "content:proveedores"]),
+    );
   });
 });

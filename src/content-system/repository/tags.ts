@@ -31,10 +31,14 @@ import type { ContentSection } from "../types";
 // with no TTL anywhere in this scheme — that page is then correct-looking and
 // permanent. So the surfaces that aggregate several of these reads at once
 // (`sitemap.ts`, `feed.xml`, `llms.txt`) carry an hourly `revalidate` as a
-// repair floor. Two things follow for anything added here. A read that skips
-// the cache contributes no tag and is not simply "fresher" — it makes the route
-// disagree with itself, which is what it did in `repository/categories.ts`. And
-// a new site-wide surface built on several of these reads wants the same floor.
+// repair floor — and, since a TTL re-render over `revalidate: false` entries
+// only re-serialises them, cache what they read at a content fingerprint
+// (`./versions`) so that a re-render actually re-reads what changed. Two things
+// follow for anything added here. A read that skips the cache contributes no
+// tag and is not simply "fresher" — it makes the route disagree with itself,
+// which is what it did in `repository/categories.ts`. And a new site-wide
+// surface built on several of these reads wants the same floor, fingerprint
+// included.
 
 /** Everything the public site reads out of one CMS section. */
 export const contentTag = (section: ContentSection): string =>

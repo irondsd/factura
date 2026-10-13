@@ -7,6 +7,13 @@ import {
 import { SECTIONS } from "@/content/sections";
 import { nonEmptyContentCategories } from "@/content-system/repository/categories";
 import { nonEmptyContentLocations } from "@/content-system/repository/locations";
+import { contentTag, locationsTag } from "@/content-system/repository/tags";
+import {
+  cachedAtVersion,
+  everyVersion,
+  publicContentVersions,
+} from "@/content-system/repository/versions";
+import { CONTENT_SECTIONS } from "@/content-system/types";
 import {
   contentCategoryUrl,
   guideCategoryUrl,
@@ -44,33 +51,27 @@ const LANDING: {
 ];
 
 // How long a generated sitemap may stand before it is rebuilt regardless of
-// tags. Everything this file reads is cached with `revalidate: false` and
-// expires only on `revalidateTag` (`@/cms/server/invalidation`), and so, until
-// this line, was the sitemap's own entry — which made one bad render permanent.
+// tags. The tags are the update path: a publish expires `content:<section>`,
+// this route inherits that tag from the reads below, and the next request
+// re-renders it within seconds. This line bounds how long a render that went
+// wrong anyway can survive.
 //
-// It is worth being precise about what "bad render" means, because the tags are
-// not the part that is broken. A route does inherit the tags of the cached
-// reads it ran — `unstable_cache` pushes them onto the work unit, so this entry
-// genuinely carries `content:guias` and the rest. What a tag cannot express is
-// an *order*: expiring one buys no promise that the route re-renders after the
-// entries it reads have been expired, only that it re-renders. Publishing a
-// guide on 2026-09-02 purged this route and re-rendered it 25 seconds later
-// against a `publishedGuides` entry that had not caught up, and the result — a
-// sitemap missing the page that triggered it — was then served as a fresh
-// `HIT` until the next unrelated publish. /llms.txt and /guias, which happened
-// to re-render later in the same minute, were correct throughout.
-//
-// So this is a repair floor, not the update path: a publish still reaches the
-// sitemap in seconds through the tag, and this only bounds how long a render
-// that lost the race can survive. An hour, which is what the section reads
-// themselves used to carry (`repository/sections.ts`) before on-demand
-// invalidation replaced it. The cost is one rewrite of a ~35 KB file per hour,
-// and no database work at all: on a plain TTL expiry every read below is still
-// a valid cache entry, so the re-render is a re-serialisation.
+// It used to bound nothing. A route does re-render on this TTL, but every read
+// below was a `revalidate: false` entry private to this route's bundle
+// (`@/content-system/repository/versions` has the mechanism), still valid on a
+// plain TTL expiry — so the re-render re-serialised whatever those entries
+// held. On 2026-09-02 that kept a guide out of the sitemap until the next
+// unrelated publish; on 2026-10-12 it froze the sitemap at its 14:52 build for
+// nine hours, missing seven proveedores and a guía published since. Each piece below is now cached *at a fingerprint of what it lists*,
+// read fresh on every render, so a re-render — for whatever reason — that finds
+// the content changed reads the database instead of the stale entry. The cost
+// is that one small query per render, and a piece is only re-read when its own
+// section moved.
 export const revalidate = 3600;
 
-// The newest of a set of content timestamps, or `undefined` when there is
-// nothing to date. Every listing page below takes its `lastModified` from the
+// The newest of a set of content timestamps, as an ISO string (the pieces below
+// are cached as JSON, where a `Date` would not survive), or `undefined` when
+// there is nothing to date. Every listing page below takes its `lastModified` from the
 // pages it lists, and that list can come back empty even for a category the
 // category query just called non-empty. `Math.max()` of nothing is `-Infinity`,
 // and a `Date` built from that throws `RangeError: Invalid time value` when the
@@ -83,10 +84,14 @@ export const revalidate = 3600;
 // construction. Both now come from one cache entry (`repository/categories.ts`).
 // The guard stays because omitting the date is the honest answer anyway, by the
 // rule below, and a crash in a sitemap is a poor way to learn otherwise.
-function newestDate(timestamps: readonly string[]): Date | undefined {
+function newestDate(timestamps: readonly string[]): string | undefined {
   const newest = Math.max(...timestamps.map((t) => Date.parse(t)));
-  return Number.isFinite(newest) ? new Date(newest) : undefined;
+  return Number.isFinite(newest) ? new Date(newest).toISOString() : undefined;
 }
+
+/** One instant, normalised the way `newestDate` normalises a set of them. */
+const isoDate = (timestamp: string): string =>
+  new Date(timestamp).toISOString();
 
 // `lastModified` is only ever a real content date here, never the time the
 // sitemap happened to be generated. A file that stamps "modified just now" on
@@ -96,6 +101,9 @@ function newestDate(timestamps: readonly string[]): Date | undefined {
 // content timestamp of its own omits `lastModified` rather than inventing one;
 // an absent date costs nothing, a false one costs the pages that tell the truth.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Read before anything else, and never from a cache: see `revalidate` above.
+  const versions = await publicContentVersions();
+
   const landing: MetadataRoute.Sitemap = LANDING.map(
     ({ path, changeFrequency, priority }) => ({
       url: localeUrl(path, "es"),
@@ -112,47 +120,54 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
 
   // Guides are Spanish-only: no hreflang alternates (no /en counterpart exists).
-  const [guides, categories] = await Promise.all([
-    publishedGuides(),
-    nonEmptyCategories(),
-  ]);
-  const guidesEntries: MetadataRoute.Sitemap = [
-    // A listing page's date is the newest thing it lists — same rule as the
-    // category hubs below, applied across every guide instead of one category.
-    {
-      url: guidesIndexUrl,
-      lastModified: newestDate(guides.map((g) => g.contentUpdatedAt)),
-      changeFrequency: "weekly",
-      priority: 0.7,
+  const guidesEntries = await cachedAtVersion(
+    ["sitemap", "guias"],
+    versions.guias,
+    [contentTag("guias")],
+    async (): Promise<MetadataRoute.Sitemap> => {
+      const [guides, categories] = await Promise.all([
+        publishedGuides(),
+        nonEmptyCategories(),
+      ]);
+      return [
+        // A listing page's date is the newest thing it lists — same rule as the
+        // category hubs below, applied across every guide instead of one category.
+        {
+          url: guidesIndexUrl,
+          lastModified: newestDate(guides.map((g) => g.contentUpdatedAt)),
+          changeFrequency: "weekly",
+          priority: 0.7,
+        },
+        // Category hubs sit between the index and the articles: they're listing
+        // pages, so `lastModified` tracks the newest guide they contain.
+        ...categories.map((c) => {
+          const inCategory = guides.filter((g) =>
+            g.metadata.categories.includes(c.key),
+          );
+          return {
+            url: guideCategoryUrl(c.slug),
+            // Compare instants: `updated` carries a timezone offset, so two
+            // timestamps don't necessarily order the same way as their text.
+            lastModified: newestDate(inCategory.map((g) => g.contentUpdatedAt)),
+            changeFrequency: "weekly" as const,
+            priority: 0.65,
+          };
+        }),
+        // A sitemap should list canonical URLs and nothing else. `listedGuides` has
+        // already dropped the drafts; what's left to exclude is a guide that points
+        // its canonical at another one — submitting it here would ask Google to
+        // index the very copy the tag says isn't the one.
+        ...guides
+          .filter((g) => !g.canonicalSlug)
+          .map((g) => ({
+            url: guideUrl(g.slug),
+            lastModified: isoDate(g.contentUpdatedAt),
+            changeFrequency: "monthly" as const,
+            priority: 0.6,
+          })),
+      ];
     },
-    // Category hubs sit between the index and the articles: they're listing
-    // pages, so `lastModified` tracks the newest guide they contain.
-    ...categories.map((c) => {
-      const inCategory = guides.filter((g) =>
-        g.metadata.categories.includes(c.key),
-      );
-      return {
-        url: guideCategoryUrl(c.slug),
-        // Compare instants: `updated` carries a timezone offset, so two
-        // timestamps don't necessarily order the same way as their text.
-        lastModified: newestDate(inCategory.map((g) => g.contentUpdatedAt)),
-        changeFrequency: "weekly" as const,
-        priority: 0.65,
-      };
-    }),
-    // A sitemap should list canonical URLs and nothing else. `listedGuides` has
-    // already dropped the drafts; what's left to exclude is a guide that points
-    // its canonical at another one — submitting it here would ask Google to
-    // index the very copy the tag says isn't the one.
-    ...guides
-      .filter((g) => !g.canonicalSlug)
-      .map((g) => ({
-        url: guideUrl(g.slug),
-        lastModified: new Date(g.contentUpdatedAt),
-        changeFrequency: "monthly" as const,
-        priority: 0.6,
-      })),
-  ];
+  );
 
   // The registry sections — /estadisticas and /investigaciones — Spanish-only like
   // the guides. `lastModified` is `meta.updated` and that's load-bearing here:
@@ -167,39 +182,46 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // explaining what expensas are is worth having and is not that.
   const sectionEntries: MetadataRoute.Sitemap = (
     await Promise.all(
-      SECTIONS.map(async (section) => {
-        const [pages, categories] = await Promise.all([
-          section.listed(),
-          nonEmptyContentCategories(section.id),
-        ]);
-        return [
-          {
-            url: sectionIndexUrl(section.id),
-            lastModified: newestDate(pages.map((p) => p.meta.updated)),
-            changeFrequency: "monthly" as const,
-            priority: 0.8,
+      SECTIONS.map((section) =>
+        cachedAtVersion(
+          ["sitemap", section.id],
+          versions[section.id],
+          [contentTag(section.id)],
+          async (): Promise<MetadataRoute.Sitemap> => {
+            const [pages, categories] = await Promise.all([
+              section.listed(),
+              nonEmptyContentCategories(section.id),
+            ]);
+            return [
+              {
+                url: sectionIndexUrl(section.id),
+                lastModified: newestDate(pages.map((p) => p.meta.updated)),
+                changeFrequency: "monthly" as const,
+                priority: 0.8,
+              },
+              ...categories.map((category) => {
+                const inCategory = pages.filter((page) =>
+                  page.meta.categoryKeys.includes(category.key),
+                );
+                return {
+                  url: contentCategoryUrl(section.id, category.slug),
+                  lastModified: newestDate(
+                    inCategory.map((page) => page.meta.updated),
+                  ),
+                  changeFrequency: "weekly" as const,
+                  priority: 0.72,
+                };
+              }),
+              ...pages.map((p) => ({
+                url: sectionUrl(section.id, p.slug),
+                lastModified: isoDate(p.meta.updated),
+                changeFrequency: "monthly" as const,
+                priority: 0.7,
+              })),
+            ];
           },
-          ...categories.map((category) => {
-            const inCategory = pages.filter((page) =>
-              page.meta.categoryKeys.includes(category.key),
-            );
-            return {
-              url: contentCategoryUrl(section.id, category.slug),
-              lastModified: newestDate(
-                inCategory.map((page) => page.meta.updated),
-              ),
-              changeFrequency: "weekly" as const,
-              priority: 0.72,
-            };
-          }),
-          ...pages.map((p) => ({
-            url: sectionUrl(section.id, p.slug),
-            lastModified: new Date(p.meta.updated),
-            changeFrequency: "monthly" as const,
-            priority: 0.7,
-          })),
-        ];
-      }),
+        ),
+      ),
     )
   ).flat();
 
@@ -214,34 +236,43 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  const locations = await nonEmptyContentLocations();
-  const locationEntries: MetadataRoute.Sitemap = locations.length
-    ? [
-        {
-          url: locationsIndexUrl,
-          // The directory changes when either one of its entries changes or
-          // an article listed under one does. A renamed/reworded location is a
-          // significant visible change even when all its articles are older.
-          lastModified: newestDate(
-            locations.flatMap((location) => [
-              location.updatedAt,
-              ...location.pages.map((page) => page.contentUpdatedAt),
-            ]),
-          ),
-          changeFrequency: "weekly" as const,
-          priority: 0.7,
-        },
-        ...locations.map((location) => ({
-          url: locationUrl(location.slug),
-          lastModified: newestDate([
-            location.updatedAt,
-            ...location.pages.map((page) => page.contentUpdatedAt),
-          ]),
-          changeFrequency: "weekly" as const,
-          priority: 0.68,
-        })),
-      ]
-    : [];
+  // A location hub lists pages from every section, so its piece moves with any
+  // of them as well as with the registry itself.
+  const locationEntries = await cachedAtVersion(
+    ["sitemap", "locations"],
+    everyVersion(versions),
+    [locationsTag, ...CONTENT_SECTIONS.map(contentTag)],
+    async (): Promise<MetadataRoute.Sitemap> => {
+      const locations = await nonEmptyContentLocations();
+      return locations.length
+        ? [
+            {
+              url: locationsIndexUrl,
+              // The directory changes when either one of its entries changes or
+              // an article listed under one does. A renamed/reworded location is a
+              // significant visible change even when all its articles are older.
+              lastModified: newestDate(
+                locations.flatMap((location) => [
+                  location.updatedAt,
+                  ...location.pages.map((page) => page.contentUpdatedAt),
+                ]),
+              ),
+              changeFrequency: "weekly" as const,
+              priority: 0.7,
+            },
+            ...locations.map((location) => ({
+              url: locationUrl(location.slug),
+              lastModified: newestDate([
+                location.updatedAt,
+                ...location.pages.map((page) => page.contentUpdatedAt),
+              ]),
+              changeFrequency: "weekly" as const,
+              priority: 0.68,
+            })),
+          ]
+        : [];
+    },
+  );
 
   // The data sections ahead of the guides, matching both the priorities above
   // and the nav order. Order carries no formal weight in the protocol, but it's
