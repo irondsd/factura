@@ -1539,14 +1539,18 @@ export class CmsContentService {
     await this.record(actor, { pageId: page.id, action: "renamed", now });
 
     // Both addresses change for a reader at once — the new one starts
-    // resolving, the old one starts redirecting — and the section's listings,
-    // sitemap and feed all carry the moved path. A page nobody can see yet has
-    // nothing cached to expire.
+    // resolving, the old one starts redirecting — so both expire now, for every
+    // page in the moved subtree. The section's listings, sitemap and feed carry
+    // the moved path too, and follow on the section tag. A page nobody can see
+    // yet has nothing cached to expire.
     if (
       plan.moves.some((move) => move.redirect) ||
       canRender(page.status, "public")
     ) {
-      this.expirePublicCache(section);
+      this.expirePublicCache(
+        section,
+        plan.moves.flatMap((move) => [move.from, move.to]),
+      );
     }
 
     const revision = await this.selectedRevision(claimed);

@@ -53,7 +53,9 @@ export const contentDocumentTag = (
 ): string => `content:${section}:doc:${slug}`;
 
 /** Every document read of one section, for the writes that cannot name the
- * pages they touched: a rename that moves a subtree, a registry change. */
+ * pages they touched: a category, author, media or registry change. Marked
+ * stale rather than expired (`@/cms/server/invalidation`), because every route
+ * in the section carries it. */
 export const contentDocumentsTag = (section: ContentSection): string =>
   `content:${section}:docs`;
 

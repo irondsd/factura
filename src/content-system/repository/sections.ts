@@ -76,8 +76,9 @@ function cachedSection(section: ContentSection): CachedSection {
           ],
         },
       )(slug),
-    // Same tag as the rest: a rename expires the section, so an old path stops
-    // being a cached 404 and becomes a cached redirect on the next request.
+    // Same tag as the rest. A rename also expires the old path's own document
+    // tag, so the route stops serving the page and asks this on the next
+    // request; a route that regenerates re-reads a stale entry here first.
     redirectFor: unstable_cache(
       (slug: string) =>
         publicContentRepository.redirectFor(section, slugToPath(slug)),

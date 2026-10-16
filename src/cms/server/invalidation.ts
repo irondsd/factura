@@ -37,29 +37,41 @@ export type PublicCacheInvalidator = (
  *
  * `revalidateTag`, not `updateTag`, because this runs under both transports and
  * cms.md allows only one implementation: `updateTag` throws outside a Server
- * Action, and the CMS MCP is a Route Handler. `{ expire: 0 }` rather than the
- * `"max"` profile for the same reason the CMS has no revision history — one
- * mutable copy means "unpublish" has to actually take the page down, and
- * stale-while-revalidate would serve the withdrawn copy to the next visitor
- * while it fetched. Blocking that one request is the point.
+ * Action, and the CMS MCP is a Route Handler.
  *
- * Section-wide because a page is never the only thing that changed: its
- * section index, the category hubs, the related rail, the sitemap, the feed and
- * `llms.txt` all carry the same tag, and so does the cached 404 of a slug that
- * did not resolve until this write.
+ * Two profiles, because the section tag and a page's own tag answer different
+ * questions:
  *
- * Documents are the exception (`@/content-system/repository/tags`). Given the
- * `slugs` whose public copy changed, only those documents expire, and every
- * other page re-renders its listings from the cache without re-reading its
- * body. Without them — a category, author or media edit, a rename that moved a
- * subtree — every document in the section goes too. */
+ * - **The section tag is marked stale (`"max"`).** Every route in the section
+ *   carries it, because every article's related rail reads the section's
+ *   listing. With `{ expire: 0 }` each of those routes was *deleted* (Vercel
+ *   logs it as `cacheReason: delete_tag`), and a deleted entry has no previous
+ *   copy to compare with, so its regeneration appears to be billed as a full
+ *   ISR write even when it comes out byte-identical. In October 2026 a guide
+ *   publish cost ~1.4k write units on prod, against a 200k/month Hobby cap,
+ *   when locally only ~9 routes' bytes changed. Marked stale instead, a route is regenerated in the
+ *   background and an unchanged one costs nothing. The price is one visitor
+ *   per route seeing the old listing once. That is safe because a route's
+ *   regeneration re-reads stale data in the foreground (Next's `unstable_cache`
+ *   blocks on a stale entry while the page is being generated), so the
+ *   regenerated page never captures the old listing permanently.
+ * - **The changed pages expire now (`{ expire: 0 }`).** One mutable copy means
+ *   "unpublish" has to actually take the page down, and stale-while-revalidate
+ *   would serve the withdrawn copy to the next visitor. Each named slug's
+ *   document tag reaches its own route, and the cached 404 of a slug that did
+ *   not resolve until this write, so those block for one request and are right
+ *   from then on.
+ *
+ * Without `slugs` (a category, author or media edit) no single page was taken
+ * up or down, so the whole section's documents are marked stale too, not
+ * deleted. */
 export function revalidatePublicContent(
   section: ContentSection,
   slugs?: readonly string[],
 ): void {
-  revalidateTag(contentTag(section), { expire: 0 });
+  revalidateTag(contentTag(section), "max");
   if (!slugs) {
-    revalidateTag(contentDocumentsTag(section), { expire: 0 });
+    revalidateTag(contentDocumentsTag(section), "max");
     return;
   }
   for (const slug of slugs) {
@@ -69,7 +81,7 @@ export function revalidatePublicContent(
 
 /** Registry copy appears across every section and all global location hubs. */
 export function revalidatePublicLocations(): void {
-  revalidateTag(locationsTag, { expire: 0 });
+  revalidateTag(locationsTag, "max");
   for (const section of CONTENT_SECTIONS) {
     revalidatePublicContent(section);
   }
@@ -78,5 +90,5 @@ export function revalidatePublicLocations(): void {
 /** The «destacados» rails — the homepage and the four section indexes. The
  * pages an insight points at keep their own tags; only the list moved. */
 export function revalidatePublicInsights(): void {
-  revalidateTag(insightsTag, { expire: 0 });
+  revalidateTag(insightsTag, "max");
 }

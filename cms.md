@@ -123,8 +123,15 @@ The CMS expires that tag when, and only when, a write changes something a
 visitor can see: publishing, promoting or refreshing the public preview,
 unpublishing, returning a preview to draft, and renaming a page that was ever
 public. **No save expires anything, in any status** — it changed nothing
-public. Invalidation is `revalidateTag(tag, { expire: 0 })` from the content
-service, best-effort: the row is already committed, so a failed expiry is logged
+public. Invalidation is `revalidateTag` from the content service, with two
+profiles (`src/cms/server/invalidation.ts`). The section tag is marked stale
+(`"max"`), because every route in the section carries it and deleting them all
+made Vercel bill each regeneration as a full ISR write, even a byte-identical
+one. The document tags of the pages that went up, came down or moved are
+expired outright (`{ expire: 0 }`), so a withdrawn page stops serving on the
+next request and a new one stops being a cached 404. Every listing that mentions
+them catches up one request later. It is best-effort: the row is already
+committed, so a failed expiry is logged
 rather than reported as a failed publication. Nothing catches it if it fails —
 the next deployment reprerenders the page, and until then the old copy stands.
 

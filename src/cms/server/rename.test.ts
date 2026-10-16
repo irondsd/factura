@@ -256,8 +256,9 @@ describe("renaming a page", () => {
     await rename(fake, page.id, "nueva");
 
     expect(fake.expired).toEqual(["guias"]);
-    // A rename can move a whole subtree, so it does not try to name pages.
-    expect(fake.expiredDocuments.at(-1)).toBe("all");
+    // Both addresses, so the old one starts redirecting and the new one stops
+    // being a cached 404 on the next request — and nothing else is deleted.
+    expect(fake.expiredDocuments.at(-1)).toEqual(["vieja", "nueva"]);
   });
 
   it("expires nothing for a draft", async () => {

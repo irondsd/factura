@@ -17,7 +17,7 @@ import { createFakeCms, seedPage } from "./testFakes";
 // 404'd until a moment ago, and that 404 is cached under the same tag.
 //
 // What the tag reaches once it is expired is Next's business and is not
-// asserted here; `./invalidation.ts` is four lines over `revalidateTag`.
+// asserted here; which profile each tag gets is `./invalidationProfiles.test.ts`.
 
 const actor: CmsActor = {
   userId: "11111111-1111-1111-1111-111111111111",
