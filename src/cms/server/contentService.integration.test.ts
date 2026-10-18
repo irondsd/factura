@@ -11,6 +11,7 @@ import type {
 } from "@/content-system/types";
 import type { CmsActor } from "../types";
 import { CmsContentService } from "./contentService";
+import { noRails } from "./rails";
 import {
   CmsConflictError,
   CmsNotDeletableError,
@@ -97,6 +98,7 @@ if (!hasTestDatabase()) {
       revisions,
       history,
       invalidate: noInvalidation,
+      rails: noRails,
     });
 
     const cmsSchema = db._.fullSchema;
@@ -602,6 +604,7 @@ if (!hasTestDatabase()) {
           revisions,
           history,
           invalidate: noInvalidation,
+      rails: noRails,
         });
 
         await expect(
@@ -630,6 +633,7 @@ if (!hasTestDatabase()) {
           revisions,
           history,
           invalidate: noInvalidation,
+      rails: noRails,
         });
         const down = await strict.setStatus(actor, {
           id: live.id,
@@ -656,6 +660,7 @@ if (!hasTestDatabase()) {
           revisions,
           history,
           invalidate: noInvalidation,
+      rails: noRails,
         });
 
         await expect(

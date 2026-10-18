@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db as defaultDb, type Database } from "@/db";
 import { cmsPageRedirects, cmsPageRevisions, cmsPages } from "@/db/schema";
+import type { RailCandidate } from "../document";
 import type { ContentDocument, ContentSection, ContentSummary } from "../types";
 import { type ContentRepository, pathToSlug, slugToPath } from "./contract";
 import { type CmsRevisionRow, rowToDocument, rowToSummary } from "./mapping";
@@ -147,6 +148,37 @@ export class PostgresContentRepository implements ContentRepository {
     // because the cost of being wrong is a browser redirect loop.
     if (!row || row.slug === from) return null;
     return slugToPath(row.slug);
+  }
+
+  /** Two keys out of `metadata` rather than the whole jsonb: the rail needs
+   * nothing else, and the rest of a guide's metadata (FAQ, sources) is most of
+   * a summary's bytes. Slug order, so the result does not depend on edit
+   * times; the rail's own ranking is total anyway. */
+  async listRailCandidates(section: ContentSection): Promise<RailCandidate[]> {
+    const rows = await this.db
+      .select({
+        slug: cmsPages.slug,
+        title: cmsPageRevisions.title,
+        categories: sql<string[] | null>`${cmsPageRevisions.metadata} -> 'categories'`,
+        locations: sql<string[] | null>`${cmsPageRevisions.metadata} -> 'locations'`,
+      })
+      .from(cmsPages)
+      .innerJoin(cmsPageRevisions, eq(cmsPageRevisions.id, PUBLIC_REVISION_ID))
+      .where(
+        and(
+          eq(cmsPages.section, section),
+          statusIn([...listableStatuses("public")]),
+        ),
+      )
+      .orderBy(asc(cmsPages.slug));
+    return rows.map((row) => ({
+      slug: row.slug,
+      title: row.title,
+      metadata: {
+        categories: row.categories ?? [],
+        locations: row.locations ?? [],
+      },
+    }));
   }
 
   async listPubliclyRenderable(

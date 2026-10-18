@@ -1,9 +1,12 @@
 import "server-only";
 import type { ContentCategory } from "../categories/types";
-import { relatedDocuments } from "../document";
+import { unstable_cache } from "next/cache";
+import { RAIL_LIMIT, relatedDocuments } from "../document";
 import type { ContentDocument, ContentSummary } from "../types";
 import { fold } from "../validation/text";
+import { publicContentRepository } from "./public";
 import { sectionRepository } from "./sections";
+import { contentRailTag } from "./tags";
 import {
   contentByPrimaryCategory,
   contentInCategory,
@@ -52,11 +55,44 @@ export async function guidesByPrimaryCategory(): Promise<
 export const nonEmptyCategories = (): Promise<ContentCategory[]> =>
   nonEmptyContentCategories("guias");
 
+/** One guide's related rail: the pages it links to and the titles it shows.
+ *
+ * Cached per guide under its own tag (`contentRailTag`), and deliberately not
+ * read through `publishedGuides()`. A route inherits the tags of the cached
+ * reads it runs, and that list carries the section tag — which made every
+ * article in the section a route every publication refreshed, at one ISR
+ * write each, when a publication moves ~3 rails. A cached read nested inside
+ * this one contributes no tag of its own, but it would still bypass its cache,
+ * so the candidates are read directly, in the slim shape the rail needs.
+ *
+ * The CMS refreshes exactly the rails a write moved (`@/cms/server/rails`).
+ * The guide's own categories and locations are part of the key as well, so a
+ * guide whose classification changed never reads a rail ranked for the old
+ * one even if a refresh were missed. */
 export async function relatedGuides(
   guide: Pick<ContentSummary, "slug" | "metadata">,
-  limit = 3,
-): Promise<ContentSummary[]> {
-  return relatedDocuments(guide, await publishedGuides(), limit);
+  limit = RAIL_LIMIT,
+): Promise<{ slug: string; title: string }[]> {
+  return unstable_cache(
+    async (
+      slug: string,
+      categories: readonly string[],
+      locations: readonly string[],
+      size: number,
+    ) =>
+      relatedDocuments(
+        { slug, metadata: { categories, locations } },
+        await publicContentRepository.listRailCandidates("guias"),
+        size,
+      ).map(({ slug: related, title }) => ({ slug: related, title })),
+    ["content", "guias", "rail"],
+    { revalidate: false, tags: [contentRailTag("guias", guide.slug)] },
+  )(
+    guide.slug,
+    guide.metadata.categories ?? [],
+    guide.metadata.locations ?? [],
+    limit,
+  );
 }
 
 /** Every published guide about one company: those whose `vendor` names it.

@@ -51,12 +51,15 @@ import {
   levelForSave,
   nextPublishedAt,
   stampsContentUpdatedAt,
+  statusChangeAffectsListings,
   statusChangeAffectsPublicCache,
   WIP_VALIDATION_LEVEL,
   type ValidationLevel,
 } from "./lifecycle";
+import { type RailRefresher, type RailSnapshot, railRefresher } from "./rails";
 import {
   type PublicCacheInvalidator,
+  type PublicCacheScope,
   revalidatePublicContent,
 } from "./invalidation";
 import {
@@ -311,6 +314,8 @@ export type CmsContentServiceDeps = {
   invalidate?: PublicCacheInvalidator;
   /** See `MediaUsageRecorder`. */
   recordMediaUsage?: MediaUsageRecorder;
+  /** Which related rails a write moved (`./rails`). */
+  rails?: RailRefresher;
 };
 
 export class CmsContentService {
@@ -320,6 +325,7 @@ export class CmsContentService {
   private readonly clock: () => Date;
   private readonly invalidate: PublicCacheInvalidator;
   private readonly recordMediaUsage: MediaUsageRecorder;
+  private readonly rails: RailRefresher;
 
   constructor(
     private readonly validate: ContentValidator,
@@ -331,6 +337,7 @@ export class CmsContentService {
     this.clock = deps.clock ?? (() => new Date());
     this.invalidate = deps.invalidate ?? revalidatePublicContent;
     this.recordMediaUsage = deps.recordMediaUsage ?? noMediaUsage;
+    this.rails = deps.rails ?? railRefresher;
   }
 
   /** The CMS list — every status. Membership is the read grant; there is no
@@ -752,6 +759,7 @@ export class CmsContentService {
       ),
     ];
 
+    const railsBefore = await this.railsBefore(page.section as ContentSection);
     const now = this.clock();
     const result = await this.store.transaction(async (store, tx) => {
       const revisions = this.revisions.bind(tx);
@@ -853,6 +861,7 @@ export class CmsContentService {
       now,
     });
     this.expirePublicCache(page.section as ContentSection, [page.slug]);
+    await this.refreshRails(page.section as ContentSection, railsBefore);
     return published;
   }
 
@@ -889,6 +898,11 @@ export class CmsContentService {
     const candidate = documentOf(page, source);
     await this.assertValid({ ...candidate, status: "preview" }, "preview");
 
+    // Only a published page leaves the candidates rails rank from.
+    const railsBefore =
+      page.status === "published"
+        ? await this.railsBefore(page.section as ContentSection)
+        : undefined;
     const now = this.clock();
     const promoted = await this.store.transaction(async (store, tx) => {
       const revisions = this.revisions.bind(tx);
@@ -930,7 +944,14 @@ export class CmsContentService {
       toStatus: "preview",
       now,
     });
-    this.expirePublicCache(page.section as ContentSection, [page.slug]);
+    // A published page moved into preview leaves every listing; a draft or a
+    // preview getting a fresh snapshot was never in one.
+    this.expirePublicCache(
+      page.section as ContentSection,
+      [page.slug],
+      statusChangeAffectsListings(page.status, "preview") ? "listings" : "page",
+    );
+    await this.refreshRails(page.section as ContentSection, railsBefore);
     return promoted as ContentDocument;
   }
 
@@ -957,6 +978,10 @@ export class CmsContentService {
     this.assertMayAuthor(actor);
     if (page.status === "draft") return this.get(actor, input.id);
 
+    const railsBefore =
+      page.status === "published"
+        ? await this.railsBefore(page.section as ContentSection)
+        : undefined;
     const now = this.clock();
     const result = await this.store.transaction(async (store, tx) => {
       const revisions = this.revisions.bind(tx);
@@ -1020,8 +1045,13 @@ export class CmsContentService {
       now,
     });
     if (statusChangeAffectsPublicCache(page.status, "draft")) {
-      this.expirePublicCache(page.section as ContentSection, [page.slug]);
+      this.expirePublicCache(
+        page.section as ContentSection,
+        [page.slug],
+        statusChangeAffectsListings(page.status, "draft") ? "listings" : "page",
+      );
     }
+    await this.refreshRails(page.section as ContentSection, railsBefore);
     return result as ContentDocument;
   }
 
@@ -1495,6 +1525,8 @@ export class CmsContentService {
       after,
     );
 
+    // A rail links by path, so a move changes every rail that lists the page.
+    const railsBefore = await this.railsBefore(section);
     const now = this.clock();
     const done = await this.store.transaction(async (store, tx) => {
       const claimed = await store.updateWithLock({
@@ -1552,6 +1584,7 @@ export class CmsContentService {
         plan.moves.flatMap((move) => [move.from, move.to]),
       );
     }
+    await this.refreshRails(section, railsBefore);
 
     const revision = await this.selectedRevision(claimed);
     return {
@@ -1716,6 +1749,7 @@ export class CmsContentService {
       };
     }
 
+    const railsBefore = await this.railsBefore(page.section as ContentSection);
     const now = this.clock();
     const result = await this.store.transaction(async (store, tx) => {
       const revisions = this.revisions.bind(tx);
@@ -1752,6 +1786,7 @@ export class CmsContentService {
       now,
     });
     this.expirePublicCache(page.section as ContentSection, [page.slug]);
+    await this.refreshRails(page.section as ContentSection, railsBefore);
     return result as PublishResult;
   }
 
@@ -1820,11 +1855,41 @@ export class CmsContentService {
   private expirePublicCache(
     section: ContentSection,
     slugs?: readonly string[],
+    scope?: PublicCacheScope,
   ): void {
     try {
-      this.invalidate(section, slugs);
+      this.invalidate(section, slugs, scope);
     } catch (cause) {
       console.error("[cms] public cache invalidation failed:", cause);
+    }
+  }
+
+  /** Every rail in the section before a write that changes what is listed,
+   * so `refreshRails` can tell which ones the write moved (`./rails`).
+   * `undefined` for a section without rails; `null` when the read failed, which
+   * refreshes them all rather than leave one stale. */
+  private async railsBefore(
+    section: ContentSection,
+  ): Promise<RailSnapshot | undefined> {
+    if (!this.rails.covers(section)) return undefined;
+    try {
+      return await this.rails.snapshot(section);
+    } catch (cause) {
+      console.error("[cms] related rail snapshot failed:", cause);
+      return null;
+    }
+  }
+
+  /** Best-effort, like `expirePublicCache`: the write is already committed. */
+  private async refreshRails(
+    section: ContentSection,
+    before: RailSnapshot | undefined,
+  ): Promise<void> {
+    if (before === undefined) return;
+    try {
+      await this.rails.refreshChanged(section, before);
+    } catch (cause) {
+      console.error("[cms] related rail refresh failed:", cause);
     }
   }
 

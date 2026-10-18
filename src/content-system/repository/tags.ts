@@ -59,6 +59,31 @@ export const contentDocumentTag = (
 export const contentDocumentsTag = (section: ContentSection): string =>
   `content:${section}:docs`;
 
+/** The list of every page a direct request may render — published *and*
+ * public preview — which the tree sections read for breadcrumbs and children.
+ * Also carries the section tag, so a publication still reaches it. Its own tag
+ * so that a preview-only change (a page entering, leaving or refreshing its
+ * public preview without ever being listed) can refresh the routes that read
+ * this list and nothing else: the section tag reaches every route in the
+ * section, and every route it reaches is an ISR write. */
+export const contentRenderableTag = (section: ContentSection): string =>
+  `content:${section}:renderable`;
+
+/** One section's category rows — labels, slugs, order. Not the section tag:
+ * every article reads this for its category chips, and a publication changes
+ * no category row, so carrying the section tag here made every publication
+ * refresh every article. Category edits expire it. */
+export const contentCategoriesTag = (section: ContentSection): string =>
+  `content:${section}:categories`;
+
+/** One article's related rail (`@/content-system/repository/guias`). Its own
+ * tag, per page, for the same reason as the category tag: a rail reads every
+ * published page in the section, and under the section tag that put every
+ * article on every publication's bill. The CMS refreshes the rails a write
+ * actually moves (`@/cms/server/rails`). */
+export const contentRailTag = (section: ContentSection, slug: string): string =>
+  `content:${section}:rail:${slug}`;
+
 /** The one global registry read by articles, hubs and discovery surfaces. */
 export const locationsTag = "content:locations";
 

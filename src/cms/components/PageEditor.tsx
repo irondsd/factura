@@ -1253,18 +1253,26 @@ function StatusControls({
           {status === "published" ? "Publicar cambios" : "Publicar"}
         </Action>
 
-        {(status !== "preview" || previewIsStale || !hasPublicPreview) && (
-          <Action
-            mark={ACTION_STYLE.preview.mark}
-            fill={ACTION_STYLE.preview.fill}
-            disabled={busy || dirty || !canPreview}
-            onClick={onPromotePreview}
-          >
-            {hasPublicPreview && status === "preview"
-              ? "Actualizar vista previa pública"
-              : "Poner en vista previa pública"}
-          </Action>
-        )}
+        {/* Not on a published page. There it never meant "let me look at
+            this": it took the page out of every listing to show a frozen copy
+            instead, an unpublish in all but name that editors pressed by
+            mistake, and each press refreshed the public cache — billed per
+            regenerated route. Reviewing changes to a live page is the CMS's
+            own preview, private and free. A draft can still get a shareable
+            preview, which touches nothing listed (`@/cms/server/invalidation`). */}
+        {status !== "published" &&
+          (status !== "preview" || previewIsStale || !hasPublicPreview) && (
+            <Action
+              mark={ACTION_STYLE.preview.mark}
+              fill={ACTION_STYLE.preview.fill}
+              disabled={busy || dirty || !canPreview}
+              onClick={onPromotePreview}
+            >
+              {hasPublicPreview && status === "preview"
+                ? "Actualizar vista previa pública"
+                : "Poner en vista previa pública"}
+            </Action>
+          )}
 
         {status !== "draft" && (
           <Action

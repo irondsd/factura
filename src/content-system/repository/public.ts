@@ -1,4 +1,5 @@
 import "server-only";
+import type { RailCandidate } from "../document";
 import type { ContentDocument, ContentSection, ContentSummary } from "../types";
 import type { ContentRepository } from "./contract";
 import { ciFixtureContentRepository } from "./ci-fixtures";
@@ -20,6 +21,10 @@ class LazyPostgresContentRepository implements ContentRepository {
 
   async listPublished(section: ContentSection): Promise<ContentSummary[]> {
     return (await this.repository()).listPublished(section);
+  }
+
+  async listRailCandidates(section: ContentSection): Promise<RailCandidate[]> {
+    return (await this.repository()).listRailCandidates(section);
   }
 
   async listPubliclyRenderable(

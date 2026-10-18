@@ -1,4 +1,4 @@
-import { canRender } from "@/content-system/repository/visibility";
+import { canList, canRender } from "@/content-system/repository/visibility";
 import type { ContentStatus } from "@/content-system/types";
 
 // The save/transition policy from cms.md, as pure functions. What
@@ -176,4 +176,18 @@ export function statusChangeAffectsPublicCache(
   to: ContentStatus,
 ): boolean {
   return canRender(from, "public") || canRender(to, "public");
+}
+
+/** Whether a status transition moves anything a *listing* shows — the index,
+ * the category hubs, the related rails, the sitemap, the feed.
+ *
+ * Narrower than `statusChangeAffectsPublicCache`: only `published` is ever
+ * listed, so a page entering, refreshing or leaving its public preview without
+ * being published on either side changes its own address and nothing else.
+ * That difference is the whole section's ISR writes (`./invalidation`). */
+export function statusChangeAffectsListings(
+  from: ContentStatus,
+  to: ContentStatus,
+): boolean {
+  return canList(from, "public") || canList(to, "public");
 }

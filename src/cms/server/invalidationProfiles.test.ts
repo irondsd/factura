@@ -42,12 +42,23 @@ describe("a publication", () => {
   });
 });
 
+describe("a preview-only change", () => {
+  it("refreshes the renderable list, not the section's listings", () => {
+    revalidatePublicContent("guias", ["una-guia"], "page");
+    expect(calls).toEqual([
+      ["content:guias:renderable", "max"],
+      ["content:guias:doc:una-guia", { expire: 0 }],
+    ]);
+  });
+});
+
 describe("a section-wide edit", () => {
   it("deletes nothing when no page is named", () => {
     revalidatePublicContent("guias");
     expect(calls).toEqual([
       ["content:guias", "max"],
       ["content:guias:docs", "max"],
+      ["content:guias:categories", "max"],
     ]);
   });
 

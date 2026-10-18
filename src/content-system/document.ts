@@ -7,7 +7,6 @@ import {
 } from "@/content/headings";
 import {
   type ContentDocument,
-  type ContentSummary,
   methodologyEntries,
 } from "./types";
 
@@ -112,6 +111,50 @@ export function documentStats(
 /** The location key for content that applies to the whole country. */
 const NATIONWIDE = "argentina";
 
+/** What the related rail ranks by and shows — and nothing else. A published
+ * guide's full summary carries its FAQ, sources and the rest of its metadata,
+ * which is ~330 KB of Neon egress for the guides section; this is ~30 KB. */
+export type RailCandidate = {
+  slug: string;
+  title: string;
+  metadata: {
+    categories?: readonly string[];
+    locations?: readonly string[];
+  };
+};
+
+/** How many pages a rail shows. */
+export const RAIL_LIMIT = 3;
+
+/** The sections whose articles render a related rail
+ * (`@/content-system/repository/guias`). */
+export const RAIL_SECTIONS = ["guias"] as const;
+
+/** Every page's rail, as a comparable string per slug: which pages it lists,
+ * and the titles it shows them under.
+ *
+ * The CMS compares this before and after a write that changes what is listed
+ * (`@/cms/server/rails`), and refreshes only the articles whose rail moved. A
+ * publication changes ~3 rails; refreshing all of them — which is what tagging
+ * every article with the section did — is one ISR write per article in the
+ * section. */
+export function railSignatures(
+  candidates: readonly RailCandidate[],
+  limit = RAIL_LIMIT,
+): Map<string, string> {
+  return new Map(
+    candidates.map((page) => [
+      page.slug,
+      JSON.stringify(
+        relatedDocuments(page, candidates, limit).map(({ slug, title }) => [
+          slug,
+          title,
+        ]),
+      ),
+    ]),
+  );
+}
+
 /** Pages to suggest at the foot of `document`, best match first.
  *
  * Location first: a reader of a Mendoza water guide cares about Mendoza's
@@ -137,22 +180,22 @@ const NATIONWIDE = "argentina";
  *
  * The caller decides what `candidates` contains, and that is where the
  * lifecycle rule lives: a public page passes published pages only. */
-export function relatedDocuments(
-  document: Pick<ContentSummary, "slug" | "metadata">,
-  candidates: readonly ContentSummary[],
-  limit = 3,
-): ContentSummary[] {
+export function relatedDocuments<T extends RailCandidate>(
+  document: Pick<RailCandidate, "slug" | "metadata">,
+  candidates: readonly T[],
+  limit = RAIL_LIMIT,
+): T[] {
   const categories = document.metadata?.categories ?? [];
   const locations = document.metadata?.locations ?? [];
 
-  const tier = (page: ContentSummary): number | null => {
+  const tier = (page: T): number | null => {
     const theirs = page.metadata?.locations ?? [];
     if (theirs.some((l) => locations.includes(l))) return 0;
     if (theirs.includes(NATIONWIDE)) return 1;
     return null;
   };
 
-  const score = (page: ContentSummary): number => {
+  const score = (page: T): number => {
     const theirs = page.metadata?.categories ?? [];
     return (
       theirs.filter((c) => categories.includes(c)).length +
