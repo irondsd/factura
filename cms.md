@@ -123,23 +123,42 @@ The CMS expires that tag when, and only when, a write changes something a
 visitor can see: publishing, promoting or refreshing the public preview,
 unpublishing, returning a preview to draft, and renaming a page that was ever
 public. **No save expires anything, in any status** — it changed nothing
-public. Invalidation is `revalidateTag` from the content service, with two
-profiles (`src/cms/server/invalidation.ts`). The section tag is marked stale
-(`"max"`), because every route in the section carries it and deleting them all
-made Vercel bill each regeneration as a full ISR write, even a byte-identical
-one. The document tags of the pages that went up, came down or moved are
-expired outright (`{ expire: 0 }`), so a withdrawn page stops serving on the
-next request and a new one stops being a cached 404. Every listing that mentions
-them catches up one request later. It is best-effort: the row is already
-committed, so a failed expiry is logged
-rather than reported as a failed publication. Nothing catches it if it fails —
-the next deployment reprerenders the page, and until then the old copy stands.
+public. Invalidation is `revalidateTag` from the content service
+(`src/cms/server/invalidation.ts`), best-effort: the row is already committed,
+so a failed expiry is logged rather than reported as a failed publication.
+Nothing catches it if it fails — the next deployment reprerenders the page, and
+until then the old copy stands.
+
+**Every route a tag reaches is an ISR write.** Vercel stores each regenerated
+route again and bills it in 8 KB units whether or not it changed (its docs say
+an unchanged regeneration is free; in October 2026 it measurably was not). So
+the rule is to reach as few routes as the change needs:
+
+- Shared tags are marked stale (`"max"`) and regenerate in the background; the
+  document tags of the pages that went up, came down or moved are expired
+  outright (`{ expire: 0 }`), so a withdrawn page stops serving on the next
+  request and a new one stops being a cached 404.
+- Articles do not carry the section tag. Their category chips read
+  `content:<section>:categories`, and a guide's related rail is cached per page
+  under `content:guias:rail:<slug>`. On a write that changes what is published,
+  the CMS ranks every rail before and after and refreshes only the ones that
+  moved (`src/cms/server/rails.ts`). A guide publication reaches its own page,
+  the listings (index, category and location hubs, home, sitemap, feed,
+  `llms.txt`) and the ~3 rails it enters: ~52 routes rather than ~217.
+- A public preview that appears, refreshes or goes back to draft without being
+  published on either side reaches only its own page (and
+  `content:<section>:renderable`, which the tree sections' breadcrumbs read). A
+  published page moved into preview leaves every listing, so the editor no
+  longer offers it.
 
 Three writes outside the page lifecycle expire it too, because they change what
 a reader sees without any page being saved: a **category** edit (its own
 section), an **author** edit (all sections — a name travels in the structured
-data of every page it signed), and a **media** edit that touches `defaultAlt` or
-`decorative` (all sections, for the same reason). A media edit that only renames
+data of every page it signed), and a **media** edit that touches `defaultAlt`,
+`decorative` or the bytes. A media edit reaches only the pages whose live copy
+or public preview embeds the image (plus the listings when it is a preview image
+or logo, which cards draw), and all sections only for an author portrait. An
+image no public page uses yet refreshes nothing. A media edit that only renames
 the asset, credits it or files it in a collection expires nothing: none of that
 is in `MediaRef`.
 

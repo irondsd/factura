@@ -1,3 +1,4 @@
+import type { RailCandidate } from "../document";
 import type { ContentDocument, ContentSection, ContentSummary } from "../types";
 
 // The read contract the public site codes against (cms.md). Introduced
@@ -19,6 +20,12 @@ export interface ContentRepository {
   /** Everything publicly listable: indexes, category hubs, related content,
    * sitemap, feed, `llms.txt`, OG routes. `published` only. Newest first. */
   listPublished(section: ContentSection): Promise<ContentSummary[]>;
+
+  /** The published pages again, as only what the related rail ranks by and
+   * shows: slug, title, categories, locations. Read once per rail
+   * regeneration and twice per CMS publication, so it stays small on purpose
+   * (`RailCandidate`). */
+  listRailCandidates(section: ContentSection): Promise<RailCandidate[]>;
 
   /** Everything a public URL would render — `published` plus `preview`. For
    * the few callers that need to know a path resolves at all, such as

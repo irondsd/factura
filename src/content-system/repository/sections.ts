@@ -11,6 +11,7 @@ import { publicContentRepository } from "./public";
 import {
   contentDocumentsTag,
   contentDocumentTag,
+  contentRenderableTag,
   contentTag,
 } from "./tags";
 
@@ -57,7 +58,7 @@ function cachedSection(section: ContentSection): CachedSection {
     listPubliclyRenderable: unstable_cache(
       () => publicContentRepository.listPubliclyRenderable(section),
       ["content", section, "renderable"],
-      { revalidate: false, tags },
+      { revalidate: false, tags: [...tags, contentRenderableTag(section)] },
     ),
     // Not the section tag: a document is tagged by its own path (`./tags`), so
     // publishing one page leaves every other body in the section cached. Built

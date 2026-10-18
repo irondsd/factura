@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CmsActor } from "../types";
 import { CmsContentService } from "./contentService";
+import { noRails } from "./rails";
 import { createFakeCms, seedPage } from "./testFakes";
 
 // When a write expires the public cache, and — the part worth pinning — when it
@@ -160,9 +161,10 @@ describe("publication", () => {
 });
 
 describe("public preview and unpublication", () => {
-  it("expires the section when a draft first gets a public preview", async () => {
+  it("expires only the page when a draft first gets a public preview", async () => {
     // Nothing about the page is cached yet — the cached 404 of its path is,
-    // and that is what this clears.
+    // and that is what this clears. A preview is never listed, so no listing
+    // has anything to catch up on.
     const fake = createFakeCms();
     const page = await seedPage(fake, actor);
     await fake.service.promotePreview(actor, {
@@ -170,9 +172,10 @@ describe("public preview and unpublication", () => {
       expectedLockVersion: await lockOf(fake, page.id),
     });
     expect(fake.expired).toEqual(["guias"]);
+    expect(fake.expiredScopes).toEqual(["page"]);
   });
 
-  it("expires the section when the public preview is refreshed", async () => {
+  it("expires only the page when the public preview is refreshed", async () => {
     const fake = createFakeCms();
     const page = await seedPage(fake, actor);
     await fake.service.promotePreview(actor, {
@@ -186,11 +189,26 @@ describe("public preview and unpublication", () => {
       expectedLockVersion: await lockOf(fake, page.id),
       patch: { body: "Otro cuerpo.\n" },
     });
+    fake.expiredScopes.length = 0;
     await fake.service.promotePreview(actor, {
       id: page.id,
       expectedLockVersion: await lockOf(fake, page.id),
     });
     expect(fake.expired).toEqual(["guias"]);
+    expect(fake.expiredScopes).toEqual(["page"]);
+  });
+
+  it("expires the listings when a published page is moved into preview", async () => {
+    // An unpublish in all but name: the page leaves the index, the hubs, the
+    // rails and the sitemap.
+    const fake = createFakeCms();
+    const id = await publishedPage(fake);
+    fake.expiredScopes.length = 0;
+    await fake.service.promotePreview(actor, {
+      id,
+      expectedLockVersion: await lockOf(fake, id),
+    });
+    expect(fake.expiredScopes).toEqual(["listings"]);
   });
 
   it("expires the section on unpublication", async () => {
@@ -203,9 +221,10 @@ describe("public preview and unpublication", () => {
       expectedLockVersion: await lockOf(fake, id),
     });
     expect(fake.expired).toEqual(["guias"]);
+    expect(fake.expiredScopes.at(-1)).toBe("listings");
   });
 
-  it("expires the section when a preview is taken back to draft", async () => {
+  it("expires only the page when a preview is taken back to draft", async () => {
     const fake = createFakeCms();
     const page = await seedPage(fake, actor);
     await fake.service.promotePreview(actor, {
@@ -213,11 +232,13 @@ describe("public preview and unpublication", () => {
       expectedLockVersion: await lockOf(fake, page.id),
     });
     fake.expired.length = 0;
+    fake.expiredScopes.length = 0;
     await fake.service.unpublish(actor, {
       id: page.id,
       expectedLockVersion: await lockOf(fake, page.id),
     });
     expect(fake.expired).toEqual(["guias"]);
+    expect(fake.expiredScopes).toEqual(["page"]);
   });
 });
 
@@ -258,6 +279,57 @@ describe("which documents expire", () => {
       expectedLockVersion: await lockOf(fake, page.id),
     });
     expect(fake.expiredDocuments).toEqual([["una-guia"]]);
+  });
+});
+
+describe("which writes re-rank the related rails", () => {
+  // Rails rank published pages only, so only a write that changes what is
+  // published asks — and a preview, which is never a candidate, never does.
+  it("re-ranks after a publication", async () => {
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
+    await fake.service.publish(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+    expect(fake.railRefreshes).toEqual(["guias"]);
+  });
+
+  it("re-ranks after a published page is taken down", async () => {
+    const fake = createFakeCms();
+    const id = await publishedPage(fake);
+    fake.railRefreshes.length = 0;
+    await fake.service.unpublish(actor, {
+      id,
+      expectedLockVersion: await lockOf(fake, id),
+    });
+    expect(fake.railRefreshes).toEqual(["guias"]);
+  });
+
+  it("does not re-rank for a public preview of a draft", async () => {
+    const fake = createFakeCms();
+    const page = await seedPage(fake, actor);
+    await fake.service.promotePreview(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+    await fake.service.unpublish(actor, {
+      id: page.id,
+      expectedLockVersion: await lockOf(fake, page.id),
+    });
+    expect(fake.railRefreshes).toEqual([]);
+  });
+
+  it("does not re-rank for a save", async () => {
+    const fake = createFakeCms();
+    const id = await publishedPage(fake);
+    fake.railRefreshes.length = 0;
+    await fake.service.update(actor, {
+      id,
+      expectedLockVersion: await lockOf(fake, id),
+      patch: { body: "Otro cuerpo.\n" },
+    });
+    expect(fake.railRefreshes).toEqual([]);
   });
 });
 
@@ -305,6 +377,7 @@ describe("a failing invalidation", () => {
         store: fake.store,
         revisions: fake.revisions,
         clock: () => fake.now(),
+        rails: noRails,
         invalidate: () => {
           throw new Error("no request context");
         },

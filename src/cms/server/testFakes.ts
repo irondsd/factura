@@ -14,6 +14,7 @@ import {
   type ContentValidator,
   type MediaUsageRecorder,
 } from "./contentService";
+import type { PublicCacheScope } from "./invalidation";
 import type { CmsPageEventInsert, CmsPageHistoryStore } from "./historyStore";
 import type {
   AuthoredDocument,
@@ -50,6 +51,11 @@ export type FakeCms = {
   /** Per expiry above, the document slugs it named, or `"all"` when it expired
    * every document in the section. */
   expiredDocuments: (readonly string[] | "all")[];
+  /** Per expiry above, how far it reached (`"listings"` unless narrowed). */
+  expiredScopes: PublicCacheScope[];
+  /** Sections whose related rails the service asked to re-rank after a write,
+   * in order (`./rails`). Only guides have rails. */
+  railRefreshes: ContentSection[];
   /** Activity rows the service recorded, in order. */
   events: CmsPageEventInsert[];
   /** Revision ids whose media usage was rewritten, in order. */
@@ -87,6 +93,8 @@ export function createFakeCms(
   const redirects = new Map<string, string>();
   const expired: ContentSection[] = [];
   const expiredDocuments: (readonly string[] | "all")[] = [];
+  const expiredScopes: PublicCacheScope[] = [];
+  const railRefreshes: ContentSection[] = [];
   const events: CmsPageEventInsert[] = [];
   const usageWrites: string[] = [];
   let now = options.now ?? new Date("2026-02-01T12:00:00.000Z");
@@ -571,11 +579,19 @@ export function createFakeCms(
     revisions: revisionStore as unknown as CmsRevisionStore,
     history: historyStore as unknown as CmsPageHistoryStore,
     clock: () => now,
-    invalidate: (section, slugs) => {
+    invalidate: (section, slugs, scope) => {
       expired.push(section);
       expiredDocuments.push(slugs ?? "all");
+      expiredScopes.push(scope ?? "listings");
     },
     recordMediaUsage,
+    rails: {
+      covers: (section) => section === "guias",
+      snapshot: async () => new Map(),
+      refreshChanged: async (section) => {
+        railRefreshes.push(section);
+      },
+    },
   });
 
   return {
@@ -584,6 +600,8 @@ export function createFakeCms(
     revisions: revisionStore as unknown as CmsRevisionStore,
     expired,
     expiredDocuments,
+    expiredScopes,
+    railRefreshes,
     events,
     usageWrites,
     setNow: (next: Date) => {

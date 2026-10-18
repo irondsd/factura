@@ -1,5 +1,9 @@
 import "server-only";
-import { CONTENT_SECTIONS } from "@/content-system/types";
+import {
+  CONTENT_SECTIONS,
+  type ContentSection,
+  isContentSection,
+} from "@/content-system/types";
 import { canAuthor } from "../../auth/policy";
 import {
   CmsConflictError,
@@ -440,7 +444,7 @@ export class CmsMediaService {
       }
     }
 
-    this.expirePublicCache();
+    await this.expirePublicCacheFor(input.mediaId);
     return replaced;
   }
 
@@ -525,7 +529,7 @@ export class CmsMediaService {
       input.patch.defaultAlt !== undefined ||
       input.patch.decorative !== undefined
     ) {
-      this.expirePublicCache();
+      await this.expirePublicCacheFor(input.id);
     }
     return saved;
   }
@@ -685,25 +689,59 @@ export class CmsMediaService {
     }
   }
 
-  /** An image's alt text reaches readers through every page that embeds it and
-   * through the portrait of every author who uses it — across all four
-   * sections, with no page of its own to expire. Same answer as the author
-   * service, and for the same reason: there is no one section to name.
+  /** Refresh the public pages that show this image, after its alt text,
+   * decorative flag or bytes changed.
    *
-   * Asking `usageOf` which sections actually embed it would be narrower, but it
-   * would also miss the portrait case and would put a join on the path of every
-   * alt-text fix to save regenerations of pages that, having not changed, are
-   * not re-stored anyway.
+   * Only those pages. Every route a refresh reaches is an ISR write on Vercel
+   * whether or not it changed (`@/cms/server/invalidation`), and this used to
+   * refresh all four sections for any alt edit — including on images no page
+   * used yet, which is most of them, because alt text is written right after
+   * an upload. One such morning cost ~4k write units.
+   *
+   * Who sees an image:
+   * - the page serving a revision that embeds it — the live publication or the
+   *   public preview (`usageOf`);
+   * - for a preview image or a provider logo, also every list that renders the
+   *   page's card, so the section's listings;
+   * - for an author portrait, every page that author signed. Which pages those
+   *   are lives in page metadata, not in usage rows, so a portrait still
+   *   refreshes every section, as before. Portraits change about twice a year.
    *
    * Best-effort, like the other two: the row is already committed, so a failed
    * expiry is logged rather than reported as a failed save. */
-  private expirePublicCache(): void {
-    for (const section of CONTENT_SECTIONS) {
-      try {
-        this.invalidate(section);
-      } catch (cause) {
-        console.error("[cms] media cache invalidation failed:", cause);
+  private async expirePublicCacheFor(mediaId: string): Promise<void> {
+    try {
+      const [usage, portraitOf] = await Promise.all([
+        this.store.usageOf(mediaId),
+        this.authors.byPortrait([mediaId]),
+      ]);
+      if (portraitOf.length > 0) {
+        for (const section of CONTENT_SECTIONS) this.invalidate(section);
+        return;
       }
+      const shown = new Map<
+        ContentSection,
+        { slugs: Set<string>; listings: boolean }
+      >();
+      for (const ref of usage) {
+        const servedPublicly =
+          ref.isLive || (ref.kind === "preview" && ref.status === "preview");
+        if (!servedPublicly || !isContentSection(ref.section)) continue;
+        const entry = shown.get(ref.section) ?? {
+          slugs: new Set<string>(),
+          listings: false,
+        };
+        entry.slugs.add(ref.slug);
+        // A card is drawn from the published copy only; a preview is never
+        // listed.
+        if (ref.isLive && ref.placement !== "body") entry.listings = true;
+        shown.set(ref.section, entry);
+      }
+      for (const [section, { slugs, listings }] of shown) {
+        this.invalidate(section, [...slugs], listings ? "listings" : "page");
+      }
+    } catch (cause) {
+      console.error("[cms] media cache invalidation failed:", cause);
     }
   }
 }

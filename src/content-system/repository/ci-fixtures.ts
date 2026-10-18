@@ -1,5 +1,6 @@
 import type { ContentCategory } from "../categories/types";
 import type { ContentLocation } from "../locations/types";
+import type { RailCandidate } from "../document";
 import type { ContentDocument, ContentSection, ContentSummary } from "../types";
 import { type ContentRepository, pathToSlug } from "./contract";
 
@@ -372,6 +373,19 @@ export class CiFixtureContentRepository implements ContentRepository {
           document.status !== "draft",
       ) ?? null
     );
+  }
+
+  async listRailCandidates(section: ContentSection): Promise<RailCandidate[]> {
+    return (await this.listPublished(section))
+      .map(({ slug, title, metadata }) => ({
+        slug,
+        title,
+        metadata: {
+          categories: metadata.categories,
+          locations: metadata.locations,
+        },
+      }))
+      .sort((a, b) => a.slug.localeCompare(b.slug));
   }
 
   async listPublished(section: ContentSection): Promise<ContentSummary[]> {

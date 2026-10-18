@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CONTENT_SECTIONS } from "@/content-system/types";
 import type { CmsActor } from "../../types";
-import type { MediaAsset } from "../types";
+import type { PublicCacheScope } from "@/cms/server/invalidation";
+import type { CmsAuthorStore } from "../../authors/server/store";
+import type { MediaAsset, MediaUsageRef } from "../types";
 import { CmsMediaService } from "./service";
 import type { CmsMediaStore } from "./store";
 
@@ -15,9 +17,10 @@ import type { CmsMediaStore } from "./store";
 //
 // It matters more than it used to: the public reads have no TTL underneath them
 // any more, so an expiry the CMS fails to make is not a wait, it is permanent.
-// The converse is just as real in the other direction — expiring all four
-// sections because somebody filed an image into a collection would regenerate
-// the site for a change nobody can see.
+// The converse is just as real in the other direction: every route a refresh
+// reaches is an ISR write, whether or not it changed. So an edit refreshes the
+// pages that show the image and nothing else — not the four sections, which
+// is what one morning of alt text on fresh uploads used to cost (~4k units).
 
 const actor: CmsActor = {
   userId: "11111111-1111-1111-1111-111111111111",
@@ -50,9 +53,9 @@ const asset: MediaAsset = {
   src: "https://media.example/factura.png",
 };
 
-/** Only the three methods `update` reaches. A real store needs a database, and
- * what is under test here is a decision, not a query. */
-function fakeStore(): CmsMediaStore {
+/** Only the methods `update` reaches. A real store needs a database, and what
+ * is under test here is a decision, not a query. */
+function fakeStore(usage: Partial<MediaUsageRef>[] = []): CmsMediaStore {
   return {
     findById: async () => asset,
     updateWithLock: async ({ patch }: { patch: Partial<MediaAsset> }) => ({
@@ -61,16 +64,44 @@ function fakeStore(): CmsMediaStore {
       lockVersion: asset.lockVersion + 1,
     }),
     lockVersionOf: async () => asset.lockVersion,
+    usageOf: async () =>
+      usage.map((ref) => ({
+        pageId: "p",
+        revisionId: "r",
+        kind: "published",
+        publicationNumber: 1,
+        section: "guias",
+        slug: "una-guia",
+        title: "Una guía",
+        status: "published",
+        isLive: true,
+        placement: "body",
+        occurrences: 1,
+        ...ref,
+      })),
   } as unknown as CmsMediaStore;
 }
 
-function serviceWithSpy() {
-  const expired: string[] = [];
+function fakeAuthors(portraitOf: string[] = []): CmsAuthorStore {
+  return {
+    byPortrait: async () =>
+      portraitOf.map((name) => ({ id: name, name, imageMediaId: asset.id })),
+  } as unknown as CmsAuthorStore;
+}
+
+type Expiry = [string, readonly string[] | "all", PublicCacheScope];
+
+function serviceWithSpy(
+  usage: Partial<MediaUsageRef>[] = [],
+  portraitOf: string[] = [],
+) {
+  const expired: Expiry[] = [];
   const service = new CmsMediaService(
-    fakeStore(),
+    fakeStore(usage),
     () => new Date("2026-01-02T00:00:00.000Z"),
-    undefined,
-    (section) => expired.push(section),
+    fakeAuthors(portraitOf),
+    (section, slugs, scope) =>
+      expired.push([section, slugs ?? "all", scope ?? "listings"]),
   );
   return { service, expired };
 }
@@ -82,30 +113,82 @@ const edit = (patch: Record<string, unknown>) => ({
 });
 
 describe("a media edit a reader can see", () => {
-  it("expires every section when the alt text changes", async () => {
-    const { service, expired } = serviceWithSpy();
+  it("refreshes only the page whose live copy embeds the image", async () => {
+    const { service, expired } = serviceWithSpy([{ slug: "una-guia" }]);
     await service.update(actor, edit({ defaultAlt: "Otra factura" }));
-    // All four, not one: the same image can illustrate a guide and a research
-    // page, and can be an author's portrait, which has no page of its own.
-    expect(expired).toEqual([...CONTENT_SECTIONS]);
+    expect(expired).toEqual([["guias", ["una-guia"], "page"]]);
   });
 
-  it("expires every section when the decorative flag changes", async () => {
-    const { service, expired } = serviceWithSpy();
+  it("refreshes the listings too when it is a page's preview image", async () => {
+    // The card in the index, the category hubs and the home teasers draws it.
+    const { service, expired } = serviceWithSpy([
+      { slug: "una-guia", placement: "preview" },
+    ]);
     await service.update(actor, edit({ defaultAlt: "", decorative: true }));
-    expect(expired).toEqual([...CONTENT_SECTIONS]);
+    expect(expired).toEqual([["guias", ["una-guia"], "listings"]]);
+  });
+
+  it("refreshes a public preview that embeds it, and nothing listed", async () => {
+    const { service, expired } = serviceWithSpy([
+      {
+        slug: "en-revision",
+        kind: "preview",
+        status: "preview",
+        isLive: false,
+        placement: "preview",
+      },
+    ]);
+    await service.update(actor, edit({ defaultAlt: "Otra factura" }));
+    expect(expired).toEqual([["guias", ["en-revision"], "page"]]);
+  });
+
+  it("names each section once, with every page in it", async () => {
+    const { service, expired } = serviceWithSpy([
+      { slug: "una-guia" },
+      { slug: "otra-guia" },
+      { section: "estadisticas", slug: "precios" },
+    ]);
+    await service.update(actor, edit({ defaultAlt: "Otra factura" }));
+    expect(expired).toEqual([
+      ["guias", ["una-guia", "otra-guia"], "page"],
+      ["estadisticas", ["precios"], "page"],
+    ]);
+  });
+
+  it("refreshes every section for an author's portrait", async () => {
+    // Which pages an author signed lives in page metadata, not in usage rows.
+    const { service, expired } = serviceWithSpy([], ["Autora"]);
+    await service.update(actor, edit({ defaultAlt: "Retrato" }));
+    expect(expired.map(([section]) => section)).toEqual([...CONTENT_SECTIONS]);
   });
 });
 
 describe("a media edit no reader can see", () => {
-  it("expires nothing when the asset is renamed in the library", async () => {
+  it("refreshes nothing when no public page uses the image", async () => {
+    // The usual case: alt text is written right after an upload.
     const { service, expired } = serviceWithSpy();
+    await service.update(actor, edit({ defaultAlt: "Recién subida" }));
+    expect(expired).toEqual([]);
+  });
+
+  it("refreshes nothing when only drafts and old publications use it", async () => {
+    const { service, expired } = serviceWithSpy([
+      { kind: "wip", isLive: false },
+      { kind: "published", isLive: false, publicationNumber: 2 },
+      { kind: "checkpoint", status: "draft", isLive: false },
+    ]);
+    await service.update(actor, edit({ defaultAlt: "Otra factura" }));
+    expect(expired).toEqual([]);
+  });
+
+  it("expires nothing when the asset is renamed in the library", async () => {
+    const { service, expired } = serviceWithSpy([{ slug: "una-guia" }]);
     await service.update(actor, edit({ displayName: "Factura de Edesur" }));
     expect(expired).toEqual([]);
   });
 
   it("expires nothing when the credit or the collection changes", async () => {
-    const { service, expired } = serviceWithSpy();
+    const { service, expired } = serviceWithSpy([{ slug: "una-guia" }]);
     await service.update(
       actor,
       edit({ attribution: "Foto: Redacción", collectionId: "col-1" }),
@@ -119,9 +202,9 @@ describe("a failing invalidation", () => {
     // Same rule as pages and authors: the row is already committed, so a cache
     // failure is logged, not reported as a refused edit.
     const service = new CmsMediaService(
-      fakeStore(),
+      fakeStore([{ slug: "una-guia" }]),
       () => new Date("2026-01-02T00:00:00.000Z"),
-      undefined,
+      fakeAuthors(),
       () => {
         throw new Error("no request context");
       },

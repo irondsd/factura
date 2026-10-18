@@ -6,7 +6,7 @@ import type { ContentCategory } from "../categories/types";
 import type { ContentSection, ContentSummary } from "../types";
 import { CI_CONTENT_CATEGORIES } from "./ci-fixtures";
 import { sectionRepository } from "./sections";
-import { contentTag } from "./tags";
+import { contentCategoriesTag } from "./tags";
 
 const mapCategory = (
   row: typeof cmsCategories.$inferSelect,
@@ -71,7 +71,10 @@ const CACHE = new Map<ContentSection, CachedCategories>();
 function cached(section: ContentSection): CachedCategories {
   const existing = CACHE.get(section);
   if (existing) return existing;
-  const tags = [contentTag(section)];
+  // The category rows only, not the section: see `contentCategoriesTag`.
+  // Everything that lists pages *by* category also reads `publishedContent`,
+  // which carries the section tag on its own.
+  const tags = [contentCategoriesTag(section)];
   const value = {
     list: unstable_cache(
       () => readCategories(section),

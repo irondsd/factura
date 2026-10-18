@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CmsActor } from "../types";
 import { CmsContentService } from "./contentService";
+import { noRails } from "./rails";
 import type { CmsPageHistoryStore } from "./historyStore";
 import { actionsOf, createFakeCms, seedPage } from "./testFakes";
 
@@ -159,6 +160,7 @@ describe("recording page history", () => {
         history: brokenHistory,
         clock: () => fake.now(),
         invalidate: () => {},
+        rails: noRails,
       },
     );
 
