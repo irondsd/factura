@@ -86,6 +86,7 @@ export type MediaRef = {
   defaultAlt: string;
   decorative: boolean;
   mimeType: string;
+  byteSize: number | null;
 };
 
 export type MediaCollection = {

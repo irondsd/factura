@@ -20,6 +20,9 @@ export type MediaRef = {
   defaultAlt: string;
   decorative: boolean;
   mimeType: string;
+  /** The master's size on disk. Null only for rows finalized before it was
+   * recorded. */
+  byteSize: number | null;
 };
 
 /** Resolve ids to renderable references, in one query.
@@ -46,6 +49,7 @@ export async function resolveMediaRefs(
       width: cmsMedia.width,
       height: cmsMedia.height,
       mimeType: cmsMedia.mimeType,
+      byteSize: cmsMedia.byteSize,
       defaultAlt: cmsMedia.defaultAlt,
       decorative: cmsMedia.decorative,
     })
@@ -66,6 +70,7 @@ export async function resolveMediaRefs(
       defaultAlt: row.defaultAlt,
       decorative: row.decorative,
       mimeType: row.mimeType,
+      byteSize: row.byteSize,
     });
   }
   return out;

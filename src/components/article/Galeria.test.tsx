@@ -25,6 +25,7 @@ const ref = (n: number): MediaRef => ({
   defaultAlt: `Alt de biblioteca ${n}`,
   decorative: false,
   mimeType: "image/png",
+  byteSize: 180_000,
 });
 
 const library = (...refs: MediaRef[]) =>

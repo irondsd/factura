@@ -26,11 +26,20 @@ const SIZES: Record<MediaPlacement, string> = {
  * cache, and the master is served as-is. */
 const UNOPTIMIZED_PIXELS = 24_000_000;
 
+/** Below this the master is already small enough to send as-is. Resizing it
+ * would save a few kilobytes and cost a billed transformation per width — and
+ * more than half the library (screenshots, logos) sits under it. */
+const UNOPTIMIZED_MAX_BYTES = 50_000;
+
 /** Whether this asset has to be served as its master.
  *
  * Animated GIFs must not be optimized: the optimizer would turn one into its
  * first frame, which is a different asset rather than a smaller one. Very large
- * masters skip it too. Neither is something an author can ask for.
+ * masters skip it too, and so do small ones, which have nothing to gain. None of
+ * these is something an author can ask for.
+ *
+ * Moot while `images.unoptimized` is on in `next.config.ts`; it decides again
+ * the moment that is lifted.
  *
  * Exported because `<Galeria>` renders its own `next/image` — a tile is cropped
  * and a full-screen view is zoomable, neither of which is this component's
@@ -39,10 +48,12 @@ export function unoptimizedMedia(media: {
   mimeType: string;
   width: number;
   height: number;
+  byteSize: number | null;
 }): boolean {
   return (
     media.mimeType === "image/gif" ||
-    media.width * media.height > UNOPTIMIZED_PIXELS
+    media.width * media.height > UNOPTIMIZED_PIXELS ||
+    (media.byteSize !== null && media.byteSize < UNOPTIMIZED_MAX_BYTES)
   );
 }
 

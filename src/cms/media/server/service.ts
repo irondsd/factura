@@ -176,6 +176,7 @@ export class CmsMediaService {
         defaultAlt: asset.defaultAlt,
         decorative: asset.decorative,
         mimeType: asset.mimeType,
+        byteSize: asset.byteSize,
       });
     }
     return out;

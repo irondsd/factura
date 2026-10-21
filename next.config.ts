@@ -92,6 +92,12 @@ const nextConfig: NextConfig = {
     "/og/**": ["./src/assets/fonts/**/*"],
   },
   images: {
+    // Every image is served as its master, straight from the media bucket.
+    // Vercel bills each image × width × Accept variant the optimizer produces,
+    // and the Hobby allowance (5,000 a month) ran out in October 2026; past it,
+    // uncached images answer 402 and readers see the alt text. The settings
+    // below only matter again if this is lifted.
+    unoptimized: true,
     remotePatterns: mediaRemotePatterns(),
     // Required from Next 16: without an allowlist, anyone could ask the
     // optimizer for arbitrary qualities and make it do unbounded work. One
