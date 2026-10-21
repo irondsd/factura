@@ -18,9 +18,9 @@ import { SECTIONS } from "@/content/sections";
 // ── Why the content isn't a prop ──────────────────────────────────────────
 // Only the href is. The title, the blurb and the eyebrow come from the target
 // page's own `meta` and its own section, so they can't fall out of step with
-// it, and an href that doesn't resolve fails the build instead of rendering a
-// card that links nowhere. Each section memoises its registry, so several of
-// these on a page cost one read between them.
+// it, and an href that doesn't resolve renders no card instead of one that
+// links nowhere. Each section memoises its registry, so several of these on a
+// page cost one read between them.
 //
 // ── Why an href and not a slug ────────────────────────────────────────────
 // It used to be a bare slug, which was unambiguous while /estadisticas was the
@@ -51,12 +51,19 @@ export async function PaginaRelacionada({
   const path = href.slice(section.base.length + 1);
   const pages = await section.listed();
   const target = pages.find((p) => section.slugPath(p.slug) === path);
+  // A target that is not listed renders no card, and does not fail the build.
+  // An href that never resolved is caught earlier, when the page carrying it
+  // is published (`@/content-system/validation/links`). What reaches here is a
+  // target that was listed then and is not now: taken back to draft or moved
+  // into preview by an editor. Throwing made that an outage — every deploy
+  // failed on someone else's status change (October 2026: five estadísticas
+  // moved to preview). A card to a page readers cannot find is the thing to
+  // leave out; the rest of the page is fine.
   if (!target) {
-    throw new Error(
-      `<PaginaRelacionada href="${href}" />: no such page. Known under ${section.base}: ${pages
-        .map((p) => section.slugPath(p.slug))
-        .join(", ")}`,
+    console.warn(
+      `<PaginaRelacionada href="${href}" />: not a listed page right now; card omitted.`,
     );
+    return null;
   }
 
   return (
