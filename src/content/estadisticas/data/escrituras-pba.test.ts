@@ -25,7 +25,7 @@ import {
 
 // The dataset is rebuilt by a script that parses a PDF whose column count has
 // already changed twice, and the failure that matters is not a crash — it is a
-// column read one position over, which still yields 258 consecutive months of
+// column read one position over, which still yields a consecutive monthly axis of
 // plausible numbers. These tests pin the things that would still *look* fine
 // after that kind of drift, plus the two derived readings the page leans on.
 
@@ -129,8 +129,8 @@ describe("escrituras-pba", () => {
     const season = seasonality();
     expect(season).toHaveLength(12);
     expect(season.reduce((s, r) => s + r.share, 0)).toBeCloseTo(1, 6);
-    // December is the peak of the calendar and January the trough, which is
-    // the whole reason the page never compares a month with the one before.
+    // In this aggregate profile, December leads and January trails; this
+    // supports the page's use of interannual and rolling comparisons.
     const high = season.reduce((a, r) => (r.share > a.share ? r : a));
     const low = season.reduce((a, r) => (r.share < a.share ? r : a));
     expect(high.month).toBe(12);
@@ -140,7 +140,11 @@ describe("escrituras-pba", () => {
 
   it("prices a deed in dollars only where there is a rate", () => {
     expect(promedioUsd("2005-01")).toBeNull();
-    const usd = promedioUsd(LAST_PERIOD);
+    const latestUsdPeriod = [...PERIODS]
+      .reverse()
+      .find((period) => promedioUsd(period) !== null);
+    expect(latestUsdPeriod).toBeDefined();
+    const usd = promedioUsd(latestUsdPeriod!);
     expect(usd).not.toBeNull();
     // An average deed in the province is a five-figure dollar sum. A wrong
     // divisor — the official rate against the blue during the cepo — moves it
@@ -148,7 +152,7 @@ describe("escrituras-pba", () => {
     // errors, which is what it is for.
     expect(usd!).toBeGreaterThan(5_000);
     expect(usd!).toBeLessThan(500_000);
-    expect(monto(LAST_PERIOD)).toBeGreaterThan(0);
+    expect(monto(latestUsdPeriod!)).toBeGreaterThan(0);
   });
 
   it("formats in Argentine Spanish", () => {

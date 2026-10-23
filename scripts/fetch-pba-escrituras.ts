@@ -7,12 +7,12 @@
  *
  * Run: `bun scripts/fetch-pba-escrituras.ts`   (or `bun run data:escrituras`)
  *      `--dry-run`   parse and report without writing
+ *      `--pdf-file <path> --pdf-url <url>`  parse a saved official PDF
  *
  * ── The source ────────────────────────────────────────────────────────────
- * The Colegio de Escribanos de la Provincia de Buenos Aires — the notaries'
- * body, which registers every deed signed over a property in the province. It
- * is a **census, not a survey**: it counts acts that actually happened at the
- * price actually paid, which is the one thing no listings portal can see.
+ * The Colegio de Escribanos de la Provincia de Buenos Aires publishes monthly
+ * counts of real-estate acts and amounts declared in deeds. Those amounts are
+ * not a verified measure of the final price paid.
  *
  * Scope, in the PDF's own words: *actos sobre inmuebles de la Provincia de Bs.
  * As., independientemente de la jurisdicción del escribano* — the property has
@@ -21,7 +21,7 @@
  * `PROVISIONAL_MONTHS` below is what the page uses to say so.
  *
  * ── Discovery ─────────────────────────────────────────────────────────────
- * The filename encodes its own date range — `…_01_2005_al_06_2026_…` — and so
+ * The filename encodes its own date range — `…_01_2005_al_09_2026_…` — and so
  * changes every month. Never hardcode it. It is the only `.pdf` on the landing
  * page matching `Estad_compraventas`; the other two hrefs are chart PDFs, which
  * are pictures and carry no text.
@@ -52,7 +52,7 @@
  * PDF, so this is a rebuild: throwing the JSON away and regenerating it is
  * safe, unlike `fetch-pba-inmobiliario.ts`.
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getDocument } from "pdfjs-serverless";
@@ -138,6 +138,8 @@ type Parsed = {
   flagged: boolean;
 };
 
+type YearTotal = Partial<Record<PairName, { actos: number; monto: number }>>;
+
 /**
  * One data row of the table.
  *
@@ -149,11 +151,11 @@ type Parsed = {
  */
 function parseRows(rows: Item[][]): {
   months: Parsed[];
-  /** The PDF's own `Total <year>` lines, kept to check the rows against. */
-  totals: Map<number, { actos: number; monto: number }>;
+  /** The PDF's own `Total <year>` lines, kept to check every series against. */
+  totals: Map<number, YearTotal>;
 } {
   const out: Parsed[] = [];
-  const totals = new Map<number, { actos: number; monto: number }>();
+  const totals = new Map<number, YearTotal>();
   let year: number | null = null;
 
   for (const cells of rows) {
@@ -161,13 +163,23 @@ function parseRows(rows: Item[][]): {
     const totalOf = joined.match(/^Total\s+(\d{4})/);
     if (totalOf) {
       const nums = cells.filter((c) => c.x >= 80 && NUMERIC.test(c.s));
-      // Compraventa is always the first pair, whatever the layout.
-      if (nums.length >= 2) {
-        totals.set(Number(totalOf[1]), {
-          actos: num(nums[0].s),
-          monto: num(nums[1].s),
-        });
+      const year = Number(totalOf[1]);
+      const expected = layoutFor(`${year}-01`);
+      if (nums.length !== expected.length * 2) {
+        throw new Error(
+          `Total ${year}: expected ${expected.length * 2} figures for layout ` +
+            `[${expected.join(", ")}], got ${nums.length} — the PDF's annual ` +
+            `total layout changed. Update LAYOUTS before trusting this run.\n  ${joined}`,
+        );
       }
+      const values: YearTotal = {};
+      expected.forEach((name, i) => {
+        values[name] = {
+          actos: num(nums[i * 2].s),
+          monto: num(nums[i * 2 + 1].s),
+        };
+      });
+      totals.set(year, values);
       continue;
     }
     if (!/^(?:\*\*\s*)?\d/.test(joined)) continue;
@@ -285,13 +297,13 @@ function assertAxis(periods: string[]): void {
  *
  * This is the check worth having. The axis guard proves the *labels* are
  * right; this proves the *figures* are — a column read one place to the left
- * would still produce 258 consecutive months, and only fail here. The monto
+ * would still produce a consecutive monthly series, and only fail here. The monto
  * comparison is relative because the PDF rounds its own totals to the cent.
  */
 function assertTotals(
   periods: string[],
   series: Series,
-  totals: Map<number, { actos: number; monto: number }>,
+  totals: Map<number, YearTotal>,
 ): void {
   if (totals.size === 0)
     throw new Error("no `Total <year>` lines found to check against");
@@ -299,48 +311,119 @@ function assertTotals(
     const idx = periods
       .map((p, i) => (p.startsWith(String(year)) ? i : -1))
       .filter((i) => i >= 0);
-    const actos = idx.reduce((s, i) => s + series.compraventaActos[i], 0);
-    const monto = idx.reduce((s, i) => s + series.compraventaMonto[i], 0);
-    if (actos !== expected.actos) {
+    const compraventaActos = idx.reduce(
+      (s, i) => s + series.compraventaActos[i],
+      0,
+    );
+    const compraventaMonto = idx.reduce(
+      (s, i) => s + series.compraventaMonto[i],
+      0,
+    );
+    if (compraventaActos !== expected.compraventa?.actos) {
       throw new Error(
-        `${year}: months sum to ${actos} compraventas, the PDF's own total says ${expected.actos}`,
+        `${year}: months sum to ${compraventaActos} compraventas, the PDF's own total says ${expected.compraventa?.actos}`,
       );
     }
-    if (Math.abs(monto - expected.monto) / expected.monto > 1e-9) {
+    if (
+      expected.compraventa &&
+      Math.abs(compraventaMonto - expected.compraventa.monto) /
+        expected.compraventa.monto >
+        1e-9
+    ) {
       throw new Error(
-        `${year}: months sum to ${monto} in monto, the PDF's own total says ${expected.monto}`,
+        `${year}: months sum to ${compraventaMonto} in compraventa monto, ` +
+          `the PDF's own total says ${expected.compraventa.monto}`,
       );
+    }
+
+    const hipotecaActos = idx.reduce((s, i) => s + series.hipotecaActos[i], 0);
+    const hipotecaMonto = idx.reduce((s, i) => s + series.hipotecaMonto[i], 0);
+    const sourceHipotecaActos =
+      expected.hipoteca?.actos ??
+      (expected.hipMenor?.actos ?? 0) + (expected.hipResto?.actos ?? 0);
+    const sourceHipotecaMonto =
+      expected.hipoteca?.monto ??
+      (expected.hipMenor?.monto ?? 0) + (expected.hipResto?.monto ?? 0);
+    if (hipotecaActos !== sourceHipotecaActos) {
+      throw new Error(
+        `${year}: months sum to ${hipotecaActos} hipotecas, the PDF's own ` +
+          `total says ${sourceHipotecaActos}`,
+      );
+    }
+    if (
+      sourceHipotecaMonto > 0 &&
+      Math.abs(hipotecaMonto - sourceHipotecaMonto) / sourceHipotecaMonto > 1e-9
+    ) {
+      throw new Error(
+        `${year}: months sum to ${hipotecaMonto} in hipoteca monto, the PDF's ` +
+          `own total says ${sourceHipotecaMonto}`,
+      );
+    }
+
+    if (expected.fide && expected.fide.actos > 0) {
+      const fideicomisoActos = idx.reduce(
+        (s, i) => s + (series.fideicomisoActos[i] ?? 0),
+        0,
+      );
+      if (fideicomisoActos !== expected.fide.actos) {
+        throw new Error(
+          `${year}: months sum to ${fideicomisoActos} identifiable ` +
+            `fideicomisos, the PDF's own total says ${expected.fide.actos}`,
+        );
+      }
     }
   }
 }
 
 // ── Run ───────────────────────────────────────────────────────────────────
 
+const argValue = (name: string): string | null => {
+  const at = process.argv.indexOf(name);
+  if (at < 0) return null;
+  const value = process.argv[at + 1];
+  if (!value || value.startsWith("--")) {
+    throw new Error(`${name} requires a value`);
+  }
+  return value;
+};
 const dryRun = process.argv.includes("--dry-run");
+const pdfFile = argValue("--pdf-file");
+const suppliedPdfUrl = argValue("--pdf-url");
 
-const page = await fetch(LANDING).then((r) => {
-  if (!r.ok) throw new Error(`${LANDING} → ${r.status}`);
-  return r.text();
-});
+let pdfUrl: string;
+let bytes: Uint8Array;
+if (pdfFile) {
+  if (!suppliedPdfUrl) {
+    throw new Error("--pdf-file requires --pdf-url with the official source URL");
+  }
+  pdfUrl = new URL(suppliedPdfUrl).toString();
+  bytes = new Uint8Array(readFileSync(path.resolve(pdfFile)));
+  console.log(`pdf  ${pdfUrl} (saved file ${pdfFile})`);
+} else {
+  const page = await fetch(LANDING).then((r) => {
+    if (!r.ok) throw new Error(`${LANDING} → ${r.status}`);
+    return r.text();
+  });
 
-const links = [
-  ...new Set(
-    [...page.matchAll(/href="([^"]*Estad_compraventas[^"]*\.pdf)"/g)].map(
-      (m) => m[1],
+  const links = [
+    ...new Set(
+      [...page.matchAll(/href="([^"]*Estad_compraventas[^"]*\.pdf)"/g)].map(
+        (m) => m[1],
+      ),
     ),
-  ),
-];
-if (links.length !== 1) {
-  throw new Error(
-    `expected exactly one Estad_compraventas PDF on the landing page, found ${links.length}:\n  ${links.join("\n  ")}`,
-  );
-}
-const pdfUrl = new URL(links[0], LANDING).toString();
-console.log(`pdf  ${pdfUrl}`);
+  ];
+  if (links.length !== 1) {
+    throw new Error(
+      `expected exactly one Estad_compraventas PDF on the landing page, found ${links.length}:\n  ${links.join("\n  ")}`,
+    );
+  }
+  pdfUrl = new URL(links[0], LANDING).toString();
+  console.log(`pdf  ${pdfUrl}`);
 
-const response = await fetch(pdfUrl);
-if (!response.ok) throw new Error(`${pdfUrl} → ${response.status}`);
-const bytes = new Uint8Array(await response.arrayBuffer());
+  const response = await fetch(pdfUrl);
+  if (!response.ok) throw new Error(`${pdfUrl} → ${response.status}`);
+  bytes = new Uint8Array(await response.arrayBuffer());
+}
 
 const rows = await rowsOf(bytes);
 const { months: parsed, totals } = parseRows(rows);
@@ -364,7 +447,7 @@ const out = {
   sourceUrl: LANDING,
   pdfUrl,
   sourceNote:
-    "Censo de actos, no encuesta: cuenta las escrituras efectivamente firmadas sobre inmuebles de la provincia, cualquiera sea la jurisdicción del escribano. Ordenadas por fecha de escritura.",
+    "Registro mensual de compraventas e hipotecas sobre inmuebles de la provincia, cualquiera sea la jurisdicción del escribano. Los montos son los declarados en las escrituras y pueden diferir del precio final pagado. Ordenado por fecha de escritura.",
   unit: "cantidad de actos y monto en pesos corrientes",
   generatedBy: "scripts/fetch-pba-escrituras.ts",
   fetchedAt: new Date().toISOString().slice(0, 10),

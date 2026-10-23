@@ -40,7 +40,24 @@ describe("absa-tarifas", () => {
     expect(vmAt("202603")).toBe(275.46);
     expect(vmAt("202605")).toBe(275.46);
     expect(vmAt("202606")).toBe(292.5);
+    expect(vmAt("202608")).toBe(314.71);
+    expect(vmAt("202609")).toBe(314.71);
+    expect(vmAt("202610")).toBe(335.24);
     expect(STEPS.some((s) => s.period === "202604")).toBe(false);
+  });
+
+  it("uses the exact official tariff acts for every displayed step", () => {
+    expect(STEPS.map((step) => step.norm)).toEqual([
+      "RESO-2024-1083-GDEBA-MIYSPGP",
+      "RESO-2025-233-GDEBA-MIYSPGP",
+      "RESO-2025-669-GDEBA-MIYSPGP",
+      "RESO-2025-1069-GDEBA-MIYSPGP",
+      "RESO-2026-66-GDEBA-MIYSPGP",
+      "RESO-2026-448-GDEBA-MIYSPGP",
+      "RESO-2026-600-GDEBA-MIYSPGP",
+      "RESO-2026-754-GDEBA-MIYSPGP",
+    ]);
+    expect(STEPS.every((step) => step.official)).toBe(true);
   });
 
   it("decomposes the commercial rise into tariff and coefficient, exactly", () => {
@@ -69,8 +86,12 @@ describe("absa-tarifas", () => {
     // The nominal series runs ahead of the deflated one by design — a decree is
     // published before it applies. Every month past the IPC must carry a null
     // rather than an index silently held over from the last published month.
+    expect(REAL_THROUGH).toBe("202609");
     expect(REAL_THROUGH).toBe(IPC[IPC.length - 1].period);
+    expect(IPC[IPC.length - 1]).toEqual({ period: "202609", index: 12523.1733 });
     expect(MONTHS[MONTHS.length - 1].period).toBe(LAST_STEP.period);
+    expect(MONTHS[MONTHS.length - 1].period).toBe("202610");
+    expect(MONTHS[MONTHS.length - 1].realGap).toBeNull();
     for (const m of MONTHS) {
       const hasIpc = IPC.some((r) => r.period === m.period);
       expect(m.ipcIndex === null).toBe(!hasIpc);
@@ -90,7 +111,10 @@ describe("absa-tarifas", () => {
   });
 
   it("computes the 2026 cumulative the headline uses", () => {
-    expect(CUMULATIVE_2026).toBeCloseTo(59.9, 1);
+    expect(LAST_STEP.period).toBe("202610");
+    expect(LAST_STEP.vm).toBe(335.24);
+    expect(changeBetween("202608", "202610")).toBeCloseTo(6.5, 1);
+    expect(CUMULATIVE_2026).toBeCloseTo(70.4, 1);
     expect(changeBetween("202512", "202602")).toBeCloseTo(40, 1);
   });
 });

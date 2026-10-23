@@ -23,13 +23,8 @@ import {
 // Ordinary server-rendered markup, so all five figures are in the HTML as text
 // (AUTHORING.md §7) rather than waiting on a chart library to measure a box.
 //
-// ── Why the four models are here and not hidden behind a switch ────────────
-// Because the spread *is* the answer. There is no single price of building a
-// square metre: the same metre is about a quarter dearer in the suntuosa model
-// than in the sencilla, and a page that showed one figure would be picking a
-// number and calling it the truth. The city total leads because it is what the
-// question means to someone who hasn't been told there are four; the rest is
-// the range around it, in the source's own terms.
+// The table shows the city total and four distinct model programs. These are
+// source measurements, not quotes for a particular project.
 
 export function CostoConstruccionResumen() {
   const rows = MODELS.map((m) => ({
@@ -38,6 +33,9 @@ export function CostoConstruccionResumen() {
     usd: costoUsd(m.id),
     change: yoy(m.id),
   }));
+  const byCost = [...rows].sort((a, b) => a.ars - b.ars);
+  const lowest = byCost[0];
+  const highest = byCost.at(-1)!;
 
   return (
     <DataFigure
@@ -53,25 +51,15 @@ export function CostoConstruccionResumen() {
       }}
       caption={
         <>
-          Cuánto sale el metro cuadrado de construcción en la Ciudad de Buenos
-          Aires, según los cuatro modelos de edificio que releva IDECBA. Para
-          estimar una obra, multiplica los metros cuadrados a construir por el
-          valor del modelo que más se parezca a lo que vas a levantar.
+          Entre los modelos, el costo más bajo corresponde a {lowest.label} (
+          {formatArs(lowest.ars)}/m²) y el más alto a {highest.label} (
+          {formatArs(highest.ars)}/m²).
         </>
       }
       note={
         <>
-          Es el <strong className="font-medium">costo directo</strong>:
-          materiales, mano de obra y gastos generales de obra.{" "}
-          <strong className="font-medium">No incluye</strong> el terreno, los
-          honorarios profesionales, los derechos de construcción, el IVA, los
-          gastos financieros ni el beneficio de la empresa constructora, así que
-          el precio final de una obra es bastante mayor que esta cifra. Los
-          cuatro modelos son edificios de departamentos: no hay un modelo de
-          vivienda unifamiliar en esta serie. La conversión a dólares es
-          nuestra, al promedio del dólar blue del trimestre. Fuente: IDECBA,
-          datos hasta {LAST_UPDATED}
-          {IS_PROVISIONAL && " (provisorio)"}.
+          Fuente de los valores en pesos: IDECBA. La equivalencia en dólares es
+          nuestra y usa el promedio trimestral del dólar blue.
         </>
       }
     >

@@ -2,24 +2,14 @@ import { DataFigure } from "@/components/figures/DataFigure";
 import {
   DEFAULT_SIZE,
   elasticity,
-  formatUsd,
   LAST_UPDATED,
-  ranked,
   REFERENCE_AREA,
   rows,
   SIZES,
 } from "@/content/estadisticas/data/rentabilidad-caba";
 import { DispersionChart, type Point } from "./RentabilidadChartBody";
 
-// Why a cheap barrio yields more: every barrio as a dot, price against return,
-// with the fitted curve.
-//
-// This is the page's own finding rather than a restatement of the map, and the
-// figure is here to make it checkable. The claim is that rent varies far less
-// across the city than sale prices do — so the return is close to a mechanical
-// consequence of what a barrio costs. A scatter is the only shape that can be
-// disagreed with: a reader who thinks their barrio is the exception can look
-// for it and see how far off the curve it sits.
+// Sale price and gross yield for every barrio with both IDECBA inputs.
 //
 // ── Barrios, not comunas ──────────────────────────────────────────────────
 // Against the rest of the page, which opens on comunas because the coverage is
@@ -88,18 +78,14 @@ export function RentabilidadDispersion() {
   // render an empty box, say so — the map above still works.
   if (!fitStats || points.length < 5) return null;
 
-  const order = ranked("barrios", DEFAULT_SIZE);
-  const best = order[0];
-  const worst = order[order.length - 1];
-
   return (
     <DataFigure
       header={{
-        title: <>Cuanto más caro el barrio, menos rinde</>,
+        title: <>Precio de venta y rentabilidad</>,
         subtitle: (
           <>
-            Un punto por barrio · {SIZE.label} · {fitStats.n} barrios con los
-            dos precios publicados
+            Un punto por barrio · {SIZE.label} ({AREA} m²) · {fitStats.n} barrios
+            con los dos precios publicados
           </>
         ),
       }}
@@ -113,20 +99,14 @@ export function RentabilidadDispersion() {
       }
       note={
         <>
-          Entre el barrio más caro y el más barato hay{" "}
-          {dec(fitStats.priceSpread)} veces de diferencia en el precio de venta,
-          pero solo {dec(fitStats.rentSpread)} veces en el alquiler por metro
-          cuadrado. Esa es toda la explicación: el alquiler está mucho más
-          aplanado que la venta, así que el retorno cae casi mecánicamente a
-          medida que el barrio se encarece. Ajustando en logaritmos, un barrio
-          el doble de caro para comprar se alquila apenas un{" "}
-          {Math.round((fitStats.doubling - 1) * 100)} % más caro (elasticidad{" "}
-          {dec(fitStats.beta)}, R² {dec(fitStats.r2)}). En este trimestre el
-          extremo rentable es {best.label} con {dec(best.value, 1)} % y el otro{" "}
-          {worst.label} con {dec(worst.value, 1)} %, sobre departamentos de{" "}
-          {AREA} m² que se piden a {formatUsd(best.flatUsd ?? 0)} y{" "}
-          {formatUsd(worst.flatUsd ?? 0)} respectivamente. Datos del{" "}
-          {LAST_UPDATED}.
+          En estos {fitStats.n} barrios, el rango del precio de venta por m² es{" "}
+          {dec(fitStats.priceSpread)} veces; el del alquiler por m²,{" "}
+          {dec(fitStats.rentSpread)} veces. El ajuste logarítmico estima que
+          duplicar el precio publicado se asocia con un alquiler mensual por m²{" "}
+          {Math.round((fitStats.doubling - 1) * 100)} % mayor (elasticidad{" "}
+          {dec(fitStats.beta)}, R² {dec(fitStats.r2)}). Describe los avisos con
+          ambos datos en el corte {LAST_UPDATED}; no establece causalidad ni
+          mide el rendimiento neto.
         </>
       }
     >

@@ -6,14 +6,15 @@
  *
  * Run: `bun scripts/fetch-caba-construccion.ts`   (or `bun run data:construccion`)
  *      `--dry-run`   parse and report without writing
+ *      `--raw-dir=PATH` parse archived `${code}.xlsx` files without network access
  *
  * Two IDECBA tables, joined on one monthly axis:
  *
  *   EE_CMC        pesos per square metre, by building model — the number the
  *                 page is named after.
  *   EE_ICC_02-16  the index those pesos move with, split into materiales, mano
- *                 de obra and gastos generales — which is the only way the page
- *                 can say *why* the metre moved rather than just that it did.
+ *                 de obra and gastos generales — the page can compare how each
+ *                 chapter's index changed relative to the overall index.
  *
  * IDECBA publishes both monthly, about six weeks after the month closes, so this
  * runs roughly monthly. Run it, read the summary it prints, and commit the diff.
@@ -21,8 +22,8 @@
  * ── Why a script and not a hand-append ────────────────────────────────────
  * The house rule for this directory (`AUTHORING.md` §7) is that a data file is
  * "the thing a human appends to each month", and for a single national series
- * that is right. These two are nine series over 138 months spread across 24
- * sheets — one sheet per year per file, newest first — and the append is not the
+ * that is right. These two are nine series spread across year-by-year sheets,
+ * newest first, and the append is not the
  * hard part anyway: the axis is. Neither file carries a usable date column (see
  * `monthOf` below), so the month has to be read out of a Spanish month name and
  * checked against the year in the sheet *title*. Done by hand once a month, that
@@ -34,7 +35,7 @@
  * the month they were last re-uploaded, so the codes are written down here and
  * the current URL for each is looked up from the section indexes on every run.
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { months, ordinal } from "./lib/months";
@@ -107,7 +108,7 @@ function monthOf(
   return month ? { month, provisional } : null;
 }
 
-/** The year a sheet covers, from its own title — "… Enero/junio de 2026" → 2026.
+/** The year a sheet covers, read from the year at the end of its own title.
  * The title is used rather than a header cell for the same reason the sibling
  * script derives its axis from the title: these workbooks' header rows carry
  * merged cells whose values do not sit at their merge anchors. */
@@ -259,16 +260,23 @@ async function discover(): Promise<Map<string, string>> {
  *
  * EE_CMC's header leaves the "Tipo I" cell blank, so the five cost columns are
  * positional — and swapping two of them would produce a page that is wrong in a
- * way nothing else here could notice, since all five series are the same shape
- * and the same order of magnitude. These are three figures IDECBA has published
- * in its own releases, checked against the columns this script believes they sit
- * in. If IDECBA ever reorders the table, this is what says so.
+ * way nothing else here could notice, since all five series have similar shapes
+ * and magnitudes. Published figures are checked against the columns this script
+ * believes they sit in. If IDECBA ever reorders the table, this is what says so.
  */
 function assertKnownFigures(rows: Map<string, Record<string, number>>): void {
   const known: { period: string; id: SeriesId; expect: number }[] = [
     { period: "2025-06", id: "tipo2", expect: 1_121_022.07 },
     { period: "2025-06", id: "tipo3", expect: 1_434_300.28 },
     { period: "2025-06", id: "total", expect: 1_206_819.98 },
+    // Reissued by IDECBA in the September 2026 workbook; this was revised from
+    // the June release. These figures also guard the current positional map.
+    { period: "2026-06", id: "tipo1", expect: 1_511_139.53 },
+    { period: "2026-06", id: "tipo2", expect: 1_443_877.67 },
+    { period: "2026-06", id: "tipo3", expect: 1_810_091.10 },
+    { period: "2026-06", id: "tipo4", expect: 1_623_156.29 },
+    { period: "2026-06", id: "total", expect: 1_549_509.11 },
+    { period: "2026-09", id: "total", expect: 1_665_347.02 },
   ];
   for (const { period, id, expect } of known) {
     const got = rows.get(period)?.[id];
@@ -278,6 +286,30 @@ function assertKnownFigures(rows: Map<string, Record<string, number>>): void {
         `EE_CMC: ${period} ${id} reads ${got} but IDECBA published ${expect} for it. ` +
           `The cost columns are positional (the "Tipo I" header cell is blank), so this ` +
           `almost certainly means the table has been reordered — re-check COSTO.columns.`,
+      );
+    }
+  }
+}
+
+/** Guard the ICC column mapping and the latest official levels, including the
+ * June revision carried into the September workbook. */
+function assertKnownIccFigures(rows: Map<string, Record<string, number>>): void {
+  const known: { period: string; id: string; expect: number }[] = [
+    { period: "2026-06", id: "nivel", expect: 32_924.28 },
+    { period: "2026-06", id: "materiales", expect: 34_331.81 },
+    { period: "2026-06", id: "manoObra", expect: 32_431.58 },
+    { period: "2026-06", id: "gastosGenerales", expect: 27_314.60 },
+    { period: "2026-09", id: "nivel", expect: 35_386.03 },
+    { period: "2026-09", id: "materiales", expect: 35_934.56 },
+    { period: "2026-09", id: "manoObra", expect: 35_905.66 },
+    { period: "2026-09", id: "gastosGenerales", expect: 29_461.26 },
+  ];
+  for (const { period, id, expect } of known) {
+    const got = rows.get(period)?.[id];
+    if (got === undefined) continue;
+    if (Math.abs(got - expect) > 0.01) {
+      throw new Error(
+        `EE_ICC_02-16: ${period} ${id} reads ${got} but the refreshed IDECBA workbook has ${expect}. Re-check ICC.columns and the workbook revision.`,
       );
     }
   }
@@ -323,11 +355,19 @@ const ars = (v: number): string =>
 
 async function main(): Promise<void> {
   const dryRun = process.argv.includes("--dry-run");
+  const rawDirArg = process.argv.find((arg) => arg.startsWith("--raw-dir="));
+  const rawDir = rawDirArg?.slice("--raw-dir=".length);
 
-  console.log("discovering current file URLs…");
-  const index = await discover();
+  const index = rawDir ? new Map<string, string>() : await discover();
+  if (rawDir) console.log(`reading archived workbooks from ${rawDir}…`);
+  else console.log("discovering current file URLs…");
 
   const fetchTable = async (code: string): Promise<Buffer> => {
+    if (rawDir) {
+      const file = path.resolve(rawDir, `${code}.xlsx`);
+      console.log(`  ${code}  ${file}`);
+      return readFileSync(file);
+    }
     const url = index.get(code);
     if (!url) {
       throw new Error(
@@ -346,6 +386,7 @@ async function main(): Promise<void> {
   const icc = parse(await fetchTable(ICC.code), ICC);
 
   assertKnownFigures(costo.rows);
+  assertKnownIccFigures(icc.rows);
   assertModels(costo.notes);
 
   // ── One axis for both, and no holes in it ────────────────────────────────
@@ -402,7 +443,7 @@ async function main(): Promise<void> {
     sourceUrl:
       "https://www.estadisticaciudad.gob.ar/eyc/categoria-banco-datos/costo-de-construccion-por-metro-cuadrado/",
     sourceNote:
-      "IDECBA (Jefatura de Gabinete de Ministros - GCBA). Costo directo de construcción: materiales, mano de obra y gastos generales. No incluye el terreno, los honorarios profesionales, los derechos de construcción, el IVA, los gastos financieros ni el beneficio de la empresa constructora.",
+      "IDECBA (Jefatura de Gabinete de Ministros - GCBA). Costo directo de construcción: materiales, mano de obra y gastos generales. El informe metodológico excluye el terreno, los derechos y permisos, el IVA, los gastos financieros y la utilidad de la empresa constructora.",
     unit: "ARS/m2",
     iccBase: `Base promedio ${base[1]} = 100`,
     /** The footnote that defines the four models, verbatim, so the labels in the

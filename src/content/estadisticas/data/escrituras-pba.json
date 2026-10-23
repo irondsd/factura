@@ -3,16 +3,16 @@
   "title": "Escrituras de compraventa e hipotecas sobre inmuebles de la Provincia de Buenos Aires, por mes",
   "source": "Colegio de Escribanos de la Provincia de Buenos Aires",
   "sourceUrl": "https://www.colescba.org.ar/portal/sala-de-prensa/estadisticas",
-  "pdfUrl": "https://www.colescba.org.ar/portal/wp-content/uploads/2026/07/Estad_compraventas_e_hipotecas_01_2005_al_06_2026_inm_bs.pdf",
-  "sourceNote": "Censo de actos, no encuesta: cuenta las escrituras efectivamente firmadas sobre inmuebles de la provincia, cualquiera sea la jurisdicción del escribano. Ordenadas por fecha de escritura.",
+  "pdfUrl": "https://www.colescba.org.ar/portal/wp-content/uploads/2026/10/Estad_compraventas_e_hipotecas_01_2005_al_09_2026_inm_bs.pdf",
+  "sourceNote": "Registro mensual de compraventas e hipotecas sobre inmuebles de la provincia, cualquiera sea la jurisdicción del escribano. Los montos son los declarados en las escrituras y pueden diferir del precio final pagado. Ordenado por fecha de escritura.",
   "unit": "cantidad de actos y monto en pesos corrientes",
   "generatedBy": "scripts/fetch-pba-escrituras.ts",
-  "fetchedAt": "2026-08-21",
-  "pdfDate": "15/7/2026",
-  "lastPeriod": "2026-06",
+  "fetchedAt": "2026-10-22",
+  "pdfDate": "15/10/2026",
+  "lastPeriod": "2026-09",
   "provisional": [
-    "2026-05",
-    "2026-06"
+    "2026-08",
+    "2026-09"
   ],
   "flagged": [
     {
@@ -279,7 +279,10 @@
     "2026-03",
     "2026-04",
     "2026-05",
-    "2026-06"
+    "2026-06",
+    "2026-07",
+    "2026-08",
+    "2026-09"
   ],
   "compraventaActos": [
     4681,
@@ -539,7 +542,10 @@
     11116,
     9999,
     9068,
-    10702
+    10702,
+    12177,
+    12233,
+    12971
   ],
   "compraventaMonto": [
     326085739.5,
@@ -799,7 +805,10 @@
     1022488473130.9,
     884646011259.76,
     749786093834.39,
-    1045397080759.34
+    1045397080759.34,
+    1198584117288.31,
+    1363027087316.53,
+    1405635037023.56
   ],
   "hipotecaActos": [
     742,
@@ -1059,7 +1068,10 @@
     1509,
     1023,
     910,
-    1226
+    1226,
+    1450,
+    1629,
+    1823
   ],
   "hipotecaMonto": [
     70572805.68,
@@ -1319,7 +1331,10 @@
     205820311743.56,
     169057025305.29,
     128060908486.08,
-    179936616866.78
+    179936616866.78,
+    225163207564.81,
+    405244119450.4,
+    339014038524.43
   ],
   "fideicomisoActos": [
     6,
@@ -1373,6 +1388,9 @@
     8,
     11,
     8,
+    null,
+    null,
+    null,
     null,
     null,
     null,

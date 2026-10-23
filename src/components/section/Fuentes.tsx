@@ -52,7 +52,7 @@ export function Fuentes({
       <ul id={listId} className="mt-5 m-0 flex list-none flex-col gap-3 p-0">
         {items.map(({ label, href, note }, index) => (
           <li
-            key={href}
+            key={`${href}:${index}`}
             hidden={!expanded && index >= 3}
             className="font-mono text-[14.5px] leading-[1.7]"
           >

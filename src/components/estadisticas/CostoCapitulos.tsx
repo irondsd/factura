@@ -13,14 +13,14 @@ import {
 } from "@/content/estadisticas/data/costo-construccion-caba";
 import { CapitulosChart, type CapituloRow } from "./ConstruccionChartBody";
 
-// "¿Por qué subió?" — the question that follows the number, and the one the cost
-// series on its own cannot answer.
+// Compare the ICC chapter index levels with the general index. This describes
+// their relative movements; it does not identify causes or budget shares.
 //
 // IDECBA splits the index into three chapters: materials, labour and site
 // overheads. Their *levels* are not comparable with each other (same base year,
 // different starting points, and eleven years of inflation on top), so the chart
-// draws each as a share of the index it belongs to. A line above 100 is a
-// chapter that ran ahead of the cost of construction as a whole.
+// draws each as a percentage of the general index. Above 100, the chapter has
+// accumulated a larger index change than the general series since the base.
 //
 // The stat line carries the year-on-year rates as text, which is the part a
 // reader quotes and the part a crawler can see — the plot itself is not in the
@@ -35,8 +35,8 @@ export function CostoCapitulos() {
     title: periodLabel(r.period),
   }));
 
-  // Derived, never typed: which chapter is pushing changes from year to year,
-  // and has more than once reversed.
+  // Derived from the current workbook: order chapters by their year-on-year
+  // index variation. This is a comparison, not an explanation of cause.
   const rates = PARTS.map((c) => ({ ...c, rate: iccYoy(c.id) })).filter(
     (c): c is (typeof PARTS)[number] & { rate: number } => c.rate !== null,
   );
@@ -46,18 +46,17 @@ export function CostoCapitulos() {
     <DataFigure
       caption={
         <>
-          Cada capítulo del Índice del Costo de la Construcción, medido contra
-          el índice completo. En 100 el capítulo se movió igual que el costo de
-          construir en general; por encima de 100 corrió más rápido, y es lo que
-          estuvo empujando el precio del metro cuadrado.
+          Cada capítulo del ICC como porcentaje del nivel general. En 100
+          acumuló la misma variación desde el período base; por encima de 100,
+          su variación acumulada superó la del índice general.
           {sorted.length > 0 && (
             <>
               {" "}
-              En los últimos doce meses el que más subió fue{" "}
+              En los últimos doce meses, la variación interanual más alta fue{" "}
               <strong className="font-medium">
                 {sorted[0].label.toLowerCase()}
               </strong>
-              , y el que menos,{" "}
+              , y la más baja,{" "}
               <strong className="font-medium">
                 {sorted[sorted.length - 1].label.toLowerCase()}
               </strong>
@@ -68,19 +67,15 @@ export function CostoCapitulos() {
       }
       note={
         <>
-          No son porcentajes de composición: cada línea es el índice del
-          capítulo dividido por el índice general, así que las tres no suman
-          100. Se dibujan así porque los tres capítulos comparten año base pero
-          no nivel de partida, y en pesos corrientes las tres curvas serían la
-          misma curva de inflación a tres alturas distintas. {ICC_BASE}. Serie
-          de {periodLabel(PERIODS[0])} a {periodLabel(LAST_PERIOD)}. Fuente:
+          {ICC_BASE}. Serie de {periodLabel(PERIODS[0])} a{" "}
+          {periodLabel(LAST_PERIOD)}. Fuente:
           IDECBA, datos hasta {LAST_UPDATED}
           {IS_PROVISIONAL && " (provisorio)"}.
         </>
       }
     >
       <CapitulosChart
-        title="Qué empuja el costo: cada capítulo contra el índice general"
+        title="Evolución de los capítulos frente al índice general"
         stat={
           rates.length > 0 ? (
             <>

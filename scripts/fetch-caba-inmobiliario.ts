@@ -12,7 +12,8 @@
  *
  * Run: `bun scripts/fetch-caba-inmobiliario.ts`   (or `bun run data:caba`)
  *      `--dry-run`          parse and report without writing
- *      `--only=alquiler`    just the ones whose id contains this
+ *      `--only=alquiler-caba`  one exact dataset id (a partial id also works)
+ *      `--raw-dir=PATH`     parse captured official XLSX files named by code
  *
  * IDECBA publishes the price tables quarterly, roughly two months after the
  * quarter closes, so this runs about four times a year. The supply tables are
@@ -35,7 +36,7 @@
  * down below and the current URL for each is looked up from the section index
  * on every run.
  */
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { BARRIOS, COMUNA_IDS, findBarrio } from "../src/content/shared/caba";
@@ -318,20 +319,25 @@ async function build(
   ds: Dataset,
   index: Map<string, string>,
   dryRun: boolean,
+  rawDir?: string,
 ): Promise<void> {
   console.log(`\n── ${ds.id} ${"─".repeat(Math.max(0, 60 - ds.id.length))}`);
 
   const tables = new Map<string, Table>();
   for (const { code } of ds.series) {
     const url = index.get(code);
-    if (!url) {
+    if (!url && !rawDir) {
       throw new Error(
         `${code} is not listed on the section index any more. Open ${INDEX_PAGES[0]} and check whether IDECBA renamed or retired the table.`,
       );
     }
-    const buf = Buffer.from(await (await fetch(url)).arrayBuffer());
+    const buf = rawDir
+      ? readFileSync(path.join(rawDir, `${code}.xlsx`))
+      : Buffer.from(await (await fetch(url!)).arrayBuffer());
     tables.set(code, readTable(code, buf, ds));
-    console.log(`  ${code}  ${url.split("/").slice(-3).join("/")}`);
+    console.log(
+      `  ${code}  ${rawDir ? path.join(rawDir, `${code}.xlsx`) : url!.split("/").slice(-3).join("/")}`,
+    );
   }
 
   // One axis for all six, or the file is not internally comparable.
@@ -868,18 +874,35 @@ async function buildOferta(
 async function main(): Promise<void> {
   const dryRun = process.argv.includes("--dry-run");
   const only = /--only=(\S+)/.exec(process.argv.join(" "))?.[1];
+  const rawDirArg = process.argv
+    .find((arg) => arg.startsWith("--raw-dir="))
+    ?.slice("--raw-dir=".length);
+  const rawDir = rawDirArg ? path.resolve(rawDirArg) : undefined;
+  if (rawDir && !existsSync(rawDir)) {
+    throw new Error(`--raw-dir does not exist: ${rawDir}`);
+  }
   const ids = [...DATASETS.map((d) => d.id), OFERTA_ID];
-  const wanted = ids.filter((id) => !only || id.includes(only));
+  const wanted = !only
+    ? ids
+    : ids.includes(only)
+      ? [only]
+      : ids.filter((id) => id.includes(only));
   if (!wanted.length) {
     throw new Error(`--only=${only} matches nothing. Known: ${ids.join(", ")}`);
   }
+  if (rawDir && wanted.includes(OFERTA_ID)) {
+    throw new Error(
+      "--raw-dir supports price tables only; select --only=venta-caba or --only=alquiler-caba.",
+    );
+  }
 
-  console.log("discovering current file URLs…");
-  const index = await discover();
+  if (!rawDir) console.log("discovering current file URLs…");
+  else console.log(`using captured IDECBA sheets from ${rawDir}`);
+  const index = rawDir ? new Map<string, string>() : await discover();
 
   for (const id of wanted) {
     const ds = DATASETS.find((d) => d.id === id);
-    if (ds) await build(ds, index, dryRun);
+    if (ds) await build(ds, index, dryRun, rawDir);
     else await buildOferta(index, dryRun);
   }
 }

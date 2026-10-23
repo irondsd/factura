@@ -51,24 +51,19 @@ export function CostoConstruccionHistoria() {
     <DataFigure
       caption={
         <>
-          Cuánto costó construir un metro cuadrado en la Ciudad de Buenos Aires,
-          mes a mes. En dólares se ve si construir está caro o barato; en pesos
-          se ve el número que publica el organismo, que es el que sirve para
-          presupuestar hoy.
+          Costo directo mensual por metro cuadrado del modelo total de la
+          Ciudad. El selector cambia entre el valor publicado en pesos y su
+          conversión a dólares.
         </>
       }
       note={
         <>
           La serie en pesos son{" "}
           <strong className="font-medium">pesos corrientes</strong>: no está
-          corregida por inflación, así que sube todos los meses y no dice nada
-          sobre si construir se encareció en términos reales. Para eso está la
-          serie en dólares, que arranca en 2017 porque es desde donde tenemos el
-          tipo de cambio: cada mes está convertido al promedio del dólar blue de
-          su trimestre, que es una conversión más gruesa que el dato mensual y
-          la única honesta para comparar contra precios de inmuebles, que se
-          publican por trimestre. Costo directo, sin terreno ni honorarios ni
-          impuestos. Fuente: IDECBA, datos hasta {LAST_UPDATED}
+          corregida por inflación. La vista en dólares es una conversión, no un
+          ajuste por inflación: arranca en 2017 y divide cada dato mensual por
+          el promedio trimestral del dólar blue. Ese promedio no tiene
+          frecuencia mensual. Fuente: IDECBA, datos hasta {LAST_UPDATED}
           {IS_PROVISIONAL && " (provisorio)"}.
         </>
       }
@@ -80,11 +75,8 @@ export function CostoConstruccionHistoria() {
             <>
               <span className="text-ink">{formatUsd(ext.last.value)}/m²</span>{" "}
               en {periodLabel(ext.last.period)}
-              {/* The last month has been the dearest of the series several
-                  times running, and printing "Máximo US$ 1.082 (junio de 2026)"
-                  beside "US$ 1.082/m² en junio de 2026" spends a line saying the
-                  same thing twice — when the more interesting reading is that
-                  the two coincide. */}
+              {/* Avoid repeating the same current value and date when they are
+                  also the series maximum. */}
               {ext.high.period === ext.last.period ? (
                 <>, el máximo de toda la serie</>
               ) : (

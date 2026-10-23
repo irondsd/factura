@@ -29,6 +29,8 @@ const SIZE = SIZES.find((s) => s.id === DEFAULT_SIZE)!;
 
 export function PrecioPorZona() {
   const rows = zonas(DEFAULT_SIZE);
+  const highest = rows.find((z) => z.median !== null);
+  const lowest = [...rows].reverse().find((z) => z.median !== null);
 
   return (
     <DataFigure
@@ -42,18 +44,29 @@ export function PrecioPorZona() {
       }}
       caption={
         <>
-          El valor del metro cuadrado por zona en CABA: cuánto cuesta en el
-          norte, en el centro, en el oeste y en el sur de la Ciudad, y qué
-          distancia hay entre el barrio más caro y el más barato de cada una.
+          {highest &&
+          lowest &&
+          highest.median !== null &&
+          lowest.median !== null ? (
+            <>
+              La mediana barrial más alta está en {highest.label} (
+              {formatUsd(highest.median)}/m²); la más baja, en {lowest.label} (
+              {formatUsd(lowest.median)}/m²), para departamentos de{" "}
+              {SIZE.inTitle}.
+            </>
+          ) : (
+            <>
+              La tabla compara las medianas de los precios barriales publicados
+              para departamentos de {SIZE.inTitle}.
+            </>
+          )}
         </>
       }
       note={
         <>
-          Las zonas no son geografía oficial: agrupamos comunas enteras, y la
-          columna del medio es la mediana de los barrios de la zona —el valor
-          que deja la mitad de los barrios por encima y la mitad por debajo—, no
-          un promedio ponderado como el de la Ciudad. Calculado sobre los
-          precios de publicación que IDECBA releva de Argenprop, datos hasta el{" "}
+          La columna central muestra la mediana de los barrios de la zona, no un
+          promedio ponderado como el de la Ciudad. Se calcula sobre los precios
+          de publicación que IDECBA releva de Argenprop, datos hasta el{" "}
           {LAST_UPDATED}.
         </>
       }
