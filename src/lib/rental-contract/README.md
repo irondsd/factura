@@ -15,6 +15,26 @@ PostHog's `ph-no-capture` and `ph-mask` markers. PDF libraries load only when
 the person generates the document. Font/logo fetches contain no entered data.
 Blob URLs are released when replaced or when the form unmounts.
 
+## Analytics
+
+Both routes send explicit PostHog events through the existing browser client:
+
+- `contract_blank_downloaded`: after the browser starts the blank PDF download,
+  including repeat downloads from the cached PDF. `contract_type` is `vivienda`
+  or `comercial`. PDF generation failures do not emit this event; the browser
+  cannot confirm whether the person ultimately saves the file.
+- `contract_step_completed`: after a validated `Continuar` or `Revisar contrato`
+  submission. Properties are `contract_type`, one-based `step` (1–4),
+  `step_name` (the fixed UI label), one-based `next_step` (2–5), and `action`
+  (`continue` for steps 1–3, `review` for step 4). Validation failures and
+  backward navigation emit nothing; completing an edited step emits it again.
+
+Build the form funnel from `contract_step_completed`, filtering successive
+steps 1, 2, 3, 4, and split by `contract_type`. Step 4 means the contract review
+opened, not that a filled PDF was generated. Blank downloads are an independent
+path. No names, IDs, emails, addresses, amounts, or other form values are sent.
+The form's autocapture and replay masking markers remain in place.
+
 ## Scope and legal review
 
 These are new-contract templates, not an assessment of an individual agreement.

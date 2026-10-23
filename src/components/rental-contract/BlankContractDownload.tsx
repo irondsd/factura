@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import posthog from "posthog-js";
 import type { ContractType } from "@/lib/rental-contract/model";
 
 /** The blank template for people who fill the contract in by hand. Built in the
@@ -39,6 +40,7 @@ export function BlankContractDownload({
       link.href = href;
       link.download = `contrato-alquiler-${type}-en-blanco.pdf`;
       link.click();
+      posthog.capture("contract_blank_downloaded", { contract_type: type });
       setState("idle");
     } catch {
       setState("failed");
