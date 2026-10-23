@@ -1,57 +1,15 @@
-// The price of a cubic metre of water in the Provincia de Buenos Aires, as set
-// by decree, from December 2024 to August 2026.
+// Residential value of ABSA's general m³/module from December 2024 onward.
+// The nominal tariff is a step series; the GBA general-level IPC is monthly.
+// Their common period ends when the last released IPC row does.
 //
-// It backs /estadisticas/aumento-absa-2026, and it is the only dataset in this
-// directory that is not a measurement. Everything else here — asking prices,
-// deeds, recorded offences — is somebody counting the world. This is a number a
-// government chose, published in the Boletín Oficial, and it changes on the day
-// a decree says it does and on no other day.
-//
-// ── What the number is ────────────────────────────────────────────────────
-// ABSA bills almost everything off one scalar: the **valor del metro
-// cúbico/módulo general**, `VM`. A metered household pays `VM` per m³ up to
-// fifteen, then the same `VM` multiplied by the tier coefficients; an unmetered
-// household pays `VM` times however many módulos its Valuación Fiscal
-// Inmobiliaria puts it in. So one number moves every residential bill in the
-// service area at once, which is what makes a series of it worth drawing.
-//
-// Non-residential users pay `VM × COEF`, and `COEF` is the second thing that
-// moved in 2026 — see `COEFFICIENTS` below. That is the finding the page is
-// built on, and it is arithmetic rather than reporting: the 72 % commercial
-// rise nobody explained is 1,40 × 1,6/1,3, to the centavo.
-//
-// ── Provenance, and the honest part ──────────────────────────────────────
-// ABSA publishes only the *current* cuadro tarifario, so the last two rows can
-// be read off the company's own site today and the earlier five cannot. Those
-// come from the Boletín Oficial as reported in the provincial press, which
-// names the resolution each time. Every row carries `official` saying which it
-// is, `AbsaCuadroTarifario` prints the distinction as a column, and the page
-// says it in prose. Do not quietly promote a row: the whole point of the column
-// is that a reader can discount the rows we could not verify at the source.
-//
-// **There is no April 2026 row, and that is a finding rather than a gap.**
-// Decreto 127/2026 moved updates from cuatrimestral to bimestral, which would
-// put a step in April — but the February value was itself published late and
-// applied retroactively from the April bill, and the bimonthly cycle did not
-// actually start until June. February's `VM` ran for four months. A reader who
-// notices the missing step deserves the explanation, so `STEPS` keeps February
-// spanning to June rather than interpolating a value nobody ever charged.
-//
-// ── Refreshing ────────────────────────────────────────────────────────────
-// Bimonthly, on the 1st of even months. Two things to do, in order:
-//
-//   1. `VM` — https://www.aguasbonaerenses.com.ar/usuarios/mi-factura/cuadro-tarifario/
-//      publishes the new value about a business day ahead of it taking effect.
-//      Append a `STEPS` row with `official: true`.
-//   2. `IPC` — INDEC publishes around the 13th of the following month, from
-//      https://www.indec.gob.ar/ftp/cuadros/economia/serie_ipc_aperturas.csv
-//      (`Codigo` 0, `Region` GBA). Append the month's `Indice_IPC`.
-//
-// The two series are refreshed on different clocks and are *allowed* to end on
-// different months — the tariff is known in advance and the IPC is known in
-// arrears, so the real-terms line stops before the nominal one by design.
-// `REAL_THROUGH` is where it stops and every figure that needs both series is
-// computed to that month, not to the last tariff step.
+// A `STEPS` row has been checked against an ABSA or government primary source
+// when `official` is true. Press reports remain only where no primary record
+// could be checked.
+// ABSA's current page can advance ahead of the IPC: append both series only
+// when each period is actually published. INDEC's CSV uses `Codigo` 0 and
+// `Region` GBA for the general level:
+// https://www.aguasbonaerenses.com.ar/usuarios/mi-factura/cuadro-tarifario/
+// https://www.indec.gob.ar/ftp/cuadros/economia/serie_ipc_aperturas.csv
 
 /** One value of `VM`, and the day it started applying. */
 export type TariffStep = {
@@ -61,14 +19,13 @@ export type TariffStep = {
   vm: number;
   /** The norm that set it, as it should be cited on the page. */
   norm: string;
-  /** True when the value is readable today on ABSA's own cuadro tarifario;
-   * false when it comes from the Boletín Oficial through the press. */
+  /** True when checked against a primary ABSA or government source. */
   official: boolean;
   /** Why this step is interesting, where it is. Rendered in the table. */
   note: string | null;
 };
 
-/** The seven values `VM` has taken under the Decreto 3044/2024 regime.
+/** The values `VM` has taken under the Decreto 3044/2024 regime.
  *
  * December 2024 is the first row because that is when the regime starts: before
  * it, adjustments were discretionary rather than formula-driven, and a series
@@ -77,51 +34,58 @@ export const STEPS: readonly TariffStep[] = [
   {
     period: "202412",
     vm: 163.22,
-    norm: "Decreto 3044/2024",
-    official: false,
+    norm: "RESO-2024-1083-GDEBA-MIYSPGP",
+    official: true,
     note: "Primer valor del régimen de actualización por fórmula.",
   },
   {
     period: "202504",
     vm: 163.48,
-    norm: "Resolución del MIySP",
-    official: false,
+    norm: "RESO-2025-233-GDEBA-MIYSPGP",
+    official: true,
     note: "Un aumento de 26 centavos: 0,2 % contra una inflación de 11,3 % en los mismos cuatro meses.",
   },
   {
     period: "202508",
     vm: 177.5,
-    norm: "Resolución del MIySP",
-    official: false,
+    norm: "RESO-2025-669-GDEBA-MIYSPGP",
+    official: true,
     note: null,
   },
   {
     period: "202512",
     vm: 196.76,
-    norm: "Resolución 1069/2025",
-    official: false,
+    norm: "RESO-2025-1069-GDEBA-MIYSPGP",
+    official: true,
     note: null,
   },
   {
     period: "202602",
     vm: 275.46,
-    norm: "Decreto 127/2026 y Resolución 66/2026",
-    official: false,
+    norm: "RESO-2026-66-GDEBA-MIYSPGP",
+    official: true,
     note: "Aprobado en la audiencia pública del 9 de enero. Se facturó recién en abril, con retroactivo.",
   },
   {
     period: "202606",
     vm: 292.5,
-    norm: "Resolución 448/2026",
+    norm: "RESO-2026-448-GDEBA-MIYSPGP",
     official: true,
     note: "Primera actualización del esquema bimestral.",
   },
   {
     period: "202608",
     vm: 314.71,
-    norm: "Resolución del MIySP",
+    norm: "RESO-2026-600-GDEBA-MIYSPGP",
     official: true,
     note: null,
+  },
+  {
+    period: "202610",
+    vm: 335.24,
+    norm: "RESO-2026-754-GDEBA-MIYSPGP",
+    official: true,
+    note: "Vigente desde el 1 de octubre de 2026.",
   },
 ];
 
@@ -154,6 +118,8 @@ export const IPC: readonly { period: string; index: number }[] = [
   { period: "202605", index: 11594.5499 },
   { period: "202606", index: 11810.9464 },
   { period: "202607", index: 12078.7372 },
+  { period: "202608", index: 12276.812 },
+  { period: "202609", index: 12523.1733 },
 ];
 
 /** The multiplier applied to `VM` for a non-residential user, and the norm that
@@ -190,7 +156,7 @@ export const SERVICE_AREA = {
   people: 2_600_000,
 } as const;
 
-export const SOURCE = "ABSA y Boletín Oficial de la Provincia de Buenos Aires";
+export const SOURCE = "ABSA y normas oficiales de la Provincia de Buenos Aires";
 export const IPC_SOURCE = "INDEC, IPC GBA nivel general";
 
 // ── Derived ───────────────────────────────────────────────────────────────

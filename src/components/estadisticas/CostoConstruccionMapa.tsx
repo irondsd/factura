@@ -18,29 +18,10 @@ import {
 } from "@/content/estadisticas/data/costo-construccion-caba";
 import { MapaCaba, type MapView } from "@/components/maps/MapaCaba";
 
-// The one cut of this dataset that is per-barrio — and it is a derived one, for
-// a reason the figure's own note states rather than hides.
-//
-// The cost of construction is a single figure for the whole city: IDECBA prices
-// one basket, not forty-eight. So nothing here varies by barrio on its own. What
-// varies is the price a finished flat sells for, and setting the two against
-// each other answers the question the city-wide number leaves open — how much of
-// what you pay for a square metre in *your* barrio is the building itself, and
-// how much is everything else.
-//
-// "Everything else" is not a residual we invented: it is precisely the list
-// IDECBA's figure excludes — the land, the professional fees, the building
-// rights, the taxes, the financing and the developer's margin. That is what
-// makes the subtraction mean something instead of being arithmetic for its own
-// sake.
-//
-// ── What this map cannot do, and where that is said ────────────────────────
-// Dividing 43 asking prices by one constant cannot reorder them, so this map
-// ranks the barrios in exactly the same order as the price map on
-// /estadisticas/precio-m2-caba. A reader who has seen both deserves to be told
-// why they are the same shape, so `note()` says it outright. The map still earns
-// its place: the reader looking up their own barrio is not ranking anything, and
-// the *values* answer a question the price map never asks.
+// A derived comparison by barrio: one citywide modeled direct construction cost
+// divided by each barrio's asking price for used apartments. The resulting
+// percentage ranks inversely to the asking-price map and does not allocate the
+// price among land, construction, location or other costs.
 
 const GEOS: {
   id: Geo;
@@ -74,7 +55,7 @@ function stat(geo: Geo, size: SizeId): string {
   const least = order[order.length - 1];
   return [
     city &&
-      `Promedio de la Ciudad ${Math.round(city.share)} % · quedan ${formatUsd(city.surplus)}/m² para el terreno y todo lo demás`,
+      `Ciudad ${Math.round(city.share)} % · diferencia aritmética ${formatUsd(city.difference)}/m²`,
     most && `Máximo ${most.label} ${Math.round(most.value)} %`,
     least && `Mínimo ${least.label} ${Math.round(least.value)} %`,
   ]
@@ -82,10 +63,7 @@ function stat(geo: Geo, size: SizeId): string {
     .join(" · ");
 }
 
-/** The note under the figure. Two caveats, and both are load-bearing: which
- * regions couldn't be shaded, and why this map has the same shape as the price
- * map. Computed from the data and naming the regions, rather than saying
- * "algunos" — a reader who can't find their barrio deserves to see it listed. */
+/** State price-data coverage for the current map selection. */
 function note(geo: Geo, size: SizeId): string {
   const { withData, total, missing } = shareCoverage(geo, size);
   const { noun, article, striped } = GEOS.find((g) => g.id === geo)!;
@@ -97,11 +75,7 @@ function note(geo: Geo, size: SizeId): string {
       `${missing.length === 1 ? striped[0] : striped[1]}. Rayado quiere decir sin precio publicado, no barato.`
     : `${capitalised} ${total} ${noun} tienen precio de venta publicado en este trimestre.`;
 
-  return (
-    `${coverage} El costo de construcción es uno solo para toda la Ciudad, así que este mapa ordena ` +
-    `los ${noun} igual que el mapa del precio de venta: lo que cambia acá no es el orden sino cuánto ` +
-    `de cada precio es obra y cuánto es ubicación.`
-  );
+  return coverage;
 }
 
 export function CostoConstruccionMapa() {
@@ -121,7 +95,7 @@ export function CostoConstruccionMapa() {
           meta: r.meta,
           value: r.value,
           display: displayShare(r.value),
-          sub: r.surplus === null ? null : `${formatUsd(r.surplus)}/m²`,
+          sub: r.difference === null ? null : `${formatUsd(r.difference)}/m²`,
         })),
         stat: stat(geo.id, size.id),
         note: note(geo.id, size.id),
@@ -133,29 +107,24 @@ export function CostoConstruccionMapa() {
     <DataFigure
       caption={
         <>
-          En cada barrio, qué parte del precio de publicación del metro cuadrado
-          se explica por el costo de construirlo. Cuanto más oscuro, más de lo
-          que se paga es la obra en sí; cuanto más claro, más se está pagando
-          por el terreno y la ubicación. La segunda columna es lo que queda por
-          metro cuadrado una vez descontada la construcción.
+          El color muestra el costo directo del edificio modelo dividido por el
+          precio publicado de cada barrio. Como el costo es el mismo en toda la
+          Ciudad, el porcentaje se ordena al revés que el precio: a mayor precio,
+          menor proporción. La segunda cifra es la diferencia aritmética entre
+          ambos valores.
         </>
       }
       note={
         <>
-          Es una cuenta nuestra, no un dato que publique IDECBA: el costo de
-          construcción del trimestre —convertido a dólares al promedio del dólar
-          blue— dividido por el precio de publicación del metro cuadrado de
-          departamentos usados de cada barrio, del mismo trimestre y del mismo
-          organismo. Lo que queda no es ganancia: adentro están el terreno, los
-          honorarios, los derechos de construcción, los impuestos, el
-          financiamiento y el margen del desarrollador, además de que un
-          departamento usado no es uno a estrenar. No es un cálculo de
-          rentabilidad de obra. Datos del {quarterLabel(JOIN_PERIOD)}.
+          La comparación usa el costo directo de los modelos de IDECBA convertido
+          con el promedio trimestral del blue y sus precios publicados para
+          departamentos usados en el mismo trimestre. Son referencias distintas;
+          no desglosan el precio ni miden la rentabilidad de una obra.
         </>
       }
     >
       <MapaCaba
-        title="Cuánto del precio de un departamento es costo de construcción"
+        title="Costo directo modelo / precio publicado"
         dimensions={[
           {
             name: "size",
@@ -176,10 +145,10 @@ export function CostoConstruccionMapa() {
         dataDate={`Datos del ${quarterLabel(JOIN_PERIOD)}`}
         columns={{
           region: "Barrio o comuna",
-          value: "% que es obra",
-          sub: "Queda para el terreno",
+          value: "% costo / precio",
+          sub: "Diferencia aritmética",
         }}
-        ariaLabel="Mapa de la Ciudad de Buenos Aires sombreado según qué porcentaje del precio de publicación del metro cuadrado corresponde al costo de construcción. Los mismos valores están en la tabla que sigue."
+        ariaLabel="Mapa de la Ciudad de Buenos Aires sombreado según el porcentaje resultante de dividir el costo directo de un edificio modelo por el precio de publicación del metro cuadrado de departamentos usados. Los mismos valores están en la tabla que sigue."
       />
     </DataFigure>
   );

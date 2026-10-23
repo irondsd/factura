@@ -2,7 +2,6 @@ import { DataFigure } from "@/components/figures/DataFigure";
 import {
   compraventas,
   escriturasPhrase,
-  formatCount,
   formatShare,
   LAST_UPDATED,
   seasonality,
@@ -11,21 +10,8 @@ import {
 } from "@/content/estadisticas/data/escrituras-pba";
 import { EstacionalidadChart, type SeasonRow } from "./EscriturasChartBody";
 
-// The figure that licenses every other one on the page.
-//
-// This series has a calendar, and it is not a small one: December carries
-// roughly four times what January carries, in every single year of the
-// twenty-one. That is why nothing here is presented month against month, and
-// rather than say so in a footnote the page shows the shape and lets the
-// reader see how much of a "record December" is just December.
-//
-// The mechanism is prosaic and worth stating: a deed is signed when the
-// paperwork is ready, and the paperwork bunches at the end of the year —
-// closings pushed to beat the holidays, and a judicial and administrative feria
-// in January that empties the following month.
-//
-// The server half of the split: the <figure> shell, the caption, the source
-// note and every formatted string.
+// Average share of annual activity assigned to each month. This makes the
+// aggregate calendar pattern visible without treating it as market growth.
 
 /** What a month would carry if the year were even. Everything in the figure is
  * read against this. */
@@ -69,23 +55,16 @@ export function EscriturasEstacionalidad() {
     <DataFigure
       caption={
         <>
-          La parte del año que se lleva cada mes, promediada sobre los últimos{" "}
-          {span.n} años completos. La línea horizontal es el reparto parejo. Una
-          escritura se firma cuando los papeles están listos, y los papeles se
-          amontonan sobre fin de año: por eso diciembre siempre parece un boom y
-          enero siempre parece un derrumbe, en cualquier año y en cualquier
-          mercado.
+          Proporción de las compraventas anuales que corresponde a cada mes,
+          promediada entre los {span.n} años completos indicados. La línea marca
+          un reparto uniforme.
         </>
       }
       note={
         <>
-          2020 queda afuera del promedio. No es un año estacional en ningún
-          sentido —en abril se firmó {escriturasPhrase(compraventas("2020-04"))}{" "}
-          en toda la provincia y en diciembre{" "}
-          {formatCount(compraventas("2020-12"))}—, así que incluirlo no haría
-          más robusto el perfil: pondría una cuarentena en el medio de un
-          gráfico sobre las fiestas. Fuente: {SOURCE}, datos hasta{" "}
-          {LAST_UPDATED}.
+          Se excluye 2020: en abril se registró{" "}
+          {escriturasPhrase(compraventas("2020-04"))}, un valor que altera la
+          media mensual. Fuente: {SOURCE}, datos hasta {LAST_UPDATED}.
         </>
       }
     >

@@ -77,22 +77,18 @@ export function RentabilidadHistoria() {
         <>
           Evolución de la rentabilidad bruta anual del alquiler en la Ciudad de
           Buenos Aires, trimestre a trimestre, para un departamento usado de{" "}
-          {SIZE.label}. Muestra cuánto rendía comprar para alquilar en cada
-          momento y cuántos años de alquiler hacían falta para recuperar la
-          inversión.
+          {SIZE.label}. Cada porcentaje equivale a sus años de repago.
         </>
       }
       note={
         <>
-          El piso de la serie es {formatYield(trough.value)} en el{" "}
-          {trough.title} —{formatPayback(payback(trough.value))} de alquiler
-          para recuperar la compra— y el último dato es{" "}
-          {formatYield(last.value)}, o {formatPayback(payback(last.value))}. Las
-          dos líneas verticales marcan cuándo entró en vigencia la Ley de
-          Alquileres y cuándo se derogó; son fechas, no explicaciones.
-          Rentabilidad bruta, sobre precios de publicación, con el alquiler
-          convertido a dólares al promedio trimestral del blue. Fuentes: IDECBA
-          y ArgentinaDatos, datos hasta el {LAST_UPDATED}.
+          El mínimo observado fue {formatYield(trough.value)} en {trough.title}{" "}
+          ({formatPayback(payback(trough.value))} de repago). El último
+          trimestre disponible, {LAST_UPDATED}, registra {formatYield(last.value)}{" "}
+          ({formatPayback(payback(last.value))})
+          {last.provisional ? " y es provisorio" : ""}. Las líneas verticales
+          marcan la entrada en vigencia y la derogación de la Ley de Alquileres.
+          Fuentes: IDECBA y ArgentinaDatos.
         </>
       }
     >

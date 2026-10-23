@@ -17,12 +17,10 @@ import ventaRaw from "./venta-caba.json";
 // /estadisticas/precio-m2-construccion-caba.
 //
 // ── What this number is, and why the page keeps saying so ─────────────────
-// It is the **direct** cost of construction: materials, labour and site
-// overheads. It excludes the land, the professional fees, the municipal
-// building rights, VAT, financing and the builder's margin — IDECBA says so in
-// its own methodology, and every figure this module formats is a figure that
-// would be misread as an all-in price if the page let it. The page leads with
-// the exclusion for that reason, and so does `SOURCE_NOTE` below.
+// It is the **direct** cost of construction: materials, labour and general
+// expenses. IDECBA's methodology explicitly excludes land, rights and permits,
+// VAT, financing and the builder's utility. It is not a full project budget;
+// figures here should not be described as one.
 //
 // All four published models are *multivivienda* — apartment buildings. There is
 // no single-family model in this table, so nothing here answers "what does it
@@ -66,9 +64,8 @@ const ordinal = (period: string): number =>
  *
  * Labels are ours; the descriptions are compressed from the source's own
  * footnote (kept verbatim in the JSON as `modelsNote`). `total` first because it
- * is the answer to the question the page is named after — the other four are the
- * spread behind it, and the spread is the interesting part: the same square
- * metre costs about a quarter more in the suntuosa model than in the sencilla.
+ * is the answer to the question the page is named after; the other values show
+ * the costs of the four distinct model programs.
  */
 export const MODELS = [
   {
@@ -76,7 +73,7 @@ export const MODELS = [
     label: "Total Ciudad",
     short: "Total",
     description:
-      "El promedio de los cuatro modelos: la cifra que resume el costo de construir en la Ciudad.",
+      "El costo por metro cuadrado que IDECBA publica para el total de la Ciudad.",
   },
   {
     id: "tipo1",
@@ -169,11 +166,9 @@ export const LAST_PERIOD = PERIODS[PERIODS.length - 1];
 /**
  * Whether the newest figure still carries IDECBA's provisional asterisk.
  *
- * Only the newest, deliberately. The source flags the December of every year
- * back to 2015 — a mark set when that December was the latest month and never
- * cleared, as the index table's identical but unflagged Decembers show. Read
- * across the whole series the flag means "IDECBA hasn't tidied this"; on the
- * last month it means what it says, which is the only place the page uses it.
+ * Only the newest, deliberately. Some older rows still carry asterisks from
+ * their publication history, and the most recent workbook can mark more than
+ * one month provisional. The page surfaces the marker only on its newest month.
  */
 export const IS_PROVISIONAL = new Set(DATA.provisional).has(LAST_PERIOD);
 
@@ -248,15 +243,9 @@ export const series = (model: ModelId): { period: string; value: number }[] =>
   PERIODS.map((period, i) => ({ period, value: DATA.costo[model][i] }));
 
 /**
- * One chapter as a percentage of the index itself — 100 meaning it moved
- * exactly with the overall cost of construction, above it meaning it ran ahead.
- *
- * The levels can't be drawn against each other directly: the three chapters
- * share a base year but not a starting level, and over eleven years of Argentine
- * inflation all three curves are the same hockey stick at three offsets, which
- * shows only that there is inflation. Divided by the index they are part of,
- * what is left is the thing the reader is actually asking about — whether it was
- * materials or labour that pushed, and when.
+ * One chapter as a percentage of the general index. Because the component and
+ * general series share a base, 100 means equal accumulated change since base;
+ * above or below 100 means the chapter's accumulated change was larger/smaller.
  */
 export const chapterRelative = (
   chapter: ChapterId,
@@ -281,11 +270,9 @@ export const capitulosSeries = (): {
 
 // ── The same metre, in dollars ─────────────────────────────────────────────
 //
-// A peso series eleven years long is unreadable as a series: 2015 and 2026
-// differ by a factor of ~170, almost all of it inflation. The page still leads
-// with pesos, because that is the number people search for and the one the
-// source publishes — but the question behind "¿está caro construir?" is a
-// question about real cost, and in Argentina that is asked in dollars.
+// The page shows both the published peso figures and a dollar conversion. The
+// conversion is a second currency view, not a real-cost measure: no price index
+// is applied, and the exchange-rate series is quarterly.
 //
 // `dolar.json` is quarterly (see the note there for why a quarterly average is
 // the right divisor for a quarterly average price). The cost series is monthly,
@@ -294,7 +281,7 @@ export const capitulosSeries = (): {
 // available: a finer rate would imply a precision the sale-price series this is
 // compared against does not have.
 
-/** `2026-06` → `2026Q2`. */
+/** `2026-09` → `2026Q3`. */
 export const quarterOf = (period: string): string =>
   `${period.slice(0, 4)}Q${Math.ceil(Number(period.slice(5, 7)) / 3)}`;
 
@@ -304,8 +291,8 @@ export const quarterOf = (period: string): string =>
 // the denominator is the one someone actually pays to get them. Imported rather
 // than restated so the two pages can never quietly diverge on it.
 
-/** Pesos per square metre, in dollars — `null` for the months whose quarter the
- * FX series doesn't cover (the earliest years, and the quarter now in progress). */
+/** Pesos per square metre, in dollars — `null` for months whose quarter is not
+ * covered by the FX series. */
 export function costoUsd(model: ModelId, period = LAST_PERIOD): number | null {
   const q = quarterOf(period);
   if (!FX_PERIODS.includes(q)) return null;
@@ -327,10 +314,8 @@ const usdPoints = (model: ModelId): { period: string; value: number }[] =>
     (p): p is { period: string; value: number } => p.value !== null,
   );
 
-/** The cheapest and dearest months to build, in dollars, and the latest. The
- * page's headline comparison, and never typed into the prose — the low is a
- * fixed historical moment but the high moves, and has been the last month
- * several times running. */
+/** The lowest and highest values in the dollar-converted series, and the latest.
+ * The low is a historical point; the high changes as newer observations arrive. */
 export function usdExtremes(model: ModelId = DEFAULT_MODEL): {
   low: { period: string; value: number };
   high: { period: string; value: number };
@@ -351,21 +336,16 @@ export function usdExtremes(model: ModelId = DEFAULT_MODEL): {
 // cost of construction is a single figure for the whole city, so nothing here
 // varies by barrio on its own. What varies is the sale price it is set against.
 //
-// For each barrio: how much of the asking price per square metre the bare cost
-// of building accounts for. The rest — the part the page calls "todo lo demás" —
-// is the land, the fees, the rights, the taxes, the financing and the margin,
-// which is exactly the list IDECBA's figure excludes. That makes the subtraction
-// meaningful rather than arithmetic for its own sake.
+// For each barrio: the direct modeled cost as a percentage of its asking price
+// per square metre. The numerator is held citywide; the denominator varies by
+// barrio. This ratio between two different reference prices is not a cost
+// allocation or an estimate of land value, fees, taxes, margin or profit.
 //
 // ── The caveat this join carries, and where it is stated ───────────────────
-// Because the cost is one number citywide, this map orders the barrios in
-// exactly the same order as the sale-price map on /estadisticas/precio-m2-caba:
-// dividing 43 numbers by a constant cannot reorder them. The map is worth
-// drawing anyway — the *values* answer a question the price map doesn't, and the
-// reader looking up their barrio is not ranking anything — but a reader
-// comparing the two deserves to be told why they have the same shape, so the
-// figure's note says it. It is not a defect to hide; it is the reason the
-// city-wide figure needed localising in the first place.
+// Since this ratio is a fixed citywide cost divided by each barrio's asking
+// price, its ordering is inverse to the price map on /estadisticas/precio-m2-caba:
+// as asking price rises, cost is a smaller percentage of that price. This does
+// not make used-apartment and new-building-model prices directly comparable.
 
 const VENTA = ventaRaw as unknown as {
   periods: string[];
@@ -432,22 +412,22 @@ export function quarterCostUsd(
   return mean / fx;
 }
 
-/** One region of the build-vs-buy map. */
+/** One region of the cost-to-offer-price comparison map. */
 export type ShareRow = {
   id: string;
   label: string;
   /** Secondary line — the comuna a barrio sits in, or the barrios a comuna
    * groups. What lets a reader find themselves on the map. */
   meta: string;
-  /** Per cent of the asking price per m² that the bare construction cost
-   * accounts for. `null` where IDECBA withheld the barrio's price. */
+  /** Modeled direct cost divided by the asking price, as a percentage. `null`
+   * where IDECBA did not publish a barrio figure. */
   value: number | null;
   /** The barrio's asking price per m², in dollars — the figure the share is a
    * share *of*, so a reader can check the arithmetic. */
   venta: number | null;
-  /** Asking price minus construction cost: what is left for land, fees, taxes
-   * and margin, per square metre. */
-  surplus: number | null;
+  /** Asking price minus modeled cost, per m². A comparison difference only; it
+   * does not identify a cost component or profit. */
+  difference: number | null;
 };
 
 /** Every region of the map, in registry order, for one size and one quarter. */
@@ -467,7 +447,7 @@ export function shareRows(
     venta: number | null,
   ): ShareRow => {
     if (cost === null || venta === null || venta <= 0) {
-      return { id, label, meta, value: null, venta, surplus: null };
+      return { id, label, meta, value: null, venta, difference: null };
     }
     return {
       id,
@@ -475,7 +455,7 @@ export function shareRows(
       meta,
       value: (cost / venta) * 100,
       venta,
-      surplus: venta - cost,
+      difference: venta - cost,
     };
   };
 
@@ -499,14 +479,13 @@ export function shareRows(
   );
 }
 
-/** The city-wide share — IDECBA's own city total for the sale price, not a mean
- * of the barrios (it weights by how many units were advertised, which we can't
- * reproduce). */
+/** The citywide ratio using IDECBA's own city sale-price total, not a mean of
+ * the barrios (it weights by how many units were advertised). */
 export function ciudadShare(
   size: SizeId,
   q: string | null = JOIN_PERIOD,
   model: ModelId = DEFAULT_MODEL,
-): { share: number; venta: number; cost: number; surplus: number } | null {
+): { share: number; venta: number; cost: number; difference: number } | null {
   if (q === null) return null;
   const cost = quarterCostUsd(q, model);
   const i = VENTA.periods.indexOf(q);
@@ -516,7 +495,7 @@ export function ciudadShare(
     share: (cost / venta) * 100,
     venta,
     cost,
-    surplus: venta - cost,
+    difference: venta - cost,
   };
 }
 
@@ -536,8 +515,8 @@ export function shareCoverage(
   };
 }
 
-/** Regions with a figure, highest share of construction first — that is, the
- * barrios where what you pay is most nearly the cost of the building itself.
+/** Regions with a figure, highest ratio first — for a fixed cost, that means
+ * lower asking prices relative to the citywide model cost.
  * `null`s are dropped rather than sorted to an end: "not published" has no rank. */
 export const rankedShare = (
   geo: Geo,
@@ -558,7 +537,7 @@ export type ZonaShareRow = {
   withData: number;
   total: number;
   median: number | null;
-  medianSurplus: number | null;
+  medianDifference: number | null;
 };
 
 const median = (values: number[]): number | null => {
@@ -577,8 +556,8 @@ export function zonasShare(
     const ids = new Set(barriosOfZona(z.id).map((b) => b.id));
     const mine = all.filter((r) => ids.has(r.id));
     const withValue = mine.filter(
-      (r): r is ShareRow & { value: number; surplus: number } =>
-        r.value !== null && r.surplus !== null,
+      (r): r is ShareRow & { value: number; difference: number } =>
+        r.value !== null && r.difference !== null,
     );
     return {
       id: z.id,
@@ -587,7 +566,7 @@ export function zonasShare(
       withData: withValue.length,
       total: mine.length,
       median: median(withValue.map((r) => r.value)),
-      medianSurplus: median(withValue.map((r) => r.surplus)),
+      medianDifference: median(withValue.map((r) => r.difference)),
     };
   }).sort((a, b) => (b.median ?? 0) - (a.median ?? 0));
 }
@@ -596,16 +575,10 @@ export function zonasShare(
 
 /** Upper bounds of the six shading classes, in per cent of the asking price.
  *
- * Round tens rather than quantiles, and one scale for all six views: quantiles
- * would repaint the city on every refresh and would flatten the difference
- * between the three unit sizes, which is real — the metre of a three-ambiente
- * flat sells for less, so construction is a larger share of it.
- *
- * The scale stops at 70 rather than 100 because the top of it is where the
- * interesting line is: a barrio above 70 % is one where the finished flat sells
- * for barely more than the bricks cost, and no barrio has crossed 100 % in this
- * series. Leaving the classes above the data would waste four of six shades on
- * territory the city has never been in. */
+ * Round tens rather than quantiles, and use one scale for all six views so the
+ * displayed ratios remain comparable across unit sizes and geographies. The
+ * scale is a display choice; it does not describe a budget or allocate any
+ * component of a property's asking price. */
 export const BREAKS = [25, 35, 45, 55, 65] as const;
 
 // ── Formatting ─────────────────────────────────────────────────────────────

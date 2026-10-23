@@ -5,15 +5,13 @@ import { rate as dolarRate, RATE as DOLAR_RATE } from "./dolar";
 // month since January 2005, as counted by the Colegio de Escribanos de la
 // Provincia — the body that registers them.
 //
-// It backs /estadisticas/escrituras-provincia-buenos-aires and it is the
-// longest clean monthly series in this directory: 258 consecutive months, no
-// gap and no repeat, verified on every refresh by the script that builds it.
+// It backs /estadisticas/escrituras-provincia-buenos-aires. Its axis is
+// checked for gaps and repeats on every refresh by the script that builds it.
 //
 // ── Why this dataset is different from the rest of the folder ─────────────
-// Everything else here prices *offers*: what a seller asks, read off a portal
-// or a relevamiento. This counts *transactions* — acts that happened, at the
-// price actually paid, in front of a notary. Nothing here is a sample and
-// nothing here is an estimate.
+// This counts registered acts, not asking prices from portals or surveys.
+// The source also publishes amounts declared in deeds; those amounts are not
+// verified final prices. The counts are administrative records, not estimates.
 //
 // Which also fixes what it can and cannot answer:
 //
@@ -30,12 +28,11 @@ import { rate as dolarRate, RATE as DOLAR_RATE } from "./dolar";
 //
 // ── The two traps this module exists to close ────────────────────────────
 //
-// **Seasonality.** December is the peak of every single year and January the
-// trough of every single year, by a factor of about four. A month-on-month
-// reading of this series reports Christmas as a boom and New Year as a crash,
-// every year, forever. So the comparisons offered here are year-on-year
-// (`yoy`) or twelve-month rolling (`rolling12`), and `seasonality()` exists to
-// show the reader why.
+// **Seasonality.** December tends to account for a larger share of annual
+// activity than January. Month-on-month comparisons can therefore mix market
+// changes with the calendar. The page uses year-on-year (`yoy`) and rolling
+// twelve-month (`rolling12`) comparisons and includes `seasonality()` to show
+// the aggregate calendar pattern.
 //
 // **April 2020.** One deed. Not a parse error and not a rounding artefact: the
 // province was under a strict lockdown and the escribanías were shut, so one
@@ -174,7 +171,7 @@ export const monto = (period: string = LAST_PERIOD): number =>
 export const promedioArs = (period: string = LAST_PERIOD): number =>
   monto(period) / compraventas(period);
 
-/** "2026-06" → "2026Q2". */
+/** A month such as `YYYY-MM` → its calendar quarter, `YYYYQn`. */
 const quarterOf = (period: string): string =>
   `${period.slice(0, 4)}Q${Math.floor((Number(period.slice(5, 7)) - 1) / 3) + 1}`;
 
@@ -237,22 +234,20 @@ export function yoy(
 }
 
 /**
- * The share of the month's compraventas that came with a mortgage, as a
- * fraction. `null` on a month too small to divide by — see
- * `MIN_ACTS_FOR_RATIO`.
+ * The monthly ratio of hipoteca acts to compraventa acts, as a fraction.
+ * `null` on a month too small to divide by — see `MIN_ACTS_FOR_RATIO`.
  *
- * A hipoteca is a separate act from the compraventa it funds, so this is a
- * ratio of two counts and not a subset: it can in principle exceed 1, and in
- * April 2020 it does, on three mortgages over one sale. Read as a proxy for
- * how much of the market is running on credit, which is what it is good for.
+ * A hipoteca is a separate act from the compraventa it may fund, so this is a
+ * ratio of two counts and not a subset: it can in principle exceed 1. Read as
+ * hipotecas per 100 compraventas, not the share of purchases financed.
  */
 export function hipotecaShare(period: string = LAST_PERIOD): number | null {
   const cv = compraventas(period);
   return cv < MIN_ACTS_FOR_RATIO ? null : hipotecas(period) / cv;
 }
 
-/** The same ratio on twelve-month sums, which is how it should be read: it
- * survives April 2020, and credit does not have a season. */
+/** The same ratio on twelve-month sums, which reduces the effect of
+ * seasonality and very small monthly denominators. */
 export function hipotecaShare12(period: string = LAST_PERIOD): number | null {
   const cv = rolling12(period, "compraventas");
   const hp = rolling12(period, "hipotecas");
@@ -266,7 +261,7 @@ export type Year = {
   compraventas: number;
   hipotecas: number;
   monto: number;
-  /** Fraction of deeds with a mortgage. */
+  /** Ratio of mortgage acts to compraventa acts. */
   share: number;
   /** False for the year in progress — every chart has to be able to leave it
    * out of a "highest year ever" claim. */
@@ -332,12 +327,8 @@ export type SeasonRow = {
 
 /**
  * The average calendar shape of a year, over the last `SEASON_YEARS` complete
- * ones, with 2020 excluded.
- *
- * 2020 is not a seasonal year in any sense — the province signed one deed in
- * April and 12.560 in December — so leaving it in would not make the profile
- * more robust, it would put a lockdown in the middle of a chart about
- * Christmas.
+ * ones, with 2020 excluded because the pandemic shutdown made its monthly
+ * distribution unusually unlike an ordinary year.
  */
 export function seasonality(): SeasonRow[] {
   const usable = FULL_YEARS.filter((y) => y.year !== 2020).slice(-SEASON_YEARS);
@@ -408,11 +399,11 @@ const MONTH_NAMES = [
   "diciembre",
 ];
 
-/** "2026-06" → "junio de 2026". */
+/** A month such as `YYYY-MM` → its label in Spanish. */
 export const periodLabel = (period: string): string =>
   `${MONTH_NAMES[Number(period.slice(5, 7)) - 1]} de ${period.slice(0, 4)}`;
 
-/** "2026-06" → "junio", for an axis that already carries the year. */
+/** A month such as `YYYY-MM` → its month name for an axis that has the year. */
 export const monthLabel = (period: string): string =>
   MONTH_NAMES[Number(period.slice(5, 7)) - 1];
 

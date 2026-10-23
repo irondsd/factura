@@ -26,23 +26,16 @@ import { niceTicks } from "@/lib/svg-chart";
 // already formatted, so an axis can never round a figure differently from the
 // prose beside it.
 //
-//   HistoriaChart   the spine — 258 months of deeds, with a switch between the
+//   HistoriaChart   the monthly deed series, with a switch between the
 //                   twelve-month rolling total and the raw monthly count.
 //   AnualChart      the same series as one bar per calendar year.
-//   HipotecasChart  how much of the market runs on credit, over time.
+//   HipotecasChart  hipotecas per 100 compraventas and monthly counts.
 //   EstacionalidadChart  the average calendar shape of a year.
 //   MontoChart      the average declared value of a deed, in dollars.
 //
-// ── The one decision that shapes four of the five ─────────────────────────
-// This series has a season so strong it overwhelms everything else in it:
-// December is the peak of every year and January the trough of every year, by
-// roughly four to one. Drawn raw and monthly it is a picket fence, and any
-// month-on-month reading of it reports Christmas as a boom.
-//
-// So the default view of the spine is the twelve-month rolling total, not the
-// month; the mortgage figure divides two rolling sums rather than two months;
-// and `EstacionalidadChart` exists so a reader who wants the monthly view knows
-// what they are looking at before they switch to it.
+// The default history view uses twelve-month sums to reduce the effect of the
+// calendar; readers can switch to monthly values and inspect the seasonal
+// figure separately.
 
 const AXIS = "var(--line)";
 const ACCENT = "var(--accent)";
@@ -60,8 +53,7 @@ const tickStyle = {
 const card =
   "bg-card border border-line py-2 px-2.5 font-mono text-micro text-ink shadow-[0_2px_8px_rgba(0,0,0,0.08)]";
 
-/** "2026-06" → "2026". Twenty-one years of months is a run of years on an
- * axis; the month belongs in the tooltip. */
+/** Year from `YYYY-MM`; the month belongs in the tooltip. */
 const yearOf = (period: string) => period.slice(0, 4);
 
 /** Januaries, so the axis lands on year boundaries however wide it is drawn. */
@@ -319,8 +311,11 @@ function AnualTooltip({
         color={row.complete ? ACCENT : MUTED_BAR}
         strong
       />
-      <Row label="Con hipoteca" value={row.hipotecasLabel} />
-      <Row label="Parte con crédito" value={row.shareLabel} />
+      <Row label="Hipotecas" value={row.hipotecasLabel} />
+      <Row
+        label="Hipotecas por 100 compraventas"
+        value={row.shareLabel}
+      />
     </TipShell>
   );
 }
@@ -406,8 +401,7 @@ export function AnualChart({
 export type HipotecaRow = {
   period: string;
   title: string;
-  /** Twelve-month hipotecas over twelve-month compraventas, as a percentage.
-   * Rolling on both legs: April 2020 alone would read 300 %. */
+  /** Twelve-month hipotecas per 100 twelve-month compraventas. */
   share: number | null;
   shareLabel: string | null;
   hipotecas: number;
@@ -418,7 +412,7 @@ export type HipotecaRow = {
 type HipView = "share" | "hipotecas";
 
 const HIP_VIEWS: { value: HipView; label: string }[] = [
-  { value: "share", label: "Parte del mercado" },
+  { value: "share", label: "Hipotecas/100 compraventas" },
   { value: "hipotecas", label: "Hipotecas por mes" },
 ];
 
@@ -435,7 +429,7 @@ function HipotecaTooltip({
     <TipShell title={row.title} note={row.note} width={250}>
       {row.shareLabel && (
         <Row
-          label="Con hipoteca, 12 meses"
+          label="Hipotecas por cada 100 compraventas, últimos 12 meses"
           value={row.shareLabel}
           color={DEEP}
           strong
@@ -513,7 +507,7 @@ export function HipotecasChart({
               axisLine={false}
               tickLine={false}
               tickFormatter={(v: number) =>
-                view === "share" ? `${v} %` : axisCount(v)
+                view === "share" ? `${v}` : axisCount(v)
               }
             />
             <Tooltip

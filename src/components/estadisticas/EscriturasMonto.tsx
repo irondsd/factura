@@ -14,30 +14,8 @@ import {
 } from "@/content/estadisticas/data/escrituras-pba";
 import { MontoChart, type MontoRow } from "./EscriturasChartBody";
 
-// The secondary cut, and the one that needs the most care.
-//
-// The Colegio publishes a monto alongside every month's count, so an average
-// deed value falls out of dividing one by the other. It is arithmetically
-// fine and economically slippery, in two separate ways that the figure's own
-// note has to keep saying:
-//
-//   • It is an average over *everything* — a house in Tigre, a flat in La
-//     Plata, a rural plot, a garage. It moves when the mix of what sold moves,
-//     not only when prices move. In the depths of 2020-2023 the market that
-//     kept transacting was the cheap end of it, and part of the climb since is
-//     the expensive end coming back.
-//   • The declared value in a deed is the declared value in a deed.
-//
-// The peso view exists because it is the figure the source actually publishes,
-// but as a *curve* across twenty-one years of Argentine inflation it says only
-// that Argentina has inflation. The dollar view is the one that answers a
-// question, and it starts in 2017 because that is where `dolar.json` starts —
-// the alternative was to extend the FX series back to 2005 on the official
-// rate, which is the wrong divisor for a market that settles in physical
-// dollars.
-//
-// The server half of the split: the <figure> shell, the caption, the source
-// note and every formatted string.
+// Average amount declared per deed. The aggregate mixes property types, and
+// the dollar series can end before the monthly deed series if FX is missing.
 
 /** The extremes of the dollar series, derived rather than named. */
 function usdExtremes() {
@@ -75,31 +53,25 @@ export function EscriturasMonto() {
     <DataFigure
       caption={
         <>
-          El monto total declarado en las compraventas de cada mes, dividido por
-          la cantidad de escrituras. En dólares se puede leer de punta a punta;
-          en pesos es el número que publica el Colegio, que sirve para el mes en
-          que se publicó y para poco más.
+          Monto total declarado dividido por la cantidad de compraventas del
+          mes. La conversión a dólares llega hasta el último período con datos
+          de cotización disponibles.
         </>
       }
       note={
         <>
-          Es un promedio sobre todo lo que se escrituró: una casa en Tigre, un
-          departamento en La Plata, un lote rural y una cochera entran en el
-          mismo número. Se mueve tanto por lo que cambia de precio como por lo
-          que cambia de mezcla, así que{" "}
+          El promedio mezcla viviendas, terrenos y cocheras, y cambia tanto por
+          los importes declarados como por la composición de las operaciones;
+          así que{" "}
           <strong className="font-medium">
             no es el precio de una propiedad
           </strong>{" "}
-          y no responde cuánto vale el metro cuadrado —para eso está{" "}
+          y no responde cuánto vale el metro cuadrado; para eso está{" "}
           <Link href="/estadisticas/precio-m2-provincia-buenos-aires">
             el precio del m² en la provincia
           </Link>
-          —. Tampoco tiene superficie: en esta fuente no hay metros. La
-          conversión a dólares usa el promedio trimestral del dólar blue, que es
-          la moneda en la que se pagan las propiedades en Argentina; es una
-          conversión más gruesa que un dato diario y la única honesta para una
-          serie que atraviesa los años del cepo. Fuente: {SOURCE}, datos hasta{" "}
-          {LAST_UPDATED}.
+          . La conversión a dólares usa el promedio trimestral del dólar blue.
+          Fuente: {SOURCE}, datos hasta {LAST_UPDATED}.
         </>
       }
     >
@@ -112,8 +84,7 @@ export function EscriturasMonto() {
               {periodLabel(ext.last.period)} · Máximo{" "}
               {formatUsd(ext.high.value)} ({periodLabel(ext.high.period)}) ·
               Mínimo {formatUsd(ext.low.value)} ({periodLabel(ext.low.period)})
-              · desde {USD_FROM ? periodLabel(USD_FROM) : "—"}, que es donde
-              empieza la serie de tipo de cambio
+              · desde {USD_FROM ? periodLabel(USD_FROM) : "—"}
             </>
           ) : (
             <>Sin tipo de cambio para convertir la serie.</>
@@ -122,8 +93,7 @@ export function EscriturasMonto() {
         statArs={
           <>
             <span className="text-ink">{formatArs(promedioArs())}</span> en{" "}
-            {LAST_UPDATED} · en pesos corrientes, sin corregir por inflación:
-            como curva solo muestra que hay inflación
+            {LAST_UPDATED} · en pesos corrientes, sin ajustar por inflación
           </>
         }
         rows={rows}

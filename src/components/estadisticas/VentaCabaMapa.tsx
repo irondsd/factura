@@ -68,14 +68,14 @@ function stat(geo: Geo, size: SizeId): string {
     city === null ? null : `Promedio de la Ciudad ${formatUsd(city)}/m²`,
     top ? `Máximo ${top.label} ${formatUsd(top.value)}` : null,
     bottom ? `Mínimo ${bottom.label} ${formatUsd(bottom.value)}` : null,
+    top && bottom && bottom.value > 0
+      ? `${(top.value / bottom.value).toLocaleString("es-AR", { maximumFractionDigits: 1 })} veces entre extremos`
+      : null,
   ].filter(Boolean);
   return parts.join(" · ");
 }
 
-/** The coverage sentence. The most important caveat on the figure, so it is
- * computed from the data and names the regions it is about rather than saying
- * "algunos" — those regions are the poorest parts of the city, and a reader who
- * can't find their barrio deserves to see it listed. */
+/** Name every region without a published price in the selected cut. */
 function note(geo: Geo, size: SizeId): string {
   const { withData, total, missing } = coverage(geo, size);
   const { noun, article, striped } = GEOS.find((g) => g.id === geo)!;
@@ -114,23 +114,10 @@ export function VentaCabaMapa() {
 
   return (
     <DataFigure
-      caption={
-        <>
-          Precio de publicación del metro cuadrado de departamentos usados en
-          venta en la Ciudad de Buenos Aires, en dólares, por barrio y por
-          comuna. Permite comparar cuánto cuesta el metro cuadrado en Palermo,
-          Belgrano, Recoleta, Villa Urquiza, Caballito, Flores o Mataderos, y
-          ver en qué zona de la Ciudad se concentran los valores más altos y más
-          bajos.
-        </>
-      }
       note={
         <>
-          Son precios de <strong className="font-medium">publicación</strong>,
-          no de escrituración: lo que se pide, no lo que se paga. La misma
-          escala de colores se usa en los seis mapas, para que se puedan
-          comparar entre sí. Fuente: IDECBA sobre la base de Argenprop, datos
-          hasta el {LAST_UPDATED}
+          La misma escala de colores se usa en los seis mapas. Fuente: IDECBA
+          sobre la base de Argenprop, datos hasta el {LAST_UPDATED}
           {provisional ? " (provisorio)" : ""}.
         </>
       }

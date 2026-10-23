@@ -21,19 +21,15 @@ import { niceTicks } from "@/lib/svg-chart";
 // formatted, so an axis can never round a figure differently from the prose
 // beside it.
 //
-// Both charts exist because the raw peso series cannot answer the question the
-// page is really being asked. Between 2015 and today the peso figure grew by a
-// factor of about 170, almost all of it inflation, so drawn straight it is a
-// hockey stick that says nothing except that Argentina has inflation. Each chart
-// takes a different way out of that, and the two ways are the two halves of
-// "¿está caro construir?":
+// The page shows the official peso series and a quarterly-average-dollar
+// conversion, plus the ICC chapters relative to its general index. Neither the
+// currency conversion nor the chapter ratios are a project budget or a
+// construction-cost price adjustment.
 //
-//   CostoChart      converts to dollars, which is how the real cost of building
-//                   is actually judged here — and keeps the peso view one click
-//                   away, because that is the number the page is named after.
-//   CapitulosChart  divides each chapter by the index itself, so the lines show
-//                   which part of the cost ran ahead of the rest rather than how
-//                   fast all of them ran.
+//   CostoChart      keeps the published peso value and a dollar conversion
+//                   available with the same monthly observations.
+//   CapitulosChart  divides each chapter index by the general index to show
+//                   their relative accumulated changes since the shared base.
 
 const AXIS = "var(--line)";
 const ACCENT = "var(--accent)";
@@ -123,10 +119,8 @@ export function CostoChart({
   statArs: React.ReactNode;
   rows: CostoRow[];
 }) {
-  // Dollars first. The peso series is the number the page is named after and is
-  // in the table above this chart; as a *curve* it only ever shows inflation,
-  // and the question a curve is asked here — is building dear right now? — is
-  // one only the dollar series answers.
+  // Dollars first as a second currency view. The peso figures remain selectable
+  // and neither series is adjusted by a consumer-price index.
   const [currency, setCurrency] = useState<Currency>("usd");
 
   // The dollar series starts later than the peso one (the FX series begins in
@@ -140,9 +134,7 @@ export function CostoChart({
   const values = shown.map((r) =>
     currency === "usd" ? (r.usd as number) : r.ars,
   );
-  // Six intervals rather than the default four: at four, the dollar view lands
-  // on a 500-unit step and gets three gridlines for a series that moves between
-  // 358 and 1.082, which is too coarse to read a level off.
+  // Six intervals rather than the default four for a more readable dollar axis.
   const { ticks, lo, hi } = niceTicks(0, Math.max(...values), 6);
 
   return (
@@ -223,11 +215,12 @@ export function CostoChart({
   );
 }
 
-// ── 2. Which part of the cost ran ahead ────────────────────────────────────
+// ── 2. Chapter indices relative to the general index ──────────────────────
 
-/** One month, with each chapter expressed as a percentage of the index itself.
- * 100 means the chapter moved exactly with the overall cost of construction;
- * above it, that chapter ran ahead. */
+/** One month, with each chapter expressed as a percentage of the general index.
+ * Because the series share a base, 100 means equal accumulated change since
+ * that base; above or below 100 means the chapter's accumulated change was
+ * larger or smaller. */
 export type CapituloRow = {
   period: string;
   title: string;
@@ -274,7 +267,7 @@ function CapitulosTooltip({
             style={{ background: s.color }}
           />
           <span className="flex-1 text-muted">{s.label}</span>
-          <span className="font-semibold">{ONE_DP.format(row[s.key])}</span>
+          <span className="font-semibold">{ONE_DP.format(row[s.key])} %</span>
         </div>
       ))}
     </div>
@@ -295,10 +288,8 @@ export function CapitulosChart({
     r.manoObra,
     r.gastosGenerales,
   ]);
-  // Padded a little past the extremes and forced to contain 100, which is the
-  // line the whole chart is read against. Six intervals rather than four: the
-  // series spans roughly 63 to 138, and at four the axis steps by 50 and draws
-  // three gridlines — too coarse to tell "ran a bit ahead" from "ran away".
+  // Pad the range and force it to contain 100, the reference ratio. Six
+  // intervals keep the relative movements readable.
   const { ticks, lo, hi } = niceTicks(
     Math.min(95, Math.floor(Math.min(...all) - 2)),
     Math.max(105, Math.ceil(Math.max(...all) + 2)),
@@ -360,9 +351,10 @@ export function CapitulosChart({
               tick={tickStyle}
               axisLine={false}
               tickLine={false}
+              tickFormatter={(v: number) => `${v} %`}
             />
-            {/* The whole point of the figure: at 100 a chapter is moving exactly
-                with the cost of construction as a whole. */}
+            {/* At 100 the chapter and general index have the same accumulated
+                change since their shared base. */}
             <ReferenceLine y={100} stroke={AXIS} strokeWidth={1.5} />
             <Tooltip
               cursor={{ stroke: AXIS, strokeDasharray: "3 3" }}
