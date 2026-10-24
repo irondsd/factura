@@ -115,7 +115,8 @@ Key concepts:
 - [Docs](https://factura.uno/docs): Getting started, core concepts, and reference for uploading bills, parsers, properties, and vendors.
 - [FAQ](https://factura.uno/faq): Common questions about supported bills, parsing, storage, privacy, and sharing.
 - [Normativa](https://factura.uno/normativa): The Argentine laws and decrees behind household bills and contracts — rent, expensas, electricity, gas, water, internet, ABL, consumer rights, energy subsidies — each with its status (in force, amended, repealed) and a link to the official text.
-- [Glossary](https://factura.uno/glosario): What each term on an Argentine electricity, gas or water bill means — cargo fijo, VAD, percepciones, estimated readings, subsidy levels (N1/N2/N3), regulators — plus the app's own vocabulary. Every term has its own anchor.`;
+- [Glossary](https://factura.uno/glosario): What each term on an Argentine electricity, gas or water bill means — cargo fijo, VAD, percepciones, estimated readings, subsidy levels (N1/N2/N3), regulators — plus the app's own vocabulary. Every term has its own anchor.
+- [Rental receipt](https://factura.uno/recibos/alquiler): Spanish-only rental payment receipt for Argentina. Complete the form and download a PDF, or download a blank template for printing. Free, no account; entered data stays in the browser. This is not an ARCA fiscal comprobante.`;
 
 const AFTER = `## Demo
 
