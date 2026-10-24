@@ -1,3 +1,4 @@
+import type { Locale } from "@/i18n/config";
 import { githubUrl } from "./urls";
 
 // The brand's public profiles, in the order the footer lists them. Also the
@@ -30,3 +31,10 @@ export const socialProfiles: readonly SocialProfile[] = [
   },
   { label: "GitHub", mark: "GH", url: githubUrl },
 ];
+
+// Where the footer's "Review us on Trustpilot" link sends a reader — the
+// business's review page on the Trustpilot domain for their language.
+export const trustpilotReviewUrl: Record<Locale, string> = {
+  es: "https://es.trustpilot.com/review/factura.uno",
+  en: "https://www.trustpilot.com/review/factura.uno",
+};

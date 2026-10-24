@@ -155,6 +155,9 @@
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-ok: var(--ok);
+  /* Trustpilot's own star green, on the footer's review link — the one colour
+     in the chrome that isn't ours. */
+  --color-trustpilot: #00b67a;
   --font-display: var(--font-fraunces);
   --font-mono: var(--font-plex-mono);
 

@@ -12,7 +12,7 @@ export type NavLink = { label: string; href: string };
 // order, and the one piece of locale logic — Estadísticas and Guías are
 // Spanish-only, because those two sections themselves only exist in Spanish.
 //
-// Estadísticas leads Guías in both this row and the footer. The guides are
+// Estadísticas leads Guías in this row. The guides are
 // commodity explainers that forty better-linked sites have also written; the
 // statistics are the one thing here nobody else publishes — a monthly-updated
 // series nobody can copy without redoing the work. The section that earns the
@@ -54,66 +54,71 @@ export function siteNavLinks(
 // competes with the links under it, and two of these three groups have no page
 // of their own to point at anyway.
 //
+// Order follows the footer design: Ingresar last in Producto; Aprender is drawn
+// as a two-column list that fills row by row, so its pairs read across
+// (Guías · Estadísticas, Normativa · Investigaciones, …). Adding a link grows a
+// column downwards — keep Producto at seven links or fewer and Factura at five.
+//
 // Same locale rule as the top nav: Guías and Estadísticas exist only in Spanish.
 // hrefs stay canonical (unlocalized); the footer localizes them at render time.
 export function siteFooterColumns(
   t: Dictionary,
   locale: Locale,
-): { label: string; links: NavLink[] }[] {
+): { key: "product" | "learn" | "company"; label: string; links: NavLink[] }[] {
+  const es = locale === "es";
   return [
     {
+      key: "product",
       label: t.siteChrome.footerProduct,
       links: [
         { label: t.nav.try, href: "/probar" },
         { label: t.nav.demo, href: "/demo" },
         { label: t.nav.docs, href: "/docs" },
-        { label: t.nav.signIn, href: "/login" },
-        ...(locale === "es"
+        ...(es
           ? [
               { label: "Contrato de vivienda", href: "/contratos/vivienda" },
               { label: "Contrato comercial", href: "/contratos/comercial" },
             ]
           : []),
+        { label: t.nav.signIn, href: "/login" },
       ],
     },
     {
+      key: "learn",
       label: t.siteChrome.footerLearn,
+      // Guías, Estadísticas, Normativa, Investigaciones and Proveedores are
+      // Spanish-only sections, so the English footer skips them. Investigaciones
+      // and Normativa live here and not in the top bar — that row already
+      // carries six links plus Ingresar, and a seventh uppercase tracked label
+      // pushes it into the wordmark. Proveedores (the companies the guides are
+      // about) is footer and homepage only for the same reason.
+      //
+      // Ubicaciones is Spanish-only too, but deliberately visible in both
+      // footers: the English URL redirects to the canonical bare path, like
+      // every language entry into a Spanish-only discovery section.
       links: [
-        ...(locale === "es"
+        ...(es
           ? [
-              { label: t.nav.stats, href: "/estadisticas" },
-              // Directly under Estadísticas, because that is what it is read
-              // against: every research page joins series that live over there.
-              // Like Normativa below it, it lives here and not in the top bar —
-              // that row already carries six links plus Ingresar, and a seventh
-              // uppercase tracked label pushes it into the wordmark. The pages
-              // themselves cross-link, which is where a reader actually meets
-              // the section.
-              { label: t.nav.research, href: "/investigaciones" },
               { label: t.nav.guides, href: "/guias" },
-              // The companies the guides are about. Footer and homepage only:
-              // the top bar has no room left (see Investigaciones above).
-              { label: t.nav.providers, href: "/proveedores" },
-              { label: t.nav.noticias, href: "/noticias" },
-              // Spanish-only for the same reason as the three above — the page
-              // is Argentine law and exists only in Spanish.
+              { label: t.nav.stats, href: "/estadisticas" },
               { label: t.nav.regulations, href: "/normativa" },
+              { label: t.nav.research, href: "/investigaciones" },
             ]
           : []),
-        // Spanish-only, but deliberately visible in both footers: the English
-        // URL redirects to the canonical bare path, like every language entry
-        // into a Spanish-only discovery section.
-        { label: "Ubicaciones", href: "/ubicacion" },
-        { label: t.nav.faq, href: "/faq" },
         { label: t.nav.glossary, href: "/glosario" },
+        ...(es ? [{ label: t.nav.providers, href: "/proveedores" }] : []),
+        { label: t.nav.faq, href: "/faq" },
+        { label: "Ubicaciones", href: "/ubicacion" },
+        ...(es ? [{ label: t.nav.noticias, href: "/noticias" }] : []),
       ],
     },
     {
+      key: "company",
       label: t.siteChrome.footerCompany,
       links: [
         { label: t.nav.contact, href: "/contacto" },
-        { label: t.nav.privacy, href: "/privacy" },
         { label: t.nav.security, href: "/security" },
+        { label: t.nav.privacy, href: "/privacy" },
         { label: t.nav.terms, href: "/terms" },
       ],
     },

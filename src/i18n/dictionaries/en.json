@@ -195,12 +195,13 @@
     ]
   },
   "siteChrome": {
-    "footerLeft": "Stored securely · yours alone",
+    "footerBlurb": "Your utility bills, stored securely. Yours alone.",
     "footerRight": "Argentina · ARS ≈ USD",
     "footerProduct": "Product",
     "footerLearn": "Learn",
     "footerCompany": "Factura",
-    "footerFollow": "Follow us"
+    "footerFollow": "Follow us",
+    "footerReview": "Review us on"
   },
   "peek": {
     "period": "Palermo · June 2026 so far",

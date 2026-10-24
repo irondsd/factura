@@ -195,12 +195,13 @@
     ]
   },
   "siteChrome": {
-    "footerLeft": "Guardado de forma segura · solo tuyo",
+    "footerBlurb": "Tus facturas de servicios, guardadas de forma segura. Solo tuyas.",
     "footerRight": "Argentina · ARS ≈ USD",
     "footerProduct": "Producto",
     "footerLearn": "Aprender",
     "footerCompany": "Factura",
-    "footerFollow": "Seguinos"
+    "footerFollow": "Seguinos",
+    "footerReview": "Reseñanos en"
   },
   "peek": {
     "period": "Palermo · junio de 2026 hasta ahora",
