@@ -160,6 +160,14 @@ export default async function ContractPage({ params }: Props) {
           .
         </p>
 
+        <p className={`${prose} mt-5`}>
+          Para dejar constancia de un pago recibido, podés{" "}
+          <Link href="/recibos/alquiler" className={link}>
+            completar un recibo de alquiler o descargar el modelo en blanco
+          </Link>
+          .
+        </p>
+
         <Faq items={copy.faq} />
 
         <ClosingCta title={copy.closing.title}>{copy.closing.text}</ClosingCta>

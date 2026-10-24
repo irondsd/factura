@@ -1,0 +1,342 @@
+.builder {
+  margin: 2.5rem 0 4rem;
+  scroll-margin-top: 6rem;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
+  gap: 2rem;
+  align-items: start;
+}
+.form {
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--card);
+  padding: 1.75rem;
+}
+.form h2,
+.review > h2 {
+  font-family: var(--font-display);
+  font-size: 29px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.intro,
+.review > p {
+  font-size: 13px;
+  line-height: 1.8;
+  margin: 0.75rem 0 1.75rem;
+}
+.form fieldset {
+  min-width: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  padding: 1.5rem 0 0;
+  margin: 1.75rem 0;
+}
+.form legend {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  padding-right: 0.75rem;
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 1rem;
+}
+.field {
+  min-width: 0;
+  margin-bottom: 1.25rem;
+}
+.field label {
+  display: block;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 0.4rem;
+}
+.field label span {
+  font-size: 11px;
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.7rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+.field textarea {
+  resize: vertical;
+  line-height: 1.7;
+}
+.field [aria-invalid="true"] {
+  border-color: var(--accent);
+}
+.builder input:focus-visible,
+.builder select:focus-visible,
+.builder textarea:focus-visible,
+.builder button:focus-visible,
+.builder summary:focus-visible,
+.download:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.hint {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.8;
+  line-height: 1.75;
+  margin-top: 0.5rem;
+  overflow-wrap: anywhere;
+}
+.error {
+  color: #9e3008;
+  font-size: 13px;
+  line-height: 1.7;
+  margin-top: 0.5rem;
+  overflow-wrap: anywhere;
+}
+.errorSummary {
+  border-left: 2px solid var(--accent);
+  padding: 0.75rem;
+  color: #9e3008;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.errorSummary ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin-top: 0.5rem;
+}
+.errorSummary a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.errorSummary a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 13px;
+  line-height: 1.8;
+  padding: 0.5rem 0;
+  margin-bottom: 1rem;
+  cursor: pointer;
+}
+.checkbox input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+.details summary {
+  font-size: 13px;
+  line-height: 1.8;
+  min-height: 44px;
+  padding: 0.5rem 0;
+  cursor: pointer;
+}
+.details[open] summary {
+  margin-bottom: 1rem;
+}
+.notice {
+  border-left: 2px solid var(--accent);
+  padding: 0.75rem 1rem;
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 1.5rem 0;
+}
+.primary,
+.secondary,
+.download {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.8rem 1.2rem;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+.secondary,
+.download {
+  background: var(--card);
+  color: var(--ink);
+}
+.primary:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.secondary:hover,
+.download:hover {
+  border-color: var(--ink);
+}
+.primary:disabled,
+.secondary:disabled,
+.download:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.preview {
+  position: sticky;
+  top: 95px;
+  min-width: 0;
+}
+.previewLabel {
+  font-size: 12px;
+  margin: 0 0 0.75rem;
+}
+.document {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 2rem;
+  overflow-wrap: anywhere;
+}
+.document h3 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.15;
+  margin-bottom: 1rem;
+}
+.document p {
+  font-size: 11px;
+  line-height: 1.85;
+  white-space: pre-line;
+  margin: 0 0 1rem;
+}
+.documentMeta p {
+  font-size: 10px;
+  margin-bottom: 0.35rem;
+}
+.total {
+  border-top: 1px solid var(--line);
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  margin-bottom: 1.5rem;
+}
+.total p {
+  font-size: 10px;
+  margin: 0.5rem 0;
+}
+.total strong {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 27px;
+  line-height: 1.25;
+  display: block;
+}
+.document h4 {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 1.25rem 0 0.5rem;
+}
+.signature {
+  border-top: 1px solid var(--ink);
+  padding-top: 0.5rem;
+  margin: 3rem 0 1.5rem;
+}
+.document .fiscal {
+  font-size: 10px;
+  line-height: 1.6;
+  margin-top: 1.75rem;
+}
+.document footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.8rem;
+}
+.document footer > span:last-child {
+  font-size: 9px;
+}
+.review {
+  max-width: 760px;
+}
+.review > .document {
+  padding: 3rem;
+}
+.review .document p {
+  font-size: 13px;
+}
+.review .document .fiscal {
+  font-size: 11px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+.blankAmount {
+  border-bottom: 1px solid var(--ink);
+  height: 1.75rem;
+  width: 85%;
+}
+.sampleField {
+  margin: 0.9rem 0;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.sampleField > div {
+  border-bottom: 1px solid var(--line);
+  height: 1.2rem;
+}
+.sample .signature {
+  margin-top: 2.5rem;
+}
+@media (max-width: 960px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .preview {
+    position: static;
+    max-width: 560px;
+  }
+}
+@media (max-width: 540px) {
+  .form {
+    padding: 1.1rem;
+  }
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .field input,
+  .field select,
+  .field textarea {
+    font-size: 16px;
+  }
+  .document,
+  .review > .document {
+    padding: 1.5rem;
+  }
+  .actions {
+    flex-direction: column;
+  }
+  .form > .primary {
+    width: 100%;
+  }
+}

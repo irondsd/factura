@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { CONTRACT_TYPES, contractPath } from "@/lib/rental-contract/model";
+import { RECEIPT_PATH } from "@/lib/rental-receipt/model";
 import {
   nonEmptyCategories,
   publishedGuides,
@@ -284,6 +285,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.8,
     })),
+    {
+      url: localeUrl(RECEIPT_PATH, "es"),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    },
     ...sectionEntries,
     ...guidesEntries,
     ...locationEntries,
