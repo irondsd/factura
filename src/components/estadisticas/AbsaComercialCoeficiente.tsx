@@ -3,28 +3,12 @@ import { DataTable } from "@/components/figures/DataTable";
 import {
   COMMERCIAL_SHOCK as S,
   formatCount,
-  formatMagnitude,
   formatPct,
   formatVm,
   HEARING,
 } from "@/content/estadisticas/data/absa-tarifas";
 
-// Why a comercio's water bill rose almost twice as much as a household's.
-//
-// The 72 % that circulated in January is real, and it was reported as a second,
-// larger increase granted to commercial users. It is not. It is the same 40 %
-// increase every residential user got, multiplied by a change nobody covered:
-// Decreto 3044/2024 priced a non-residential cubic metre at 1,3 times the
-// residential one, and Decreto 127/2026 quietly moved that to 1,6.
-//
-// The table is three rows because the decomposition is the finding, and it
-// closes to the centavo: 196,76 × 1,3 = 255,79 and 275,46 × 1,6 = 440,74. That
-// exactness is also the best evidence the reconstructed February values are
-// right — two independently reported figures reproducing a coefficient written
-// in a decree is not something a misquote does.
-//
-// Both factors are computed from the dataset rather than written down, so the
-// identity cannot drift if a figure is ever corrected.
+// Decomposes the February 2026 non-residential change into its two factors.
 
 export function AbsaComercialCoeficiente() {
   const rows = [
@@ -34,7 +18,7 @@ export function AbsaComercialCoeficiente() {
       before: S.residentialBefore,
       after: S.residentialAfter,
       change: S.tariffPart,
-      detail: "El valor del m³ que fija la resolución.",
+      detail: "Valor base residencial.",
     },
     {
       id: "coeficiente",
@@ -42,8 +26,7 @@ export function AbsaComercialCoeficiente() {
       before: S.coefBefore,
       after: S.coefAfter,
       change: S.coefPart,
-      detail:
-        "Decreto 3044/2024 lo fijaba en 1,3; Decreto 127/2026 lo llevó a 1,6.",
+      detail: "Factor para usuarios no residenciales.",
     },
     {
       id: "comercial",
@@ -51,7 +34,7 @@ export function AbsaComercialCoeficiente() {
       before: S.commercialBefore,
       after: S.commercialAfter,
       change: S.total,
-      detail: "El producto de las dos filas anteriores.",
+      detail: "Valor base por coeficiente.",
     },
   ];
 
@@ -73,29 +56,18 @@ export function AbsaComercialCoeficiente() {
       }}
       caption={
         <>
-          El aumento de los usuarios no residenciales no fue una segunda subida
-          más grande: fue la misma de {formatMagnitude(S.tariffPart)}{" "}
-          multiplicada por un coeficiente que pasó de{" "}
-          {S.coefBefore.toLocaleString("es-AR", {
-            minimumFractionDigits: 1,
-          })}{" "}
-          a {S.coefAfter.toLocaleString("es-AR", { minimumFractionDigits: 1 })}.
-          Un comercio absorbió las dos cosas a la vez.
+          La variación no residencial combina el cambio del valor base y el
+          coeficiente aplicable a esa categoría.
         </>
       }
       note={
         <>
-          Las dos primeras filas se multiplican exactamente para dar la tercera,
-          y esa es también la mejor prueba de que los valores de febrero están
-          bien reconstruidos: {formatVm(S.residentialBefore)} ×{" "}
-          {S.coefBefore.toLocaleString("es-AR", { minimumFractionDigits: 1 })}{" "}
-          da {formatVm(S.commercialBefore)} y {formatVm(S.residentialAfter)} ×{" "}
-          {S.coefAfter.toLocaleString("es-AR", { minimumFractionDigits: 1 })} da{" "}
-          {formatVm(S.commercialAfter)}. El cambio de coeficiente alcanza a{" "}
-          {formatCount(HEARING.nonResidentialUnits)} unidades no residenciales,
-          contra {formatCount(HEARING.residentialUnits)} residenciales, según lo
-          que ABSA presentó en la audiencia pública. Fuentes: Decreto 3044/2024
-          y Decreto 127/2026.
+          El valor no residencial resulta de multiplicar el valor base por su
+          coeficiente, con redondeo a centavos. ABSA informó{" "}
+          {formatCount(HEARING.nonResidentialUnits)} unidades no residenciales y{" "}
+          {formatCount(HEARING.residentialUnits)} residenciales en la audiencia
+          pública. Fuente: DIB, con coeficientes establecidos por los Decretos
+          3044/2024 y 127/2026.
         </>
       }
     >

@@ -49,7 +49,7 @@ const tickStyle = {
 const card =
   "bg-card border border-line py-2 px-2.5 font-mono text-micro text-ink shadow-[0_2px_8px_rgba(0,0,0,0.08)]";
 
-/** Januaries and Julys: the series is 21 months long, so a tick every six
+/** Januaries and Julys: a tick every six
  * months lands on round dates without crowding the axis on a phone. */
 const xTicksOf = (rows: { period: string }[]) =>
   rows

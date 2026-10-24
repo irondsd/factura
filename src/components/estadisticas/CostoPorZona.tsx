@@ -10,12 +10,9 @@ import {
   zonasShare,
 } from "@/content/estadisticas/data/costo-construccion-caba";
 
-// The same join as the map, read by zone instead of by barrio.
-//
-// Almost nobody searches for "la Comuna 12": the city is thought of in four
-// pieces, and the pattern this table shows is the page's clearest single
-// finding — in the south, most of what a square metre costs is the building; in
-// the north, most of it is the ground it stands on.
+// The same join as the map, summarised by zone instead of by barrio. Each row
+// reports the median ratio and price difference among barrios with published
+// prices; neither value allocates the price to a particular cost component.
 //
 // The grouping is ours (IDECBA publishes barrios and comunas and nothing else),
 // so each row names the comunas it covers, which is what makes it checkable. It
@@ -34,7 +31,7 @@ export function CostoPorZona() {
   return (
     <DataFigure
       header={{
-        title: <>Obra y terreno por zona de la Ciudad</>,
+        title: <>Costo directo modelo y precio publicado por zona</>,
         subtitle: (
           <>
             Barrio mediano de cada zona · departamentos de {SIZE.label} ·{" "}
@@ -44,20 +41,17 @@ export function CostoPorZona() {
       }}
       caption={
         <>
-          En qué zonas de la Ciudad se paga sobre todo la construcción y en
-          cuáles se paga sobre todo la ubicación. Las dos columnas son las dos
-          caras del mismo metro cuadrado: cuanto mayor es el porcentaje que es
-          obra, menos queda para el terreno.
+          Porcentaje del precio publicado que representa el costo directo del
+          edificio modelo y diferencia aritmética entre esos valores. La
+          proporción se calcula con el mismo costo para toda la Ciudad: un precio
+          de publicación más alto produce un porcentaje menor.
         </>
       }
       note={
         <>
-          Cada fila es el barrio que queda justo en la mitad de su zona, no un
-          promedio: dentro de una misma zona conviven Puerto Madero y
-          Constitución, y un promedio simple daría un número que no describe a
-          ninguno de los dos. La agrupación en cuatro zonas es nuestra —IDECBA
-          publica barrios y comunas—, y por eso cada fila dice qué comunas
-          incluye. Datos del {quarterLabel(JOIN_PERIOD)}.
+          La agrupación en cuatro zonas es nuestra —IDECBA publica barrios y
+          comunas—; cada fila indica qué comunas incluye para que se pueda
+          comprobar qué barrios se resumieron.
         </>
       }
     >
@@ -84,21 +78,21 @@ export function CostoPorZona() {
               ),
             },
             {
-              header: "% que es obra",
+              header: "% costo / precio",
               headClassName: "pl-3",
               numeric: true,
               cellClassName: "pl-3 align-top text-ink",
               cell: (z) => (z.median === null ? "—" : formatShare(z.median)),
             },
             {
-              header: "Queda para el terreno",
+              header: "Diferencia aritmética",
               headClassName: "pl-3",
               numeric: true,
               cellClassName: "pl-3 align-top text-ink/90",
               cell: (z) =>
-                z.medianSurplus === null
+                z.medianDifference === null
                   ? "—"
-                  : `${formatUsd(z.medianSurplus)}/m²`,
+                  : `${formatUsd(z.medianDifference)}/m²`,
             },
           ]}
         />

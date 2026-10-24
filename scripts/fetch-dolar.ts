@@ -24,11 +24,9 @@
  * the three series side by side. So all three are stored, and the page's own
  * figures use the blue.
  *
- * The MEP is here as the corroborating rate rather than as an alternative: it
- * is legally accessible where the blue is not, and it tracks the blue closely
- * enough that the yield computed from either agrees to a few tenths of a point.
- * That agreement is the actual argument for the blue, and it is worth being
- * able to show it rather than assert it.
+ * The MEP is included as a second market rate. The chart shows how the result
+ * changes when the rent is converted at a different legal dollar quote; the
+ * distance from the blue varies over time.
  *
  * ── Why quarterly averages ─────────────────────────────────────────────────
  * The two IDECBA series are quarterly averages of asking prices, so the rate
@@ -74,7 +72,7 @@ const RATES = [
     id: "mep",
     path: "bolsa",
     label: "Dólar MEP",
-    note: "Dólar bolsa, la vía legal para dolarizar pesos. Se usa aquí como control: la rentabilidad calculada con el MEP y con el blue coinciden.",
+    note: "Dólar bolsa. Se incluye para mostrar la sensibilidad del resultado frente a otra cotización de mercado.",
   },
 ] as const;
 
@@ -184,7 +182,7 @@ async function main(): Promise<void> {
     id: "dolar",
     title: "Tipo de cambio peso/dólar, promedio trimestral",
     source: "ArgentinaDatos",
-    sourceUrl: "https://argentinadatos.com/",
+    sourceUrl: API,
     sourceNote:
       "Promedio simple de las cotizaciones diarias de venta de cada trimestre. Se usa para convertir a dólares los alquileres que IDECBA publica en pesos.",
     unit: "ARS por USD",

@@ -83,30 +83,22 @@ function stat(geo: Geo, size: SizeId): string {
     .join(" · ");
 }
 
-/** The note under the map: what the colour means, then coverage.
- *
- * The coverage sentence carries more weight on this page than on either source
- * page, and in a specific direction worth naming: a region needs *both* a sale
- * price and a rent, so the holes are the union of the two maps' holes — and
- * they fall almost entirely on the cheapest barrios, which are the
- * highest-yielding ones. The gap is not random, so it cannot be described as
- * merely "some barrios". */
+/** The note under the map: what the colour means, then the actual coverage. */
 function note(geo: Geo, size: SizeId): string {
   const { withData, total, missing } = coverage(geo, size);
   const { noun, article, striped } = GEOS.find((g) => g.id === geo)!;
   const capitalised = article[0].toUpperCase() + article.slice(1);
   const label = SIZES.find((s) => s.id === size)!.label;
   const scale =
-    `El color muestra la rentabilidad bruta anual: cuanto más oscuro, mayor el retorno. ` +
-    `Es al revés que en los mapas de precio, porque el retorno alto es el del barrio barato. ` +
-    `La tabla agrega los años de alquiler que hacen falta para recuperar la compra, que es el mismo dato dado vuelta. ` +
-    `El cálculo es sobre un departamento de ${label} de ${REFERENCE_AREA[size]} m², la superficie de referencia de IDECBA.`;
+    `El tono más oscuro representa un porcentaje mayor de rentabilidad bruta. ` +
+    `La tabla expresa el mismo cálculo como años de repago. ` +
+    `La referencia es un departamento usado de ${label} y ${REFERENCE_AREA[size]} m², la superficie de IDECBA.`;
   const cover = !missing.length
-    ? `${capitalised} ${total} ${noun} tienen los dos precios publicados en este trimestre.`
-    : `${withData} de ${article} ${total} ${noun} tienen los dos precios —venta y alquiler— publicados en este trimestre. ` +
-      `Hace falta que IDECBA publique ambos, así que ${missing.join(", ")} ` +
-      `${missing.length === 1 ? striped[0] : striped[1]} en el mapa. ` +
-      `Los que faltan son sobre todo los más baratos, que son también los de mayor retorno: el mapa se queda corto justo en el extremo que más rinde.`;
+    ? `${capitalised} ${total} ${noun} tienen los dos precios publicados en el trimestre ${LAST_PERIOD}.`
+    : `${withData} de ${article} ${total} ${noun} tienen los dos precios —venta y alquiler— publicados en ${LAST_PERIOD}. ` +
+      `El retorno requiere ambos datos de IDECBA. En el mapa quedan sin valor ${missing.join(", ")} ` +
+      `(${missing.length === 1 ? striped[0] : striped[1]}). ` +
+      `El corte corresponde a ${LAST_PERIOD}.`;
   return `${scale} ${cover}`;
 }
 
@@ -137,18 +129,16 @@ export function RentabilidadCabaMapa() {
       caption={
         <>
           Rentabilidad bruta anual del alquiler de departamentos usados en la
-          Ciudad de Buenos Aires, por barrio y por comuna: cuánto rinde por año
-          un departamento comprado para alquilar, como porcentaje de lo que
-          cuesta comprarlo. Permite comparar en qué barrios conviene invertir
-          para alquilar y en cuántos años de alquiler se recupera la inversión
-          en Balvanera, Belgrano, Palermo, Caballito, Recoleta o Flores.
+          Ciudad de Buenos Aires, por barrio y comuna. La tabla presenta el
+          porcentaje calculado y su equivalente en años de repago.
         </>
       }
       note={
         <>
           Es una rentabilidad <strong className="font-medium">bruta</strong>: no
           descuenta expensas, ABL, impuesto a las ganancias, seguro, comisiones,
-          arreglos ni los meses sin inquilino. La real es bastante más baja. Se
+          arreglos ni los meses sin inquilino; esta serie no calcula el valor
+          neto. Se
           calcula sobre precios de{" "}
           <strong className="font-medium">publicación</strong> de los dos lados
           —lo que se pide, no lo que se firma— y el alquiler en pesos se pasa a

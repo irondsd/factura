@@ -4,7 +4,6 @@ import {
   compraventas,
   formatCount,
   formatPct,
-  formatShare,
   hipotecas,
   hipotecaShare,
   LAST_PERIOD,
@@ -17,21 +16,14 @@ import {
   yoy,
 } from "@/content/estadisticas/data/escrituras-pba";
 
-// The page's opening figure: the last twelve months of the province's deed
-// register, month by month, each one against the same month a year earlier.
-//
-// It is a table rather than a chart on purpose. This is the number a reader
-// arriving from "cuántas escrituras se firmaron en provincia de Buenos Aires"
-// came for, and they want to read it, not measure it off an axis — the charts
-// below are for the shape.
-//
-// Every comparison in it is year-on-year. Month-on-month is unusable on this
-// series: December is four times January in every year of the last twenty-one,
-// so a table of monthly changes would say "+58 %" every December and "-66 %"
-// every January and mean nothing by either.
-//
-// Every number here is read from the dataset; the prose around it quotes none,
-// so a refresh moves the table and leaves the sentences alone.
+const ratePer100 = (fraction: number) =>
+  (fraction * 100).toLocaleString("es-AR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+
+// Twelve latest monthly rows, with each count compared to the same month a
+// year earlier. This keeps the table readable without mixing in seasonality.
 
 /** Twelve rows: a full seasonal cycle, so the table can be read down the
  * left-hand column without a December sticking out of a shorter window. */
@@ -79,27 +71,27 @@ export function EscriturasResumen() {
                 )}
               </>
             )}
-            {shareNow !== null && <> · {formatShare(shareNow)} con hipoteca</>}
+            {shareNow !== null && (
+              <> · {ratePer100(shareNow)} hipotecas por cada 100 compraventas</>
+            )}
           </>
         ),
       }}
       caption={
         <>
-          Cada mes con su propio mes del año anterior al lado, que es la única
-          comparación que este dato admite: diciembre es siempre el pico del año
-          y enero siempre el piso, así que un mes contra el anterior mide el
-          calendario y no el mercado.
+          La variación interanual compara cada mes con el mismo mes del año
+          anterior.
         </>
       }
       note={
         <>
-          «Con hipoteca» es la cantidad de hipotecas dividida por la cantidad de
-          compraventas del mismo mes. Son dos actos distintos y se cuentan por
-          separado, así que el cociente es una aproximación a cuánto del mercado
-          se mueve con crédito, no la parte exacta de las operaciones que se
-          financió. Las escrituras se ordenan por fecha de escritura y los
-          últimos dos meses todavía se corrigen a medida que llegan
-          presentaciones tardías. Fuente: {SOURCE}, datos hasta {LAST_UPDATED}.
+          «Hipotecas por 100 compraventas» divide la cantidad de actos
+          hipotecarios por la de compraventas del mismo mes. Son actos distintos
+          y se cuentan por separado: el cociente describe su relación, no qué
+          parte de las operaciones se financió. Las escrituras se ordenan por
+          fecha de firma; los meses
+          provisorios pueden cambiar con nuevas presentaciones. Fuente: {SOURCE},
+          datos hasta {LAST_UPDATED}.
         </>
       }
     >
@@ -142,11 +134,12 @@ export function EscriturasResumen() {
               cell: (r) => formatCount(r.hip),
             },
             {
-              header: "Con hipoteca",
+              header: "Hipotecas / 100 compraventas",
               headClassName: "pl-3",
               numeric: true,
               cellClassName: "pl-3 text-muted",
-              cell: (r) => (r.share === null ? "—" : formatShare(r.share)),
+              cell: (r) =>
+                r.share === null ? "—" : ratePer100(r.share),
             },
           ]}
         />

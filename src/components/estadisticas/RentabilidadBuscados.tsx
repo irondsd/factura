@@ -46,23 +46,19 @@ export function RentabilidadBuscados() {
       }}
       caption={
         <>
-          Cuánto rinde comprar para alquilar en cada uno de estos barrios y en
-          cuántos años de alquiler se recupera la compra. El resto de la Ciudad
-          está en la tabla completa, debajo del mapa.
+          Rentabilidad bruta estimada y años de repago para estos barrios. La
+          tabla completa está debajo del mapa.
         </>
       }
       note={
         <>
           El puesto es entre los barrios que tienen los dos precios publicados
-          este trimestre, del que más rinde al que menos —{" "}
+          en el corte {LAST_UPDATED}, del que más rinde al que menos —{" "}
           <strong className="font-medium">al revés</strong> que en las páginas
-          de precio, donde el primer puesto es el más caro. El precio del
-          departamento es el metro cuadrado publicado por los {AREA} m² que
-          IDECBA toma como superficie de referencia para un {SIZE.label}; es el
-          denominador de la cuenta, no un aviso concreto. Rentabilidad bruta,
-          antes de expensas, ABL, impuestos y meses vacíos. Fuentes: IDECBA
-          sobre la base de Argenprop y ArgentinaDatos, datos hasta el{" "}
-          {LAST_UPDATED}.
+          de precio. El precio del departamento estima una unidad de {AREA} m²
+          multiplicando esa superficie por el precio de venta publicado por m²;
+          no representa un aviso concreto. Fuente: IDECBA sobre avisos de
+          Argenprop y ArgentinaDatos.
         </>
       }
     >

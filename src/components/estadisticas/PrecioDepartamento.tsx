@@ -35,6 +35,12 @@ export function PrecioDepartamento() {
       total: perMetre === null ? null : totalPrice(perMetre, area),
     };
   });
+  const highestPerMetre = [...rows].sort(
+    (a, b) => (b.perMetre ?? -Infinity) - (a.perMetre ?? -Infinity),
+  )[0];
+  const highestTotal = [...rows].sort(
+    (a, b) => (b.total ?? -Infinity) - (a.total ?? -Infinity),
+  )[0];
 
   return (
     <DataFigure
@@ -44,20 +50,28 @@ export function PrecioDepartamento() {
       }}
       caption={
         <>
-          Cuánto sale un departamento en CABA, según el precio de publicación
-          del metro cuadrado que releva IDECBA para toda la Ciudad. Para un
-          barrio en particular, multiplica los metros cuadrados de la unidad por
-          el valor de ese barrio en el mapa de arriba.
+          {typeof highestPerMetre?.perMetre === "number" &&
+          typeof highestTotal?.total === "number" ? (
+            <>
+              {highestPerMetre.label} tiene el mayor precio por m²; el total
+              estimado más alto corresponde a {highestTotal.label} (
+              {formatUsd(highestTotal.total)}). Cada total multiplica el
+              promedio de la Ciudad por la superficie de referencia indicada.
+            </>
+          ) : (
+            <>
+              Cada total multiplica el precio promedio por m² de la Ciudad por
+              la superficie de referencia indicada.
+            </>
+          )}
         </>
       }
       note={
         <>
           Las superficies son redondas y de referencia: IDECBA publica el precio
           del metro cuadrado, no el tamaño de los departamentos en venta. Si
-          cambian los metros cambia el total, que es exactamente lo que pasa en
-          el mercado. Son precios de publicación en dólares, no de
-          escrituración. Fuente: IDECBA sobre la base de Argenprop, datos hasta
-          el {LAST_UPDATED}.
+          cambian los metros cambia el total. Valores en dólares. Fuente: IDECBA
+          sobre la base de Argenprop, datos hasta el {LAST_UPDATED}.
         </>
       }
     >

@@ -29,12 +29,6 @@ import {
 const SIZE = SIZES.find((s) => s.id === DEFAULT_SIZE)!;
 const AREA = REFERENCE_AREA[DEFAULT_SIZE];
 
-/** "A, B y C" — Spanish has no serial comma. */
-const list = (items: string[]): string =>
-  items.length < 2
-    ? (items[0] ?? "")
-    : `${items.slice(0, -1).join(", ")} y ${items[items.length - 1]}`;
-
 export function BarriosBuscados() {
   // Dearest first, like every other table on the page — listing them in the
   // editorial order above would print the "puesto" column out of order, which
@@ -44,6 +38,9 @@ export function BarriosBuscados() {
     (id) => barrio(id, DEFAULT_SIZE),
     (d) => d.value,
   );
+  const withData = rows.filter((r) => r.data !== null);
+  const highest = withData[0];
+  const lowest = withData.at(-1);
 
   return (
     <DataFigure
@@ -57,12 +54,19 @@ export function BarriosBuscados() {
       }}
       caption={
         <>
-          {/* The list is built from the rows so it can't fall out of step with
-            them, and joined with a final "y" so it reads as a sentence. */}
-          El valor del metro cuadrado en{" "}
-          {list(rows.map((r) => r.data?.label ?? r.id))}, con el precio de un
-          departamento de {SIZE.inTitle} de {AREA} m² en cada uno. El resto de
-          los barrios de la Ciudad están en la tabla completa, debajo del mapa.
+          {highest?.data && lowest?.data ? (
+            <>
+              Entre estos seis barrios, {highest.data.label} tiene el mayor
+              precio publicado ({formatUsd(highest.data.value)}/m²) y{" "}
+              {lowest.data.label}, el menor ({formatUsd(lowest.data.value)}/m²).
+              El total de referencia aplica {AREA} m² a cada barrio.
+            </>
+          ) : (
+            <>
+              La tabla compara los barrios destacados con un corte de {AREA} m²
+              de referencia.
+            </>
+          )}
         </>
       }
       note={

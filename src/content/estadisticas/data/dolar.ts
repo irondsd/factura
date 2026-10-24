@@ -20,10 +20,10 @@ import raw from "./dolar.json";
 //     2022Q3 doubles it, and doubles the yield with it — 6,05 % against 2,99 %.
 //     The official series is kept precisely so the page can show that, and it
 //     is never what the page's own figures divide by.
-//   • The MEP agrees with the blue to a few tenths of a point across the whole
-//     series. That agreement is what makes the choice defensible: two rates
-//     reached by completely different routes give the same answer, and the
-//     third is the one distorted by an exchange control that no longer exists.
+//   • The MEP is another market rate, included to show how the result changes
+//     under a different legal quote. Its distance from the blue varies by
+//     quarter, so the page reports the measured comparison rather than treating
+//     the two as interchangeable.
 //
 // ── What the choice cannot affect ──────────────────────────────────────────
 // The rate is a *common divisor within a quarter*. Every barrio in a given
@@ -123,9 +123,8 @@ export function quotes(period: string, which: RateId = RATE): number {
 }
 
 /** The gap between the informal and the official rate, as a fraction: 0.86
- * means the blue was 86 % above the official. `null` before the MEP starts or
- * outside the file. This is the number that explains why the choice of rate
- * mattered enormously in 2022 and does not matter at all today. */
+ * means the blue was 86 % above the official. `null` outside their shared
+ * coverage. */
 export function brecha(period: string): number | null {
   const blue = rate(period, "blue");
   const oficial = rate(period, "oficial");

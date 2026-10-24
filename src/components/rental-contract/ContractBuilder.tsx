@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
+import posthog from "posthog-js";
 import { NEW_TAB } from "@/components/landing/parts";
 import { fieldInfo, type FieldInfo } from "@/lib/rental-contract/content";
 import {
@@ -408,6 +409,15 @@ export function ContractBuilder({ type }: { type: ContractType }) {
     }
     setErrors({});
     setStep(step + 1);
+    // Only validated forward navigation belongs in the completion funnel.
+    // Send fixed labels, never any of the contract's entered values.
+    posthog.capture("contract_step_completed", {
+      contract_type: type,
+      step: step + 1,
+      step_name: steps[step],
+      next_step: step + 2,
+      action: step === 3 ? "review" : "continue",
+    });
   }
 
   async function generate() {

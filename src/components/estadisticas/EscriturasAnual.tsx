@@ -3,7 +3,6 @@ import {
   FLAGGED,
   formatCount,
   formatPct,
-  formatShare,
   FULL_YEARS,
   LAST_FULL_YEAR,
   LAST_UPDATED,
@@ -13,20 +12,14 @@ import {
 } from "@/content/estadisticas/data/escrituras-pba";
 import { AnualChart, type AnualRow } from "./EscriturasChartBody";
 
-// The same series as one bar per year, which is the cut that answers "was this
-// a good year?" without any rolling or smoothing to argue about.
-//
-// The finding is at the two ends: 2020, the year the province signed barely
-// half its usual number of deeds, and the last complete year, which is the
-// highest of the twenty-one. Both are read off the chart directly.
-//
-// The year in progress is drawn held back rather than dropped. Dropping it
-// leaves a reader wondering where this year went; drawing it level with the
-// rest invites them to compare six months against twelve. Neither the ranking
-// nor the average includes it — `FULL_YEARS` is what those are computed over.
-//
-// The server half of the split: the <figure> shell, the caption, the source
-// note and every formatted string.
+const ratePer100 = (fraction: number) =>
+  (fraction * 100).toLocaleString("es-AR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+
+// One bar per calendar year. The current partial year remains visible but is
+// excluded from the average and rankings.
 
 export function EscriturasAnual() {
   const flaggedYears = new Set(
@@ -39,7 +32,7 @@ export function EscriturasAnual() {
     hipotecas: y.hipotecas,
     compraventasLabel: formatCount(y.compraventas),
     hipotecasLabel: formatCount(y.hipotecas),
-    shareLabel: formatShare(y.share),
+    shareLabel: ratePer100(y.share),
     complete: y.complete,
     note: !y.complete
       ? `Año en curso: ${y.months} de 12 meses. No entra en ninguna comparación de esta página.`
@@ -52,26 +45,17 @@ export function EscriturasAnual() {
     FULL_YEARS.reduce((s, y) => s + y.compraventas, 0) / FULL_YEARS.length;
 
   const previous = FULL_YEARS[FULL_YEARS.length - 2];
-  const runnerUp = FULL_YEARS.filter(
-    (y) => y.year !== YEAR_EXTREMES.high.year,
-  ).reduce((a, y) => (y.compraventas > a.compraventas ? y : a));
-
   return (
     <DataFigure
       caption={
         <>
-          Cada barra es un año completo de escrituras de compraventa. La barra
-          clara de la derecha es el año en curso, que va por{" "}
-          {YEARS[YEARS.length - 1].months} meses y no se compara con las demás.
-          El año más alto de la serie es {YEAR_EXTREMES.high.year}, por encima
-          de {runnerUp.year}, que era el récord anterior.
+          Cada barra muestra el total anual de compraventas. El año en curso
+          aparece con un tono más claro y se excluye de las comparaciones.
         </>
       }
       note={
         <>
-          Son cantidades de actos, no montos: no hace falta corregirlas por
-          inflación ni convertirlas, y por eso son la parte de este dato que se
-          puede leer de punta a punta sin ninguna advertencia. Fuente: {SOURCE},
+          La línea muestra el promedio de los años completos. Fuente: {SOURCE},
           datos hasta {LAST_UPDATED}.
         </>
       }

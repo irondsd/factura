@@ -1,7 +1,6 @@
 import { DataFigure } from "@/components/figures/DataFigure";
 import {
   formatCount,
-  formatShare,
   hipotecas,
   hipotecaShare12,
   LAST_UPDATED,
@@ -13,26 +12,14 @@ import {
 } from "@/content/estadisticas/data/escrituras-pba";
 import { HipotecasChart, type HipotecaRow } from "./EscriturasChartBody";
 
-// How much of the province's property market runs on credit, and how violently
-// that has changed.
-//
-// This is the figure that makes the dataset worth twenty-one years rather than
-// five. Argentina's mortgage market has been switched on and off twice inside
-// the series: the UVA loans of 2017-2018 took it to roughly a third of every
-// sale, the 2019 devaluation and then the pandemic took it to almost nothing,
-// and the credit lines that reopened in 2024 have taken it back to a level
-// last seen before the collapse. None of that is visible in a price series and
-// all of it is visible here.
-//
-// ── Why the share is rolled and the count is not ──────────────────────────
-// The share divides twelve months of hipotecas by twelve months of
-// compraventas. A monthly ratio on this data has an April 2020 in it — three
-// mortgages over one sale, which is 300 % and is not a fact about credit — and
-// it inherits the December seasonality of both legs. The count view is the raw
-// monthly figure because a count of anything is safe to print as it stands.
-//
-// The server half of the split: the <figure> shell, the caption, the source
-// note and every formatted string.
+const ratePer100 = (fraction: number) =>
+  (fraction * 100).toLocaleString("es-AR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+
+// The first view compares twelve-month sums; the second keeps monthly mortgage
+// counts visible.
 
 /** The peak and the floor of the rolled share, derived so the prose beside the
  * figure can name them without hardcoding a month. */
@@ -55,7 +42,7 @@ export function EscriturasHipotecas() {
       period,
       title: periodLabel(period),
       share: share === null ? null : share * 100,
-      shareLabel: share === null ? null : formatShare(share),
+      shareLabel: share === null ? null : ratePer100(share),
       hipotecas: hipotecas(period),
       hipotecasLabel: formatCount(hipotecas(period)),
       note: PROVISIONAL.has(period)
@@ -72,35 +59,32 @@ export function EscriturasHipotecas() {
     <DataFigure
       caption={
         <>
-          Hipotecas sobre compraventas, sumando doce meses de cada una. Es la
-          forma más directa de ver el crédito hipotecario argentino prenderse y
-          apagarse: el pico de los créditos UVA, el derrumbe posterior a 2019, y
-          la vuelta que empezó en 2024. La otra vista es la cantidad de
-          hipotecas mes a mes, sin dividir por nada.
+          La línea muestra hipotecas por cada 100 compraventas en los últimos
+          doce meses; la vista mensual cuenta hipotecas.
         </>
       }
       note={
         <>
           La hipoteca es un acto distinto de la compraventa y el Colegio los
-          cuenta por separado, así que el cociente es una aproximación: mide
-          cuánto crédito hay por cada operación, no la parte exacta de las
-          compras que se financió. Hasta 2011 la fuente publicaba las hipotecas
+          cuenta por separado: el cociente resume la relación entre ambos
+          recuentos, no la parte exacta de las compras que se financió. Hasta
+          2011 la fuente publicaba las hipotecas
           abiertas en dos tramos por monto y aquí están sumadas, que es lo que
           permite que la serie sea continua. El cociente se calcula sobre doce
-          meses móviles a propósito: hecho mes a mes, abril de 2020 daría 300 %
-          con tres hipotecas sobre una compraventa. Fuente: {SOURCE}, datos
-          hasta {LAST_UPDATED}.
+          meses móviles para reducir los efectos de la estacionalidad y de meses
+          con muy pocas compraventas. Fuente: {SOURCE}, datos hasta {LAST_UPDATED}.
         </>
       }
     >
       <HipotecasChart
-        title={`Qué parte del mercado bonaerense se mueve con hipoteca, ${SPAN}`}
+        title={`Relación entre hipotecas y compraventas en la Provincia de Buenos Aires, ${SPAN}`}
         statShare={
           <>
-            <span className="text-ink">{formatShare(ext.last.value)}</span> de
-            las compraventas de los últimos doce meses · Máximo{" "}
-            {formatShare(ext.high.value)} ({periodLabel(ext.high.period)}) ·
-            Mínimo {formatShare(ext.low.value)} ({periodLabel(ext.low.period)})
+            <span className="text-ink">
+              {ratePer100(ext.last.value)} hipotecas por cada 100 compraventas
+            </span>{" "}
+            en los últimos doce meses · Máximo {ratePer100(ext.high.value)} ({periodLabel(ext.high.period)}) ·
+            Mínimo {ratePer100(ext.low.value)} ({periodLabel(ext.low.period)})
           </>
         }
         statCount={
