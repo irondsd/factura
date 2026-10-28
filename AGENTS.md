@@ -125,6 +125,16 @@ the spec — knowing them is not a reason to skip the rest:
   time, in both directions.
 - **Editing an already-published page needs no confirmation.** Fix it and save.
 
+## Several pages at once
+
+When the work touches **two or more pages** (writing, rewriting, editing,
+checking, verifying, auditing or fixing them, from a CMS task or a direct
+request), use the `editorial-desk` skill (`.claude/skills/editorial-desk/`,
+also at `.agents/skills/editorial-desk/`), whichever model you are. You
+supervise and own the result; each page goes to its own Luna subagent
+(`gpt-6-luna`, reasoning `max`), and you review, fix and save every page
+yourself. A single page you do yourself.
+
 ## CMS tasks
 
 The `/cms` task board (`list_tasks`, `get_task`, `move_task` on `factura-cms`)
