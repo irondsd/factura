@@ -22,7 +22,7 @@ import { getLocale } from "@/i18n/server";
 // in next.config.ts, and rendering it means rendering a whole document — the
 // stylesheet, the fonts and the i18n provider that a layout would normally give.
 //
-// The locale is the NEXT_LOCALE cookie, which the proxy keeps pointed at the
+// The locale is the NEXT_LOCALE cookie, which `@/i18n/localeRules` keeps pointed at the
 // language the visitor is actually browsing. A first-ever request straight to a
 // bad /en URL has no cookie yet and gets Spanish; that's the site default, and
 // it's the right trade for not making this page guess.

@@ -4,7 +4,7 @@ import { DISPLAY_MODE_COOKIE, isDisplayMode } from "@/lib/displayMode";
 import { SESSION_COOKIE_NAMES } from "./authCookie";
 
 /** Both names Auth.js can give the session cookie: the plain one in dev and the
- * `__Secure-` one it switches to over HTTPS. Same pair proxy.ts checks. */
+ * `__Secure-` one it switches to over HTTPS. Same pair `@/i18n/localeRules` checks. */
 /** How stale a session's last-active reading may get before the next request
  * that touches it writes a fresh one. Every signed-in request already reads the
  * session row; this bounds how often it also writes one. */

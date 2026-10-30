@@ -22,8 +22,8 @@ const UUID =
 
 /** `/media/<uuid>/<filename>.<ext>`.
  *
- * The trailing extension is mandatory, and not for looks: `src/proxy.ts`
- * rewrites every path it matches into the `/es` tree and excludes anything
+ * The trailing extension is mandatory, and not for looks: the locale rewrite
+ * (`@/i18n/localeRules`) sends every path it matches into the `/es` tree and excludes anything
  * containing a dot, so an extensionless permalink would be rewritten to
  * `/es/media/…` and 404. The route is also excluded by name, but content that
  * always carries an extension keeps this working even if that list changes. */

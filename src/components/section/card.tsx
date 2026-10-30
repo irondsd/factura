@@ -8,8 +8,8 @@ import type { ContentSection } from "@/content/section";
 // /og/guias/[slug]/card.png: an explicit route rather than the
 // `opengraph-image` file convention, because the URL has to be knowable
 // (og:image, twitter:image and the Article JSON-LD all name it), free of the
-// /es prefix the proxy would otherwise 308, and served past the proxy — which
-// the `.png` at the end of the path takes care of.
+// /es prefix the locale rules would otherwise 308, and served past the locale
+// rewrite — which the `.png` at the end of the path takes care of.
 //
 // The card lives at /og/<section>/<path>/card.png, matching the guides'
 // shape — but a page's path has a variable number of segments, and Next requires

@@ -2,7 +2,8 @@
 // them. Spanish (the default locale) lives at the bare paths (`/`, `/faq`);
 // English lives under `/en` (`/en`, `/en/faq`). The signed-in app (`/app`,
 // `/login`, `/api`) is never localized. Keep this free of server-only imports —
-// it's used in server components, client links, the proxy, and at build time.
+// it's used in server components, client links, `next.config.ts` (through
+// `./localeRules`), and at build time.
 
 import { defaultLocale, type Locale } from "./config";
 
@@ -29,7 +30,7 @@ export function localizedHref(path: string, locale: Locale): string {
 // locale, so nothing may offer a visitor an English counterpart that isn't
 // there. One list rather than a check per section — the previous single
 // hardcoded `/guias` test is exactly what goes stale when a section is added.
-const SPANISH_ONLY_PREFIXES = [
+export const SPANISH_ONLY_PREFIXES = [
   "/contratos",
   "/recibos",
   "/guias",
@@ -64,7 +65,7 @@ export function stripEnPrefix(pathname: string): string {
  * makes the rule true. This is the build-time guard: without it these sections
  * inherit both locales from the `[lang]` layout above them and the build spends
  * itself prerendering ~85 English 404s, every one of which is then stored.
- * `proxy.ts` is the third — it redirects a visitor away before the request can
+ * `./localeRules` is the third — it redirects a visitor away before the request can
  * reach the section, which is what stops `dynamicParams = true` from minting
  * those same 404s one request at a time.
  *
@@ -95,7 +96,7 @@ export async function spanishOnly<T extends object>(
  * stored under the section's cache tag. `/en/guias` came out different after
  * every guide publish, so each one rewrote it: ~9 ISR units nobody could see. Pair it with
  * `dynamicParams = false` so the English path is never generated on demand
- * either (the proxy already redirects visitors away from it). */
+ * either (`./localeRules` already redirects visitors away from it). */
 export function spanishIndexParams(): { lang: Locale }[] {
   return [{ lang: defaultLocale }];
 }

@@ -16,11 +16,11 @@ import { CARD_CACHE_CONTROL } from "@/components/section/card";
 //     `twitter:image` and the Article JSON-LD `image`. One predictable URL is
 //     what lets all three name the same picture.
 //  2. No /es/ in the markup. The guides live under `(site)/[lang]`, so the file
-//     convention would emit `…/es/guias/<slug>/opengraph-image`, which the proxy
-//     308s to the bare path. An og:image that redirects is a smell, and the /es
-//     URLs are exactly what the proxy exists to keep out of the markup.
-//  3. `.png` in the path keeps the proxy off it: the matcher skips anything with
-//     a file extension, so this is served directly.
+//     convention would emit `…/es/guias/<slug>/opengraph-image`, which the locale
+//     rules 308 to the bare path. An og:image that redirects is a smell, and the
+//     /es URLs are exactly what those rules exist to keep out of the markup.
+//  3. `.png` in the path keeps the locale rewrite off it: it skips anything
+//     with a file extension (`@/i18n/localeRules`), so this is served directly.
 //
 // Rendered on request and cached by the CDN, never prerendered or stored in the
 // ISR cache: see `CARD_CACHE_CONTROL` in `components/section/card.tsx`.

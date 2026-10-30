@@ -33,8 +33,9 @@ export async function generateMetadata({
   });
 }
 
-// Pre-render both locales: /es/* and /en/* are static. The proxy serves the
-// Spanish pages at the bare paths (/, /faq, …) and redirects /es/* away.
+// Pre-render both locales: /es/* and /en/* are static. The locale rewrite
+// (`@/i18n/localeRules`) serves the Spanish pages at the bare paths (/, /faq,
+// …) and redirects /es/* away.
 export function generateStaticParams() {
   return locales.map((lang) => ({ lang }));
 }

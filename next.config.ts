@@ -3,6 +3,11 @@ import { withPostHogConfig } from "@posthog/nextjs-config";
 import { config } from "dotenv";
 import { publicOrigins } from "./src/config/origins";
 import { devLanHosts } from "./src/config/devLanOrigins";
+import {
+  localeHeaders,
+  localeRedirects,
+  localeRewrites,
+} from "./src/i18n/localeRules";
 
 const postHogBuildEnv: Record<string, string> = {};
 config({ path: ".env.prod", processEnv: postHogBuildEnv, quiet: true });
@@ -141,6 +146,7 @@ const nextConfig: NextConfig = {
           { key: "Service-Worker-Allowed", value: "/" },
         ],
       },
+      ...localeHeaders(),
     ];
   },
   async redirects() {
@@ -223,33 +229,40 @@ const nextConfig: NextConfig = {
       // says which inflation it is — so the old URL has to keep working for
       // anything already linking to or ranking for it.
       //
-      // Here rather than in `proxy.ts` because config redirects are checked
-      // *before* the proxy runs (see the routing order in the `rewrites` doc),
-      // so this fires on the bare path before the proxy rewrites it into the
-      // /es tree. Permanent (308): the move is not coming back, and a temporary
-      // redirect would leave the ranking on a URL that no longer exists.
+      // Config redirects are checked *before* rewrites (see the routing order
+      // in the `rewrites` doc), so this fires on the bare path before the
+      // locale rewrite sends it into the /es tree. Permanent (308): the move is
+      // not coming back, and a temporary redirect would leave the ranking on a
+      // URL that no longer exists.
       {
         source: "/estadisticas/inflacion",
         destination: "/estadisticas/inflacion-de-vivienda",
         permanent: true,
       },
+      ...localeRedirects(),
     ];
   },
   async rewrites() {
-    return [
-      {
-        source: "/ingest/static/:path*",
-        destination: "https://us-assets.i.posthog.com/static/:path*",
-      },
-      {
-        source: "/ingest/array/:path*",
-        destination: "https://us-assets.i.posthog.com/array/:path*",
-      },
-      {
-        source: "/ingest/:path*",
-        destination: "https://us.i.posthog.com/:path*",
-      },
-    ];
+    return {
+      // The locale rewrite has to see the URL as requested; see
+      // `src/i18n/localeRules.ts`.
+      beforeFiles: localeRewrites(),
+      afterFiles: [
+        {
+          source: "/ingest/static/:path*",
+          destination: "https://us-assets.i.posthog.com/static/:path*",
+        },
+        {
+          source: "/ingest/array/:path*",
+          destination: "https://us-assets.i.posthog.com/array/:path*",
+        },
+        {
+          source: "/ingest/:path*",
+          destination: "https://us.i.posthog.com/:path*",
+        },
+      ],
+      fallback: [],
+    };
   },
   skipTrailingSlashRedirect: true,
 };

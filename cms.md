@@ -168,7 +168,7 @@ allowlist.
 
 Those sections are Spanish-only, and that has to be said three times to be true:
 `ContentChrome` 404s a non-Spanish request, `spanishOnly` (`@/i18n/routing`)
-keeps the build from prerendering the English half, and `proxy.ts` redirects an
+keeps the build from prerendering the English half, and `@/i18n/localeRules` redirects an
 `/en` visitor to the Spanish URL before the request reaches a route. Drop the
 second and the build stores ~85 English 404s; drop the third and
 `dynamicParams = true` recreates them one request at a time. `spanishOnly`
@@ -448,7 +448,7 @@ automatically, and nothing trusts the browser.**
 - Identity is an opaque UUID. Bodies reference an editorial permalink,
   `/media/<id>/<name>.<ext>`; page metadata references the bare id
   (`previewMediaId`). Storage URLs never appear in content, and the permalink's
-  extension is required — the locale proxy would otherwise rewrite it away.
+  extension is required — the locale rewrite would otherwise send it into the /es tree.
 - Uploads are direct-to-storage: reserve (which commits a `pending` row before
   the presigned URL exists), upload to a staging key, then finalize — the server
   sniffs magic bytes, decodes, strips EXIF/GPS, writes the master, hashes it and

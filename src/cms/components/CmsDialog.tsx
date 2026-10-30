@@ -26,7 +26,7 @@ import { CmsIcon, type CmsIconName } from "../icons";
 //
 // Local rather than a reuse of `@/components/ConfirmDialog`: that one reads its
 // labels from `useT`, and the CMS has no I18n provider on purpose (cms.md — a
-// Spanish-only internal tool, no locale proxy). Sharing it would mean giving
+// Spanish-only internal tool, no locale rewrite). Sharing it would mean giving
 // the console a provider it exists without.
 
 /** Everything that can hold focus inside a panel, for the Tab loop below. */

@@ -9,7 +9,7 @@ export { viewport };
 
 // Root layout for the private publishing console. A third root layout beside
 // the public landing's and the app's, on purpose (cms.md): /cms shares the
-// site's fonts and design tokens and nothing else. No locale proxy, no i18n
+// site's fonts and design tokens and nothing else. No locale rewrite, no i18n
 // provider — the CMS is a Spanish-only internal tool for two people, and the
 // content it edits is Spanish-only too. No tRPC/session providers either: every
 // CMS page is a server component that has already resolved its actor.

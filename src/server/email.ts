@@ -70,7 +70,7 @@ const FROM = process.env.EMAIL_FROM ?? "Factura <onboarding@resend.dev>";
 
 /** The recipient's saved preference, or `null` when they have no account yet.
  * This is the authoritative source for anyone who has signed in before; the
- * proxy keeps it in sync with the version they last browsed. */
+ * locale cookie (`@/i18n/localeRules`) tracks the version they last browsed. */
 async function storedLocale(email: string): Promise<Locale | null> {
   try {
     const row = await db.query.users.findFirst({
