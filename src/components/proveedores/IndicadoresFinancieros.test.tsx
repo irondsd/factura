@@ -12,7 +12,7 @@ const value = CI_CONTENT_FIXTURES.find(
 )!.metadata.financials!;
 
 describe("financial figure text and scale", async () => {
-  it("server-renders values, provenance and accounting context", async () => {
+  it("server-renders both currencies and accounting context without duplicate sources", async () => {
     const html = await renderToHtml(
       createElement(IndicadoresFinancieros, { value }),
     );
@@ -25,10 +25,30 @@ describe("financial figure text and scale", async () => {
       "millones de ARS",
       "separado",
       "sin valor financiero",
-      "Fuente de prueba",
+      "millones de USD",
+      "ARS por USD / fecha",
+      "12,5",
+      "-2,25",
       "03/11/2026",
     ])
       expect(html).toContain(text);
+    expect(html).not.toContain("Fuente de prueba");
+    expect(html).not.toContain("<a ");
+  });
+  it("uses the same USD values in plot labels and table, keeping zero and missing years", async () => {
+    const html = await renderToHtml(
+      createElement(FinancialChart, {
+        chart: value.charts[0],
+        conversion: value.usdConversion,
+        currency: "USD",
+      }),
+    );
+    expect(html).toContain("<title>2018: 12,5 millones de USD</title>");
+    expect(html).toContain("<title>2019: -2,25 millones de USD</title>");
+    expect(html).toContain("<title>2021: 0 millones de USD</title>");
+    expect(html).not.toContain("<title>2020:");
+    expect(html).toContain("Sin dato");
+    expect(html).toContain("31/12/2019");
   });
   it("does not connect observations over missing years or nulls", async () => {
     const chart = {

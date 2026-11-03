@@ -398,7 +398,9 @@ now: no child pages.
 
 `<IndicadoresFinancieros />` is a shared block for `/proveedores`. Its data
 lives in `metadata.financials`, editable in «Componentes» or through MCP.
-It renders every chart with its table, accounting basis, entity and sources.
+It renders every chart with its table, accounting basis and entity. Put all report
+and exchange-rate links in `metadata.sources`, displayed once by `<Fuentes />`.
+Legacy `charts[].sources` remains readable but is not displayed by the charts.
 Unlike the repository-backed statistical datasets below, these annual company
 series can be refreshed through the CMS without deploying code.
 
@@ -411,9 +413,15 @@ series can be refreshed through the CMS without deploying code.
     "unit": "millones de ARS",
     "basis": "Pesos constantes de diciembre de 2025, según el informe citado.",
     "note": "Resultado del ejercicio completo. No incluye resultados trimestrales.",
-    "sources": [{ "label": "Estados financieros 2025", "href": "https://example.com/informe.pdf" }],
     "points": [{ "year": 2024, "value": -10 }, { "year": 2025, "value": 20 }]
-  }]
+  }],
+  "usdConversion": {
+    "basis": "Equivalente al tipo de cambio oficial de cierre; no mide crecimiento real.",
+    "rates": [
+      { "year": 2024, "date": "2024-12-31", "arsPerUsd": 1000 },
+      { "year": 2025, "date": "2025-12-31", "arsPerUsd": 1500 }
+    ]
+  }
 }
 ```
 
@@ -424,6 +432,17 @@ do not compare separately restated pesos as if they shared a price basis.
 Explain any nominal series explicitly. Years are unique and ascending, with
 2–60 observations and at least two reported values; up to eight charts.
 Use `null` for an unavailable value, never zero. Missing years break the line.
+`usdConversion` is optional and applies only to charts in `millones de ARS`.
+It adds a chart currency selector and USD/rate/date table columns. The component
+divides the ARS value by that year's positive `arsPerUsd`, preserving millions,
+negative values, zeros and missing observations. Every reported year needs one
+unique, ascending quote with a real date in that year. Store original ARS only;
+never hand-maintain a second USD series. Explain the rate, monetary basis and
+limits in `usdConversion.basis`, and cite BCRA in `metadata.sources`. For pesos
+restated to each December, a closing rate matches the monetary basis; an annual
+average FX would mix unlike bases. This USD equivalent does not measure real
+growth or actual dollar receipts and does not remove exchange-rate distortions.
+
 Only complete annual exercises belong here. Debt must say what it includes.
 Keep the numbers out of prose and preserve existing page metadata unless the
 brief authorizes the change. Refresh the review date with the numbers.

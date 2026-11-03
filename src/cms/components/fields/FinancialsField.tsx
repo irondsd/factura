@@ -5,7 +5,6 @@ import type {
   FinancialsMetadata,
 } from "@/content-system/metadata/financials";
 import { AddEntry, inputClass, RemoveEntry } from "./controls";
-import { SourcesInput } from "./SourcesField";
 
 /** No thousands separators: accepting them would make 1.234 ambiguous.
  * Keep invalid text in the draft so saving reports it instead of losing it. */
@@ -23,7 +22,6 @@ const EMPTY_CHART: FinancialChartData = {
   unit: "",
   basis: "",
   note: "",
-  sources: [],
   points: [],
 };
 
@@ -36,7 +34,7 @@ export function FinancialsInput({
 }) {
   const charts = value?.charts ?? [];
   const emit = (next: FinancialChartData[]) =>
-    onChange({ updated: value?.updated ?? "", charts: next });
+    onChange({ ...value, updated: value?.updated ?? "", charts: next });
   const update = (index: number, patch: Partial<FinancialChartData>) =>
     emit(
       charts.map((chart, i) => (i === index ? { ...chart, ...patch } : chart)),
@@ -49,7 +47,9 @@ export function FinancialsInput({
           type="date"
           className={inputClass}
           value={value?.updated ?? ""}
-          onChange={(e) => onChange({ charts, updated: e.target.value })}
+          onChange={(e) =>
+            onChange({ ...value, charts, updated: e.target.value })
+          }
         />
       </label>
       <p className="m-0 text-sm text-muted">
@@ -58,6 +58,150 @@ export function FinancialsInput({
         valor vacío si falta el dato. Compará ejercicios completos con la misma
         base contable.
       </p>
+      <p className="m-0 text-sm text-muted">
+        Los enlaces a los informes y al tipo de cambio se editan una sola vez en
+        Fuentes.
+      </p>
+      <label className="flex min-h-11 items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={Boolean(value?.usdConversion)}
+          onChange={(e) =>
+            onChange({
+              ...value,
+              updated: value?.updated ?? "",
+              charts,
+              usdConversion: e.target.checked
+                ? {
+                    basis: "",
+                    rates: [
+                      ...new Set(
+                        charts.flatMap((chart) =>
+                          chart.points.map((point) => point.year),
+                        ),
+                      ),
+                    ]
+                      .sort((a, b) => a - b)
+                      .map((year) => ({
+                        year,
+                        date: `${year}-12-31`,
+                        arsPerUsd: 0,
+                      })),
+                  }
+                : undefined,
+            })
+          }
+        />
+        Mostrar equivalentes en USD (importes originales en millones de ARS)
+      </label>
+      {value?.usdConversion && (
+        <fieldset className="min-w-0 space-y-3 border border-line p-3">
+          <legend className="px-1 text-sm">Conversión a USD</legend>
+          <label className="grid gap-1 text-sm">
+            Método y límites de comparación
+            <textarea
+              className={inputClass}
+              value={value.usdConversion.basis}
+              onChange={(e) =>
+                onChange({
+                  ...value,
+                  usdConversion: {
+                    ...value.usdConversion!,
+                    basis: e.target.value,
+                  },
+                })
+              }
+            />
+          </label>
+          {value.usdConversion.rates.map((rate, index) => (
+            <div
+              key={index}
+              className="grid gap-2 border-t border-line pt-2 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
+            >
+              {(["year", "date", "arsPerUsd"] as const).map((key) => (
+                <label key={key} className="grid min-w-0 gap-1 text-sm">
+                  {key === "year"
+                    ? "Ejercicio del tipo de cambio"
+                    : key === "date"
+                      ? "Fecha de cotización"
+                      : "ARS por USD"}
+                  <input
+                    className={inputClass}
+                    type={key === "date" ? "date" : "text"}
+                    inputMode={
+                      key === "date"
+                        ? undefined
+                        : key === "year"
+                          ? "numeric"
+                          : "decimal"
+                    }
+                    value={key === "arsPerUsd" ? rate[key] || "" : rate[key]}
+                    onChange={(e) =>
+                      onChange({
+                        ...value,
+                        usdConversion: {
+                          ...value.usdConversion!,
+                          rates: value.usdConversion!.rates.map((item, row) =>
+                            row === index
+                              ? {
+                                  ...item,
+                                  [key]:
+                                    key === "date"
+                                      ? e.target.value
+                                      : key === "year"
+                                        ? /^\d{4}$/.test(e.target.value)
+                                          ? Number(e.target.value)
+                                          : e.target.value
+                                        : parseFinancialValue(e.target.value),
+                                }
+                              : item,
+                          ) as NonNullable<
+                            FinancialsMetadata["usdConversion"]
+                          >["rates"],
+                        },
+                      })
+                    }
+                  />
+                </label>
+              ))}
+              <RemoveEntry
+                label={`Quitar cotización ${index + 1}`}
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    usdConversion: {
+                      ...value.usdConversion!,
+                      rates: value.usdConversion!.rates.filter(
+                        (_, row) => row !== index,
+                      ),
+                    },
+                  })
+                }
+              />
+            </div>
+          ))}
+          {value.usdConversion.rates.length < 60 && (
+            <AddEntry
+              onClick={() => {
+                const year =
+                  Number(value.usdConversion!.rates.at(-1)?.year ?? 2017) + 1;
+                onChange({
+                  ...value,
+                  usdConversion: {
+                    ...value.usdConversion!,
+                    rates: [
+                      ...value.usdConversion!.rates,
+                      { year, date: `${year}-12-31`, arsPerUsd: 0 },
+                    ],
+                  },
+                });
+              }}
+            >
+              Añadir cotización
+            </AddEntry>
+          )}
+        </fieldset>
+      )}
       {charts.map((chart, index) => (
         <fieldset
           key={index}
@@ -70,7 +214,7 @@ export function FinancialsInput({
               const next = charts.filter((_, i) => i !== index);
               onChange(
                 next.length
-                  ? { updated: value?.updated ?? "", charts: next }
+                  ? { ...value, updated: value?.updated ?? "", charts: next }
                   : undefined,
               );
             }}
@@ -177,11 +321,6 @@ export function FinancialsInput({
               </AddEntry>
             )}
           </div>
-          <p className="m-0 text-sm">Fuentes de este gráfico</p>
-          <SourcesInput
-            value={chart.sources}
-            onChange={(sources) => update(index, { sources: sources ?? [] })}
-          />
         </fieldset>
       ))}
       {charts.length < 8 && (

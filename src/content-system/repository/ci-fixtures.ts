@@ -152,6 +152,13 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
       // Matches the proveedores fixture, so the build renders a company page
       // that lists its guides rather than an empty block.
       vendor: "Proveedor CI",
+      sources: [
+        {
+          label: "Fuente de prueba",
+          href: "https://factura.uno",
+          note: "Datos y cotizaciones sintéticos de CI, sin valor financiero.",
+        },
+      ],
     },
     publishedAt: DATE,
     contentUpdatedAt: DATE,
@@ -272,7 +279,7 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
     section: "proveedores",
     slug: "ci-proveedor",
     status: "published",
-    body: '<ProviderSummary />\n\n## Un proveedor de CI\n\nEsta página mínima comprueba que un proveedor del CMS compila y se renderiza durante el build, con sus [guías](/guias/ci-guia).\n\n<Opiniones />\n\n<IndicadoresFinancieros />\n\n<RelatedGuides />\n\n<ClosingCta title="Tus facturas de Proveedor CI">\n\nFactura guarda el importe y el período de cada boleta.\n\n</ClosingCta>\n',
+    body: '<ProviderSummary />\n\n## Un proveedor de CI\n\nEsta página mínima comprueba que un proveedor del CMS compila y se renderiza durante el build, con sus [guías](/guias/ci-guia).\n\n<Opiniones />\n\n<IndicadoresFinancieros />\n\n<Fuentes />\n\n<RelatedGuides />\n\n<ClosingCta title="Tus facturas de Proveedor CI">\n\nFactura guarda el importe y el período de cada boleta.\n\n</ClosingCta>\n',
     title: "Proveedor de prueba para CI",
     titleTag: null,
     description:
@@ -288,6 +295,13 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
       categories: ["ci-ejemplo"],
       locations: ["argentina"],
       vendor: "Proveedor CI",
+      sources: [
+        {
+          label: "Fuente de prueba",
+          href: "https://factura.uno",
+          note: "Datos y cotizaciones sintéticos de CI, sin valor financiero.",
+        },
+      ],
       // Every text of the card, and no logo: a CI build has no media library,
       // and a logo id would make the build query one.
       provider: {
@@ -308,6 +322,15 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
       },
       financials: {
         updated: "2026-11-03",
+        usdConversion: {
+          basis:
+            "Cotizaciones sintéticas de CI, sin valor financiero. Equivalentes al cierre, no crecimiento real.",
+          rates: Array.from({ length: 8 }, (_, index) => ({
+            year: 2018 + index,
+            date: `${2018 + index}-12-31`,
+            arsPerUsd: index === 1 ? 200 : 100,
+          })),
+        },
         charts: [
           {
             title: "Resultado neto de prueba",

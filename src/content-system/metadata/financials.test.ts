@@ -50,7 +50,6 @@ describe("CMS annual financial series", () => {
     { entity: "" },
     { basis: "" },
     { note: "" },
-    { sources: [] },
     { sources: [{ label: "Bad", href: "javascript:alert(1)" }] },
   ])("refuses ambiguous or incomplete series: %j", (patch) => {
     expect(financialChartSchema.safeParse({ ...chart, ...patch }).success).toBe(
@@ -64,6 +63,35 @@ describe("CMS annual financial series", () => {
     ).toBe(false);
     expect(
       financialsMetadataSchema.safeParse({ ...data, currency: "ARS" }).success,
+    ).toBe(false);
+  });
+  it("accepts sources centralized in Fuentes instead of chart links", () => {
+    const { sources: _sources, ...withoutSources } = chart;
+    expect(_sources).toBeDefined();
+    expect(financialChartSchema.safeParse(withoutSources).success).toBe(true);
+  });
+  it.each([
+    { rates: [{ year: 2018, date: "2018-12-31", arsPerUsd: 0 }] },
+    { rates: [{ year: 2018, date: "2018-12-31", arsPerUsd: -1 }] },
+    { rates: [{ year: 2018, date: "2019-12-31", arsPerUsd: 100 }] },
+    { rates: [{ year: 2018, date: "2018-02-30", arsPerUsd: 100 }] },
+    { rates: [data.usdConversion!.rates[1], data.usdConversion!.rates[0]] },
+    { rates: [data.usdConversion!.rates[0], data.usdConversion!.rates[0]] },
+    { rates: data.usdConversion!.rates.slice(1) },
+  ])("rejects an invalid, duplicate or missing FX rate: %j", (patch) => {
+    expect(
+      financialsMetadataSchema.safeParse({
+        ...data,
+        usdConversion: { ...data.usdConversion, ...patch },
+      }).success,
+    ).toBe(false);
+  });
+  it("does not apply ARS conversion to a chart in another unit", () => {
+    expect(
+      financialsMetadataSchema.safeParse({
+        ...data,
+        charts: [{ ...chart, unit: "miles de ARS" }],
+      }).success,
     ).toBe(false);
   });
 });

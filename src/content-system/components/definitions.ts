@@ -847,7 +847,7 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
     kind: "leaf",
     props: CONTEXT_BOUND,
     description:
-      "Annual financial charts and tables from metadata.financials. Each chart states its entity, unit, accounting basis, limitations and sources. Write a bare <IndicadoresFinancieros />.",
+      "Annual financial charts and tables from metadata.financials. Each chart states its entity, unit, accounting basis and limitations. Optional usdConversion adds ARS/USD views. Report and FX links belong only to metadata.sources / Fuentes. Write a bare <IndicadoresFinancieros />.",
     authoring: {
       label: "Indicadores financieros",
       group: "charts-summaries",
