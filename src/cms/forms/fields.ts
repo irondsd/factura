@@ -44,6 +44,7 @@ export type FieldKind =
   | "provider"
   /** Platform ratings on a /proveedores page: a dated list of scores. */
   | "reviews"
+  | "financials"
   /** The Dataset JSON-LD payload, shown as named fields rather than JSON. */
   | "dataset"
   /** Another page in this section, or none. */
@@ -411,6 +412,18 @@ export function sectionFields(
     ...(sectionHasMetadataAddon(section, "dataset") ? DATA_ADDON_FIELDS : []),
     ...(sectionHasMetadataAddon(section, "provider")
       ? PROVIDER_ADDON_FIELDS
+      : []),
+    ...(sectionHasMetadataAddon(section, "financials")
+      ? [
+          {
+            path: "metadata.financials",
+            label: "Indicadores financieros",
+            kind: "financials" as const,
+            placedBy: "IndicadoresFinancieros",
+            group: "bloques" as const,
+            help: "Series anuales con entidad, unidad, base contable, notas y fuentes. Un valor vacío significa sin dato, nunca cero.",
+          },
+        ]
       : []),
     ...(sectionHasMetadataAddon(section, "reviews")
       ? REVIEWS_ADDON_FIELDS

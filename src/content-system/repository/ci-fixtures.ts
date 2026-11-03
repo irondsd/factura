@@ -272,7 +272,7 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
     section: "proveedores",
     slug: "ci-proveedor",
     status: "published",
-    body: '<ProviderSummary />\n\n## Un proveedor de CI\n\nEsta página mínima comprueba que un proveedor del CMS compila y se renderiza durante el build, con sus [guías](/guias/ci-guia).\n\n<Opiniones />\n\n<RelatedGuides />\n\n<ClosingCta title="Tus facturas de Proveedor CI">\n\nFactura guarda el importe y el período de cada boleta.\n\n</ClosingCta>\n',
+    body: '<ProviderSummary />\n\n## Un proveedor de CI\n\nEsta página mínima comprueba que un proveedor del CMS compila y se renderiza durante el build, con sus [guías](/guias/ci-guia).\n\n<Opiniones />\n\n<IndicadoresFinancieros />\n\n<RelatedGuides />\n\n<ClosingCta title="Tus facturas de Proveedor CI">\n\nFactura guarda el importe y el período de cada boleta.\n\n</ClosingCta>\n',
     title: "Proveedor de prueba para CI",
     titleTag: null,
     description:
@@ -305,6 +305,31 @@ export const CI_CONTENT_FIXTURES: readonly ContentDocument[] = [
         legalName: "Proveedor CI S.A.",
         regulator: "AOSC",
         billName: "PROVEEDOR CI SA",
+      },
+      financials: {
+        updated: "2026-11-03",
+        charts: [
+          {
+            title: "Resultado neto de prueba",
+            entity: "Proveedor CI S.A. · separado",
+            unit: "millones de ARS",
+            basis: "Datos sintéticos de CI, sin valor financiero.",
+            note: "El ejercicio sin dato queda vacío; los resultados negativos conservan su signo.",
+            sources: [
+              { label: "Fuente de prueba", href: "https://factura.uno" },
+            ],
+            points: [
+              { year: 2018, value: 1250 },
+              { year: 2019, value: -450 },
+              { year: 2020, value: null },
+              { year: 2021, value: 0 },
+              { year: 2022, value: 800 },
+              { year: 2023, value: 960 },
+              { year: 2024, value: 1200 },
+              { year: 2025, value: 1400 },
+            ],
+          },
+        ],
       },
       reviews: {
         updated: "2026-09-26",

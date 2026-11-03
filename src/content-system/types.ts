@@ -262,6 +262,8 @@ export type ContentMetadata = {
   provider?: ProviderMetadata;
   /** The platform ratings a /proveedores page places with `<Opiniones />`. */
   reviews?: ReviewsMetadata;
+  /** Annual charts and tables, edited through the CMS. */
+  financials?: import("./metadata/financials").FinancialsMetadata;
 };
 
 /** A complete page: everything needed to render it and everything needed to

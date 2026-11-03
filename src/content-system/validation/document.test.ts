@@ -1216,3 +1216,21 @@ describe("the ratings block's data", () => {
     ).toContain(DOCUMENT_CODES.reviewsUndated);
   });
 });
+
+describe("CMS financial block placement", () => {
+  it("requires chart metadata for a placed block", () => {
+    expect(
+      codes({ section: "proveedores", body: "<IndicadoresFinancieros />" }),
+    ).toContain("doc.financials-empty");
+  });
+  it("keeps financial metadata on company pages", () => {
+    expect(codes(meta({ financials: {} }))).toContain(
+      "doc.financials-wrong-section",
+    );
+  });
+  it("warns about financial data that readers cannot see", () => {
+    expect(
+      codes({ ...meta({ financials: {} }), section: "proveedores" }),
+    ).toContain("doc.financials-not-placed");
+  });
+});

@@ -842,6 +842,21 @@ export const CONTENT_COMPONENT_DEFINITIONS = {
       ],
     },
   },
+  IndicadoresFinancieros: {
+    sections: ["proveedores"],
+    kind: "leaf",
+    props: CONTEXT_BOUND,
+    description:
+      "Annual financial charts and tables from metadata.financials. Each chart states its entity, unit, accounting basis, limitations and sources. Write a bare <IndicadoresFinancieros />.",
+    authoring: {
+      label: "Indicadores financieros",
+      group: "charts-summaries",
+      rank: 15,
+      notes: [
+        "Completa los gráficos anuales en Componentes. No mezcles resultados trimestrales con anuales ni distintas bases monetarias.",
+      ],
+    },
+  },
   Opiniones: {
     // Ratings are about a company, and only a company page has one.
     sections: ["proveedores"],

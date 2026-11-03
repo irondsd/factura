@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { contentUrl, dataSourceSchema, guideMetadataSchema } from "./guias";
 
+import { financialsMetadataSchema } from "./financials";
+
 const text = z.string().trim().min(1);
 
 // `dataSourceSchema` now lives beside the guide metadata, because a guide can
@@ -85,4 +87,5 @@ export const contentMetadataSchema = guideMetadataSchema.safeExtend({
   dataset: datasetMetadataSchema.optional(),
   provider: providerMetadataSchema.optional(),
   reviews: reviewsMetadataSchema.optional(),
+  financials: financialsMetadataSchema.optional(),
 });

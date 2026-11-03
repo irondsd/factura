@@ -5,6 +5,8 @@ import type { ComponentEntry, ComponentState } from "@/cms/forms/components";
 import type { FieldDescriptor } from "@/cms/forms/fields";
 import { cn } from "@/lib/cn";
 import { CmsIcon } from "../icons";
+import { FinancialsInput } from "./fields/FinancialsField";
+import type { FinancialsMetadata } from "@/content-system/metadata/financials";
 import { FaqInput } from "./fields/FaqField";
 import { MethodologyInput } from "./fields/MethodologyField";
 import { ProviderInput } from "./fields/ProviderField";
@@ -236,6 +238,13 @@ function ComponentInput({
       );
     case "provider":
       return <ProviderInput value={asProvider(value)} onChange={onChange} />;
+    case "financials":
+      return (
+        <FinancialsInput
+          value={value as FinancialsMetadata | undefined}
+          onChange={onChange}
+        />
+      );
     case "reviews":
       return <ReviewsInput value={asReviews(value)} onChange={onChange} />;
     default:

@@ -394,6 +394,40 @@ A brand that absorbed others (Personal: Flow, Fibertel, Movistar) gets one
 page with a `##` section for each, not a page each. The section is flat for
 now: no child pages.
 
+### Financial charts on a company page
+
+`<IndicadoresFinancieros />` is a shared block for `/proveedores`. Its data
+lives in `metadata.financials`, editable in «Componentes» or through MCP.
+It renders every chart with its table, accounting basis, entity and sources.
+Unlike the repository-backed statistical datasets below, these annual company
+series can be refreshed through the CMS without deploying code.
+
+```json
+"financials": {
+  "updated": "2026-11-03",
+  "charts": [{
+    "title": "Resultado neto",
+    "entity": "Empresa S.A. · estados separados",
+    "unit": "millones de ARS",
+    "basis": "Pesos constantes de diciembre de 2025, según el informe citado.",
+    "note": "Resultado del ejercicio completo. No incluye resultados trimestrales.",
+    "sources": [{ "label": "Estados financieros 2025", "href": "https://example.com/informe.pdf" }],
+    "points": [{ "year": 2024, "value": -10 }, { "year": 2025, "value": 20 }]
+  }]
+}
+```
+
+The numbers above are a format example, never company data. Each chart must
+name the legal entity and scope (separate or consolidated), unit, accounting
+basis and limitations, and cite the reports used. Use one indicator per chart;
+do not compare separately restated pesos as if they shared a price basis.
+Explain any nominal series explicitly. Years are unique and ascending, with
+2–60 observations and at least two reported values; up to eight charts.
+Use `null` for an unavailable value, never zero. Missing years break the line.
+Only complete annual exercises belong here. Debt must say what it includes.
+Keep the numbers out of prose and preserve existing page metadata unless the
+brief authorizes the change. Refresh the review date with the numbers.
+
 ### A data page
 
 The published pages that work share one shape; keep it:

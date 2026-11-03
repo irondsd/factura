@@ -250,6 +250,7 @@ export default async function CmsPreviewPage({ params, searchParams }: Props) {
             ...(await mediaComponents(page.body)),
             ProviderSummary: providerComponents.ProviderSummary,
             Opiniones: providerComponents.Opiniones,
+            IndicadoresFinancieros: providerComponents.IndicadoresFinancieros,
             RelatedGuides: () => (
               <RelatedGuides
                 guides={related.map((candidate) => ({

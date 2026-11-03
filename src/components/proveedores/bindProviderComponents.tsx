@@ -1,6 +1,7 @@
 import "server-only";
 import { resolveMediaRef } from "@/content-system/media/repository";
 import type { ContentMetadata } from "@/content-system/types";
+import { IndicadoresFinancieros } from "./IndicadoresFinancieros";
 import { Opiniones } from "./Opiniones";
 import { ProviderSummary } from "./ProviderSummary";
 
@@ -14,7 +15,10 @@ import { ProviderSummary } from "./ProviderSummary";
  * reads. */
 export async function bindProviderComponents(page: {
   title: string;
-  metadata: Pick<ContentMetadata, "vendor" | "provider" | "reviews">;
+  metadata: Pick<
+    ContentMetadata,
+    "vendor" | "provider" | "reviews" | "financials"
+  >;
 }) {
   const provider = page.metadata.provider ?? {};
   const logo = await resolveMediaRef(provider.logoMediaId);
@@ -22,6 +26,9 @@ export async function bindProviderComponents(page: {
   return {
     ProviderSummary: function BoundProviderSummary() {
       return <ProviderSummary name={name} value={provider} logo={logo} />;
+    },
+    IndicadoresFinancieros: function BoundFinancials() {
+      return <IndicadoresFinancieros value={page.metadata.financials} />;
     },
     Opiniones: function BoundOpiniones() {
       return <Opiniones name={name} value={page.metadata.reviews} />;

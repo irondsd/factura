@@ -170,6 +170,7 @@ const METADATA_LABELS: Record<string, string> = {
   dataset: "Conjunto de datos",
   provider: "Ficha del proveedor",
   reviews: "Opiniones",
+  financials: "Indicadores financieros",
 };
 
 /** A line-level diff, longest-common-subsequence.

@@ -58,6 +58,7 @@ export const CONTEXT_BOUND_COMPONENT_NAMES = [
   "Subpaginas",
   "ProviderSummary",
   "Opiniones",
+  "IndicadoresFinancieros",
 ] as const;
 
 export type ContextBoundComponentName =

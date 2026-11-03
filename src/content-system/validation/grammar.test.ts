@@ -90,6 +90,7 @@ describe("allowed components", () => {
     ResumenRegion: '<ResumenRegion region="gba" />',
     ProviderSummary: "<ProviderSummary />",
     Opiniones: "<Opiniones />",
+    IndicadoresFinancieros: "<IndicadoresFinancieros />",
     ...Object.fromEntries(
       SECTION_COMPONENT_NAMES.filter(
         (name) =>
@@ -119,7 +120,9 @@ describe("allowed components", () => {
           [...SECTION_COMPONENT_NAMES, "Fuentes", "Subpaginas"] as string[]
         ).includes(name)
           ? "estadisticas"
-          : name === "ProviderSummary" || name === "Opiniones"
+          : ["ProviderSummary", "Opiniones", "IndicadoresFinancieros"].includes(
+                name,
+              )
             ? "proveedores"
             : "guias",
       );

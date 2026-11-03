@@ -123,6 +123,7 @@ export default async function ProveedorPage({ params }: Props) {
           ...media,
           ProviderSummary: providerComponents.ProviderSummary,
           Opiniones: providerComponents.Opiniones,
+          IndicadoresFinancieros: providerComponents.IndicadoresFinancieros,
           RelatedGuides: () => (
             <RelatedGuides
               guides={guides.map((guide) => ({

@@ -208,10 +208,51 @@ export function validateDocument(
   context: DocumentValidationContext = {},
 ): ValidationResult {
   const result = validateForProfile(document, index, context);
-  const extra = [...validateProvider(document), ...validateReviews(document)];
+  const extra = [
+    ...validateProvider(document),
+    ...validateReviews(document),
+    ...validateFinancials(document),
+  ];
   return extra.length > 0
     ? validationResult([...result.diagnostics, ...extra])
     : result;
+}
+
+/** A placed chart block must have data; stored data must not silently disappear. */
+function validateFinancials(document: ContentDocument): Diagnostic[] {
+  const value = (document.metadata as Record<string, unknown>).financials;
+  const placed = /<IndicadoresFinancieros\b/.test(document.body);
+  if (
+    value !== undefined &&
+    !sectionHasMetadataAddon(document.section, "financials")
+  ) {
+    return [
+      error(
+        "doc.financials-wrong-section",
+        "meta.financials is only for /proveedores pages",
+        "financials",
+      ),
+    ];
+  }
+  if (placed && value === undefined) {
+    return [
+      error(
+        "doc.financials-empty",
+        "<IndicadoresFinancieros /> requires meta.financials",
+        "financials",
+      ),
+    ];
+  }
+  if (value !== undefined && !placed) {
+    return [
+      warn(
+        "doc.financials-not-placed",
+        "meta.financials is set but <IndicadoresFinancieros /> is missing",
+        "financials",
+      ),
+    ];
+  }
+  return [];
 }
 
 /** The ratings block, `<Opiniones />` over `metadata.reviews`. Asked of every

@@ -1,3 +1,4 @@
+import { financialsMetadataSchema } from "@/content-system/metadata/financials";
 import {
   METHODOLOGY_FIELDS,
   methodologyEntries,
@@ -166,6 +167,19 @@ function assess(
         warnings.push(
           "Completa al menos el logo o una cifra: sin datos la ficha es solo el nombre.",
         );
+      }
+      break;
+    }
+    case "financials": {
+      const parsed = financialsMetadataSchema.safeParse(value);
+      if (!parsed.success) {
+        errors.push(
+          ...parsed.error.issues.map(
+            (issue) => `${issue.path.join(".")}: ${issue.message}`,
+          ),
+        );
+      } else {
+        summary = `${parsed.data.charts.length} gráficos anuales`;
       }
       break;
     }

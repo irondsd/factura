@@ -9,7 +9,13 @@ import type { ContentSection } from "./types";
 export type SectionProfile = {
   validation: "guide" | "news" | "data";
   newPageTemplate: "article" | "data";
-  metadataAddons: readonly ("vendor" | "dataset" | "provider" | "reviews")[];
+  metadataAddons: readonly (
+    | "vendor"
+    | "dataset"
+    | "provider"
+    | "reviews"
+    | "financials"
+  )[];
   /** Upper bound on `metadata.categories`. Three everywhere a category is a
    * topic; higher where it is a service a company sells, because one company
    * can honestly sell four or five of them. */
@@ -48,7 +54,7 @@ export const SECTION_PROFILES = {
   proveedores: {
     validation: "guide",
     newPageTemplate: "article",
-    metadataAddons: ["vendor", "provider", "reviews"],
+    metadataAddons: ["vendor", "provider", "reviews", "financials"],
     maxCategories: 5,
   },
 } as const satisfies Record<ContentSection, SectionProfile>;
