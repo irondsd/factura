@@ -44,12 +44,14 @@ export type TierMatch = {
 export type SubmitResponse =
   | {
       submissionId: string;
+      isSample?: boolean;
       /** A readable PDF with no extractable text — a scan or a photo. */
       outcome: "no_text";
       pageCount: number;
     }
   | {
       submissionId: string;
+      isSample?: boolean;
       outcome: "pending";
       pageCount: number;
       /** Extraction stopped at the page cap; the text is partial. */

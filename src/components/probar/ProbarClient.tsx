@@ -223,6 +223,9 @@ export function ProbarClient() {
             "upload_failed",
           );
         submitted = (await res.json()) as SubmitResponse;
+        patch(key, {
+          isSample: source === "sample" || submitted.isSample === true,
+        });
       } catch {
         patch(key, {
           reading: false,
@@ -428,6 +431,7 @@ export function ProbarClient() {
 
       const fresh: Submission[] = accepted.map((file) => ({
         key: crypto.randomUUID(),
+        isSample: source === "sample",
         file,
         submissionId: null,
         reading: true,
@@ -476,7 +480,7 @@ export function ProbarClient() {
   const dragging = useWindowFileDrop({ onFiles: onWindowFiles });
 
   /** Fetch the committed sample and push it through the identical pipeline —
-   * no `sample=1` branch on the server to keep honest. */
+   * the demo still exercises real parsing, but is never offered for saving. */
   const useSample = useCallback(async () => {
     setSampleBusy(true);
     try {
@@ -556,7 +560,7 @@ export function ProbarClient() {
   // worth an address. All-parsed shows only the save offer, all-failed only the
   // notify one, and a mixed drop gets both — withholding either because the
   // other applies would drop the more valuable half of a real visit.
-  const savable = submissions.filter((s) => s.match?.ok);
+  const savable = submissions.filter((s) => !s.isSample && s.match?.ok);
   const unread = submissions.filter(
     (s) => s.failure !== null && s.submissionId !== null,
   );
