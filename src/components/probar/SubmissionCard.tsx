@@ -20,6 +20,7 @@ import { TierStepper, type TierState } from "./TierStepper";
 /** Everything the page knows about one dropped file. */
 export type Submission = {
   key: string;
+  isSample: boolean;
   file: File;
   submissionId: string | null;
   /** Upload/extraction still in flight. */
